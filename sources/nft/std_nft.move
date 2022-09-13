@@ -13,6 +13,7 @@ module nft_protocol::std_nft {
     use sui::tx_context::{TxContext};
     use nft_protocol::nft::{Self, NftOwned};
     use nft_protocol::utils::{to_string_vector};
+    use nft_protocol::launcher::{Self, Launcher};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::std_collection::{StdCollection, CollectionMeta};
 
@@ -55,29 +56,29 @@ module nft_protocol::std_nft {
     /// contract which creates the collection. That contract can then define
     /// their own logic for restriction on minting.
     public entry fun mint_and_transfer(
-        // Name of the Nft. This parameter is a vector of bytes that
-        // enconde to utf8 and will be stored in the Nft object as a String
+        // Name of the NFT. This parameter is a vector of bytes that
+        // enconde to utf8 and will be stored in the NFT object as a String
         name: vector<u8>,
-        // Uri of the Nft. This parameter is a vector of bytes that
-        // encondes to utf8 and will be stored in the Nft object as a Url
+        // Uri of the NFT. This parameter is a vector of bytes that
+        // encondes to utf8 and will be stored in the NFT object as a Url
         uri: vector<u8>,
         is_mutable: bool,
         // A vector of attribute keys, expressed in a vector of bytes that
         // encode to utf8. The attribute keys are stored as a String in the
-        // Nft object as part of the `Attributes` struct in the attributes field
+        // NFT object as part of the `Attributes` struct in the attributes field
         attribute_keys: vector<vector<u8>>,
         // A vector of attribute values, expressed in a vector of bytes that
         // encode to utf8. The attribute values are stored as a String in the
-        // Nft object as part of the `Attributes` struct in the
+        // NFT object as part of the `Attributes` struct in the
         // `attributes` field
         attribute_values: vector<vector<u8>>,
-        // The Collection object that represents the nft collection of the Nft 
+        // The Collection object that represents the nft collection of the NFT 
         // being minted. As it stands, the NFT can only be minted by the 
         // collection owner if the collection is owned, or be minted by anyone
         // if the collection is shared
         coll: &mut Collection<StdCollection, CollectionMeta>,
         coin: Coin<SUI>,
-        // The recipient of the Nft
+        // The recipient of the NFT
         recipient: address,
         ctx: &mut TxContext
     ) {
@@ -124,6 +125,89 @@ module nft_protocol::std_nft {
                 ctx,
             ),
             recipient,
+        );
+    }
+
+    /// Mint one `Nft` with `Metadata` and send it to `Launcher` object.
+    /// Invokes `mint()`.
+    public entry fun mint_to_launcher<T, K: store, Config: store>(
+        // Name of the NFT. This parameter is a vector of bytes that
+        // enconde to utf8 and will be stored in the NFT object as a String
+        name: vector<u8>,
+        // Uri of the NFT. This parameter is a vector of bytes that
+        // encondes to utf8 and will be stored in the Nft object as a Url
+        uri: vector<u8>,
+        is_mutable: bool,
+        // A vector of attribute keys, expressed in a vector of bytes that
+        // encode to utf8. The attribute keys are stored as a String in the
+        // Nft object as part of the `Attributes` struct in the attributes field
+        attribute_keys: vector<vector<u8>>,
+        // A vector of attribute values, expressed in a vector of bytes that
+        // encode to utf8. The attribute values are stored as a String in the
+        // Nft object as part of the `Attributes` struct in the
+        // `attributes` field
+        attribute_values: vector<vector<u8>>,
+        // The Collection object that represents the nft collection of the Nft 
+        // being minted. As it stands, the NFT can only be minted by the 
+        // collection owner if the collection is owned, or be minted by anyone
+        // if the collection is shared
+        coll: &mut Collection<StdCollection, CollectionMeta>,
+        coin: Coin<SUI>,
+        // The rNftecipient of the 
+        launcher: &mut Launcher<T, Config>,
+        ctx: &mut TxContext
+    ) {
+        // TODO: reduce code duplication between `mint_and_transfer` and 
+        // `mint_to_launcher`
+        let current_supply = collection::current_supply(coll);
+        let max_supply = collection::total_supply(coll);
+
+        assert!(current_supply < max_supply, 0);
+
+        let args = mint_args(
+            string::utf8(name),
+            current_supply + 1,
+            url::new_unsafe_from_bytes(uri),
+            false,
+            is_mutable,
+            attribute_keys,
+            attribute_values,
+        );
+
+        assert!(coin::value(&coin) > collection::initial_price(coll), 0);
+
+        // Split coin into price and change, then transfer 
+        // the price and keep the change
+        let balance = coin::into_balance(coin);
+
+        let price = coin::take(
+            &mut balance,
+            collection::initial_price(coll),
+            ctx,
+        );
+
+        let change = coin::from_balance(balance, ctx);
+        coin::keep(change, ctx);
+
+        // Transfer Sui to pay for the mint
+        sui::transfer(
+            price,
+            collection::receiver(coll),
+        );
+
+        let nft = mint(
+            args,
+            coll,
+            ctx,
+        );
+
+        let id = nft::id(&nft);
+
+        launcher::add_nft<T, Config>(launcher, id);
+
+        transfer::transfer_to_object(
+            nft,
+            launcher,
         );
     }
 
