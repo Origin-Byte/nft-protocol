@@ -58,6 +58,7 @@ Where `Tags` is a struct with the field `enumarations` as a `VecMap<u64, String>
 The collection object has the following functions that mutate state:
 
 - `create` which mints a collection object and returns it
+- `init_args` returns `InitCollection` struct from the inputs which acts as input to `create` function
 - `increase_supply` which increments `current_supply` by one 
 - `decrease_supply` which decreases `current_supply` by one
 - `burn` which burns the collection object if `current_supply` is zero
@@ -78,7 +79,7 @@ and the following getter functions:
 - `total_supply`
 - `tags`
 - `metadata`
-- `metadata_mut`
+- `metadata_mut` returns a mutable reference to metadata object
 - `initial_price`
 - `receiver`
 - `is_mutable`
@@ -95,7 +96,7 @@ The standard collection metadata object has the following data model:
 | `creators`        | `vector<Creator>` | A vector containing the information of the creators |
 | `data`            | `String`          | An open string field to add any arbitrary data |
 
-* `royalty_fee_bps` and `is_mutable` are currently not being utilized.
+* `royalty_fee_bps` is currently not being utilized but will be used in the standard launchpad module.
 
 Where `Creators` is a struct with the following fields:
 - `id` representing the address of the creator
@@ -109,7 +110,7 @@ The collection metadata object has the following functions that mutate state:
 - `add_creator` pushes a `Creator` to the `creators` field
 - `remove_creator` pops a `Creator` from the `creators` field
 - `change_royalty` changes the field `royalty_fee_bps`
-- `burn` which burns the collection object and subsequently the metadata object (TODO: to be implemented)
+- `burn` which burns the collection object and subsequently the metadata object
 
 and the following getter functions:
 - `royalty`
@@ -128,8 +129,8 @@ Generic NFT objects have the following data model:
 | `metadata`        | `u64`             |  A generic type representing the metadata object embedded in the NFT |
 
 The generic NFT object has the following init and drop functions:
-- `create_owned`
-- `destroy_owned`
+- `create_owned` to create the NFT (called by the Domain-specific module)
+- `destroy_owned` to destroy the NFT (called by the Domain-specific module) 
 
 ### NFT Standard Metadata Object
 
