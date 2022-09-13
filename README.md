@@ -32,14 +32,14 @@ Domain-specific modules:
 
 ## Minting an NFT Collection
 
-Conceptually, NFTs are organized in NFT Collections. To mint an NFT, projects must first create the NFT Collection object, where some metadata and configurations about the project will be stored. The NFT Collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time the collection owner can decide to make the collection immutable, therefore freezing the Collection object and its associated NFTs. However, not all fields of the Collection are frozen:
+Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT  ollection object, where some metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time the collection owner can decide to make the collection immutable, therefore freezing the collection object and its associated NFTs. However, not all fields of the `Collection` are frozen:
 
-- The field `current_supply` will still mutate everytime an NFT is minted or burned
+- The field `current_supply` will still mutate every-time an NFT is minted or burned
 - Collection owners will still be able to push and pop tags onto the field `tags`
 
-Once the collection object is created via the domain-specific Collection module we can now use the domain-specific NFT module to mint the NFTs. All domain-specific NFT objects will be guaranteed to have the field `collection_id` if they are implemented with the generic module. This field acts as a pointer to the collection object and allows us to build a permissioning behaviour. When we mint an NFT we need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the intial mint, or anyone can mint if the collection is made a shared-object. This collection ownership patterns is useful since it is desirable that project perform the initial mint of the NFTs and transfer those NFTs onto a Launchpad (we are currently developing a launchpad).
+Once the collection object is created via the domain-specific collection module we can now use the domain-specific NFT module to mint the NFTs. All domain-specific NFT objects will be guaranteed to have the field `collection_id` if they are implemented with the generic module. This field acts as a pointer to the collection object and allows us to build a permissioning behaviour. When we mint an NFT we need to pass on a mutable reference to the `Collection` object. This means that only the collection owner can perform the initial mint, or anyone can mint if the collection is made a shared-object. This collection ownership patterns is useful since it is desirable that project perform the initial mint of the NFTs and transfer those NFTs onto a Launchpad (we are currently developing a launchpad).
 
-Let us now describe the `Collection` and `CollectionMeta` objects, instanciated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instanciated by the `nft.move` and `std_nft.move` modules.
+Let us now describe the `Collection` and `CollectionMeta` objects, instantiated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instantiated by the `nft` and `std_nft` modules.
 
 ### Collection Object
 
