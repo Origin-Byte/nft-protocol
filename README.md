@@ -32,7 +32,7 @@ Domain-specific modules:
 
 ## Minting an NFT Collection
 
-Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT  ollection object, where some metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time the collection owner can decide to make the collection immutable, therefore freezing the collection object and its associated NFTs. However, not all fields of the `Collection` are frozen:
+Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT  Collection object, where some metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time the collection owner can decide to make the collection immutable, therefore freezing the collection object and its associated NFTs. However, not all fields of the `Collection` are frozen:
 
 - The field `current_supply` will still mutate every-time an NFT is minted or burned
 - Collection owners will still be able to push and pop tags onto the field `tags`
