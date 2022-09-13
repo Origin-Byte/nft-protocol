@@ -5,7 +5,7 @@
 This codebase requires installation of both the Sui CLI ant the Sui source code. The latter has to be present in the parent folder of the repository.
 
 - Install the [Sui CLI](https://docs.sui.io/build/install)
-- `git clone https://github.com/MystenLabs/sui.git --branch devnet` to download the current sui develop source code
+- `git clone https://github.com/MystenLabs/sui.git --branch devnet` to download the current sui develop branch source code
 
 # Built and Test
 
@@ -32,14 +32,16 @@ Domain-specific modules:
 
 ## Minting an NFT Collection
 
-Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT  Collection object, where some metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time the collection owner can decide to make the collection immutable, therefore freezing the collection object and its associated NFTs. However, not all fields of the `Collection` are frozen:
+Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT collection object, where metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time the collection owner can decide to make the collection immutable which involves freezing the collection object and its associated NFTs. However, not all fields of the Collection are frozen:
 
-- The field `current_supply` will still mutate every-time an NFT is minted or burned
-- Collection owners will still be able to push and pop tags onto the field `tags`
+- The field current_supply will still mutate every-time an NFT is minted or burned
+- Collection owners will still be able to push and pop tags onto the field tags
 
-Once the collection object is created via the domain-specific collection module we can now use the domain-specific NFT module to mint the NFTs. All domain-specific NFT objects will be guaranteed to have the field `collection_id` if they are implemented with the generic module. This field acts as a pointer to the collection object and allows us to build a permissioning behaviour. When we mint an NFT we need to pass on a mutable reference to the `Collection` object. This means that only the collection owner can perform the initial mint, or anyone can mint if the collection is made a shared-object. This collection ownership patterns is useful since it is desirable that project perform the initial mint of the NFTs and transfer those NFTs onto a Launchpad (we are currently developing a launchpad).
+Once the collection object is created via the domain-specific collection module, you can use the domain-specific NFT module to mint the NFTs. All domain-specific NFT objects will be guaranteed to have the field collection_id if they are implemented with the generic module. This field acts as a pointer to the collection object and allows us to build a permissioning behaviour.
 
-Let us now describe the `Collection` and `CollectionMeta` objects, instantiated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instantiated by the `nft` and `std_nft` modules.
+When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anybody can or anyone can. This collection ownership pattern is useful since many projects will want to transfer NFTs to a Launchpad as part of the initial mint process (Launchpad infrastructure is something we will also support).
+
+Let us now describe the `Collection` and `CollectionMeta` objects, instantiated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instantiated by the nft and std_nft modules.
 
 ### Collection Object
 
@@ -58,7 +60,7 @@ The collection object has the following data model:
 | `is_mutable`     | `bool`        | A configuration field that dictates whether NFTs are mutable |
 | `metadata`       | `Meta`        | A generic type representing the metadata object embedded in the NFT collection |
 
-Where `Tags` is a struct with the field `enumarations` as a `VecMap<u64, String>` being the set of strings representing the domains of the NFT (e.g. Art, Gaming Asset, Tickets, Loyalty Points, etc.)
+Where `Tags` is a struct with the field `enumerations` as a `VecMap<u64, String>` being the set of strings representing the domains of the NFT (e.g. Art, Gaming Asset, Tickets, Loyalty Points, etc.)
 
 The collection object has the following functions that mutate state:
 
@@ -110,8 +112,8 @@ Where `Creators` is a struct with the following fields:
 
 The collection metadata object has the following functions that mutate state:
 
-- `mint_and_transfer` mints a collection object, it's corresponding metadata object and transfers it to a recipient
-- `mint_and_share` mints a collection object, it's corresponding metadata object and makes it a shared object
+- `mint_and_transfer` mints a collection object, it's corresponding metadata object, and transfers it to a recipient
+- `mint_and_share` mints a collection object, it's corresponding metadata object, and makes it a shared object
 - `add_creator` pushes a `Creator` to the `creators` field
 - `remove_creator` pops a `Creator` from the `creators` field
 - `change_royalty` changes the field `royalty_fee_bps`
@@ -150,12 +152,12 @@ Standard NFT metadata objects have the following data model:
 | `attributes`      | `Attributes`      | Attributes of a given NFT |
 
 
-Where `Attributes` is a struct with the field `keys`, the attribute keys represented as string vector, in other words the set of traits (e.g. Hat, Color of T-shirt, Fur type, etc.) and NFT has, and `values` of such traits (e.g. Straw Hat, White T-shit, Blue Fur, etc.).
+Where `Attributes` is a struct with the field `keys`, the attribute keys represented as string vector, in other words the set of traits (e.g. Hat, Color of T-shirt, Fur type, etc.) and NFT has, and `values` of such traits (e.g. Straw Hat, White T-shirt, Blue Fur, etc.).
 
 The standard NFT metadata object has the following init and drop functions:
 - `mint_and_transfer` which mint and NFT and transfer it to a recipient. Currently, the only way to mint the NFT is if the call is made by the Collection owner (or by anyone if the collection is a shared object). This last option allows for anyone to mint their desired metadata which is suboptimal.
 
-For the timebeing we are allowing for this so that marketplaces can allow users to mint devnet NFT mints from temporary collections. However, we plan to deprecate this as soon as we deploy the launchpad module, which will allow collection owners to mint and transfer the NFT to a launchpad object which will configure the primary market sale strategy.
+For the time being we are allowing for this so that marketplaces can allow users to mint devnet NFT mints from temporary collections. However, we plan to deprecate this as soon as we deploy the launchpad module, which will allow collection owners to mint and transfer the NFT to a launchpad object which will configure the primary market sale strategy.
 - `burn` which burns the NFT
 
 and the following getter functions:
