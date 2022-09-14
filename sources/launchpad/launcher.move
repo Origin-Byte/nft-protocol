@@ -77,4 +77,15 @@ module nft_protocol::launcher {
         let nfts = &mut launcher.nfts;
         vector::pop_back(nfts)
     }
+
+    public fun init_args(
+        collection: ID,
+        go_live_date: u64,
+    ): InitLauncher {
+
+        InitLauncher {
+            collection,
+            go_live_date,
+        }
+    }
 }
