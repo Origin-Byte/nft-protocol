@@ -69,4 +69,12 @@ module nft_protocol::launcher {
         vector::push_back(nfts, id);
     }
 
+    /// Pops an NFT's ID from the `nfts` field in `Launcher` object
+    /// and returns respective `ID`
+    fun remove_nft<T, Config>(
+        launcher: &mut Launcher<T, Config>,
+    ): ID {
+        let nfts = &mut launcher.nfts;
+        vector::pop_back(nfts)
+    }
 }
