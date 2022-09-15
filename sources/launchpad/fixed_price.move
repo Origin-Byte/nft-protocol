@@ -1,5 +1,5 @@
 /// Module of a Fixed Initial NFT Offering `Config` type.
-module nft_protocol::fixed_ino {
+module nft_protocol::fixed_price {
     use sui::transfer::{Self};
     use sui::sui::{Self, SUI};
     use sui::coin::{Self, Coin};
@@ -15,7 +15,7 @@ module nft_protocol::fixed_ino {
         price: u64,
     }
 
-    struct InitFixedInitalOffer has drop {
+    struct InitFixedPricelOffer has drop {
         collection: ID,
         go_live_date: u64,
         receiver: address,
@@ -142,8 +142,8 @@ module nft_protocol::fixed_ino {
         go_live_date: u64,
         receiver: address,
         price: u64,
-    ): InitFixedInitalOffer {
-        InitFixedInitalOffer {
+    ): InitFixedPricelOffer {
+        InitFixedPricelOffer {
             collection,
             go_live_date,
             receiver,
