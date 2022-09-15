@@ -4,8 +4,9 @@ module nft_protocol::fixed_ino {
     use sui::sui::{Self, SUI};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, UID, ID};
-    use sui::tx_context::{TxContext};
+    use sui::tx_context::{Self, TxContext};
     use nft_protocol::launcher::{Self, Launcher};
+    use nft_protocol::nft::{Self, NftOwned};
 
     struct FixedInitalOffer has drop {}
 
@@ -67,7 +68,6 @@ module nft_protocol::fixed_ino {
     public entry fun buy_nft_certificate(
         coin: Coin<SUI>,
         launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
-        recipient: address,
         ctx: &mut TxContext,
     ) {
         let price = price(launcher::config(launcher));
@@ -100,54 +100,27 @@ module nft_protocol::fixed_ino {
         };
 
         transfer::transfer(
-            certificate, // This should be the ID of the object
+            certificate,
+            tx_context::sender(ctx),
+        );
+    }
+    
+    public entry fun redeem_nft<T, Meta: store>(
+        _launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
+        nft: NftOwned<T, Meta>,
+        certificate: NftCertificate,
+        recipient: address,
+    ) {
+        assert!(nft::id(&nft) == certificate.nft_id, 0);
+
+        burn_certificate(certificate);
+
+        transfer::transfer(
+            nft,
             recipient,
         );
     }
 
-    
-    // public entry fun buy_nft(
-    //     coin: Coin<SUI>,
-    //     launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     let price = price(launcher::config(launcher));
-    //     assert!(coin::value(&coin) > price, 0);
-
-    //     // Split coin into price and change, then transfer 
-    //     // the price and keep the change
-    //     let balance = coin::into_balance(coin);
-
-    //     let price = coin::take(
-    //         &mut balance,
-    //         price,
-    //         ctx,
-    //     );
-
-    //     let change = coin::from_balance(balance, ctx);
-    //     coin::keep(change, ctx);
-
-    //     // Transfer Sui to pay for the mint
-    //     sui::transfer(
-    //         price,
-    //         launcher::receiver(launcher),
-    //     );
-
-    //     let nft_id = launcher::pop_nft(launcher);
-
-    //     transfer::transfer(
-    //         nft_id, // This should be the ID of the object
-    //         recipient,
-    //     );
-
-    //     public entry fun remove_child(parent: &mut Parent, child: Child, ctx: &mut TxContext) {
-    //     let child_id = option::extract(&mut parent.child);
-    //     assert!(object::id(&child) == child_id, 0);
-    //     transfer::transfer(child, tx_context::sender(ctx));
-    //     }
-
-
-    // }
 
     // === Getter Functions ===
 
@@ -157,7 +130,6 @@ module nft_protocol::fixed_ino {
     ): u64 {
         launcher.price
     }
-
 
 
     // === Private Functions ===
@@ -174,5 +146,16 @@ module nft_protocol::fixed_ino {
             receiver,
             price,
         }
+    }
+
+    fun burn_certificate(
+        certificate: NftCertificate,
+    ) {
+        let NftCertificate {
+            id,
+            nft_id: _,
+        } = certificate;
+
+        object::delete(id);
     }
 }
