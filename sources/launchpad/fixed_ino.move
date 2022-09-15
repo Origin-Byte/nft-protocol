@@ -70,6 +70,9 @@ module nft_protocol::fixed_ino {
         launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
         ctx: &mut TxContext,
     ) {
+        // TODO: If current timestap is below launcher go_live_date then
+        // it should fail
+
         let price = price(launcher::config(launcher));
         assert!(coin::value(&coin) > price, 0);
 
