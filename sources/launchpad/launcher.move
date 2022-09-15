@@ -11,6 +11,7 @@ module nft_protocol::launcher {
         id: UID,
         collection: ID,
         go_live_date: u64, // TODO: this should be a timestamp
+        receiver: address,
         nfts: vector<ID>,
         config: Config,
     }
@@ -18,6 +19,7 @@ module nft_protocol::launcher {
     struct InitLauncher has drop {
         collection: ID,
         go_live_date: u64,
+        receiver: address,
     }
 
     /// Initialises a `Launcher` object and returns it
@@ -35,6 +37,7 @@ module nft_protocol::launcher {
             id,
             collection: args.collection,
             go_live_date: args.go_live_date,
+            receiver: args.receiver,
             nfts: nfts,
             config: config,
         }
@@ -51,6 +54,7 @@ module nft_protocol::launcher {
             id,
             collection: _,
             go_live_date: _,
+            receiver: _,
             nfts: _,
             config,
         } = launcher;
@@ -71,7 +75,7 @@ module nft_protocol::launcher {
 
     /// Pops an NFT's ID from the `nfts` field in `Launcher` object
     /// and returns respective `ID`
-    fun remove_nft<T, Config>(
+    public fun pop_nft<T, Config>(
         launcher: &mut Launcher<T, Config>,
     ): ID {
         let nfts = &mut launcher.nfts;
@@ -81,11 +85,29 @@ module nft_protocol::launcher {
     public fun init_args(
         collection: ID,
         go_live_date: u64,
+        receiver: address,
     ): InitLauncher {
 
         InitLauncher {
             collection,
             go_live_date,
+            receiver,
         }
+    }
+
+    // === Getter Functions ===
+
+    /// Get the Launcher's `config` as reference
+    public fun config<T, Config>(
+        launcher: &Launcher<T, Config>,
+    ): &Config {
+        &launcher.config
+    }
+
+    /// Get the Launcher's `receiver` address
+    public fun receiver<T, Config>(
+        launcher: &Launcher<T, Config>,
+    ): address {
+        launcher.receiver
     }
 }

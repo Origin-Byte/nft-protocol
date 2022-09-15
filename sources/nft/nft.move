@@ -104,5 +104,4 @@ module nft_protocol::nft {
     ): &ID {
         object::uid_as_inner(&nft.id)
     }
-
 }
