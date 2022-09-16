@@ -104,4 +104,11 @@ module nft_protocol::nft {
     ): &ID {
         object::uid_as_inner(&nft.id)
     }
+
+    /// Get the NFT's `collection_id`
+    public fun collection_id<T, Meta>(
+        nft: &NftOwned<T, Meta>,
+    ): ID {
+        nft.collection_id
+    }
 }
