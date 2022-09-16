@@ -9,7 +9,7 @@ module nft_protocol::launcher {
 
     struct Launcher<phantom T, Config> has key, store{
         id: UID,
-        collection: ID,
+        collection_id: ID,
         go_live_date: u64, // TODO: this should be a timestamp
         admin: address,
         receiver: address,
@@ -18,7 +18,7 @@ module nft_protocol::launcher {
     }
 
     struct InitLauncher has drop {
-        collection: ID,
+        collection_id: ID,
         go_live_date: u64,
         admin: address,
         receiver: address,
@@ -37,7 +37,7 @@ module nft_protocol::launcher {
 
         Launcher {
             id,
-            collection: args.collection,
+            collection_id: args.collection_id,
             go_live_date: args.go_live_date,
             admin: args.admin,
             receiver: args.receiver,
@@ -55,7 +55,7 @@ module nft_protocol::launcher {
 
         let Launcher {
             id,
-            collection: _,
+            collection_id: _,
             go_live_date: _,
             admin: _,
             receiver: _,
@@ -87,14 +87,14 @@ module nft_protocol::launcher {
     }
 
     public fun init_args(
-        collection: ID,
+        collection_id: ID,
         go_live_date: u64,
         admin: address,
         receiver: address,
     ): InitLauncher {
 
         InitLauncher {
-            collection,
+            collection_id,
             go_live_date,
             admin,
             receiver,
