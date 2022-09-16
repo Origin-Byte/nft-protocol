@@ -43,8 +43,8 @@ module nft_protocol::launcher {
         }
     }
 
-    /// Burn the `Launchpad` and return the `Config` object
-    public fun burn<T: drop, Config: store>(
+    /// Burn the `Launcher` and return the `Config` object
+    public fun delete<T: drop, Config: store>(
         launcher: Launcher<T, Config>,
         _: &mut TxContext
     ): Config {

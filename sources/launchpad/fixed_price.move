@@ -1,5 +1,6 @@
 /// Module of a Fixed Initial NFT Offering `Config` type.
 module nft_protocol::fixed_price {
+    use sui::event;
     use sui::transfer::{Self};
     use sui::sui::{Self, SUI};
     use sui::coin::{Self, Coin};
@@ -27,8 +28,18 @@ module nft_protocol::fixed_price {
         nft_id: ID,
     }
 
+    struct CreateLauncherEvent has copy, drop {
+        object_id: ID,
+        collection_id: ID,
+    }
+
+    struct DropLauncherEvent has copy, drop {
+        object_id: ID,
+        collection_id: ID,
+    }
+
     public entry fun create(
-        collection: ID,
+        collection_id: ID,
         go_live_date: u64,
         receiver: address,
         price: u64,
@@ -36,7 +47,7 @@ module nft_protocol::fixed_price {
     ) {
 
         let args = init_args(
-            collection,
+            collection_id,
             go_live_date,
             receiver,
             price,
@@ -48,7 +59,7 @@ module nft_protocol::fixed_price {
         };
 
         let launcher_args = launcher::init_args(
-            collection,
+            collection_id,
             go_live_date,
             receiver,
         );
@@ -60,7 +71,12 @@ module nft_protocol::fixed_price {
             ctx,
         );
 
-        // TODO: Emit event
+        event::emit(
+            CreateLauncherEvent {
+                object_id: object::id(&launcher),
+                collection_id: collection_id,
+            }
+        );
 
         transfer::share_object(launcher);
     }
