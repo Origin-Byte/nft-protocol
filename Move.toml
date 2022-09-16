@@ -1,10 +1,9 @@
 [package]
-name = "nftProtocol"
+name = "NftProtocol"
 version = "0.0.1"
 
 [dependencies]
 # Sui = { local = "../sui/crates/sui-framework" }
-# MoveStdlib = { git = "https://github.com/move-language/move.git", subdir = "language/move-stdlib", rev = "devnet" }
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet-0.8.0" }
 
 [addresses]
