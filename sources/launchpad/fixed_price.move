@@ -1,5 +1,6 @@
 /// Module of a Fixed Initial NFT Offering `Config` type.
 module nft_protocol::fixed_price {
+    use std::vector;
     use sui::event;
     use sui::transfer::{Self};
     use sui::sui::{Self, SUI};
@@ -33,7 +34,7 @@ module nft_protocol::fixed_price {
         collection_id: ID,
     }
 
-    struct DropLauncherEvent has copy, drop {
+    struct DeleteLauncherEvent has copy, drop {
         object_id: ID,
         collection_id: ID,
     }
@@ -41,6 +42,7 @@ module nft_protocol::fixed_price {
     public entry fun create(
         collection_id: ID,
         go_live_date: u64,
+        admin: address,
         receiver: address,
         price: u64,
         ctx: &mut TxContext,
@@ -61,6 +63,7 @@ module nft_protocol::fixed_price {
         let launcher_args = launcher::init_args(
             collection_id,
             go_live_date,
+            admin,
             receiver,
         );
 
@@ -138,6 +141,37 @@ module nft_protocol::fixed_price {
             nft,
             recipient,
         );
+    }
+
+    /// Deletes the `Launcher` and `LauncherConfig` if the object
+    /// does not own any child object 
+    public fun delete<T: drop, Meta: store>(
+        launcher: Launcher<FixedInitalOffer, LauncherConfig>,
+        ctx: &mut TxContext
+    ) {
+        // Assert that nfts vector is empty, meaning that
+        // the launcher does not residually own any NFT
+        assert!(vector::length(launcher::nfts(&launcher)) == 0, 0);
+
+        event::emit(
+            DeleteLauncherEvent {
+                object_id: object::id(&launcher),
+                collection_id: launcher::collection_id(&launcher),
+            }
+        );
+
+        // Delete generic Collection object
+        let config = launcher::delete(
+            launcher,
+            ctx,
+        );
+
+        let LauncherConfig {
+            id,
+            price: _,
+        } = config;
+
+        object::delete(id);
     }
 
 
