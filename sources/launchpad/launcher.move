@@ -103,6 +103,27 @@ module nft_protocol::launcher {
 
     // === Getter Functions ===
 
+    /// Get the Launcher's `collection_id` ID
+    public fun collection_id<T, Config>(
+        launcher: &Launcher<T, Config>,
+    ): ID {
+        launcher.collection_id
+    }
+
+    /// Get the Launcher's `collection_id` ID as reference
+    public fun collection_id_ref<T, Config>(
+        launcher: &Launcher<T, Config>,
+    ): &ID {
+        &launcher.collection_id
+    }
+    
+    /// Get the Launcher's `go_live_date`
+    public fun go_live_date<T, Config>(
+        launcher: &Launcher<T, Config>,
+    ): u64 {
+        launcher.go_live_date
+    }
+
     /// Get the Launcher's `config` as reference
     public fun config<T, Config>(
         launcher: &Launcher<T, Config>,
