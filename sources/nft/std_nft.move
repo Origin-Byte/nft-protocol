@@ -47,6 +47,11 @@ module nft_protocol::std_nft {
         collection_id: ID,
     }
 
+    struct BurnEvent has copy, drop {
+        object_id: ID,
+        collection_id: ID,
+    }
+
     // === Entrypoints ===
 
     /// Mint one `Nft` with `Metadata` and send it to `recipient`.
@@ -151,7 +156,7 @@ module nft_protocol::std_nft {
         // being minted. As it stands, the NFT can only be minted by the 
         // collection owner if the collection is owned, or be minted by anyone
         // if the collection is shared
-        coll: &mut Collection<StdCollection, CollectionMeta>,
+        collection: &mut Collection<StdCollection, CollectionMeta>,
         coin: Coin<SUI>,
         // The rNftecipient of the 
         launcher: &mut Launcher<T, Config>,
@@ -159,8 +164,8 @@ module nft_protocol::std_nft {
     ) {
         // TODO: reduce code duplication between `mint_and_transfer` and 
         // `mint_to_launcher`
-        let current_supply = collection::current_supply(coll);
-        let max_supply = collection::total_supply(coll);
+        let current_supply = collection::current_supply(collection);
+        let max_supply = collection::total_supply(collection);
 
         assert!(current_supply < max_supply, 0);
 
@@ -174,7 +179,7 @@ module nft_protocol::std_nft {
             attribute_values,
         );
 
-        assert!(coin::value(&coin) > collection::initial_price(coll), 0);
+        assert!(coin::value(&coin) > collection::initial_price(collection), 0);
 
         // Split coin into price and change, then transfer 
         // the price and keep the change
@@ -182,7 +187,7 @@ module nft_protocol::std_nft {
 
         let price = coin::take(
             &mut balance,
-            collection::initial_price(coll),
+            collection::initial_price(collection),
             ctx,
         );
 
@@ -192,13 +197,20 @@ module nft_protocol::std_nft {
         // Transfer Sui to pay for the mint
         sui::transfer(
             price,
-            collection::receiver(coll),
+            collection::receiver(collection),
         );
 
         let nft = mint(
             args,
-            coll,
+            collection,
             ctx,
+        );
+
+        event::emit(
+            MintEvent {
+                object_id: object::id(&nft),
+                collection_id: object::id(collection),
+            }
         );
 
         let id = nft::id(&nft);
@@ -216,6 +228,13 @@ module nft_protocol::std_nft {
         nft: NftOwned<StdNft, NftMeta>,
         coll: &mut Collection<T, Meta>
         ) {
+        event::emit(
+            BurnEvent {
+                object_id: nft::id(&nft),
+                collection_id: nft::collection_id(&nft),
+            }
+        );
+        
         // Delete generic Nft object
         let metadata = nft::destroy_owned(
             StdNft {},
@@ -312,13 +331,6 @@ module nft_protocol::std_nft {
             metadata,
             coll,
             ctx
-        );
-
-        event::emit(
-            MintEvent {
-                object_id: object::id(&nft),
-                collection_id
-            }
         );
 
         nft
