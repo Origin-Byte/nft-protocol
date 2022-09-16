@@ -116,4 +116,18 @@ module nft_protocol::launcher {
     ): address {
         launcher.receiver
     }
+
+    /// Get the Launcher's `admin` address
+    public fun admin<T, Config>(
+        launcher: &Launcher<T, Config>,
+    ): address {
+        launcher.admin
+    }
+
+    /// Get the Launcher's `nfts` vector as reference
+    public fun nfts<T, Config>(
+        launcher: &Launcher<T, Config>,
+    ): &vector<ID> {
+        &launcher.nfts
+    }
 }
