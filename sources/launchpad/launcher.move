@@ -26,7 +26,6 @@ module nft_protocol::launcher {
 
     struct InitLauncher has drop {
         collection_id: ID,
-        live: bool,
         admin: address,
         receiver: address,
     }
@@ -45,7 +44,7 @@ module nft_protocol::launcher {
         Launcher {
             id,
             collection_id: args.collection_id,
-            live: args.live,
+            live: false,
             admin: args.admin,
             receiver: args.receiver,
             nfts: nfts,
@@ -97,14 +96,12 @@ module nft_protocol::launcher {
 
     public fun init_args(
         collection_id: ID,
-        live: bool,
         admin: address,
         receiver: address,
     ): InitLauncher {
 
         InitLauncher {
             collection_id,
-            live,
             admin,
             receiver,
         }
@@ -135,6 +132,34 @@ module nft_protocol::launcher {
                 recipient,
             );
         }
+    }
+
+    // === Modifier Functions ===
+
+    /// Toggle the Launcher's `live` to `true` therefore 
+    /// making the NFT sale live.
+    public fun sale_on<T, Config>(
+        launcher: &mut Launcher<T, Config>,
+    ) {
+        launcher.live = true
+    }
+
+    /// Toggle the Launcher's `live` to `false` therefore 
+    /// pausing or stopping the NFT sale.
+    public fun sale_off<T, Config>(
+        launcher: &mut Launcher<T, Config>,
+    ) {
+        launcher.live = false
+    }
+
+    /// We can return a mutable reference to the configuration without checking 
+    /// that it's the T contract calling this method, because it's the 
+    /// responsibility of the T contract to write their public interface such
+    /// that the mutation of the metadata is according to the desired logic.
+    public fun config_mut<T, Config>(
+        launcher: &mut Launcher<T, Config>,
+    ): &mut Config {
+        &mut launcher.config
     }
 
     // === Getter Functions ===
