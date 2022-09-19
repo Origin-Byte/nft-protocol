@@ -1,6 +1,6 @@
 [package]
-name = "NftProtocol"
-version = "0.0.1"
+name = "nftProtocol"
+version = "0.1.0"
 
 [dependencies]
 # Sui = { local = "../sui/crates/sui-framework" }
