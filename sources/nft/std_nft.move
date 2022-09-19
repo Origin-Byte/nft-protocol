@@ -316,8 +316,6 @@ module nft_protocol::std_nft {
         coll: &mut Collection<StdCollection, CollectionMeta>,
         ctx: &mut TxContext,
     ): NftOwned<StdNft, NftMeta> {
-        let collection_id = object::id(coll);
-
         let metadata = NftMeta {
             id: object::new(ctx),
             name: args.name,

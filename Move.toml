@@ -8,4 +8,3 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 
 [addresses]
 nft_protocol = "0x0"
-sui =  "0x2"

@@ -357,6 +357,7 @@ module nft_protocol::std_collection_tests {
 
         // create the Standard Collection
         test_scenario::next_tx(&mut scenario, &addr1);
+
         std_collection::mint_and_share(
             b"Yellow Submarines", // name
             b"YLSBM", // symbol

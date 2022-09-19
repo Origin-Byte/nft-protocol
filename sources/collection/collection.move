@@ -12,7 +12,7 @@
 /// TODO: function to make collection `shared`
 module nft_protocol::collection {
     use std::string::String;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
     use nft_protocol::tags::{Self, Tags};
 
@@ -308,6 +308,20 @@ module nft_protocol::collection {
         collection: &Collection<T, Meta>,
     ): bool {
         collection.is_mutable
+    }
+
+    /// Get the Collection's `ID`
+    public fun id<T, Meta>(
+        collection: &Collection<T, Meta>,
+    ): ID {
+        object::uid_to_inner(&collection.id)
+    }
+
+    /// Get the Collection's `ID` as reference
+    public fun id_ref<T, Meta>(
+        collection: &Collection<T, Meta>,
+    ): &ID {
+        object::uid_as_inner(&collection.id)
     }
 }
 
