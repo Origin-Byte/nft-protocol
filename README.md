@@ -208,8 +208,8 @@ the following transfer functions:
 - `transfer_back` which allows the administrator to transfer back nfts from the launchpad to a recipient address
 
 the following modifier functions:
-- `add_nft` (called by the NFT contract when an NFT is transfered to the launchpad)
-- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transfered out of the launcher)
+- `add_nft` (called by the NFT contract when an NFT is transferred to the launchpad)
+- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transferred out of the launcher)
 - `sale_on` to make the sale live
 - `sale_off` to pause or stop the sale
 - `config_mut` returns a mutable reference to the upstream module
