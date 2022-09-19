@@ -194,7 +194,7 @@ The Generic Launcher object, `Launcher<phantom T, Config>`, has the following da
 | ----------------- | ----------------- | ----------- |
 | `id`              | `UID`             | The UID of the Launcher object |
 | `collection_id`   | `ID`              | The ID of the NFT Collection object |
-| `live`        | `ubool64`             | Boolean indicating if the sale is live |
+| `live`            | `bool`            | Boolean indicating if the sale is live |
 | `admin`           | `address`         | The address of the administrator |
 | `receiver`        | `address`         | The address of the receiver of funds |
 | `nfts`            | `vector<ID>`      | Vector of all IDs owned by the launcher |
