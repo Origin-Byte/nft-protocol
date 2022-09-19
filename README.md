@@ -210,6 +210,9 @@ the following transfer functions:
 the following modifier functions:
 - `add_nft` (called by the NFT contract when an NFT is transfered to the launchpad)
 - `pop_nft` (called by the Domain-specific launchpad module when NFTs are transfered out of the launcher)
+- `sale_on` to make the sale live
+- `sale_off` to pause or stop the sale
+- `config_mut` returns a mutable reference to the upstream module
 
 and the following getter functions:
 
@@ -240,9 +243,7 @@ the following transfer functions:
 - `claim_nft` after having baught the NFT certificate the user can then call this endpoint to redeem the allocated NFT
 
 the following modifier functions:
-- `add_nft` (called by the NFT contract when an NFT is transfered to the launchpad)
-- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transfered out of the launcher)
+- `new_price` (permissioned endpoint for administrator to call and change the sale price)
 
 and the following getter functions:
-
 - `price`

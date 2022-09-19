@@ -17,7 +17,7 @@ module nft_protocol::fixed_price {
     use nft_protocol::launcher::{Self, Launcher};
     use nft_protocol::nft::{Self, NftOwned};
 
-    struct FixedInitalOffer has drop {}
+    struct FixedPriceSale has drop {}
 
     struct LauncherConfig has key, store {
         id: UID,
@@ -38,7 +38,6 @@ module nft_protocol::fixed_price {
     /// with a `LauncherConfig` as the configuration object
     struct InitFixedPriceLauncher has drop {
         collection: ID,
-        live: bool,
         receiver: address,
         price: u64,
     }
@@ -57,7 +56,6 @@ module nft_protocol::fixed_price {
     /// price launchpad configuration via `LauncherConfig`.
     public entry fun create(
         collection_id: ID,
-        live: bool,
         admin: address,
         receiver: address,
         price: u64,
@@ -66,7 +64,6 @@ module nft_protocol::fixed_price {
 
         let args = init_args(
             collection_id,
-            live,
             receiver,
             price,
         );
@@ -78,13 +75,12 @@ module nft_protocol::fixed_price {
 
         let launcher_args = launcher::init_args(
             collection_id,
-            live,
             admin,
             receiver,
         );
 
         let launcher = launcher::create(
-            FixedInitalOffer {},
+            FixedPriceSale {},
             launcher_args,
             config,
             ctx,
@@ -107,7 +103,7 @@ module nft_protocol::fixed_price {
     /// `claim_nft` and claim the NFT that has been allocated by the launcher
     public entry fun buy_nft_certificate(
         wallet: &mut Coin<SUI>,
-        launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
+        launcher: &mut Launcher<FixedPriceSale, LauncherConfig>,
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the launcher is live
@@ -148,7 +144,7 @@ module nft_protocol::fixed_price {
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft<T, Meta: store>(
-        _launcher: &Launcher<FixedInitalOffer, LauncherConfig>,
+        _launcher: &Launcher<FixedPriceSale, LauncherConfig>,
         nft: NftOwned<T, Meta>,
         certificate: NftCertificate,
         recipient: address,
@@ -166,7 +162,7 @@ module nft_protocol::fixed_price {
     /// Deletes the `Launcher` and `LauncherConfig` if the object
     /// does not own any child object
     public fun delete<T: drop, Meta: store>(
-        launcher: Launcher<FixedInitalOffer, LauncherConfig>,
+        launcher: Launcher<FixedPriceSale, LauncherConfig>,
         ctx: &mut TxContext,
     ) {
         // TODO: the fact that the vector `nfts` does not mean the launcher
@@ -198,6 +194,21 @@ module nft_protocol::fixed_price {
         object::delete(id);
     }
 
+    // === Modifier Functions ===
+
+    /// Permissioned endpoint to be called by `admin` to edit the fixed price 
+    /// of the launchpad configuration.
+    public entry fun new_price<T, Config>(
+        launcher: &mut Launcher<FixedPriceSale ,LauncherConfig>,
+        new_price: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(launcher::admin(launcher) == tx_context::sender(ctx), 0);
+
+        let config = launcher::config_mut(launcher);
+
+        config.price = new_price;
+    }
 
     // === Getter Functions ===
 
@@ -208,18 +219,15 @@ module nft_protocol::fixed_price {
         launcher.price
     }
 
-
     // === Private Functions ===
 
     fun init_args(
         collection: ID,
-        live: bool,
         receiver: address,
         price: u64,
     ): InitFixedPriceLauncher {
         InitFixedPriceLauncher {
             collection,
-            live,
             receiver,
             price,
         }
