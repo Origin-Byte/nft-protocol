@@ -82,7 +82,7 @@ module nft_protocol::std_nft {
         // collection owner if the collection is owned, or be minted by anyone
         // if the collection is shared
         coll: &mut Collection<StdCollection, CollectionMeta>,
-        coin: Coin<SUI>,
+        wallet: &mut Coin<SUI>,
         // The recipient of the NFT
         recipient: address,
         ctx: &mut TxContext
@@ -102,25 +102,15 @@ module nft_protocol::std_nft {
             attribute_values,
         );
 
-        assert!(coin::value(&coin) > collection::initial_price(coll), 0);
+        assert!(coin::value(wallet) > collection::initial_price(coll), 0);
 
         // Split coin into price and change, then transfer 
         // the price and keep the change
-        let balance = coin::into_balance(coin);
-
-        let price = coin::take(
-            &mut balance,
+        coin::split_and_transfer<SUI>(
+            wallet,
             collection::initial_price(coll),
-            ctx,
-        );
-
-        let change = coin::from_balance(balance, ctx);
-        coin::keep(change, ctx);
-
-        // Transfer Sui to pay for the mint
-        sui::transfer(
-            price,
             collection::receiver(coll),
+            ctx
         );
 
         transfer::transfer(

@@ -101,7 +101,7 @@ module nft_protocol::fixed_price {
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the launcher
     public entry fun buy_nft_certificate(
-        coin: Coin<SUI>,
+        wallet: &mut Coin<SUI>,
         launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
         ctx: &mut TxContext,
     ) {
@@ -109,25 +109,15 @@ module nft_protocol::fixed_price {
         assert!(launcher::live(launcher) == true, 0);
 
         let price = price(launcher::config(launcher));
-        assert!(coin::value(&coin) > price, 0);
+        assert!(coin::value(wallet) > price, 0);
 
         // Split coin into price and change, then transfer 
         // the price and keep the change
-        let balance = coin::into_balance(coin);
-
-        let price = coin::take(
-            &mut balance,
-            price,
-            ctx,
-        );
-
-        let change = coin::from_balance(balance, ctx);
-        coin::keep(change, ctx);
-
-        // Transfer Sui to pay for the mint
-        sui::transfer(
+        coin::split_and_transfer<SUI>(
+            wallet,
             price,
             launcher::receiver(launcher),
+            ctx
         );
 
         let nft_id = launcher::pop_nft(launcher);
