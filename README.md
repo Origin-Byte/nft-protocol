@@ -23,12 +23,14 @@ Origin-Byte is an ecosystem of tools, standards and smart contracts designed to 
 This repository currently contains the first version of OriginByte NFT and collection framework. It comprises four modules, of which two are generic and two domain-specific:
 
 Generic modules:
-- `nft.move`
-- `collection.move`
+- `nft.move` as generic NFT module
+- `collection.move` as generic collection module
+- `launcher.move` as generic launcher module
 
 Domain-specific modules:
-- `std_nft.move`
-- `std_collection.move`
+- `std_nft.move` as a standard NFT metadata implementation
+- `std_collection.move` as a standard Collection metadata implementation
+- `fixed_price.move` as fixed price launchpad configuration
 
 ## Minting an NFT Collection
 
@@ -39,13 +41,17 @@ Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects mu
 
 Once the collection object is created via the domain-specific collection module, you can use the domain-specific NFT module to mint the NFTs. All domain-specific NFT objects will be guaranteed to have the field collection_id if they are implemented with the generic module. This field acts as a pointer to the collection object and allows us to build a permissioning behaviour.
 
-When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anybody can or anyone can. This collection ownership pattern is useful since many projects will want to transfer NFTs to a Launchpad as part of the initial mint process (Launchpad infrastructure is something we will also support).
+When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anybody can or anyone can. This collection ownership pattern is useful since many projects will want to transfer NFTs to a Launchpad as part of the initial mint process. Therefore we expose three methods:
 
-Let us now describe the `Collection` and `CollectionMeta` objects, instantiated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instantiated by the nft and std_nft modules.
+- `mint_and_transfer` to mint to an address
+- `mint_to_launcher` to mint to a `Launcher<T, Config>` object
 
-### Collection Object
 
-The collection object has the following data model:
+Let us now describe the `Collection` and `CollectionMeta` objects, instantiated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instantiated by the `nft` and `std_nft` modules.
+
+### Collection
+
+The collection object, `Collection<phantom T, Meta>`, has the following data model:
 
 | Field            | Type          | Description |
 | ---------------- | ------------- | ----------- |
@@ -90,11 +96,13 @@ and the following getter functions:
 - `initial_price`
 - `receiver`
 - `is_mutable`
+- `id`
+- `id_ref`
 
 
-### Standard Collection Metadata Object
+### Standard Collection Metadata
 
-The standard collection metadata object has the following data model:
+The standard collection metadata object, `CollectionMeta`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
@@ -125,9 +133,9 @@ and the following getter functions:
 - `data`
 
 
-### NFT Object
+### NFT
 
-Generic NFT objects have the following data model:
+Generic NFT object, `NftOwned<phantom T, Meta>`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
@@ -139,9 +147,20 @@ The generic NFT object has the following init and drop functions:
 - `create_owned` to create the NFT (called by the Domain-specific module)
 - `destroy_owned` to destroy the NFT (called by the Domain-specific module) 
 
-### NFT Standard Metadata Object
+the following modifier functions:
+- `owned_metadata_mut`
 
-Standard NFT metadata objects have the following data model:
+and the following getter functions:
+
+- `owned_metadata`
+- `uid_ref`
+- `id`
+- `id_ref`
+- `collection_id`
+
+### NFT Standard Metadata
+
+Standard NFT metadata object, `NftMeta`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
@@ -166,3 +185,64 @@ and the following getter functions:
 - `index`
 - `uri`
 - `attributes`
+
+### Launcher
+
+The Generic Launcher object, `Launcher<phantom T, Config>`, has the following data model:
+
+| Field             | Type              | Description |
+| ----------------- | ----------------- | ----------- |
+| `id`              | `UID`             | The UID of the Launcher object |
+| `collection_id`   | `ID`              | The ID of the NFT Collection object |
+| `live`        | `ubool64`             | Boolean indicating if the sale is live |
+| `admin`           | `address`         | The address of the administrator |
+| `receiver`        | `address`         | The address of the receiver of funds |
+| `nfts`            | `vector<ID>`      | Vector of all IDs owned by the launcher |
+| `config`          | `Config`          | Config object |
+
+It has the following init and drop functions:
+- `create` to create the Launcher (called by the Domain-specific module)
+- `delete` to destroy the Launcher (called by the Domain-specific module) 
+
+the following transfer functions:
+- `transfer_back` which allows the administrator to transfer back nfts from the launchpad to a recipient address
+
+the following modifier functions:
+- `add_nft` (called by the NFT contract when an NFT is transfered to the launchpad)
+- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transfered out of the launcher)
+
+and the following getter functions:
+
+- `collection_id`
+- `collection_id_ref`
+- `live`
+- `config`
+- `receiver`
+- `admin`
+- `nfts`
+
+
+### Fixed Price Launcher
+
+The Fixed Price Launcher config, `LauncherConfig`, has the following data model:
+
+| Field             | Type              | Description |
+| ----------------- | ----------------- | ----------- |
+| `id`              | `UID`             | The UID of the Launcher object |
+| `price`           | `u64`             | The fixed price of each NFT in the collection |
+
+It has the following init and drop functions:
+- `create` to create the Launcher
+- `delete` to destroy the Launcher
+
+the following transfer functions:
+- `buy_nft_certificate` when a user wants to buy an NFT he/she will first buy the NFT certificate which contains the ID of the NFT he/she can claim
+- `claim_nft` after having baught the NFT certificate the user can then call this endpoint to redeem the allocated NFT
+
+the following modifier functions:
+- `add_nft` (called by the NFT contract when an NFT is transfered to the launchpad)
+- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transfered out of the launcher)
+
+and the following getter functions:
+
+- `price`
