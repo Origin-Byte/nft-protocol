@@ -55,7 +55,7 @@ module nft_protocol::nft {
         // Only allow burning if collection matches
         let coll_id = object::borrow_id(coll);
 
-        // Only delete Nft object if collection ID in Nft field
+        // Only delete NFT object if collection ID in NFT field
         // matches the ID of the collection passed to the function
         assert!(coll_id == &nft.collection_id, 0);
 
@@ -82,5 +82,33 @@ module nft_protocol::nft {
         nft: &mut NftOwned<T, Meta>
     ): &mut Meta {
         &mut nft.metadata
+    }
+
+    /// Get the NFT's `UID` as reference
+    public fun uid_ref<T, Meta>(
+        nft: &NftOwned<T, Meta>,
+    ): &UID {
+        &nft.id
+    }
+
+    /// Get the NFT's `ID`
+    public fun id<T, Meta>(
+        nft: &NftOwned<T, Meta>,
+    ): ID {
+        object::uid_to_inner(&nft.id)
+    }
+
+    /// Get the NFT's `ID` as reference
+    public fun id_ref<T, Meta>(
+        nft: &NftOwned<T, Meta>,
+    ): &ID {
+        object::uid_as_inner(&nft.id)
+    }
+
+    /// Get the NFT's `collection_id`
+    public fun collection_id<T, Meta>(
+        nft: &NftOwned<T, Meta>,
+    ): ID {
+        nft.collection_id
     }
 }
