@@ -1,4 +1,6 @@
 /// Module of a Fixed Initial NFT Offering `Config` type.
+/// 
+/// It implments a fixed price launchpad configuration.
 module nft_protocol::fixed_price {
     use std::vector;
     use sui::event;
@@ -39,6 +41,8 @@ module nft_protocol::fixed_price {
         collection_id: ID,
     }
 
+    /// Creates a `Launcher` with `FixedInitalOffer` as witness and a fixed
+    /// price launchpad configuration via `LauncherConfig`.
     public entry fun create(
         collection_id: ID,
         live: bool,
@@ -84,6 +88,11 @@ module nft_protocol::fixed_price {
         transfer::share_object(launcher);
     }
 
+    /// To buy an NFT a user will first buy an NFT certificate. This guarantees
+    /// that the launcher object is in full control of the selection process.
+    /// A `NftCertificate` object will be minted and transfered to the sender
+    /// of transaction. The sender can then use this certificate to call
+    /// `claim_nft` and claim the NFT that has been allocated by the launcher
     public entry fun buy_nft_certificate(
         coin: Coin<SUI>,
         launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
@@ -127,6 +136,15 @@ module nft_protocol::fixed_price {
         );
     }
     
+    /// Once the user has bought an NFT certificate, this method can be called
+    /// to claim/redeem the NFT that has been allocated by the launcher. The
+    /// `NFTOwned` object in the function signature should correspond to the 
+    /// NFT ID mentioned in the certificate.
+    /// 
+    /// We add the launcher as a phantom parameter since it is the parent object
+    /// of the NFT. Since the launcher is a shared object anyone can mention it
+    /// in the function signature and therefore be able to mention its child
+    /// objects as well, the NFTs owned by it.
     public entry fun claim_nft<T, Meta: store>(
         _launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
         nft: NftOwned<T, Meta>,
