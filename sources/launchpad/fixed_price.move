@@ -5,7 +5,7 @@ module nft_protocol::fixed_price {
     use std::vector;
     use sui::event;
     use sui::transfer::{Self};
-    use sui::sui::{Self, SUI};
+    use sui::sui::{SUI};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
@@ -143,7 +143,7 @@ module nft_protocol::fixed_price {
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft<T, Meta: store>(
-        _launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
+        _launcher: &Launcher<FixedInitalOffer, LauncherConfig>,
         nft: NftOwned<T, Meta>,
         certificate: NftCertificate,
         recipient: address,
@@ -162,7 +162,6 @@ module nft_protocol::fixed_price {
     /// does not own any child object 
     public fun delete<T: drop, Meta: store>(
         launcher: Launcher<FixedInitalOffer, LauncherConfig>,
-        ctx: &mut TxContext
     ) {
         // Assert that nfts vector is empty, meaning that
         // the launcher does not residually own any NFT
@@ -178,7 +177,6 @@ module nft_protocol::fixed_price {
         // Delete generic Collection object
         let config = launcher::delete(
             launcher,
-            ctx,
         );
 
         let LauncherConfig {

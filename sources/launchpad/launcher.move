@@ -56,7 +56,6 @@ module nft_protocol::launcher {
     /// Burn the `Launcher` and return the `Config` object
     public fun delete<T: drop, Config: store>(
         launcher: Launcher<T, Config>,
-        _: &mut TxContext
     ): Config {
         assert!(vector::length(&launcher.nfts) > 0, 0);
 
