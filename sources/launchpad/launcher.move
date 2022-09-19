@@ -5,21 +5,28 @@
 module nft_protocol::launcher {
     use std::vector;
     use sui::object::{Self, ID , UID};
-    use sui::tx_context::{TxContext};
+    use sui::transfer;
+    use sui::tx_context::{Self, TxContext};
+    use nft_protocol::nft::{Self, NftOwned};
 
     struct Launcher<phantom T, Config> has key, store{
         id: UID,
+        // The ID of the NFT Collection object
         collection_id: ID,
-        go_live_date: u64, // TODO: this should be a timestamp
+        // Boolean indicating if the sale is live
+        live: bool,
+        // The address of the administrator
         admin: address,
+        // The address of the receiver of funds
         receiver: address,
+        // Vector of all IDs owned by the launcher
         nfts: vector<ID>,
         config: Config,
     }
 
     struct InitLauncher has drop {
         collection_id: ID,
-        go_live_date: u64,
+        live: bool,
         admin: address,
         receiver: address,
     }
@@ -38,7 +45,7 @@ module nft_protocol::launcher {
         Launcher {
             id,
             collection_id: args.collection_id,
-            go_live_date: args.go_live_date,
+            live: args.live,
             admin: args.admin,
             receiver: args.receiver,
             nfts: nfts,
@@ -56,7 +63,7 @@ module nft_protocol::launcher {
         let Launcher {
             id,
             collection_id: _,
-            go_live_date: _,
+            live: _,
             admin: _,
             receiver: _,
             nfts: _,
@@ -88,16 +95,43 @@ module nft_protocol::launcher {
 
     public fun init_args(
         collection_id: ID,
-        go_live_date: u64,
+        live: bool,
         admin: address,
         receiver: address,
     ): InitLauncher {
 
         InitLauncher {
             collection_id,
-            go_live_date,
+            live,
             admin,
             receiver,
+        }
+    }
+
+    public fun transfer_back<T, Config: store, K, Meta: store>(
+        launcher: &mut Launcher<T, Config>,
+        nft: NftOwned<K, Meta>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        let sender = tx_context::sender(ctx);
+
+        if (admin(launcher) != sender) {
+                transfer::transfer_to_object(
+                nft,
+                launcher,
+            );
+        } else {
+
+            remove_nft_by_id(
+                launcher,
+                nft::id_ref(&nft)
+            );
+
+            transfer::transfer(
+                nft,
+                recipient,
+            );
         }
     }
 
@@ -117,11 +151,11 @@ module nft_protocol::launcher {
         &launcher.collection_id
     }
     
-    /// Get the Launcher's `go_live_date`
-    public fun go_live_date<T, Config>(
+    /// Get the Launcher's `live`
+    public fun live<T, Config>(
         launcher: &Launcher<T, Config>,
-    ): u64 {
-        launcher.go_live_date
+    ): bool {
+        launcher.live
     }
 
     /// Get the Launcher's `config` as reference
@@ -150,5 +184,21 @@ module nft_protocol::launcher {
         launcher: &Launcher<T, Config>,
     ): &vector<ID> {
         &launcher.nfts
+    }
+
+    // === Private Functions ===
+
+    /// Removes an NFT's ID from the `nfts` field in `Launcher` object
+    /// and returns respective `ID`
+    fun remove_nft_by_id<T, Config>(
+        launcher: &mut Launcher<T, Config>,
+        nft: &ID,
+    ): ID {
+        let nfts = &mut launcher.nfts;
+        let (is_in_vec, index) = vector::index_of(nfts, nft);
+        
+        assert!(is_in_vec == true, 0);
+
+        vector::remove(nfts, index)
     }
 }

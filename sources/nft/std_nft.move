@@ -135,7 +135,7 @@ module nft_protocol::std_nft {
 
     /// Mint one `Nft` with `Metadata` and send it to `Launcher` object.
     /// Invokes `mint()`.
-    public entry fun mint_to_launcher<T, K: store, Config: store>(
+    public entry fun mint_to_launcher<T, Config: store>(
         // Name of the NFT. This parameter is a vector of bytes that
         // enconde to utf8 and will be stored in the NFT object as a String
         name: vector<u8>,

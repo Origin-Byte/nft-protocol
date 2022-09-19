@@ -19,7 +19,7 @@ module nft_protocol::fixed_price {
 
     struct InitFixedPricelOffer has drop {
         collection: ID,
-        go_live_date: u64,
+        live: bool,
         receiver: address,
         price: u64,
     }
@@ -41,7 +41,7 @@ module nft_protocol::fixed_price {
 
     public entry fun create(
         collection_id: ID,
-        go_live_date: u64,
+        live: bool,
         admin: address,
         receiver: address,
         price: u64,
@@ -50,7 +50,7 @@ module nft_protocol::fixed_price {
 
         let args = init_args(
             collection_id,
-            go_live_date,
+            live,
             receiver,
             price,
         );
@@ -62,7 +62,7 @@ module nft_protocol::fixed_price {
 
         let launcher_args = launcher::init_args(
             collection_id,
-            go_live_date,
+            live,
             admin,
             receiver,
         );
@@ -89,8 +89,8 @@ module nft_protocol::fixed_price {
         launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
         ctx: &mut TxContext,
     ) {
-        // TODO: If current timestap is below launcher go_live_date then
-        // it should fail
+        // One can only buy NFT certificates if the launcher is live
+        assert!(launcher::live(launcher) == true, 0);
 
         let price = price(launcher::config(launcher));
         assert!(coin::value(&coin) > price, 0);
@@ -127,7 +127,7 @@ module nft_protocol::fixed_price {
         );
     }
     
-    public entry fun redeem_nft<T, Meta: store>(
+    public entry fun claim_nft<T, Meta: store>(
         _launcher: &mut Launcher<FixedInitalOffer, LauncherConfig>,
         nft: NftOwned<T, Meta>,
         certificate: NftCertificate,
@@ -189,13 +189,13 @@ module nft_protocol::fixed_price {
 
     fun init_args(
         collection: ID,
-        go_live_date: u64,
+        live: bool,
         receiver: address,
         price: u64,
     ): InitFixedPricelOffer {
         InitFixedPricelOffer {
             collection,
-            go_live_date,
+            live,
             receiver,
             price,
         }
