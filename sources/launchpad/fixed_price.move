@@ -19,16 +19,23 @@ module nft_protocol::fixed_price {
         price: u64,
     }
 
-    struct InitFixedPricelOffer has drop {
+    /// This object acts as an intermediate step between the payment
+    /// and the transfer of the NFT. The user first has to call 
+    /// `buy_nft_certificate` which mints and transfers the `NftCertificate` to
+    /// the user. This object will dictate which NFT the userwill receive by
+    /// calling the endpoint `claim_nft`
+    struct NftCertificate has key, store {
+        id: UID,
+        nft_id: ID,
+    }
+
+    /// Aggregates all arguments for the creation of a `Launcher` object
+    /// with a `LauncherConfig` as the configuration object
+    struct InitFixedPriceLauncher has drop {
         collection: ID,
         live: bool,
         receiver: address,
         price: u64,
-    }
-
-    struct NftCertificate has key, store {
-        id: UID,
-        nft_id: ID,
     }
 
     struct CreateLauncherEvent has copy, drop {
@@ -210,8 +217,8 @@ module nft_protocol::fixed_price {
         live: bool,
         receiver: address,
         price: u64,
-    ): InitFixedPricelOffer {
-        InitFixedPricelOffer {
+    ): InitFixedPriceLauncher {
+        InitFixedPriceLauncher {
             collection,
             live,
             receiver,
