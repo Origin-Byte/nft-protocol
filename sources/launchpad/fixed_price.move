@@ -1,6 +1,11 @@
 /// Module of a Fixed Initial NFT Offering `Config` type.
 /// 
 /// It implments a fixed price launchpad configuration.
+/// 
+/// TODO: When deleting the launcher, we should guarantee that no nft is still
+/// owned by the launcher object. the fact that the vector `nfts` does not 
+/// mean the launcher has no ownership of nfts since there may be certificates 
+/// to be claimed. We should therefore consider an alternative approach
 module nft_protocol::fixed_price {
     use std::vector;
     use sui::event;
@@ -159,10 +164,15 @@ module nft_protocol::fixed_price {
     }
 
     /// Deletes the `Launcher` and `LauncherConfig` if the object
-    /// does not own any child object 
+    /// does not own any child object
     public fun delete<T: drop, Meta: store>(
         launcher: Launcher<FixedInitalOffer, LauncherConfig>,
+        ctx: &mut TxContext,
     ) {
+        // TODO: the fact that the vector `nfts` does not mean the launcher
+        // has no ownership of nfts since there may be certificates to be 
+        // claimed. We should therefore consider an alternative approach
+
         // Assert that nfts vector is empty, meaning that
         // the launcher does not residually own any NFT
         assert!(vector::length(launcher::nfts(&launcher)) == 0, 0);
@@ -177,6 +187,7 @@ module nft_protocol::fixed_price {
         // Delete generic Collection object
         let config = launcher::delete(
             launcher,
+            ctx,
         );
 
         let LauncherConfig {

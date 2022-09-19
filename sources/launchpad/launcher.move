@@ -56,8 +56,11 @@ module nft_protocol::launcher {
     /// Burn the `Launcher` and return the `Config` object
     public fun delete<T: drop, Config: store>(
         launcher: Launcher<T, Config>,
+        ctx: &mut TxContext,
     ): Config {
         assert!(vector::length(&launcher.nfts) > 0, 0);
+
+        assert!(tx_context::sender(ctx) == admin(&launcher), 0);
 
         let Launcher {
             id,
@@ -116,7 +119,7 @@ module nft_protocol::launcher {
         let sender = tx_context::sender(ctx);
 
         if (admin(launcher) != sender) {
-                transfer::transfer_to_object(
+            transfer::transfer_to_object(
                 nft,
                 launcher,
             );
