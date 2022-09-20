@@ -48,21 +48,4 @@ module nft_protocol::tags {
 
         vec_map::insert(vec, index + 1, type);
     }
-
-    // // TODO: Remove type by index, for that we first need to finish
-    // function get_vec_map_key_by_value in utils.move
-    // public fun remove_type(
-    //     self: &mut Enum,
-    //     type: String,
-    // ) {
-    //     let vec = &mut self.enumerations;
-
-    //     // Computes last index of the enum
-    //     let index = vec_map::size(vec);
-
-    //     vec_map::remove(vec, &mut index);
-    // }
-
-    // TODO: Function to swap enum values as it is a safer option for Enum
-    // implementations that do not allow removal of enum types
 }
