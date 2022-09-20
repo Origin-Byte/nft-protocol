@@ -44,7 +44,8 @@ module nft_protocol::std_collection {
         data: String
     }
 
-    struct InitEvent has copy, drop { object_id: ID }
+    struct MintEvent has copy, drop { object_id: ID }
+    struct BurnEvent has copy, drop { object_id: ID }
 
     // === Entrypoints ===
 
@@ -106,7 +107,7 @@ module nft_protocol::std_collection {
         );
 
         event::emit(
-            InitEvent {
+            MintEvent {
                 object_id: object::id(&collection),
             }
         );
@@ -176,7 +177,7 @@ module nft_protocol::std_collection {
         );
 
         event::emit(
-            InitEvent {
+            MintEvent {
                 object_id: object::id(&collection),
             }
         );
@@ -186,12 +187,19 @@ module nft_protocol::std_collection {
 
     /// Burn a Standard Collection. Invokes `burn()`.
     public entry fun burn(
-        coll: Collection<StdCollection, CollectionMeta>,
+        collection: Collection<StdCollection, CollectionMeta>,
         ctx: &mut TxContext,
-        ) {
+    ) {
+
+        event::emit(
+            BurnEvent {
+                object_id: object::id(&collection),
+            }
+        );
+
         // Delete generic Collection object
         let metadata = collection::burn(
-            coll,
+            collection,
             ctx,
         );
 
@@ -349,6 +357,7 @@ module nft_protocol::std_collection_tests {
 
         // create the Standard Collection
         test_scenario::next_tx(&mut scenario, &addr1);
+
         std_collection::mint_and_share(
             b"Yellow Submarines", // name
             b"YLSBM", // symbol
