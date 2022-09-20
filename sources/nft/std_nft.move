@@ -13,7 +13,7 @@ module nft_protocol::std_nft {
     use sui::tx_context::{TxContext};
     use nft_protocol::nft::{Self, NftOwned};
     use nft_protocol::utils::{to_string_vector};
-    use nft_protocol::launcher::{Self, Launcher};
+    use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::std_collection::{StdCollection, CollectionMeta};
 
@@ -123,9 +123,9 @@ module nft_protocol::std_nft {
         );
     }
 
-    /// Mint one `Nft` with `Metadata` and send it to `Launcher` object.
+    /// Mint one `Nft` with `Metadata` and send it to `LaunchpadConfig` object.
     /// Invokes `mint()`.
-    public entry fun mint_to_launcher<T, Config: store>(
+    public entry fun mint_to_launchpad<T, Config: store>(
         // Name of the NFT. This parameter is a vector of bytes that
         // enconde to utf8 and will be stored in the NFT object as a String
         name: vector<u8>,
@@ -149,11 +149,11 @@ module nft_protocol::std_nft {
         collection: &mut Collection<StdCollection, CollectionMeta>,
         coin: Coin<SUI>,
         // The rNftecipient of the 
-        launcher: &mut Launcher<T, Config>,
+        launchpad: &mut Slingshot<T, Config>,
         ctx: &mut TxContext
     ) {
         // TODO: reduce code duplication between `mint_and_transfer` and 
-        // `mint_to_launcher`
+        // `mint_to_launchpad`
         let current_supply = collection::current_supply(collection);
         let max_supply = collection::total_supply(collection);
 
@@ -205,11 +205,11 @@ module nft_protocol::std_nft {
 
         let id = nft::id(&nft);
 
-        launcher::add_nft<T, Config>(launcher, id);
+        slingshot::add_nft<T, Config>(launchpad, id);
 
         transfer::transfer_to_object(
             nft,
-            launcher,
+            launchpad,
         );
     }
 

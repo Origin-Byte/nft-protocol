@@ -25,7 +25,7 @@ This repository currently contains the first version of OriginByte NFT and colle
 Generic modules:
 - `nft.move` as generic NFT module
 - `collection.move` as generic collection module
-- `launcher.move` as generic launcher module
+- `slingshot.move` as generic slingshot launchpad module
 
 Domain-specific modules:
 - `std_nft.move` as a standard NFT metadata implementation
@@ -34,9 +34,9 @@ Domain-specific modules:
 
 ## Minting an NFT Collection
 
-Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT collection object, where metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time the collection owner can decide to make the collection immutable which involves freezing the collection object and its associated NFTs. However, not all fields of the Collection are frozen:
+Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT collection object, where metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time, the collection owner can decide to make the collection immutable which involves freezing the collection object and its associated NFTs. However, not all fields of the Collection are frozen:
 
-- The field current_supply will still mutate every-time an NFT is minted or burned
+- The field current_supply will still mutate every time an NFT is minted or burned
 - Collection owners will still be able to push and pop tags onto the field tags
 
 Once the collection object is created via the domain-specific collection module, you can use the domain-specific NFT module to mint the NFTs. All domain-specific NFT objects will be guaranteed to have the field collection_id if they are implemented with the generic module. This field acts as a pointer to the collection object and allows us to build a permissioning behaviour.
@@ -44,7 +44,7 @@ Once the collection object is created via the domain-specific collection module,
 When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anybody can or anyone can. This collection ownership pattern is useful since many projects will want to transfer NFTs to a Launchpad as part of the initial mint process. Therefore we expose three methods:
 
 - `mint_and_transfer` to mint to an address
-- `mint_to_launcher` to mint to a `Launcher<T, Config>` object
+- `mint_to_launchpad` to mint to a `Slingshot<T, Config>` object
 
 
 Let us now describe the `Collection` and `CollectionMeta` objects, instantiated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instantiated by the `nft` and `std_nft` modules.
@@ -186,31 +186,31 @@ and the following getter functions:
 - `uri`
 - `attributes`
 
-### Launcher
+### Slingshot Launchpad
 
-The Generic Launcher object, `Launcher<phantom T, Config>`, has the following data model:
+The Slingshot object, `Slingshot<phantom T, Config>`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
-| `id`              | `UID`             | The UID of the Launcher object |
+| `id`              | `UID`             | The UID of the Slingshot object |
 | `collection_id`   | `ID`              | The ID of the NFT Collection object |
 | `live`            | `bool`            | Boolean indicating if the sale is live |
 | `admin`           | `address`         | The address of the administrator |
 | `receiver`        | `address`         | The address of the receiver of funds |
-| `nfts`            | `vector<ID>`      | Vector of all IDs owned by the launcher |
+| `nfts`            | `vector<ID>`      | Vector of all IDs owned by the slingshot |
 | `config`          | `Config`          | Config object |
 
 It has the following init and drop functions:
-- `create` to create the Launcher (called by the Domain-specific module)
-- `delete` to destroy the Launcher (called by the Domain-specific module) 
+- `create` to create the Slingshot launchpad (called by the Domain-specific module)
+- `delete` to destroy the Slingshot launchpad (called by the Domain-specific module) 
 
 the following transfer functions:
-- `transfer_back` which allows the administrator to transfer back nfts from the launchpad to a recipient address
+- `transfer_back` which allows the administrator to transfer back nfts from the Slingshot to a recipient address
 
 the following modifier functions:
-- `add_nft` (called by the NFT contract when an NFT is transferred to the launchpad)
-- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transferred out of the launcher)
-- `sale_on` to make the sale live
+- `add_nft` (called by the NFT contract when an NFT is transferred to the Slingshot)
+- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transferred out of the Slingshot)
+- `sale_on` to start the sale
 - `sale_off` to pause or stop the sale
 - `config_mut` returns a mutable reference to the upstream module
 
@@ -225,18 +225,18 @@ and the following getter functions:
 - `nfts`
 
 
-### Fixed Price Launcher
+### Slingshot: Fixed Price Launchpad
 
-The Fixed Price Launcher config, `LauncherConfig`, has the following data model:
+The Fixed Price Launchpad config, `LaunchpadConfig`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
-| `id`              | `UID`             | The UID of the Launcher object |
+| `id`              | `UID`             | The UID of the Launchpad configuration object |
 | `price`           | `u64`             | The fixed price of each NFT in the collection |
 
 It has the following init and drop functions:
-- `create` to create the Launcher
-- `delete` to destroy the Launcher
+- `create` to create the Launchpad
+- `delete` to destroy the Launchpad
 
 the following transfer functions:
 - `buy_nft_certificate` when a user wants to buy an NFT he/she will first buy the NFT certificate which contains the ID of the NFT he/she can claim
