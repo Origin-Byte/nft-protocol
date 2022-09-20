@@ -239,8 +239,8 @@ It has the following init and drop functions:
 - `delete` to destroy the Launchpad
 
 the following transfer functions:
-- `buy_nft_certificate` when a user wants to buy an NFT he/she will first buy the NFT certificate which contains the ID of the NFT he/she can claim
-- `claim_nft` after having baught the NFT certificate the user can then call this endpoint to redeem the allocated NFT
+- `buy_nft_certificate` when a user wants to buy an NFT, they must first buy the NFT certificate which contains the ID of the NFT they can claim
+- `claim_nft` after buying the NFT certificate, the user can then call this endpoint to redeem the allocated NFT
 
 the following modifier functions:
 - `new_price` (permissioned endpoint for administrator to call and change the sale price)
