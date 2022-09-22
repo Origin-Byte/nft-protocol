@@ -167,7 +167,7 @@ Standard NFT metadata object, `NftMeta`, has the following data model:
 | `id`              | `UID`             | The UID of the NFT metadata object |
 | `name`            | `String`          | Name of the NFT object |
 | `index`           | `u64`             | The index of the NFT in relation to the whole collection |
-| `uri`             | `Url`             | The URL of the NFT |
+| `url`             | `Url`             | The URL of the NFT |
 | `attributes`      | `Attributes`      | Attributes of a given NFT |
 
 
@@ -183,7 +183,7 @@ and the following getter functions:
 
 - `name`
 - `index`
-- `uri`
+- `url`
 - `attributes`
 
 ### Slingshot Launchpad
