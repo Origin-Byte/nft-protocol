@@ -1,7 +1,7 @@
 /// Module of a standard NFT `NftMeta` type.
 /// 
 /// It acts as a standard domain-specific implementation of an NFT. It adds
-/// to the NFT metadata fields such as `name`, `uri` and `attributes`.
+/// to the NFT metadata fields such as `name`, `url` and `attributes`.
 module nft_protocol::std_nft {
     use sui::event;
     use sui::transfer;
@@ -23,7 +23,7 @@ module nft_protocol::std_nft {
         id: UID,
         name: String,
         index: u64,
-        uri: Url,
+        url: Url,
         attributes: Attributes
     }
 
@@ -36,7 +36,7 @@ module nft_protocol::std_nft {
     struct MintNFT has drop {
         name: String,
         index: u64,
-        uri: Url,
+        url: Url,
         primary_sales_happened: bool,
         is_mutable: bool,
         attributes: Attributes,
@@ -64,9 +64,9 @@ module nft_protocol::std_nft {
         // Name of the NFT. This parameter is a vector of bytes that
         // enconde to utf8 and will be stored in the NFT object as a String
         name: vector<u8>,
-        // Uri of the NFT. This parameter is a vector of bytes that
+        // Url of the NFT. This parameter is a vector of bytes that
         // encondes to utf8 and will be stored in the NFT object as a Url
-        uri: vector<u8>,
+        url: vector<u8>,
         is_mutable: bool,
         // A vector of attribute keys, expressed in a vector of bytes that
         // encode to utf8. The attribute keys are stored as a String in the
@@ -95,7 +95,7 @@ module nft_protocol::std_nft {
         let args = mint_args(
             string::utf8(name),
             current_supply + 1,
-            url::new_unsafe_from_bytes(uri),
+            url::new_unsafe_from_bytes(url),
             false,
             is_mutable,
             attribute_keys,
@@ -129,9 +129,9 @@ module nft_protocol::std_nft {
         // Name of the NFT. This parameter is a vector of bytes that
         // enconde to utf8 and will be stored in the NFT object as a String
         name: vector<u8>,
-        // Uri of the NFT. This parameter is a vector of bytes that
+        // Url of the NFT. This parameter is a vector of bytes that
         // encondes to utf8 and will be stored in the Nft object as a Url
-        uri: vector<u8>,
+        url: vector<u8>,
         is_mutable: bool,
         // A vector of attribute keys, expressed in a vector of bytes that
         // encode to utf8. The attribute keys are stored as a String in the
@@ -162,7 +162,7 @@ module nft_protocol::std_nft {
         let args = mint_args(
             string::utf8(name),
             current_supply + 1,
-            url::new_unsafe_from_bytes(uri),
+            url::new_unsafe_from_bytes(url),
             false,
             is_mutable,
             attribute_keys,
@@ -236,7 +236,7 @@ module nft_protocol::std_nft {
             id,
             name: _,
             index: _,
-            uri: _,
+            url: _,
             attributes: _,
         } = metadata;
 
@@ -260,11 +260,11 @@ module nft_protocol::std_nft {
         meta.index
     }
 
-    /// Get the Nft Meta's `uri`
-    public fun uri(
+    /// Get the Nft Meta's `url`
+    public fun url(
         meta: &NftMeta,
     ): Url {
-        meta.uri
+        meta.url
     }
 
     /// Get the Nft Meta's `attributes`
@@ -279,7 +279,7 @@ module nft_protocol::std_nft {
     fun mint_args(
         name: String,
         index: u64,
-        uri: Url,
+        url: Url,
         primary_sales_happened: bool,
         is_mutable: bool,
         attribute_keys: vector<vector<u8>>,
@@ -293,7 +293,7 @@ module nft_protocol::std_nft {
         MintNFT {
             name,
             index,
-            uri,
+            url,
             primary_sales_happened,
             is_mutable,
             attributes,
@@ -310,7 +310,7 @@ module nft_protocol::std_nft {
             id: object::new(ctx),
             name: args.name,
             index: args.index,
-            uri: args.uri,
+            url: args.url,
             attributes: args.attributes,
         };
 
