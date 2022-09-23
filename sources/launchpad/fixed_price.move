@@ -16,6 +16,7 @@ module nft_protocol::fixed_price {
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::nft::{Self, NftOwned};
+    use nft_protocol::collection::{Self, Collection};
 
     struct FixedPriceSale has drop {}
 
@@ -54,13 +55,15 @@ module nft_protocol::fixed_price {
 
     /// Creates a `Slingshot` with `FixedInitalOffer` as witness and a fixed
     /// price launchpad configuration via `LaunchpadConfig`.
-    public entry fun create(
-        collection_id: ID,
+    public entry fun create<T: drop, Meta: store>(
+        collection: &Collection<T, Meta>,
         admin: address,
         receiver: address,
         price: u64,
         ctx: &mut TxContext,
     ) {
+
+        let collection_id = collection::id(collection);
 
         let args = init_args(
             collection_id,
