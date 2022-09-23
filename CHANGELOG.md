@@ -11,6 +11,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 - Renamed field `uri` to `url` for `std_nft::NftMeta`
+- Changed parameter `collection` from `ID` to `&Collection<T, Meta>`
+  in `fixed_price::create`
 
 ## [0.2.0] - 2022-09-20
 
