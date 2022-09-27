@@ -16,7 +16,7 @@ module nft_protocol::std_nft {
     use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::std_collection::{StdCollection, CollectionMeta};
-
+    
     struct StdNft has drop {}
 
     struct NftMeta has key, store {
