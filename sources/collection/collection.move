@@ -17,7 +17,7 @@ module nft_protocol::collection {
     use sui::tx_context::{TxContext};
     use nft_protocol::tags::{Self, Tags};
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::collection_cap::{Self, Capped, Uncapped};
+    use nft_protocol::cap::{Self, Limited, Unlimited};
     use std::option::{Self, Option};
 
     /// The phantom type T links the Collection with a smart contract which
@@ -76,7 +76,7 @@ module nft_protocol::collection {
         max_supply: u64,
         metadata: Meta,
         ctx: &mut TxContext,
-    ): Collection<Meta, Capped> {
+    ): Collection<Meta, Limited> {
         let id = object::new(ctx);
 
         Collection {
@@ -89,7 +89,7 @@ module nft_protocol::collection {
             is_mutable: args.is_mutable,
             royalty_fee_bps: args.royalty_fee_bps,
             creators: vector::empty(),
-            cap: collection_cap::create_capped(max_supply),
+            cap: cap::create_limited(max_supply, false),
             metadata: metadata,
         }
     }
@@ -99,7 +99,7 @@ module nft_protocol::collection {
         args: InitCollection,
         metadata: Meta,
         ctx: &mut TxContext,
-    ): Collection<Meta, Uncapped> {
+    ): Collection<Meta, Unlimited> {
         let id = object::new(ctx);
 
         Collection {
@@ -112,7 +112,7 @@ module nft_protocol::collection {
             is_mutable: args.is_mutable,
             royalty_fee_bps: args.royalty_fee_bps,
             creators: vector::empty(),
-            cap: collection_cap::create_uncapped(),
+            cap: cap::create_unlimited(),
             metadata: metadata,
         }
     }
@@ -140,10 +140,10 @@ module nft_protocol::collection {
 
     /// Burn the collection and return the Metadata object
     public fun burn_capped<Meta: store>(
-        collection: Collection<Meta, Capped>,
+        collection: Collection<Meta, Limited>,
     ): Meta {
         assert!(supply::current(
-            collection_cap::supply(&collection.cap)
+            cap::supply(&collection.cap)
         ) == 0, 0);
 
         let Collection {
@@ -160,7 +160,7 @@ module nft_protocol::collection {
             metadata,
         } = collection;
 
-        collection_cap::destroy_capped(cap);
+        cap::destroy_capped(cap);
 
         object::delete(id);
 
@@ -238,51 +238,51 @@ module nft_protocol::collection {
     }
 
     public fun cap_supply<Meta: store>(
-        collection: &mut Collection<Meta, Capped>,
+        collection: &mut Collection<Meta, Limited>,
         value: u64
     ) {
         supply::cap_supply(
-            collection_cap::supply_mut(&mut collection.cap),
+            cap::supply_mut(&mut collection.cap),
             value
             )
     }
 
     public fun increase_supply<Meta: store>(
-        collection: &mut Collection<Meta, Capped>,
+        collection: &mut Collection<Meta, Limited>,
         value: u64
     ) {
         supply::increase_supply(
-            collection_cap::supply_mut(&mut collection.cap),
+            cap::supply_mut(&mut collection.cap),
             value
         )
     }
 
     public fun decrease_supply<Meta: store>(
-        collection: &mut Collection<Meta, Capped>,
+        collection: &mut Collection<Meta, Limited>,
         value: u64
     ) {
         supply::decrease_supply(
-            collection_cap::supply_mut(&mut collection.cap),
+            cap::supply_mut(&mut collection.cap),
             value
         )
     }
 
     public fun increase_supply_cap<Meta: store>(
-        collection: &mut Collection<Meta, Capped>,
+        collection: &mut Collection<Meta, Limited>,
         value: u64
     ) {
         supply::increase_cap(
-            collection_cap::supply_mut(&mut collection.cap),
+            cap::supply_mut(&mut collection.cap),
             value
         )
     }
 
     public fun decrease_supply_cap<Meta: store>(
-        collection: &mut Collection<Meta, Capped>,
+        collection: &mut Collection<Meta, Limited>,
         value: u64
     ) {
         supply::decrease_cap(
-            collection_cap::supply_mut(&mut collection.cap),
+            cap::supply_mut(&mut collection.cap),
             value
         )
     }
@@ -303,19 +303,19 @@ module nft_protocol::collection {
         &coll.symbol
     }
 
-    public fun supply<Meta: store>(collection: &Collection<Meta, Capped>): &Supply {
-        collection_cap::supply(&collection.cap)
+    public fun supply<Meta: store>(collection: &Collection<Meta, Limited>): &Supply {
+        cap::supply(&collection.cap)
     }
 
-    public fun supply_cap<Meta: store>(collection: &Collection<Meta, Capped>): Option<u64> {
+    public fun supply_cap<Meta: store>(collection: &Collection<Meta, Limited>): Option<u64> {
         supply::cap(
-            collection_cap::supply(&collection.cap)
+            cap::supply(&collection.cap)
         )
     }
 
-    public fun current_supply<Meta: store>(collection: &Collection<Meta, Capped>): u64 {
+    public fun current_supply<Meta: store>(collection: &Collection<Meta, Limited>): u64 {
         supply::current(
-            collection_cap::supply(&collection.cap)
+            cap::supply(&collection.cap)
         )
     }
 

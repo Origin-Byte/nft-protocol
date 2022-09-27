@@ -1,69 +1,44 @@
-module nft_protocol::collection_cap {
+module nft_protocol::cap {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::supply::{Self, Supply};
     use std::option::{Self, Option};
 
-    // struct Cap<T> has store {
-    //     cap: T,
-    // }
-
-    // struct Limited has store {
-    //     supply: Supply,
-    // }
-    // struct Unlimited has store {}
-
-    struct Capped has store {
+    struct Limited has store {
         supply: Supply,
     }
-    struct Uncapped has store {}
+    struct Unlimited has store {}
 
-    // public fun create_cap<T: store>(
-    //     max_supply: Option<u64>,
-    // ): Cap<T> {
-
-    //     if (option::is_none(&max_supply)) {
-    //         return Cap {
-    //             cap: Unlimited {}
-    //         };
-    //     } else {
-    //         return Cap {
-    //             cap: Limited {
-    //                 supply: supply::new(max_supply)
-    //             }
-    //         };
-    //     }
-    // }
-
-    public fun create_capped(
+    public fun create_limited(
         max_supply: u64,
-    ): Capped {
-        Capped {
-            supply: supply::new(option::some(max_supply))
+        frozen: bool,
+    ): Limited {
+        Limited {
+            supply: supply::new(option::some(max_supply), frozen)
         }
     }
 
-    public fun create_uncapped(
-    ): Uncapped {
-        Uncapped {}
+    public fun create_unlimited(
+    ): Unlimited {
+        Unlimited {}
     }
 
     public fun supply(
-        cap: &Capped
+        cap: &Limited
     ): &Supply {
         &cap.supply
     }
 
     public fun supply_mut(
-        cap: &mut Capped
+        cap: &mut Limited
     ): &mut Supply {
         &mut cap.supply
     }
 
-    public fun destroy_capped(cap: Capped) {
+    public fun destroy_capped(cap: Limited) {
         assert!(supply::current(&cap.supply) == 0, 0);
-        let Capped { supply } = cap;
+        let Limited { supply } = cap;
         supply::destroy(supply);
     }
 }

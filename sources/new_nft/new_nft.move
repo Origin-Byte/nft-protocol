@@ -1,11 +1,12 @@
 module nft_protocol::new_nft {
+    use sui::event;
     use sui::object::{Self, UID, ID};
     use std::string::{String};
     use sui::tx_context::{Self, TxContext};
     use std::option::{Self, Option};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::collection_cap::{Self, Capped, Uncapped};
+    use nft_protocol::cap::{Self, Limited, Unlimited};
 
     /// For when a type passed to create_supply is not a one-time witness.
     const EBadWitness: u64 = 0;
@@ -22,6 +23,17 @@ module nft_protocol::new_nft {
         data: Option<Data>,
     }
 
+    struct MintEvent has copy, drop {
+        object_id: ID,
+        data_id: ID,
+    }
+
+    // TODO: Need to use this
+    struct BurnEvent has copy, drop {
+        object_id: ID,
+        data_id: ID,
+    }
+
     /// Create a Nft and increase the total supply
     /// in metadata `cap` accordingly.
     public fun mint_nft_loose<Data: store>(
@@ -29,8 +41,17 @@ module nft_protocol::new_nft {
         data_id: ID,
         ctx: &mut TxContext,
     ): Nft<Data> {
+        let nft_id = object::new(ctx);
+
+        event::emit(
+            MintEvent {
+                object_id: object::uid_to_inner(&nft_id),
+                data_id: data_id,
+            }
+        );
+
         Nft {
-            id: object::new(ctx),
+            id: nft_id,
             data_id: data_id,
             data: option::none(),
         }
@@ -41,8 +62,17 @@ module nft_protocol::new_nft {
         data: Data,
         ctx: &mut TxContext,
     ): Nft<Data> {
+        let nft_id = object::new(ctx);
+
+        event::emit(
+            MintEvent {
+                object_id: object::uid_to_inner(&nft_id),
+                data_id: data_id,
+            }
+        );
+
         Nft {
-            id: object::new(ctx),
+            id: nft_id,
             data_id: data_id,
             data: option::some(data),
         }
