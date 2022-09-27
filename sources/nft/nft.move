@@ -6,6 +6,7 @@ module nft_protocol::nft {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection_cap::{Self, Capped, Uncapped, Cap};
 
     // The phantom type T links the NTF with a smart contract which implements
     // a standard interface for NFTs.

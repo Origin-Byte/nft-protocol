@@ -5,10 +5,36 @@ module nft_protocol::collection_cap {
     use nft_protocol::supply::{Self, Supply};
     use std::option::{Self, Option};
 
+    // struct Cap<T> has store {
+    //     cap: T,
+    // }
+
+    // struct Limited has store {
+    //     supply: Supply,
+    // }
+    // struct Unlimited has store {}
+
     struct Capped has store {
         supply: Supply,
     }
     struct Uncapped has store {}
+
+    // public fun create_cap<T: store>(
+    //     max_supply: Option<u64>,
+    // ): Cap<T> {
+
+    //     if (option::is_none(&max_supply)) {
+    //         return Cap {
+    //             cap: Unlimited {}
+    //         };
+    //     } else {
+    //         return Cap {
+    //             cap: Limited {
+    //                 supply: supply::new(max_supply)
+    //             }
+    //         };
+    //     }
+    // }
 
     public fun create_capped(
         max_supply: u64,
