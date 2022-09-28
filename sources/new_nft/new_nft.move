@@ -95,6 +95,48 @@ module nft_protocol::new_nft {
         option::extract(&mut nft.data)
     }
 
+    public fun burn_loose_nft<Data: store>(
+        nft: Nft<Data>,
+    ) {
+        assert!(is_loose(&nft), 0);
+
+        let Nft {
+            id,
+            data_id: _,
+            data,
+        } = nft;
+
+        object::delete(id);
+    }
+
+    public fun burn_embeded_nft<Data: store>(
+        nft: Nft<Data>,
+    ): Data {
+        assert!(is_loose(&nft), 0);
+
+        let Nft {
+            id,
+            data_id: _,
+            data,
+        } = nft;
+
+        object::delete(id);
+
+        option::extract(&mut data)
+    }
+
+    public fun is_loose<Data: store>(
+        nft: &Nft<Data>,
+    ): bool {
+        option::is_none(&nft.data)
+    }
+
+    public fun data_id<Data: store>(
+        nft: &Nft<Data>,
+    ): &ID {
+        &nft.data_id
+    }
+
     // public fun destroy_nft<T, Meta: store, Data: store>(
     //     nft: Nft<Data>,
     //     nft_data: &mut NftData<T, Meta>,

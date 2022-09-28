@@ -1,9 +1,10 @@
 // TODO: Mint to launchpad functions
-module nft_protocol::collectibles {
+module nft_protocol::c_nft {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use std::string::{String};
     use std::option::{Option};
+    use std::vector;
     
     use sui::transfer;
     use sui::tx_context::{TxContext};
@@ -11,7 +12,7 @@ module nft_protocol::collectibles {
     
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::new_nft;
+    use nft_protocol::new_nft::{Self, Nft};
     use nft_protocol::cap::{Limited, Unlimited};
     use nft_protocol::utils::{to_string_vector};
 
@@ -20,6 +21,22 @@ module nft_protocol::collectibles {
         index: u64,
         name: String,
         supply: Supply,
+        description: String,
+        collection_id: ID,
+        url: Url,
+        attributes: Attributes,
+        // TODO: need to add more fields here
+    }
+
+    struct ComboData<Data> has key, store {
+        id: UID,
+        data: vector<Data>,
+    }
+
+    struct CombinableData has store {
+        data_id: ID,
+        index: u64,
+        name: String,
         description: String,
         collection_id: ID,
         url: Url,
@@ -91,6 +108,141 @@ module nft_protocol::collectibles {
             collection::id(collection),
             recipient,
             ctx,
+        );
+    }
+
+    public entry fun init_combo_data<MetaColl: store, Cap: store>(
+        nft_data_1: &Data,
+        nft_data_2: &Data,
+        collection: &mut Collection<MetaColl, Cap>,
+        ctx: &mut TxContext,
+    ): ComboData<CombinableData> {
+        // event::emit(
+        //     MintDataEvent {
+        //         object_id: object::uid_to_inner(&data_id),
+        //         collection_id: collection_id,
+        //     }
+        // );
+
+        let data_1 = CombinableData {
+            data_id: nft_data_id(nft_data_1),
+            index: nft_data_1.index,
+            name: nft_data_1.name,
+            description: nft_data_1.description,
+            collection_id: nft_data_1.collection_id,
+            url: nft_data_1.url,
+            attributes: nft_data_1.attributes,
+        };
+
+        let data_2 = CombinableData {
+            data_id: nft_data_id(nft_data_2),
+            index: nft_data_2.index,
+            name: nft_data_2.name,
+            description: nft_data_2.description,
+            collection_id: nft_data_2.collection_id,
+            url: nft_data_2.url,
+            attributes: nft_data_2.attributes,
+        };
+
+        let id = object::new(ctx);
+
+        let data: vector<CombinableData> = vector::empty();
+        vector::push_back(&mut data, data_1);
+        vector::push_back(&mut data, data_2);
+
+        ComboData {
+            id: id,
+            data: data,
+        }
+    }
+
+    public entry fun combine_combo_data<MetaColl: store, Cap: store, CData: store>(
+        combo_data_1: ComboData<CData>,
+        combo_data_2: ComboData<CData>,
+        collection: &mut Collection<MetaColl, Cap>,
+        ctx: &mut TxContext,
+    ): ComboData<ComboData<CData>> {
+        // event::emit(
+        //     MintDataEvent {
+        //         object_id: object::uid_to_inner(&data_id),
+        //         collection_id: collection_id,
+        //     }
+        // );
+
+        let id = object::new(ctx);
+
+        let data: vector<ComboData<CData>> = vector::empty();
+        vector::push_back(&mut data, combo_data_1);
+        vector::push_back(&mut data, combo_data_2);
+
+        ComboData {
+            id: id,
+            data: data,
+        }
+    }
+
+    // Burn two NFT pointers
+    // Loose allows for the creation of many NFTs out of the metadata
+    public entry fun mint_combo_nft_loose<CData: store>(
+        nft_1: Nft<Data>,
+        nft_2: Nft<Data>,
+        data_1: &Data,
+        data_2: &Data,
+        combo_data: &ComboData<CData>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        // TODO: Check that only loose NFTs can be combined
+        // this is checked when burning nft loose function is called
+        assert!(new_nft::data_id(&nft_1) == id_ref(data_1), 0);
+        assert!(new_nft::data_id(&nft_2) == id_ref(data_2), 0);
+
+        new_nft::burn_loose_nft(nft_1);
+        new_nft::burn_loose_nft(nft_2);
+
+        // TODO: Need to assert that the combo data object is the right object
+
+        let nft = new_nft::mint_nft_loose<Data>(
+            object::uid_to_inner(&combo_data.id),
+            ctx,
+        );
+
+        transfer::transfer(
+            nft,
+            recipient,
+        );
+    }
+
+    // Burn two NFT pointers
+    // Embedded allows for the creation of just one combinable NFT
+    public entry fun mint_combo_nft_emdedded<CData: store>(
+        nft_1: Nft<Data>,
+        nft_2: Nft<Data>,
+        data_1: &Data,
+        data_2: &Data,
+        combo_data: ComboData<CData>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        // TODO: Check that only loose NFTs can be combined
+        // this is checked when burning nft loose function is called
+        assert!(new_nft::data_id(&nft_1) == id_ref(data_1), 0);
+        assert!(new_nft::data_id(&nft_2) == id_ref(data_2), 0);
+
+        new_nft::burn_loose_nft(nft_1);
+        new_nft::burn_loose_nft(nft_2);
+
+        // TODO: Need to assert that the combo data object is the right object
+
+        let nft = new_nft::mint_nft_embedded<ComboData<CData>>(
+            object::uid_to_inner(&combo_data.id),
+            combo_data,
+            ctx,
+        );
+
+        transfer::transfer(
+            nft,
+            recipient,
         );
     }
 
