@@ -3,7 +3,7 @@ module nft_protocol::c_nft {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use std::string::{String};
-    use std::option::{Option};
+    use std::option::{Self, Option};
     use std::vector;
     
     use sui::transfer;
@@ -183,7 +183,7 @@ module nft_protocol::c_nft {
 
     // Burn two NFT pointers
     // Loose allows for the creation of many NFTs out of the metadata
-    public entry fun mint_combo_nft_loose<CData: store>(
+    public entry fun mint_combo_2_nft_loose<CData: store>(
         nft_1: Nft<Data>,
         nft_2: Nft<Data>,
         data_1: &Data,
@@ -214,8 +214,49 @@ module nft_protocol::c_nft {
     }
 
     // Burn two NFT pointers
+    // Loose allows for the creation of many NFTs out of the metadata
+    public entry fun mint_combo_n_nft_loose<CData: store>(
+        nfts: vector<Nft<Data>>,
+        nfts_data: vector<Data>, // TODO: Ideally we would pass &Data
+        combo_data: &ComboData<CData>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        // TODO: Check that only loose NFTs can be combined
+        // this is checked when burning nft loose function is called
+        let len = vector::length(&nfts);
+
+        while (len > 0) {
+            let nft = vector::pop_back(&mut nfts);
+            let data = vector::pop_back(&mut nfts_data);
+            assert!(new_nft::data_id(&nft) == id_ref(&data), 0);
+
+            new_nft::burn_loose_nft(nft);
+            // TODO: This is really not ideal - ideally we would use a reference
+            // to the object
+            transfer::share_object(data);
+            
+            len = len - 1;
+        };
+        vector::destroy_empty(nfts);
+        vector::destroy_empty(nfts_data);
+
+        // TODO: Need to assert that the combo data object is the right object
+        let nft = new_nft::mint_nft_loose<Data>(
+            object::uid_to_inner(&combo_data.id),
+            ctx,
+        );
+
+        transfer::transfer(
+            nft,
+            recipient,
+        );
+    }
+
+    // Burn two NFT pointers
     // Embedded allows for the creation of just one combinable NFT
-    public entry fun mint_combo_nft_emdedded<CData: store>(
+    // Currently only supports two nfts
+    public entry fun mint_combo_2_nft_emdedded<CData: store>(
         nft_1: Nft<Data>,
         nft_2: Nft<Data>,
         data_1: &Data,
@@ -237,6 +278,41 @@ module nft_protocol::c_nft {
         let nft = new_nft::mint_nft_embedded<ComboData<CData>>(
             object::uid_to_inner(&combo_data.id),
             combo_data,
+            ctx,
+        );
+
+        transfer::transfer(
+            nft,
+            recipient,
+        );
+    }
+
+    // Burn two NFT pointers
+    // Loose allows for the creation of many NFTs out of the metadata
+    public entry fun mint_combo_n_nft_embedded<CData: store>(
+        nfts: vector<Nft<Data>>,
+        combo_data: &ComboData<CData>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        // TODO: Check that only loose NFTs can be combined
+        // this is checked when burning nft loose function is called
+        let len = vector::length(&nfts);
+
+        while (len > 0) {
+            let nft = vector::pop_back(&mut nfts);
+
+            let data = option::extract(&mut new_nft::burn_embedded_nft(nft));
+
+            transfer::share_object(data);
+            
+            len = len - 1;
+        };
+        vector::destroy_empty(nfts);
+
+        // TODO: Need to assert that the combo data object is the right object
+        let nft = new_nft::mint_nft_loose<Data>(
+            object::uid_to_inner(&combo_data.id),
             ctx,
         );
 

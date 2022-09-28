@@ -107,11 +107,13 @@ module nft_protocol::new_nft {
         } = nft;
 
         object::delete(id);
+
+        option::destroy_none(data);
     }
 
-    public fun burn_embeded_nft<Data: store>(
+    public fun burn_embedded_nft<Data: store>(
         nft: Nft<Data>,
-    ): Data {
+    ): Option<Data> {
         assert!(is_loose(&nft), 0);
 
         let Nft {
@@ -122,7 +124,7 @@ module nft_protocol::new_nft {
 
         object::delete(id);
 
-        option::extract(&mut data)
+        data
     }
 
     public fun is_loose<Data: store>(
