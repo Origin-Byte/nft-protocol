@@ -1,9 +1,6 @@
 module nft_protocol::cap {
-    use sui::object::{Self, UID, ID};
-    use sui::tx_context::{TxContext};
-    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::supply::{Self, Supply};
-    use std::option::{Self, Option};
+    use std::option;
 
     struct Limited has store {
         supply: Supply,

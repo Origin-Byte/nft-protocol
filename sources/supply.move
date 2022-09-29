@@ -8,7 +8,7 @@ module nft_protocol::supply {
     }
 
     // === Supply <-> morphing and accessors  ===
-
+    
     public fun cap(supply: &Supply): Option<u64> {
         supply.cap
     }

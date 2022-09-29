@@ -1,18 +1,22 @@
 // TODO: Mint to launchpad functions
+// TODO: Consider which fields Nft should have
+// TODO: Discuss if name should be data or metadata
+// TODO: Consider renaming functions?
+// TODO: Do we want a field for further_data: Option<SomeObject?>
+// TODO: Discuss how mutability should work for these NFTs
 module nft_protocol::unique_nft {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use std::string::{String};
-    use std::option::{Option};
+    use std::option;
     
     use sui::transfer;
     use sui::tx_context::{TxContext};
     use sui::url::{Url};
     
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::new_nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::cap::{Limited, Unlimited};
-    use nft_protocol::utils::{to_string_vector};
 
     struct Data has key, store {
         id: UID,
@@ -22,22 +26,18 @@ module nft_protocol::unique_nft {
         collection_id: ID,
         url: Url,
         attributes: Attributes,
-        // TODO: need to add more fields here
     }
 
     struct Attributes has store, drop, copy {
-        // TODO: Consider using key-value pair
         keys: vector<String>,
         values: vector<String>,
     }
 
-    struct InitArgs has drop {
+    struct MintArgs has drop {
         index: u64,
         name: String,
         description: String,
-        max_supply: Option<u64>,
         url: Url,
-        is_mutable: bool,
         attributes: Attributes,
     }
 
@@ -46,7 +46,6 @@ module nft_protocol::unique_nft {
         collection_id: ID,
     }
 
-    // TODO: Must use this event
     struct BurnDataEvent has copy, drop {
         object_id: ID,
         collection_id: ID,
@@ -62,12 +61,25 @@ module nft_protocol::unique_nft {
     /// contract which creates the collection. That contract can then define
     /// their own logic for restriction on minting.
     public entry fun direct_mint_unlimited_collection_nft<MetaColl: store>(
-        args: InitArgs,
-        max_supply: Option<u64>,
+        index: u64,
+        name: String,
+        description: String,
+        url: Url,
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,
         collection: &Collection<MetaColl, Unlimited>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
+        let args = mint_args(
+            index,
+            name,
+            description,
+            url,
+            attribute_keys,
+            attribute_values,
+        );
+
         mint_and_transfer(
             args,
             collection::id(collection),
@@ -84,11 +96,25 @@ module nft_protocol::unique_nft {
     /// contract which creates the collection. That contract can then define
     /// their own logic for restriction on minting.
     public entry fun direct_mint_limited_collection_nft<MetaColl: store>(
-        args: InitArgs,
-        recipient: address,
+        index: u64,
+        name: String,
+        description: String,
+        url: Url,
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,
         collection: &mut Collection<MetaColl, Limited>,
+        recipient: address,
         ctx: &mut TxContext,
     ) {
+        let args = mint_args(
+            index,
+            name,
+            description,
+            url,
+            attribute_keys,
+            attribute_values,
+        );
+        
         collection::increase_supply(collection, 1);
 
         mint_and_transfer(
@@ -99,7 +125,26 @@ module nft_protocol::unique_nft {
         );
     }
 
+    public entry fun burn_unlimited_collection_nft<MetaColl: store>(
+        nft: Nft<Data>,
+    ) {
+        burn_nft(nft);
+    }
+
+    public entry fun burn_limited_collection_nft<MetaColl: store>(
+        nft: Nft<Data>,
+    ) {
+        burn_nft(nft);
+    }
+
     // === Getter Functions  ===
+
+    /// Get the Nft Data's `id`
+    public fun id(
+        nft_data: &Data,
+    ): ID {
+        *object::uid_as_inner(&nft_data.id)
+    }
 
     /// Get the Nft Data's `id` as reference
     public fun id_ref(
@@ -157,7 +202,7 @@ module nft_protocol::unique_nft {
     }
 
     fun mint_and_transfer(
-        args: InitArgs,
+        args: MintArgs,
         collection_id: ID,
         recipient: address,
         ctx: &mut TxContext,
@@ -181,7 +226,7 @@ module nft_protocol::unique_nft {
             attributes: args.attributes,
         };
 
-        let nft = new_nft::mint_nft_embedded(
+        let nft = nft::mint_nft_embedded(
             nft_data_id(&nft_data),
             nft_data,
             ctx
@@ -193,28 +238,56 @@ module nft_protocol::unique_nft {
         );
     }
 
+    fun burn_nft(
+        nft: Nft<Data>,
+    ) {
+        let data_option = nft::burn_embedded_nft(nft);
+
+        // TODO: What shall we do with the data?
+        // Send it to the sender?
+        // Make it shared?
+        let data = option::extract(&mut data_option);
+        option::destroy_none(data_option);
+
+        event::emit(
+            BurnDataEvent {
+                object_id: id(&data),
+                collection_id: *collection_id(&data),
+            }
+        );
+
+        let Data {
+            id,
+            index: _,
+            name: _,
+            description: _,
+            collection_id: _,
+            url: _,
+            attributes: _,
+        } = data;
+
+        // TODO: Consider if we really want to delete the nft data here
+        object::delete(id);
+    }
+
     fun mint_args(
         index: u64,
         name: String,
         description: String,
-        max_supply: Option<u64>,
         url: Url,
-        is_mutable: bool,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-    ): InitArgs {
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,
+    ): MintArgs {
         let attributes = Attributes {
-            keys: to_string_vector(&mut attribute_keys),
-            values: to_string_vector(&mut attribute_values),
+            keys: attribute_keys,
+            values: attribute_values,
         };
 
-        InitArgs {
+        MintArgs {
             index,
             name,
             description,
-            max_supply,
             url,
-            is_mutable,
             attributes,
         }
     }

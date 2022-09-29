@@ -2,19 +2,20 @@
 /// 
 /// It acts as a standard domain-specific implementation of an Nft 
 /// collection.
-/// 
-/// TODO: Implement functionality to verify creators
+/// TODO: Do we want to allow json to be modified?
 module nft_protocol::std_collection {
     use std::string::{Self, String};
+    use std::option::{Self, Option};
+
     use sui::transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{TxContext};
-    use nft_protocol::collection::{Self};
-    use nft_protocol::utils::{to_string_vector};
-    use std::option::{Self, Option};
-
     use sui::event;
 
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::cap::{Limited};
+
+    // TODO: Does it make sense for this to be key? I don't think so
     struct StdMeta has key, store {
         id: UID,
         json: String,
@@ -48,7 +49,7 @@ module nft_protocol::std_collection {
         symbol: vector<u8>,
         max_supply: Option<u64>,
         receiver: address,
-        tags: vector<vector<u8>>,
+        tags: vector<String>,
         royalty_fee_bps: u64,
         is_mutable: bool,
         // This is a vector of bytes that encodes to utf8. This fields allows
@@ -64,7 +65,7 @@ module nft_protocol::std_collection {
             string::utf8(symbol),
             max_supply,
             receiver,
-            to_string_vector(&mut tags),
+            tags,
             royalty_fee_bps,
             is_mutable,
             string::utf8(data),
@@ -86,7 +87,7 @@ module nft_protocol::std_collection {
         );
 
         if (option::is_none(&max_supply)) {
-            let collection = collection::create_uncapped(
+            let collection = collection::mint_uncapped(
                 collection_args,
                 metadata,
                 ctx,
@@ -95,7 +96,7 @@ module nft_protocol::std_collection {
             transfer(collection, recipient);
 
         } else {
-            let collection = collection::create_capped(
+            let collection = collection::mint_capped(
                 collection_args,
                 *option::borrow(&max_supply),
                 metadata,
@@ -104,6 +105,150 @@ module nft_protocol::std_collection {
 
             transfer(collection, recipient);
         };
+    }
+
+    /// Mint one `Collection` with `Metadata` object and share collection 
+    /// object. With the current implementation, that is without the Launchpad
+    /// module, the NFTs are minted to the public directly from the NFT
+    /// contract. This is suboptimal because the metadata has to be given as
+    /// parameters to the function call.
+    /// 
+    /// In the near future we will separate the minting action of the Nft from
+    /// the sale of the Nft to the public via primary market modules. For the
+    /// timebeing however, we allow the collection to be shared and let the 
+    /// front end perform the function call with the metadata.
+    public entry fun mint_and_share(
+        name: vector<u8>,
+        description: vector<u8>,
+        symbol: vector<u8>,
+        max_supply: Option<u64>,
+        receiver: address,
+        tags: vector<String>,
+        royalty_fee_bps: u64,
+        is_mutable: bool,
+        json: vector<u8>,
+        ctx: &mut TxContext,
+    ) {
+        let args = init_args(
+            string::utf8(name),
+            string::utf8(description),
+            string::utf8(symbol),
+            max_supply,
+            receiver,
+            tags,
+            royalty_fee_bps,
+            is_mutable,
+            string::utf8(json),
+        );
+
+        let metadata = StdMeta {
+            id: object::new(ctx),
+            json: args.json,
+        };
+
+        let collection_args = collection::init_args(
+            args.name,
+            args.description,
+            args.symbol,
+            args.receiver,
+            args.tags,
+            args.is_mutable,
+            args.royalty_fee_bps,
+        );
+
+        if (option::is_none(&max_supply)) {
+            let collection = collection::mint_uncapped(
+                collection_args,
+                metadata,
+                ctx,
+            );
+
+            share(collection);
+
+        } else {
+            let collection = collection::mint_capped(
+                collection_args,
+                *option::borrow(&max_supply),
+                metadata,
+                ctx,
+            );
+
+            share(collection);
+        };
+    }
+
+    /// Burn a Standard Collection. Invokes `burn()`.
+    public entry fun burn_limited_collection(
+        collection: Collection<StdMeta, Limited>,
+    ) {
+
+        event::emit(
+            BurnEvent {
+                object_id: object::id(&collection),
+            }
+        );
+
+        // Delete generic Collection object
+        let metadata = collection::burn_capped(
+            collection,
+        );
+
+        let StdMeta {
+            id,
+            json: _,
+        } = metadata;
+
+        // Delete collection metadata
+        object::delete(id);
+    }
+
+    // // === Getter Functions ===
+
+    /// Get the Collections Meta's `id`
+    public fun id(
+        meta: &StdMeta,
+    ): ID {
+        object::uid_to_inner(&meta.id)
+    }
+
+    /// Get the Collections Meta's `id` as reference
+    public fun id_ref(
+        meta: &StdMeta,
+    ): &ID {
+        object::uid_as_inner(&meta.id)
+    }
+
+    /// Get the Collections Meta's `json` as reference
+    public fun json(
+        meta: &StdMeta,
+    ): &String {
+        &meta.json
+    }
+
+    // // === Private Functions ===
+
+    fun init_args(
+        name: String,
+        description: String,
+        symbol: String,
+        max_supply: Option<u64>,
+        receiver: address,
+        tags: vector<String>,
+        royalty_fee_bps: u64,
+        is_mutable: bool,
+        json: String,
+    ): InitStandardCollection {
+        InitStandardCollection {
+            name,
+            description,
+            symbol,
+            max_supply,
+            receiver,
+            tags,
+            royalty_fee_bps,
+            is_mutable,
+            json,
+        }
     }
 
     fun transfer<T: key>(
@@ -134,225 +279,6 @@ module nft_protocol::std_collection {
 
         transfer::share_object(collection);
     }
-
-    /// Mint one `Collection` with `Metadata` object and share collection 
-    /// object. With the current implementation, that is without the Launchpad
-    /// module, the NFTs are minted to the public directly from the NFT
-    /// contract. This is suboptimal because the metadata has to be given as
-    /// parameters to the function call.
-    /// 
-    /// In the near future we will separate the minting action of the Nft from
-    /// the sale of the Nft to the public via primary market modules. For the
-    /// timebeing however, we allow the collection to be shared and let the 
-    /// front end perform the function call with the metadata.
-    public entry fun mint_and_share(
-        name: vector<u8>,
-        description: vector<u8>,
-        symbol: vector<u8>,
-        max_supply: Option<u64>,
-        initial_price: u64,
-        receiver: address,
-        tags: vector<vector<u8>>,
-        royalty_fee_bps: u64,
-        is_mutable: bool,
-        json: vector<u8>,
-        ctx: &mut TxContext,
-    ) {
-        let args = init_args(
-            string::utf8(name),
-            string::utf8(description),
-            string::utf8(symbol),
-            max_supply,
-            receiver,
-            to_string_vector(&mut tags),
-            royalty_fee_bps,
-            is_mutable,
-            string::utf8(json),
-        );
-
-        let metadata = StdMeta {
-            id: object::new(ctx),
-            json: args.json,
-        };
-
-        let collection_args = collection::init_args(
-            args.name,
-            args.description,
-            args.symbol,
-            args.receiver,
-            args.tags,
-            args.is_mutable,
-            args.royalty_fee_bps,
-        );
-
-        if (option::is_none(&max_supply)) {
-            let collection = collection::create_uncapped(
-                collection_args,
-                metadata,
-                ctx,
-            );
-
-            share(collection);
-
-        } else {
-            let collection = collection::create_capped(
-                collection_args,
-                *option::borrow(&max_supply),
-                metadata,
-                ctx,
-            );
-
-            share(collection);
-        };
-    }
-
-    // /// Burn a Standard Collection. Invokes `burn()`.
-    // public entry fun burn(
-    //     collection: Collection<StdCollection, CollectionMeta>,
-    //     ctx: &mut TxContext,
-    // ) {
-
-    //     event::emit(
-    //         BurnEvent {
-    //             object_id: object::id(&collection),
-    //         }
-    //     );
-
-    //     // Delete generic Collection object
-    //     let metadata = collection::burn(
-    //         collection,
-    //         ctx,
-    //     );
-
-    //     let CollectionMeta {
-    //         id,
-    //         royalty_fee_bps: _,
-    //         creators: _,
-    //         data: _,
-    //     } = metadata;
-
-    //     // Delete collection metadata
-    //     object::delete(id);
-    // }
-
-    // /// Remove a `Creator` from `Collection`
-    // public entry fun remove_creator<T: drop, Meta: store>(
-    //     meta: &mut CollectionMeta,
-    //     creator_address: address,
-    // ) {
-    //     if (!vector::is_empty(&meta.creators)) {
-    //         remove_address(
-    //             &mut meta.creators,
-    //             creator_address,
-    //         )
-    //     }
-    // }
-
-    // /// Add a `Creator` to `Collection`
-    // public entry fun add_creator(
-    //     meta: &mut CollectionMeta,
-    //     creator_address: address,
-    //     share_of_royalty: u8,
-    // ) {
-    //     // TODO: Need to make sure sum of all Creator's `share_of_royalty` is
-    //     // not above 100%
-    //     let creator = Creator {
-    //         id: creator_address,
-    //         verified: true,
-    //         share_of_royalty: share_of_royalty,
-    //     };
-
-    //     if (
-    //         !contains_address(&meta.creators, creator_address)
-    //     ) {
-    //         vector::push_back(&mut meta.creators, creator);
-    //     }
-    // }
-
-    // /// Change field `royalty_fee_bps` in `Collection`
-    // public entry fun change_royalty<T: drop, Meta: store>(
-    //     meta: &mut CollectionMeta,
-    //     new_royalty_fee_bps: u64,
-    // ) {
-    //     meta.royalty_fee_bps = new_royalty_fee_bps;
-    // }
-
-    // // === Getter Functions ===
-
-    // /// Get the Collection Meta's `royalty_fee_bps`
-    // public fun royalty(
-    //     meta: &CollectionMeta,
-    // ): u64 {
-    //     meta.royalty_fee_bps
-    // }
-
-    // /// Get the Collection Meta's `creators`
-    // public fun creators(
-    //     meta: &CollectionMeta,
-    // ): vector<Creator> {
-    //     meta.creators
-    // }
-
-    // /// Get the Collection Meta's `data`
-    // public fun data(
-    //     meta: &CollectionMeta,
-    // ): String {
-    //     meta.data
-    // }
-
-
-    // // === Private Functions ===
-
-    fun init_args(
-        name: String,
-        description: String,
-        symbol: String,
-        max_supply: Option<u64>,
-        receiver: address,
-        tags: vector<String>,
-        royalty_fee_bps: u64,
-        is_mutable: bool,
-        json: String,
-    ): InitStandardCollection {
-        InitStandardCollection {
-            name,
-            description,
-            symbol,
-            max_supply,
-            receiver,
-            tags,
-            royalty_fee_bps,
-            is_mutable,
-            json,
-        }
-    }
-
-    // fun contains_address(
-    //     v: &vector<Creator>, c_address: address
-    // ): bool {
-    //     let i = 0;
-    //     let len = vector::length(v);
-    //     while (i < len) {
-    //         let creator = vector::borrow(v, i);
-    //         if (creator.id == c_address) return true;
-    //         i = i +1;
-    //     };
-    //     false
-    // }
-
-    // fun remove_address(
-    //     v: &mut vector<Creator>, c_address: address
-    // ) {
-    //     let i = 0;
-    //     let len = vector::length(v);
-    //     while (i < len) {
-    //         let creator = vector::borrow(v, i);
-
-    //         if (creator.id == c_address) {
-    //             vector::remove(v, i);
-    //         }
-    //     }
-    // }
 }
 
 // #[test_only]
