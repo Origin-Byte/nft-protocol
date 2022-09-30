@@ -9,10 +9,11 @@ module nft_protocol::nft {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
 
-    struct Nft<Data: store> has key, store {
+    // TODO: Mention that stands for `D`ata
+    struct Nft<D: store> has key, store {
         id: UID,
         data_id: ID,
-        data: Option<Data>,
+        data: Option<D>,
     }
 
     struct MintEvent has copy, drop {
@@ -27,11 +28,11 @@ module nft_protocol::nft {
 
     /// Create a Nft and increase the total supply
     /// in metadata `cap` accordingly.
-    public fun mint_nft_loose<Data: store>(
+    public fun mint_nft_loose<D: store>(
         // TODO: Need to refer launchpad shared object
         data_id: ID,
         ctx: &mut TxContext,
-    ): Nft<Data> {
+    ): Nft<D> {
         let nft_id = object::new(ctx);
 
         event::emit(
@@ -48,11 +49,11 @@ module nft_protocol::nft {
         }
     }
 
-    public fun mint_nft_embedded<Data: store>(
+    public fun mint_nft_embedded<D: store>(
         data_id: ID,
-        data: Data,
+        data: D,
         ctx: &mut TxContext,
-    ): Nft<Data> {
+    ): Nft<D> {
         let nft_id = object::new(ctx);
 
         event::emit(
@@ -69,25 +70,25 @@ module nft_protocol::nft {
         }
     }
 
-    public fun join_nft_data<Data: store>(
-        nft: &mut Nft<Data>,
-        data: Data,
+    public fun join_nft_data<D: store>(
+        nft: &mut Nft<D>,
+        data: D,
     ) {
         assert!(option::is_none(&nft.data), 0);
 
         option::fill(&mut nft.data, data);
     }
 
-    public fun split_nft_data<Data: store>(
-        nft: &mut Nft<Data>,
-    ): Data {
+    public fun split_nft_data<D: store>(
+        nft: &mut Nft<D>,
+    ): D {
         assert!(!option::is_none(&nft.data), 0);
 
         option::extract(&mut nft.data)
     }
 
-    public fun burn_loose_nft<Data: store>(
-        nft: Nft<Data>,
+    public fun burn_loose_nft<D: store>(
+        nft: Nft<D>,
     ) {
         assert!(is_loose(&nft), 0);
 
@@ -109,9 +110,9 @@ module nft_protocol::nft {
         option::destroy_none(data);
     }
 
-    public fun burn_embedded_nft<Data: store>(
-        nft: Nft<Data>,
-    ): Option<Data> {
+    public fun burn_embedded_nft<D: store>(
+        nft: Nft<D>,
+    ): Option<D> {
         assert!(is_loose(&nft), 0);
 
         event::emit(
@@ -132,47 +133,47 @@ module nft_protocol::nft {
         data
     }
 
-    public fun is_loose<Data: store>(
-        nft: &Nft<Data>,
+    public fun is_loose<D: store>(
+        nft: &Nft<D>,
     ): bool {
         option::is_none(&nft.data)
     }
 
     // === Getter Functions  ===
 
-    public fun id<Data: store>(
-        nft: &Nft<Data>,
+    public fun id<D: store>(
+        nft: &Nft<D>,
     ): ID {
         object::uid_to_inner(&nft.id)
     }
 
-    public fun id_ref<Data: store>(
-        nft: &Nft<Data>,
+    public fun id_ref<D: store>(
+        nft: &Nft<D>,
     ): &ID {
         object::uid_as_inner(&nft.id)
     }
 
-    public fun data_id<Data: store>(
-        nft: &Nft<Data>,
+    public fun data_id<D: store>(
+        nft: &Nft<D>,
     ): ID {
         nft.data_id
     }
 
-    public fun data_id_ref<Data: store>(
-        nft: &Nft<Data>,
+    public fun data_id_ref<D: store>(
+        nft: &Nft<D>,
     ): &ID {
         &nft.data_id
     }
 
-    public fun data_ref<Data: store>(
-        nft: &Nft<Data>,
-    ): &Data {
+    public fun data_ref<D: store>(
+        nft: &Nft<D>,
+    ): &D {
         option::borrow(&nft.data)
     }
 
-    public fun data_ref_mut<Data: store>(
-        nft: &mut Nft<Data>,
-    ): &mut Data {
+    public fun data_ref_mut<D: store>(
+        nft: &mut Nft<D>,
+    ): &mut D {
         option::borrow_mut(&mut nft.data)
     }
 }

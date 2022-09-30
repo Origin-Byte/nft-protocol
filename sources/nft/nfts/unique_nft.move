@@ -61,14 +61,14 @@ module nft_protocol::unique_nft {
     /// [`UID`]. Since this a property, it can be only accessed in the smart 
     /// contract which creates the collection. That contract can then define
     /// their own logic for restriction on minting.
-    public entry fun direct_mint_unlimited_collection_nft<MetaColl: store>(
+    public entry fun direct_mint_unlimited_collection_nft<M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &Collection<MetaColl, Unlimited>,
+        collection: &Collection<M, Unlimited>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
@@ -96,14 +96,14 @@ module nft_protocol::unique_nft {
     /// [`UID`]. Since this a property, it can be only accessed in the smart 
     /// contract which creates the collection. That contract can then define
     /// their own logic for restriction on minting.
-    public entry fun direct_mint_limited_collection_nft<MetaColl: store>(
+    public entry fun direct_mint_limited_collection_nft<M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<MetaColl, Limited>,
+        collection: &mut Collection<M, Limited>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
@@ -126,15 +126,16 @@ module nft_protocol::unique_nft {
         );
     }
 
-    public entry fun burn_unlimited_collection_nft<MetaColl: store>(
+    public entry fun burn_unlimited_collection_nft(
         nft: Nft<Data>,
     ) {
         burn_nft(nft);
     }
 
-    public entry fun burn_limited_collection_nft<MetaColl: store>(
+    public entry fun burn_limited_collection_nft<M: store>(
         nft: Nft<Data>,
     ) {
+        // TODO: We need to reflect that collection supply goes down
         burn_nft(nft);
     }
 

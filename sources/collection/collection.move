@@ -32,7 +32,8 @@ module nft_protocol::collection {
     ///
     /// The meta data is a type exported by the same contract which is used to
     /// store additional information about the NFT.
-    struct Collection<Meta: store, Cap: store> has key, store {
+    /// TODO: Mention that stands for `M`eta and `C`ap
+    struct Collection<M: store, C: store> has key, store {
         id: UID,
         name: String,
         description: String,
@@ -55,8 +56,8 @@ module nft_protocol::collection {
         creators: vector<Creator>,
         // Supply object that holds information on supply cap and 
         // current supply
-        cap: Cap,
-        metadata: Meta,
+        cap: C,
+        metadata: M,
     }
 
     struct Creator has store, copy, drop {
@@ -86,12 +87,12 @@ module nft_protocol::collection {
     }
 
     /// Initialises a `Collection` object and returns it
-    public fun mint_capped<Meta: store>(
+    public fun mint_capped<M: store>(
         args: InitCollection,
         max_supply: u64,
-        metadata: Meta,
+        metadata: M,
         ctx: &mut TxContext,
-    ): Collection<Meta, Limited> {
+    ): Collection<M, Limited> {
         let id = object::new(ctx);
 
         event::emit(
@@ -116,11 +117,11 @@ module nft_protocol::collection {
     }
 
     /// Initialises a `Collection` object and returns it
-    public fun mint_uncapped<Meta: store>(
+    public fun mint_uncapped<M: store>(
         args: InitCollection,
-        metadata: Meta,
+        metadata: M,
         ctx: &mut TxContext,
-    ): Collection<Meta, Unlimited> {
+    ): Collection<M, Unlimited> {
         let id = object::new(ctx);
 
         event::emit(
@@ -145,9 +146,9 @@ module nft_protocol::collection {
     }
 
     /// Burn the collection and return the Metadata object
-    public fun burn_capped<Meta: store>(
-        collection: Collection<Meta, Limited>,
-    ): Meta {
+    public fun burn_capped<M: store>(
+        collection: Collection<M, Limited>,
+    ): M {
         assert!(supply::current(
             cap::supply(&collection.cap)
         ) == 0, 0);
@@ -181,8 +182,8 @@ module nft_protocol::collection {
 
     /// Make Collections immutable
     /// WARNING: this is irreversible, use with care
-    public fun freeze_collection<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public fun freeze_collection<M: store, C: store>(
+        collection: &mut Collection<M, C>,
     ) {
         // Only modify if collection is mutable
         assert!(collection.is_mutable == true, 0);
@@ -213,8 +214,8 @@ module nft_protocol::collection {
     // === Modifier Functions ===
 
     /// Modify the Collections's `name`
-    public fun rename<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public fun rename<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         name: String,
     ) {
         // Only modify if collection is mutable
@@ -224,8 +225,8 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `description`
-    public fun change_description<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public fun change_description<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         description: String,
     ) {
         // Only modify if collection is mutable
@@ -235,8 +236,8 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `symbol`
-    public fun change_symbol<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public fun change_symbol<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         symbol: String,
     ) {
         // Only modify if collection is mutable
@@ -246,8 +247,8 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `receiver`
-    public fun change_receiver<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public fun change_receiver<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         receiver: address,
     ) {
         // Only modify if collection is mutable
@@ -260,8 +261,8 @@ module nft_protocol::collection {
     /// Contrary to other fields, tags can be always added by
     /// the collection owner, even if the collection is marked
     /// as immutable.
-    public fun push_tag<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public fun push_tag<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         tag: String,
     ) {
         tags::push_tag(
@@ -271,22 +272,22 @@ module nft_protocol::collection {
     }
 
     // TODO: Pop tag function
-    // public fun pop_tag<Meta: store, Cap: store>(
-    //     collection: &mut Collection<Meta, Cap>,
+    // public fun pop_tag<M: store, C: store>(
+    //     collection: &mut Collection<M, C>,
     //     tag: String,
     // ) {}
 
     /// Change field `royalty_fee_bps` in `Collection`
-    public entry fun change_royalty<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public entry fun change_royalty<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         royalty_fee_bps: u64,
     ) {
         collection.royalty_fee_bps = royalty_fee_bps;
     }
 
     /// Add a `Creator` to `Collection`
-    public entry fun add_creator<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public entry fun add_creator<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         creator_address: address,
         share_of_royalty: u8,
     ) {
@@ -306,8 +307,8 @@ module nft_protocol::collection {
     }
 
     /// Remove a `Creator` from `Collection`
-    public entry fun remove_creator<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
+    public entry fun remove_creator<M: store, C: store>(
+        collection: &mut Collection<M, C>,
         creator_address: address,
     ) {
         if (!vector::is_empty(&collection.creators)) {
@@ -322,8 +323,8 @@ module nft_protocol::collection {
 
     // Explain that this function is for Limited collections
     // Limited collections can still have no supply, there is an opt-in 
-    public fun cap_supply<Meta: store>(
-        collection: &mut Collection<Meta, Limited>,
+    public fun cap_supply<M: store>(
+        collection: &mut Collection<M, Limited>,
         value: u64
     ) {
         supply::cap_supply(
@@ -332,8 +333,8 @@ module nft_protocol::collection {
         )
     }
 
-    public fun increase_supply<Meta: store>(
-        collection: &mut Collection<Meta, Limited>,
+    public fun increase_supply<M: store>(
+        collection: &mut Collection<M, Limited>,
         value: u64
     ) {
         supply::increase_supply(
@@ -342,8 +343,8 @@ module nft_protocol::collection {
         )
     }
 
-    public fun decrease_supply<Meta: store>(
-        collection: &mut Collection<Meta, Limited>,
+    public fun decrease_supply<M: store>(
+        collection: &mut Collection<M, Limited>,
         value: u64
     ) {
         supply::decrease_supply(
@@ -352,8 +353,8 @@ module nft_protocol::collection {
         )
     }
 
-    public fun increase_supply_cap<Meta: store>(
-        collection: &mut Collection<Meta, Limited>,
+    public fun increase_supply_cap<M: store>(
+        collection: &mut Collection<M, Limited>,
         value: u64
     ) {
         supply::increase_cap(
@@ -362,8 +363,8 @@ module nft_protocol::collection {
         )
     }
 
-    public fun decrease_supply_cap<Meta: store>(
-        collection: &mut Collection<Meta, Limited>,
+    public fun decrease_supply_cap<M: store>(
+        collection: &mut Collection<M, Limited>,
         value: u64
     ) {
         supply::decrease_cap(
@@ -372,17 +373,17 @@ module nft_protocol::collection {
         )
     }
 
-    public fun supply<Meta: store>(collection: &Collection<Meta, Limited>): &Supply {
+    public fun supply<M: store>(collection: &Collection<M, Limited>): &Supply {
         cap::supply(&collection.cap)
     }
 
-    public fun supply_cap<Meta: store>(collection: &Collection<Meta, Limited>): Option<u64> {
+    public fun supply_cap<M: store>(collection: &Collection<M, Limited>): Option<u64> {
         supply::cap(
             cap::supply(&collection.cap)
         )
     }
 
-    public fun current_supply<Meta: store>(collection: &Collection<Meta, Limited>): u64 {
+    public fun current_supply<M: store>(collection: &Collection<M, Limited>): u64 {
         supply::current(
             cap::supply(&collection.cap)
         )
@@ -391,100 +392,100 @@ module nft_protocol::collection {
     // === Getter Functions ===
 
     /// Get the Collections's `id`
-    public fun id<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>
+    public fun id<M: store, C: store>(
+        collection: &Collection<M, C>
     ): ID {
         object::uid_to_inner(&collection.id)
     }
 
     /// Get the Collections's `id` as reference
-    public fun id_ref<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>
+    public fun id_ref<M: store, C: store>(
+        collection: &Collection<M, C>
     ): &ID {
         object::uid_as_inner(&collection.id)
     }
 
     /// Get the Collections's `name`
-    public fun name<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>
+    public fun name<M: store, C: store>(
+        collection: &Collection<M, C>
     ): &String {
         &collection.name
     }
 
     /// Get the Collections's `description`
-    public fun description<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>
+    public fun description<M: store, C: store>(
+        collection: &Collection<M, C>
     ): &String {
         &collection.description
     }
 
     /// Get the Collections's `symbol`
-    public fun symbol<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>
+    public fun symbol<M: store, C: store>(
+        collection: &Collection<M, C>
     ): &String {
         &collection.symbol
     }
 
     /// Get the Collections's `receiver`
-    public fun receiver<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>
+    public fun receiver<M: store, C: store>(
+        collection: &Collection<M, C>
     ): address {
         collection.receiver
     }
 
     /// Get the Collections's `tags`
-    public fun tags<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>,
+    public fun tags<M: store, C: store>(
+        collection: &Collection<M, C>,
     ): Tags {
         collection.tags
     }
 
     /// Get the Collection's `is_mutable`
-    public fun is_mutable<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>,
+    public fun is_mutable<M: store, C: store>(
+        collection: &Collection<M, C>,
     ): bool {
         collection.is_mutable
     }
 
     /// Get the Collection's `royalty_fee_bps`
-    public fun royalty<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>,
+    public fun royalty<M: store, C: store>(
+        collection: &Collection<M, C>,
     ): u64 {
         collection.royalty_fee_bps
     }
 
     /// Get the Collection's `creators`
-    public fun creators<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>,
+    public fun creators<M: store, C: store>(
+        collection: &Collection<M, C>,
     ): vector<Creator> {
         collection.creators
     }
 
     /// Get an immutable reference to Collections's `cap`
-    public fun cap<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>,
-    ): &Cap {
+    public fun cap<M: store, C: store>(
+        collection: &Collection<M, C>,
+    ): &C {
         &collection.cap
     }
 
     /// Get a mutable reference to Collections's `cap`
-    public fun cap_mut<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
-    ): &mut Cap {
+    public fun cap_mut<M: store, C: store>(
+        collection: &mut Collection<M, C>,
+    ): &mut C {
         &mut collection.cap
     }
 
-    /// Get an immutable reference to Collections's `metadata`
-    public fun metadata<Meta: store, Cap: store>(
-        collection: &Collection<Meta, Cap>,
-    ): &Meta {
+    /// Get an immutable reference to Collections's `Metadata`
+    public fun Mdata<M: store, C: store>(
+        collection: &Collection<M, C>,
+    ): &M {
         &collection.metadata
     }
 
     /// Get a mutable reference to Collections's `metadata`
-    public fun metadata_mut<Meta: store, Cap: store>(
-        collection: &mut Collection<Meta, Cap>,
-    ): &mut Meta {
+    public fun metadata_mut<M: store, C: store>(
+        collection: &mut Collection<M, C>,
+    ): &mut M {
         // Only return mutable reference if collection is mutable
         assert!(collection.is_mutable == true, 0);
 
