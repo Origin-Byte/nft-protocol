@@ -13,6 +13,7 @@ module nft_protocol::std_collection {
     use sui::event;
 
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::utils::{to_string_vector};
     use nft_protocol::cap::{Limited};
 
     // TODO: Does it make sense for this to be key? I don't think so
@@ -49,7 +50,9 @@ module nft_protocol::std_collection {
         symbol: vector<u8>,
         max_supply: Option<u64>,
         receiver: address,
-        tags: vector<String>,
+        // TODO: When will we be able to pass vector<String>?
+        // https://github.com/MystenLabs/sui/pull/4627
+        tags: vector<vector<u8>>,
         royalty_fee_bps: u64,
         is_mutable: bool,
         // This is a vector of bytes that encodes to utf8. This fields allows
@@ -65,7 +68,7 @@ module nft_protocol::std_collection {
             string::utf8(symbol),
             max_supply,
             receiver,
-            tags,
+            to_string_vector(&mut tags),
             royalty_fee_bps,
             is_mutable,
             string::utf8(data),
@@ -93,7 +96,13 @@ module nft_protocol::std_collection {
                 ctx,
             );
 
-            transfer(collection, recipient);
+            event::emit(
+                MintEvent {
+                    object_id: object::id(&collection),
+                }
+            );
+
+            transfer::transfer(collection, recipient);
 
         } else {
             let collection = collection::mint_capped(
@@ -103,7 +112,13 @@ module nft_protocol::std_collection {
                 ctx,
             );
 
-            transfer(collection, recipient);
+            event::emit(
+                MintEvent {
+                    object_id: object::id(&collection),
+                }
+            );
+
+            transfer::transfer(collection, recipient);
         };
     }
 
@@ -123,7 +138,9 @@ module nft_protocol::std_collection {
         symbol: vector<u8>,
         max_supply: Option<u64>,
         receiver: address,
-        tags: vector<String>,
+        // TODO: When will we be able to pass vector<String>?
+        // https://github.com/MystenLabs/sui/pull/4627
+        tags: vector<vector<u8>>,
         royalty_fee_bps: u64,
         is_mutable: bool,
         json: vector<u8>,
@@ -135,7 +152,7 @@ module nft_protocol::std_collection {
             string::utf8(symbol),
             max_supply,
             receiver,
-            tags,
+            to_string_vector(&mut tags),
             royalty_fee_bps,
             is_mutable,
             string::utf8(json),
@@ -163,7 +180,13 @@ module nft_protocol::std_collection {
                 ctx,
             );
 
-            share(collection);
+            event::emit(
+                MintEvent {
+                    object_id: object::id(&collection),
+                }
+            );
+
+            transfer::share_object(collection);
 
         } else {
             let collection = collection::mint_capped(
@@ -173,7 +196,13 @@ module nft_protocol::std_collection {
                 ctx,
             );
 
-            share(collection);
+            event::emit(
+                MintEvent {
+                    object_id: object::id(&collection),
+                }
+            );
+
+            transfer::share_object(collection);
         };
     }
 
@@ -249,35 +278,6 @@ module nft_protocol::std_collection {
             is_mutable,
             json,
         }
-    }
-
-    fun transfer<T: key>(
-        collection: T,
-        recipient: address,
-
-    ) {
-        event::emit(
-            MintEvent {
-                object_id: object::id(&collection),
-            }
-        );
-
-        transfer::transfer(
-            collection,
-            recipient,
-        )
-    }
-
-    fun share<T: key>(
-        collection: T,
-    ) {
-        event::emit(
-            MintEvent {
-                object_id: object::id(&collection),
-            }
-        );
-
-        transfer::share_object(collection);
     }
 }
 

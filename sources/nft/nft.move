@@ -1,3 +1,7 @@
+// /// Module of a generic `NFT` type.
+// /// 
+// /// It acts as a generic interface for NFTs and it allows for
+// /// the creation of arbitrary domain specific implementations.
 module nft_protocol::nft {
     use std::option::{Self, Option};
     

@@ -6,17 +6,18 @@
 module nft_protocol::collectibles {
     use sui::event;
     use sui::object::{Self, UID, ID};
-    use std::string::{String};
+    use std::string::{Self, String};
     use std::option::{Option};
     
     use sui::transfer;
     use sui::tx_context::{TxContext};
-    use sui::url::{Url};
+    use sui::url::{Self, Url};
     
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::cap::{Limited, Unlimited};
+    use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::cap::{Limited, Unlimited};
 
     struct Data has key, store {
         id: UID,
@@ -57,11 +58,11 @@ module nft_protocol::collectibles {
 
     public entry fun mint_unlimited_collection_nft_data<MetaColl: store>(
         index: u64,
-        name: String,
-        description: String,
-        url: Url,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
         collection: &Collection<MetaColl, Unlimited>,
         ctx: &mut TxContext,
@@ -71,8 +72,8 @@ module nft_protocol::collectibles {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
             max_supply,
         );
 
@@ -92,11 +93,11 @@ module nft_protocol::collectibles {
     /// their own logic for restriction on minting.
     public entry fun mint_limited_collection_nft_data<MetaColl: store>(
         index: u64,
-        name: String,
-        description: String,
-        url: Url,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
         collection: &mut Collection<MetaColl, Limited>,
         ctx: &mut TxContext,
@@ -106,8 +107,8 @@ module nft_protocol::collectibles {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
             max_supply,
         );
 
@@ -354,9 +355,9 @@ module nft_protocol::collectibles {
 
     fun mint_args(
         index: u64,
-        name: String,
-        description: String,
-        url: Url,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         max_supply: Option<u64>,
@@ -368,9 +369,9 @@ module nft_protocol::collectibles {
 
         MintArgs {
             index,
-            name,
-            description,
-            url,
+            name: string::utf8(name),
+            description: string::utf8(description),
+            url: url::new_unsafe_from_bytes(url),
             attributes,
             max_supply,
         }

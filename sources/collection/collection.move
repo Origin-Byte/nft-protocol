@@ -13,6 +13,7 @@
 /// TODO: function to make collection `shared`??????
 /// TODO: Verify creator in function to add creator, and new function solely to verify
 /// TODO: Is there any preference on the order of fields?
+/// TODO: Does it make sense to have store in Collection?
 module nft_protocol::collection {
     use std::vector;
     use std::string::String;
@@ -198,7 +199,6 @@ module nft_protocol::collection {
         is_mutable: bool,
         royalty_fee_bps: u64,
     ): InitCollection {
-
         InitCollection {
             name,
             description,
@@ -285,7 +285,7 @@ module nft_protocol::collection {
     }
 
     /// Add a `Creator` to `Collection`
-    public entry fun add_creatory<Meta: store, Cap: store>(
+    public entry fun add_creator<Meta: store, Cap: store>(
         collection: &mut Collection<Meta, Cap>,
         creator_address: address,
         share_of_royalty: u8,

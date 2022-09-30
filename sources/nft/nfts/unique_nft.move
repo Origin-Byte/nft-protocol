@@ -7,16 +7,17 @@
 module nft_protocol::unique_nft {
     use sui::event;
     use sui::object::{Self, UID, ID};
-    use std::string::{String};
+    use std::string::{Self, String};
     use std::option;
     
     use sui::transfer;
     use sui::tx_context::{TxContext};
-    use sui::url::{Url};
+    use sui::url::{Self, Url};
     
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::utils::{to_string_vector};
     use nft_protocol::cap::{Limited, Unlimited};
+    use nft_protocol::nft::{Self, Nft};
 
     struct Data has key, store {
         id: UID,
@@ -62,11 +63,11 @@ module nft_protocol::unique_nft {
     /// their own logic for restriction on minting.
     public entry fun direct_mint_unlimited_collection_nft<MetaColl: store>(
         index: u64,
-        name: String,
-        description: String,
-        url: Url,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
         collection: &Collection<MetaColl, Unlimited>,
         recipient: address,
         ctx: &mut TxContext,
@@ -76,8 +77,8 @@ module nft_protocol::unique_nft {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
         );
 
         mint_and_transfer(
@@ -97,11 +98,11 @@ module nft_protocol::unique_nft {
     /// their own logic for restriction on minting.
     public entry fun direct_mint_limited_collection_nft<MetaColl: store>(
         index: u64,
-        name: String,
-        description: String,
-        url: Url,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
         collection: &mut Collection<MetaColl, Limited>,
         recipient: address,
         ctx: &mut TxContext,
@@ -111,8 +112,8 @@ module nft_protocol::unique_nft {
             name,
             description,
             url,
-            attribute_keys,
-            attribute_values,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
         );
         
         collection::increase_supply(collection, 1);
@@ -272,9 +273,9 @@ module nft_protocol::unique_nft {
 
     fun mint_args(
         index: u64,
-        name: String,
-        description: String,
-        url: Url,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
     ): MintArgs {
@@ -285,9 +286,9 @@ module nft_protocol::unique_nft {
 
         MintArgs {
             index,
-            name,
-            description,
-            url,
+            name: string::utf8(name),
+            description: string::utf8(description),
+            url: url::new_unsafe_from_bytes(url),
             attributes,
         }
     }
