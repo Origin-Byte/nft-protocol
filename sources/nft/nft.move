@@ -1,7 +1,12 @@
-// /// Module of a generic `NFT` type.
-// /// 
-// /// It acts as a generic interface for NFTs and it allows for
-// /// the creation of arbitrary domain specific implementations.
+/// Module of a generic `NFT` type.
+/// 
+/// It acts as a generic interface for NFTs and it allows for
+/// the creation of arbitrary domain specific implementations.
+/// 
+/// TODO: We need to consider that there are two types of supply, 
+/// vertical (Collection Width) and horizontal supply (Collection Depth).
+/// Collection Width stands for how many different NFTs are there in a 
+/// collection whilst Collection Depth stands for how many are there of each NFT
 module nft_protocol::nft {
     use std::option::{Self, Option};
     

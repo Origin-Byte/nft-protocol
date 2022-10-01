@@ -1,6 +1,6 @@
 module nft_protocol::cap {
     use nft_protocol::supply::{Self, Supply};
-    use std::option;
+    use std::option::{Self, Option};
 
     struct Limited has store {
         supply: Supply,
@@ -8,11 +8,11 @@ module nft_protocol::cap {
     struct Unlimited has store {}
 
     public fun create_limited(
-        max_supply: u64,
+        max_supply: Option<u64>,
         frozen: bool,
     ): Limited {
         Limited {
-            supply: supply::new(option::some(max_supply), frozen)
+            supply: supply::new(max_supply, frozen)
         }
     }
 

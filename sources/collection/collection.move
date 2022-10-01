@@ -1,19 +1,17 @@
-/// Module of a generic `Collection` type.
-/// 
-/// It acts as a generic interface for NFT Collections and it allows for
-/// the creation of arbitrary domain specific implementations.
-/// 
-/// TODO: We need to consider that there are two types of supply, 
-/// vertical (Collection Width) and horizontal supply (Collection Depth).
-/// Collection Width stands for how many different NFTs are there in a 
-/// collection whilst Collection Depth stands for how many are there of each NFT
-/// 
-/// TODO: add a `pop_tag` function
-/// TODO: consider adding function `destroy_uncapped`?
-/// TODO: function to make collection `shared`??????
-/// TODO: Verify creator in function to add creator, and new function solely to verify
-/// TODO: Is there any preference on the order of fields?
-/// TODO: Does it make sense to have store in Collection?
+//! Module of a generic `Collection` type.
+//! 
+//! It acts as a generic interface for NFT Collections and it allows for
+//! the creation of arbitrary domain specific implementations.
+//! 
+//! NFT Collections can be of `Limited` or `Unlimited` supply `Cap`. The
+//! Collection `Cap` is an object that determines what the constrains are in
+//! relation to minting an NFT `Data` object associated to the Collection.
+//! 
+//! TODO: Add a `pop_tag` function
+//! TODO: Consider adding a function `destroy_uncapped`?
+//! TODO: Consider adding a function to make a collection `shared`?
+//! TODO: Consider adding a struct object Collection Proof
+//! TODO: Verify creator in function to add creator, and function to post verify
 module nft_protocol::collection {
     use std::vector;
     use std::string::String;
@@ -27,39 +25,49 @@ module nft_protocol::collection {
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::cap::{Self, Limited, Unlimited};
 
-    /// The phantom type T links the Collection with a smart contract which
-    /// implements a standard interface for Collections.
-    ///
-    /// The meta data is a type exported by the same contract which is used to
-    /// store additional information about the NFT.
-    /// TODO: Mention that stands for `M`eta and `C`ap
+    /// An NFT `Collection` object with a generic `M`etadata and `C`ap.
+    /// NFT Collections can be instantiated with a `Cap` of type `Limited` or
+    /// `Unlimited`. An `Unlimited` collection not only does not have a supply
+    /// limit but also does not keep track of the amount of NFT `Data` objects
+    /// in existance at any given time.
+    /// 
+    /// The `Metadata` is a type exported by an upstream contract which is 
+    /// used to store additional information about the NFT.
     struct Collection<M: store, C: store> has key, store {
         id: UID,
         name: String,
         description: String,
         // TODO: Should symbol be limited to x number of chars?
         symbol: String,
-        // Address that receives the mint price in Sui
+        /// Address that receives the mint price in Sui
         receiver: address,
-        // Nft Collection Tags is an enumeration of tags, represented
-        // as strings. An Nft Tag is a string that categorises the domain 
-        // in which the Nft operates (i.e. Art, Profile Picture, Gaming, etc.)
-        // This allows wallets and marketplaces to organise Nfts by its
-        // domain specificity.
+        /// Nft Collection Tags is an enumeration of tags, represented
+        /// as strings. An NFT Tag is a string that categorises the domain 
+        /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
+        /// This allows wallets and marketplaces to organise NFTs by its
+        /// domain specificity.
         tags: Tags,
-        // Determines if the collection and its associated NFTs are 
-        // mutable. Once turned `false` it cannot be reversed. Collection
-        // owners however will still be able to push and pop tags to the
-        // `tags` field.
+        /// Determines if the collection and its associated NFTs are 
+        /// mutable. Once turned `false` it cannot be reversed. Collection
+        /// owners however will still be able to push and pop tags to the
+        /// `tags` field.
         is_mutable: bool,
+        /// Field determining the amount of royaly fees in basis points, 
+        /// charged in market transactions.
         royalty_fee_bps: u64,
         creators: vector<Creator>,
-        // Supply object that holds information on supply cap and 
-        // current supply
+        /// NFT Collections can be instantiated with a `Cap` of type `Limited`
+        ///  or `Unlimited`. An `Unlimited` collection not only does not have 
+        /// a supply limit but also does not keep track of the amount of 
+        /// NFT `Data` objects in existance at any given time.
         cap: C,
+        /// The `Metadata` is a type exported by an upstream contract which is 
+        /// used to store additional information about the NFT.
         metadata: M,
     }
 
+    /// Creator struct which holds the addresses of the creators of the NFT
+    /// Collection, as well their share of the royalties collected.
     struct Creator has store, copy, drop {
         id: address,
         /// The creator needs to sign a transaction in order to be verified.
@@ -86,10 +94,22 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    /// Initialises a `Collection` object and returns it
+    /// Initialises a Capped `Collection` object and returns it. A Capped
+    /// Collection is one which has a `Limited` object as its `Cap`.
+    /// `Limited` Collections have a fixed supply that can not be changed once
+    /// the `Cap` object is set to frozen. In this function call the `Limited`
+    /// object is not yet set to frozen, in order to give creators the ability
+    /// to ammend it prior to the primary sale taking place.
+    /// 
+    /// Despite its name, `Limited` supplies can still have no maximum supply
+    /// constraint, if the field `supply.cap` is set to `option::none`. This
+    /// allows us to have a Collection that has no supply contraints whilst 
+    /// still being able to track how many NFT `Data` objects are currently
+    /// in existance. We can achieve this by setting the parameter
+    /// `max_supply` to `option::none`.
     public fun mint_capped<M: store>(
         args: InitCollection,
-        max_supply: u64,
+        max_supply: Option<u64>,
         metadata: M,
         ctx: &mut TxContext,
     ): Collection<M, Limited> {
@@ -180,6 +200,7 @@ module nft_protocol::collection {
         metadata
     }
 
+    // TODO: Make supply cap frozen here as well...
     /// Make Collections immutable
     /// WARNING: this is irreversible, use with care
     public fun freeze_collection<M: store, C: store>(

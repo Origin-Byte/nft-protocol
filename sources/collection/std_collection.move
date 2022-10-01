@@ -107,7 +107,7 @@ module nft_protocol::std_collection {
         } else {
             let collection = collection::mint_capped(
                 collection_args,
-                *option::borrow(&max_supply),
+                max_supply,
                 metadata,
                 ctx,
             );
@@ -191,7 +191,7 @@ module nft_protocol::std_collection {
         } else {
             let collection = collection::mint_capped(
                 collection_args,
-                *option::borrow(&max_supply),
+                max_supply,
                 metadata,
                 ctx,
             );
