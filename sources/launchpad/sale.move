@@ -1,10 +1,8 @@
 module nft_protocol::sale {
     use std::vector;
+
     use sui::object::{Self, ID , UID};
-    use std::string::{Self, String};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
-    use nft_protocol::nft::{Self, Nft};
+    use sui::tx_context::{TxContext};
 
     struct Sale<phantom T, Market> has key, store{
         id: UID,
@@ -13,7 +11,12 @@ module nft_protocol::sale {
         // Vector of all IDs owned by the slingshot
         nfts: vector<ID>,
         queue: vector<ID>,
-        market: Market
+        market: Market,
+    }
+
+    struct Whitelist has key {
+        id: UID,
+        sale_id: ID,
     }
 
     /// This object acts as an intermediate step between the payment
@@ -132,30 +135,15 @@ module nft_protocol::sale {
         certificate.nft_id
     }
 
-    // public fun transfer_back<T, Market: store, D: store>(
-    //     slingshot: &mut Sale<T, Market>,
-    //     nft: Nft<D>,
-    //     recipient: address,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     let sender = tx_context::sender(ctx);
+    public fun id<T, M>(
+        sale: &Sale<T, M>,
+    ): ID {
+        object::uid_to_inner(&sale.id)
+    }
 
-    //     if (admin(slingshot) != sender) {
-    //         transfer::transfer_to_object(
-    //             nft,
-    //             slingshot,
-    //         );
-    //     } else {
-
-    //         remove_nft_by_id(
-    //             slingshot,
-    //             nft::id_ref(&nft)
-    //         );
-
-    //         transfer::transfer(
-    //             nft,
-    //             recipient,
-    //         );
-    //     }
-    // }
+    public fun id_ref<T, M>(
+        sale: &Sale<T, M>,
+    ): &ID {
+        object::uid_as_inner(&sale.id)
+    }
 }

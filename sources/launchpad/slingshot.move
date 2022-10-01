@@ -4,11 +4,12 @@
 /// the creation of arbitrary domain specific implementations.
 module nft_protocol::slingshot {
     use std::vector;
-    use sui::object::{Self, ID , UID};
+
     use sui::transfer;
+    use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::sale::{Self, Sale};
+    
+    use nft_protocol::sale::Sale;
 
     struct Slingshot<phantom T, M> has key, store{
         id: UID,

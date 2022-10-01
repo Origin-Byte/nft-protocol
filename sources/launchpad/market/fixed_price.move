@@ -8,17 +8,16 @@
 /// to be claimed. We should therefore consider an alternative approach
 module nft_protocol::fixed_price {
     use std::vector;
-    use sui::event;
-    use sui::transfer::{Self};
+    
     use sui::sui::{SUI};
+    use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
-    use nft_protocol::slingshot::{Self, Slingshot};
+    
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::collection::{Self, Collection};
-    use std::string::{Self, String};
-    use nft_protocol::sale::{Self, Sale, NftCertificate};
+    use nft_protocol::slingshot::{Self, Slingshot};
+    use nft_protocol::sale::{Self, NftCertificate};
 
     struct FixedPriceMarket has drop {}
     
