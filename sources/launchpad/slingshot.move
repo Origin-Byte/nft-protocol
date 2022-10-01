@@ -8,8 +8,9 @@ module nft_protocol::slingshot {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::sale::{Self, Sale};
 
-    struct Slingshot<phantom T, Config> has key, store{
+    struct Slingshot<phantom T, M> has key, store{
         id: UID,
         // The ID of the NFT Collection object
         collection_id: ID,
@@ -20,8 +21,8 @@ module nft_protocol::slingshot {
         // The address of the receiver of funds
         receiver: address,
         // Vector of all IDs owned by the slingshot
-        nfts: vector<ID>,
-        config: Config,
+        sales: vector<Sale<T, M>>,
+        // config: Config,
     }
 
     struct InitSlingshot has drop {
@@ -30,34 +31,43 @@ module nft_protocol::slingshot {
         receiver: address,
     }
 
+    struct CreateSlingshotEvent has copy, drop {
+        object_id: ID,
+        collection_id: ID,
+    }
+
+    struct DeleteSlingshotEvent has copy, drop {
+        object_id: ID,
+        collection_id: ID,
+    }
+
     /// Initialises a `Slingshot` object and returns it
-    public fun create<T: drop, Config: store>(
+    public fun create<T: drop, M: store>(
         _witness: T,
+        sales: vector<Sale<T, M>>,
         args: InitSlingshot,
-        config: Config,
         ctx: &mut TxContext,
-    ): Slingshot<T, Config> {
+    ) {
         let id = object::new(ctx);
 
-        let nfts = vector::empty();
-
-        Slingshot {
+        let slingshot: Slingshot<T, M> = Slingshot {
             id,
             collection_id: args.collection_id,
             live: false,
             admin: args.admin,
             receiver: args.receiver,
-            nfts: nfts,
-            config: config,
-        }
+            sales: sales,
+        };
+
+        transfer::share_object(slingshot);
     }
 
-    /// Burn the `Slingshot` and return the `Config` object
-    public fun delete<T: drop, Config: store>(
-        slingshot: Slingshot<T, Config>,
+    /// Burn the `Slingshot` and return the `M` object
+    public fun delete<T: drop, M: store>(
+        slingshot: Slingshot<T, M>,
         ctx: &mut TxContext,
-    ): Config {
-        assert!(vector::length(&slingshot.nfts) > 0, 0);
+    ): vector<Sale<T, M>> {
+        // assert!(vector::length(&slingshot.nfts) > 0, 0);
 
         assert!(tx_context::sender(ctx) == admin(&slingshot), 0);
 
@@ -67,32 +77,31 @@ module nft_protocol::slingshot {
             live: _,
             admin: _,
             receiver: _,
-            nfts: _,
-            config,
+            sales,
         } = slingshot;
 
         object::delete(id);
 
-        config
+        sales
     }
 
-    /// Adds an NFT's ID to the `nfts` field in `Slingshot` object
-    public fun add_nft<T, Config>(
-        slingshot: &mut Slingshot<T, Config>,
-        id: ID,
-    ) {
-        let nfts = &mut slingshot.nfts;
-        vector::push_back(nfts, id);
-    }
+    // /// Adds an NFT's ID to the `nfts` field in `Slingshot` object
+    // public fun add_nft<T, M>(
+    //     slingshot: &mut Slingshot<T, M>,
+    //     id: ID,
+    // ) {
+    //     let nfts = &mut slingshot.nfts;
+    //     vector::push_back(nfts, id);
+    // }
 
-    /// Pops an NFT's ID from the `nfts` field in `Slingshot` object
-    /// and returns respective `ID`
-    public fun pop_nft<T, Config>(
-        slingshot: &mut Slingshot<T, Config>,
-    ): ID {
-        let nfts = &mut slingshot.nfts;
-        vector::pop_back(nfts)
-    }
+    // /// Pops an NFT's ID from the `nfts` field in `Slingshot` object
+    // /// and returns respective `ID`
+    // public fun pop_nft<T, M>(
+    //     slingshot: &mut Slingshot<T, M>,
+    // ): ID {
+    //     let nfts = &mut slingshot.nfts;
+    //     vector::pop_back(nfts)
+    // }
 
     public fun init_args(
         collection_id: ID,
@@ -107,125 +116,148 @@ module nft_protocol::slingshot {
         }
     }
 
-    public fun transfer_back<T, Config: store, D: store>(
-        slingshot: &mut Slingshot<T, Config>,
-        nft: Nft<D>,
-        recipient: address,
-        ctx: &mut TxContext,
-    ) {
-        let sender = tx_context::sender(ctx);
+    // public fun transfer_back<T, M: store, D: store>(
+    //     slingshot: &mut Slingshot<T, M>,
+    //     nft: Nft<D>,
+    //     recipient: address,
+    //     ctx: &mut TxContext,
+    // ) {
+    //     let sender = tx_context::sender(ctx);
 
-        if (admin(slingshot) != sender) {
-            transfer::transfer_to_object(
-                nft,
-                slingshot,
-            );
-        } else {
+    //     if (admin(slingshot) != sender) {
+    //         transfer::transfer_to_object(
+    //             nft,
+    //             slingshot,
+    //         );
+    //     } else {
 
-            remove_nft_by_id(
-                slingshot,
-                nft::id_ref(&nft)
-            );
+    //         remove_nft_by_id(
+    //             slingshot,
+    //             nft::id_ref(&nft)
+    //         );
 
-            transfer::transfer(
-                nft,
-                recipient,
-            );
-        }
-    }
+    //         transfer::transfer(
+    //             nft,
+    //             recipient,
+    //         );
+    //     }
+    // }
 
     // === Modifier Functions ===
 
     /// Toggle the Slingshot's `live` to `true` therefore 
     /// making the NFT sale live.
-    public fun sale_on<T, Config>(
-        slingshot: &mut Slingshot<T, Config>,
+    public fun sale_on<T, M>(
+        slingshot: &mut Slingshot<T, M>,
     ) {
         slingshot.live = true
     }
 
     /// Toggle the Slingshot's `live` to `false` therefore 
     /// pausing or stopping the NFT sale.
-    public fun sale_off<T, Config>(
-        slingshot: &mut Slingshot<T, Config>,
+    public fun sale_off<T, M>(
+        slingshot: &mut Slingshot<T, M>,
     ) {
         slingshot.live = false
     }
 
-    /// We can return a mutable reference to the configuration without checking 
-    /// that it's the T contract calling this method, because it's the 
-    /// responsibility of the T contract to write their public interface such
-    /// that the mutation of the metadata is according to the desired logic.
-    public fun config_mut<T, Config>(
-        slingshot: &mut Slingshot<T, Config>,
-    ): &mut Config {
-        &mut slingshot.config
-    }
+    // /// We can return a mutable reference to the configuration without checking 
+    // /// that it's the T contract calling this method, because it's the 
+    // /// responsibility of the T contract to write their public interface such
+    // /// that the mutation of the metadata is according to the desired logic.
+    // public fun config_mut<T, M>(
+    //     slingshot: &mut Slingshot<T, M>,
+    // ): &mut M {
+    //     &mut slingshot.config
+    // }
 
     // === Getter Functions ===
 
     /// Get the Slingshot's `collection_id` ID
-    public fun collection_id<T, Config>(
-        slingshot: &Slingshot<T, Config>,
+    public fun collection_id<T, M>(
+        slingshot: &Slingshot<T, M>,
     ): ID {
         slingshot.collection_id
     }
 
     /// Get the Slingshot's `collection_id` ID as reference
-    public fun collection_id_ref<T, Config>(
-        slingshot: &Slingshot<T, Config>,
+    public fun collection_id_ref<T, M>(
+        slingshot: &Slingshot<T, M>,
     ): &ID {
         &slingshot.collection_id
     }
     
     /// Get the Slingshot's `live`
-    public fun live<T, Config>(
-        slingshot: &Slingshot<T, Config>,
+    public fun live<T, M>(
+        slingshot: &Slingshot<T, M>,
     ): bool {
         slingshot.live
     }
 
-    /// Get the Slingshot's `config` as reference
-    public fun config<T, Config>(
-        slingshot: &Slingshot<T, Config>,
-    ): &Config {
-        &slingshot.config
-    }
+    // /// Get the Slingshot's `config` as reference
+    // public fun config<T, M>(
+    //     slingshot: &Slingshot<T, M>,
+    // ): &M {
+    //     &slingshot.config
+    // }
 
     /// Get the Slingshot's `receiver` address
-    public fun receiver<T, Config>(
-        slingshot: &Slingshot<T, Config>,
+    public fun receiver<T, M>(
+        slingshot: &Slingshot<T, M>,
     ): address {
         slingshot.receiver
     }
 
     /// Get the Slingshot's `admin` address
-    public fun admin<T, Config>(
-        slingshot: &Slingshot<T, Config>,
+    public fun admin<T, M>(
+        slingshot: &Slingshot<T, M>,
     ): address {
         slingshot.admin
     }
 
-    /// Get the Slingshot's `nfts` vector as reference
-    public fun nfts<T, Config>(
-        slingshot: &Slingshot<T, Config>,
-    ): &vector<ID> {
-        &slingshot.nfts
+    /// Get the Slingshot's `sales` address
+    public fun sales<T, M>(
+        slingshot: &Slingshot<T, M>,
+    ): &vector<Sale<T, M>> {
+        &slingshot.sales
     }
+
+    /// Get the Slingshot's `sale` address
+    public fun sale<T, M>(
+        slingshot: &Slingshot<T, M>,
+        index: u64,
+    ): &Sale<T, M> {
+        vector::borrow(&slingshot.sales, index)
+    }
+
+    /// Get the Slingshot's `sale` address
+    public fun sale_mut<T, M>(
+        slingshot: &mut Slingshot<T, M>,
+        index: u64,
+    ): &mut Sale<T, M> {
+        vector::borrow_mut(&mut slingshot.sales, index)
+    }
+
+    // /// Get the Slingshot's `nfts` vector as reference
+    // public fun nfts<T, M>(
+    //     slingshot: &Slingshot<T, M>,
+    // ): &vector<ID> {
+    //     &slingshot.nfts
+    // }
 
     // === Private Functions ===
 
-    /// Removes an NFT's ID from the `nfts` field in `Slingshot` object
-    /// and returns respective `ID`
-    fun remove_nft_by_id<T, Config>(
-        slingshot: &mut Slingshot<T, Config>,
-        nft: &ID,
-    ): ID {
-        let nfts = &mut slingshot.nfts;
-        let (is_in_vec, index) = vector::index_of(nfts, nft);
+    // /// Removes an NFT's ID from the `nfts` field in `Slingshot` object
+    // /// and returns respective `ID`
+    // fun remove_nft_by_id<T, M>(
+    //     slingshot: &mut Slingshot<T, M>,
+    //     nft: &ID,
+    // ): ID {
+    //     let nfts = &mut slingshot.nfts;
+    //     let (is_in_vec, index) = vector::index_of(nfts, nft);
         
-        assert!(is_in_vec == true, 0);
+    //     assert!(is_in_vec == true, 0);
 
-        vector::remove(nfts, index)
-    }
+    //     vector::remove(nfts, index)
+    // }
 }
