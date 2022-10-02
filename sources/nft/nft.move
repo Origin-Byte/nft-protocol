@@ -29,7 +29,7 @@ module nft_protocol::nft {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
 
-    // TODO: Mention that stands for `D`ata
+    // NFT object with an option to hold `D`ata object
     struct Nft<D: store> has key, store {
         id: UID,
         data_id: ID,
@@ -46,8 +46,7 @@ module nft_protocol::nft {
         data_id: ID,
     }
 
-    /// Create a Nft and increase the total supply
-    /// in metadata `cap` accordingly.
+    /// Create a loose `Nft` and returns it.
     public fun mint_nft_loose<D: store>(
         // TODO: Need to refer launchpad shared object
         data_id: ID,
@@ -69,6 +68,7 @@ module nft_protocol::nft {
         }
     }
 
+    /// Create a embeded `Nft` and returns it.
     public fun mint_nft_embedded<D: store>(
         data_id: ID,
         data: D,
