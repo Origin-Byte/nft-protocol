@@ -3,10 +3,25 @@
 /// It acts as a generic interface for NFTs and it allows for
 /// the creation of arbitrary domain specific implementations.
 /// 
-/// TODO: We need to consider that there are two types of supply, 
-/// vertical (Collection Width) and horizontal supply (Collection Depth).
-/// Collection Width stands for how many different NFTs are there in a 
-/// collection whilst Collection Depth stands for how many are there of each NFT
+/// The `NFT` type is a hybrid object that can take two shapes: The shape of an
+/// NFT which embeds is own data, an Embedded NFT; and the shape of an
+/// NFT which does not embed its own data and containst solely a pointer to its
+/// data object, a Loose NFT.
+/// 
+/// With this deisgn we can keep only one ultimate type whilst the NFT can be
+/// embedded or loose depending on the use case. It is also possible to
+/// dynamically join or split the data object from the NFT object, therefore
+/// allowing for dynamic behaviour.
+/// 
+/// For embedded NFTs, the `Data` object and the `NFT` object is minted in one
+/// step. For loose NFTsm the `Data` object is first minted and only then the 
+/// NFT(s) associated to that object is(are) minted.
+/// 
+/// Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships
+/// between the NFT object and the Data object. In contrast, loose NFTs can
+/// represent 1-to-many relationships. Essentially this allows us to build
+/// NFTs which effectively have a supply.
+/// 
 module nft_protocol::nft {
     use std::option::{Self, Option};
     

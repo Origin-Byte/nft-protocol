@@ -7,9 +7,7 @@
 //! Collection `Cap` is an object that determines what the constrains are in
 //! relation to minting an NFT `Data` object associated to the Collection.
 //! 
-//! TODO: Add a `pop_tag` function
 //! TODO: Consider adding a function `destroy_uncapped`?
-//! TODO: Consider adding a function to make a collection `shared`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
 module nft_protocol::collection {
@@ -69,7 +67,7 @@ module nft_protocol::collection {
     /// Creator struct which holds the addresses of the creators of the NFT
     /// Collection, as well their share of the royalties collected.
     struct Creator has store, copy, drop {
-        id: address,
+        creator_address: address,
         /// The creator needs to sign a transaction in order to be verified.
         /// Otherwise anyone could just spoof the creator's identity
         verified: bool,
@@ -136,7 +134,14 @@ module nft_protocol::collection {
         }
     }
 
-    /// Initialises a `Collection` object and returns it
+    /// Initialises a Uncapped `Collection` object and returns it. An Uncapped
+    /// Collection is one which has a `Unlimited` object as its `Cap`.
+    /// `Unlimited` Collections do not have any supply contracints.
+    ///
+    /// Unlimited collections do not have a counter which incrementes when an
+    /// NFT `Data` object is minted, and thus they do not store the current
+    /// supply information. This means that the minting of NFT `Data` objects
+    /// can be done in parallel without mutating the `Collection` object.
     public fun mint_uncapped<M: store>(
         args: InitCollection,
         metadata: M,
@@ -165,7 +170,7 @@ module nft_protocol::collection {
         }
     }
 
-    /// Burn the collection and return the Metadata object
+    /// Burn a `Capped` Collection object and return the Metadata object
     public fun burn_capped<M: store>(
         collection: Collection<M, Limited>,
     ): M {
@@ -200,7 +205,6 @@ module nft_protocol::collection {
         metadata
     }
 
-    // TODO: Make supply cap frozen here as well...
     /// Make Collections immutable
     /// WARNING: this is irreversible, use with care
     public fun freeze_collection<M: store, C: store>(
@@ -292,11 +296,19 @@ module nft_protocol::collection {
         );
     }
 
-    // TODO: Pop tag function
-    // public fun pop_tag<M: store, C: store>(
-    //     collection: &mut Collection<M, C>,
-    //     tag: String,
-    // ) {}
+    /// Removes a tag to the Collections's `tags`
+    /// Contrary to other fields, tags can be always removed by
+    /// the collection owner, even if the collection is marked
+    /// as immutable.
+    public fun pop_tag<M: store, C: store>(
+        collection: &mut Collection<M, C>,
+        tag_index: u64,
+    ) {
+        tags::pop_tag(
+            &mut collection.tags,
+            tag_index,
+        );
+    }
 
     /// Change field `royalty_fee_bps` in `Collection`
     public entry fun change_royalty<M: store, C: store>(
@@ -312,10 +324,13 @@ module nft_protocol::collection {
         creator_address: address,
         share_of_royalty: u8,
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         // TODO: Need to make sure sum of all Creator's `share_of_royalty` is
         // not above 100%
         let creator = Creator {
-            id: creator_address,
+            creator_address: creator_address,
             verified: true,
             share_of_royalty: share_of_royalty,
         };
@@ -332,6 +347,9 @@ module nft_protocol::collection {
         collection: &mut Collection<M, C>,
         creator_address: address,
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         if (!vector::is_empty(&collection.creators)) {
             remove_address(
                 &mut collection.creators,
@@ -344,10 +362,13 @@ module nft_protocol::collection {
 
     // Explain that this function is for Limited collections
     // Limited collections can still have no supply, there is an opt-in 
-    public fun cap_supply<M: store>(
+    public entry fun cap_supply<M: store>(
         collection: &mut Collection<M, Limited>,
         value: u64
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         supply::cap_supply(
             cap::supply_mut(&mut collection.cap),
             value
@@ -358,6 +379,9 @@ module nft_protocol::collection {
         collection: &mut Collection<M, Limited>,
         value: u64
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         supply::increase_supply(
             cap::supply_mut(&mut collection.cap),
             value
@@ -374,10 +398,13 @@ module nft_protocol::collection {
         )
     }
 
-    public fun increase_supply_cap<M: store>(
+    public entry fun increase_supply_cap<M: store>(
         collection: &mut Collection<M, Limited>,
         value: u64
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         supply::increase_cap(
             cap::supply_mut(&mut collection.cap),
             value
@@ -493,11 +520,14 @@ module nft_protocol::collection {
     public fun cap_mut<M: store, C: store>(
         collection: &mut Collection<M, C>,
     ): &mut C {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         &mut collection.cap
     }
 
     /// Get an immutable reference to Collections's `Metadata`
-    public fun Mdata<M: store, C: store>(
+    public fun metadata<M: store, C: store>(
         collection: &Collection<M, C>,
     ): &M {
         &collection.metadata
@@ -522,7 +552,7 @@ module nft_protocol::collection {
         let len = vector::length(v);
         while (i < len) {
             let creator = vector::borrow(v, i);
-            if (creator.id == c_address) return true;
+            if (creator.creator_address == c_address) return true;
             i = i +1;
         };
         false
@@ -536,94 +566,9 @@ module nft_protocol::collection {
         while (i < len) {
             let creator = vector::borrow(v, i);
 
-            if (creator.id == c_address) {
+            if (creator.creator_address == c_address) {
                 vector::remove(v, i);
             }
         }
     }
 }
-
-
-// #[test_only]
-// module nft_protocol::collection_tests {
-//     use std::string::{Self, String};
-//     use std::vector::{Self};
-//     use sui::test_scenario;
-//     use sui::transfer;
-//     use nft_protocol::collection::{Self, Collection};
-
-//     struct WitnessTest has drop {}
-//     struct MetadataTest has drop, store {}
-
-//     #[test]
-//     fun collection() {
-//         let addr1 = @0xA;
-
-//         // create the Collection
-//         let scenario = test_scenario::begin(&addr1);
-//         {
-//             let tags: vector<String> = vector::empty();
-
-//             vector::push_back(&mut tags, string::utf8(b"Art"));
-
-//             let args = collection::init_args(
-//                 string::utf8(b"Yellow Submarines"),
-//                 string::utf8(b"YLSBM"),
-//                 10,
-//                 100,
-//                 addr1,
-//                 tags,
-//                 false,
-//             );
-            
-//             let metadata = MetadataTest {};
-
-//             let coll = collection::create(
-//                 WitnessTest {},
-//                 args,
-//                 metadata,
-//                 test_scenario::ctx(&mut scenario),
-//             );
-
-//             assert!(
-//                 *string::bytes(collection::name(&coll)) == b"Yellow Submarines",
-//             0);
-//             assert!(
-//                 *string::bytes(collection::symbol(&coll)) == b"YLSBM", 0
-//             );
-//             assert!(collection::initial_price(&coll) == 100, 0);
-//             assert!(collection::current_supply(&coll) == 0, 0);
-//             assert!(collection::total_supply(&coll) == 10, 0);
-
-//             transfer::transfer(coll, addr1);
-//         };
-//         // Increase supply
-//         test_scenario::next_tx(&mut scenario, &addr1);
-//         {
-//             let coll = test_scenario::take_owned<Collection<WitnessTest, MetadataTest>>(&mut scenario);
-            
-//             collection::increase_supply(&mut coll);
-//             assert!(collection::current_supply(&coll) == 1, 0);
-            
-//             transfer::transfer(coll, addr1);
-//         };
-//         // Decrease supply
-//         test_scenario::next_tx(&mut scenario, &addr1);
-//         {
-//             let coll = test_scenario::take_owned<Collection<WitnessTest, MetadataTest>>(&mut scenario);
-            
-//             collection::decrease_supply(&mut coll);
-//             assert!(collection::current_supply(&coll) == 0, 0);
-
-//             transfer::transfer(coll, addr1);
-//         };
-//         // burn it
-//         test_scenario::next_tx(&mut scenario, &addr1);
-//         {
-//             let coll = test_scenario::take_owned<Collection<WitnessTest, MetadataTest>>(&mut scenario);
-//             let _meta: MetadataTest = collection::burn(
-//                 coll, test_scenario::ctx(&mut scenario)
-//             );
-//         }
-//     }
-// }
