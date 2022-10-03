@@ -1,8 +1,6 @@
-/// Module of a standard collection `CollectionMeta` type.
-/// 
-/// It acts as a standard domain-specific implementation of an Nft 
-/// collection.
-/// TODO: Do we want to allow json to be modified?
+//! Module of a standard collection `CollectionMeta` type.
+//! 
+//! It allows for the addition of arbitrary String data to a `Collection`.
 module nft_protocol::std_collection {
     use std::string::{Self, String};
     use std::option::{Self, Option};
@@ -16,8 +14,7 @@ module nft_protocol::std_collection {
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::cap::{Limited};
 
-    // TODO: Does it make sense for this to be key? I don't think so
-    struct StdMeta has key, store {
+    struct StdMeta has store {
         id: UID,
         json: String,
     }
@@ -107,7 +104,7 @@ module nft_protocol::std_collection {
         } else {
             let collection = collection::mint_capped(
                 collection_args,
-                *option::borrow(&max_supply),
+                max_supply,
                 metadata,
                 ctx,
             );
@@ -123,15 +120,9 @@ module nft_protocol::std_collection {
     }
 
     /// Mint one `Collection` with `Metadata` object and share collection 
-    /// object. With the current implementation, that is without the Launchpad
-    /// module, the NFTs are minted to the public directly from the NFT
-    /// contract. This is suboptimal because the metadata has to be given as
-    /// parameters to the function call.
-    /// 
-    /// In the near future we will separate the minting action of the Nft from
-    /// the sale of the Nft to the public via primary market modules. For the
-    /// timebeing however, we allow the collection to be shared and let the 
-    /// front end perform the function call with the metadata.
+    /// object. If a collection is made shared, anyone will be able to refer
+    /// to its object in the NFT modules and hence be able to create its own
+    /// NFTs.
     public entry fun mint_and_share(
         name: vector<u8>,
         description: vector<u8>,
@@ -191,7 +182,7 @@ module nft_protocol::std_collection {
         } else {
             let collection = collection::mint_capped(
                 collection_args,
-                *option::borrow(&max_supply),
+                max_supply,
                 metadata,
                 ctx,
             );
@@ -206,7 +197,7 @@ module nft_protocol::std_collection {
         };
     }
 
-    /// Burn a Standard Collection. Invokes `burn()`.
+    /// Burn a Standard `Limited` Collection. Invokes `burn_capped()`.
     public entry fun burn_limited_collection(
         collection: Collection<StdMeta, Limited>,
     ) {
@@ -253,6 +244,14 @@ module nft_protocol::std_collection {
     ): &String {
         &meta.json
     }
+
+    /// Get the Collections Meta's `json` as mutable reference
+    public fun json_mut(
+        meta: &mut StdMeta,
+    ): &mut String {
+        &mut meta.json
+    }
+
 
     // // === Private Functions ===
 

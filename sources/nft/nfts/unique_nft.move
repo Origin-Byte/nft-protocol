@@ -1,9 +1,8 @@
-// TODO: Mint to launchpad functions
-// TODO: Consider which fields Nft should have
-// TODO: Discuss if name should be data or metadata
-// TODO: Consider renaming functions?
-// TODO: Do we want a field for further_data: Option<SomeObject?>
-// TODO: Discuss how mutability should work for these NFTs
+//! Module of a unique NFT `Unique` data type.
+//! 
+//! It acts as a standard domain-specific implementation of an NFT type, 
+//! fitting use cases such as Art and PFP NFT Collections. It uses the main
+//! NFT module to mint embedded NFTs.
 module nft_protocol::unique_nft {
     use sui::event;
     use sui::object::{Self, UID, ID};
@@ -19,8 +18,10 @@ module nft_protocol::unique_nft {
     use nft_protocol::cap::{Limited, Unlimited};
     use nft_protocol::nft::{Self, Nft};
 
-    struct Data has key, store {
+    /// An NFT `Unique` data object with standard fields.
+    struct Unique has key, store {
         id: UID,
+        /// The index identifier of an NFT
         index: u64,
         name: String,
         description: String,
@@ -54,13 +55,12 @@ module nft_protocol::unique_nft {
 
     // === Entrypoints ===
 
-    /// Mint one `Nft` with `Data` and send it to `recipient`.
+    /// Mint one embedded `Nft` with `Unique` data and send it to `recipient`.
     /// Invokes `mint_and_transfer()`.
     /// Mints an NFT from a `Collection` with `Unlimited` supply.
     /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. Since this a property, it can be only accessed in the smart 
-    /// contract which creates the collection. That contract can then define
-    /// their own logic for restriction on minting.
+    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    /// if one is the collection owner, or if it is a shared collection.
     public entry fun direct_mint_unlimited_collection_nft<M: store>(
         index: u64,
         name: vector<u8>,
@@ -89,13 +89,12 @@ module nft_protocol::unique_nft {
         );
     }
 
-    /// Mint one `Nft` with `Data` and send it to `recipient`.
+    /// Mint one embedded `Nft` with `Unique` data and send it to `recipient`.
     /// Invokes `mint_and_transfer()`.
     /// Mints an NFT from a `Collection` with `Limited` supply.
     /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. Since this a property, it can be only accessed in the smart 
-    /// contract which creates the collection. That contract can then define
-    /// their own logic for restriction on minting.
+    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    /// if one is the collection owner, or if it is a shared collection.
     public entry fun direct_mint_limited_collection_nft<M: store>(
         index: u64,
         name: vector<u8>,
@@ -126,80 +125,74 @@ module nft_protocol::unique_nft {
         );
     }
 
-    public entry fun burn_unlimited_collection_nft(
-        nft: Nft<Data>,
+    /// Burns embedded `Nft` along with its `Unique`. It invokes `burn_nft()`
+    public entry fun burn_collection_nft(
+        nft: Nft<Unique>,
     ) {
-        burn_nft(nft);
-    }
-
-    public entry fun burn_limited_collection_nft<M: store>(
-        nft: Nft<Data>,
-    ) {
-        // TODO: We need to reflect that collection supply goes down
         burn_nft(nft);
     }
 
     // === Getter Functions  ===
 
-    /// Get the Nft Data's `id`
+    /// Get the Nft Unique's `id`
     public fun id(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): ID {
         *object::uid_as_inner(&nft_data.id)
     }
 
-    /// Get the Nft Data's `id` as reference
+    /// Get the Nft Unique's `id` as reference
     public fun id_ref(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): &ID {
         object::uid_as_inner(&nft_data.id)
     }
 
-    /// Get the Nft Data's `index`
+    /// Get the Nft Unique's `index`
     public fun index(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): u64 {
         nft_data.index
     }
 
-    /// Get the Nft Data's `name`
+    /// Get the Nft Unique's `name`
     public fun name(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): String {
         nft_data.name
     }
 
-    /// Get the Nft Data's `description`
+    /// Get the Nft Unique's `description`
     public fun description(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): String {
         nft_data.name
     }
 
-    /// Get the Nft Data's `collection_id`
+    /// Get the Nft Unique's `collection_id`
     public fun collection_id(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): &ID {
         &nft_data.collection_id
     }
 
-    /// Get the Nft Data's `url`
+    /// Get the Nft Unique's `url`
     public fun url(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): Url {
         nft_data.url
     }
 
-    /// Get the Nft Data's `attributes`
+    /// Get the Nft Unique's `attributes`
     public fun attributes(
-        nft_data: &Data,
+        nft_data: &Unique,
     ): &Attributes {
         &nft_data.attributes
     }
 
     // === Private Functions ===
 
-    fun nft_data_id(nft_data: &Data): ID {
+    fun nft_data_id(nft_data: &Unique): ID {
         object::uid_to_inner(&nft_data.id)
     }
 
@@ -218,7 +211,7 @@ module nft_protocol::unique_nft {
             }
         );
 
-        let nft_data = Data {
+        let nft_data = Unique {
             id: data_id,
             index: args.index,
             name: args.name,
@@ -241,13 +234,14 @@ module nft_protocol::unique_nft {
     }
 
     fun burn_nft(
-        nft: Nft<Data>,
+        nft: Nft<Unique>,
     ) {
         let data_option = nft::burn_embedded_nft(nft);
 
-        // TODO: What shall we do with the data?
+        // TODO: Consider the best way to handle the data object:
         // Send it to the sender?
         // Make it shared?
+        // Delete it?
         let data = option::extract(&mut data_option);
         option::destroy_none(data_option);
 
@@ -258,7 +252,7 @@ module nft_protocol::unique_nft {
             }
         );
 
-        let Data {
+        let Unique {
             id,
             index: _,
             name: _,
@@ -268,7 +262,6 @@ module nft_protocol::unique_nft {
             attributes: _,
         } = data;
 
-        // TODO: Consider if we really want to delete the nft data here
         object::delete(id);
     }
 

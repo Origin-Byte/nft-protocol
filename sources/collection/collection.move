@@ -1,19 +1,15 @@
-/// Module of a generic `Collection` type.
-/// 
-/// It acts as a generic interface for NFT Collections and it allows for
-/// the creation of arbitrary domain specific implementations.
-/// 
-/// TODO: We need to consider that there are two types of supply, 
-/// vertical (Collection Width) and horizontal supply (Collection Depth).
-/// Collection Width stands for how many different NFTs are there in a 
-/// collection whilst Collection Depth stands for how many are there of each NFT
-/// 
-/// TODO: add a `pop_tag` function
-/// TODO: consider adding function `destroy_uncapped`?
-/// TODO: function to make collection `shared`??????
-/// TODO: Verify creator in function to add creator, and new function solely to verify
-/// TODO: Is there any preference on the order of fields?
-/// TODO: Does it make sense to have store in Collection?
+//! Module of a generic `Collection` type.
+//! 
+//! It acts as a generic interface for NFT Collections and it allows for
+//! the creation of arbitrary domain specific implementations.
+//! 
+//! NFT Collections can be of `Limited` or `Unlimited` supply `Cap`. The
+//! Collection `Cap` is an object that determines what the constrains are in
+//! relation to minting an NFT `Data` object associated to the Collection.
+//! 
+//! TODO: Consider adding a function `destroy_uncapped`?
+//! TODO: Consider adding a struct object Collection Proof
+//! TODO: Verify creator in function to add creator, and function to post verify
 module nft_protocol::collection {
     use std::vector;
     use std::string::String;
@@ -27,41 +23,51 @@ module nft_protocol::collection {
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::cap::{Self, Limited, Unlimited};
 
-    /// The phantom type T links the Collection with a smart contract which
-    /// implements a standard interface for Collections.
-    ///
-    /// The meta data is a type exported by the same contract which is used to
-    /// store additional information about the NFT.
-    /// TODO: Mention that stands for `M`eta and `C`ap
+    /// An NFT `Collection` object with a generic `M`etadata and `C`ap.
+    /// NFT Collections can be instantiated with a `Cap` of type `Limited` or
+    /// `Unlimited`. An `Unlimited` collection not only does not have a supply
+    /// limit but also does not keep track of the amount of NFT `Data` objects
+    /// in existance at any given time.
+    /// 
+    /// The `Metadata` is a type exported by an upstream contract which is 
+    /// used to store additional information about the NFT.
     struct Collection<M: store, C: store> has key, store {
         id: UID,
         name: String,
         description: String,
         // TODO: Should symbol be limited to x number of chars?
         symbol: String,
-        // Address that receives the mint price in Sui
+        /// Address that receives the mint price in Sui
         receiver: address,
-        // Nft Collection Tags is an enumeration of tags, represented
-        // as strings. An Nft Tag is a string that categorises the domain 
-        // in which the Nft operates (i.e. Art, Profile Picture, Gaming, etc.)
-        // This allows wallets and marketplaces to organise Nfts by its
-        // domain specificity.
+        /// Nft Collection Tags is an enumeration of tags, represented
+        /// as strings. An NFT Tag is a string that categorises the domain 
+        /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
+        /// This allows wallets and marketplaces to organise NFTs by its
+        /// domain specificity.
         tags: Tags,
-        // Determines if the collection and its associated NFTs are 
-        // mutable. Once turned `false` it cannot be reversed. Collection
-        // owners however will still be able to push and pop tags to the
-        // `tags` field.
+        /// Determines if the collection and its associated NFTs are 
+        /// mutable. Once turned `false` it cannot be reversed. Collection
+        /// owners however will still be able to push and pop tags to the
+        /// `tags` field.
         is_mutable: bool,
+        /// Field determining the amount of royaly fees in basis points, 
+        /// charged in market transactions.
         royalty_fee_bps: u64,
         creators: vector<Creator>,
-        // Supply object that holds information on supply cap and 
-        // current supply
+        /// NFT Collections can be instantiated with a `Cap` of type `Limited`
+        ///  or `Unlimited`. An `Unlimited` collection not only does not have 
+        /// a supply limit but also does not keep track of the amount of 
+        /// NFT `Data` objects in existance at any given time.
         cap: C,
+        /// The `Metadata` is a type exported by an upstream contract which is 
+        /// used to store additional information about the NFT.
         metadata: M,
     }
 
+    /// Creator struct which holds the addresses of the creators of the NFT
+    /// Collection, as well their share of the royalties collected.
     struct Creator has store, copy, drop {
-        id: address,
+        creator_address: address,
         /// The creator needs to sign a transaction in order to be verified.
         /// Otherwise anyone could just spoof the creator's identity
         verified: bool,
@@ -86,10 +92,22 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    /// Initialises a `Collection` object and returns it
+    /// Initialises a Capped `Collection` object and returns it. A Capped
+    /// Collection is one which has a `Limited` object as its `Cap`.
+    /// `Limited` Collections have a fixed supply that can not be changed once
+    /// the `Cap` object is set to frozen. In this function call the `Limited`
+    /// object is not yet set to frozen, in order to give creators the ability
+    /// to ammend it prior to the primary sale taking place.
+    /// 
+    /// Despite its name, `Limited` supplies can still have no maximum supply
+    /// constraint, if the field `supply.cap` is set to `option::none`. This
+    /// allows us to have a Collection that has no supply contraints whilst 
+    /// still being able to track how many NFT `Data` objects are currently
+    /// in existance. We can achieve this by setting the parameter
+    /// `max_supply` to `option::none`.
     public fun mint_capped<M: store>(
         args: InitCollection,
-        max_supply: u64,
+        max_supply: Option<u64>,
         metadata: M,
         ctx: &mut TxContext,
     ): Collection<M, Limited> {
@@ -116,7 +134,14 @@ module nft_protocol::collection {
         }
     }
 
-    /// Initialises a `Collection` object and returns it
+    /// Initialises a Uncapped `Collection` object and returns it. An Uncapped
+    /// Collection is one which has a `Unlimited` object as its `Cap`.
+    /// `Unlimited` Collections do not have any supply contracints.
+    ///
+    /// Unlimited collections do not have a counter which incrementes when an
+    /// NFT `Data` object is minted, and thus they do not store the current
+    /// supply information. This means that the minting of NFT `Data` objects
+    /// can be done in parallel without mutating the `Collection` object.
     public fun mint_uncapped<M: store>(
         args: InitCollection,
         metadata: M,
@@ -145,7 +170,7 @@ module nft_protocol::collection {
         }
     }
 
-    /// Burn the collection and return the Metadata object
+    /// Burn a `Capped` Collection object and return the Metadata object
     public fun burn_capped<M: store>(
         collection: Collection<M, Limited>,
     ): M {
@@ -211,10 +236,10 @@ module nft_protocol::collection {
         }
     }
 
-    // === Modifier Functions ===
+    // === Modifier Entry Functions ===
 
     /// Modify the Collections's `name`
-    public fun rename<M: store, C: store>(
+    public entry fun rename<M: store, C: store>(
         collection: &mut Collection<M, C>,
         name: String,
     ) {
@@ -225,7 +250,7 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `description`
-    public fun change_description<M: store, C: store>(
+    public entry fun change_description<M: store, C: store>(
         collection: &mut Collection<M, C>,
         description: String,
     ) {
@@ -236,7 +261,7 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `symbol`
-    public fun change_symbol<M: store, C: store>(
+    public entry fun change_symbol<M: store, C: store>(
         collection: &mut Collection<M, C>,
         symbol: String,
     ) {
@@ -247,7 +272,7 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `receiver`
-    public fun change_receiver<M: store, C: store>(
+    public entry fun change_receiver<M: store, C: store>(
         collection: &mut Collection<M, C>,
         receiver: address,
     ) {
@@ -261,7 +286,7 @@ module nft_protocol::collection {
     /// Contrary to other fields, tags can be always added by
     /// the collection owner, even if the collection is marked
     /// as immutable.
-    public fun push_tag<M: store, C: store>(
+    public entry fun push_tag<M: store, C: store>(
         collection: &mut Collection<M, C>,
         tag: String,
     ) {
@@ -271,11 +296,19 @@ module nft_protocol::collection {
         );
     }
 
-    // TODO: Pop tag function
-    // public fun pop_tag<M: store, C: store>(
-    //     collection: &mut Collection<M, C>,
-    //     tag: String,
-    // ) {}
+    /// Removes a tag to the Collections's `tags`
+    /// Contrary to other fields, tags can be always removed by
+    /// the collection owner, even if the collection is marked
+    /// as immutable.
+    public entry fun pop_tag<M: store, C: store>(
+        collection: &mut Collection<M, C>,
+        tag_index: u64,
+    ) {
+        tags::pop_tag(
+            &mut collection.tags,
+            tag_index,
+        );
+    }
 
     /// Change field `royalty_fee_bps` in `Collection`
     public entry fun change_royalty<M: store, C: store>(
@@ -291,10 +324,13 @@ module nft_protocol::collection {
         creator_address: address,
         share_of_royalty: u8,
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         // TODO: Need to make sure sum of all Creator's `share_of_royalty` is
         // not above 100%
         let creator = Creator {
-            id: creator_address,
+            creator_address: creator_address,
             verified: true,
             share_of_royalty: share_of_royalty,
         };
@@ -311,6 +347,9 @@ module nft_protocol::collection {
         collection: &mut Collection<M, C>,
         creator_address: address,
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         if (!vector::is_empty(&collection.creators)) {
             remove_address(
                 &mut collection.creators,
@@ -319,24 +358,61 @@ module nft_protocol::collection {
         }
     }
 
-    // === Supply Functions ===
-
-    // Explain that this function is for Limited collections
-    // Limited collections can still have no supply, there is an opt-in 
-    public fun cap_supply<M: store>(
+    /// `Limited` collections can have a cap on the maximum supply, however 
+    /// the supply cap can also be `option::none()`. This function call
+    /// adds a value to the supply cap.
+    public entry fun cap_supply<M: store>(
         collection: &mut Collection<M, Limited>,
         value: u64
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         supply::cap_supply(
             cap::supply_mut(&mut collection.cap),
             value
         )
     }
 
+    /// Increases the `supply.cap` by the `value` amount for 
+    /// `Limited` collections. Invokes `supply::increase_cap()`
+    public entry fun increase_supply_cap<M: store>(
+        collection: &mut Collection<M, Limited>,
+        value: u64
+    ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
+        supply::increase_cap(
+            cap::supply_mut(&mut collection.cap),
+            value
+        )
+    }
+
+    /// Decreases the `supply.cap` by the `value` amount for 
+    /// `Limited` collections. This function call fails if one attempts
+    /// to decrease the supply cap to a value below the current supply.
+    /// Invokes `supply::decrease_cap()`
+    public entry fun decrease_supply_cap<M: store>(
+        collection: &mut Collection<M, Limited>,
+        value: u64
+    ) {
+        supply::decrease_cap(
+            cap::supply_mut(&mut collection.cap),
+            value
+        )
+    }
+
+    // === Supply Functions ===
+
+    /// Increase `supply.current` for `Limited`
     public fun increase_supply<M: store>(
         collection: &mut Collection<M, Limited>,
         value: u64
     ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         supply::increase_supply(
             cap::supply_mut(&mut collection.cap),
             value
@@ -348,26 +424,6 @@ module nft_protocol::collection {
         value: u64
     ) {
         supply::decrease_supply(
-            cap::supply_mut(&mut collection.cap),
-            value
-        )
-    }
-
-    public fun increase_supply_cap<M: store>(
-        collection: &mut Collection<M, Limited>,
-        value: u64
-    ) {
-        supply::increase_cap(
-            cap::supply_mut(&mut collection.cap),
-            value
-        )
-    }
-
-    public fun decrease_supply_cap<M: store>(
-        collection: &mut Collection<M, Limited>,
-        value: u64
-    ) {
-        supply::decrease_cap(
             cap::supply_mut(&mut collection.cap),
             value
         )
@@ -472,11 +528,14 @@ module nft_protocol::collection {
     public fun cap_mut<M: store, C: store>(
         collection: &mut Collection<M, C>,
     ): &mut C {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
         &mut collection.cap
     }
 
     /// Get an immutable reference to Collections's `Metadata`
-    public fun Mdata<M: store, C: store>(
+    public fun metadata<M: store, C: store>(
         collection: &Collection<M, C>,
     ): &M {
         &collection.metadata
@@ -501,7 +560,7 @@ module nft_protocol::collection {
         let len = vector::length(v);
         while (i < len) {
             let creator = vector::borrow(v, i);
-            if (creator.id == c_address) return true;
+            if (creator.creator_address == c_address) return true;
             i = i +1;
         };
         false
@@ -515,94 +574,9 @@ module nft_protocol::collection {
         while (i < len) {
             let creator = vector::borrow(v, i);
 
-            if (creator.id == c_address) {
+            if (creator.creator_address == c_address) {
                 vector::remove(v, i);
             }
         }
     }
 }
-
-
-// #[test_only]
-// module nft_protocol::collection_tests {
-//     use std::string::{Self, String};
-//     use std::vector::{Self};
-//     use sui::test_scenario;
-//     use sui::transfer;
-//     use nft_protocol::collection::{Self, Collection};
-
-//     struct WitnessTest has drop {}
-//     struct MetadataTest has drop, store {}
-
-//     #[test]
-//     fun collection() {
-//         let addr1 = @0xA;
-
-//         // create the Collection
-//         let scenario = test_scenario::begin(&addr1);
-//         {
-//             let tags: vector<String> = vector::empty();
-
-//             vector::push_back(&mut tags, string::utf8(b"Art"));
-
-//             let args = collection::init_args(
-//                 string::utf8(b"Yellow Submarines"),
-//                 string::utf8(b"YLSBM"),
-//                 10,
-//                 100,
-//                 addr1,
-//                 tags,
-//                 false,
-//             );
-            
-//             let metadata = MetadataTest {};
-
-//             let coll = collection::create(
-//                 WitnessTest {},
-//                 args,
-//                 metadata,
-//                 test_scenario::ctx(&mut scenario),
-//             );
-
-//             assert!(
-//                 *string::bytes(collection::name(&coll)) == b"Yellow Submarines",
-//             0);
-//             assert!(
-//                 *string::bytes(collection::symbol(&coll)) == b"YLSBM", 0
-//             );
-//             assert!(collection::initial_price(&coll) == 100, 0);
-//             assert!(collection::current_supply(&coll) == 0, 0);
-//             assert!(collection::total_supply(&coll) == 10, 0);
-
-//             transfer::transfer(coll, addr1);
-//         };
-//         // Increase supply
-//         test_scenario::next_tx(&mut scenario, &addr1);
-//         {
-//             let coll = test_scenario::take_owned<Collection<WitnessTest, MetadataTest>>(&mut scenario);
-            
-//             collection::increase_supply(&mut coll);
-//             assert!(collection::current_supply(&coll) == 1, 0);
-            
-//             transfer::transfer(coll, addr1);
-//         };
-//         // Decrease supply
-//         test_scenario::next_tx(&mut scenario, &addr1);
-//         {
-//             let coll = test_scenario::take_owned<Collection<WitnessTest, MetadataTest>>(&mut scenario);
-            
-//             collection::decrease_supply(&mut coll);
-//             assert!(collection::current_supply(&coll) == 0, 0);
-
-//             transfer::transfer(coll, addr1);
-//         };
-//         // burn it
-//         test_scenario::next_tx(&mut scenario, &addr1);
-//         {
-//             let coll = test_scenario::take_owned<Collection<WitnessTest, MetadataTest>>(&mut scenario);
-//             let _meta: MetadataTest = collection::burn(
-//                 coll, test_scenario::ctx(&mut scenario)
-//             );
-//         }
-//     }
-// }
