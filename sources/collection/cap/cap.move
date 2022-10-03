@@ -2,7 +2,7 @@
 //! 
 //! `Limited` collections can have a cap on the maximum supply and keep track 
 //! of the current supply, whilst `Unlimited` collection have no supply 
-//! constraints nor they keep track of the number of minted objects.assert
+//! constraints nor they keep track of the number of minted objects.
 //! 
 //! Despite the name, `Limited` Collections can be set to have indeterminate 
 //! supply cap, and if so, they only differ from Unlimited supply in that

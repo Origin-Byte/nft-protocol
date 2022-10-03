@@ -236,10 +236,10 @@ module nft_protocol::collection {
         }
     }
 
-    // === Modifier Functions ===
+    // === Modifier Entry Functions ===
 
     /// Modify the Collections's `name`
-    public fun rename<M: store, C: store>(
+    public entry fun rename<M: store, C: store>(
         collection: &mut Collection<M, C>,
         name: String,
     ) {
@@ -250,7 +250,7 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `description`
-    public fun change_description<M: store, C: store>(
+    public entry fun change_description<M: store, C: store>(
         collection: &mut Collection<M, C>,
         description: String,
     ) {
@@ -261,7 +261,7 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `symbol`
-    public fun change_symbol<M: store, C: store>(
+    public entry fun change_symbol<M: store, C: store>(
         collection: &mut Collection<M, C>,
         symbol: String,
     ) {
@@ -272,7 +272,7 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `receiver`
-    public fun change_receiver<M: store, C: store>(
+    public entry fun change_receiver<M: store, C: store>(
         collection: &mut Collection<M, C>,
         receiver: address,
     ) {
@@ -286,7 +286,7 @@ module nft_protocol::collection {
     /// Contrary to other fields, tags can be always added by
     /// the collection owner, even if the collection is marked
     /// as immutable.
-    public fun push_tag<M: store, C: store>(
+    public entry fun push_tag<M: store, C: store>(
         collection: &mut Collection<M, C>,
         tag: String,
     ) {
@@ -300,7 +300,7 @@ module nft_protocol::collection {
     /// Contrary to other fields, tags can be always removed by
     /// the collection owner, even if the collection is marked
     /// as immutable.
-    public fun pop_tag<M: store, C: store>(
+    public entry fun pop_tag<M: store, C: store>(
         collection: &mut Collection<M, C>,
         tag_index: u64,
     ) {
@@ -358,10 +358,9 @@ module nft_protocol::collection {
         }
     }
 
-    // === Supply Functions ===
-
-    // Explain that this function is for Limited collections
-    // Limited collections can still have no supply, there is an opt-in 
+    /// `Limited` collections can have a cap on the maximum supply, however 
+    /// the supply cap can also be `option::none()`. This function call
+    /// adds a value to the supply cap.
     public entry fun cap_supply<M: store>(
         collection: &mut Collection<M, Limited>,
         value: u64
@@ -375,6 +374,38 @@ module nft_protocol::collection {
         )
     }
 
+    /// Increases the `supply.cap` by the `value` amount for 
+    /// `Limited` collections. Invokes `supply::increase_cap()`
+    public entry fun increase_supply_cap<M: store>(
+        collection: &mut Collection<M, Limited>,
+        value: u64
+    ) {
+        // Only modify if collection is mutable
+        assert!(collection.is_mutable == true, 0);
+
+        supply::increase_cap(
+            cap::supply_mut(&mut collection.cap),
+            value
+        )
+    }
+
+    /// Decreases the `supply.cap` by the `value` amount for 
+    /// `Limited` collections. This function call fails if one attempts
+    /// to decrease the supply cap to a value below the current supply.
+    /// Invokes `supply::decrease_cap()`
+    public entry fun decrease_supply_cap<M: store>(
+        collection: &mut Collection<M, Limited>,
+        value: u64
+    ) {
+        supply::decrease_cap(
+            cap::supply_mut(&mut collection.cap),
+            value
+        )
+    }
+
+    // === Supply Functions ===
+
+    /// Increase `supply.current` for `Limited`
     public fun increase_supply<M: store>(
         collection: &mut Collection<M, Limited>,
         value: u64
@@ -393,29 +424,6 @@ module nft_protocol::collection {
         value: u64
     ) {
         supply::decrease_supply(
-            cap::supply_mut(&mut collection.cap),
-            value
-        )
-    }
-
-    public entry fun increase_supply_cap<M: store>(
-        collection: &mut Collection<M, Limited>,
-        value: u64
-    ) {
-        // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
-
-        supply::increase_cap(
-            cap::supply_mut(&mut collection.cap),
-            value
-        )
-    }
-
-    public fun decrease_supply_cap<M: store>(
-        collection: &mut Collection<M, Limited>,
-        value: u64
-    ) {
-        supply::decrease_cap(
             cap::supply_mut(&mut collection.cap),
             value
         )

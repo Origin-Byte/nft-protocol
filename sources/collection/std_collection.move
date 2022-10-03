@@ -1,6 +1,6 @@
-/// Module of a standard collection `CollectionMeta` type.
-/// 
-/// It allows for the addition of arbitrary String data to a `Collection`.
+//! Module of a standard collection `CollectionMeta` type.
+//! 
+//! It allows for the addition of arbitrary String data to a `Collection`.
 module nft_protocol::std_collection {
     use std::string::{Self, String};
     use std::option::{Self, Option};
