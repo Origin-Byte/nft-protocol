@@ -129,7 +129,7 @@ module nft_protocol::collectibles {
     /// Mints loose NFT and transfers it to `recipient`
     /// Invokes `mint_nft_loose()`.
     /// This function call comes after the minting of the `Data` object.
-    public entry fun mint_nft<MetaColl: store, Cap: store>(
+    public entry fun mint_nft<T, MetaColl: store, Cap: store>(
         // TODO: Need to link this function to launchpad
         _collection: &Collection<MetaColl, Cap>,
         nft_data: &mut Collectible,
@@ -141,7 +141,7 @@ module nft_protocol::collectibles {
         // a time?
         supply::increase_supply(&mut nft_data.supply, 1);
 
-        let nft = nft::mint_nft_loose<Collectible>(
+        let nft = nft::mint_nft_loose<T, Collectible>(
             nft_data_id(nft_data),
             ctx,
         );
@@ -193,8 +193,8 @@ module nft_protocol::collectibles {
     /// Burns loose `Nft`. Burning a loose `Nft` has no impact
     /// on the `Collectible` data object besides decreasing its current supply.
     /// It invokes `burn_loose_nft()`
-    public entry fun burn_nft<MetaColl: store>(
-        nft: Nft<Collectible>,
+    public entry fun burn_nft<T>(
+        nft: Nft<T, Collectible>,
         nft_data: &mut Collectible,
     ) {
         assert!(nft::data_id(&nft) == id(nft_data), 0);

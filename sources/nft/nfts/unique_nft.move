@@ -61,7 +61,7 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun direct_mint_unlimited_collection_nft<M: store>(
+    public entry fun direct_mint_unlimited_collection_nft<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -81,7 +81,7 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_values),
         );
 
-        mint_and_transfer(
+        mint_and_transfer<T>(
             args,
             collection::id(collection),
             recipient,
@@ -95,7 +95,7 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun direct_mint_limited_collection_nft<M: store>(
+    public entry fun direct_mint_limited_collection_nft<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -117,7 +117,7 @@ module nft_protocol::unique_nft {
         
         collection::increase_supply(collection, 1);
 
-        mint_and_transfer(
+        mint_and_transfer<T>(
             args,
             collection::id(collection),
             recipient,
@@ -126,8 +126,8 @@ module nft_protocol::unique_nft {
     }
 
     /// Burns embedded `Nft` along with its `Unique`. It invokes `burn_nft()`
-    public entry fun burn_collection_nft(
-        nft: Nft<Unique>,
+    public entry fun burn_collection_nft<T>(
+        nft: Nft<T, Unique>,
     ) {
         burn_nft(nft);
     }
@@ -196,7 +196,7 @@ module nft_protocol::unique_nft {
         object::uid_to_inner(&nft_data.id)
     }
 
-    fun mint_and_transfer(
+    fun mint_and_transfer<T>(
         args: MintArgs,
         collection_id: ID,
         recipient: address,
@@ -221,7 +221,7 @@ module nft_protocol::unique_nft {
             attributes: args.attributes,
         };
 
-        let nft = nft::mint_nft_embedded(
+        let nft = nft::mint_nft_embedded<T, Unique>(
             nft_data_id(&nft_data),
             nft_data,
             ctx
@@ -233,8 +233,8 @@ module nft_protocol::unique_nft {
         );
     }
 
-    fun burn_nft(
-        nft: Nft<Unique>,
+    fun burn_nft<T>(
+        nft: Nft<T, Unique>,
     ) {
         let data_option = nft::burn_embedded_nft(nft);
 

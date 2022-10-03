@@ -162,9 +162,9 @@ module nft_protocol::fixed_price {
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft<D: store>(
+    public entry fun claim_nft<T, D: store>(
         _slingshot: &Slingshot<FixedPriceMarket, Market>,
-        nft: Nft<D>,
+        nft: Nft<T, D>,
         certificate: NftCertificate,
         recipient: address,
     ) {
