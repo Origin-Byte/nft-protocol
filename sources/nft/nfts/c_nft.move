@@ -31,14 +31,34 @@ module nft_protocol::c_nft {
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::nft::{Self, Nft};
 
+    /// A Composable `Data` object that can represent a combination of objects
+    /// of which themselves can be a combination of other objects.
     struct Composable<C: store + copy> has key, store {
         id: UID,
+        /// Composable `Data` objects can have some `Data` struct
+        /// attached to it. Currently, only the objects at the leaf nodes 
+        /// of the composability tree have `Data` whilst the others have
+        /// `option::none()`
         data: Option<Data>,
         collection_id: ID,
+        /// Each composable has its own supply. This allows for configuration
+        /// scarcity. If two objects, both with a supply of 10, merge to produce
+        /// a composably of both, this composable object can have its own supply.
+        /// This means that even if both leaf node objects have supply of 10, if
+        /// the supply of the root node composable object is 5 then the NFTs
+        /// can only be merge up to 5 times.
         supply: Supply,
+        /// A VecMap storing a list of `C` structs which represent cloned
+        /// versions of the constituent objects. These structs do not have key
+        /// ability and can be copied for the sake of clonability. It is
+        /// structured as VecMap such that we can have the original object `ID`s
+        /// as the key for each `C` struct.
         components: VecMap<ID, C>,
     }
 
+    /// A Clonable struct that stores information clones from a Composable
+    /// object. It facilitates the intermediate step of copying information
+    /// from the constituent objects to the newly minted composable object.
     struct ComposableClone<C: store> has store, copy {
         data: Option<Data>,
         collection_id: ID,
@@ -90,6 +110,18 @@ module nft_protocol::c_nft {
 
     // === Entrypoints ===
 
+    /// Mints loose NFT `Composable` data object and shares it.
+    /// Invokes `mint_and_share_data()`.
+    /// Mints a Composable data object for NFT(s) from a `Collection` of 
+    /// `Unlimited` supply.
+    /// The only way to mint the NFT for a collection is to give a reference to
+    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// This function call bootstraps the minting of leaf node NFTs in a 
+    /// Composable `Unlimited` collection. This function does not serve
+    /// to compose Composable objects, but simply to create the intial objects
+    /// that are supposed to give rise to the composability tree.
     public entry fun mint_unlimited_collection_nft_data<MetaColl: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
@@ -101,7 +133,6 @@ module nft_protocol::c_nft {
         collection: &Collection<MetaColl, Unlimited>,
         ctx: &mut TxContext,
     ) {
-        let collection_id = collection::id(collection);
         let args = mint_args(
             index,
             name,
@@ -120,13 +151,24 @@ module nft_protocol::c_nft {
         );
     }
 
-    /// Mint one `Nft` with `Data` and send it to `recipient`.
-    /// Invokes `mint_and_transfer()`.
-    /// Mints an NFT from a `Collection` with `Limited` supply.
+    /// Mints loose NFT `Composable` data and shares it.
+    /// Invokes `mint_and_share_data()`.
+    /// Mints a Composable data object for NFT(s) from a `Collection` 
+    /// of `Limited` supply.
     /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. Since this a property, it can be only accessed in the smart 
-    /// contract which creates the collection. That contract can then define
-    /// their own logic for restriction on minting.
+    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// This function call bootstraps the minting of leaf node NFTs in a 
+    /// Composable `Limited` collection. This function does not serve
+    /// to compose Composable objects, but simply to create the intial objects
+    /// that are supposed to give rise to the composability tree.
+    /// 
+    /// For a `Limited` collection with a supply of 100 objects, this function
+    /// will be called in total 100 times to mint such objects. Once these
+    /// objects are brought to existance the collection creator can start 
+    /// creating composable objects which determine which NFTs can be merged
+    /// and what the supply of those configurations are.
     public entry fun mint_limited_collection_nft_data<MetaColl: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
@@ -158,7 +200,12 @@ module nft_protocol::c_nft {
         );
     }
 
-    public entry fun compose_nft_data
+    /// Function that receives and temporarily holds two or more objects,
+    /// clones their information and produces a composable object, thus allowing
+    /// holders of those NFTs to merge them together to create a cNFT.
+    /// 
+    /// The newly composed object has a its own maximum supply of NFTs.
+    public entry fun compose_data_objects
         <MetaColl: store, Cap: store, D: store + copy, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
@@ -216,27 +263,41 @@ module nft_protocol::c_nft {
         transfer::share_object(combo_data);
     }
 
-    // Burn two NFT pointers
-    // Loose allows for the creation of many NFTs out of the metadata
+    /// Mints a cNFT by "merging" two or more NFTs. The function will
+    /// burn the NFTs given by the parameter `nfts` and will mint a cNFT
+    /// object pointing to the composable object that representes the merge
+    /// of said NFTs.
+    /// 
+    /// When burning the constituent NFTs we do not decrease their supply.
+    /// The reason for this is because if we were to decrease their supply,
+    /// further NFTs could be minted and reach the maximum supply. When the 
+    /// cNFT would be split back into its constituent components it could result
+    /// in a supply bigger than the maximum supply.
     public entry fun mint_c_nft<C: store + copy>(
         nfts: vector<Nft<Composable<C>>>,
         nfts_data: vector<Composable<C>>, // TODO: Ideally we would pass &Data
-        combo_data: &Composable<C>,
+        combo_data: &mut Composable<C>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         let len = vector::length(&nfts);
+        assert!(len == vec_map::size(&combo_data.components), 0);
 
         while (len > 0) {
             let nft = vector::pop_back(&mut nfts);
             let data = vector::pop_back(&mut nfts_data);
+
             assert!(nft::data_id(&nft) == id(&data), 0);
+            assert!(
+                vec_map::contains(&combo_data.components, &nft::data_id(&nft)),
+                0
+            );
 
             // `burn_loose_nft` will fail if the NFT is embedded
             nft::burn_loose_nft(nft);
 
-            // TODO: This is really not ideal - ideally we would use a reference
-            // to the object
+            // TODO: Aesthetically, we would ideally use a reference 
+            // to the object and would therefore have no need to share it back
             transfer::share_object(data);
             
             len = len - 1;
@@ -244,7 +305,8 @@ module nft_protocol::c_nft {
         vector::destroy_empty(nfts);
         vector::destroy_empty(nfts_data);
 
-        // TODO: Need to assert that the combo data object is the right object
+        supply::increase_supply(&mut combo_data.supply, 1);
+
         let nft = nft::mint_nft_loose<Data>(
             object::uid_to_inner(&combo_data.id),
             ctx,
@@ -256,6 +318,10 @@ module nft_protocol::c_nft {
         );
     }
 
+    /// Mints loose NFT and transfers it to `recipient`
+    /// Invokes `mint_nft_loose()`.
+    /// This function call comes after the minting of the leaf node
+    /// `Collectibles` data object.
     public entry fun mint_nft<C: store + copy>(
         nft_data: &mut Composable<C>,
         recipient: address,
@@ -289,6 +355,11 @@ module nft_protocol::c_nft {
         nft::burn_loose_nft(nft);
     }
 
+    /// This function reverts the merge of the NFTs that occurs in `mint_c_nft`.
+    /// The Supply of the composable Composable object decrases, however we
+    /// do not increment the supply of its constituent objects. The reason for
+    /// this is because we do not decrement the supply of these constituent
+    /// objects when we merge them, therefore we maintain consistency.
     public entry fun split_c_nft<MetaColl: store, C: store + copy>(
         nft: Nft<Composable<C>>,
         c_nft_data: &mut Composable<C>,
@@ -296,7 +367,7 @@ module nft_protocol::c_nft {
         ctx: &mut TxContext,
     ) {
         // Asset that nft pointer corresponds to c_nft_data
-        // If so, then burn pointer and mint pointer for each nft_datas
+        // If so, then burn pointer and mint pointer for each nfts_data
         assert!(nft::data_id(&nft) == id(c_nft_data), 0);
 
         supply::decrease_supply(&mut c_nft_data.supply, 1);
@@ -317,8 +388,6 @@ module nft_protocol::c_nft {
                 tx_context::sender(ctx),
             );
 
-            // TODO: This is really not ideal - ideally we would use a reference
-            // to the object
             transfer::share_object(data);
             
             len = len - 1;
@@ -331,69 +400,71 @@ module nft_protocol::c_nft {
 
     /// Get the Nft Data's `id`
     public fun id<C: store + copy>(
-        nft_data: &Composable<C>,
+        comp: &Composable<C>,
     ): ID {
-        object::uid_to_inner(&nft_data.id)
+        object::uid_to_inner(&comp.id)
     }
     
     /// Get the Nft Data's `id` as reference
     public fun id_ref<C: store + copy>(
-        nft_data: &Composable<C>,
+        comp: &Composable<C>,
     ): &ID {
-        object::uid_as_inner(&nft_data.id)
+        object::uid_as_inner(&comp.id)
     }
 
     /// Get the Nft Data's `index`
-    // TODO: this should point to the Composable...
-    public fun index(
-        nft_data: &Data,
+    public fun index<C: store + copy>(
+        comp: &Composable<C>,
     ): u64 {
-        nft_data.index
+        let data = option::borrow(&comp.data);
+        data.index
     }
 
     /// Get the Nft Data's `name`
-    public fun name(
-        nft_data: &Data,
+    public fun name<C: store + copy>(
+        comp: &Composable<C>,
     ): String {
-        nft_data.name
+        let data = option::borrow(&comp.data);
+        data.name
     }
 
     /// Get the Nft Data's `description`
-    public fun description(
-        nft_data: &Data,
+    public fun description<C: store + copy>(
+        comp: &Composable<C>,
     ): String {
-        nft_data.name
+        let data = option::borrow(&comp.data);
+        data.description
     }
 
-    // TODO
-    // /// Get the Nft Data's `collection_id`
-    // public fun collection_id(
-    //     nft_data: &Data,
-    // ): &ID {
-    //     &nft_data.collection_id
-    // }
+    /// Get the Nft Data's `collection_id`
+    public fun collection_id<C: store + copy>(
+        comp: &Composable<C>,
+    ): &ID {
+        &comp.collection_id
+    }
 
     /// Get the Nft Data's `url`
-    public fun url(
-        nft_data: &Data,
+    public fun url<C: store + copy>(
+        comp: &Composable<C>,
     ): Url {
-        nft_data.url
+        let data = option::borrow(&comp.data);
+        data.url
     }
 
     /// Get the Nft Data's `attributes`
-    public fun attributes(
-        nft_data: &Data,
+    public fun attributes<C: store + copy>(
+        comp: &Composable<C>,
     ): &Attributes {
-        &nft_data.attributes
+        let data = option::borrow(&comp.data);
+        &data.attributes
     }
 
-    // TODO
-    // /// Get the Nft Data's `supply`
-    // public fun supply(
-    //     nft_data: &Data,
-    // ): &Supply {
-    //     &nft_data.supply
-    // }
+    /// Get the Nft Data's `supply`
+    public fun supply<C: store + copy>(
+        nft_data: &Composable<C>,
+    ): &Supply {
+        &nft_data.supply
+    }
 
     // === Private Functions ===
 
