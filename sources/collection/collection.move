@@ -12,7 +12,7 @@
 //! TODO: Verify creator in function to add creator, and function to post verify
 module nft_protocol::collection {
     use std::vector;
-    use std::string::String;
+    use std::string::{Self, String};
     use std::option::{Option};
 
     use sui::event;
@@ -241,34 +241,34 @@ module nft_protocol::collection {
     /// Modify the Collections's `name`
     public entry fun rename<M: store, C: store>(
         collection: &mut Collection<M, C>,
-        name: String,
+        name: vector<u8>,
     ) {
         // Only modify if collection is mutable
         assert!(collection.is_mutable == true, 0);
 
-        collection.name = name;
+        collection.name = string::utf8(name);
     }
 
     /// Modify the Collections's `description`
     public entry fun change_description<M: store, C: store>(
         collection: &mut Collection<M, C>,
-        description: String,
+        description: vector<u8>,
     ) {
         // Only modify if collection is mutable
         assert!(collection.is_mutable == true, 0);
 
-        collection.description = description;
+        collection.description = string::utf8(description);
     }
 
     /// Modify the Collections's `symbol`
     public entry fun change_symbol<M: store, C: store>(
         collection: &mut Collection<M, C>,
-        symbol: String,
+        symbol: vector<u8>,
     ) {
         // Only modify if collection is mutable
         assert!(collection.is_mutable == true, 0);
 
-        collection.symbol = symbol;
+        collection.symbol = string::utf8(symbol);
     }
 
     /// Modify the Collections's `receiver`
@@ -288,11 +288,11 @@ module nft_protocol::collection {
     /// as immutable.
     public entry fun push_tag<M: store, C: store>(
         collection: &mut Collection<M, C>,
-        tag: String,
+        tag: vector<u8>,
     ) {
         tags::push_tag(
             &mut collection.tags,
-            tag,
+            string::utf8(tag),
         );
     }
 
