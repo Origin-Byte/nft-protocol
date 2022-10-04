@@ -1,11 +1,8 @@
-- Sui v0.9.0
+- Sui v0.10.0
 
 # Install
 
-This codebase requires installation of both the Sui CLI ant the Sui source code.
-
-- Install the [Sui CLI](https://docs.sui.io/build/install)
-- `git clone https://github.com/MystenLabs/sui.git --branch devnet` to download the current sui develop branch source code
+This codebase requires installation of the [Sui CLI](https://docs.sui.io/build/install).
 
 # Built and Test
 
@@ -19,8 +16,80 @@ A new approach to NFTs.
 
 Origin-Byte is an ecosystem of tools, standards and smart contracts designed to make life easier for Web3 Game Developers and NFT creators. From simple artwork to complex gaming assets, we want to help you reach the public, and provide on-chain market infrastructure.
 
+In Move, the powers of transferability and mutability are commingled, such that only the owner of a single writer object can transfer the object and mutate it within the bounds defined by its module.
 
-This repository currently contains the first version of OriginByte NFT and collection framework. It comprises four modules, of which two are generic and two domain-specific:
+Considering the broad range of NFT use cases, there are situations in which we will want NFTs to be mutated by the collection creators (e.g. Upgrading an Art collection; Increasing the damage level of an NFT in-game weapon), even though the NFTs themselves will be owned by users. There are mainly two ways to achieve this:
+
+- The NFT owner can send the NFT to a shared object, to be mutated accordingly
+- We can separate the NFT object from its Data object, hence allowing the Data object itself to be shared and mutated accordingly
+
+In the OriginByte protocol, an `NFT` object is a hybrid object that can take two shapes:
+- The shape of an NFT that embeds is own data, aka an Embedded NFT; 
+- The shape of an NFT which does not embed its own data and contains solely a pointer to its data object, aka a Loose NFT.
+
+This design allows us to keep only one ultimate type while simultaneously allowing the NFT to embed its data or to loosely pointing to it, depending on the use case. It is also possible to dynamically join or split the data object from the NFT object, therefore allowing for arbitrary dynamic behaviour.
+
+The NFT struct is as follows:
+
+```
+struct Nft<phantom T, D: store> has key, store {
+        id: UID,
+        data_id: ID,
+        data: Option<D>,
+    }
+```
+
+By default it contains a pointer to its data object. A loose NFT will have the `data` field empty, in other words `option::none()`, whilst an embedded NFT will have its data object in the `data` field. Using the functions `nft::join_nft_data()` and `nft::split_nft_data()` we can convert back and forth between loose and embedded NFT.
+### Embedded NFTs
+
+As stated, embedded NFTs have their data object wrapped within itself. A core difference between embedded and loose NFTs is that, since the embedded NFT forces its data to be wrapped by itself, it can only represent a 1-to-1 relationship with the data object. This is ideal to represent simple collections of unique NFTs such as Art or PFP collections.
+
+In embedded NFTs, the `Data` object and the `NFT` object are minted at the same time, or in other words, in the same entry function call.
+
+### Loose NFTs
+
+In contrast, since loose NFTs do not wrap the data object within itself, the can represent 1-to-many relationships between the data object and the NFT objects. Basically, one can mint any amount of NFTs pointing to a single data object. This is ideal to represent digital collectibles, such as digital football or baseball cards, as well as gaming items that more than one user should have access to.
+
+In loose NFTs, the `Data` object is first minted and only then the NFTs associated to that object are minted.
+### Type Exporting
+
+In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs of a given NFT Collection have their own type `T` which is expressed as:
+- `Nft<T, >`
+- `Collection<T>`
+
+
+
+
+
+- We like the idea that NFTs of a given NFT Collection have their own type `T` which is expressed in their Collection type `Collection<T>` , T being a witness type representing the NFT type
+- Our understanding is that this is useful for human readability as well as to facilitate clients distinguish which collection a given NFT belongs to. Do we miss any other benefits?
+- The result of this is that each NFT creator will have to deploy its own module. This is fine and can be abstracted by an SDK, nevertheless these modules should be as light as possible (if we assume 1KB per deployed module 50,000 collections would roughly equate to 50 MB, that’s fine)
+- We believe this module deployed by the NFT creators should serve solely as a type exporter and should not contain any custom logic. Instead, the custom logic would be offloaded to another layer of modules that do not need to be deployed every time there is a new collection
+
+
+// TODO: remove
+This repository currently contains the first version of OriginByte NFT collection framework. It comprises four modules, of which two are generic and two domain-specific:
+
+### A 3-layered approach
+
+
+//! For embedded NFTs, the `Data` object and the `NFT` object is minted in one
+//! step. For loose NFTsm the `Data` object is first minted and only then the 
+//! NFT(s) associated to that object is(are) minted.
+//! 
+//! Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships
+//! between the NFT object and the Data object. In contrast, loose NFTs can
+//! represent 1-to-many relationships. Essentially this allows us to build
+//! NFTs which effectively have a supply.
+
+
+
+5:19
+if we consider the NFT to be a typed object with a pointer to some Metadata then we disentangle these two properties and allow for developers to build arbitrary mutability logic whilst preserving the single ownership of the NFT (edited) 
+5:21
+
+
+
 
 Generic modules:
 - `nft.move` as generic NFT module
