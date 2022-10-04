@@ -122,7 +122,7 @@ module nft_protocol::c_nft {
     /// Composable `Unlimited` collection. This function does not serve
     /// to compose Composable objects, but simply to create the intial objects
     /// that are supposed to give rise to the composability tree.
-    public entry fun mint_unlimited_collection_nft_data<MetaColl: store, C: store + copy>(
+    public entry fun mint_unlimited_collection_nft_data<T, M: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -130,7 +130,7 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &Collection<MetaColl, Unlimited>,
+        collection: &Collection<T, M, Unlimited>,
         ctx: &mut TxContext,
     ) {
         let args = mint_args(
@@ -169,7 +169,7 @@ module nft_protocol::c_nft {
     /// objects are brought to existance the collection creator can start 
     /// creating composable objects which determine which NFTs can be merged
     /// and what the supply of those configurations are.
-    public entry fun mint_limited_collection_nft_data<MetaColl: store, C: store + copy>(
+    public entry fun mint_limited_collection_nft_data<T, M: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -177,7 +177,7 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &mut Collection<MetaColl, Limited>,
+        collection: &mut Collection<T, M, Limited>,
         ctx: &mut TxContext,
     ) {
         let args = mint_args(
@@ -206,10 +206,10 @@ module nft_protocol::c_nft {
     /// 
     /// The newly composed object has a its own maximum supply of NFTs.
     public entry fun compose_data_objects
-        <MetaColl: store, Cap: store, D: store + copy, C: store + copy>
+        <T, M: store, Cap: store, D: store + copy, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
-        collection: &mut Collection<MetaColl, Cap>,
+        collection: &mut Collection<T, M, Cap>,
         max_supply: Option<u64>,
         ctx: &mut TxContext,
     ) {

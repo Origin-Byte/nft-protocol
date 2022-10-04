@@ -68,7 +68,7 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &Collection<M, Unlimited>,
+        collection: &Collection<T, M, Unlimited>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
@@ -102,7 +102,7 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<M, Limited>,
+        collection: &mut Collection<T, M, Limited>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
