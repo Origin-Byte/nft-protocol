@@ -54,63 +54,56 @@ In loose NFTs, the `Data` object is first minted and only then the NFTs associat
 ### Type Exporting
 
 In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs of a given NFT Collection have their own type `T` which is expressed as:
-- `Nft<T, >`
-- `Collection<T>`
+- `Nft<T, D>`
+- `Collection<T, M, C>`
 
+Where the following generics represent:
+- `T` NFT type export that types the `Nft` and `Collection` object
+- `D` a generic for the NFT `Data` object type
+- `M` a generic for the Collection `Metadta` object type
+- `C` a generic for the Collection `Cap` object type
 
-
-
-
-- We like the idea that NFTs of a given NFT Collection have their own type `T` which is expressed in their Collection type `Collection<T>` , T being a witness type representing the NFT type
+TODO: Add something of this sort:
 - Our understanding is that this is useful for human readability as well as to facilitate clients distinguish which collection a given NFT belongs to. Do we miss any other benefits?
 - The result of this is that each NFT creator will have to deploy its own module. This is fine and can be abstracted by an SDK, nevertheless these modules should be as light as possible (if we assume 1KB per deployed module 50,000 collections would roughly equate to 50 MB, that’s fine)
 - We believe this module deployed by the NFT creators should serve solely as a type exporter and should not contain any custom logic. Instead, the custom logic would be offloaded to another layer of modules that do not need to be deployed every time there is a new collection
 
 
-// TODO: remove
-This repository currently contains the first version of OriginByte NFT collection framework. It comprises four modules, of which two are generic and two domain-specific:
-
 ### A 3-layered approach
 
+Since the NFTs are type exported, each NFT collection will have to deploy its type-specific contract that interfaces with OriginByte modules.
 
-//! For embedded NFTs, the `Data` object and the `NFT` object is minted in one
-//! step. For loose NFTsm the `Data` object is first minted and only then the 
-//! NFT(s) associated to that object is(are) minted.
-//! 
-//! Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships
-//! between the NFT object and the Data object. In contrast, loose NFTs can
-//! represent 1-to-many relationships. Essentially this allows us to build
-//! NFTs which effectively have a supply.
+Consider two sample NFT collections: Suimarines and Suiway Surfers. To launch these collections on Sui, the creators will deploy the contracts `suimarines` and `suiway_surfers` (this deployment will in the future be made via an OriginByte SDK). Creators will be able to choose which NFT implementation they want their collection to have (i.e. Unique NFTs, Collectibles, Composable NFTs, Tickets, Loyalty Points, etc.):
 
+<img src="assets/3_layer.png" width="632" height="395" />
 
+The core vision is that any developer can build a custom implementation on top of the base NFT contract. Currently we have implemented the following domain-specific modules:
+- `nft_protocol::unique_nft`
+- `nft_protocol::collectibles`
+- `nft_protocol::c_nft`
 
-5:19
-if we consider the NFT to be a typed object with a pointer to some Metadata then we disentangle these two properties and allow for developers to build arbitrary mutability logic whilst preserving the single ownership of the NFT (edited) 
-5:21
+These domain-specific modules in turn communicate with the base module `nft_protocol::nft` to mint the NFTs and to perform basic actions such as morphing the NFT from loose to embeeded and vice-versa.
 
+### Relationship to Collection object
+Conceptually, we can think of NFTs being organized into collections. It is in essence a 1-to-many relational data model, that could, in a traditional database setup, be represented by two relational database tables, `collection` and `nfts`, where `collection_id` would serve as the primary key for the `collection` table and foreign key to the `nfts` table.
 
+In Move, the way we represent this relational model is to guarantee that the NFT objects themselves have a `ID` pointer to the collection `UID`.
 
+To mint an NFT, projects must first create the NFT collection object, where metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable (TODO: We should separate the concept of Freezing the Collection and inherent mutability of its NFTS).
 
-Generic modules:
-- `nft.move` as generic NFT module
-- `collection.move` as generic collection module
-- `slingshot.move` as generic slingshot launchpad module
-
-Domain-specific modules:
-- `std_nft.move` as a standard NFT metadata implementation
-- `std_collection.move` as a standard Collection metadata implementation
-- `fixed_price.move` as fixed price launchpad configuration
-
-## Minting an NFT Collection
-
-Conceptually, NFTs are organized in NFT collections. To mint an NFT, projects must first create the NFT collection object, where metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable. At any point in time, the collection owner can decide to make the collection immutable which involves freezing the collection object and its associated NFTs. However, not all fields of the Collection are frozen:
+At any point in time, the collection owner can decide to make the collection immutable which involves freezing the collection object and its associated NFTs. However, not all fields of the Collection are frozen:
 
 - The field current_supply will still mutate every time an NFT is minted or burned
 - Collection owners will still be able to push and pop tags onto the field tags
 
-Once the collection object is created via the domain-specific collection module, you can use the domain-specific NFT module to mint the NFTs. All domain-specific NFT objects will be guaranteed to have the field collection_id if they are implemented with the generic module. This field acts as a pointer to the collection object and allows us to build a permissioning behaviour.
+When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anybody can or anyone can.
+## Minting an NFT Collection
 
-When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anybody can or anyone can. This collection ownership pattern is useful since many projects will want to transfer NFTs to a Launchpad as part of the initial mint process. Therefore we expose three methods:
+
+// TODO: CONTINUE FROM HERE...
+
+
+ This collection ownership pattern is useful since many projects will want to transfer NFTs to a Launchpad as part of the initial mint process. Therefore we expose three methods:
 
 - `mint_and_transfer` to mint to an address
 - `mint_to_launchpad` to mint to a `Slingshot<T, Config>` object
