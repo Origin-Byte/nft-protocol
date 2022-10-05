@@ -13,23 +13,28 @@ module nft_protocol::slingshot {
 
     struct Slingshot<phantom T, M> has key, store{
         id: UID,
-        // The ID of the NFT Collection object
+        /// The ID of the NFT Collection object
         collection_id: ID,
-        // Boolean indicating if the sale is live
+        /// Boolean indicating if the sale is live
         live: bool,
-        // The address of the administrator
+        /// The address of the administrator
         admin: address,
-        // The address of the receiver of funds
+        /// The address of the receiver of funds
         receiver: address,
-        // Vector of all IDs owned by the slingshot
+        /// Vector of all IDs owned by the slingshot
         sales: vector<Sale<T, M>>,
-        // config: Config,
+        /// Field determining if NFTs are embedded or looose.
+        /// Embedded NFTs will be directly owned by the Slingshot whilst
+        /// loose NFTs will be minted on the fly under the authorithy of the
+        /// launchpad.
+        is_embedded: bool,
     }
 
     struct InitSlingshot has drop {
         collection_id: ID,
         admin: address,
         receiver: address,
+        is_embedded: bool,
     }
 
     struct CreateSlingshotEvent has copy, drop {
@@ -58,6 +63,7 @@ module nft_protocol::slingshot {
             admin: args.admin,
             receiver: args.receiver,
             sales: sales,
+            is_embedded: args.is_embedded,
         };
 
         transfer::share_object(slingshot);
@@ -79,6 +85,7 @@ module nft_protocol::slingshot {
             admin: _,
             receiver: _,
             sales,
+            is_embedded,
         } = slingshot;
 
         object::delete(id);
@@ -108,12 +115,14 @@ module nft_protocol::slingshot {
         collection_id: ID,
         admin: address,
         receiver: address,
+        is_embedded: bool, 
     ): InitSlingshot {
 
         InitSlingshot {
             collection_id,
             admin,
             receiver,
+            is_embedded
         }
     }
 
@@ -237,6 +246,13 @@ module nft_protocol::slingshot {
         index: u64,
     ): &mut Sale<T, M> {
         vector::borrow_mut(&mut slingshot.sales, index)
+    }
+
+    /// Get the Slingshot's `is_embedded` bool
+    public fun is_embedded<T, M>(
+        slingshot: &Slingshot<T, M>,
+    ): bool {
+        slingshot.is_embedded
     }
 
     // /// Get the Slingshot's `nfts` vector as reference

@@ -30,6 +30,7 @@ module nft_protocol::fixed_price {
         collection_id: ID,
         admin: address,
         receiver: address,
+        is_embedded: bool,
         whitelist: bool,
         price: u64,
         ctx: &mut TxContext,
@@ -53,6 +54,7 @@ module nft_protocol::fixed_price {
             collection_id,
             admin,
             receiver,
+            is_embedded
         );
         
         slingshot::create<FixedPriceMarket, Market>(
@@ -67,6 +69,7 @@ module nft_protocol::fixed_price {
         collection_id: ID,
         admin: address,
         receiver: address,
+        is_embedded: bool,
         prices: vector<u64>,
         whitelists: vector<bool>,
         ctx: &mut TxContext,
@@ -103,6 +106,7 @@ module nft_protocol::fixed_price {
             collection_id,
             admin,
             receiver,
+            is_embedded,
         );
         
         slingshot::create<FixedPriceMarket, Market>(
@@ -162,8 +166,8 @@ module nft_protocol::fixed_price {
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft<D: store>(
-        _slingshot: &Slingshot<FixedPriceMarket, Market>,
+    public entry fun claim_nft_embedded<D: store>(
+        slingshot: &Slingshot<FixedPriceMarket, Market>,
         nft: Nft<D>,
         certificate: NftCertificate,
         recipient: address,
@@ -172,10 +176,47 @@ module nft_protocol::fixed_price {
 
         sale::burn_certificate(certificate);
 
+        assert!(slingshot::is_embedded(slingshot), 0);
+
         transfer::transfer(
             nft,
             recipient,
         );
+    }
+
+    /// Once the user has bought an NFT certificate, this method can be called
+    /// to claim/redeem the NFT that has been allocated by the launchpad. The
+    /// `NFTOwned` object in the function signature should correspond to the 
+    /// NFT ID mentioned in the certificate.
+    /// 
+    /// We add the slingshot as a phantom parameter since it is the parent object
+    /// of the NFT. Since the slingshot is a shared object anyone can mention it
+    /// in the function signature and therefore be able to mention its child
+    /// objects as well, the NFTs owned by it.
+    public entry fun claim_nft_loose<D: key + store>(
+        slingshot: &Slingshot<FixedPriceMarket, Market>,
+        nft_data: D,
+        certificate: NftCertificate,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(object::id(&nft_data) == sale::nft_id(&certificate), 0);
+
+        sale::burn_certificate(certificate);
+
+        assert!(!slingshot::is_embedded(slingshot), 0);
+
+        let nft = nft::mint_nft_embedded(
+            object::id(&nft_data),
+            nft_data,
+            ctx,
+        );
+
+        transfer::transfer(
+            nft,
+            recipient,
+        );
+
     }
 
     // /// Deletes the `Slingshot` and `LaunchpadConfig` if the object
