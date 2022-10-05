@@ -85,7 +85,7 @@ module nft_protocol::slingshot {
             admin: _,
             receiver: _,
             sales,
-            is_embedded,
+            is_embedded: _,
         } = slingshot;
 
         object::delete(id);
