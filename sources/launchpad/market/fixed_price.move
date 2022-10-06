@@ -1,11 +1,17 @@
-/// Module of a Fixed Initial NFT Offering `Config` type.
-/// 
-/// It implments a fixed price launchpad configuration.
-/// 
-/// TODO: When deleting the slingshot, we should guarantee that no nft is still
-/// owned by the slingshot object. the fact that the vector `nfts` does not 
-/// mean the slingshot has no ownership of nfts since there may be certificates 
-/// to be claimed. We should therefore consider an alternative approach
+//! Module of a Fixed Price Sale `Market` type.
+//! 
+//! It implments a fixed price launchpad configuration.
+//! 
+//! NFT creators can decide if they want to create a simple primary market sale
+//! via `create_single_market` or if they want to create a tiered market sale
+//! by segregating NFTs by different sale segments (e.g. based on rarity).
+//! 
+//! Each sale segment can have a whitelisting process, each with their own
+//! whitelist tokens.
+//! 
+//! TODO: Consider if we want to be able to delete the launchpad object
+//! TODO: Remove code duplication between `buy_nft_certificate` and
+//! `buy_whitelisted_nft_certificate`
 module nft_protocol::fixed_price {
     use std::vector;
     
@@ -18,6 +24,7 @@ module nft_protocol::fixed_price {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::sale::{Self, NftCertificate};
+    use nft_protocol::whitelist::{Self, Whitelist};
 
     struct FixedPriceMarket has drop {}
     
@@ -26,6 +33,9 @@ module nft_protocol::fixed_price {
         price: u64,
     }
 
+    /// Creates a fixed price single market `Launchpad`, that is, a Launchpad 
+    /// with a single `Sale` outlet in its field `sales`. Lauchpad is set as 
+    /// a shared object with an `admin` that can call privelleged endpoints.
     public entry fun create_single_market(
         collection_id: ID,
         admin: address,
@@ -65,6 +75,13 @@ module nft_protocol::fixed_price {
         );
     }
 
+    /// Creates a fixed price multi market `Launchpad`, that is, a Launchpad 
+    /// with a multiple `Sale` outlets in its field `sales`. This funcitonality
+    /// allows for the creation of tiered amrket sales by segregating NFTs 
+    /// by different sale segments (e.g. based on rarity, or preciousness).
+    /// 
+    /// Lauchpad is set as a shared object with an `admin` that can
+    /// call privelleged endpoints.
     public entry fun create_multi_market(
         collection_id: ID,
         admin: address,
@@ -117,6 +134,7 @@ module nft_protocol::fixed_price {
         );
     }
 
+    /// Permissionless endpoint to buy NFT certificates for non-whitelisted sales.
     /// To buy an NFT a user will first buy an NFT certificate. This guarantees
     /// that the slingshot object is in full control of the selection process.
     /// A `NftCertificate` object will be minted and transfered to the sender
@@ -128,12 +146,15 @@ module nft_protocol::fixed_price {
         tier_index: u64,
         ctx: &mut TxContext,
     ) {
-        let receiver = slingshot::receiver(slingshot);
-
         // One can only buy NFT certificates if the slingshot is live
         assert!(slingshot::live(slingshot) == true, 0);
-
+        
+        let receiver = slingshot::receiver(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
+
+        // Infer that sales is NOT whitelisted
+        assert!(!sale::whitelisted(sale), 0);
+
         let market = sale::market(sale);
 
         let price = market.price;
@@ -149,6 +170,55 @@ module nft_protocol::fixed_price {
             ctx
         );
 
+        let certificate = sale::issue_nft_certificate(sale, ctx);
+
+        transfer::transfer(
+            certificate,
+            tx_context::sender(ctx),
+        );
+    }
+
+    /// Permissioned endpoint to buy NFT certificates for whitelisted sales.
+    /// To buy an NFT a user will first buy an NFT certificate. This guarantees
+    /// that the slingshot object is in full control of the selection process.
+    /// A `NftCertificate` object will be minted and transfered to the sender
+    /// of transaction. The sender can then use this certificate to call
+    /// `claim_nft` and claim the NFT that has been allocated by the slingshot
+    public entry fun buy_whitelisted_nft_certificate(
+        wallet: &mut Coin<SUI>,
+        slingshot: &mut Slingshot<FixedPriceMarket, Market>,
+        tier_index: u64,
+        whitelist_token: Whitelist,
+        ctx: &mut TxContext,
+    ) {
+        // One can only buy NFT certificates if the slingshot is live
+        assert!(slingshot::live(slingshot) == true, 0);
+
+        let receiver = slingshot::receiver(slingshot);
+        let sale = slingshot::sale_mut(slingshot, tier_index);
+
+        // Infer that sales is whitelisted
+        assert!(sale::whitelisted(sale), 0);
+
+        // Infer that whitelist token corresponds to correct sale outlet
+        assert!(whitelist::sale_id(&whitelist_token) == sale::id(sale), 0);
+
+        let market = sale::market(sale);
+
+        let price = market.price;
+
+        assert!(coin::value(wallet) > price, 0);
+
+        // Split coin into price and change, then transfer 
+        // the price and keep the change
+        coin::split_and_transfer<SUI>(
+            wallet,
+            price,
+            receiver,
+            ctx
+        );
+
+        whitelist::burn_whitelist_token(whitelist_token);
         let certificate = sale::issue_nft_certificate(sale, ctx);
 
         transfer::transfer(
@@ -219,77 +289,29 @@ module nft_protocol::fixed_price {
 
     }
 
-    // /// Deletes the `Slingshot` and `LaunchpadConfig` if the object
-    // /// does not own any child object
-    // public fun delete<T: drop, Meta: store>(
-    //     slingshot: Slingshot<FixedPriceSale, LaunchpadConfig>,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     // TODO: the fact that the vector `nfts` does not mean the slingshot
-    //     // has no ownership of nfts since there may be certificates to be 
-    //     // claimed. We should therefore consider an alternative approach
-
-    //     // Assert that nfts vector is empty, meaning that
-    //     // the slingshot does not residually own any NFT
-    //     assert!(vector::length(slingshot::nfts(&slingshot)) == 0, 0);
-
-    //     event::emit(
-    //         DeleteSlingshotEvent {
-    //             object_id: object::id(&slingshot),
-    //             collection_id: slingshot::collection_id(&slingshot),
-    //         }
-    //     );
-
-    //     // Delete generic Collection object
-    //     let config = slingshot::delete(
-    //         slingshot,
-    //         ctx,
-    //     );
-
-    //     let LaunchpadConfig {
-    //         id,
-    //         price: _,
-    //     } = config;
-
-    //     object::delete(id);
-    // }
-
     // // === Modifier Functions ===
 
-    // /// Permissioned endpoint to be called by `admin` to edit the fixed price 
-    // /// of the launchpad configuration.
-    // public entry fun new_price<T, Config>(
-    //     slingshot: &mut Slingshot<FixedPriceSale, LaunchpadConfig>,
-    //     new_price: u64,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     assert!(slingshot::admin(slingshot) == tx_context::sender(ctx), 0);
+    /// Permissioned endpoint to be called by `admin` to edit the fixed price 
+    /// of the launchpad configuration.
+    public entry fun new_price(
+        slingshot: &mut Slingshot<FixedPriceMarket, Market>,
+        sale_index: u64,
+        new_price: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(slingshot::admin(slingshot) == tx_context::sender(ctx), 0);
 
-    //     let config = slingshot::config_mut(slingshot);
+        let sale = slingshot::sale_mut(slingshot, sale_index);
 
-    //     config.price = new_price;
-    // }
+        sale::market_mut(sale).price = new_price;
+    }
 
     // // === Getter Functions ===
 
-    // /// Get the Slingshot Configs's `price`
-    // public fun price(
-    //     slingshot: &LaunchpadConfig,
-    // ): u64 {
-    //     slingshot.price
-    // }
-
-    // // === Private Functions ===
-
-    // fun init_args(
-    //     collection: ID,
-    //     receiver: address,
-    //     price: u64,
-    // ): InitFixedPriceSlingshot {
-    //     InitFixedPriceSlingshot {
-    //         collection,
-    //         receiver,
-    //         price,
-    //     }
-    // }
+    /// Get the Slingshot Configs's `price`
+    public fun price(
+        market: &Market,
+    ): u64 {
+        market.price
+    }
 }

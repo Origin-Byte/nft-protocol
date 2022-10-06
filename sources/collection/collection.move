@@ -12,6 +12,7 @@
 //! TODO: Verify creator in function to add creator, and function to post verify
 //! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that 
 //! `is_mutable` refers to the NFTs and `frozen` refers to the collection
+//! TODO: Consider making `C` a unique type instead of generic
 module nft_protocol::collection {
     use std::vector;
     use std::string::{Self, String};
@@ -54,12 +55,16 @@ module nft_protocol::collection {
         is_mutable: bool,
         /// Field determining the amount of royaly fees in basis points, 
         /// charged in market transactions.
+        /// TODO: It is likely that this field will change as we design 
+        /// the royalty enforcement standard
         royalty_fee_bps: u64,
         creators: vector<Creator>,
         /// NFT Collections can be instantiated with a `Cap` of type `Limited`
         ///  or `Unlimited`. An `Unlimited` collection not only does not have 
         /// a supply limit but also does not keep track of the amount of 
         /// NFT `Data` objects in existance at any given time.
+        /// TODO: Consider renaiming this field
+        /// TODO: Consider making this a separate object
         cap: C,
         /// The `Metadata` is a type exported by an upstream contract which is 
         /// used to store additional information about the NFT.
