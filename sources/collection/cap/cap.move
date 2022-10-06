@@ -8,7 +8,8 @@
 //! supply cap, and if so, they only differ from Unlimited supply in that
 //! they keep track of the current supply.
 module nft_protocol::cap {
-    use std::option::{Option};
+    use std::option::Option;
+    use nft_protocol::supply::{Self, Supply};
     
     use nft_protocol::supply::{Self, Supply};
 
