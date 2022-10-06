@@ -1,11 +1,6 @@
-/// Module of a Fixed Initial NFT Offering `Config` type.
+/// Module of a Fixed Price Sale `Market` type.
 /// 
 /// It implments a fixed price launchpad configuration.
-/// 
-/// TODO: When deleting the slingshot, we should guarantee that no nft is still
-/// owned by the slingshot object. the fact that the vector `nfts` does not 
-/// mean the slingshot has no ownership of nfts since there may be certificates 
-/// to be claimed. We should therefore consider an alternative approach
 module nft_protocol::fixed_price {
     use std::vector;
     
@@ -219,77 +214,29 @@ module nft_protocol::fixed_price {
 
     }
 
-    // /// Deletes the `Slingshot` and `LaunchpadConfig` if the object
-    // /// does not own any child object
-    // public fun delete<T: drop, Meta: store>(
-    //     slingshot: Slingshot<FixedPriceSale, LaunchpadConfig>,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     // TODO: the fact that the vector `nfts` does not mean the slingshot
-    //     // has no ownership of nfts since there may be certificates to be 
-    //     // claimed. We should therefore consider an alternative approach
-
-    //     // Assert that nfts vector is empty, meaning that
-    //     // the slingshot does not residually own any NFT
-    //     assert!(vector::length(slingshot::nfts(&slingshot)) == 0, 0);
-
-    //     event::emit(
-    //         DeleteSlingshotEvent {
-    //             object_id: object::id(&slingshot),
-    //             collection_id: slingshot::collection_id(&slingshot),
-    //         }
-    //     );
-
-    //     // Delete generic Collection object
-    //     let config = slingshot::delete(
-    //         slingshot,
-    //         ctx,
-    //     );
-
-    //     let LaunchpadConfig {
-    //         id,
-    //         price: _,
-    //     } = config;
-
-    //     object::delete(id);
-    // }
-
     // // === Modifier Functions ===
 
-    // /// Permissioned endpoint to be called by `admin` to edit the fixed price 
-    // /// of the launchpad configuration.
-    // public entry fun new_price<T, Config>(
-    //     slingshot: &mut Slingshot<FixedPriceSale, LaunchpadConfig>,
-    //     new_price: u64,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     assert!(slingshot::admin(slingshot) == tx_context::sender(ctx), 0);
+    /// Permissioned endpoint to be called by `admin` to edit the fixed price 
+    /// of the launchpad configuration.
+    public entry fun new_price(
+        slingshot: &mut Slingshot<FixedPriceMarket, Market>,
+        sale_index: u64,
+        new_price: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(slingshot::admin(slingshot) == tx_context::sender(ctx), 0);
 
-    //     let config = slingshot::config_mut(slingshot);
+        let sale = slingshot::sale_mut(slingshot, sale_index);
 
-    //     config.price = new_price;
-    // }
+        sale::market_mut(sale).price = new_price;
+    }
 
     // // === Getter Functions ===
 
-    // /// Get the Slingshot Configs's `price`
-    // public fun price(
-    //     slingshot: &LaunchpadConfig,
-    // ): u64 {
-    //     slingshot.price
-    // }
-
-    // // === Private Functions ===
-
-    // fun init_args(
-    //     collection: ID,
-    //     receiver: address,
-    //     price: u64,
-    // ): InitFixedPriceSlingshot {
-    //     InitFixedPriceSlingshot {
-    //         collection,
-    //         receiver,
-    //         price,
-    //     }
-    // }
+    /// Get the Slingshot Configs's `price`
+    public fun price(
+        market: &Market,
+    ): u64 {
+        market.price
+    }
 }
