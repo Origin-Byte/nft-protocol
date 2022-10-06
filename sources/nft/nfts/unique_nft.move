@@ -55,7 +55,7 @@ module nft_protocol::unique_nft {
         collection_id: ID,
     }
 
-    // === Entrypoints ===
+    // === Functions exposed to Witness Module ===
 
     /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
     /// Invokes `mint_and_transfer()`.
@@ -63,7 +63,9 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun launchpad_mint_unlimited_collection_nft<T, Meta: store, Market: store>(
+    ///  
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun launchpad_mint_unlimited_collection_nft<T, Meta: store, Market: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -101,7 +103,9 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun launchpad_mint_limited_collection_nft<T, Meta: store, Market: store>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun launchpad_mint_limited_collection_nft<T, Meta: store, Market: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -139,7 +143,9 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun direct_mint_unlimited_collection_nft<T, M: store>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun direct_mint_unlimited_collection_nft<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -173,7 +179,9 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun direct_mint_limited_collection_nft<T, M: store>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun direct_mint_limited_collection_nft<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -202,6 +210,8 @@ module nft_protocol::unique_nft {
             ctx,
         );
     }
+
+    // === Entrypoints ===
 
     /// Burns embedded `Nft` along with its `Unique`. It invokes `burn_nft()`
     public entry fun burn_nft<T>(

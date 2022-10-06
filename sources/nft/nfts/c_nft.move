@@ -108,7 +108,7 @@ module nft_protocol::c_nft {
         collection_id: ID,
     }
 
-    // === Entrypoints ===
+    // === Functions exposed to Witness Module ===
 
     /// Mints loose NFT `Composable` data object and shares it.
     /// Invokes `mint_and_share_data()`.
@@ -122,7 +122,9 @@ module nft_protocol::c_nft {
     /// Composable `Unlimited` collection. This function does not serve
     /// to compose Composable objects, but simply to create the intial objects
     /// that are supposed to give rise to the composability tree.
-    public entry fun mint_unlimited_collection_nft_data<T, M: store, C: store + copy>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_unlimited_collection_nft_data<T, M: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -169,7 +171,9 @@ module nft_protocol::c_nft {
     /// objects are brought to existance the collection creator can start 
     /// creating composable objects which determine which NFTs can be merged
     /// and what the supply of those configurations are.
-    public entry fun mint_limited_collection_nft_data<T, M: store, C: store + copy>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_limited_collection_nft_data<T, M: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -205,7 +209,7 @@ module nft_protocol::c_nft {
     /// holders of those NFTs to merge them together to create a cNFT.
     /// 
     /// The newly composed object has a its own maximum supply of NFTs.
-    public entry fun compose_data_objects
+    public fun compose_data_objects
         <T, M: store, Cap: store, D: store + copy, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
@@ -263,6 +267,35 @@ module nft_protocol::c_nft {
         transfer::share_object(combo_data);
     }
 
+    /// Mints loose NFT and transfers it to `recipient`
+    /// Invokes `mint_nft_loose()`.
+    /// This function call comes after the minting of the leaf node
+    /// `Collectibles` data object.
+    /// 
+    /// To be called by Launchpad contract
+    /// TODO: The flow here needs to be reconsidered
+    public fun mint_nft<T, C: store + copy>(
+        nft_data: &mut Composable<C>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        // TODO: should we allow for the minting of more than one NFT at 
+        // a time?
+        supply::increase_supply(&mut nft_data.supply, 1);
+
+        let nft = nft::mint_nft_loose<T, Data>(
+            nft_data_id(nft_data),
+            ctx,
+        );
+
+        transfer::transfer(
+            nft,
+            recipient,
+        );
+    }
+
+    // === Entrypoints ===
+
     /// Mints a cNFT by "merging" two or more NFTs. The function will
     /// burn the NFTs given by the parameter `nfts` and will mint a cNFT
     /// object pointing to the composable object that representes the merge
@@ -309,30 +342,6 @@ module nft_protocol::c_nft {
 
         let nft = nft::mint_nft_loose<T, Data>(
             object::uid_to_inner(&combo_data.id),
-            ctx,
-        );
-
-        transfer::transfer(
-            nft,
-            recipient,
-        );
-    }
-
-    /// Mints loose NFT and transfers it to `recipient`
-    /// Invokes `mint_nft_loose()`.
-    /// This function call comes after the minting of the leaf node
-    /// `Collectibles` data object.
-    public entry fun mint_nft<T, C: store + copy>(
-        nft_data: &mut Composable<C>,
-        recipient: address,
-        ctx: &mut TxContext,
-    ) {
-        // TODO: should we allow for the minting of more than one NFT at 
-        // a time?
-        supply::increase_supply(&mut nft_data.supply, 1);
-
-        let nft = nft::mint_nft_loose<T, Data>(
-            nft_data_id(nft_data),
             ctx,
         );
 

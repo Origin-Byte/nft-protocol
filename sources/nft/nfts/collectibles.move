@@ -54,7 +54,7 @@ module nft_protocol::collectibles {
         collection_id: ID,
     }
 
-    // === Entrypoints ===
+    // === Functions exposed to Witness Module ===
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
@@ -62,7 +62,9 @@ module nft_protocol::collectibles {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun mint_unlimited_collection_nft_data<T, M: store>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_unlimited_collection_nft_data<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -96,7 +98,9 @@ module nft_protocol::collectibles {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun mint_limited_collection_nft_data<T, M: store>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_limited_collection_nft_data<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -129,7 +133,10 @@ module nft_protocol::collectibles {
     /// Mints loose NFT and transfers it to `recipient`
     /// Invokes `mint_nft_loose()`.
     /// This function call comes after the minting of the `Data` object.
-    public entry fun mint_nft<T, M: store, C: store>(
+    /// 
+    /// To be called by Launchpad contract
+    /// TODO: The flow here needs to be reconsidered
+    public fun mint_nft<T, M: store, C: store>(
         _collection: &Collection<T, M, C>,
         nft_data: &mut Collectible,
         recipient: address,
@@ -151,6 +158,8 @@ module nft_protocol::collectibles {
             recipient,
         );
     }
+
+    // === Entrypoints ===
 
     /// Burns loose NFT `Collectible` data. Burning a loose NFT `Collectible` 
     /// data can only be done once all the underlying `Nft`s pointing to that 

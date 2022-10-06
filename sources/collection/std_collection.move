@@ -34,10 +34,11 @@ module nft_protocol::std_collection {
     struct MintEvent has copy, drop { object_id: ID }
     struct BurnEvent has copy, drop { object_id: ID }
 
-    // === Entrypoints ===
+    // === Functions exposed to Witness Module ===
 
     /// Mint one `Collection` with `Metadata` and send it to `recipient`.
-    public entry fun mint_and_transfer<T>(
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_and_transfer<T>(
         // Name of the Nft Collection. This parameter is a
         // vector of bytes that encondes to utf8
         name: vector<u8>,
@@ -123,7 +124,9 @@ module nft_protocol::std_collection {
     /// object. If a collection is made shared, anyone will be able to refer
     /// to its object in the NFT modules and hence be able to create its own
     /// NFTs.
-    public entry fun mint_and_share<T>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_and_share<T>(
         name: vector<u8>,
         description: vector<u8>,
         symbol: vector<u8>,
@@ -197,6 +200,8 @@ module nft_protocol::std_collection {
         };
     }
 
+    // === Entrypoints ===
+
     /// Burn a Standard `Limited` Collection. Invokes `burn_capped()`.
     public entry fun burn_limited_collection<T>(
         collection: Collection<T, StdMeta, Limited>,
@@ -222,7 +227,7 @@ module nft_protocol::std_collection {
         object::delete(id);
     }
 
-    // // === Getter Functions ===
+    // === Getter Functions ===
 
     /// Get the Collections Meta's `id`
     public fun id(

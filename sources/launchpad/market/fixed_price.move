@@ -33,10 +33,14 @@ module nft_protocol::fixed_price {
         price: u64,
     }
 
+    // === Functions exposed to Witness Module ===
+
     /// Creates a fixed price single market `Launchpad`, that is, a Launchpad 
     /// with a single `Sale` outlet in its field `sales`. Lauchpad is set as 
     /// a shared object with an `admin` that can call privelleged endpoints.
-    public entry fun create_single_market(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun create_single_market(
         collection_id: ID,
         admin: address,
         receiver: address,
@@ -82,6 +86,8 @@ module nft_protocol::fixed_price {
     /// 
     /// Lauchpad is set as a shared object with an `admin` that can
     /// call privelleged endpoints.
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
     public entry fun create_multi_market(
         collection_id: ID,
         admin: address,
@@ -133,6 +139,8 @@ module nft_protocol::fixed_price {
             ctx,
         );
     }
+
+    // === Entrypoints ===
 
     /// Permissionless endpoint to buy NFT certificates for non-whitelisted sales.
     /// To buy an NFT a user will first buy an NFT certificate. This guarantees
