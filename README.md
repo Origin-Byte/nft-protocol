@@ -217,9 +217,6 @@ Collectible NFT data object, `Collectible`, has the following data model:
 | ----------------- | ----------------- | ----------- |
 | `id`              | `UID`             | The UID of the NFT metadata object |
 | `index`           | `u64`             | The index of the NFT in relation to the whole collection |
-| `name`            | `String`          | Name of the NFT object |
-| `description`     | `String`          | Description of the NFT object |
-| `collection_id`   | `ID`              | ID pointer to Collection object |
 | `url`             | `Url`             | The URL of the NFT |
 | `attributes`      | `Attributes`      | Attributes of a given NFT |
 | `supply`          | `Supply`          | Object determining Supply limit of the NFT |
@@ -236,37 +233,10 @@ The NFT metadata object has the following functions:
 
 ### Composable cNFTs (Loose)
 
-Composable NFT data object, `Composable`, has the following data model:
-
-| Field             | Type              | Description |
-| ----------------- | ----------------- | ----------- |
-| `id`              | `UID`             | The UID of the NFT metadata object |
-| `data`            | `Option<Data>`    | Composable `Data` objects can have some `Data` struct attached to it. Currently, only the objects at the leaf nodes of the composability tree have `Data` whilst the others have`option::none()` |
-| `collection_id`   | `ID`              | Pointer to Collection ID |
-| `supply`          | `Supply`          | Each composable has its own supply. This allows for configuration scarcity. If two objects, both with a supply of 10, merge to produce a composably of both, this composable object can have its own supply. This means that even if both leaf node objects have supply of 10, if the supply of the root node composable object is 5 then the NFTs can only be merge up to 5 times. |
-| `componenets`     | `VecMap<ID, C>`              | A VecMap storing a list of `C` structs which represent cloned versions of the constituent objects. These structs do not have key ability and can be copied for the sake of clonability. It is structured as VecMap such that we can have the original object `ID`s as the key for each `C` struct. |
-
-Where `Data` type has the following model:
-
-| Field             | Type              | Description |
-| ----------------- | ----------------- | ----------- |
-| `index`           | `u64`             | The index of the NFT in relation to the whole collection |
-| `name`            | `String`          | Name of the NFT object |
-| `description`     | `String`          | Description of the NFT object |
-| `url`             | `Url`             | The URL of the NFT |
-| `attributes`      | `Attributes`      | Attributes of a given NFT |
-
-
-Where `Attributes` is a struct with the field `keys`, the attribute keys represented as string vector, in other words the set of traits (e.g. Hat, Color of T-shirt, Fur type, etc.) and NFT has, and `values` of such traits (e.g. Straw Hat, White T-shirt, Blue Fur, etc.).
-
-The module has the following functions:
-- `mint_unlimited_collection_nft_data` to create the data object associated to a NFT from an unlimited collection
-- `mint_limited_collection_nft_data` to create the data object associated to a NFT from a limited collection
-- `compose_data_objects` receives and temporarily holds two or more objects, clones their information and produces a composable object, thus allowing holders of those NFTs to merge them together to create a cNFT.
-- `mint_nft` to mint an NFT and transfer it to user (to be called from the launchpad module)
-- `mint_c_nft` mints a cNFT by "merging" two or more NFTs and sends it to the user
-- `split_c_nft` reverts the merge of the NFTs that occurs in `mint_c_nft` and transfer back the original NFTs to the user
-- `burn_nft` to burn an NFT
+- `name`
+- `index`
+- `url`
+- `attributes`
 
 ### Slingshot Launchpad
 

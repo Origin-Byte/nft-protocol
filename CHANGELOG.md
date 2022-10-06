@@ -6,9 +6,13 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2022-09-20
 
+### Changed
 - Renamed move package from `nftProtocol` to `NftProtocol`.
+- Renamed field `uri` to `url` for `std_nft::NftMeta`
+- Changed parameter `collection` from `ID` to `&Collection<T, Meta>`
+  in `fixed_price::create`
 
 ## [0.3.0] - 2022-09-20
 
