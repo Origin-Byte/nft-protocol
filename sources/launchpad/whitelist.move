@@ -30,4 +30,21 @@ module nft_protocol::whitelist {
             recipient,
         );
     }
+
+    public fun burn_whitelist_token(
+        whitelist_token: Whitelist,
+    ) {
+        let Whitelist {
+            id,
+            sale_id: _,
+        } = whitelist_token;
+
+        object::delete(id);
+    }
+
+    public fun sale_id(
+        whitelist_token: &Whitelist,
+    ): ID {
+        whitelist_token.sale_id
+    }
 }

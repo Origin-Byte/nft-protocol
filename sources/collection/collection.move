@@ -10,6 +10,7 @@
 //! TODO: Consider adding a function `destroy_uncapped`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
+//! TODO: Consider making `C` a unique type instead of generic
 module nft_protocol::collection {
     use std::vector;
     use std::string::{Self, String};
@@ -52,6 +53,8 @@ module nft_protocol::collection {
         is_mutable: bool,
         /// Field determining the amount of royaly fees in basis points, 
         /// charged in market transactions.
+        /// TODO: It is likely that this field will change as we design 
+        /// the royalty enforcement standard
         royalty_fee_bps: u64,
         creators: vector<Creator>,
         /// NFT Collections can be instantiated with a `Cap` of type `Limited`

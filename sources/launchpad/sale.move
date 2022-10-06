@@ -1,3 +1,15 @@
+//! Module representing `Sale` Outlets of `Launchpad`s.
+//! 
+//! Launchpads can now have multiple sale outlets, repsented 
+//! through `sales: vector<Sale<T, M>>`, which meants that NFT creators can
+//! perform tiered sales. An example of this would be an Gaming NFT creator
+//! separating the sale based on NFT rarity and emit whitelist tokens to 
+//! different users for different rarities depending on the user's game score.
+//! 
+//! The Sale object is agnostic to the Market mechanism and instead decides to
+//! outsource this logic to generic `Market` object. This way developers can
+//! come up with their plug-and-play market primitives, of which some examples
+//! are Dutch Auctions, Sealed-Bid Auctions, etc.
 module nft_protocol::sale {
     use std::vector;
 
@@ -7,16 +19,11 @@ module nft_protocol::sale {
     struct Sale<phantom T, Market> has key, store{
         id: UID,
         tier_index: u64,
-        whitelist: bool,
+        whitelisted: bool,
         // Vector of all IDs owned by the slingshot
         nfts: vector<ID>,
         queue: vector<ID>,
         market: Market,
-    }
-
-    struct Whitelist has key {
-        id: UID,
-        sale_id: ID,
     }
 
     /// This object acts as an intermediate step between the payment
@@ -32,7 +39,7 @@ module nft_protocol::sale {
     public fun create<T: drop, Market: store>(
         _witness: T,
         tier_index: u64,
-        whitelist: bool,
+        whitelisted: bool,
         market: Market,
         ctx: &mut TxContext,
     ): Sale<T, Market> {
@@ -44,7 +51,7 @@ module nft_protocol::sale {
         Sale {
             id,
             tier_index,
-            whitelist,
+            whitelisted,
             nfts,
             queue,
             market,
@@ -61,7 +68,7 @@ module nft_protocol::sale {
         let Sale {
             id,
             tier_index: _,
-            whitelist: _,
+            whitelisted: _,
             nfts: _,
             queue: _,
             market,
@@ -145,5 +152,17 @@ module nft_protocol::sale {
         sale: &Sale<T, M>,
     ): &ID {
         object::uid_as_inner(&sale.id)
+    }
+
+    public fun index<T, M>(
+        sale: &Sale<T, M>,
+    ): u64 {
+        sale.tier_index
+    }
+
+    public fun whitelisted<T, M>(
+        sale: &Sale<T, M>,
+    ): bool {
+        sale.whitelisted
     }
 }

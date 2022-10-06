@@ -1,5 +1,5 @@
-/// @title utils
-/// @notice Utility functions in Move.
+//! @title utils
+//! @notice Utility functions in Move.
 module nft_protocol::utils {
     use std::string::{Self ,String};
     use std::vector;
