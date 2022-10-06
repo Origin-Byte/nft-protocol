@@ -276,6 +276,9 @@ module nft_protocol::fixed_price {
 
         assert!(!slingshot::is_embedded(slingshot), 0);
 
+        // We are currently not increasing the current supply of the NFT
+        // being minted (both collectibles and cNFT implementation have a concept
+        // of supply).
         let nft = nft::mint_nft_embedded<T, D>(
             object::id(&nft_data),
             nft_data,

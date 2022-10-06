@@ -130,15 +130,15 @@ module nft_protocol::collectibles {
     /// Invokes `mint_nft_loose()`.
     /// This function call comes after the minting of the `Data` object.
     public entry fun mint_nft<T, M: store, C: store>(
-        // TODO: Need to link this function to launchpad
         _collection: &Collection<T, M, C>,
         nft_data: &mut Collectible,
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // TODO: As it stands, anyone can call this function...Fix ASAP
-        // TODO: should we allow for the minting of more than one NFT at 
-        // a time?
+        // TODO: As it stands, only the collection can call this function,
+        // whereas the launchad is directly calling `nft::mint_nft_loose`.
+        // This means that it is not increasing supply. This needs to fix
+        // with high priority.
         supply::increase_supply(&mut nft_data.supply, 1);
 
         let nft = nft::mint_nft_loose<T, Collectible>(

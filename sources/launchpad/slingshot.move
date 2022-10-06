@@ -25,7 +25,7 @@ module nft_protocol::slingshot {
         admin: address,
         /// The address of the receiver of funds
         receiver: address,
-        /// Vector of all IDs owned by the slingshot
+        /// Vector of all Sale outleds that, each outles holding IDs owned by the slingshot
         sales: vector<Sale<T, M>>,
         /// Field determining if NFTs are embedded or looose.
         /// Embedded NFTs will be directly owned by the Slingshot whilst

@@ -204,10 +204,10 @@ module nft_protocol::unique_nft {
     }
 
     /// Burns embedded `Nft` along with its `Unique`. It invokes `burn_nft()`
-    public entry fun burn_collection_nft<T>(
+    public entry fun burn_nft<T>(
         nft: Nft<T, Unique>,
     ) {
-        burn_nft(nft);
+        burn_nft_(nft);
     }
 
     // === Getter Functions  ===
@@ -353,7 +353,7 @@ module nft_protocol::unique_nft {
         );
     }
 
-    fun burn_nft<T>(
+    fun burn_nft_<T>(
         nft: Nft<T, Unique>,
     ) {
         let data_option = nft::burn_embedded_nft(nft);
