@@ -4,8 +4,8 @@
 //! the creation of arbitrary domain specific implementations.
 //! 
 //! The `NFT` type is a hybrid object that can take two shapes: The shape of an
-//! NFT which embeds is own data, an Embedded NFT; and the shape of an
-//! NFT which does not embed its own data and containst solely a pointer to its
+//! NFT that embeds is own data, an Embedded NFT; and the shape of an
+//! NFT that does not embed its own data and containst solely a pointer to its
 //! data object, a Loose NFT.
 //! 
 //! With this design we can keep only one ultimate type whilst the NFT can be
@@ -14,7 +14,7 @@
 //! allowing for dynamic behaviour.
 //! 
 //! For embedded NFTs, the `Data` object and the `NFT` object is minted in one
-//! step. For loose NFTsm the `Data` object is first minted and only then the 
+//! step. For loose NFTs the `Data` object is first minted and only then the 
 //! NFT(s) associated to that object is(are) minted.
 //! 
 //! Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships

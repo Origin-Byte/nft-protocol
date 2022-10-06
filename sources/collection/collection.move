@@ -10,6 +10,8 @@
 //! TODO: Consider adding a function `destroy_uncapped`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
+//! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that 
+//! `is_mutable` refers to the NFTs and `frozen` refers to the collection
 //! TODO: Consider making `C` a unique type instead of generic
 module nft_protocol::collection {
     use std::vector;
