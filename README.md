@@ -52,7 +52,7 @@ To mint an embedded NFT, the modules for Unique NFTs, Collectibles and Composabl
 
 ### Loose NFTs
 
-In contrast, since loose NFTs do not wrap the data object within itself, the can represent 1-to-many relationships between the data object and the NFT objects. Basically, one can mint any amount of NFTs pointing to a single data object. This is ideal to represent digital collectibles, such as digital football or baseball cards, as well as gaming items that more than one user should have access to.
+In contrast, since loose NFTs do not wrap the data object within itself, they can represent 1-to-many relationships between the data object and the NFT objects. Basically, one can mint any amount of NFTs pointing to a single data object. This is ideal to represent digital collectibles, such as digital football or baseball cards, as well as gaming items that more than one user should have access to.
 
 In loose NFTs, the `Data` object is first minted and only then the NFTs associated to that object are minted.
 
@@ -84,16 +84,16 @@ The core vision is that any developer can build a custom implementation on top o
 - `nft_protocol::collectibles`
 - `nft_protocol::c_nft`
 
-These domain-specific modules in turn communicate with the base module `nft_protocol::nft` to mint the NFTs and to perform basic actions such as morphing the NFT from loose to embeeded and vice-versa.
+These domain-specific modules in turn communicate with the base module `nft_protocol::nft` to mint the NFTs and to perform basic actions such as morphing the NFT from loose to embedded and vice-versa.
 
 ### Relationship to Collection object
-Conceptually, we can think of NFTs being organized into collections. It is in essence a 1-to-many relational data model, that could, in a traditional database setup, be represented by two relational database tables, `collection` and `nfts`, where `collection_id` would serve as the primary key for the `collection` table and foreign key to the `nfts` table.
+Conceptually, we can think of NFTs being organized into collections. It is in essence a 1-to-many relational data model, that could, in a traditional database setup, be represented by two relational database tables, `collection` and `nfts`, where `collection_id` would serve as a primary key for the `collection` table and a foreign key to the `nfts` table.
 
-In Move, the way we represent this relational model is to guarantee that the NFT objects themselves have a `ID` pointer to the collection `UID`.
+In Move, the way we represent this relational model is to guarantee that the NFT objects themselves have an `ID` pointer to the collection `UID`.
 
 To mint an NFT, projects must first create the NFT collection object, where metadata and configurations about the project will be stored. The NFT collection objects are meant to be owned by the project owners, who maintain control over the collection and its NFTs while the collection is mutable (TODO: We should separate the concept of Freezing the Collection and inherent mutability of its NFTS).
 
-At any point in time, the collection owner can decide to make the collection immutable which involves freezing the collection object and its associated NFTs. However, not all fields of the Collection are frozen:
+At any point in time, the collection owner can decide to make the collection immutable, which involves freezing the collection object and its associated NFTs. However, not all fields of the Collection are frozen:
 
 - The field current_supply will still mutate every time an NFT is minted or burned
 - Collection owners will still be able to push and pop tags onto the field tags
