@@ -130,33 +130,6 @@ module nft_protocol::slingshot {
         }
     }
 
-    // public fun transfer_back<T, M: store, D: store>(
-    //     slingshot: &mut Slingshot<T, M>,
-    //     nft: Nft<D>,
-    //     recipient: address,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     let sender = tx_context::sender(ctx);
-
-    //     if (admin(slingshot) != sender) {
-    //         transfer::transfer_to_object(
-    //             nft,
-    //             slingshot,
-    //         );
-    //     } else {
-
-    //         remove_nft_by_id(
-    //             slingshot,
-    //             nft::id_ref(&nft)
-    //         );
-
-    //         transfer::transfer(
-    //             nft,
-    //             recipient,
-    //         );
-    //     }
-    // }
-
     // === Modifier Functions ===
 
     /// Toggle the Slingshot's `live` to `true` therefore 
