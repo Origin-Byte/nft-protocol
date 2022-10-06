@@ -48,7 +48,7 @@ In embedded NFTs, the `Data` object and the `NFT` object are minted at the same 
 
 The naturally NFT release strategy for embedded NFTs is for the NFT creators to pre-mint them on-chain and transfer them to a Launchpad object, which in turns is responsible to configure the NFT Release / Primary Market Sales strategy.
 
-To mint an embedded NFT, the modules for Unique NFTs, Collectibles and Composable NFTs, will call the function `nft::mint_nft_embedded` which will create the `Data` object as well as the `Nft`.
+To mint an embedded NFT, modules will call the function `nft::mint_nft_embedded` which will create the `Data` object as well as the `Nft`.
 
 ### Loose NFTs
 
@@ -56,7 +56,7 @@ In contrast, since loose NFTs do not wrap the data object within itself, they ca
 
 In loose NFTs, the `Data` object is first minted and only then the NFTs associated to that object are minted.
 
-To mint a loose NFT, the modules for Unique NFTs, Collectibles and Composable NFTs, will first create the data object on-chain and then allows the NFTs to be minted on the fly when needed, via the function call `nft::mint_nft_loose`.
+To mint a loose NFT, modules will first create the data object on-chain and then allows the NFTs to be minted on the fly when needed, via the function call `nft::mint_nft_loose`.
 
 ### Type Exporting
 
