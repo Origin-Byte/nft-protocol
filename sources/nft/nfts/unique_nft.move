@@ -72,6 +72,8 @@ module nft_protocol::unique_nft {
         attribute_values: vector<vector<u8>>,
         collection: &Collection<T, Meta, Unlimited>,
         sale_index: u64,
+        // TODO: Ideally we do not take a mutable reference such that 
+        // no lock is needed
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
