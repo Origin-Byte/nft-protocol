@@ -10,8 +10,6 @@
 module nft_protocol::cap {
     use std::option::Option;
     use nft_protocol::supply::{Self, Supply};
-    
-    use nft_protocol::supply::{Self, Supply};
 
     struct Limited has store {
         supply: Supply,
