@@ -233,10 +233,18 @@ The NFT metadata object has the following functions:
 
 ### Composable cNFTs (Loose)
 
-- `name`
-- `index`
-- `url`
-- `attributes`
+Composable NFT (cNFT) data object, `Composable<C: store + copy>`, has the following data model:
+
+| Field             | Type              | Description |
+| ----------------- | ----------------- | ----------- |
+| `id`              | `UID`             | The UID of the NFT metadata object |
+| `data`            | `Option<Data>`    | Composable `Data` objects can have some `Data` struct attached to it. Currently, only the objects at the leaf nodes  of the composability tree have `Data` whilst the others have `option::none()` |
+| `collection_id`   | `ID`              | The ID of the NFT Collection object |
+| `supply`          | `Supply`          | Each composable has its own supply. This allows for configuration scarcity. If two objects, both with a supply of 10, merge to produce a composably of both, this composable object can have its own supply. This means that even if both leaf node objects have supply of 10, if the supply of the root node composable object is 5 then the NFTs can only be merge up to 5 times. |
+| `componenets`     | `VecMap<ID, C>`   | A VecMap storing a list of `C` structs which represent cloned versions of the constituent objects. These structs do not have key ability and can be copied for the sake of clonability. It is structured as VecMap such that we can have the original object `ID`s as the key for each `C` struct. |
+
+
+TODO: Describe entry functions and functions to be called via witness module.
 
 ### Slingshot Launchpad
 
