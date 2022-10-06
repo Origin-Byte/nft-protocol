@@ -154,7 +154,7 @@ and the following modifier functions:
 
 ### Standard Collection Metadata
 
-The standard collection metadata object, `CollectionMeta`, has the following data model:
+The standard collection metadata object, `StdMeta`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
