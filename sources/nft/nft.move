@@ -8,7 +8,7 @@
 //! NFT which does not embed its own data and containst solely a pointer to its
 //! data object, a Loose NFT.
 //! 
-//! With this deisgn we can keep only one ultimate type whilst the NFT can be
+//! With this design we can keep only one ultimate type whilst the NFT can be
 //! embedded or loose depending on the use case. It is also possible to
 //! dynamically join or split the data object from the NFT object, therefore
 //! allowing for dynamic behaviour.
