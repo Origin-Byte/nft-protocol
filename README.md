@@ -46,11 +46,18 @@ As stated, embedded NFTs have their data object wrapped within itself. A core di
 
 In embedded NFTs, the `Data` object and the `NFT` object are minted at the same time, or in other words, in the same entry function call.
 
+The naturally NFT release strategy for embedded NFTs is for the NFT creators to pre-mint them on-chain and transfer them to a Launchpad object, which in turns is responsible to configure the NFT Release / Primary Market Sales strategy.
+
+To mint an embedded NFT, the modules for Unique NFTs, Collectibles and Composable NFTs, will call the function `nft::mint_nft_embedded` which will create the `Data` object as well as the `Nft`.
+
 ### Loose NFTs
 
 In contrast, since loose NFTs do not wrap the data object within itself, the can represent 1-to-many relationships between the data object and the NFT objects. Basically, one can mint any amount of NFTs pointing to a single data object. This is ideal to represent digital collectibles, such as digital football or baseball cards, as well as gaming items that more than one user should have access to.
 
 In loose NFTs, the `Data` object is first minted and only then the NFTs associated to that object are minted.
+
+To mint a loose NFT, the modules for Unique NFTs, Collectibles and Composable NFTs, will first create the data object on-chain and then allows the NFTs to be minted on the fly when needed, via the function call `nft::mint_nft_loose`.
+
 ### Type Exporting
 
 In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs of a given NFT Collection have their own type `T` which is expressed as:
@@ -63,12 +70,7 @@ Where the following generics represent:
 - `M` a generic for the Collection `Metadta` object type
 - `C` a generic for the Collection `Cap` object type
 
-TODO: Add something of this sort:
-- Our understanding is that this is useful for human readability as well as to facilitate clients distinguish which collection a given NFT belongs to. Do we miss any other benefits?
-- The result of this is that each NFT creator will have to deploy its own module. This is fine and can be abstracted by an SDK, nevertheless these modules should be as light as possible (if we assume 1KB per deployed module 50,000 collections would roughly equate to 50 MB, that’s fine)
-- We believe this module deployed by the NFT creators should serve solely as a type exporter and should not contain any custom logic. Instead, the custom logic would be offloaded to another layer of modules that do not need to be deployed every time there is a new collection
-
-
+Note: We are considering simplifying the Collection type by removing the generic `C`.
 ### A 3-layered approach
 
 Since the NFTs are type exported, each NFT collection will have to deploy its type-specific contract that interfaces with OriginByte modules.
@@ -96,71 +98,59 @@ At any point in time, the collection owner can decide to make the collection imm
 - The field current_supply will still mutate every time an NFT is minted or burned
 - Collection owners will still be able to push and pop tags onto the field tags
 
-When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anybody can or anyone can.
-## Minting an NFT Collection
+When minting an NFT, you need to pass on a mutable reference to the Collection object. This means that only the collection owner can perform the initial mint, unless it is a shared-object in which case anyone can.
 
-
-// TODO: CONTINUE FROM HERE...
-
-
- This collection ownership pattern is useful since many projects will want to transfer NFTs to a Launchpad as part of the initial mint process. Therefore we expose three methods:
-
-- `mint_and_transfer` to mint to an address
-- `mint_to_launchpad` to mint to a `Slingshot<T, Config>` object
-
-
-Let us now describe the `Collection` and `CollectionMeta` objects, instantiated by the `collection` and `std_collection` modules, as well as the `NftOwned` and `NftMeta` objects, instantiated by the `nft` and `std_nft` modules.
+## Data Model
 
 ### Collection
 
-The collection object, `Collection<phantom T, Meta>`, has the following data model:
+The collection object, `Collection<phantom T, M: store, C: store>`, has the following data model:
 
 | Field            | Type          | Description |
 | ---------------- | ------------- | ----------- |
 | `id`             | `UID`         | The UID of the collection object |
 | `name`           | `String`      | The name of the collection |
+| `description`    | `String`      | The name of the collection |
 | `symbol`         | `String`      | The symbol/ticker of the collection |
-| `current_supply` | `u64`         | The current number of instantiated NFT objects for this collection |
-| `total_supply`   | `u64`         | The maximum number of NFT objects instantiated at any given time for this collection |
-| `initial_price`  | `u64`         | Initial mint price in Sui |
 | `receiver`       | `address`     | Address that receives the mint price in Sui |
 | `tags`           | `Tags`        | A set of strings that categorize the domain in which the NFT operates |
 | `is_mutable`     | `bool`        | A configuration field that dictates whether NFTs are mutable |
-| `metadata`       | `Meta`        | A generic type representing the metadata object embedded in the NFT collection |
+| `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs * |
+| `creators`        | `vector<Creator>` | A vector containing the information of the creators |
+| `metadata`       | `M`        | A generic type representing the metadata object embedded in the NFT collection |
+| `cap` | `C`         | A generic type refering to the Supply Policy of the collection |
+
+* `royalty_fee_bps` is currently not being utilized but will be used in the standard launchpad module.
 
 Where `Tags` is a struct with the field `enumerations` as a `VecMap<u64, String>` being the set of strings representing the domains of the NFT (e.g. Art, Gaming Asset, Tickets, Loyalty Points, etc.)
 
+Where `Creators` is a struct with the following fields:
+- `id` representing the address of the creator
+- `verified` which is a bool value that represents if the creator address has been verified via signed transaction (this functionality is still not implemented)
+- `share_of_royalty` as the percentage share that the creator has over `royalty_fee_bps`.
+
 The collection object has the following functions that mutate state:
 
-- `create` which mints a collection object and returns it
-- `init_args` returns `InitCollection` struct from the inputs which acts as input to `create` function
+- `mint_capped` which mints a collection object with capped supply and returns it
+- `mint_uncapped` which mints a collection object with unlimited supply and returns it
 - `increase_supply` which increments `current_supply` by one 
 - `decrease_supply` which decreases `current_supply` by one
 - `burn` which burns the collection object if `current_supply` is zero
 
 and the following modifier functions:
-- `rename`
-- `change_symbol`
-- `change_total_supply`
-- `change_initial_price`
-- `change_receiver`
 - `freeze_collection` (irreversible)
+- `rename`
+- `change_description`
+- `change_symbol`
+- `change_receiver`
 - `push_tag`
-
-and the following getter functions:
-- `name`
-- `symbol`
-- `current_supply`
-- `total_supply`
-- `tags`
-- `metadata`
-- `metadata_mut` returns a mutable reference to metadata object
-- `initial_price`
-- `receiver`
-- `is_mutable`
-- `id`
-- `id_ref`
-
+- `pop_tag`
+- `change_royalty` changes the field `royalty_fee_bps`
+- `add_creator` pushes a `Creator` to the `creators` field
+- `remove_creator` pops a `Creator` from the `creators` field
+- `cap_supply`: `Limited` collections can have a cap on the maximum supply, however the supply cap can also be `option::none()`. This function call adds a value to the supply cap.
+- `increase_supply_cap`
+- decrease_supply_cap
 
 ### Standard Collection Metadata
 
@@ -169,88 +159,118 @@ The standard collection metadata object, `CollectionMeta`, has the following dat
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
 | `id`              | `UID`             | The UID of the standard collection metadata object |
-| `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs * |
-| `creators`        | `vector<Creator>` | A vector containing the information of the creators |
-| `data`            | `String`          | An open string field to add any arbitrary data |
-
-* `royalty_fee_bps` is currently not being utilized but will be used in the standard launchpad module.
-
-Where `Creators` is a struct with the following fields:
-- `id` representing the address of the creator
-- `verified` which is a bool value that represents if the creator address has been verified via signed transaction (this functionality is still not implemented)
-- `share_of_royalty` as the percentage share that the creator has over `royalty_fee_bps`.
+| `json`            | `String`          | An open string field to add any arbitrary data |
 
 The collection metadata object has the following functions that mutate state:
 
 - `mint_and_transfer` mints a collection object, it's corresponding metadata object, and transfers it to a recipient
 - `mint_and_share` mints a collection object, it's corresponding metadata object, and makes it a shared object
-- `add_creator` pushes a `Creator` to the `creators` field
-- `remove_creator` pops a `Creator` from the `creators` field
-- `change_royalty` changes the field `royalty_fee_bps`
-- `burn` which burns the collection object and subsequently the metadata object
+- `burn_limited_collection` which burns the limited collection object and subsequently the metadata object if the NFT supply is zero.
 
-and the following getter functions:
-- `royalty`
-- `creators`
-- `data`
+### NFT (Base type)
 
-
-### NFT
-
-Generic NFT object, `NftOwned<phantom T, Meta>`, has the following data model:
+Generic NFT object, `Nft<phantom T, D: store>`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
 | `id`              | `UID`             | The UID of the generic NFT object |
-| `collection_id`   | `ID`              | A pointer to the collection object |
-| `metadata`        | `u64`             |  A generic type representing the metadata object embedded in the NFT |
+| `data_id`         | `ID`              | A pointer to the collection object |
+| `data`            | `Option<D>`       | An optional generic type representing the data object embedded in the NFT |
 
-The generic NFT object has the following init and drop functions:
-- `create_owned` to create the NFT (called by the Domain-specific module)
-- `destroy_owned` to destroy the NFT (called by the Domain-specific module) 
+The generic NFT object has the following functions to be called by an upstream contract:
+- `mint_nft_loose` to mint a loose NFT
+- `mint_nft_embedded` to mint an embedded NFT
+- `join_nft_data` to turn a loose NFT to embedded NFT
+- `split_nft_data` to turn an embedded NFT to loose
+- `burn_loose_nft` to burn a loose NFT
+- `burn_embedded_nft` to burn an embedded NFT
 
-the following modifier functions:
-- `owned_metadata_mut`
+### Unique NFT (Embedded)
 
-and the following getter functions:
-
-- `owned_metadata`
-- `uid_ref`
-- `id`
-- `id_ref`
-- `collection_id`
-
-### NFT Standard Metadata
-
-Standard NFT metadata object, `NftMeta`, has the following data model:
+Unite NFT data object, `Unique`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
 | `id`              | `UID`             | The UID of the NFT metadata object |
-| `name`            | `String`          | Name of the NFT object |
 | `index`           | `u64`             | The index of the NFT in relation to the whole collection |
+| `name`            | `String`          | Name of the NFT object |
+| `description`     | `String`          | Description of the NFT object |
+| `collection_id`   | `ID`              | ID pointer to Collection object |
+| `url`             | `Url`             | The URL of the NFT |
+| `attributes`      | `Attributes`      | Attributes of a given NFT |
+
+Where `Attributes` is a struct with the field `keys`, the attribute keys represented as string vector, in other words the set of traits (e.g. Hat, Color of T-shirt, Fur type, etc.) and NFT has, and `values` of such traits (e.g. Straw Hat, White T-shirt, Blue Fur, etc.).
+
+The NFT metadata object has the following functions:
+- `launchpad_mint_unlimited_collection_nft ` to mint an NFT from an unlimited collection and transfer it to the launchpad object
+- `launchpad_mint_limited_collection_nft` to mint an NFT from a limited collection and transfer it to the launchpad object
+- `direct_mint_unlimited_collection_nft` to mint an NFT from an unlimited collection and transfer it directly to a user address
+- `direct_mint_limited_collection_nft` to mint an NFT from a limited collection and transfer it directly to a user address
+- `burn_nft` to burn an NFT
+
+
+### Collectibles NFT (Loose)
+
+Collectible NFT data object, `Collectible`, has the following data model:
+
+| Field             | Type              | Description |
+| ----------------- | ----------------- | ----------- |
+| `id`              | `UID`             | The UID of the NFT metadata object |
+| `index`           | `u64`             | The index of the NFT in relation to the whole collection |
+| `name`            | `String`          | Name of the NFT object |
+| `description`     | `String`          | Description of the NFT object |
+| `collection_id`   | `ID`              | ID pointer to Collection object |
+| `url`             | `Url`             | The URL of the NFT |
+| `attributes`      | `Attributes`      | Attributes of a given NFT |
+| `supply`          | `Supply`          | Object determining Supply limit of the NFT |
+
+Where `Attributes` is a struct with the field `keys`, the attribute keys represented as string vector, in other words the set of traits (e.g. Hat, Color of T-shirt, Fur type, etc.) and NFT has, and `values` of such traits (e.g. Straw Hat, White T-shirt, Blue Fur, etc.).
+
+The NFT metadata object has the following functions:
+- `mint_unlimited_collection_nft_data` to create the data object associated to a NFT from an unlimited collection
+- `mint_limited_collection_nft_data` to create the data object associated to a NFT from a limited collection
+- `mint_nft` to mint an NFT and transfer it to user (to be called from the launchpad module)
+- `burn_limited_collection_nft_data` to destroy a given NFT data if the supply is zero
+- `burn_nft` to burn an NFT
+
+
+### Composable cNFTs (Loose)
+
+Composable NFT data object, `Composable`, has the following data model:
+
+| Field             | Type              | Description |
+| ----------------- | ----------------- | ----------- |
+| `id`              | `UID`             | The UID of the NFT metadata object |
+| `data`            | `Option<Data>`    | Composable `Data` objects can have some `Data` struct attached to it. Currently, only the objects at the leaf nodes of the composability tree have `Data` whilst the others have`option::none()` |
+| `collection_id`   | `ID`              | Pointer to Collection ID |
+| `supply`          | `Supply`          | Each composable has its own supply. This allows for configuration scarcity. If two objects, both with a supply of 10, merge to produce a composably of both, this composable object can have its own supply. This means that even if both leaf node objects have supply of 10, if the supply of the root node composable object is 5 then the NFTs can only be merge up to 5 times. |
+| `componenets`     | `VecMap<ID, C>`              | A VecMap storing a list of `C` structs which represent cloned versions of the constituent objects. These structs do not have key ability and can be copied for the sake of clonability. It is structured as VecMap such that we can have the original object `ID`s as the key for each `C` struct. |
+
+Where `Data` type has the following model:
+
+| Field             | Type              | Description |
+| ----------------- | ----------------- | ----------- |
+| `index`           | `u64`             | The index of the NFT in relation to the whole collection |
+| `name`            | `String`          | Name of the NFT object |
+| `description`     | `String`          | Description of the NFT object |
 | `url`             | `Url`             | The URL of the NFT |
 | `attributes`      | `Attributes`      | Attributes of a given NFT |
 
 
 Where `Attributes` is a struct with the field `keys`, the attribute keys represented as string vector, in other words the set of traits (e.g. Hat, Color of T-shirt, Fur type, etc.) and NFT has, and `values` of such traits (e.g. Straw Hat, White T-shirt, Blue Fur, etc.).
 
-The standard NFT metadata object has the following init and drop functions:
-- `mint_and_transfer` which mint and NFT and transfer it to a recipient. Currently, the only way to mint the NFT is if the call is made by the Collection owner (or by anyone if the collection is a shared object). This last option allows for anyone to mint their desired metadata which is suboptimal.
-
-For the time being we are allowing for this so that marketplaces can allow users to mint devnet NFT mints from temporary collections. However, we plan to deprecate this as soon as we deploy the launchpad module, which will allow collection owners to mint and transfer the NFT to a launchpad object which will configure the primary market sale strategy.
-- `burn` which burns the NFT
-
-and the following getter functions:
-
-- `name`
-- `index`
-- `url`
-- `attributes`
+The module has the following functions:
+- `mint_unlimited_collection_nft_data` to create the data object associated to a NFT from an unlimited collection
+- `mint_limited_collection_nft_data` to create the data object associated to a NFT from a limited collection
+- `compose_data_objects` receives and temporarily holds two or more objects, clones their information and produces a composable object, thus allowing holders of those NFTs to merge them together to create a cNFT.
+- `mint_nft` to mint an NFT and transfer it to user (to be called from the launchpad module)
+- `mint_c_nft` mints a cNFT by "merging" two or more NFTs and sends it to the user
+- `split_c_nft` reverts the merge of the NFTs that occurs in `mint_c_nft` and transfer back the original NFTs to the user
+- `burn_nft` to burn an NFT
 
 ### Slingshot Launchpad
 
-The Slingshot object, `Slingshot<phantom T, Config>`, has the following data model:
+The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
@@ -259,53 +279,51 @@ The Slingshot object, `Slingshot<phantom T, Config>`, has the following data mod
 | `live`            | `bool`            | Boolean indicating if the sale is live |
 | `admin`           | `address`         | The address of the administrator |
 | `receiver`        | `address`         | The address of the receiver of funds |
-| `nfts`            | `vector<ID>`      | Vector of all IDs owned by the slingshot |
-| `config`          | `Config`          | Config object |
+| `sales`           | `vector<Sale<T, M>>`      | Vector of all Sale outleds that, each outles holding IDs owned by the slingshot |
+| `is_embedded`     | `bool`          | Field determining if NFTs are embedded or loose |
 
 It has the following init and drop functions:
-- `create` to create the Slingshot launchpad (called by the Domain-specific module)
-- `delete` to destroy the Slingshot launchpad (called by the Domain-specific module) 
+- `create` to create the Slingshot launchpad (called by the market module)
+- `delete` to destroy the Slingshot launchpad (called by the market module) 
 
-the following transfer functions:
-- `transfer_back` which allows the administrator to transfer back nfts from the Slingshot to a recipient address
+### Fixed Price Market
 
-the following modifier functions:
-- `add_nft` (called by the NFT contract when an NFT is transferred to the Slingshot)
-- `pop_nft` (called by the Domain-specific launchpad module when NFTs are transferred out of the Slingshot)
-- `sale_on` to start the sale
-- `sale_off` to pause or stop the sale
-- `config_mut` returns a mutable reference to the upstream module
-
-and the following getter functions:
-
-- `collection_id`
-- `collection_id_ref`
-- `live`
-- `config`
-- `receiver`
-- `admin`
-- `nfts`
-
-
-### Slingshot: Fixed Price Launchpad
-
-The Fixed Price Launchpad config, `LaunchpadConfig`, has the following data model:
+The Fixed Price Market object, `Market`, has the following data model:
 
 | Field             | Type              | Description |
 | ----------------- | ----------------- | ----------- |
-| `id`              | `UID`             | The UID of the Launchpad configuration object |
-| `price`           | `u64`             | The fixed price of each NFT in the collection |
+| `id`              | `UID`             | The UID of the Slingshot object |
+| `price`           | `u64`             | The price of a NFT for sale in SUI |
 
 It has the following init and drop functions:
-- `create` to create the Launchpad
-- `delete` to destroy the Launchpad
+- `create_single_market` to create a Single Fixed Price Market launchpad with option for whitelisting rules
+- `create_multi_market` to create a Fixed Price Market launchpad with tiered sales, in that NFTs to be sold can be seggregated by sales outlets, each with different prices and different options for whitelisting rules
+- `buy_nft_certificate` to buy an NFT certificate from a permissionless Sales outlet
+- `buy_whitelisted_nft_certificate` to buy an NFT certificate from a whitelisted Sales outlet
+- `claim_nft_embedded` to redeem an embedded NFT by burning the NFT certificate
+- `claim_nft_loose` to redeem a loose NFT by burning the NFT certificate
+- `new_price` to be called by the launchpad administrator to change the price of the sale
 
-the following transfer functions:
-- `buy_nft_certificate` when a user wants to buy an NFT, they must first buy the NFT certificate which contains the ID of the NFT they can claim
-- `claim_nft` after buying the NFT certificate, the user can then call this endpoint to redeem the allocated NFT
 
-the following modifier functions:
-- `new_price` (permissioned endpoint for administrator to call and change the sale price)
+## Guides for NFT Creators, Wallets and Marketplaces
 
-and the following getter functions:
-- `price`
+Note: This section needs to be developed.
+
+### Deploy a simple NFT collection
+
+The deployment of NFT collections can be customised extensivelly, nevertheless we present a summary on how the deployment looks like for a simple collection.
+
+Deploy type-specific `<T>` module that calls:
+  - Standard Collection implementation:
+     - `std_collection::mint_and_transfer<T>` to create the collection and transfer it to the NFT creator
+   - Fixe Price NFT Release:
+     - `fixed_price::create_single_market<T>`
+   - Unique NFT implementation:
+    - `unique::launchpad_mint_limited_collection_nft<T>` to mint an NFT and add it to the launchpad (1 call per each NFT)
+
+To buy an NFT from the Collection at the initial sale:
+- `fixed_price::buy_nft_certificate` to buy a `NftCertificate` which tells you which NFT you can redeem
+- `fixed_price::claim_nft_embedded` to burn the `NftCertificate` and redeem the `Nft`
+
+
+Note: We currently use the intermediary object `NftCertificate` since we cannot dynamically fetch child objects, however this will change in the future when this feature is added.
