@@ -1,6 +1,8 @@
-/// @title tags
-/// @notice Tags type in Move.
+//! @title tags
+//! @notice Tags type in Move.
 module nft_protocol::tags {
+    // TODO: Consider using `VecSet` instead of `VecMap` since 
+    // keys are simply indices
     use std::vector;
     use std::string::{String};
     use sui::vec_map::{Self, VecMap};
@@ -47,5 +49,14 @@ module nft_protocol::tags {
         let index = vec_map::size(vec);
 
         vec_map::insert(vec, index + 1, type);
+    }
+
+    public fun pop_tag(
+        self: &mut Tags,
+        index: u64,
+    ) {
+        let vec = &mut self.enumerations;
+
+        vec_map::remove_entry_by_idx(vec, index);
     }
 }

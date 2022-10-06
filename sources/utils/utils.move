@@ -1,5 +1,5 @@
-/// @title utils
-/// @notice Utility functions in Move.
+//! @title utils
+//! @notice Utility functions in Move.
 module nft_protocol::utils {
     use std::string::{Self ,String};
     use std::vector;
@@ -12,7 +12,6 @@ module nft_protocol::utils {
         vec: &mut vector<vector<u8>>
     ): vector<String>
      {
-
         let new_vec: vector<String> = vector::empty();
 
         let len = vector::length(vec);
