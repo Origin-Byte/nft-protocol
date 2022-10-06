@@ -122,7 +122,7 @@ module nft_protocol::c_nft {
     /// Composable `Unlimited` collection. This function does not serve
     /// to compose Composable objects, but simply to create the intial objects
     /// that are supposed to give rise to the composability tree.
-    public entry fun mint_unlimited_collection_nft_data<MetaColl: store, C: store + copy>(
+    public entry fun mint_unlimited_collection_nft_data<T, M: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -130,7 +130,7 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &Collection<MetaColl, Unlimited>,
+        collection: &Collection<T, M, Unlimited>,
         ctx: &mut TxContext,
     ) {
         let args = mint_args(
@@ -169,7 +169,7 @@ module nft_protocol::c_nft {
     /// objects are brought to existance the collection creator can start 
     /// creating composable objects which determine which NFTs can be merged
     /// and what the supply of those configurations are.
-    public entry fun mint_limited_collection_nft_data<MetaColl: store, C: store + copy>(
+    public entry fun mint_limited_collection_nft_data<T, M: store, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -177,7 +177,7 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &mut Collection<MetaColl, Limited>,
+        collection: &mut Collection<T, M, Limited>,
         ctx: &mut TxContext,
     ) {
         let args = mint_args(
@@ -206,10 +206,10 @@ module nft_protocol::c_nft {
     /// 
     /// The newly composed object has a its own maximum supply of NFTs.
     public entry fun compose_data_objects
-        <MetaColl: store, Cap: store, D: store + copy, C: store + copy>
+        <T, M: store, Cap: store, D: store + copy, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
-        collection: &mut Collection<MetaColl, Cap>,
+        collection: &mut Collection<T, M, Cap>,
         max_supply: Option<u64>,
         ctx: &mut TxContext,
     ) {
@@ -273,8 +273,8 @@ module nft_protocol::c_nft {
     /// further NFTs could be minted and reach the maximum supply. When the 
     /// cNFT would be split back into its constituent components it could result
     /// in a supply bigger than the maximum supply.
-    public entry fun mint_c_nft<C: store + copy>(
-        nfts: vector<Nft<Composable<C>>>,
+    public entry fun mint_c_nft<T, C: store + copy>(
+        nfts: vector<Nft<T, Composable<C>>>,
         nfts_data: vector<Composable<C>>, // TODO: Ideally we would pass &Data
         combo_data: &mut Composable<C>,
         recipient: address,
@@ -307,7 +307,7 @@ module nft_protocol::c_nft {
 
         supply::increase_supply(&mut combo_data.supply, 1);
 
-        let nft = nft::mint_nft_loose<Data>(
+        let nft = nft::mint_nft_loose<T, Data>(
             object::uid_to_inner(&combo_data.id),
             ctx,
         );
@@ -322,7 +322,7 @@ module nft_protocol::c_nft {
     /// Invokes `mint_nft_loose()`.
     /// This function call comes after the minting of the leaf node
     /// `Collectibles` data object.
-    public entry fun mint_nft<C: store + copy>(
+    public entry fun mint_nft<T, C: store + copy>(
         nft_data: &mut Composable<C>,
         recipient: address,
         ctx: &mut TxContext,
@@ -331,7 +331,7 @@ module nft_protocol::c_nft {
         // a time?
         supply::increase_supply(&mut nft_data.supply, 1);
 
-        let nft = nft::mint_nft_loose<Data>(
+        let nft = nft::mint_nft_loose<T, Data>(
             nft_data_id(nft_data),
             ctx,
         );
@@ -345,8 +345,8 @@ module nft_protocol::c_nft {
     /// Burns loose `Nft`. Burning a loose `Nft` has no impact
     /// on the `Data` object besides decreasing its current supply.
     /// It invokes `burn_nft()`
-    public entry fun burn_nft<MetaColl: store, C: store + copy>(
-        nft: Nft<Composable<C>>,
+    public entry fun burn_nft<T, MetaColl: store, C: store + copy>(
+        nft: Nft<T, Composable<C>>,
         nft_data: &mut Composable<C>,
     ) {
         assert!(nft::data_id(&nft) == id(nft_data), 0);
@@ -360,8 +360,8 @@ module nft_protocol::c_nft {
     /// do not increment the supply of its constituent objects. The reason for
     /// this is because we do not decrement the supply of these constituent
     /// objects when we merge them, therefore we maintain consistency.
-    public entry fun split_c_nft<MetaColl: store, C: store + copy>(
-        nft: Nft<Composable<C>>,
+    public entry fun split_c_nft<T, MetaColl: store, C: store + copy>(
+        nft: Nft<T, Composable<C>>,
         c_nft_data: &mut Composable<C>,
         nfts_data: vector<Composable<C>>,
         ctx: &mut TxContext,
@@ -378,7 +378,7 @@ module nft_protocol::c_nft {
         while (len > 0) {
             let data = vector::pop_back(&mut nfts_data);
 
-            let nft = nft::mint_nft_loose<Composable<C>>(
+            let nft = nft::mint_nft_loose<T, Composable<C>>(
                 id(&data),
                 ctx,
             );

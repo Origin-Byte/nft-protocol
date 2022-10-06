@@ -62,7 +62,7 @@ module nft_protocol::collectibles {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun mint_unlimited_collection_nft_data<MetaColl: store>(
+    public entry fun mint_unlimited_collection_nft_data<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -70,7 +70,7 @@ module nft_protocol::collectibles {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &Collection<MetaColl, Unlimited>,
+        collection: &Collection<T, M, Unlimited>,
         ctx: &mut TxContext,
     ) {
         let args = mint_args(
@@ -96,7 +96,7 @@ module nft_protocol::collectibles {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    public entry fun mint_limited_collection_nft_data<MetaColl: store>(
+    public entry fun mint_limited_collection_nft_data<T, M: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -104,7 +104,7 @@ module nft_protocol::collectibles {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &mut Collection<MetaColl, Limited>,
+        collection: &mut Collection<T, M, Limited>,
         ctx: &mut TxContext,
     ) {
         let args = mint_args(
@@ -129,9 +129,9 @@ module nft_protocol::collectibles {
     /// Mints loose NFT and transfers it to `recipient`
     /// Invokes `mint_nft_loose()`.
     /// This function call comes after the minting of the `Data` object.
-    public entry fun mint_nft<MetaColl: store, Cap: store>(
+    public entry fun mint_nft<T, M: store, C: store>(
         // TODO: Need to link this function to launchpad
-        _collection: &Collection<MetaColl, Cap>,
+        _collection: &Collection<T, M, C>,
         nft_data: &mut Collectible,
         recipient: address,
         ctx: &mut TxContext,
@@ -141,7 +141,7 @@ module nft_protocol::collectibles {
         // a time?
         supply::increase_supply(&mut nft_data.supply, 1);
 
-        let nft = nft::mint_nft_loose<Collectible>(
+        let nft = nft::mint_nft_loose<T, Collectible>(
             nft_data_id(nft_data),
             ctx,
         );
@@ -156,9 +156,9 @@ module nft_protocol::collectibles {
     /// data can only be done once all the underlying `Nft`s pointing to that 
     /// object have been burned (or if none have been minted yet). 
     /// In other words, the `supply.current` must be zero.
-    public entry fun burn_limited_collection_nft_data<MetaColl: store>(
+    public entry fun burn_limited_collection_nft_data<T, M: store>(
         nft_data: Collectible,
-        collection: &mut Collection<MetaColl, Limited>,
+        collection: &mut Collection<T, M, Limited>,
     ) {
         assert!(
             nft_data.collection_id == collection::id(collection), 0
@@ -193,8 +193,8 @@ module nft_protocol::collectibles {
     /// Burns loose `Nft`. Burning a loose `Nft` has no impact
     /// on the `Collectible` data object besides decreasing its current supply.
     /// It invokes `burn_loose_nft()`
-    public entry fun burn_nft<MetaColl: store>(
-        nft: Nft<Collectible>,
+    public entry fun burn_nft<T>(
+        nft: Nft<T, Collectible>,
         nft_data: &mut Collectible,
     ) {
         assert!(nft::data_id(&nft) == id(nft_data), 0);
@@ -208,8 +208,8 @@ module nft_protocol::collectibles {
     /// NFT `Collectible` data objects have an opt-in `supply.cap`.
     /// `Data` objects without supply will have `option::none()` in its value.
     /// This Function call adds a value to the supply cap.
-    public entry fun cap_supply<MetaColl: store, Cap: store>(
-        collection: &Collection<MetaColl, Cap>,
+    public entry fun cap_supply<T, M: store, C: store>(
+        collection: &Collection<T, M, C>,
         nft_data: &mut Collectible,
         value: u64
     ) {
@@ -223,8 +223,8 @@ module nft_protocol::collectibles {
 
     /// Increases the `supply.cap` of the NFT `Collectible`
     /// by the `value` amount
-    public entry fun increase_supply_cap<MetaColl: store, Cap: store>(
-        collection: &Collection<MetaColl, Cap>,
+    public entry fun increase_supply_cap<T, M: store, C: store>(
+        collection: &Collection<T, M, C>,
         nft_data: &mut Collectible,
         value: u64
     ) {
@@ -240,8 +240,8 @@ module nft_protocol::collectibles {
     /// by the `value` amount.
     /// This function call fails if one attempts to decrease the supply cap
     /// to a value below the current supply.
-    public entry fun decrease_supply_cap<MetaColl: store, Cap: store>(
-        collection: &Collection<MetaColl, Cap>,
+    public entry fun decrease_supply_cap<T, M: store, C: store>(
+        collection: &Collection<T, M, C>,
         nft_data: &mut Collectible,
         value: u64
     ) {
@@ -319,8 +319,8 @@ module nft_protocol::collectibles {
     }
 
     /// Get the Nft Collectible's `supply` as reference
-    public fun supply_mut<MetaColl: store>(
-        collection: &Collection<MetaColl, Limited>,
+    public fun supply_mut<T, M: store>(
+        collection: &Collection<T, M, Limited>,
         nft_data: &mut Collectible,
     ): &Supply {
         assert!(collection::is_mutable(collection), 0);

@@ -236,9 +236,9 @@ module nft_protocol::fixed_price {
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft_embedded<D: store>(
+    public entry fun claim_nft_embedded<T, D: store>(
         slingshot: &Slingshot<FixedPriceMarket, Market>,
-        nft: Nft<D>,
+        nft: Nft<T, D>,
         certificate: NftCertificate,
         recipient: address,
     ) {
@@ -263,7 +263,7 @@ module nft_protocol::fixed_price {
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft_loose<D: key + store>(
+    public entry fun claim_nft_loose<T, D: key + store>(
         slingshot: &Slingshot<FixedPriceMarket, Market>,
         nft_data: D,
         certificate: NftCertificate,
@@ -276,7 +276,7 @@ module nft_protocol::fixed_price {
 
         assert!(!slingshot::is_embedded(slingshot), 0);
 
-        let nft = nft::mint_nft_embedded(
+        let nft = nft::mint_nft_embedded<T, D>(
             object::id(&nft_data),
             nft_data,
             ctx,
