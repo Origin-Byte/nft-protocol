@@ -58,6 +58,8 @@ module nft_protocol::collection {
         ///  or `Unlimited`. An `Unlimited` collection not only does not have 
         /// a supply limit but also does not keep track of the amount of 
         /// NFT `Data` objects in existance at any given time.
+        /// TODO: Consider renaiming this field
+        /// TODO: Consider making this a separate object
         cap: C,
         /// The `Metadata` is a type exported by an upstream contract which is 
         /// used to store additional information about the NFT.

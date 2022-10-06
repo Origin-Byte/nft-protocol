@@ -2,6 +2,10 @@
 /// 
 /// It acts as a generic interface for Launchpads and it allows for
 /// the creation of arbitrary domain specific implementations.
+/// 
+/// The slingshot acts as the object that configures the primary NFT realease
+/// strategy, that is the primary market sale. Primary market sales can take
+/// many shapes, depending on the business level requirements.
 module nft_protocol::slingshot {
     use std::vector;
 
