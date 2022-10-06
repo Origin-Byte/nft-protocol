@@ -1,5 +1,5 @@
-/// @title tags
-/// @notice Tags type in Move.
+//! @title tags
+//! @notice Tags type in Move.
 module nft_protocol::tags {
     // TODO: Consider using `VecSet` instead of `VecMap` since 
     // keys are simply indices

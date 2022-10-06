@@ -16,6 +16,8 @@ module nft_protocol::unique_nft {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::cap::{Limited, Unlimited};
+    use nft_protocol::slingshot::{Self, Slingshot};
+    use nft_protocol::sale;
     use nft_protocol::nft::{Self, Nft};
 
     /// An NFT `Unique` data object with standard fields.
@@ -54,6 +56,80 @@ module nft_protocol::unique_nft {
     }
 
     // === Entrypoints ===
+
+    /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
+    /// Invokes `mint_and_transfer()`.
+    /// Mints an NFT from a `Collection` with `Unlimited` supply.
+    /// The only way to mint the NFT for a collection is to give a reference to
+    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    /// if one is the collection owner, or if it is a shared collection.
+    public entry fun launchpad_mint_unlimited_collection_nft<T, Meta: store, Market: store>(
+        index: u64,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
+        collection: &Collection<Meta, Unlimited>,
+        sale_index: u64,
+        launchpad: &mut Slingshot<T, Market>,
+        ctx: &mut TxContext,
+    ) {
+        let args = mint_args(
+            index,
+            name,
+            description,
+            url,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
+        );
+
+        mint_to_launchpad(
+            args,
+            collection::id(collection),
+            sale_index,
+            launchpad,
+            ctx,
+        );
+    }
+
+    /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
+    /// Invokes `mint_and_transfer()`.
+    /// Mints an NFT from a `Collection` with `Unlimited` supply.
+    /// The only way to mint the NFT for a collection is to give a reference to
+    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    /// if one is the collection owner, or if it is a shared collection.
+    public entry fun launchpad_mint_limited_collection_nft<T, Meta: store, Market: store>(
+        index: u64,
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
+        collection: &mut Collection<Meta, Limited>,
+        sale_index: u64,
+        launchpad: &mut Slingshot<T, Market>,
+        ctx: &mut TxContext,
+    ) {
+        let args = mint_args(
+            index,
+            name,
+            description,
+            url,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
+        );
+
+        collection::increase_supply(collection, 1);
+
+        mint_to_launchpad(
+            args,
+            collection::id(collection),
+            sale_index,
+            launchpad,
+            ctx,
+        );
+    }
 
     /// Mint one embedded `Nft` with `Unique` data and send it to `recipient`.
     /// Invokes `mint_and_transfer()`.
@@ -230,6 +306,48 @@ module nft_protocol::unique_nft {
         transfer::transfer(
             nft,
             recipient,
+        );
+    }
+
+    fun mint_to_launchpad<T, M: store>(
+        args: MintArgs,
+        collection_id: ID,
+        sale_index: u64,
+        launchpad: &mut Slingshot<T, M>,
+        ctx: &mut TxContext,
+    ) {
+        let data_id = object::new(ctx);
+
+        event::emit(
+            MintDataEvent {
+                object_id: object::uid_to_inner(&data_id),
+                collection_id: collection_id,
+            }
+        );
+
+        let nft_data = Unique {
+            id: data_id,
+            index: args.index,
+            name: args.name,
+            description: args.description,
+            collection_id: collection_id,
+            url: args.url,
+            attributes: args.attributes,
+        };
+
+        let nft = nft::mint_nft_embedded(
+            nft_data_id(&nft_data),
+            nft_data,
+            ctx
+        );
+
+        let sale = slingshot::sale_mut(launchpad, sale_index);
+
+        sale::add_nft<T, M>(sale, nft::id(&nft));
+
+        transfer::transfer_to_object(
+            nft,
+            launchpad,
         );
     }
 
