@@ -1,11 +1,11 @@
-/// Module of a generic `Slingshot` type.
-/// 
-/// It acts as a generic interface for Launchpads and it allows for
-/// the creation of arbitrary domain specific implementations.
-/// 
-/// The slingshot acts as the object that configures the primary NFT realease
-/// strategy, that is the primary market sale. Primary market sales can take
-/// many shapes, depending on the business level requirements.
+//! Module of a generic `Slingshot` type.
+//! 
+//! It acts as a generic interface for Launchpads and it allows for
+//! the creation of arbitrary domain specific implementations.
+//! 
+//! The slingshot acts as the object that configures the primary NFT realease
+//! strategy, that is the primary market sale. Primary market sales can take
+//! many shapes, depending on the business level requirements.
 module nft_protocol::slingshot {
     use std::vector;
 
@@ -51,7 +51,7 @@ module nft_protocol::slingshot {
         collection_id: ID,
     }
 
-    /// Initialises a `Slingshot` object and returns it
+    /// Initialises a `Slingshot` object and shares it
     public fun create<T: drop, M: store>(
         _witness: T,
         sales: vector<Sale<T, M>>,

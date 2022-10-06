@@ -10,6 +10,7 @@
 //! TODO: Consider adding a function `destroy_uncapped`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
+//! TODO: Consider making `C` a unique type instead of generic
 module nft_protocol::collection {
     use std::vector;
     use std::string::{Self, String};
