@@ -2,7 +2,7 @@
 
 # Install
 
-This codebase requires installation of both the Sui CLI ant the Sui source code. The latter has to be present in the parent folder of the repository.
+This codebase requires installation of both the Sui CLI ant the Sui source code.
 
 - Install the [Sui CLI](https://docs.sui.io/build/install)
 - `git clone https://github.com/MystenLabs/sui.git --branch devnet` to download the current sui develop branch source code

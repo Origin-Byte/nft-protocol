@@ -7,7 +7,7 @@ module nft_protocol::slingshot {
     use sui::object::{Self, ID , UID};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
-    use nft_protocol::nft::{Self, NftOwned};
+    use nft_protocol::nft::{Self, Nft};
 
     struct Slingshot<phantom T, Config> has key, store{
         id: UID,
@@ -107,9 +107,9 @@ module nft_protocol::slingshot {
         }
     }
 
-    public fun transfer_back<T, Config: store, K, Meta: store>(
+    public fun transfer_back<T, Config: store, D: store>(
         slingshot: &mut Slingshot<T, Config>,
-        nft: NftOwned<K, Meta>,
+        nft: Nft<D>,
         recipient: address,
         ctx: &mut TxContext,
     ) {

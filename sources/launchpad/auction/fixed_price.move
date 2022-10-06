@@ -15,7 +15,7 @@ module nft_protocol::fixed_price {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::slingshot::{Self, Slingshot};
-    use nft_protocol::nft::{Self, NftOwned};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
 
     struct FixedPriceSale has drop {}
@@ -55,8 +55,8 @@ module nft_protocol::fixed_price {
 
     /// Creates a `Slingshot` with `FixedInitalOffer` as witness and a fixed
     /// price launchpad configuration via `LaunchpadConfig`.
-    public entry fun create<T: drop, Meta: store>(
-        collection: &Collection<T, Meta>,
+    public entry fun create<M: store, C: store>(
+        collection: &Collection<M, C>,
         admin: address,
         receiver: address,
         price: u64,
@@ -146,9 +146,9 @@ module nft_protocol::fixed_price {
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft<T, Meta: store>(
+    public entry fun claim_nft<D: store>(
         _slingshot: &Slingshot<FixedPriceSale, LaunchpadConfig>,
-        nft: NftOwned<T, Meta>,
+        nft: Nft<D>,
         certificate: NftCertificate,
         recipient: address,
     ) {

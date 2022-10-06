@@ -1,114 +1,197 @@
-/// Module of a generic `NFT` type.
-/// 
-/// It acts as a generic interface for NFTs and it allows for
-/// the creation of arbitrary domain specific implementations.
+//! Module of a generic `NFT` type.
+//! 
+//! It acts as a generic interface for NFTs and it allows for
+//! the creation of arbitrary domain specific implementations.
+//! 
+//! The `NFT` type is a hybrid object that can take two shapes: The shape of an
+//! NFT which embeds is own data, an Embedded NFT; and the shape of an
+//! NFT which does not embed its own data and containst solely a pointer to its
+//! data object, a Loose NFT.
+//! 
+//! With this design we can keep only one ultimate type whilst the NFT can be
+//! embedded or loose depending on the use case. It is also possible to
+//! dynamically join or split the data object from the NFT object, therefore
+//! allowing for dynamic behaviour.
+//! 
+//! For embedded NFTs, the `Data` object and the `NFT` object is minted in one
+//! step. For loose NFTsm the `Data` object is first minted and only then the 
+//! NFT(s) associated to that object is(are) minted.
+//! 
+//! Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships
+//! between the NFT object and the Data object. In contrast, loose NFTs can
+//! represent 1-to-many relationships. Essentially this allows us to build
+//! NFTs which effectively have a supply.
 module nft_protocol::nft {
+    use std::option::{Self, Option};
+    
+    use sui::event;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
-    use nft_protocol::collection::{Self, Collection};
 
-    // The phantom type T links the NTF with a smart contract which implements
-    // a standard interface for NFTs.
-    //
-    // The meta data is a type exported by the same contract which is used to
-    // store additional information about the NFT.
-    struct NftOwned<phantom T, Meta> has key, store {
+    // NFT object with an option to hold `D`ata object
+    struct Nft<D: store> has key, store {
         id: UID,
-        /// Each NFT must be a part of a collection.
-        ///
-        /// To represent a stand alone NFTs, the collection can be of length
-        /// one.
-        collection_id: ID,
-        metadata: Meta,
+        data_id: ID,
+        data: Option<D>,
     }
 
-    public fun create_owned<T: drop, MetaNft: store, K: drop, MetaColl: store>(
-        _witness: T,
-        metadata: MetaNft,
-        coll: &mut Collection<K, MetaColl>,
+    struct MintEvent has copy, drop {
+        nft_id: ID,
+        data_id: ID,
+    }
+
+    struct BurnEvent has copy, drop {
+        nft_id: ID,
+        data_id: ID,
+    }
+
+    /// Create a loose `Nft` and returns it.
+    public fun mint_nft_loose<D: store>(
+        data_id: ID,
         ctx: &mut TxContext,
-    ): NftOwned<T, MetaNft> {
-        let collection_id = object::id(coll);
+    ): Nft<D> {
+        let nft_id = object::new(ctx);
 
-        // Increase collection's current supply
-        // Fails if max supply is already reached
-        collection::increase_supply(coll);
+        event::emit(
+            MintEvent {
+                nft_id: object::uid_to_inner(&nft_id),
+                data_id: data_id,
+            }
+        );
 
-        let id = object::new(ctx);
-
-        NftOwned {
-            id,
-            collection_id,
-            metadata,
+        Nft {
+            id: nft_id,
+            data_id: data_id,
+            data: option::none(),
         }
     }
 
-    public fun destroy_owned<T: drop, MetaNft, K: drop, MetaColl: store>(
-        _witness: T,
-        nft: NftOwned<T, MetaNft>,
-        coll: &mut Collection<K, MetaColl>,
-    ): MetaNft {
-        // Decreases collection's current supply
-        // Fails if current supply is already zero
-        collection::decrease_supply(coll);
+    /// Create a embeded `Nft` and returns it.
+    public fun mint_nft_embedded<D: store>(
+        data_id: ID,
+        data: D,
+        ctx: &mut TxContext,
+    ): Nft<D> {
+        let nft_id = object::new(ctx);
 
-        // Only allow burning if collection matches
-        let coll_id = object::borrow_id(coll);
+        event::emit(
+            MintEvent {
+                nft_id: object::uid_to_inner(&nft_id),
+                data_id: data_id,
+            }
+        );
 
-        // Only delete NFT object if collection ID in NFT field
-        // matches the ID of the collection passed to the function
-        assert!(coll_id == &nft.collection_id, 0);
+        Nft {
+            id: nft_id,
+            data_id: data_id,
+            data: option::some(data),
+        }
+    }
 
-        let NftOwned {
+    public fun join_nft_data<D: store>(
+        nft: &mut Nft<D>,
+        data: D,
+    ) {
+        assert!(option::is_none(&nft.data), 0);
+
+        option::fill(&mut nft.data, data);
+    }
+
+    public fun split_nft_data<D: store>(
+        nft: &mut Nft<D>,
+    ): D {
+        assert!(!option::is_none(&nft.data), 0);
+
+        option::extract(&mut nft.data)
+    }
+
+    public fun burn_loose_nft<D: store>(
+        nft: Nft<D>,
+    ) {
+        assert!(is_loose(&nft), 0);
+
+        event::emit(
+            BurnEvent {
+                nft_id: id(&nft),
+                data_id: nft.data_id,
+            }
+        );
+
+        let Nft {
             id,
-            collection_id: _,
-            metadata
+            data_id: _,
+            data,
         } = nft;
 
         object::delete(id);
 
-        metadata
+        option::destroy_none(data);
     }
 
-    public fun owned_metadata<T, Meta>(nft: &NftOwned<T, Meta>): &Meta {
-        &nft.metadata
+    public fun burn_embedded_nft<D: store>(
+        nft: Nft<D>,
+    ): Option<D> {
+        assert!(is_loose(&nft), 0);
+
+        event::emit(
+            BurnEvent {
+                nft_id: id(&nft),
+                data_id: nft.data_id,
+            }
+        );
+
+        let Nft {
+            id,
+            data_id: _,
+            data,
+        } = nft;
+
+        object::delete(id);
+
+        data
     }
 
-    /// We can return a mutable reference to the metadata without checking that
-    /// it's the T contract calling this method, because it's the responsibility
-    /// of the T contract to write their public interface such that the mutation
-    /// of the metadata is according to the desired logic.
-    public fun owned_metadata_mut<T, Meta>(
-        nft: &mut NftOwned<T, Meta>
-    ): &mut Meta {
-        &mut nft.metadata
+    public fun is_loose<D: store>(
+        nft: &Nft<D>,
+    ): bool {
+        option::is_none(&nft.data)
     }
 
-    /// Get the NFT's `UID` as reference
-    public fun uid_ref<T, Meta>(
-        nft: &NftOwned<T, Meta>,
-    ): &UID {
-        &nft.id
-    }
+    // === Getter Functions  ===
 
-    /// Get the NFT's `ID`
-    public fun id<T, Meta>(
-        nft: &NftOwned<T, Meta>,
+    public fun id<D: store>(
+        nft: &Nft<D>,
     ): ID {
         object::uid_to_inner(&nft.id)
     }
 
-    /// Get the NFT's `ID` as reference
-    public fun id_ref<T, Meta>(
-        nft: &NftOwned<T, Meta>,
+    public fun id_ref<D: store>(
+        nft: &Nft<D>,
     ): &ID {
         object::uid_as_inner(&nft.id)
     }
 
-    /// Get the NFT's `collection_id`
-    public fun collection_id<T, Meta>(
-        nft: &NftOwned<T, Meta>,
+    public fun data_id<D: store>(
+        nft: &Nft<D>,
     ): ID {
-        nft.collection_id
+        nft.data_id
+    }
+
+    public fun data_id_ref<D: store>(
+        nft: &Nft<D>,
+    ): &ID {
+        &nft.data_id
+    }
+
+    public fun data_ref<D: store>(
+        nft: &Nft<D>,
+    ): &D {
+        option::borrow(&nft.data)
+    }
+
+    public fun data_ref_mut<D: store>(
+        nft: &mut Nft<D>,
+    ): &mut D {
+        option::borrow_mut(&mut nft.data)
     }
 }

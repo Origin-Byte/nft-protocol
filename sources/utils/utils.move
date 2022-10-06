@@ -12,7 +12,6 @@ module nft_protocol::utils {
         vec: &mut vector<vector<u8>>
     ): vector<String>
      {
-
         let new_vec: vector<String> = vector::empty();
 
         let len = vector::length(vec);
