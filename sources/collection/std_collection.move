@@ -35,9 +35,11 @@ module nft_protocol::std_collection {
 
     // === Functions exposed to Witness Module ===
 
-    /// Mint one `Collection` with `Metadata` and send it to `recipient`.
+    /// Mint one `Collection` with `Metadata` object and share collection 
+    /// object. If a collection is made shared.
+    /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_and_transfer<T>(
+    public fun mint<T>(
         // Name of the Nft Collection. This parameter is a
         // vector of bytes that encondes to utf8
         name: vector<u8>,
@@ -56,74 +58,6 @@ module nft_protocol::std_collection {
         // This is a vector of bytes that encodes to utf8. This fields allows
         // project owners to add any arbitrary string data to the Collection
         // object.
-        data: vector<u8>,
-        recipient: address,
-        authority: address,
-        ctx: &mut TxContext,
-    ) {
-        let args = init_args(
-            string::utf8(name),
-            string::utf8(description),
-            string::utf8(symbol),
-            max_supply,
-            receiver,
-            to_string_vector(&mut tags),
-            royalty_fee_bps,
-            is_mutable,
-            string::utf8(data),
-        );
-
-        let metadata = StdMeta {
-            id: object::new(ctx),
-            json: args.json,
-        };
-
-        let collection_args = collection::init_args(
-            args.name,
-            args.description,
-            args.symbol,
-            args.receiver,
-            args.tags,
-            args.is_mutable,
-            args.royalty_fee_bps,
-        );
-
-        let collection = collection::mint<T, StdMeta>(
-            collection_args,
-            args.max_supply,
-            blind_supply,
-            metadata,
-            authority,
-            ctx,
-        );
-
-        event::emit(
-            MintEvent {
-                object_id: object::id(&collection),
-            }
-        );
-
-        transfer::transfer(collection, recipient);
-    }
-
-    /// Mint one `Collection` with `Metadata` object and share collection 
-    /// object. If a collection is made shared, anyone will be able to refer
-    /// to its object in the NFT modules and hence be able to create its own
-    /// NFTs.
-    /// 
-    /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_and_share<T>(
-        name: vector<u8>,
-        description: vector<u8>,
-        symbol: vector<u8>,
-        max_supply: Option<u64>,
-        blind_supply: bool,
-        receiver: address,
-        // TODO: When will we be able to pass vector<String>?
-        // https://github.com/MystenLabs/sui/pull/4627
-        tags: vector<vector<u8>>,
-        royalty_fee_bps: u64,
-        is_mutable: bool,
         data: vector<u8>,
         authority: address,
         ctx: &mut TxContext,
