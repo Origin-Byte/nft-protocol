@@ -15,7 +15,7 @@ module nft_protocol::unique_nft {
     
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::utils::{to_string_vector};
-    use nft_protocol::cap::{Limited, Unlimited};
+    use nft_protocol::supply_policy;
     use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::sale;
     use nft_protocol::nft::{Self, Nft};
@@ -72,13 +72,18 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &Collection<T, Meta, Unlimited>,
+        collection: &Collection<T, Meta>,
         sale_index: u64,
         // TODO: Ideally we do not take a mutable reference such that 
         // no lock is needed
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
+        // Unlimited collections have a blind supply policy
+        assert!(
+            supply_policy::is_blind(collection::supply_policy(collection)), 0
+        );
+
         let args = mint_args(
             index,
             name,
@@ -112,11 +117,16 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<T, Meta, Limited>,
+        collection: &mut Collection<T, Meta>,
         sale_index: u64,
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
+        // Limited collections have a non blind supply policy
+        assert!(
+            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+        );
+
         let args = mint_args(
             index,
             name,
@@ -152,10 +162,15 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &Collection<T, M, Unlimited>,
+        collection: &Collection<T, M>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
+        // Unlimited collections have a blind supply policy
+        assert!(
+            supply_policy::is_blind(collection::supply_policy(collection)), 0
+        );
+
         let args = mint_args(
             index,
             name,
@@ -188,10 +203,15 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<T, M, Limited>,
+        collection: &mut Collection<T, M>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
+        // Limited collections have a non blind supply policy
+        assert!(
+            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+        );
+
         let args = mint_args(
             index,
             name,

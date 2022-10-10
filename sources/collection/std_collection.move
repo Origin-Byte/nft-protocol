@@ -12,7 +12,6 @@ module nft_protocol::std_collection {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::utils::{to_string_vector};
-    use nft_protocol::cap::{Limited};
 
     struct StdMeta has store {
         id: UID,
@@ -204,7 +203,7 @@ module nft_protocol::std_collection {
 
     /// Burn a Standard `Limited` Collection. Invokes `burn_capped()`.
     public entry fun burn_limited_collection<T>(
-        collection: Collection<T, StdMeta, Limited>,
+        collection: Collection<T, StdMeta>,
     ) {
 
         event::emit(
