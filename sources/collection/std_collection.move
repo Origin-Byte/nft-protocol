@@ -3,7 +3,7 @@
 //! It allows for the addition of arbitrary String data to a `Collection`.
 module nft_protocol::std_collection {
     use std::string::{Self, String};
-    use std::option::{Option};
+    use std::option::Option;
 
     use sui::transfer;
     use sui::object::{Self, ID, UID};
