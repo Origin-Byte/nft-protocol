@@ -3,14 +3,14 @@
 //! It allows for the addition of arbitrary String data to a `Collection`.
 module nft_protocol::std_collection {
     use std::string::{Self, String};
-    use std::option::{Self, Option};
+    use std::option::{Option};
 
     use sui::transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{TxContext};
     use sui::event;
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
 
     struct StdMeta has store {
@@ -46,6 +46,7 @@ module nft_protocol::std_collection {
         // vector of bytes that should enconde to utf8
         symbol: vector<u8>,
         max_supply: Option<u64>,
+        blind_supply: bool,
         receiver: address,
         // TODO: When will we be able to pass vector<String>?
         // https://github.com/MystenLabs/sui/pull/4627
@@ -57,6 +58,7 @@ module nft_protocol::std_collection {
         // object.
         data: vector<u8>,
         recipient: address,
+        authority: address,
         ctx: &mut TxContext,
     ) {
         let args = init_args(
@@ -86,37 +88,22 @@ module nft_protocol::std_collection {
             args.royalty_fee_bps,
         );
 
-        if (option::is_none(&max_supply)) {
-            let collection = collection::mint_uncapped<T, StdMeta>(
-                collection_args,
-                metadata,
-                ctx,
-            );
+        let collection = collection::mint<T, StdMeta>(
+            collection_args,
+            args.max_supply,
+            blind_supply,
+            metadata,
+            authority,
+            ctx,
+        );
 
-            event::emit(
-                MintEvent {
-                    object_id: object::id(&collection),
-                }
-            );
+        event::emit(
+            MintEvent {
+                object_id: object::id(&collection),
+            }
+        );
 
-            transfer::transfer(collection, recipient);
-
-        } else {
-            let collection = collection::mint_capped<T, StdMeta>(
-                collection_args,
-                max_supply,
-                metadata,
-                ctx,
-            );
-
-            event::emit(
-                MintEvent {
-                    object_id: object::id(&collection),
-                }
-            );
-
-            transfer::transfer(collection, recipient);
-        };
+        transfer::transfer(collection, recipient);
     }
 
     /// Mint one `Collection` with `Metadata` object and share collection 
@@ -130,13 +117,15 @@ module nft_protocol::std_collection {
         description: vector<u8>,
         symbol: vector<u8>,
         max_supply: Option<u64>,
+        blind_supply: bool,
         receiver: address,
         // TODO: When will we be able to pass vector<String>?
         // https://github.com/MystenLabs/sui/pull/4627
         tags: vector<vector<u8>>,
         royalty_fee_bps: u64,
         is_mutable: bool,
-        json: vector<u8>,
+        data: vector<u8>,
+        authority: address,
         ctx: &mut TxContext,
     ) {
         let args = init_args(
@@ -148,7 +137,7 @@ module nft_protocol::std_collection {
             to_string_vector(&mut tags),
             royalty_fee_bps,
             is_mutable,
-            string::utf8(json),
+            string::utf8(data),
         );
 
         let metadata = StdMeta {
@@ -166,37 +155,22 @@ module nft_protocol::std_collection {
             args.royalty_fee_bps,
         );
 
-        if (option::is_none(&max_supply)) {
-            let collection = collection::mint_uncapped<T, StdMeta>(
-                collection_args,
-                metadata,
-                ctx,
-            );
+        let collection = collection::mint<T, StdMeta>(
+            collection_args,
+            args.max_supply,
+            blind_supply,
+            metadata,
+            authority,
+            ctx,
+        );
 
-            event::emit(
-                MintEvent {
-                    object_id: object::id(&collection),
-                }
-            );
+        event::emit(
+            MintEvent {
+                object_id: object::id(&collection),
+            }
+        );
 
-            transfer::share_object(collection);
-
-        } else {
-            let collection = collection::mint_capped<T, StdMeta>(
-                collection_args,
-                max_supply,
-                metadata,
-                ctx,
-            );
-
-            event::emit(
-                MintEvent {
-                    object_id: object::id(&collection),
-                }
-            );
-
-            transfer::share_object(collection);
-        };
+        transfer::share_object(collection);
     }
 
     // === Entrypoints ===
@@ -204,6 +178,7 @@ module nft_protocol::std_collection {
     /// Burn a Standard `Limited` Collection. Invokes `burn_capped()`.
     public entry fun burn_limited_collection<T>(
         collection: Collection<T, StdMeta>,
+        mint: MintAuthority<T>,
     ) {
 
         event::emit(
@@ -215,6 +190,7 @@ module nft_protocol::std_collection {
         // Delete generic Collection object
         let metadata = collection::burn_capped(
             collection,
+            mint,
         );
 
         let StdMeta {

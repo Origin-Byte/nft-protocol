@@ -48,6 +48,64 @@ module nft_protocol::supply_policy {
         option::borrow_mut(&mut policy.supply)
     }
 
+    public fun cap_supply(policy: &mut SupplyPolicy, value: u64) {
+        assert!(policy.is_blind == false, 0);
+        supply::cap_supply(option::borrow_mut(&mut policy.supply), value);
+    }
+
+    /// Increases the `supply.max` by the `value` amount for 
+    /// `Limited` collections. Invokes `supply::increase_cap()`
+    public fun increase_max_supply(
+        policy: &mut SupplyPolicy,
+        value: u64,
+    ) {
+        assert!(is_blind(policy), 0);
+
+        supply::increase_cap(
+            supply_mut(policy),
+            value
+        )
+    }
+
+    /// Decreases the `supply.cap` by the `value` amount for 
+    /// `Limited` collections. This function call fails if one attempts
+    /// to decrease the supply cap to a value below the current supply.
+    /// Invokes `supply::decrease_cap()`
+    public fun decrease_max_supply(
+        policy: &mut SupplyPolicy,
+        value: u64
+    ) {
+        assert!(is_blind(policy), 0);
+
+        supply::decrease_cap(
+            supply_mut(policy),
+            value
+        )
+    }
+
+    /// Increase `supply.current` for `Limited`
+    public fun increase_supply(
+        policy: &mut SupplyPolicy,
+        value: u64
+    ) {
+        assert!(is_blind(policy), 0);
+
+        supply::increase_supply(
+            supply_mut(policy),
+            value
+        )
+    }
+
+    public fun decrease_supply(
+        policy: &mut SupplyPolicy,
+        value: u64
+    ) {
+        supply::decrease_supply(
+            supply_mut(policy),
+            value
+        )
+    }
+
     public fun destroy_capped(policy: SupplyPolicy) {
         // One can only destroy a SupplyPolicy that is not blind
         assert!(policy.is_blind == false, 0);

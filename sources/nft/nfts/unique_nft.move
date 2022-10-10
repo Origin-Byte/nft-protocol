@@ -13,7 +13,7 @@ module nft_protocol::unique_nft {
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
     
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply_policy;
     use nft_protocol::slingshot::{Self, Slingshot};
@@ -65,14 +65,14 @@ module nft_protocol::unique_nft {
     /// if one is the collection owner, or if it is a shared collection.
     ///  
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun launchpad_mint_unlimited_collection_nft<T, Meta: store, Market: store>(
+    public fun launchpad_mint_unlimited_collection_nft<T, Market: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &Collection<T, Meta>,
+        mint: &MintAuthority<T>,
         sale_index: u64,
         // TODO: Ideally we do not take a mutable reference such that 
         // no lock is needed
@@ -81,7 +81,7 @@ module nft_protocol::unique_nft {
     ) {
         // Unlimited collections have a blind supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(collection)), 0
+            supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -95,7 +95,7 @@ module nft_protocol::unique_nft {
 
         mint_to_launchpad(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             sale_index,
             launchpad,
             ctx,
@@ -110,21 +110,21 @@ module nft_protocol::unique_nft {
     /// if one is the collection owner, or if it is a shared collection.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun launchpad_mint_limited_collection_nft<T, Meta: store, Market: store>(
+    public fun launchpad_mint_limited_collection_nft<T, Market: store>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<T, Meta>,
+        mint: &mut MintAuthority<T>,
         sale_index: u64,
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
         // Limited collections have a non blind supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -136,11 +136,11 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_values),
         );
 
-        collection::increase_supply(collection, 1);
+        collection::increase_supply(mint, 1);
 
         mint_to_launchpad(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             sale_index,
             launchpad,
             ctx,
@@ -162,13 +162,13 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &Collection<T, M>,
+        mint: &MintAuthority<T>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         // Unlimited collections have a blind supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(collection)), 0
+            supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -182,7 +182,7 @@ module nft_protocol::unique_nft {
 
         mint_and_transfer<T>(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             recipient,
             ctx,
         );
@@ -203,13 +203,13 @@ module nft_protocol::unique_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<T, M>,
+        mint: &mut MintAuthority<T>,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         // Limited collections have a non blind supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -221,11 +221,11 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_values),
         );
         
-        collection::increase_supply(collection, 1);
+        collection::increase_supply(mint, 1);
 
         mint_and_transfer<T>(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             recipient,
             ctx,
         );

@@ -13,7 +13,7 @@ module nft_protocol::collectibles {
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
     
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintAuthority};
     use nft_protocol::supply_policy;
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
@@ -64,7 +64,7 @@ module nft_protocol::collectibles {
     /// if one is the collection owner, or if it is a shared collection.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unlimited_collection_nft_data<T, M: store>(
+    public fun mint_unlimited_collection_nft_data<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -72,12 +72,12 @@ module nft_protocol::collectibles {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &Collection<T, M>,
+        mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
         // Unlimited collections have a blind supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -92,7 +92,7 @@ module nft_protocol::collectibles {
 
         mint_and_share_data(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             ctx,
         );
     }
@@ -113,12 +113,12 @@ module nft_protocol::collectibles {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &mut Collection<T, M>,
+        mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
         // Limited collections have a non blind supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -131,11 +131,11 @@ module nft_protocol::collectibles {
             max_supply,
         );
 
-        collection::increase_supply(collection, 1);
+        collection::increase_supply(mint, 1);
 
         mint_and_share_data(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             ctx,
         );
     }
@@ -147,7 +147,7 @@ module nft_protocol::collectibles {
     /// To be called by Launchpad contract
     /// TODO: The flow here needs to be reconsidered
     public fun mint_nft<T, M: store>(
-        _collection: &Collection<T, M>,
+        _mint: &MintAuthority<T>,
         nft_data: &mut Collectible,
         recipient: address,
         ctx: &mut TxContext,
@@ -177,20 +177,21 @@ module nft_protocol::collectibles {
     /// In other words, the `supply.current` must be zero.
     public entry fun burn_limited_collection_nft_data<T, M: store>(
         nft_data: Collectible,
-        collection: &mut Collection<T, M>,
+        mint: &mut MintAuthority<T>,
+        collection: &Collection<T, M>,
     ) {
         // Limited collections have a non blind supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         assert!(
-            nft_data.collection_id == collection::id(collection), 0
+            nft_data.collection_id == collection::mint_collection_id(mint), 0
         );
 
         assert!(collection::is_mutable(collection), 0);
 
-        collection::decrease_supply(collection, 1);
+        collection::decrease_supply(mint, 1);
 
         let Collectible {
             id,
@@ -206,7 +207,7 @@ module nft_protocol::collectibles {
         event::emit(
             BurnDataEvent {
                 object_id: object::uid_to_inner(&id),
-                collection_id: collection::id(collection),
+                collection_id: collection::mint_collection_id(mint),
             }
         );
 

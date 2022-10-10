@@ -20,6 +20,7 @@ module nft_protocol::collection {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
+    use sui::transfer;
 
     use nft_protocol::tags::{Self, Tags};
     use nft_protocol::supply::{Self, Supply};
@@ -58,16 +59,19 @@ module nft_protocol::collection {
         /// the royalty enforcement standard
         royalty_fee_bps: u64,
         creators: vector<Creator>,
-        /// NFT Collections can be instantiated with a `Cap` of type `Limited`
-        ///  or `Unlimited`. An `Unlimited` collection not only does not have 
-        /// a supply limit but also does not keep track of the amount of 
-        /// NFT `Data` objects in existance at any given time.
-        /// TODO: Consider renaiming this field
-        /// TODO: Consider making this a separate object
-        supply_policy: SupplyPolicy,
         /// The `Metadata` is a type exported by an upstream contract which is 
         /// used to store additional information about the NFT.
         metadata: M,
+    }
+
+    struct MintAuthority<phantom T> has key, store {
+        id: UID,
+        collection_id: ID,
+        /// NFT Collections can be instantiated with a `Cap` of type `Limited`
+        /// or `Unlimited`. An `Unlimited` collection not only does not have 
+        /// a supply limit but also does not keep track of the amount of 
+        /// NFT `Data` objects in existance at any given time.
+        supply_policy: SupplyPolicy,
     }
 
     /// Creator struct which holds the addresses of the creators of the NFT
@@ -98,6 +102,16 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
+    /// TODO: Merge doc strings
+    /// Initialises a Uncapped `Collection` object and returns it. An Uncapped
+    /// Collection is one which has a `Unlimited` object as its `Cap`.
+    /// `Unlimited` Collections do not have any supply contracints.
+    ///
+    /// Unlimited collections do not have a counter which incrementes when an
+    /// NFT `Data` object is minted, and thus they do not store the current
+    /// supply information. This means that the minting of NFT `Data` objects
+    /// can be done in parallel without mutating the `Collection` object.
+
     /// Initialises a Capped `Collection` object and returns it. A Capped
     /// Collection is one which has a `Limited` object as its `Cap`.
     /// `Limited` Collections have a fixed supply that can not be changed once
@@ -111,10 +125,12 @@ module nft_protocol::collection {
     /// still being able to track how many NFT `Data` objects are currently
     /// in existance. We can achieve this by setting the parameter
     /// `max_supply` to `option::none`.
-    public fun mint_capped<T, M: store>(
+    public fun mint<T, M: store>(
         args: InitCollection,
         max_supply: Option<u64>,
+        blind_supply: bool,
         metadata: M,
+        authority: address,
         ctx: &mut TxContext,
     ): Collection<T, M> {
         let id = object::new(ctx);
@@ -123,6 +139,14 @@ module nft_protocol::collection {
             MintEvent {
                 collection_id: object::uid_to_inner(&id),
             }
+        );
+
+        create_mint_authority<T>(
+            object::uid_to_inner(&id),
+            max_supply,
+            blind_supply,
+            authority,
+            ctx,
         );
 
         Collection {
@@ -135,55 +159,28 @@ module nft_protocol::collection {
             is_mutable: args.is_mutable,
             royalty_fee_bps: args.royalty_fee_bps,
             creators: vector::empty(),
-            supply_policy: supply_policy::create_limited(max_supply, false),
             metadata: metadata,
         }
     }
 
-    /// Initialises a Uncapped `Collection` object and returns it. An Uncapped
-    /// Collection is one which has a `Unlimited` object as its `Cap`.
-    /// `Unlimited` Collections do not have any supply contracints.
-    ///
-    /// Unlimited collections do not have a counter which incrementes when an
-    /// NFT `Data` object is minted, and thus they do not store the current
-    /// supply information. This means that the minting of NFT `Data` objects
-    /// can be done in parallel without mutating the `Collection` object.
-    public fun mint_uncapped<T, M: store>(
-        args: InitCollection,
-        metadata: M,
-        ctx: &mut TxContext,
-    ): Collection<T, M> {
-        let id = object::new(ctx);
-
-        event::emit(
-            MintEvent {
-                collection_id: object::uid_to_inner(&id),
-            }
-        );
-
-        Collection {
-            id,
-            name: args.name,
-            description: args.description,
-            symbol: args.symbol,
-            receiver: args.receiver,
-            tags: tags::from_vec_string(&mut args.tags),
-            is_mutable: args.is_mutable,
-            royalty_fee_bps: args.royalty_fee_bps,
-            creators: vector::empty(),
-            supply_policy: supply_policy::create_unlimited(),
-            metadata: metadata,
-        }
-    }
-
+    
     /// Burn a `Capped` Collection object and return the Metadata object
     public fun burn_capped<T, M: store>(
         collection: Collection<T, M>,
+        mint: MintAuthority<T>,
     ): M {
         assert!(
-            supply::current(supply_policy::supply(&collection.supply_policy)) == 0,
+            supply::current(supply_policy::supply(&mint.supply_policy)) == 0,
             0
         );
+
+        let MintAuthority {
+            id,
+            collection_id: _,
+            supply_policy,
+        } = mint;
+
+        object::delete(id);
 
         event::emit(
             BurnEvent {
@@ -201,7 +198,6 @@ module nft_protocol::collection {
             is_mutable: _,
             royalty_fee_bps: _,
             creators: _,
-            supply_policy,
             metadata,
         } = collection;
 
@@ -368,44 +364,38 @@ module nft_protocol::collection {
     /// `Limited` collections can have a cap on the maximum supply, however 
     /// the supply cap can also be `option::none()`. This function call
     /// adds a value to the supply cap.
-    public entry fun cap_supply<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun cap_supply<T>(
+        mint: &mut MintAuthority<T>,
         value: u64
     ) {
-        // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
-
-        supply::cap_supply(
-            supply_policy::supply_mut(&mut collection.supply_policy),
+        supply_policy::cap_supply(
+            &mut mint.supply_policy,
             value
         )
     }
 
     /// Increases the `supply.cap` by the `value` amount for 
     /// `Limited` collections. Invokes `supply::increase_cap()`
-    public entry fun increase_supply_cap<T, M: store>(
-        collection: &mut Collection<T, M>,
-        value: u64
+    public entry fun increase_max_supply<T>(
+        mint: &mut MintAuthority<T>,
+        value: u64,
     ) {
-        // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
-
-        supply::increase_cap(
-            supply_policy::supply_mut(&mut collection.supply_policy),
-            value
-        )
+        supply_policy::increase_max_supply(
+            &mut mint.supply_policy,
+            value,
+        );
     }
 
     /// Decreases the `supply.cap` by the `value` amount for 
     /// `Limited` collections. This function call fails if one attempts
     /// to decrease the supply cap to a value below the current supply.
     /// Invokes `supply::decrease_cap()`
-    public entry fun decrease_supply_cap<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun decrease_max_supply<T>(
+        mint: &mut MintAuthority<T>,
         value: u64
     ) {
-        supply::decrease_cap(
-            supply_policy::supply_mut(&mut collection.supply_policy),
+        supply_policy::decrease_max_supply(
+            &mut mint.supply_policy,
             value
         )
     }
@@ -413,42 +403,40 @@ module nft_protocol::collection {
     // === Supply Functions ===
 
     /// Increase `supply.current` for `Limited`
-    public fun increase_supply<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public fun increase_supply<T>(
+        mint: &mut MintAuthority<T>,
         value: u64
     ) {
-        // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
-
-        supply::increase_supply(
-            supply_policy::supply_mut(&mut collection.supply_policy),
+        supply_policy::increase_supply(
+            &mut mint.supply_policy,
             value
         )
     }
 
-    public fun decrease_supply<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public fun decrease_supply<T>(
+        mint: &mut MintAuthority<T>,
         value: u64
     ) {
-        supply::decrease_supply(
-            supply_policy::supply_mut(&mut collection.supply_policy),
+        supply_policy::decrease_supply(
+            &mut mint.supply_policy,
             value
         )
     }
 
-    public fun supply<T, M: store>(collection: &Collection<T, M>): &Supply {
-        supply_policy::supply(&collection.supply_policy)
+    public fun supply<T>(mint: &mut MintAuthority<T>): &Supply {
+        supply_policy::supply(&mint.supply_policy)
+        
     }
 
-    public fun supply_cap<T, M: store>(collection: &Collection<T, M>): Option<u64> {
-        supply::cap(
-            supply_policy::supply(&collection.supply_policy)
+    public fun supply_cap<T>(mint: &mut MintAuthority<T>): Option<u64> {
+        supply::max(
+            supply_policy::supply(&mint.supply_policy)
         )
     }
 
-    public fun current_supply<T, M: store>(collection: &Collection<T, M>): u64 {
+    public fun current_supply<T>(mint: &mut MintAuthority<T>): u64 {
         supply::current(
-            supply_policy::supply(&collection.supply_policy)
+            supply_policy::supply(&mint.supply_policy)
         )
     }
 
@@ -525,20 +513,17 @@ module nft_protocol::collection {
     }
 
     /// Get an immutable reference to Collections's `cap`
-    public fun supply_policy<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun supply_policy<T>(
+        mint: &MintAuthority<T>,
     ): &SupplyPolicy {
-        &collection.supply_policy
+        &mint.supply_policy
     }
 
     /// Get a mutable reference to Collections's `cap`
-    public fun cap_mut<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public fun cap_mut<T>(
+        mint: &mut MintAuthority<T>,
     ): &mut SupplyPolicy {
-        // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
-
-        &mut collection.supply_policy
+        &mut mint.supply_policy
     }
 
     /// Get an immutable reference to Collections's `Metadata`
@@ -558,7 +543,39 @@ module nft_protocol::collection {
         &mut collection.metadata
     }
 
+    public fun mint_collection_id<T>(
+        mint: &MintAuthority<T>,
+    ): ID {
+        mint.collection_id
+    }
+
     // === Private Functions ===
+
+    fun create_mint_authority<T>(
+        collection_id: ID,
+        supply: Option<u64>,
+        is_blind: bool,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        if (is_blind) {
+            let authority: MintAuthority<T> = MintAuthority {
+                id: object::new(ctx),
+                collection_id: collection_id,
+                supply_policy: supply_policy::create_unlimited(),
+            };
+
+            transfer::transfer(authority, recipient);
+        } else {
+            let authority: MintAuthority<T> = MintAuthority {
+                id: object::new(ctx),
+                collection_id: collection_id,
+                supply_policy: supply_policy::create_limited(supply, false),
+            };
+
+            transfer::transfer(authority, recipient);
+        };
+    }
 
     fun contains_address(
         v: &vector<Creator>, c_address: address

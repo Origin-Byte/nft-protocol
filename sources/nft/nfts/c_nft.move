@@ -25,7 +25,7 @@ module nft_protocol::c_nft {
     use sui::tx_context::{Self, TxContext};
     use sui::url::{Self, Url};
     
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::supply_policy;
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
@@ -132,12 +132,12 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &Collection<T, M>,
+        mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
         // Unlimited collections have a blind supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(collection)), 0
+            supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
         
         let args = mint_args(
@@ -152,7 +152,7 @@ module nft_protocol::c_nft {
 
         mint_and_share_data<C>(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             max_supply,
             ctx,
         );
@@ -186,12 +186,12 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &mut Collection<T, M>,
+        mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
         // Limited collections have a non blind supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -204,11 +204,11 @@ module nft_protocol::c_nft {
             max_supply,
         );
 
-        collection::increase_supply(collection, 1);
+        collection::increase_supply(mint, 1);
 
         mint_and_share_data<C>(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             max_supply,
             ctx,
         );
@@ -223,13 +223,13 @@ module nft_protocol::c_nft {
         <T, M: store, D: store + copy, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
-        collection: &mut Collection<T, M>,
+        mint: &mut MintAuthority<T>,
         max_supply: Option<u64>,
         ctx: &mut TxContext,
     ) {
         let data_vec: VecMap<ID, ComposableClone<C>> = vec_map::empty();
         let data_ids: vector<ID> = vector::empty();
-        let collection_id = collection::id(collection);
+        let collection_id = collection::mint_collection_id(mint);
 
         let len = vector::length(&nfts_data);
 
