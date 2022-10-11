@@ -6,6 +6,51 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Added:
+- `supply_policy` module with object `SupplyPolicy` to regulate NFT Collection supply
+- Substituted field `cap` by `supply_policy` from `Collection` object, making it
+  no longer a generic but an object of type `SupplyPolicy`
+- `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead
+  of `Option<u64>` to facilitate function call on the client side
+
+Removed:
+- `cap` module with objects `Limited` and `Unlimited` that regulate the supply
+  of NFT collections
+
+
+## [0.4.0] - 2022-10-11
+
+### Changed
+- Reimplemented `nft` module with `nft::Nft` object and removed `NftOwned`
+- Reimplemented `collection` module with `collection::Collection` object
+- Collection data fields now belong to `collection::Collection`
+- `std_collection::StdMeta` now only has json field
+- Reimplemented `slingshot` module with `slingshot::Slingshot` object
+- NFT IDs for primary release are now stored in `sale::Sale` objects, accessible
+  to the slingshot launchpad via the field `sales`
+- Launchpads can now have `create_single_market` and `create_multi_market` sales
+  configuration. The modules that implement the market type decide if the slinshot they initiate is single or multi market. In this current version, `fixed_price` is the only market immplementation.
+- NFT Collections can now only be created via witness type
+
+### Added
+- `unique_nft` module and `unique_nft:Unique` object serving as domain-specific 
+  embedded NFT implementation
+- `collectibles` module and `collectibles:Collectible` object serving as domain-specific 
+  loose NFT implementation
+- `c_nft` module and `c_nft:Composable` object serving as domain-specific 
+  loose NFT implementation
+- `sale` module to be able to perform multiple sales per slingshot launchpad
+- `whitelist` module to be able to perform whitelisted sales
+- `cap` module with objects `Limited` and `Unlimited` that regulate the supply
+  of NFT collections
+- `supply` module with object `Supply` that controls and manages the supply of a given
+  object
+
+### Removed
+- `std_nft` module and `std_nft::StdNft` object
+
 ## [0.3.0] - 2022-09-20
 
 ### Changed

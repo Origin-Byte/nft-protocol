@@ -1,33 +1,25 @@
 module nft_protocol::suimarines {
     use sui::tx_context::{Self, TxContext};
-    use sui::object::ID;
 
     use std::vector;
-    use std::option;
     
-    use nft_protocol::collection::Collection;
-    use nft_protocol::std_collection::{Self, StdMeta};
+    use nft_protocol::collection::{MintAuthority};
+    use nft_protocol::fixed_price::{Self, FixedPriceMarket};
     use nft_protocol::slingshot::Slingshot;
-    use nft_protocol::cap::Limited;
-    use nft_protocol::fixed_price::{Self, Market};
+    use nft_protocol::std_collection;
     use nft_protocol::unique_nft;
 
-    /// The type identifier of coin. The coin will have a type
-    /// tag of kind: `Coin<package_object::mycoin::MYCOIN>`
-    /// Make sure that the name of the type matches the module's name.
     struct SUIMARINES has drop {}
 
-    /// Module initializer is called once on module publish. A treasury
-    /// cap is sent to the publisher, who then controls minting and burning
-    fun init(_witness: SUIMARINES, ctx: &mut TxContext) {
-        // TODO: Consider using witness explicitly in function call
+    fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let receiver = @0xA;
 
-        std_collection::mint_and_transfer<SUIMARINES>(
+        std_collection::mint<SUIMARINES>(
             b"Suimarines",
             b"A Unique NFT collection of Submarines on Sui",
             b"SUIM", // symbol
-            option::some(100), // max_supply
+            100, // max_supply
+            false, // blind_supply
             receiver, // Royalty receiver
             vector::singleton(b"Art"), // tags
             100, // royalty_fee_bps
@@ -36,15 +28,9 @@ module nft_protocol::suimarines {
             tx_context::sender(ctx), // recipient
             ctx,
         );
-    }
 
-    public entry fun create_launchpad(
-        collection_id: ID,
-        receiver: address,
-        ctx: &mut TxContext
-        ) {
         fixed_price::create_single_market(
-            collection_id, // this should not be here and instead be part of the witness?
+            witness,
             tx_context::sender(ctx), // admin
             receiver,
             true, // is_embedded
@@ -61,9 +47,9 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<SUIMARINES, StdMeta, Limited>,
+        mint_authority: &mut MintAuthority<SUIMARINES>,
         sale_index: u64,
-        launchpad: &mut Slingshot<SUIMARINES, Market>,
+        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
         unique_nft::launchpad_mint_limited_collection_nft(
@@ -73,7 +59,7 @@ module nft_protocol::suimarines {
             url,
             attribute_keys,
             attribute_values,
-            collection,
+            mint_authority,
             sale_index,
             launchpad,
             ctx,

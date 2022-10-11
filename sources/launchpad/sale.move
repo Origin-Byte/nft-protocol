@@ -37,7 +37,6 @@ module nft_protocol::sale {
     }
 
     public fun create<T: drop, Market: store>(
-        _witness: T,
         tier_index: u64,
         whitelisted: bool,
         market: Market,
