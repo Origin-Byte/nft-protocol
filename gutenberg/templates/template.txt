@@ -1,49 +1,41 @@
 module nft_protocol::{module_name} {{
     use sui::tx_context::{{Self, TxContext}};
-    use sui::object::ID;
 
     use std::vector;
-    use std::option;
     
-    use nft_protocol::collection::Collection;
-    use nft_protocol::std_collection::{{Self, StdMeta}};
+    use nft_protocol::collection::{{MintAuthority}};
+    use nft_protocol::{market_module}::{{Self, {market_type}}};
     use nft_protocol::slingshot::Slingshot;
-    use nft_protocol::cap::Limited;
-    use nft_protocol::fixed_price::{{Self, Market}};
-    use nft_protocol::unique_nft;
+    use nft_protocol::std_collection;
+    use nft_protocol::{nft_type};
 
-    struct {witness_type} has drop {{}}
+    struct {witness} has drop {{}}
 
-    fun init(_witness: {witness_type}, ctx: &mut TxContext) {{
-        let receiver = @0xA;
+    fun init(witness: {witness}, ctx: &mut TxContext) {{
+        let tags = {tags};
 
-        std_collection::mint_and_transfer<{witness_type}>(
-            b"name",
-            b"description",
-            b"symbol",
-            option::some(100), // max_supply
-            receiver, // Royalty receiver
-            vector::singleton(b"Art"), // tags
-            100, // royalty_fee_bps
-            false, // is_mutable
-            b"Some extra data",
-            tx_context::sender(ctx), // recipient
+        std_collection::mint<{witness}>(
+            b"{name}",
+            b"{description}",
+            b"{symbol}",
+            {max_supply},
+            {blind_supply},
+            {receiver},
+            tags,
+            {royalty_fee_bps},
+            {is_mutable},
+            b"{extra_data}",
+            tx_context::sender(ctx),
             ctx,
         );
-    }}
 
-    public entry fun create_launchpad(
-        collection_id: ID,
-        receiver: address,
-        ctx: &mut TxContext
-        ) {{
         fixed_price::create_single_market(
-            collection_id, // this should not be here and instead be part of the witness?
+            witness,
             tx_context::sender(ctx), // admin
-            receiver,
-            true, // is_embedded
-            false, // whitelist
-            100, // price
+            {receiver},
+            {is_embedded},
+            {whitelist},
+            {price},
             ctx,
         );
     }}
@@ -55,19 +47,19 @@ module nft_protocol::{module_name} {{
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<SUIMARINES, StdMeta, Limited>,
+        mint_authority: &mut MintAuthority<{witness}>,
         sale_index: u64,
-        launchpad: &mut Slingshot<SUIMARINES, Market>,
+        launchpad: &mut Slingshot<{witness}, {market_type}>,
         ctx: &mut TxContext,
     ) {{
-        unique_nft::launchpad_mint_limited_collection_nft(
+        {nft_type}::launchpad_mint_limited_collection_nft(
             index,
             name,
             description,
             url,
             attribute_keys,
             attribute_values,
-            collection,
+            mint_authority,
             sale_index,
             launchpad,
             ctx,
