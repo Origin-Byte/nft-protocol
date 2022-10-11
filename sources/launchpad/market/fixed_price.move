@@ -18,17 +18,15 @@ module nft_protocol::fixed_price {
     use sui::sui::{SUI};
     use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
-    use sui::object::{Self, UID, ID};
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::sale::{Self, NftCertificate};
     use nft_protocol::whitelist::{Self, Whitelist};
-
-    struct FixedPriceMarket has drop {}
     
-    struct Market has key, store {
+    struct FixedPriceMarket has key, store {
         id: UID,
         price: u64,
     }
@@ -40,8 +38,8 @@ module nft_protocol::fixed_price {
     /// a shared object with an `admin` that can call privelleged endpoints.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun create_single_market(
-        collection_id: ID,
+    public fun create_single_market<T: drop>(
+        witness: T,
         admin: address,
         receiver: address,
         is_embedded: bool,
@@ -49,14 +47,13 @@ module nft_protocol::fixed_price {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = Market {
+        let market = FixedPriceMarket {
             id: object::new(ctx),
             price,
         };
 
         let sale = vector::singleton(
-            sale::create(
-                FixedPriceMarket {},
+            sale::create<T, FixedPriceMarket>(
                 0,
                 whitelist,
                 market,
@@ -65,14 +62,13 @@ module nft_protocol::fixed_price {
         );
 
         let args = slingshot::init_args(
-            collection_id,
             admin,
             receiver,
             is_embedded
         );
         
-        slingshot::create<FixedPriceMarket, Market>(
-            FixedPriceMarket {},
+        slingshot::create<T, FixedPriceMarket>(
+            witness,
             sale,
             args,
             ctx,
@@ -88,8 +84,8 @@ module nft_protocol::fixed_price {
     /// call privelleged endpoints.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun create_multi_market(
-        collection_id: ID,
+    public fun create_multi_market<T: drop>(
+        witness: T,
         admin: address,
         receiver: address,
         is_embedded: bool,
@@ -106,13 +102,12 @@ module nft_protocol::fixed_price {
             let price = vector::pop_back(&mut prices);
             let whitelist = vector::pop_back(&mut whitelists);
 
-            let market = Market {
+            let market = FixedPriceMarket {
                 id: object::new(ctx),
                 price,
             };
 
-            let sale = sale::create(
-                FixedPriceMarket {},
+            let sale = sale::create<T, FixedPriceMarket>(
                 0,
                 whitelist,
                 market,
@@ -126,14 +121,13 @@ module nft_protocol::fixed_price {
         };
 
         let args = slingshot::init_args(
-            collection_id,
             admin,
             receiver,
             is_embedded,
         );
         
-        slingshot::create<FixedPriceMarket, Market>(
-            FixedPriceMarket {},
+        slingshot::create<T, FixedPriceMarket>(
+            witness,
             sales,
             args,
             ctx,
@@ -148,9 +142,9 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_nft_certificate(
+    public entry fun buy_nft_certificate<T>(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<FixedPriceMarket, Market>,
+        slingshot: &mut Slingshot<T, FixedPriceMarket>,
         tier_index: u64,
         ctx: &mut TxContext,
     ) {
@@ -192,9 +186,9 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_whitelisted_nft_certificate(
+    public entry fun buy_whitelisted_nft_certificate<T>(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<FixedPriceMarket, Market>,
+        slingshot: &mut Slingshot<T, FixedPriceMarket>,
         tier_index: u64,
         whitelist_token: Whitelist,
         ctx: &mut TxContext,
@@ -245,7 +239,7 @@ module nft_protocol::fixed_price {
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft_embedded<T, D: store>(
-        slingshot: &Slingshot<FixedPriceMarket, Market>,
+        slingshot: &Slingshot<T, FixedPriceMarket>,
         nft: Nft<T, D>,
         certificate: NftCertificate,
         recipient: address,
@@ -272,7 +266,7 @@ module nft_protocol::fixed_price {
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft_loose<T, D: key + store>(
-        slingshot: &Slingshot<FixedPriceMarket, Market>,
+        slingshot: &Slingshot<T, FixedPriceMarket>,
         nft_data: D,
         certificate: NftCertificate,
         recipient: address,
@@ -304,8 +298,8 @@ module nft_protocol::fixed_price {
 
     /// Permissioned endpoint to be called by `admin` to edit the fixed price 
     /// of the launchpad configuration.
-    public entry fun new_price(
-        slingshot: &mut Slingshot<FixedPriceMarket, Market>,
+    public entry fun new_price<T>(
+        slingshot: &mut Slingshot<T, FixedPriceMarket>,
         sale_index: u64,
         new_price: u64,
         ctx: &mut TxContext,
@@ -321,7 +315,7 @@ module nft_protocol::fixed_price {
 
     /// Get the Slingshot Configs's `price`
     public fun price(
-        market: &Market,
+        market: &FixedPriceMarket,
     ): u64 {
         market.price
     }
