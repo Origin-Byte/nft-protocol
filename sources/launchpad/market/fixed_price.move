@@ -88,7 +88,7 @@ module nft_protocol::fixed_price {
     /// call privelleged endpoints.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public entry fun create_multi_market(
+    public fun create_multi_market(
         collection_id: ID,
         admin: address,
         receiver: address,

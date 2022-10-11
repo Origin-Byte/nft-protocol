@@ -3,7 +3,7 @@
 //! It allows for the addition of arbitrary String data to a `Collection`.
 module nft_protocol::std_collection {
     use std::string::{Self, String};
-    use std::option::Option;
+    use std::option::{Self, Option};
 
     use sui::transfer;
     use sui::object::{Self, ID, UID};
@@ -47,7 +47,7 @@ module nft_protocol::std_collection {
         // Symbol of the Nft Collection. This parameter is a
         // vector of bytes that should enconde to utf8
         symbol: vector<u8>,
-        max_supply: Option<u64>,
+        max_supply: u64,
         blind_supply: bool,
         receiver: address,
         // TODO: When will we be able to pass vector<String>?
@@ -62,11 +62,17 @@ module nft_protocol::std_collection {
         authority: address,
         ctx: &mut TxContext,
     ) {
+        let max_supply_op = option::none();
+
+        if (max_supply > 0) {
+            option::fill(&mut max_supply_op, max_supply);
+        };
+
         let args = init_args(
             string::utf8(name),
             string::utf8(description),
             string::utf8(symbol),
-            max_supply,
+            max_supply_op,
             receiver,
             to_string_vector(&mut tags),
             royalty_fee_bps,
