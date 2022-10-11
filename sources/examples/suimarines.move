@@ -12,7 +12,6 @@ module nft_protocol::suimarines {
     struct SUIMARINES has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        // TODO: Consider using witness explicitly in function call
         let receiver = @0xA;
 
         std_collection::mint<SUIMARINES>(
