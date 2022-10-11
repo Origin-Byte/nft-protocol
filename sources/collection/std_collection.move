@@ -45,7 +45,7 @@ module nft_protocol::std_collection {
         // Symbol of the Nft Collection. This parameter is a
         // vector of bytes that should enconde to utf8
         symbol: vector<u8>,
-        max_supply: Option<u64>,
+        max_supply: u64,
         receiver: address,
         // TODO: When will we be able to pass vector<String>?
         // https://github.com/MystenLabs/sui/pull/4627
@@ -59,11 +59,17 @@ module nft_protocol::std_collection {
         recipient: address,
         ctx: &mut TxContext,
     ) {
+        let max_supply_op = option::none();
+
+        if (max_supply > 0) {
+            option::fill(&mut max_supply_op, max_supply);
+        };
+
         let args = init_args(
             string::utf8(name),
             string::utf8(description),
             string::utf8(symbol),
-            max_supply,
+            max_supply_op,
             receiver,
             to_string_vector(&mut tags),
             royalty_fee_bps,
@@ -86,7 +92,7 @@ module nft_protocol::std_collection {
             args.royalty_fee_bps,
         );
 
-        if (option::is_none(&max_supply)) {
+        if (option::is_none(&max_supply_op)) {
             let collection = collection::mint_uncapped<T, StdMeta>(
                 collection_args,
                 metadata,
@@ -104,7 +110,7 @@ module nft_protocol::std_collection {
         } else {
             let collection = collection::mint_capped<T, StdMeta>(
                 collection_args,
-                max_supply,
+                max_supply_op,
                 metadata,
                 ctx,
             );

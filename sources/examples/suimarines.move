@@ -3,22 +3,15 @@ module nft_protocol::suimarines {
     use sui::object::ID;
 
     use std::vector;
-    use std::option;
     
     use nft_protocol::collection::Collection;
     use nft_protocol::std_collection::{Self, StdMeta};
     use nft_protocol::slingshot::Slingshot;
-    use nft_protocol::cap::Limited;
     use nft_protocol::fixed_price::{Self, Market};
     use nft_protocol::unique_nft;
 
-    /// The type identifier of coin. The coin will have a type
-    /// tag of kind: `Coin<package_object::mycoin::MYCOIN>`
-    /// Make sure that the name of the type matches the module's name.
     struct SUIMARINES has drop {}
 
-    /// Module initializer is called once on module publish. A treasury
-    /// cap is sent to the publisher, who then controls minting and burning
     fun init(_witness: SUIMARINES, ctx: &mut TxContext) {
         // TODO: Consider using witness explicitly in function call
         let receiver = @0xA;
@@ -27,7 +20,7 @@ module nft_protocol::suimarines {
             b"Suimarines",
             b"A Unique NFT collection of Submarines on Sui",
             b"SUIM", // symbol
-            option::some(100), // max_supply
+            100, // max_supply
             receiver, // Royalty receiver
             vector::singleton(b"Art"), // tags
             100, // royalty_fee_bps
@@ -61,7 +54,7 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        collection: &mut Collection<SUIMARINES, StdMeta, Limited>,
+        collection: &mut Collection<SUIMARINES, StdMeta>,
         sale_index: u64,
         launchpad: &mut Slingshot<SUIMARINES, Market>,
         ctx: &mut TxContext,
