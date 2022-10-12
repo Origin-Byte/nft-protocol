@@ -4,40 +4,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Read YAML string: {:?}", data);
 
-    // data["foo"]["bar"]
-    //     .as_str()
-    //     .map(|s| s.to_string())
-    //     .ok_or(anyhow!("Could not find key foo.bar in something.yaml"))
-
-    let module_name = serde_yaml::to_string(&data["Collection"]["name"])?
+    let module_name = serde_yaml::to_value(&data["Collection"]["name"])?
+        .as_str()
+        .unwrap()
+        .to_string()
         .to_lowercase()
         .replace(" ", "_");
 
-    let witness = serde_yaml::to_string(&data["Collection"]["name"])?
+    let witness = serde_yaml::to_value(&data["Collection"]["name"])?
+        .as_str()
+        .unwrap()
+        .to_string()
         .to_uppercase()
         .replace(" ", "");
 
-    let description = serde_yaml::to_string(&data["Collection"]["description"])?;
-    let symbol = serde_yaml::to_string(&data["Collection"]["symbol"])?;
+    let description = serde_yaml::to_value(&data["Collection"]["description"])?
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let symbol = serde_yaml::to_value(&data["Collection"]["symbol"])?
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let max_supply = serde_yaml::to_value(&data["Collection"]["max_supply"])?
         .as_u64()
         .unwrap();
 
-    let receiver = serde_yaml::to_string(&data["Collection"]["receiver"])?;
+    let receiver = serde_yaml::to_value(&data["Collection"]["receiver"])?
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let royalty_fee_bps = serde_yaml::to_value(&data["Collection"]["royalty_fee_bps"])?
         .as_u64()
         .unwrap();
 
-    let extra_data = serde_yaml::to_string(&data["Collection"]["data"])?;
+    let extra_data = serde_yaml::to_value(&data["Collection"]["data"])?
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let is_mutable = serde_yaml::to_value(&data["Collection"]["is_mutable"])?
         .as_bool()
         .unwrap();
 
-    // let binding = serde_yaml::to_value(&data["Collection"]["name"])?;
-    // let new_name = binding.as_str().unwrap();
+    let tags = serde_yaml::to_value(&data["Collection"]["tags"])?
+        .as_sequence()
+        .unwrap();
 
     println!("{:?}", module_name);
     println!("{:?}", witness);
@@ -45,14 +60,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", symbol);
     println!("{:?}", max_supply);
     println!("{:?}", receiver);
+    println!("{:?}", royalty_fee_bps);
+    println!("{:?}", extra_data);
     println!("{:?}", is_mutable);
-    // println!("{:?}", new_name);
+    println!("{:?}", tags);
+
+    let nft_type = serde_yaml::to_value(&data["NftType"])?
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    println!("{:?}", nft_type);
 
     Ok(())
-}
-
-pub fn trim_newline(s: &mut String) {
-    if s.ends_with('\n') {
-        s.pop();
-    }
 }
