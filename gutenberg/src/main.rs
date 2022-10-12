@@ -50,9 +50,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .as_bool()
         .unwrap();
 
-    let tags = serde_yaml::to_value(&data["Collection"]["tags"])?
-        .as_sequence()
-        .unwrap();
+    let tag_binding = serde_yaml::to_value(&data["Collection"]["tags"])?;
+    let tags = tag_binding.as_sequence().unwrap();
 
     println!("{:?}", module_name);
     println!("{:?}", witness);
