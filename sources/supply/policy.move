@@ -12,7 +12,7 @@ module nft_protocol::supply_policy {
     use nft_protocol::supply::{Self, Supply};
 
     struct SupplyPolicy has store {
-        is_blind: bool, 
+        regulated: bool, 
         supply: Option<Supply>,
     }
 
@@ -21,7 +21,7 @@ module nft_protocol::supply_policy {
         frozen: bool,
     ): SupplyPolicy {
         SupplyPolicy {
-            is_blind: false,
+            regulated: true,
             supply: option::some(supply::new(max_supply, frozen)),
         }
     }
@@ -29,7 +29,7 @@ module nft_protocol::supply_policy {
     public fun create_unlimited(
     ): SupplyPolicy {
         SupplyPolicy {
-            is_blind: true,
+            regulated: false,
             supply: option::none(),
         }
     }
@@ -37,24 +37,24 @@ module nft_protocol::supply_policy {
     public fun supply(
         policy: &SupplyPolicy
     ): &Supply {
-        assert!(policy.is_blind == false, 0);
+        assert!(policy.regulated == true, 0);
         option::borrow(&policy.supply)
     }
 
     public fun supply_mut(
         policy: &mut SupplyPolicy
     ): &mut Supply {
-        assert!(policy.is_blind == false, 0);
+        assert!(policy.regulated == true, 0);
         option::borrow_mut(&mut policy.supply)
     }
 
     public fun destroy_capped(policy: SupplyPolicy) {
         // One can only destroy a SupplyPolicy that is not blind
-        assert!(policy.is_blind == false, 0);
+        assert!(policy.regulated == true, 0);
 
         assert!(supply::current(option::borrow(&policy.supply)) == 0, 0);
         let SupplyPolicy {
-            is_blind: _,
+            regulated: _,
             supply
         } = policy;
 
@@ -62,9 +62,9 @@ module nft_protocol::supply_policy {
         option::destroy_none(supply);
     }
 
-    public fun is_blind(
+    public fun regulated(
         policy: &SupplyPolicy,
     ): bool {
-        policy.is_blind
+        policy.regulated
     }
 }

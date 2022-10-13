@@ -75,9 +75,9 @@ module nft_protocol::collectibles {
         collection: &Collection<T, M>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Unlimited collections have an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::regulated(collection::supply_policy(collection)), 0
         );
 
         let args = mint_args(
@@ -116,9 +116,9 @@ module nft_protocol::collectibles {
         collection: &mut Collection<T, M>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            supply_policy::regulated(collection::supply_policy(collection)), 0
         );
 
         let args = mint_args(
@@ -179,9 +179,9 @@ module nft_protocol::collectibles {
         nft_data: Collectible,
         collection: &mut Collection<T, M>,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            supply_policy::regulated(collection::supply_policy(collection)), 0
         );
 
         assert!(

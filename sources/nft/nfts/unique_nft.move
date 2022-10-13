@@ -79,9 +79,9 @@ module nft_protocol::unique_nft {
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Unlimited collections have an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::regulated(collection::supply_policy(collection)), 0
         );
 
         let args = mint_args(
@@ -122,9 +122,9 @@ module nft_protocol::unique_nft {
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            supply_policy::regulated(collection::supply_policy(collection)), 0
         );
 
         let args = mint_args(
@@ -166,9 +166,9 @@ module nft_protocol::unique_nft {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Unlimited collections have an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(collection)), 0
+            !supply_policy::regulated(collection::supply_policy(collection)), 0
         );
 
         let args = mint_args(
@@ -207,9 +207,9 @@ module nft_protocol::unique_nft {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(collection)), 0
+            supply_policy::regulated(collection::supply_policy(collection)), 0
         );
 
         let args = mint_args(
