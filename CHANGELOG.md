@@ -6,6 +6,20 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Added:
+- `supply_policy` module with object `SupplyPolicy` to regulate NFT Collection supply
+- Substituted field `cap` by `supply_policy` from `Collection` object, making it
+  no longer a generic but an object of type `SupplyPolicy`
+- `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead
+  of `Option<u64>` to facilitate function call on the client side
+
+Removed:
+- `cap` module with objects `Limited` and `Unlimited` that regulate the supply
+  of NFT collections
+
+
 ## [0.4.0] - 2022-10-11
 
 ### Changed
