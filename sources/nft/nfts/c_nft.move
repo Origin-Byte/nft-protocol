@@ -26,7 +26,7 @@ module nft_protocol::c_nft {
     use sui::url::{Self, Url};
     
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::cap::{Limited, Unlimited};
+    use nft_protocol::supply_policy;
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::nft::{Self, Nft};
@@ -132,9 +132,14 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &Collection<T, M, Unlimited>,
+        collection: &Collection<T, M>,
         ctx: &mut TxContext,
     ) {
+        // Unlimited collections have an unregulated supply policy
+        assert!(
+            !supply_policy::regulated(collection::supply_policy(collection)), 0
+        );
+        
         let args = mint_args(
             index,
             name,
@@ -181,9 +186,14 @@ module nft_protocol::c_nft {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &mut Collection<T, M, Limited>,
+        collection: &mut Collection<T, M>,
         ctx: &mut TxContext,
     ) {
+        // Limited collections have a regulated supply policy
+        assert!(
+            supply_policy::regulated(collection::supply_policy(collection)), 0
+        );
+
         let args = mint_args(
             index,
             name,
@@ -210,10 +220,10 @@ module nft_protocol::c_nft {
     /// 
     /// The newly composed object has a its own maximum supply of NFTs.
     public fun compose_data_objects
-        <T, M: store, Cap: store, D: store + copy, C: store + copy>
+        <T, M: store, D: store + copy, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
-        collection: &mut Collection<T, M, Cap>,
+        collection: &mut Collection<T, M>,
         max_supply: Option<u64>,
         ctx: &mut TxContext,
     ) {
@@ -323,7 +333,7 @@ module nft_protocol::c_nft {
             assert!(nft::data_id(&nft) == id(&data), 0);
             assert!(
                 vec_map::contains(&combo_data.components, &nft::data_id(&nft)),
-                0
+                0,
             );
 
             // `burn_loose_nft` will fail if the NFT is embedded
