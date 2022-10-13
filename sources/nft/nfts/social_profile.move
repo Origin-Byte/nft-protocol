@@ -19,13 +19,15 @@ module nft_protocol::social_profile {
     /// An NFT `Unique` data object with standard fields.
     struct SocialProfile has key, store {
         id: UID,
-        profile_picture: Option<ID>, // TODO: shouldn't this be typed ID?
+        // TODO: Should be string to be parsed by client
+        profile_picture: Option<ID>,
         username: String,
         biography: String,
         media: Media,
     }
 
     struct Media has store, drop, copy {
+        // TODO: Allow for arbitrary new fields
         twitter: String,
         discord: String,
         telegram: String,
