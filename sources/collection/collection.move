@@ -59,6 +59,8 @@ module nft_protocol::collection {
         /// the royalty enforcement standard
         royalty_fee_bps: u64,
         creators: vector<Creator>,
+        /// ID of `MintAuthority` object
+        mint_authority: ID,
         /// The `Metadata` is a type exported by an upstream contract which is 
         /// used to store additional information about the NFT.
         metadata: M,
@@ -141,12 +143,15 @@ module nft_protocol::collection {
             }
         );
 
+        let mint_object_uid = object::new(ctx);
+        let mint_object_id = object::uid_to_inner(&mint_object_uid);
+
         create_mint_authority<T>(
+            mint_object_uid,
             object::uid_to_inner(&id),
             max_supply,
             blind_supply,
             authority,
-            ctx,
         );
 
         Collection {
@@ -159,6 +164,7 @@ module nft_protocol::collection {
             is_mutable: args.is_mutable,
             royalty_fee_bps: args.royalty_fee_bps,
             creators: vector::empty(),
+            mint_authority: mint_object_id,
             metadata: metadata,
         }
     }
@@ -198,6 +204,7 @@ module nft_protocol::collection {
             is_mutable: _,
             royalty_fee_bps: _,
             creators: _,
+            mint_authority: _,
             metadata,
         } = collection;
 
@@ -552,15 +559,15 @@ module nft_protocol::collection {
     // === Private Functions ===
 
     fun create_mint_authority<T>(
+        object_id: UID,
         collection_id: ID,
         supply: Option<u64>,
         is_blind: bool,
         recipient: address,
-        ctx: &mut TxContext,
     ) {
         if (is_blind) {
             let authority: MintAuthority<T> = MintAuthority {
-                id: object::new(ctx),
+                id: object_id,
                 collection_id: collection_id,
                 supply_policy: supply_policy::create_unlimited(),
             };
@@ -568,7 +575,7 @@ module nft_protocol::collection {
             transfer::transfer(authority, recipient);
         } else {
             let authority: MintAuthority<T> = MintAuthority {
-                id: object::new(ctx),
+                id: object_id,
                 collection_id: collection_id,
                 supply_policy: supply_policy::create_limited(supply, false),
             };

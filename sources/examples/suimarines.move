@@ -27,7 +27,7 @@ module nft_protocol::suimarines {
             100, // royalty_fee_bps
             false, // is_mutable
             b"Some extra data",
-            tx_context::sender(ctx), // recipient
+            tx_context::sender(ctx), // mint authority
             ctx,
         );
     }
