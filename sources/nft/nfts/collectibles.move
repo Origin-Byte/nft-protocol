@@ -13,7 +13,7 @@ module nft_protocol::collectibles {
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
     
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintAuthority};
     use nft_protocol::supply_policy;
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
@@ -58,13 +58,15 @@ module nft_protocol::collectibles {
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Collectible data object for NFT(s) from a `Collection` of `Unlimited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unlimited_collection_nft_data<T, M: store>(
+    public fun mint_unregulated_nft_data<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -72,12 +74,12 @@ module nft_protocol::collectibles {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &Collection<T, M>,
+        mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have an unregulated supply policy
+        // Assert that it has an unregulated supply policy
         assert!(
-            !supply_policy::regulated(collection::supply_policy(collection)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -92,20 +94,24 @@ module nft_protocol::collectibles {
 
         mint_and_share_data(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             ctx,
         );
     }
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Collectible data object for NFT(s) from a `Collection` of `Limited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from a regulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_limited_collection_nft_data<T, M: store>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_regulated_nft_data<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -113,12 +119,12 @@ module nft_protocol::collectibles {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: Option<u64>,
-        collection: &mut Collection<T, M>,
+        mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a regulated supply policy
+        // Assert that it has a regulated supply policy
         assert!(
-            supply_policy::regulated(collection::supply_policy(collection)), 0
+            supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -131,11 +137,11 @@ module nft_protocol::collectibles {
             max_supply,
         );
 
-        collection::increase_supply(collection, 1);
+        collection::increase_supply(mint, 1);
 
         mint_and_share_data(
             args,
-            collection::id(collection),
+            collection::mint_collection_id(mint),
             ctx,
         );
     }
@@ -147,7 +153,7 @@ module nft_protocol::collectibles {
     /// To be called by Launchpad contract
     /// TODO: The flow here needs to be reconsidered
     public fun mint_nft<T, M: store>(
-        _collection: &Collection<T, M>,
+        _mint: &MintAuthority<T>,
         nft_data: &mut Collectible,
         recipient: address,
         ctx: &mut TxContext,
@@ -177,20 +183,21 @@ module nft_protocol::collectibles {
     /// In other words, the `supply.current` must be zero.
     public entry fun burn_limited_collection_nft_data<T, M: store>(
         nft_data: Collectible,
+        mint: &mut MintAuthority<T>,
         collection: &mut Collection<T, M>,
     ) {
-        // Limited collections have a regulated supply policy
+        // Assert that it has a regulated supply policy
         assert!(
-            supply_policy::regulated(collection::supply_policy(collection)), 0
+            supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         assert!(
-            nft_data.collection_id == collection::id(collection), 0
+            nft_data.collection_id == collection::mint_collection_id(mint), 0
         );
 
         assert!(collection::is_mutable(collection), 0);
 
-        collection::decrease_supply(collection, 1);
+        collection::decrease_supply(mint, 1);
 
         let Collectible {
             id,
@@ -206,7 +213,7 @@ module nft_protocol::collectibles {
         event::emit(
             BurnDataEvent {
                 object_id: object::uid_to_inner(&id),
-                collection_id: collection::id(collection),
+                collection_id: collection::mint_collection_id(mint),
             }
         );
 
@@ -229,9 +236,9 @@ module nft_protocol::collectibles {
 
     // === Supply Functions ===
 
-    /// NFT `Collectible` data objects have an opt-in `supply.cap`.
+    /// NFT `Collectible` data objects have an opt-in `supply.max`.
     /// `Data` objects without supply will have `option::none()` in its value.
-    /// This Function call adds a value to the supply cap.
+    /// This Function call adds a value to the supply max.
     public entry fun cap_supply<T, M: store>(
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
@@ -245,7 +252,7 @@ module nft_protocol::collectibles {
         )
     }
 
-    /// Increases the `supply.cap` of the NFT `Collectible`
+    /// Increases the `supply.max` of the NFT `Collectible`
     /// by the `value` amount
     public entry fun increase_supply_cap<T, M: store>(
         collection: &Collection<T, M>,
@@ -260,7 +267,7 @@ module nft_protocol::collectibles {
         )
     }
 
-    /// Decreases the `supply.cap` of the NFT `Collectible`
+    /// Decreases the `supply.max` of the NFT `Collectible`
     /// by the `value` amount.
     /// This function call fails if one attempts to decrease the supply cap
     /// to a value below the current supply.
