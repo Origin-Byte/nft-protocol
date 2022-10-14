@@ -1,5 +1,3 @@
-
-
 //! Exports error functions. All errors in this smart contract have a prefix
 //! which distinguishes them from errors in other packages.
 module nft_protocol::err {
