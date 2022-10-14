@@ -13,6 +13,7 @@ module nft_protocol::unique_nft {
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
     
+    use nft_protocol::err;
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply_policy;
@@ -77,7 +78,8 @@ module nft_protocol::unique_nft {
     ) {
         // Assert that it has an unregulated supply policy
         assert!(
-            !supply_policy::regulated(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
@@ -118,7 +120,8 @@ module nft_protocol::unique_nft {
     ) {
         // Assert that it has regulated supply policy
         assert!(
-            supply_policy::regulated(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
@@ -160,7 +163,8 @@ module nft_protocol::unique_nft {
     ) {
         // Assert that it has an unregulated supply policy
         assert!(
-            !supply_policy::regulated(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch()
         );
 
         let args = mint_args(
@@ -199,7 +203,8 @@ module nft_protocol::unique_nft {
     ) {
         // Assert that it has a regulated supply policy
         assert!(
-            supply_policy::regulated(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
