@@ -21,7 +21,6 @@ module nft_protocol::suimarines {
             b"A Unique NFT collection of Submarines on Sui",
             b"SUIM", // symbol
             100, // max_supply
-            false, // blind_supply
             receiver, // Royalty receiver
             vector::singleton(b"Art"), // tags
             100, // royalty_fee_bps
