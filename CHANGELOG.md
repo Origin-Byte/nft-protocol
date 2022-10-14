@@ -25,8 +25,8 @@ Removed:
   of NFT collections
 - Removed field `cap` from `Collection` object, removing the supply mint policy
   responsibility off the `Collection` object
-  
-  no longer a generic but an object of type `SupplyPolicy`
+- Removed field `index` from `unique_nft::Unique`, `collectibles::Collectible` and
+  `c_nft::Data`
 
 
 ## [0.4.0] - 2022-10-11
