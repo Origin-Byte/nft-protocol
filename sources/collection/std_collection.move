@@ -72,17 +72,11 @@ module nft_protocol::std_collection {
         authority: address,
         ctx: &mut TxContext,
     ) {
-        let max_supply_op = option::none();
-
-        if (max_supply > 0) {
-            option::fill(&mut max_supply_op, max_supply);
-        };
-
         let args = init_args(
             string::utf8(name),
             string::utf8(description),
             string::utf8(symbol),
-            max_supply_op,
+            max_supply,
             receiver,
             to_string_vector(&mut tags),
             royalty_fee_bps,
