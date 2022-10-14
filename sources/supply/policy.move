@@ -103,8 +103,8 @@ module nft_protocol::supply_policy {
         )
     }
 
-    public fun destroy_capped(policy: SupplyPolicy) {
-        // One can only destroy a SupplyPolicy that is not blind
+    public fun destroy_regulated(policy: SupplyPolicy) {
+        // One can only destroy a SupplyPolicy that is regulated
         assert!(policy.regulated == true, 0);
 
         assert!(supply::current(option::borrow(&policy.supply)) == 0, 0);

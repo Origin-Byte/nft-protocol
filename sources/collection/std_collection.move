@@ -118,7 +118,7 @@ module nft_protocol::std_collection {
 
     // === Entrypoints ===
 
-    /// Burn a Standard regulated Collection. Invokes `burn_capped()`.
+    /// Burn a Standard regulated Collection. Invokes `burn_regulated()`.
     public entry fun burn_regulated<T>(
         collection: Collection<T, StdMeta>,
         mint: MintAuthority<T>,

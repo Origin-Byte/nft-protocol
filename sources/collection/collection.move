@@ -22,7 +22,7 @@
 //! frozen, in order to give creators the ability to ammend it prior to 
 //! the primary sale taking place.
 //! 
-//! TODO: Consider adding a function `destroy_uncapped`?
+//! TODO: Consider adding a function `destroy_unregulated`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
 //! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that 
@@ -229,7 +229,7 @@ module nft_protocol::collection {
             metadata,
         } = collection;
 
-        supply_policy::destroy_capped(supply_policy);
+        supply_policy::destroy_regulated(supply_policy);
 
         object::delete(id);
 
