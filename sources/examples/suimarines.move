@@ -1,19 +1,17 @@
 module nft_protocol::suimarines {
     use sui::tx_context::{Self, TxContext};
-    use sui::object::ID;
 
     use std::vector;
     
     use nft_protocol::collection::{MintAuthority};
-    use nft_protocol::fixed_price::{Self, Market};
+    use nft_protocol::fixed_price::{Self, FixedPriceMarket};
     use nft_protocol::slingshot::Slingshot;
     use nft_protocol::std_collection;
     use nft_protocol::unique_nft;
 
     struct SUIMARINES has drop {}
 
-    fun init(_witness: SUIMARINES, ctx: &mut TxContext) {
-        // TODO: Consider using witness explicitly in function call
+    fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let receiver = @0xA;
 
         std_collection::mint<SUIMARINES>(
@@ -29,15 +27,9 @@ module nft_protocol::suimarines {
             tx_context::sender(ctx), // mint authority
             ctx,
         );
-    }
 
-    public entry fun create_launchpad(
-        collection_id: ID,
-        receiver: address,
-        ctx: &mut TxContext
-        ) {
         fixed_price::create_single_market(
-            collection_id, // this should not be here and instead be part of the witness?
+            witness,
             tx_context::sender(ctx), // admin
             receiver,
             true, // is_embedded
@@ -56,7 +48,7 @@ module nft_protocol::suimarines {
         attribute_values: vector<vector<u8>>,
         mint_authority: &mut MintAuthority<SUIMARINES>,
         sale_index: u64,
-        launchpad: &mut Slingshot<SUIMARINES, Market>,
+        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
         unique_nft::mint_regulated_nft(
