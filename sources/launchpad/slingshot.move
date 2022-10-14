@@ -17,8 +17,6 @@ module nft_protocol::slingshot {
 
     struct Slingshot<phantom T, M> has key, store{
         id: UID,
-        /// The ID of the NFT Collection object
-        collection_id: ID,
         /// Boolean indicating if the sale is live
         live: bool,
         /// The address of the administrator
@@ -35,7 +33,6 @@ module nft_protocol::slingshot {
     }
 
     struct InitSlingshot has drop {
-        collection_id: ID,
         admin: address,
         receiver: address,
         is_embedded: bool,
@@ -62,7 +59,6 @@ module nft_protocol::slingshot {
 
         let slingshot: Slingshot<T, M> = Slingshot {
             id,
-            collection_id: args.collection_id,
             live: false,
             admin: args.admin,
             receiver: args.receiver,
@@ -84,7 +80,6 @@ module nft_protocol::slingshot {
 
         let Slingshot {
             id,
-            collection_id: _,
             live: _,
             admin: _,
             receiver: _,
@@ -98,14 +93,12 @@ module nft_protocol::slingshot {
     }
 
     public fun init_args(
-        collection_id: ID,
         admin: address,
         receiver: address,
         is_embedded: bool, 
     ): InitSlingshot {
 
         InitSlingshot {
-            collection_id,
             admin,
             receiver,
             is_embedded
@@ -131,20 +124,6 @@ module nft_protocol::slingshot {
     }
 
     // === Getter Functions ===
-
-    /// Get the Slingshot's `collection_id` ID
-    public fun collection_id<T, M>(
-        slingshot: &Slingshot<T, M>,
-    ): ID {
-        slingshot.collection_id
-    }
-
-    /// Get the Slingshot's `collection_id` ID as reference
-    public fun collection_id_ref<T, M>(
-        slingshot: &Slingshot<T, M>,
-    ): &ID {
-        &slingshot.collection_id
-    }
     
     /// Get the Slingshot's `live`
     public fun live<T, M>(
