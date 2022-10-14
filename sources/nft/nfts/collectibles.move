@@ -21,7 +21,6 @@ module nft_protocol::collectibles {
 
     struct Collectible has key, store {
         id: UID,
-        index: u64,
         name: String,
         description: String,
         collection_id: ID,
@@ -36,7 +35,6 @@ module nft_protocol::collectibles {
     }
 
     struct MintArgs has drop {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -67,7 +65,6 @@ module nft_protocol::collectibles {
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_unregulated_nft_data<T>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -83,7 +80,6 @@ module nft_protocol::collectibles {
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -112,7 +108,6 @@ module nft_protocol::collectibles {
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_regulated_nft_data<T>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -128,7 +123,6 @@ module nft_protocol::collectibles {
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -201,7 +195,6 @@ module nft_protocol::collectibles {
 
         let Collectible {
             id,
-            index: _,
             name: _,
             description: _,
             collection_id: _,
@@ -300,13 +293,6 @@ module nft_protocol::collectibles {
         object::uid_as_inner(&nft_data.id)
     }
 
-    /// Get the Nft Collectible's `index`
-    public fun index(
-        nft_data: &Collectible,
-    ): u64 {
-        nft_data.index
-    }
-
     /// Get the Nft Collectible's `name`
     public fun name(
         nft_data: &Collectible,
@@ -381,7 +367,6 @@ module nft_protocol::collectibles {
 
         let data = Collectible {
             id: data_id,
-            index: args.index,
             name: args.name,
             supply: supply::new(args.max_supply, true),
             description: args.description,
@@ -394,7 +379,6 @@ module nft_protocol::collectibles {
     }
 
     fun mint_args(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -408,7 +392,6 @@ module nft_protocol::collectibles {
         };
 
         MintArgs {
-            index,
             name: string::utf8(name),
             description: string::utf8(description),
             url: url::new_unsafe_from_bytes(url),

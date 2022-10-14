@@ -66,7 +66,6 @@ module nft_protocol::c_nft {
     }
 
     struct Data has store, copy {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -79,7 +78,6 @@ module nft_protocol::c_nft {
     }
 
     struct MintArgs has drop {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -126,7 +124,6 @@ module nft_protocol::c_nft {
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_unregulated_nft_data<T, C: store + copy>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -142,7 +139,6 @@ module nft_protocol::c_nft {
         );
         
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -183,7 +179,6 @@ module nft_protocol::c_nft {
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_regulated_nft_data<T, C: store + copy>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -199,7 +194,6 @@ module nft_protocol::c_nft {
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -435,14 +429,6 @@ module nft_protocol::c_nft {
         object::uid_as_inner(&comp.id)
     }
 
-    /// Get the Nft Data's `index`
-    public fun index<C: store + copy>(
-        comp: &Composable<C>,
-    ): u64 {
-        let data = option::borrow(&comp.data);
-        data.index
-    }
-
     /// Get the Nft Data's `name`
     public fun name<C: store + copy>(
         comp: &Composable<C>,
@@ -511,7 +497,6 @@ module nft_protocol::c_nft {
         );
 
         let data = Data {
-            index: args.index,
             name: args.name,
             description: args.description,
             url: args.url,
@@ -530,7 +515,6 @@ module nft_protocol::c_nft {
     }
 
     fun mint_args(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -544,7 +528,6 @@ module nft_protocol::c_nft {
         };
 
         MintArgs {
-            index,
             name: string::utf8(name),
             description: string::utf8(description),
             url: url::new_unsafe_from_bytes(url),
