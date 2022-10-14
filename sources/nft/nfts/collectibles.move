@@ -13,8 +13,9 @@ module nft_protocol::collectibles {
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
     
-    use nft_protocol::collection::{Self, Collection, MintAuthority};
+    use nft_protocol::err;
     use nft_protocol::supply_policy;
+    use nft_protocol::collection::{Self, Collection, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::nft::{Self, Nft};
@@ -76,7 +77,8 @@ module nft_protocol::collectibles {
     ) {
         // Assert that it has an unregulated supply policy
         assert!(
-            !supply_policy::regulated(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
@@ -119,7 +121,8 @@ module nft_protocol::collectibles {
     ) {
         // Assert that it has a regulated supply policy
         assert!(
-            supply_policy::regulated(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
@@ -182,14 +185,19 @@ module nft_protocol::collectibles {
     ) {
         // Assert that it has a regulated supply policy
         assert!(
-            supply_policy::regulated(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         assert!(
-            nft_data.collection_id == collection::mint_collection_id(mint), 0
+            nft_data.collection_id == collection::mint_collection_id(mint),
+            err::collection_mismatch(),
         );
 
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         collection::decrease_supply(mint, 1);
 
@@ -221,7 +229,7 @@ module nft_protocol::collectibles {
         nft: Nft<T, Collectible>,
         nft_data: &mut Collectible,
     ) {
-        assert!(nft::data_id(&nft) == id(nft_data), 0);
+        assert!(nft::data_id(&nft) == id(nft_data), err::nft_data_mismatch());
 
         supply::decrease_supply(&mut nft_data.supply, 1);
         nft::burn_loose_nft(nft);
@@ -237,7 +245,10 @@ module nft_protocol::collectibles {
         nft_data: &mut Collectible,
         value: u64
     ) {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         supply::cap_supply(
             &mut nft_data.supply,
@@ -252,7 +263,10 @@ module nft_protocol::collectibles {
         nft_data: &mut Collectible,
         value: u64
     ) {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         supply::increase_cap(
             &mut nft_data.supply,
@@ -269,7 +283,10 @@ module nft_protocol::collectibles {
         nft_data: &mut Collectible,
         value: u64
     ) {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         supply::decrease_cap(
             &mut nft_data.supply,
@@ -340,7 +357,7 @@ module nft_protocol::collectibles {
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
     ): &Supply {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(collection::is_mutable(collection), err::collection_is_not_mutable());
 
         &mut nft_data.supply
     }

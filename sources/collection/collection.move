@@ -37,6 +37,7 @@ module nft_protocol::collection {
     use sui::tx_context::{TxContext};
     use sui::transfer;
 
+    use nft_protocol::err;
     use nft_protocol::tags::{Self, Tags};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
@@ -198,7 +199,7 @@ module nft_protocol::collection {
     ): M {
         assert!(
             supply::current(supply_policy::supply(&mint.supply_policy)) == 0,
-            0
+            err::supply_is_not_zero()
         );
 
         let MintAuthority {
@@ -242,7 +243,10 @@ module nft_protocol::collection {
         collection: &mut Collection<T, M>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.is_mutable = false;
     }
@@ -275,7 +279,10 @@ module nft_protocol::collection {
         name: vector<u8>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.name = string::utf8(name);
     }
@@ -286,7 +293,10 @@ module nft_protocol::collection {
         description: vector<u8>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.description = string::utf8(description);
     }
@@ -297,7 +307,10 @@ module nft_protocol::collection {
         symbol: vector<u8>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.symbol = string::utf8(symbol);
     }
@@ -308,7 +321,10 @@ module nft_protocol::collection {
         receiver: address,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.receiver = receiver;
     }
@@ -356,7 +372,10 @@ module nft_protocol::collection {
         share_of_royalty: u8,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         // TODO: Need to make sure sum of all Creator's `share_of_royalty` is
         // not above 100%
@@ -379,7 +398,10 @@ module nft_protocol::collection {
         creator_address: address,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         if (!vector::is_empty(&collection.creators)) {
             remove_address(
@@ -389,48 +411,48 @@ module nft_protocol::collection {
         }
     }
 
-    // /// Collections with regulated supply can have a cap on the maximum supply, however 
-    // /// the supply cap can also be `option::none()`. This function call
-    // /// adds a value to the supply cap.
-    // public entry fun cap_supply<T>(
-    //     mint: &mut MintAuthority<T>,
-    //     value: u64
-    // ) {
-    //     supply_policy::cap_supply(
-    //         &mut mint.supply_policy,
-    //         value
-    //     )
-    // }
+    /// `Limited` collections can have a cap on the maximum supply, however 
+    /// the supply cap can also be `option::none()`. This function call
+    /// adds a value to the supply cap.
+    public entry fun cap_supply<T>(
+        mint: &mut MintAuthority<T>,
+        value: u64
+    ) {
+        supply_policy::cap_supply(
+            &mut mint.supply_policy,
+            value
+        )
+    }
 
-    // /// Increases the `supply.max` by the `value` amount for 
-    // /// regulated collections. Invokes `supply::increase_cap()`
-    // public entry fun increase_max_supply<T>(
-    //     mint: &mut MintAuthority<T>,
-    //     value: u64,
-    // ) {
-    //     supply_policy::increase_max_supply(
-    //         &mut mint.supply_policy,
-    //         value,
-    //     );
-    // }
+    /// Increases the `supply.cap` by the `value` amount for 
+    /// `Limited` collections. Invokes `supply::increase_cap()`
+    public entry fun increase_max_supply<T>(
+        mint: &mut MintAuthority<T>,
+        value: u64,
+    ) {
+        supply_policy::increase_max_supply(
+            &mut mint.supply_policy,
+            value,
+        );
+    }
 
-    // /// Decreases the `supply.cap` by the `value` amount for 
-    // /// regulated collections. This function call fails if one attempts
-    // /// to decrease the supply cap to a value below the current supply.
-    // /// Invokes `supply::decrease_cap()`
-    // public entry fun decrease_max_supply<T>(
-    //     mint: &mut MintAuthority<T>,
-    //     value: u64
-    // ) {
-    //     supply_policy::decrease_max_supply(
-    //         &mut mint.supply_policy,
-    //         value
-    //     )
-    // }
+    /// Decreases the `supply.cap` by the `value` amount for 
+    /// `Limited` collections. This function call fails if one attempts
+    /// to decrease the supply cap to a value below the current supply.
+    /// Invokes `supply::decrease_cap()`
+    public entry fun decrease_max_supply<T>(
+        mint: &mut MintAuthority<T>,
+        value: u64
+    ) {
+        supply_policy::decrease_max_supply(
+            &mut mint.supply_policy,
+            value
+        )
+    }
 
     // === Supply Functions ===
 
-    /// Increase `supply.current` for regulated collections
+    /// Increase `supply.current` for `Limited`
     public fun increase_supply<T>(
         mint: &mut MintAuthority<T>,
         value: u64
@@ -565,7 +587,10 @@ module nft_protocol::collection {
         collection: &mut Collection<T, M>,
     ): &mut M {
         // Only return mutable reference if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         &mut collection.metadata
     }
@@ -602,7 +627,9 @@ module nft_protocol::collection {
             let authority: MintAuthority<T> = MintAuthority {
                 id: object_id,
                 collection_id: collection_id,
-                supply_policy: supply_policy::create_regulated(max_supply_opt, false),
+                supply_policy: supply_policy::create_regulated(
+                    max_supply_opt, false
+                ),
             };
 
             transfer::transfer(authority, recipient);

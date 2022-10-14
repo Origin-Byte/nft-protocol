@@ -19,6 +19,7 @@ Changed:
 Added:
 
 - `supply_policy` module with object `SupplyPolicy` to regulate NFT Collection supply
+- Error handling via `err` module
 
 Removed:
 - `cap` module with objects `Limited` and `Unlimited` that regulate the supply

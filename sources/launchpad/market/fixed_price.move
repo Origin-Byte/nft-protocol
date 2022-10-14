@@ -21,6 +21,7 @@ module nft_protocol::fixed_price {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     
+    use nft_protocol::err;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::sale::{Self, NftCertificate};
@@ -149,19 +150,19 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(slingshot::live(slingshot) == true, 0);
+        assert!(slingshot::live(slingshot) == true, err::launchpad_not_live());
         
         let receiver = slingshot::receiver(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is NOT whitelisted
-        assert!(!sale::whitelisted(sale), 0);
+        assert!(!sale::whitelisted(sale), err::sale_is_not_whitelisted());
 
         let market = sale::market(sale);
 
         let price = market.price;
 
-        assert!(coin::value(wallet) > price, 0);
+        assert!(coin::value(wallet) > price, err::coin_amount_below_price());
 
         // Split coin into price and change, then transfer 
         // the price and keep the change
@@ -194,22 +195,25 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(slingshot::live(slingshot) == true, 0);
+        assert!(slingshot::live(slingshot) == true, err::launchpad_not_live());
 
         let receiver = slingshot::receiver(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is whitelisted
-        assert!(sale::whitelisted(sale), 0);
+        assert!(sale::whitelisted(sale), err::sale_is_whitelisted());
 
         // Infer that whitelist token corresponds to correct sale outlet
-        assert!(whitelist::sale_id(&whitelist_token) == sale::id(sale), 0);
+        assert!(
+            whitelist::sale_id(&whitelist_token) == sale::id(sale),
+            err::incorrect_whitelist_token()
+        );
 
         let market = sale::market(sale);
 
         let price = market.price;
 
-        assert!(coin::value(wallet) > price, 0);
+        assert!(coin::value(wallet) > price, err::coin_amount_below_price());
 
         // Split coin into price and change, then transfer 
         // the price and keep the change
@@ -244,11 +248,14 @@ module nft_protocol::fixed_price {
         certificate: NftCertificate,
         recipient: address,
     ) {
-        assert!(nft::id(&nft) == sale::nft_id(&certificate), 0);
+        assert!(
+            nft::id(&nft) == sale::nft_id(&certificate),
+            err::certificate_does_not_correspond_to_nft_given()
+        );
 
         sale::burn_certificate(certificate);
 
-        assert!(slingshot::is_embedded(slingshot), 0);
+        assert!(slingshot::is_embedded(slingshot), err::nft_not_embedded());
 
         transfer::transfer(
             nft,
@@ -272,11 +279,14 @@ module nft_protocol::fixed_price {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        assert!(object::id(&nft_data) == sale::nft_id(&certificate), 0);
+        assert!(
+            object::id(&nft_data) == sale::nft_id(&certificate),
+            err::certificate_does_not_correspond_to_nft_given()
+        );
 
         sale::burn_certificate(certificate);
 
-        assert!(!slingshot::is_embedded(slingshot), 0);
+        assert!(!slingshot::is_embedded(slingshot), err::nft_not_loose());
 
         // We are currently not increasing the current supply of the NFT
         // being minted (both collectibles and cNFT implementation have a concept
@@ -304,7 +314,10 @@ module nft_protocol::fixed_price {
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        assert!(slingshot::admin(slingshot) == tx_context::sender(ctx), 0);
+        assert!(
+            slingshot::admin(slingshot) == tx_context::sender(ctx),
+            err::wrong_launchpad_admin()
+        );
 
         let sale = slingshot::sale_mut(slingshot, sale_index);
 
