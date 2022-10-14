@@ -59,7 +59,7 @@ module nft_protocol::suimarines {
         launchpad: &mut Slingshot<SUIMARINES, Market>,
         ctx: &mut TxContext,
     ) {
-        unique_nft::launchpad_mint_limited_collection_nft(
+        unique_nft::mint_regulated_nft(
             index,
             name,
             description,

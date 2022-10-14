@@ -118,8 +118,8 @@ module nft_protocol::std_collection {
 
     // === Entrypoints ===
 
-    /// Burn a Standard `Limited` Collection. Invokes `burn_capped()`.
-    public entry fun burn_limited_collection<T>(
+    /// Burn a Standard regulated Collection. Invokes `burn_capped()`.
+    public entry fun burn_regulated<T>(
         collection: Collection<T, StdMeta>,
         mint: MintAuthority<T>,
     ) {
@@ -131,7 +131,7 @@ module nft_protocol::std_collection {
         );
 
         // Delete generic Collection object
-        let metadata = collection::burn_capped(
+        let metadata = collection::burn_regulated(
             collection,
             mint,
         );
