@@ -306,6 +306,22 @@ module nft_protocol::fixed_price {
 
     // // === Modifier Functions ===
 
+    /// Toggle the Slingshot's `live` to `true` therefore 
+    /// making the NFT sale live.
+    public fun sale_on<T, M>(
+        slingshot: &mut Slingshot<T, FixedPriceMarket>,
+    ) {
+        slingshot::sale_on(slingshot);
+    }
+
+    /// Toggle the Slingshot's `live` to `false` therefore 
+    /// pausing or stopping the NFT sale.
+    public fun sale_off<T, M>(
+        slingshot: &mut Slingshot<T, FixedPriceMarket>,
+    ) {
+        slingshot::sale_off(slingshot);
+    }
+
     /// Permissioned endpoint to be called by `admin` to edit the fixed price 
     /// of the launchpad configuration.
     public entry fun new_price<T>(

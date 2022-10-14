@@ -111,7 +111,7 @@ module nft_protocol::slingshot {
 
     /// Toggle the Slingshot's `live` to `true` therefore 
     /// making the NFT sale live.
-    public entry fun sale_on<T, M>(
+    public fun sale_on<T, M>(
         slingshot: &mut Slingshot<T, M>,
     ) {
         slingshot.live = true
@@ -119,7 +119,7 @@ module nft_protocol::slingshot {
 
     /// Toggle the Slingshot's `live` to `false` therefore 
     /// pausing or stopping the NFT sale.
-    public entry fun sale_off<T, M>(
+    public fun sale_off<T, M>(
         slingshot: &mut Slingshot<T, M>,
     ) {
         slingshot.live = false
