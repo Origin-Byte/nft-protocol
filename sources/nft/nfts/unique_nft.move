@@ -23,8 +23,6 @@ module nft_protocol::unique_nft {
     /// An NFT `Unique` data object with standard fields.
     struct Unique has key, store {
         id: UID,
-        /// The index identifier of an NFT
-        index: u64,
         name: String,
         description: String,
         collection_id: ID,
@@ -38,7 +36,6 @@ module nft_protocol::unique_nft {
     }
 
     struct MintArgs has drop {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -66,7 +63,6 @@ module nft_protocol::unique_nft {
     ///  
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_unregulated_nft<T, Market: store>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -85,7 +81,6 @@ module nft_protocol::unique_nft {
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -111,7 +106,6 @@ module nft_protocol::unique_nft {
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_regulated_nft<T, Market: store>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -128,7 +122,6 @@ module nft_protocol::unique_nft {
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -156,7 +149,6 @@ module nft_protocol::unique_nft {
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
     public fun direct_mint_unregulated_nft<T>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -172,7 +164,6 @@ module nft_protocol::unique_nft {
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -197,7 +188,6 @@ module nft_protocol::unique_nft {
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
     public fun direct_mint_regulated_nft<T>(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -213,7 +203,6 @@ module nft_protocol::unique_nft {
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -254,13 +243,6 @@ module nft_protocol::unique_nft {
         nft_data: &Unique,
     ): &ID {
         object::uid_as_inner(&nft_data.id)
-    }
-
-    /// Get the Nft Unique's `index`
-    public fun index(
-        nft_data: &Unique,
-    ): u64 {
-        nft_data.index
     }
 
     /// Get the Nft Unique's `name`
@@ -321,7 +303,6 @@ module nft_protocol::unique_nft {
 
         let nft_data = Unique {
             id: data_id,
-            index: args.index,
             name: args.name,
             description: args.description,
             collection_id: collection_id,
@@ -359,7 +340,6 @@ module nft_protocol::unique_nft {
 
         let nft_data = Unique {
             id: data_id,
-            index: args.index,
             name: args.name,
             description: args.description,
             collection_id: collection_id,
@@ -404,7 +384,6 @@ module nft_protocol::unique_nft {
 
         let Unique {
             id,
-            index: _,
             name: _,
             description: _,
             collection_id: _,
@@ -416,7 +395,6 @@ module nft_protocol::unique_nft {
     }
 
     fun mint_args(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -429,7 +407,6 @@ module nft_protocol::unique_nft {
         };
 
         MintArgs {
-            index,
             name: string::utf8(name),
             description: string::utf8(description),
             url: url::new_unsafe_from_bytes(url),

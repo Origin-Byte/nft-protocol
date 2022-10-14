@@ -40,7 +40,6 @@ module nft_protocol::suimarines {
     }
 
     public entry fun mint_nft(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -52,7 +51,6 @@ module nft_protocol::suimarines {
         ctx: &mut TxContext,
     ) {
         unique_nft::mint_regulated_nft(
-            index,
             name,
             description,
             url,
