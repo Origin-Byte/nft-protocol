@@ -71,7 +71,7 @@ module nft_protocol::slingshot {
     }
 
     /// Burn the `Slingshot` and return the `M` object
-    public entry fun delete<T: drop, M: store>(
+    public fun delete<T: drop, M: store>(
         slingshot: Slingshot<T, M>,
         ctx: &mut TxContext,
     ): vector<Sale<T, M>> {
