@@ -88,7 +88,7 @@ module nft_protocol::supply_policy {
         policy: &mut SupplyPolicy,
         value: u64
     ) {
-        assert!(!regulated(policy), 0);
+        assert!(regulated(policy), 0);
 
         supply::increase_supply(
             supply_mut(policy),
