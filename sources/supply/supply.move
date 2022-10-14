@@ -62,7 +62,6 @@ module nft_protocol::supply {
     }
 
     public fun destroy(supply: Supply) {
-        // TODO: Confirm this is secure
         assert!(supply.current == 0, err::supply_is_not_zero());
         let Supply { frozen: _, max: _, current: _ } = supply;
     }

@@ -8,16 +8,25 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ## [Unreleased]
 
-Added:
-- `supply_policy` module with object `SupplyPolicy` to regulate NFT Collection supply
-- Substituted field `cap` by `supply_policy` from `Collection` object, making it
-  no longer a generic but an object of type `SupplyPolicy`
+Changed:
+- Moved the supply mint policy responsibility off the `Collection` object to a separate
+  object `MintAuthority`
+- `Slingshot` has now witness pattern `Slingshot<phantom T, M>` where 
+  `T` represents the exported NFT type and `M` the market type
 - `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead
   of `Option<u64>` to facilitate function call on the client side
+
+Added:
+
+- `supply_policy` module with object `SupplyPolicy` to regulate NFT Collection supply
 
 Removed:
 - `cap` module with objects `Limited` and `Unlimited` that regulate the supply
   of NFT collections
+- Removed field `cap` from `Collection` object, removing the supply mint policy
+  responsibility off the `Collection` object
+- Removed field `index` from `unique_nft::Unique`, `collectibles::Collectible` and
+  `c_nft::Data`
 
 
 ## [0.4.0] - 2022-10-11
