@@ -9,8 +9,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let f = std::fs::File::open("config.yaml")?;
     let data: serde_yaml::Value = serde_yaml::from_reader(f)?;
 
-    // println!("Read YAML string: {:?}", data);
-
     let name = serde_yaml::to_value(&data["Collection"]["name"])?
         .as_str()
         .unwrap()
