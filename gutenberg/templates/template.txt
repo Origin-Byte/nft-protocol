@@ -12,48 +12,46 @@ module nft_protocol::{module_name} {{
     struct {witness} has drop {{}}
 
     fun init(witness: {witness}, ctx: &mut TxContext) {{
-        let tags = {tags};
+        let tags: vector<vector<u8>> = vector::empty();
+        {tags}
 
         std_collection::mint<{witness}>(
             b"{name}",
             b"{description}",
-            b"{symbol}",
-            {max_supply},
-            {blind_supply},
-            {receiver},
-            tags,
-            {royalty_fee_bps},
-            {is_mutable},
+            b"{symbol}", // symbol
+            {max_supply}, // max_supply
+            @{receiver}, // Royalty receiver
+            tags, // tags
+            {royalty_fee_bps}, // royalty_fee_bps
+            {is_mutable}, // is_mutable
             b"{extra_data}",
-            tx_context::sender(ctx),
+            tx_context::sender(ctx), // mint authority
             ctx,
         );
 
-        fixed_price::create_single_market(
+        {market_module}::{sale_type}(
             witness,
             tx_context::sender(ctx), // admin
-            {receiver},
-            {is_embedded},
-            {whitelist},
-            {price},
+            @{receiver},
+            {is_embedded}, // is_embedded
+            {whitelist}, // whitelist
+            {sale_price}, // price
             ctx,
         );
     }}
 
     public entry fun mint_nft(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        mint_authority: &mut MintAuthority<{witness}>,
+        mint_authority: &mut MintAuthority<SUIMARINES>,
         sale_index: u64,
-        launchpad: &mut Slingshot<{witness}, {market_type}>,
+        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {{
-        {nft_type}::launchpad_mint_limited_collection_nft(
-            index,
+        {nft_type}::mint_regulated_nft(
             name,
             description,
             url,

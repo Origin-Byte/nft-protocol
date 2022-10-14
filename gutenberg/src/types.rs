@@ -5,7 +5,7 @@ pub enum NftType {
 }
 
 pub enum SalesType {
-    SingleMarket,
+    SingleMarket, // create_single_market
     MultiMarket,
 }
 
