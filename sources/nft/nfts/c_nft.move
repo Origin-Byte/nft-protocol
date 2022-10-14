@@ -124,7 +124,7 @@ module nft_protocol::c_nft {
     /// that are supposed to give rise to the composability tree.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unlimited_collection_nft_data<T, M: store, C: store + copy>(
+    public fun mint_unlimited_collection_nft_data<T, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -135,9 +135,9 @@ module nft_protocol::c_nft {
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Unlimited collections have an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
         
         let args = mint_args(
@@ -178,7 +178,7 @@ module nft_protocol::c_nft {
     /// and what the supply of those configurations are.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_limited_collection_nft_data<T, M: store, C: store + copy>(
+    public fun mint_limited_collection_nft_data<T, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -189,9 +189,9 @@ module nft_protocol::c_nft {
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -220,7 +220,7 @@ module nft_protocol::c_nft {
     /// 
     /// The newly composed object has a its own maximum supply of NFTs.
     public fun compose_data_objects
-        <T, M: store, D: store + copy, C: store + copy>
+        <T, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
         mint: &mut MintAuthority<T>,

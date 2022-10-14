@@ -15,7 +15,7 @@
 module nft_protocol::collection {
     use std::vector;
     use std::string::{Self, String};
-    use std::option::{Option};
+    use std::option::{Self, Option};
 
     use sui::event;
     use sui::object::{Self, UID, ID};
@@ -25,6 +25,8 @@ module nft_protocol::collection {
     use nft_protocol::tags::{Self, Tags};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
+
+    const U64_MAX: u64 = 18446744073709551615;
 
     /// An NFT `Collection` object with a generic `M`etadata and `C`ap.
     /// NFT Collections can be instantiated with a `Cap` of type `Limited` or
@@ -129,8 +131,7 @@ module nft_protocol::collection {
     /// `max_supply` to `option::none`.
     public fun mint<T, M: store>(
         args: InitCollection,
-        max_supply: Option<u64>,
-        blind_supply: bool,
+        max_supply: u64,
         metadata: M,
         authority: address,
         ctx: &mut TxContext,
@@ -150,9 +151,9 @@ module nft_protocol::collection {
             mint_object_uid,
             object::uid_to_inner(&id),
             max_supply,
-            blind_supply,
             authority,
         );
+
 
         Collection {
             id,
@@ -368,44 +369,44 @@ module nft_protocol::collection {
         }
     }
 
-    /// `Limited` collections can have a cap on the maximum supply, however 
-    /// the supply cap can also be `option::none()`. This function call
-    /// adds a value to the supply cap.
-    public entry fun cap_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64
-    ) {
-        supply_policy::cap_supply(
-            &mut mint.supply_policy,
-            value
-        )
-    }
+    // /// `Limited` collections can have a cap on the maximum supply, however 
+    // /// the supply cap can also be `option::none()`. This function call
+    // /// adds a value to the supply cap.
+    // public entry fun cap_supply<T>(
+    //     mint: &mut MintAuthority<T>,
+    //     value: u64
+    // ) {
+    //     supply_policy::cap_supply(
+    //         &mut mint.supply_policy,
+    //         value
+    //     )
+    // }
 
-    /// Increases the `supply.cap` by the `value` amount for 
-    /// `Limited` collections. Invokes `supply::increase_cap()`
-    public entry fun increase_max_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64,
-    ) {
-        supply_policy::increase_max_supply(
-            &mut mint.supply_policy,
-            value,
-        );
-    }
+    // /// Increases the `supply.cap` by the `value` amount for 
+    // /// `Limited` collections. Invokes `supply::increase_cap()`
+    // public entry fun increase_max_supply<T>(
+    //     mint: &mut MintAuthority<T>,
+    //     value: u64,
+    // ) {
+    //     supply_policy::increase_max_supply(
+    //         &mut mint.supply_policy,
+    //         value,
+    //     );
+    // }
 
-    /// Decreases the `supply.cap` by the `value` amount for 
-    /// `Limited` collections. This function call fails if one attempts
-    /// to decrease the supply cap to a value below the current supply.
-    /// Invokes `supply::decrease_cap()`
-    public entry fun decrease_max_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64
-    ) {
-        supply_policy::decrease_max_supply(
-            &mut mint.supply_policy,
-            value
-        )
-    }
+    // /// Decreases the `supply.cap` by the `value` amount for 
+    // /// `Limited` collections. This function call fails if one attempts
+    // /// to decrease the supply cap to a value below the current supply.
+    // /// Invokes `supply::decrease_cap()`
+    // public entry fun decrease_max_supply<T>(
+    //     mint: &mut MintAuthority<T>,
+    //     value: u64
+    // ) {
+    //     supply_policy::decrease_max_supply(
+    //         &mut mint.supply_policy,
+    //         value
+    //     )
+    // }
 
     // === Supply Functions ===
 
@@ -432,7 +433,6 @@ module nft_protocol::collection {
 
     public fun supply<T>(mint: &mut MintAuthority<T>): &Supply {
         supply_policy::supply(&mint.supply_policy)
-        
     }
 
     public fun supply_cap<T>(mint: &mut MintAuthority<T>): Option<u64> {
@@ -561,27 +561,32 @@ module nft_protocol::collection {
     fun create_mint_authority<T>(
         object_id: UID,
         collection_id: ID,
-        supply: Option<u64>,
-        is_blind: bool,
+        max_supply: u64,
         recipient: address,
     ) {
-        if (is_blind) {
+        if (max_supply == 0) {
             let authority: MintAuthority<T> = MintAuthority {
                 id: object_id,
                 collection_id: collection_id,
-                supply_policy: supply_policy::create_unlimited(),
+                supply_policy: supply_policy::create_unregulated(),
             };
 
             transfer::transfer(authority, recipient);
         } else {
+            let max_supply_opt = option::none();
+
+            if (max_supply != U64_MAX) {
+                option::fill(&mut max_supply_opt, max_supply)
+            };
+
             let authority: MintAuthority<T> = MintAuthority {
                 id: object_id,
                 collection_id: collection_id,
-                supply_policy: supply_policy::create_limited(supply, false),
+                supply_policy: supply_policy::create_regulated(max_supply_opt, false),
             };
 
             transfer::transfer(authority, recipient);
-        };
+        }
     }
 
     fun contains_address(

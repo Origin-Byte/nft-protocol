@@ -79,9 +79,9 @@ module nft_protocol::unique_nft {
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Unlimited collections have an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -122,9 +122,9 @@ module nft_protocol::unique_nft {
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -155,7 +155,7 @@ module nft_protocol::unique_nft {
     /// if one is the collection owner, or if it is a shared collection.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun direct_mint_unlimited_collection_nft<T, M: store>(
+    public fun direct_mint_unlimited_collection_nft<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -166,9 +166,9 @@ module nft_protocol::unique_nft {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Unlimited collections have an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -196,7 +196,7 @@ module nft_protocol::unique_nft {
     /// if one is the collection owner, or if it is a shared collection.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun direct_mint_limited_collection_nft<T, M: store>(
+    public fun direct_mint_limited_collection_nft<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -207,9 +207,9 @@ module nft_protocol::unique_nft {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(

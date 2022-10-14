@@ -75,9 +75,9 @@ module nft_protocol::collectibles {
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Unlimited collections have an unregulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -105,7 +105,7 @@ module nft_protocol::collectibles {
     /// if one is the collection owner, or if it is a shared collection.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_limited_collection_nft_data<T, M: store>(
+    public fun mint_limited_collection_nft_data<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -116,9 +116,9 @@ module nft_protocol::collectibles {
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let args = mint_args(
@@ -178,11 +178,11 @@ module nft_protocol::collectibles {
     public entry fun burn_limited_collection_nft_data<T, M: store>(
         nft_data: Collectible,
         mint: &mut MintAuthority<T>,
-        collection: &Collection<T, M>,
+        collection: &mut Collection<T, M>,
     ) {
-        // Limited collections have a non blind supply policy
+        // Limited collections have a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         assert!(
