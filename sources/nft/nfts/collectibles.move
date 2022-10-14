@@ -58,13 +58,15 @@ module nft_protocol::collectibles {
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Collectible data object for NFT(s) from a `Collection` of `Unlimited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unlimited_collection_nft_data<T>(
+    public fun mint_unregulated_nft_data<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -75,7 +77,7 @@ module nft_protocol::collectibles {
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have an unregulated supply policy
+        // Assert that it has an unregulated supply policy
         assert!(
             !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
@@ -99,13 +101,17 @@ module nft_protocol::collectibles {
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Collectible data object for NFT(s) from a `Collection` of `Limited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from a regulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_limited_collection_nft_data<T>(
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_regulated_nft_data<T>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -116,7 +122,7 @@ module nft_protocol::collectibles {
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a regulated supply policy
+        // Assert that it has a regulated supply policy
         assert!(
             supply_policy::regulated(collection::supply_policy(mint)), 0
         );
@@ -180,7 +186,7 @@ module nft_protocol::collectibles {
         mint: &mut MintAuthority<T>,
         collection: &mut Collection<T, M>,
     ) {
-        // Limited collections have a regulated supply policy
+        // Assert that it has a regulated supply policy
         assert!(
             supply_policy::regulated(collection::supply_policy(mint)), 0
         );
@@ -230,9 +236,9 @@ module nft_protocol::collectibles {
 
     // === Supply Functions ===
 
-    /// NFT `Collectible` data objects have an opt-in `supply.cap`.
+    /// NFT `Collectible` data objects have an opt-in `supply.max`.
     /// `Data` objects without supply will have `option::none()` in its value.
-    /// This Function call adds a value to the supply cap.
+    /// This Function call adds a value to the supply max.
     public entry fun cap_supply<T, M: store>(
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
@@ -246,7 +252,7 @@ module nft_protocol::collectibles {
         )
     }
 
-    /// Increases the `supply.cap` of the NFT `Collectible`
+    /// Increases the `supply.max` of the NFT `Collectible`
     /// by the `value` amount
     public entry fun increase_supply_cap<T, M: store>(
         collection: &Collection<T, M>,
@@ -261,7 +267,7 @@ module nft_protocol::collectibles {
         )
     }
 
-    /// Decreases the `supply.cap` of the NFT `Collectible`
+    /// Decreases the `supply.max` of the NFT `Collectible`
     /// by the `value` amount.
     /// This function call fails if one attempts to decrease the supply cap
     /// to a value below the current supply.

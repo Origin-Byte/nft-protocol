@@ -112,19 +112,20 @@ module nft_protocol::c_nft {
 
     /// Mints loose NFT `Composable` data object and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Composable data object for NFT(s) from a `Collection` of 
-    /// `Unlimited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// This function call bootstraps the minting of leaf node NFTs in a 
-    /// Composable `Unlimited` collection. This function does not serve
-    /// to compose Composable objects, but simply to create the intial objects
-    /// that are supposed to give rise to the composability tree.
+    /// Composable collection with unregulated supply. This function does not 
+    /// serve to compose Composable objects, but simply to create the intial 
+    /// objects that are supposed to give rise to the composability tree.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unlimited_collection_nft_data<T, C: store + copy>(
+    public fun mint_unregulated_nft_data<T, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -135,7 +136,7 @@ module nft_protocol::c_nft {
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have an unregulated supply policy
+        // Assert that it has an uregulated supply policy
         assert!(
             !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
@@ -160,25 +161,28 @@ module nft_protocol::c_nft {
 
     /// Mints loose NFT `Composable` data and shares it.
     /// Invokes `mint_and_share_data()`.
+    /// 
     /// Mints a Composable data object for NFT(s) from a `Collection` 
-    /// of `Limited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// with regulated supply
+    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// This function call bootstraps the minting of leaf node NFTs in a 
-    /// Composable `Limited` collection. This function does not serve
-    /// to compose Composable objects, but simply to create the intial objects
-    /// that are supposed to give rise to the composability tree.
+    /// Composable collection with regulated supply. This function does 
+    /// not serve to compose Composable objects, but simply to create the 
+    /// intial objects that are supposed to give rise to the composability tree.
     /// 
-    /// For a `Limited` collection with a supply of 100 objects, this function
+    /// For a regulated collection with supply of 100 objects, this function
     /// will be called in total 100 times to mint such objects. Once these
     /// objects are brought to existance the collection creator can start 
     /// creating composable objects which determine which NFTs can be merged
     /// and what the supply of those configurations are.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_limited_collection_nft_data<T, C: store + copy>(
+    public fun mint_regulated_nft_data<T, C: store + copy>(
         index: u64,
         name: vector<u8>,
         description: vector<u8>,
@@ -189,7 +193,7 @@ module nft_protocol::c_nft {
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a regulated supply policy
+        // Assert that it has a regulated supply policy
         assert!(
             supply_policy::regulated(collection::supply_policy(mint)), 0
         );
