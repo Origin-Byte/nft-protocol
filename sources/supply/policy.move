@@ -10,6 +10,7 @@
 module nft_protocol::supply_policy {
     use std::option::{Self, Option};
     use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::err;
 
     struct SupplyPolicy has store {
         regulated: bool, 
@@ -37,19 +38,19 @@ module nft_protocol::supply_policy {
     public fun supply(
         policy: &SupplyPolicy
     ): &Supply {
-        assert!(policy.regulated == true, 0);
+        assert!(policy.regulated == true, err::supply_policy_mismatch());
         option::borrow(&policy.supply)
     }
 
     public fun supply_mut(
         policy: &mut SupplyPolicy
     ): &mut Supply {
-        assert!(policy.regulated == true, 0);
+        assert!(policy.regulated == true, err::supply_policy_mismatch());
         option::borrow_mut(&mut policy.supply)
     }
 
     public fun cap_supply(policy: &mut SupplyPolicy, value: u64) {
-        assert!(policy.regulated == true, 0);
+        assert!(policy.regulated == true, err::supply_policy_mismatch());
         supply::cap_supply(option::borrow_mut(&mut policy.supply), value);
     }
 
@@ -59,7 +60,7 @@ module nft_protocol::supply_policy {
         policy: &mut SupplyPolicy,
         value: u64,
     ) {
-        assert!(!regulated(policy), 0);
+        assert!(!regulated(policy), err::supply_policy_mismatch());
 
         supply::increase_cap(
             supply_mut(policy),
@@ -75,7 +76,7 @@ module nft_protocol::supply_policy {
         policy: &mut SupplyPolicy,
         value: u64
     ) {
-        assert!(!regulated(policy), 0);
+        assert!(!regulated(policy), err::supply_policy_mismatch());
 
         supply::decrease_cap(
             supply_mut(policy),
@@ -88,7 +89,7 @@ module nft_protocol::supply_policy {
         policy: &mut SupplyPolicy,
         value: u64
     ) {
-        assert!(!regulated(policy), 0);
+        assert!(!regulated(policy), err::supply_policy_mismatch());
 
         supply::increase_supply(
             supply_mut(policy),
@@ -107,10 +108,14 @@ module nft_protocol::supply_policy {
     }
 
     public fun destroy_capped(policy: SupplyPolicy) {
-        // One can only destroy a SupplyPolicy that is not blind
-        assert!(policy.regulated == true, 0);
+        // One can only destroy a SupplyPolicy that is regulated
+        assert!(policy.regulated == true, err::supply_policy_mismatch());
 
-        assert!(supply::current(option::borrow(&policy.supply)) == 0, 0);
+        assert!(
+            supply::current(option::borrow(&policy.supply)) == 0,
+            err::supply_is_not_zero()
+        );
+
         let SupplyPolicy {
             regulated: _,
             supply

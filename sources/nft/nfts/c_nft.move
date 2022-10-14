@@ -25,6 +25,7 @@ module nft_protocol::c_nft {
     use sui::tx_context::{Self, TxContext};
     use sui::url::{Self, Url};
     
+    use nft_protocol::err;
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::supply_policy;
     use nft_protocol::utils::{to_string_vector};
@@ -137,7 +138,8 @@ module nft_protocol::c_nft {
     ) {
         // Unlimited collections have an unregulated supply policy
         assert!(
-            !supply_policy::regulated(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
         
         let args = mint_args(
@@ -191,7 +193,8 @@ module nft_protocol::c_nft {
     ) {
         // Limited collections have a regulated supply policy
         assert!(
-            supply_policy::regulated(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
@@ -236,7 +239,10 @@ module nft_protocol::c_nft {
         while (len > 0) {
             let nft_data = vector::pop_back(&mut nfts_data);
 
-            assert!(nft_data.collection_id == collection_id, 0);
+            assert!(
+                nft_data.collection_id == collection_id,
+                err::collection_mismatch()
+            );
 
             let data_id = nft_data_id(&nft_data);
             
@@ -324,16 +330,19 @@ module nft_protocol::c_nft {
         ctx: &mut TxContext,
     ) {
         let len = vector::length(&nfts);
-        assert!(len == vec_map::size(&combo_data.components), 0);
+        assert!(
+            len == vec_map::size(&combo_data.components),
+            err::not_enough_nfts_to_mint_cnft()
+        );
 
         while (len > 0) {
             let nft = vector::pop_back(&mut nfts);
             let data = vector::pop_back(&mut nfts_data);
 
-            assert!(nft::data_id(&nft) == id(&data), 0);
+            assert!(nft::data_id(&nft) == id(&data), err::nft_data_mismatch());
             assert!(
                 vec_map::contains(&combo_data.components, &nft::data_id(&nft)),
-                0,
+                err::wrong_nft_data_provided(),
             );
 
             // `burn_loose_nft` will fail if the NFT is embedded
@@ -368,7 +377,7 @@ module nft_protocol::c_nft {
         nft: Nft<T, Composable<C>>,
         nft_data: &mut Composable<C>,
     ) {
-        assert!(nft::data_id(&nft) == id(nft_data), 0);
+        assert!(nft::data_id(&nft) == id(nft_data), err::nft_data_mismatch());
 
         supply::decrease_supply(&mut nft_data.supply, 1);
         nft::burn_loose_nft(nft);
@@ -385,9 +394,9 @@ module nft_protocol::c_nft {
         nfts_data: vector<Composable<C>>,
         ctx: &mut TxContext,
     ) {
-        // Asset that nft pointer corresponds to c_nft_data
+        // Assert that nft pointer corresponds to c_nft_data
         // If so, then burn pointer and mint pointer for each nfts_data
-        assert!(nft::data_id(&nft) == id(c_nft_data), 0);
+        assert!(nft::data_id(&nft) == id(c_nft_data), err::nft_data_mismatch());
 
         supply::decrease_supply(&mut c_nft_data.supply, 1);
         nft::burn_loose_nft(nft);
