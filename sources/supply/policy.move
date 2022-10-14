@@ -89,7 +89,7 @@ module nft_protocol::supply_policy {
         policy: &mut SupplyPolicy,
         value: u64
     ) {
-        assert!(!regulated(policy), err::supply_policy_mismatch());
+        assert!(regulated(policy), err::supply_policy_mismatch());
 
         supply::increase_supply(
             supply_mut(policy),
@@ -101,6 +101,8 @@ module nft_protocol::supply_policy {
         policy: &mut SupplyPolicy,
         value: u64
     ) {
+        assert!(regulated(policy), err::supply_policy_mismatch());
+
         supply::decrease_supply(
             supply_mut(policy),
             value
