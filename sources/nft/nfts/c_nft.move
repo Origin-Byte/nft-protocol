@@ -25,6 +25,7 @@ module nft_protocol::c_nft {
     use sui::tx_context::{Self, TxContext};
     use sui::url::{Self, Url};
     
+    use nft_protocol::err;
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::supply_policy;
     use nft_protocol::utils::{to_string_vector};
@@ -66,7 +67,6 @@ module nft_protocol::c_nft {
     }
 
     struct Data has store, copy {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -79,7 +79,6 @@ module nft_protocol::c_nft {
     }
 
     struct MintArgs has drop {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -112,20 +111,20 @@ module nft_protocol::c_nft {
 
     /// Mints loose NFT `Composable` data object and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Composable data object for NFT(s) from a `Collection` of 
-    /// `Unlimited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// This function call bootstraps the minting of leaf node NFTs in a 
-    /// Composable `Unlimited` collection. This function does not serve
-    /// to compose Composable objects, but simply to create the intial objects
-    /// that are supposed to give rise to the composability tree.
+    /// Composable collection with unregulated supply. This function does not 
+    /// serve to compose Composable objects, but simply to create the intial 
+    /// objects that are supposed to give rise to the composability tree.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unlimited_collection_nft_data<T, M: store, C: store + copy>(
-        index: u64,
+    public fun mint_unregulated_nft_data<T, C: store + copy>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -135,13 +134,13 @@ module nft_protocol::c_nft {
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Assert that it has an uregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
         
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -160,26 +159,28 @@ module nft_protocol::c_nft {
 
     /// Mints loose NFT `Composable` data and shares it.
     /// Invokes `mint_and_share_data()`.
+    /// 
     /// Mints a Composable data object for NFT(s) from a `Collection` 
-    /// of `Limited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// with regulated supply
+    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// This function call bootstraps the minting of leaf node NFTs in a 
-    /// Composable `Limited` collection. This function does not serve
-    /// to compose Composable objects, but simply to create the intial objects
-    /// that are supposed to give rise to the composability tree.
+    /// Composable collection with regulated supply. This function does 
+    /// not serve to compose Composable objects, but simply to create the 
+    /// intial objects that are supposed to give rise to the composability tree.
     /// 
-    /// For a `Limited` collection with a supply of 100 objects, this function
+    /// For a regulated collection with supply of 100 objects, this function
     /// will be called in total 100 times to mint such objects. Once these
     /// objects are brought to existance the collection creator can start 
     /// creating composable objects which determine which NFTs can be merged
     /// and what the supply of those configurations are.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_limited_collection_nft_data<T, M: store, C: store + copy>(
-        index: u64,
+    public fun mint_regulated_nft_data<T, C: store + copy>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -189,13 +190,13 @@ module nft_protocol::c_nft {
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Assert that it has a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -220,7 +221,7 @@ module nft_protocol::c_nft {
     /// 
     /// The newly composed object has a its own maximum supply of NFTs.
     public fun compose_data_objects
-        <T, M: store, D: store + copy, C: store + copy>
+        <T, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
         mint: &mut MintAuthority<T>,
@@ -236,7 +237,10 @@ module nft_protocol::c_nft {
         while (len > 0) {
             let nft_data = vector::pop_back(&mut nfts_data);
 
-            assert!(nft_data.collection_id == collection_id, 0);
+            assert!(
+                nft_data.collection_id == collection_id,
+                err::collection_mismatch()
+            );
 
             let data_id = nft_data_id(&nft_data);
             
@@ -324,16 +328,19 @@ module nft_protocol::c_nft {
         ctx: &mut TxContext,
     ) {
         let len = vector::length(&nfts);
-        assert!(len == vec_map::size(&combo_data.components), 0);
+        assert!(
+            len == vec_map::size(&combo_data.components),
+            err::not_enough_nfts_to_mint_cnft()
+        );
 
         while (len > 0) {
             let nft = vector::pop_back(&mut nfts);
             let data = vector::pop_back(&mut nfts_data);
 
-            assert!(nft::data_id(&nft) == id(&data), 0);
+            assert!(nft::data_id(&nft) == id(&data), err::nft_data_mismatch());
             assert!(
                 vec_map::contains(&combo_data.components, &nft::data_id(&nft)),
-                0,
+                err::wrong_nft_data_provided(),
             );
 
             // `burn_loose_nft` will fail if the NFT is embedded
@@ -368,7 +375,7 @@ module nft_protocol::c_nft {
         nft: Nft<T, Composable<C>>,
         nft_data: &mut Composable<C>,
     ) {
-        assert!(nft::data_id(&nft) == id(nft_data), 0);
+        assert!(nft::data_id(&nft) == id(nft_data), err::nft_data_mismatch());
 
         supply::decrease_supply(&mut nft_data.supply, 1);
         nft::burn_loose_nft(nft);
@@ -385,9 +392,9 @@ module nft_protocol::c_nft {
         nfts_data: vector<Composable<C>>,
         ctx: &mut TxContext,
     ) {
-        // Asset that nft pointer corresponds to c_nft_data
+        // Assert that nft pointer corresponds to c_nft_data
         // If so, then burn pointer and mint pointer for each nfts_data
-        assert!(nft::data_id(&nft) == id(c_nft_data), 0);
+        assert!(nft::data_id(&nft) == id(c_nft_data), err::nft_data_mismatch());
 
         supply::decrease_supply(&mut c_nft_data.supply, 1);
         nft::burn_loose_nft(nft);
@@ -429,14 +436,6 @@ module nft_protocol::c_nft {
         comp: &Composable<C>,
     ): &ID {
         object::uid_as_inner(&comp.id)
-    }
-
-    /// Get the Nft Data's `index`
-    public fun index<C: store + copy>(
-        comp: &Composable<C>,
-    ): u64 {
-        let data = option::borrow(&comp.data);
-        data.index
     }
 
     /// Get the Nft Data's `name`
@@ -507,7 +506,6 @@ module nft_protocol::c_nft {
         );
 
         let data = Data {
-            index: args.index,
             name: args.name,
             description: args.description,
             url: args.url,
@@ -526,7 +524,6 @@ module nft_protocol::c_nft {
     }
 
     fun mint_args(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -540,7 +537,6 @@ module nft_protocol::c_nft {
         };
 
         MintArgs {
-            index,
             name: string::utf8(name),
             description: string::utf8(description),
             url: url::new_unsafe_from_bytes(url),

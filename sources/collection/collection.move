@@ -1,13 +1,28 @@
-//! Module of a generic `Collection` type.
+//! Module of a generic `Collection` type and a `MintAuthority` type.
 //! 
 //! It acts as a generic interface for NFT Collections and it allows for
 //! the creation of arbitrary domain specific implementations.
 //! 
-//! NFT Collections can be of `Limited` or `Unlimited` supply `Cap`. The
-//! Collection `Cap` is an object that determines what the constrains are in
-//! relation to minting an NFT `Data` object associated to the Collection.
+//! The `MintAuthority` object gives power to the owner to mint objects.
+//! There is only one `MintAuthority` per `Collection`.
+//! The Mint Authority object contains a `SupplyPolicy` which
+//! can be regulated or unregulated.
+//! A Collection with unregulated Supply policy is a collection that
+//! does not keep track of its current supply objects. This allows for the
+//! minting process to be parallelized.
 //! 
-//! TODO: Consider adding a function `destroy_uncapped`?
+//! A Collection with regulated Supply policy is a collection that
+//! keeps track of its current supply objects. This means that whilst the 
+//! minting can be parallelized on the client side, on the blockchain side
+//! nodes will have to lock the `MintAuthority` object in order to mutate
+//! it sequentially. Regulated Supply allows for collections to have limited
+//! or unlimited supply. The `MintAuthority` owner can modify the 
+//! `max_supply` a posteriori, as long as the `Supply` is not frozen.
+//! After this function call the `Supply` object will not yet be set to 
+//! frozen, in order to give creators the ability to ammend it prior to 
+//! the primary sale taking place.
+//! 
+//! TODO: Consider adding a function `destroy_unregulated`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
 //! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that 
@@ -15,22 +30,21 @@
 module nft_protocol::collection {
     use std::vector;
     use std::string::{Self, String};
-    use std::option::{Option};
+    use std::option::{Self, Option};
 
     use sui::event;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
     use sui::transfer;
 
+    use nft_protocol::err;
     use nft_protocol::tags::{Self, Tags};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
 
-    /// An NFT `Collection` object with a generic `M`etadata and `C`ap.
-    /// NFT Collections can be instantiated with a `Cap` of type `Limited` or
-    /// `Unlimited`. An `Unlimited` collection not only does not have a supply
-    /// limit but also does not keep track of the amount of NFT `Data` objects
-    /// in existance at any given time.
+    const U64_MAX: u64 = 18446744073709551615;
+
+    /// An NFT `Collection` object with a generic `M`etadata.
     /// 
     /// The `Metadata` is a type exported by an upstream contract which is 
     /// used to store additional information about the NFT.
@@ -59,18 +73,22 @@ module nft_protocol::collection {
         /// the royalty enforcement standard
         royalty_fee_bps: u64,
         creators: vector<Creator>,
+        /// ID of `MintAuthority` object
+        mint_authority: ID,
         /// The `Metadata` is a type exported by an upstream contract which is 
         /// used to store additional information about the NFT.
         metadata: M,
     }
 
+    /// The `MintAuthority` object gives power to the owner to mint objects.
+    /// There is only one `MintAuthority` per `Collection`.
     struct MintAuthority<phantom T> has key, store {
         id: UID,
         collection_id: ID,
-        /// NFT Collections can be instantiated with a `Cap` of type `Limited`
-        /// or `Unlimited`. An `Unlimited` collection not only does not have 
-        /// a supply limit but also does not keep track of the amount of 
-        /// NFT `Data` objects in existance at any given time.
+        // Defines supply policy which can be regulated or unregulated.
+        // A Collection with unregulated Supply policy is a collection that
+        // does not keep track of its current supply objects. This allows for the
+        // minting process to be parallelized.
         supply_policy: SupplyPolicy,
     }
 
@@ -102,33 +120,38 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    /// TODO: Merge doc strings
-    /// Initialises a Uncapped `Collection` object and returns it. An Uncapped
-    /// Collection is one which has a `Unlimited` object as its `Cap`.
-    /// `Unlimited` Collections do not have any supply contracints.
-    ///
-    /// Unlimited collections do not have a counter which incrementes when an
-    /// NFT `Data` object is minted, and thus they do not store the current
-    /// supply information. This means that the minting of NFT `Data` objects
-    /// can be done in parallel without mutating the `Collection` object.
 
-    /// Initialises a Capped `Collection` object and returns it. A Capped
-    /// Collection is one which has a `Limited` object as its `Cap`.
-    /// `Limited` Collections have a fixed supply that can not be changed once
-    /// the `Cap` object is set to frozen. In this function call the `Limited`
-    /// object is not yet set to frozen, in order to give creators the ability
-    /// to ammend it prior to the primary sale taking place.
+    /// Initialises a `MintAuthority` and transfers it to `authority` and
+    /// initialized `Collection` object and returns it. The `MintAuthority`
+    /// object gives power to the owner to mint objects. There is only one
+    /// `MintAuthority` per `Collection`. The Mint Authority object contains a
+    /// `SupplyPolicy` which can be regulated or unregulated.
     /// 
-    /// Despite its name, `Limited` supplies can still have no maximum supply
-    /// constraint, if the field `supply.cap` is set to `option::none`. This
-    /// allows us to have a Collection that has no supply contraints whilst 
-    /// still being able to track how many NFT `Data` objects are currently
-    /// in existance. We can achieve this by setting the parameter
-    /// `max_supply` to `option::none`.
+    /// A Collection with unregulated Supply policy is a collection that
+    /// does not keep track of its current supply objects. This allows for the
+    /// minting process to be parallelized.
+    /// 
+    /// To initialise a collection with a unregulated `SupplyPolicy`,
+    /// the parameter `max_supply` should be given as `0`. 
+    /// 
+    /// A Collection with regulated Supply policy is a collection that
+    /// keeps track of its current supply objects. This means that whilst the 
+    /// minting can be parallelized on the client side, on the blockchain side
+    /// nodes will have to lock the `MintAuthority` object in order to mutate
+    /// it sequentially. Regulated Supply allows for collections to have limited
+    /// or unlimited supply. The `MintAuthority` owner can modify the 
+    /// `max_supply` a posteriori, as long as the `Supply` is not frozen.
+    /// After this function call the `Supply` object will not yet be set to 
+    /// frozen, in order to give creators the ability to ammend it prior to 
+    /// the primary sale taking place.
+    /// 
+    /// To initialise a collection with regualred `SupplyPolicy`, the parameter
+    /// `max_supply` should be above `0`. To create an unlimited supply the
+    /// parameter `max_supply` should be equal to the biggest integer number
+    /// that can be stored in a u64, which is `18446744073709551615`.
     public fun mint<T, M: store>(
         args: InitCollection,
-        max_supply: Option<u64>,
-        blind_supply: bool,
+        max_supply: u64,
         metadata: M,
         authority: address,
         ctx: &mut TxContext,
@@ -141,13 +164,16 @@ module nft_protocol::collection {
             }
         );
 
+        let mint_object_uid = object::new(ctx);
+        let mint_object_id = object::uid_to_inner(&mint_object_uid);
+
         create_mint_authority<T>(
+            mint_object_uid,
             object::uid_to_inner(&id),
             max_supply,
-            blind_supply,
             authority,
-            ctx,
         );
+
 
         Collection {
             id,
@@ -159,19 +185,21 @@ module nft_protocol::collection {
             is_mutable: args.is_mutable,
             royalty_fee_bps: args.royalty_fee_bps,
             creators: vector::empty(),
+            mint_authority: mint_object_id,
             metadata: metadata,
         }
     }
 
     
-    /// Burn a `Capped` Collection object and return the Metadata object
-    public fun burn_capped<T, M: store>(
+    /// Burn a Collection with regulated supply object and
+    /// returns the Metadata object
+    public fun burn_regulated<T, M: store>(
         collection: Collection<T, M>,
         mint: MintAuthority<T>,
     ): M {
         assert!(
             supply::current(supply_policy::supply(&mint.supply_policy)) == 0,
-            0
+            err::supply_is_not_zero()
         );
 
         let MintAuthority {
@@ -198,10 +226,11 @@ module nft_protocol::collection {
             is_mutable: _,
             royalty_fee_bps: _,
             creators: _,
+            mint_authority: _,
             metadata,
         } = collection;
 
-        supply_policy::destroy_capped(supply_policy);
+        supply_policy::destroy_regulated(supply_policy);
 
         object::delete(id);
 
@@ -214,7 +243,10 @@ module nft_protocol::collection {
         collection: &mut Collection<T, M>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.is_mutable = false;
     }
@@ -247,7 +279,10 @@ module nft_protocol::collection {
         name: vector<u8>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.name = string::utf8(name);
     }
@@ -258,7 +293,10 @@ module nft_protocol::collection {
         description: vector<u8>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.description = string::utf8(description);
     }
@@ -269,7 +307,10 @@ module nft_protocol::collection {
         symbol: vector<u8>,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.symbol = string::utf8(symbol);
     }
@@ -280,7 +321,10 @@ module nft_protocol::collection {
         receiver: address,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         collection.receiver = receiver;
     }
@@ -328,7 +372,10 @@ module nft_protocol::collection {
         share_of_royalty: u8,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         // TODO: Need to make sure sum of all Creator's `share_of_royalty` is
         // not above 100%
@@ -351,7 +398,10 @@ module nft_protocol::collection {
         creator_address: address,
     ) {
         // Only modify if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         if (!vector::is_empty(&collection.creators)) {
             remove_address(
@@ -425,7 +475,6 @@ module nft_protocol::collection {
 
     public fun supply<T>(mint: &mut MintAuthority<T>): &Supply {
         supply_policy::supply(&mint.supply_policy)
-        
     }
 
     public fun supply_cap<T>(mint: &mut MintAuthority<T>): Option<u64> {
@@ -538,7 +587,10 @@ module nft_protocol::collection {
         collection: &mut Collection<T, M>,
     ): &mut M {
         // Only return mutable reference if collection is mutable
-        assert!(collection.is_mutable == true, 0);
+        assert!(
+            collection.is_mutable == true,
+            err::collection_is_not_mutable()
+        );
 
         &mut collection.metadata
     }
@@ -552,29 +604,36 @@ module nft_protocol::collection {
     // === Private Functions ===
 
     fun create_mint_authority<T>(
+        object_id: UID,
         collection_id: ID,
-        supply: Option<u64>,
-        is_blind: bool,
+        max_supply: u64,
         recipient: address,
-        ctx: &mut TxContext,
     ) {
-        if (is_blind) {
+        if (max_supply == 0) {
             let authority: MintAuthority<T> = MintAuthority {
-                id: object::new(ctx),
+                id: object_id,
                 collection_id: collection_id,
-                supply_policy: supply_policy::create_unlimited(),
+                supply_policy: supply_policy::create_unregulated(),
             };
 
             transfer::transfer(authority, recipient);
         } else {
+            let max_supply_opt = option::none();
+
+            if (max_supply != U64_MAX) {
+                option::fill(&mut max_supply_opt, max_supply)
+            };
+
             let authority: MintAuthority<T> = MintAuthority {
-                id: object::new(ctx),
+                id: object_id,
                 collection_id: collection_id,
-                supply_policy: supply_policy::create_limited(supply, false),
+                supply_policy: supply_policy::create_regulated(
+                    max_supply_opt, false
+                ),
             };
 
             transfer::transfer(authority, recipient);
-        };
+        }
     }
 
     fun contains_address(

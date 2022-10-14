@@ -13,6 +13,7 @@ module nft_protocol::unique_nft {
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
     
+    use nft_protocol::err;
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply_policy;
@@ -23,8 +24,6 @@ module nft_protocol::unique_nft {
     /// An NFT `Unique` data object with standard fields.
     struct Unique has key, store {
         id: UID,
-        /// The index identifier of an NFT
-        index: u64,
         name: String,
         description: String,
         collection_id: ID,
@@ -38,7 +37,6 @@ module nft_protocol::unique_nft {
     }
 
     struct MintArgs has drop {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -58,15 +56,14 @@ module nft_protocol::unique_nft {
     // === Functions exposed to Witness Module ===
 
     /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
-    /// Invokes `mint_and_transfer()`.
-    /// Mints an NFT from a `Collection` with `Unlimited` supply.
+    /// Invokes `mint_to_launchpad()`.
+    /// Mints an NFT from a `Collection` with unregulated supply.
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// if one is the `MintAuthority` owner.
     ///  
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun launchpad_mint_unlimited_collection_nft<T, Market: store>(
-        index: u64,
+    public fun mint_unregulated_nft<T, Market: store>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -79,13 +76,13 @@ module nft_protocol::unique_nft {
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Assert that it has an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -103,15 +100,14 @@ module nft_protocol::unique_nft {
     }
 
     /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
-    /// Invokes `mint_and_transfer()`.
-    /// Mints an NFT from a `Collection` with `Unlimited` supply.
+    /// Invokes `mint_to_launchpad()`.
+    /// Mints an NFT from a `Collection` with regulated supply.
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun launchpad_mint_limited_collection_nft<T, Market: store>(
-        index: u64,
+    public fun mint_regulated_nft<T, Market: store>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -122,13 +118,13 @@ module nft_protocol::unique_nft {
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Assert that it has regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -149,14 +145,13 @@ module nft_protocol::unique_nft {
 
     /// Mint one embedded `Nft` with `Unique` data and send it to `recipient`.
     /// Invokes `mint_and_transfer()`.
-    /// Mints an NFT from a `Collection` with `Unlimited` supply.
+    /// Mints an NFT from a `Collection` with unregulated supply.
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun direct_mint_unlimited_collection_nft<T, M: store>(
-        index: u64,
+    public fun direct_mint_unregulated_nft<T>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -166,13 +161,13 @@ module nft_protocol::unique_nft {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Assert that it has an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch()
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -190,14 +185,13 @@ module nft_protocol::unique_nft {
 
     /// Mint one embedded `Nft` with `Unique` data and send it to `recipient`.
     /// Invokes `mint_and_transfer()`.
-    /// Mints an NFT from a `Collection` with `Limited` supply.
+    /// Mints an NFT from a `Collection` with regulated supply.
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun direct_mint_limited_collection_nft<T, M: store>(
-        index: u64,
+    public fun direct_mint_regulated_nft<T>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -207,13 +201,13 @@ module nft_protocol::unique_nft {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Assert that it has a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -254,13 +248,6 @@ module nft_protocol::unique_nft {
         nft_data: &Unique,
     ): &ID {
         object::uid_as_inner(&nft_data.id)
-    }
-
-    /// Get the Nft Unique's `index`
-    public fun index(
-        nft_data: &Unique,
-    ): u64 {
-        nft_data.index
     }
 
     /// Get the Nft Unique's `name`
@@ -321,7 +308,6 @@ module nft_protocol::unique_nft {
 
         let nft_data = Unique {
             id: data_id,
-            index: args.index,
             name: args.name,
             description: args.description,
             collection_id: collection_id,
@@ -359,7 +345,6 @@ module nft_protocol::unique_nft {
 
         let nft_data = Unique {
             id: data_id,
-            index: args.index,
             name: args.name,
             description: args.description,
             collection_id: collection_id,
@@ -404,7 +389,6 @@ module nft_protocol::unique_nft {
 
         let Unique {
             id,
-            index: _,
             name: _,
             description: _,
             collection_id: _,
@@ -416,7 +400,6 @@ module nft_protocol::unique_nft {
     }
 
     fun mint_args(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -429,7 +412,6 @@ module nft_protocol::unique_nft {
         };
 
         MintArgs {
-            index,
             name: string::utf8(name),
             description: string::utf8(description),
             url: url::new_unsafe_from_bytes(url),

@@ -3,6 +3,7 @@ module nft_protocol::whitelist {
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
     
+    use nft_protocol::err;
     use nft_protocol::sale::{Self, Sale};
     use nft_protocol::slingshot::{Self, Slingshot};
 
@@ -17,7 +18,10 @@ module nft_protocol::whitelist {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        assert!(tx_context::sender(ctx) == slingshot::admin(launchpad), 0);
+        assert!(
+            tx_context::sender(ctx) == slingshot::admin(launchpad),
+            err::wrong_launchpad_admin()
+        );
         let sale_id = sale::id(sale);
         
         let whitelisting = Whitelist {

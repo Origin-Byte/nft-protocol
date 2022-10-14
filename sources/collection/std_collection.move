@@ -1,9 +1,17 @@
-//! Module of a standard collection `CollectionMeta` type.
+//! Module of a standard collection `StdMeta` type.
 //! 
-//! It allows for the addition of arbitrary String data to a `Collection`.
+//! Collections can be defined with regulated or unregulated supply.
+//! A collection with regulated supply is a collection that keeps track of 
+//! how many objects currently exist. This means that each time an object is 
+//! minted the supply counter will increment. For collections with
+//! unregulated supply, there is no counter to increment since the collection
+//! does not keep track of current supply. Therefore, mints can be completely
+//! parallelized.
+//! 
+//! Standard collection allows for the addition of arbitrary String 
+//! data to a `Collection`.
 module nft_protocol::std_collection {
     use std::string::{Self, String};
-    use std::option::{Self, Option};
 
     use sui::transfer;
     use sui::object::{Self, ID, UID};
@@ -22,7 +30,7 @@ module nft_protocol::std_collection {
         name: String,
         description: String,
         symbol: String,
-        max_supply: Option<u64>,
+        max_supply: u64,
         receiver: address,
         tags: vector<String>,
         royalty_fee_bps: u64,
@@ -47,8 +55,10 @@ module nft_protocol::std_collection {
         // Symbol of the Nft Collection. This parameter is a
         // vector of bytes that should enconde to utf8
         symbol: vector<u8>,
+        // Defines the maximum supply of the collection. To create an 
+        // unregulated supply set `max_supply=0`, otherwise any value above
+        // zero will make the supply regulated.
         max_supply: u64,
-        blind_supply: bool,
         receiver: address,
         // TODO: When will we be able to pass vector<String>?
         // https://github.com/MystenLabs/sui/pull/4627
@@ -98,7 +108,6 @@ module nft_protocol::std_collection {
         let collection = collection::mint<T, StdMeta>(
             collection_args,
             args.max_supply,
-            blind_supply,
             metadata,
             authority,
             ctx,
@@ -115,8 +124,8 @@ module nft_protocol::std_collection {
 
     // === Entrypoints ===
 
-    /// Burn a Standard `Limited` Collection. Invokes `burn_capped()`.
-    public entry fun burn_limited_collection<T>(
+    /// Burn a Standard regulated Collection. Invokes `burn_regulated()`.
+    public entry fun burn_regulated<T>(
         collection: Collection<T, StdMeta>,
         mint: MintAuthority<T>,
     ) {
@@ -128,7 +137,7 @@ module nft_protocol::std_collection {
         );
 
         // Delete generic Collection object
-        let metadata = collection::burn_capped(
+        let metadata = collection::burn_regulated(
             collection,
             mint,
         );
@@ -179,7 +188,7 @@ module nft_protocol::std_collection {
         name: String,
         description: String,
         symbol: String,
-        max_supply: Option<u64>,
+        max_supply: u64,
         receiver: address,
         tags: vector<String>,
         royalty_fee_bps: u64,

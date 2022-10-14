@@ -13,6 +13,7 @@ module nft_protocol::slingshot {
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
     
+    use nft_protocol::err;
     use nft_protocol::sale::Sale;
 
     struct Slingshot<phantom T, M> has key, store{
@@ -74,9 +75,10 @@ module nft_protocol::slingshot {
         slingshot: Slingshot<T, M>,
         ctx: &mut TxContext,
     ): vector<Sale<T, M>> {
-        // assert!(vector::length(&slingshot.nfts) > 0, 0);
-
-        assert!(tx_context::sender(ctx) == admin(&slingshot), 0);
+        assert!(
+            tx_context::sender(ctx) == admin(&slingshot),
+            err::wrong_launchpad_admin()
+        );
 
         let Slingshot {
             id,

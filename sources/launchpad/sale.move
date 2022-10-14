@@ -16,6 +16,8 @@ module nft_protocol::sale {
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{TxContext};
 
+    use nft_protocol::err;
+
     struct Sale<phantom T, Market> has key, store{
         id: UID,
         tier_index: u64,
@@ -61,8 +63,14 @@ module nft_protocol::sale {
     public fun delete<T: drop, Market: store>(
         sale_box: Sale<T, Market>,
     ): Market {
-        assert!(vector::length(&sale_box.nfts) == 0, 0);
-        assert!(vector::length(&sale_box.queue) == 0, 0);
+        assert!(
+            vector::length(&sale_box.nfts) == 0,
+            err::sale_outlet_still_has_nfts_to_sell()
+        );
+        assert!(
+            vector::length(&sale_box.queue) == 0,
+            err::sale_outlet_still_has_nfts_to_redeem()
+        );
 
         let Sale {
             id,

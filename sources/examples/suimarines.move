@@ -19,13 +19,12 @@ module nft_protocol::suimarines {
             b"A Unique NFT collection of Submarines on Sui",
             b"SUIM", // symbol
             100, // max_supply
-            false, // blind_supply
             receiver, // Royalty receiver
             vector::singleton(b"Art"), // tags
             100, // royalty_fee_bps
             false, // is_mutable
             b"Some extra data",
-            tx_context::sender(ctx), // recipient
+            tx_context::sender(ctx), // mint authority
             ctx,
         );
 
@@ -41,7 +40,6 @@ module nft_protocol::suimarines {
     }
 
     public entry fun mint_nft(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -52,8 +50,7 @@ module nft_protocol::suimarines {
         launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
-        unique_nft::launchpad_mint_limited_collection_nft(
-            index,
+        unique_nft::mint_regulated_nft(
             name,
             description,
             url,
