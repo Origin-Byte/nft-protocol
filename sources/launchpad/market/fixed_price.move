@@ -308,7 +308,7 @@ module nft_protocol::fixed_price {
 
     /// Toggle the Slingshot's `live` to `true` therefore 
     /// making the NFT sale live.
-    public fun sale_on<T, M>(
+    public entry fun sale_on<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,
     ) {
         slingshot::sale_on(slingshot);
@@ -316,7 +316,7 @@ module nft_protocol::fixed_price {
 
     /// Toggle the Slingshot's `live` to `false` therefore 
     /// pausing or stopping the NFT sale.
-    public fun sale_off<T, M>(
+    public entry fun sale_off<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,
     ) {
         slingshot::sale_off(slingshot);
