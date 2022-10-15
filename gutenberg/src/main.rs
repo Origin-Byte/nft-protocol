@@ -3,7 +3,13 @@ extern crate strfmt;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
+use std::str::FromStr;
+
 use strfmt::strfmt;
+
+pub mod types;
+
+use crate::types::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let f = std::fs::File::open("config.yaml")?;
@@ -75,10 +81,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         tags = [tags, tag].join("\n").to_string();
     }
 
-    let nft_type = serde_yaml::to_value(&data["NftType"])?
+    let nft_type_str = serde_yaml::to_value(&data["NftType"])?
         .as_str()
         .unwrap()
         .to_string();
+
+    let nft_type = NftType::from_str(nft_type_str.as_str()).unwrap();
+    let nft_module = nft_type.get_nft_module();
 
     let market_module = serde_yaml::to_value(&data["Launchpad"]["market_type"])?
         .as_str()
@@ -107,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     vars.insert("name".to_string(), name);
     vars.insert("module_name".to_string(), module_name);
     vars.insert("witness".to_string(), witness);
-    vars.insert("nft_type".to_string(), nft_type);
+    vars.insert("nft_type".to_string(), nft_module);
     vars.insert("description".to_string(), description);
     vars.insert("symbol".to_string(), symbol);
     vars.insert("max_supply".to_string(), max_supply);
