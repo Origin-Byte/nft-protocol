@@ -15,59 +15,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let f = std::fs::File::open("config.yaml")?;
     let data: serde_yaml::Value = serde_yaml::from_reader(f)?;
 
-    let name = serde_yaml::to_value(&data["Collection"]["name"])?
-        .as_str()
-        .unwrap()
-        .to_string();
+    let name = get(&data, "Collection", "name", FieldType::StrLit)?;
+    let description = get(&data, "Collection", "description", FieldType::StrLit)?;
+    let symbol = get(&data, "Collection", "symbol", FieldType::StrLit)?;
+    let max_supply = get(&data, "Collection", "max_supply", FieldType::Number)?;
+    let receiver = get(&data, "Collection", "receiver", FieldType::StrLit)?;
+    let royalty_fee_bps = get(&data, "Collection", "royalty_fee_bps", FieldType::Number)?;
+    let extra_data = get(&data, "Collection", "data", FieldType::StrLit)?;
+    let is_mutable = get(&data, "Collection", "is_mutable", FieldType::Bool)?;
 
-    let module_name = serde_yaml::to_value(&data["Collection"]["name"])?
-        .as_str()
-        .unwrap()
-        .to_string()
-        .to_lowercase()
-        .replace(" ", "_");
-
-    let witness = serde_yaml::to_value(&data["Collection"]["name"])?
-        .as_str()
-        .unwrap()
-        .to_string()
-        .to_uppercase()
-        .replace(" ", "");
-
-    let description = serde_yaml::to_value(&data["Collection"]["description"])?
-        .as_str()
-        .unwrap()
-        .to_string();
-
-    let symbol = serde_yaml::to_value(&data["Collection"]["symbol"])?
-        .as_str()
-        .unwrap()
-        .to_string();
-
-    let max_supply = serde_yaml::to_value(&data["Collection"]["max_supply"])?
-        .as_u64()
-        .unwrap()
-        .to_string();
-
-    let receiver = serde_yaml::to_value(&data["Collection"]["receiver"])?
-        .as_str()
-        .unwrap()
-        .to_string();
-
-    let royalty_fee_bps = serde_yaml::to_value(&data["Collection"]["royalty_fee_bps"])?
-        .as_u64()
-        .unwrap()
-        .to_string();
-
-    let extra_data = serde_yaml::to_value(&data["Collection"]["data"])?
-        .as_str()
-        .unwrap()
-        .to_string();
-
-    let is_mutable = serde_yaml::to_value(&data["Collection"]["is_mutable"])?
-        .as_bool()
-        .unwrap()
-        .to_string();
+    let module_name = name.to_lowercase().replace(" ", "_");
+    let witness = name.to_uppercase().replace(" ", "");
 
     let tag_binding = serde_yaml::to_value(&data["Collection"]["tags"])?;
     let tags_vec = tag_binding.as_sequence().unwrap();
@@ -137,4 +95,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     f.write_all(strfmt(&fmt, &vars).unwrap().as_bytes())?;
 
     Ok(())
+}
+
+pub fn get(
+    data: &serde_yaml::Value,
+    category: &str,
+    field: &str,
+    field_type: FieldType,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let value = serde_yaml::to_value(&data[category][field])?;
+
+    let result = match field_type {
+        FieldType::StrLit => value.as_str().unwrap().to_string(),
+        FieldType::Number => value.as_u64().unwrap().to_string(),
+        FieldType::Bool => value.as_bool().unwrap().to_string(),
+    };
+
+    Ok(result)
 }

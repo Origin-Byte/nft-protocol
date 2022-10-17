@@ -7,6 +7,13 @@ pub enum NftType {
     CNft,
 }
 
+#[derive(Debug)]
+pub enum FieldType {
+    StrLit,
+    Bool,
+    Number,
+}
+
 impl FromStr for NftType {
     type Err = ();
 
