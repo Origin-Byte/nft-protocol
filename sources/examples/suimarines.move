@@ -14,7 +14,7 @@ module nft_protocol::suimarines {
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let receiver = @0xA;
 
-        std_collection::mint<SUIMARINES>(
+        let collection_id = std_collection::mint<SUIMARINES>(
             b"Suimarines",
             b"A Unique NFT collection of Submarines on Sui",
             b"SUIM", // symbol
@@ -31,6 +31,7 @@ module nft_protocol::suimarines {
         fixed_price::create_single_market(
             witness,
             tx_context::sender(ctx), // admin
+            collection_id,
             receiver,
             true, // is_embedded
             false, // whitelist

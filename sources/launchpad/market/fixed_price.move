@@ -18,7 +18,7 @@ module nft_protocol::fixed_price {
     use sui::sui::{SUI};
     use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
     
     use nft_protocol::err;
@@ -41,6 +41,7 @@ module nft_protocol::fixed_price {
     public fun create_single_market<T: drop>(
         witness: T,
         admin: address,
+        collection_id: ID,
         receiver: address,
         is_embedded: bool,
         whitelist: bool,
@@ -63,6 +64,7 @@ module nft_protocol::fixed_price {
 
         let args = slingshot::init_args(
             admin,
+            collection_id,
             receiver,
             is_embedded
         );
@@ -87,6 +89,7 @@ module nft_protocol::fixed_price {
     public fun create_multi_market<T: drop>(
         witness: T,
         admin: address,
+        collection_id: ID,
         receiver: address,
         is_embedded: bool,
         prices: vector<u64>,
@@ -122,6 +125,7 @@ module nft_protocol::fixed_price {
 
         let args = slingshot::init_args(
             admin,
+            collection_id,
             receiver,
             is_embedded,
         );

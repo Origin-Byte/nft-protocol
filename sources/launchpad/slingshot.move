@@ -19,6 +19,8 @@ module nft_protocol::slingshot {
 
     struct Slingshot<phantom T, M> has key, store{
         id: UID,
+        /// The ID of the Collection object
+        collection_id: ID,
         /// Boolean indicating if the sale is live
         live: bool,
         /// The address of the administrator
@@ -36,6 +38,7 @@ module nft_protocol::slingshot {
 
     struct InitSlingshot has drop {
         admin: address,
+        collection_id: ID,
         receiver: address,
         is_embedded: bool,
     }
@@ -61,6 +64,7 @@ module nft_protocol::slingshot {
 
         let slingshot: Slingshot<T, M> = Slingshot {
             id,
+            collection_id: args.collection_id,
             live: false,
             admin: args.admin,
             receiver: args.receiver,
@@ -83,6 +87,7 @@ module nft_protocol::slingshot {
 
         let Slingshot {
             id,
+            collection_id,
             live: _,
             admin: _,
             receiver: _,
@@ -97,12 +102,14 @@ module nft_protocol::slingshot {
 
     public fun init_args(
         admin: address,
+        collection_id: ID,
         receiver: address,
         is_embedded: bool, 
     ): InitSlingshot {
 
         InitSlingshot {
             admin,
+            collection_id,
             receiver,
             is_embedded
         }
