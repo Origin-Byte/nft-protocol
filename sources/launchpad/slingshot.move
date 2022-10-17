@@ -87,7 +87,7 @@ module nft_protocol::slingshot {
 
         let Slingshot {
             id,
-            collection_id,
+            collection_id: _,
             live: _,
             admin: _,
             receiver: _,
@@ -205,7 +205,29 @@ module nft_protocol::slingshot {
         slingshot.live = false
     }
 
+    /// Adds a sale outlet `Sale` to `sales` field
+    public fun add_sale_outlet<T, M>(
+        slingshot: &mut Slingshot<T, M>,
+        sale: Sale<T, M>
+    ) {
+        vector::push_back(&mut slingshot.sales, sale);
+    }
+
     // === Getter Functions ===
+
+    /// Get the Slingshot `id`
+    public fun id<T, M>(
+        slingshot: &Slingshot<T, M>,
+    ): ID {
+        object::uid_to_inner(&slingshot.id)
+    }
+
+    /// Get the Slingshot `id` as reference
+    public fun id_ref<T, M>(
+        slingshot: &Slingshot<T, M>,
+    ): &ID {
+        object::uid_as_inner(&slingshot.id)
+    }
     
     /// Get the Slingshot's `live`
     public fun live<T, M>(

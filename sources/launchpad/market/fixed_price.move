@@ -154,6 +154,8 @@ module nft_protocol::fixed_price {
     ) {
         // One can only buy NFT certificates if the slingshot is live
         assert!(slingshot::live(slingshot) == true, err::launchpad_not_live());
+
+        let launchpad_id = slingshot::id(slingshot);
         
         let receiver = slingshot::receiver(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
@@ -176,7 +178,7 @@ module nft_protocol::fixed_price {
             ctx
         );
 
-        let certificate = sale::issue_nft_certificate(sale, ctx);
+        let certificate = sale::issue_nft_certificate(sale, launchpad_id, ctx);
 
         transfer::transfer(
             certificate,
@@ -199,6 +201,8 @@ module nft_protocol::fixed_price {
     ) {
         // One can only buy NFT certificates if the slingshot is live
         assert!(slingshot::live(slingshot) == true, err::launchpad_not_live());
+
+        let launchpad_id = slingshot::id(slingshot);
 
         let receiver = slingshot::receiver(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
@@ -228,7 +232,8 @@ module nft_protocol::fixed_price {
         );
 
         whitelist::burn_whitelist_token(whitelist_token);
-        let certificate = sale::issue_nft_certificate(sale, ctx);
+
+        let certificate = sale::issue_nft_certificate(sale, launchpad_id, ctx);
 
         transfer::transfer(
             certificate,
