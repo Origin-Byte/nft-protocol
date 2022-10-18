@@ -35,6 +35,7 @@ module nft_protocol::sale {
     /// calling the endpoint `claim_nft`
     struct NftCertificate has key, store {
         id: UID,
+        launchpad_id: ID,
         nft_id: ID,
     }
 
@@ -87,14 +88,16 @@ module nft_protocol::sale {
     }
 
     // TODO: need to add a function with nft_id as function parameter
-    public fun issue_nft_certificate<T, Market>(
-        sale: &mut Sale<T, Market>,
+    public fun issue_nft_certificate<T, M>(
+        sale: &mut Sale<T, M>,
+        launchpad_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
         let nft_id = pop_nft(sale);
         
         let certificate = NftCertificate {
             id: object::new(ctx),
+            launchpad_id: launchpad_id,
             nft_id: nft_id,
         };
 
@@ -106,6 +109,7 @@ module nft_protocol::sale {
     ) {
         let NftCertificate {
             id,
+            launchpad_id: _,
             nft_id: _,
         } = certificate;
 

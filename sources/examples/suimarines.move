@@ -17,13 +17,13 @@ module nft_protocol::suimarines {
         let tags: vector<vector<u8>> = vector::empty();
         vector::push_back(&mut tags, b"Art");
 
-        std_collection::mint<SUIMARINES>(
+        let collection_id = std_collection::mint<SUIMARINES>(
             b"Suimarines",
             b"A Unique NFT collection of Submarines on Sui",
             b"SUIM", // symbol
             100, // max_supply
             receiver, // Royalty receiver
-            vector::singleton(b"Art"), // tags
+            tags,
             100, // royalty_fee_bps
             false, // is_mutable
             b"Some extra data",
@@ -34,6 +34,7 @@ module nft_protocol::suimarines {
         fixed_price::create_single_market(
             witness,
             tx_context::sender(ctx), // admin
+            collection_id,
             receiver,
             true, // is_embedded
             false, // whitelist
