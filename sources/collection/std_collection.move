@@ -71,7 +71,7 @@ module nft_protocol::std_collection {
         data: vector<u8>,
         authority: address,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let args = init_args(
             string::utf8(name),
             string::utf8(description),
@@ -107,6 +107,8 @@ module nft_protocol::std_collection {
             ctx,
         );
 
+        let collection_id = collection::id(&collection);
+
         event::emit(
             MintEvent {
                 object_id: object::id(&collection),
@@ -114,6 +116,8 @@ module nft_protocol::std_collection {
         );
 
         transfer::share_object(collection);
+
+        collection_id
     }
 
     // === Entrypoints ===
