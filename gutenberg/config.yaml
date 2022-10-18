@@ -1,7 +1,7 @@
 Collection:
-  name: "Suimarines"
-  description: "A Unique NFT collection of Submarines on Sui"
-  symbol: "SUIM"
+  name: "Suisurfers"
+  description: "A Unique NFT collection of Suisurfers on Sui"
+  symbol: "SUIS"
   max_supply: 100
   receiver: "0x6c86ac4a796204ea09a87b6130db0c38263c1890"
   tags:

@@ -15,7 +15,7 @@ module nft_protocol::{module_name} {{
         let tags: vector<vector<u8>> = vector::empty();
         {tags}
 
-        std_collection::mint<{witness}>(
+        let collection_id = std_collection::mint<{witness}>(
             b"{name}",
             b"{description}",
             b"{symbol}", // symbol
@@ -32,6 +32,7 @@ module nft_protocol::{module_name} {{
         {market_module}::{sale_type}(
             witness,
             tx_context::sender(ctx), // admin
+            collection_id,
             @{receiver},
             {is_embedded}, // is_embedded
             {whitelist}, // whitelist
@@ -46,9 +47,9 @@ module nft_protocol::{module_name} {{
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        mint_authority: &mut MintAuthority<SUIMARINES>,
+        mint_authority: &mut MintAuthority<{witness}>,
         sale_index: u64,
-        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
+        launchpad: &mut Slingshot<{witness}, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {{
         {nft_type}::mint_regulated_nft(
