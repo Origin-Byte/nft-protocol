@@ -28,6 +28,8 @@ module nft_protocol::nft {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
 
+    use nft_protocol::err;
+
     // NFT object with an option to hold `D`ata object
     struct Nft<phantom T, D: store> has key, store {
         id: UID,
@@ -92,7 +94,7 @@ module nft_protocol::nft {
         nft: &mut Nft<T, D>,
         data: D,
     ) {
-        assert!(option::is_none(&nft.data), 0);
+        assert!(option::is_none(&nft.data), err::nft_not_loose());
 
         option::fill(&mut nft.data, data);
     }
@@ -100,7 +102,7 @@ module nft_protocol::nft {
     public fun split_nft_data<T, D: store>(
         nft: &mut Nft<T, D>,
     ): D {
-        assert!(!option::is_none(&nft.data), 0);
+        assert!(!option::is_none(&nft.data), err::nft_not_embedded());
 
         option::extract(&mut nft.data)
     }
@@ -108,7 +110,7 @@ module nft_protocol::nft {
     public fun burn_loose_nft<T, D: store>(
         nft: Nft<T, D>,
     ) {
-        assert!(is_loose(&nft), 0);
+        assert!(is_loose(&nft), err::nft_not_loose());
 
         event::emit(
             BurnEvent {
@@ -131,7 +133,7 @@ module nft_protocol::nft {
     public fun burn_embedded_nft<T, D: store>(
         nft: Nft<T, D>,
     ): Option<D> {
-        assert!(is_loose(&nft), 0);
+        assert!(is_loose(&nft), err::nft_not_embedded());
 
         event::emit(
             BurnEvent {

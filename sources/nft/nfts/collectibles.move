@@ -13,15 +13,15 @@ module nft_protocol::collectibles {
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
     
-    use nft_protocol::collection::{Self, Collection, MintAuthority};
+    use nft_protocol::err;
     use nft_protocol::supply_policy;
+    use nft_protocol::collection::{Self, Collection, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::nft::{Self, Nft};
 
     struct Collectible has key, store {
         id: UID,
-        index: u64,
         name: String,
         description: String,
         collection_id: ID,
@@ -36,7 +36,6 @@ module nft_protocol::collectibles {
     }
 
     struct MintArgs has drop {
-        index: u64,
         name: String,
         description: String,
         url: Url,
@@ -58,14 +57,15 @@ module nft_protocol::collectibles {
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Collectible data object for NFT(s) from a `Collection` of `Unlimited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unlimited_collection_nft_data<T>(
-        index: u64,
+    public fun mint_unregulated_nft_data<T>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -75,13 +75,13 @@ module nft_protocol::collectibles {
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Assert that it has an unregulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -99,14 +99,17 @@ module nft_protocol::collectibles {
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// Mints a Collectible data object for NFT(s) from a `Collection` of `Limited` supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the collection owner, or if it is a shared collection.
+    /// 
+    /// Mints a Collectible data object for NFT(s) from a regulated 
+    /// `Collection`.
+    /// The only way to mint the NFT data for a collection is to give a 
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// given collection if one is the `MintAuthority` owner.
     /// 
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_limited_collection_nft_data<T, M: store>(
-        index: u64,
+    /// 
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint_regulated_nft_data<T>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -116,13 +119,13 @@ module nft_protocol::collectibles {
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
-        // Limited collections have a non blind supply policy
+        // Assert that it has a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         let args = mint_args(
-            index,
             name,
             description,
             url,
@@ -178,24 +181,28 @@ module nft_protocol::collectibles {
     public entry fun burn_limited_collection_nft_data<T, M: store>(
         nft_data: Collectible,
         mint: &mut MintAuthority<T>,
-        collection: &Collection<T, M>,
+        collection: &mut Collection<T, M>,
     ) {
-        // Limited collections have a non blind supply policy
+        // Assert that it has a regulated supply policy
         assert!(
-            !supply_policy::is_blind(collection::supply_policy(mint)), 0
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
         );
 
         assert!(
-            nft_data.collection_id == collection::mint_collection_id(mint), 0
+            nft_data.collection_id == collection::mint_collection_id(mint),
+            err::collection_mismatch(),
         );
 
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         collection::decrease_supply(mint, 1);
 
         let Collectible {
             id,
-            index: _,
             name: _,
             description: _,
             collection_id: _,
@@ -222,7 +229,7 @@ module nft_protocol::collectibles {
         nft: Nft<T, Collectible>,
         nft_data: &mut Collectible,
     ) {
-        assert!(nft::data_id(&nft) == id(nft_data), 0);
+        assert!(nft::data_id(&nft) == id(nft_data), err::nft_data_mismatch());
 
         supply::decrease_supply(&mut nft_data.supply, 1);
         nft::burn_loose_nft(nft);
@@ -230,15 +237,18 @@ module nft_protocol::collectibles {
 
     // === Supply Functions ===
 
-    /// NFT `Collectible` data objects have an opt-in `supply.cap`.
+    /// NFT `Collectible` data objects have an opt-in `supply.max`.
     /// `Data` objects without supply will have `option::none()` in its value.
-    /// This Function call adds a value to the supply cap.
+    /// This Function call adds a value to the supply max.
     public entry fun cap_supply<T, M: store>(
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
         value: u64
     ) {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         supply::cap_supply(
             &mut nft_data.supply,
@@ -246,14 +256,17 @@ module nft_protocol::collectibles {
         )
     }
 
-    /// Increases the `supply.cap` of the NFT `Collectible`
+    /// Increases the `supply.max` of the NFT `Collectible`
     /// by the `value` amount
     public entry fun increase_supply_cap<T, M: store>(
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
         value: u64
     ) {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         supply::increase_cap(
             &mut nft_data.supply,
@@ -261,7 +274,7 @@ module nft_protocol::collectibles {
         )
     }
 
-    /// Decreases the `supply.cap` of the NFT `Collectible`
+    /// Decreases the `supply.max` of the NFT `Collectible`
     /// by the `value` amount.
     /// This function call fails if one attempts to decrease the supply cap
     /// to a value below the current supply.
@@ -270,7 +283,10 @@ module nft_protocol::collectibles {
         nft_data: &mut Collectible,
         value: u64
     ) {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(
+            collection::is_mutable(collection),
+            err::collection_is_not_mutable()
+        );
 
         supply::decrease_cap(
             &mut nft_data.supply,
@@ -292,13 +308,6 @@ module nft_protocol::collectibles {
         nft_data: &Collectible,
     ): &ID {
         object::uid_as_inner(&nft_data.id)
-    }
-
-    /// Get the Nft Collectible's `index`
-    public fun index(
-        nft_data: &Collectible,
-    ): u64 {
-        nft_data.index
     }
 
     /// Get the Nft Collectible's `name`
@@ -348,7 +357,7 @@ module nft_protocol::collectibles {
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
     ): &Supply {
-        assert!(collection::is_mutable(collection), 0);
+        assert!(collection::is_mutable(collection), err::collection_is_not_mutable());
 
         &mut nft_data.supply
     }
@@ -375,7 +384,6 @@ module nft_protocol::collectibles {
 
         let data = Collectible {
             id: data_id,
-            index: args.index,
             name: args.name,
             supply: supply::new(args.max_supply, true),
             description: args.description,
@@ -388,7 +396,6 @@ module nft_protocol::collectibles {
     }
 
     fun mint_args(
-        index: u64,
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -402,7 +409,6 @@ module nft_protocol::collectibles {
         };
 
         MintArgs {
-            index,
             name: string::utf8(name),
             description: string::utf8(description),
             url: url::new_unsafe_from_bytes(url),
