@@ -65,9 +65,9 @@ module nft_protocol::social_profile {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        // Unlimited collections have a blind supply policy
+        // Assert that it has an unregulated supply policy
         assert!(
-            supply_policy::is_blind(collection::supply_policy(mint)), 0
+            !supply_policy::regulated(collection::supply_policy(mint)), 0
         );
 
         let media = Media {
