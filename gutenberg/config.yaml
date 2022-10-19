@@ -15,5 +15,5 @@ NftType: "Unique"
 
 Launchpad:
   market_type: "fixed_price"
-  price: 1000
-  whitelist: false
+  prices: [1000]
+  whitelists: [false]

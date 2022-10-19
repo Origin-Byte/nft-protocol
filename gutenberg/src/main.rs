@@ -1,5 +1,6 @@
 use std::fs;
 extern crate strfmt;
+use serde_yaml::Value;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
@@ -7,22 +8,26 @@ use std::str::FromStr;
 
 use strfmt::strfmt;
 
+pub mod schema;
 pub mod types;
 
+use crate::schema::*;
 use crate::types::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let f = std::fs::File::open("config.yaml")?;
-    let data: serde_yaml::Value = serde_yaml::from_reader(f)?;
+    let yaml: serde_yaml::Value = serde_yaml::from_reader(f)?;
 
-    let name = get(&data, "Collection", "name", FieldType::StrLit)?;
-    let description = get(&data, "Collection", "description", FieldType::StrLit)?;
-    let symbol = get(&data, "Collection", "symbol", FieldType::StrLit)?;
-    let max_supply = get(&data, "Collection", "max_supply", FieldType::Number)?;
-    let receiver = get(&data, "Collection", "receiver", FieldType::StrLit)?;
-    let royalty_fee_bps = get(&data, "Collection", "royalty_fee_bps", FieldType::Number)?;
-    let extra_data = get(&data, "Collection", "data", FieldType::StrLit)?;
-    let is_mutable = get(&data, "Collection", "is_mutable", FieldType::Bool)?;
+    let schema = Schema::from_yaml(&yaml);
+
+    // let name = get(&data, "Collection", "name", FieldType::StrLit)?;
+    // let description = get(&data, "Collection", "description", FieldType::StrLit)?;
+    // let symbol = get(&data, "Collection", "symbol", FieldType::StrLit)?;
+    // let max_supply = get(&data, "Collection", "max_supply", FieldType::Number)?;
+    // let receiver = get(&data, "Collection", "receiver", FieldType::StrLit)?;
+    // let royalty_fee_bps = get(&data, "Collection", "royalty_fee_bps", FieldType::Number)?;
+    // let extra_data = get(&data, "Collection", "data", FieldType::StrLit)?;
+    // let is_mutable = get(&data, "Collection", "is_mutable", FieldType::Bool)?;
 
     let module_name = name.to_lowercase().replace(" ", "_");
     let witness = name.to_uppercase().replace(" ", "");
@@ -56,15 +61,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sale_type = "create_single_market".to_string();
     let is_embedded = "true".to_string();
 
-    let sale_price = serde_yaml::to_value(&data["Launchpad"]["price"])?
-        .as_u64()
-        .unwrap()
-        .to_string();
+    let price_binding = serde_yaml::to_value(&data["Launchpad"]["prices"])?;
+    let prices_vec = price_binding.as_sequence().unwrap();
 
-    let whitelist = serde_yaml::to_value(&data["Launchpad"]["whitelist"])?
-        .as_bool()
-        .unwrap()
-        .to_string();
+    let mut prices = Vec::new();
+
+    for price_v in prices_vec {
+        let price = price_v.as_u64().unwrap();
+        prices.push(price);
+    }
+
+    println!("{:?}", prices_vec);
+
+    // let prices = serde_yaml::to_value(&data["Launchpad"]["price"])?
+    //     .as_u64()
+    //     .unwrap()
+    //     .to_string();
+
+    // let whitelist = serde_yaml::to_value(&data["Launchpad"]["whitelist"])?
+    //     .as_bool()
+    //     .unwrap()
+    //     .to_string();
 
     let file_path = "templates/template.txt";
 
@@ -88,8 +105,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     vars.insert("market_module".to_string(), market_module);
     vars.insert("sale_type".to_string(), sale_type);
     vars.insert("is_embedded".to_string(), is_embedded);
-    vars.insert("whitelist".to_string(), whitelist);
-    vars.insert("sale_price".to_string(), sale_price);
+    // vars.insert("whitelist".to_string(), whitelist);
+    // vars.insert("sale_price".to_string(), sale_price);
 
     let mut f = File::create("my_nfts.move")?;
     f.write_all(strfmt(&fmt, &vars).unwrap().as_bytes())?;

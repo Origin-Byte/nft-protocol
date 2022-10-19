@@ -29,14 +29,18 @@ module nft_protocol::{module_name} {{
             ctx,
         );
 
+        {define_whitelists}
+
+        {define_prices}
+        
         {market_module}::{sale_type}(
             witness,
             tx_context::sender(ctx), // admin
             collection_id,
             @{receiver},
             {is_embedded}, // is_embedded
-            {whitelist}, // whitelist
-            {sale_price}, // price
+            whitelisting, // whitelist
+            pricing, // price
             ctx,
         );
     }}

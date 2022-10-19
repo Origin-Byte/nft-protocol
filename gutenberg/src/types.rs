@@ -28,13 +28,31 @@ impl FromStr for NftType {
 }
 
 impl NftType {
-    pub fn get_nft_module(&self) -> String {
+    pub fn nft_module(&self) -> String {
         let nft_module = match self {
             NftType::Unique => "unique_nft",
             NftType::Collectibles => "collectibles",
             NftType::CNft => "c_nft",
         };
         nft_module.to_string()
+    }
+
+    pub fn nft_type(&self) -> String {
+        let nft_type = match self {
+            NftType::Unique => "unique",
+            NftType::Collectibles => "collectibles",
+            NftType::CNft => "c_nft",
+        };
+        nft_type.to_string()
+    }
+
+    pub fn is_embedded(&self) -> bool {
+        let is_embedded = match self {
+            NftType::Unique => true,
+            NftType::Collectibles => false,
+            NftType::CNft => false,
+        };
+        is_embedded
     }
 }
 
@@ -44,5 +62,29 @@ pub enum SalesType {
 }
 
 pub enum MarketType {
-    FixedPriceMarket,
+    FixedPriceMarket { sales: Vec<FixedPrice> },
+}
+
+impl MarketType {
+    pub fn to_string(&self) -> String {
+        "FixedPriceMarket".to_string()
+    }
+
+    pub fn market_module(&self) -> String {
+        "fixed_price".to_string()
+    }
+}
+
+pub struct FixedPrice {
+    price: u64,
+    whitelist: bool,
+}
+
+impl FixedPrice {
+    pub fn new(price: u64, whitelist: bool) -> Self {
+        FixedPrice {
+            price: price,
+            whitelist: whitelist,
+        }
+    }
 }

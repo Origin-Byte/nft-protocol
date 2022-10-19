@@ -92,8 +92,8 @@ module nft_protocol::fixed_price {
         collection_id: ID,
         receiver: address,
         is_embedded: bool,
-        prices: vector<u64>,
         whitelists: vector<bool>,
+        prices: vector<u64>,
         ctx: &mut TxContext,
     ) {
         let len = vector::length(&prices);
