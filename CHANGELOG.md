@@ -13,6 +13,7 @@ Changed:
   object `MintAuthority`
 - `Slingshot` has now witness pattern `Slingshot<phantom T, M>` where 
   `T` represents the exported NFT type and `M` the market type
+- `Slingshot` module has entrypoints `claim_nft_embedded` and `claim_nt_loose`
 - `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead
   of `Option<u64>` to facilitate function call on the client side
 
