@@ -1,40 +1,37 @@
-//! Module of a unique NFT `Unique` data type.
+//! Module of a NFT `SocialProfile` data type.
 //! 
-//! It acts as a standard domain-specific implementation of an NFT type, 
-//! fitting use cases such as Art and PFP NFT Collections. It uses the main
-//! NFT module to mint embedded NFTs.
+//! It acts as a standard domain-specific implementation of an Social Profile.
 module nft_protocol::social_profile {
-    use sui::event;
-    use sui::object::{Self, UID, ID};
     use std::string::{Self, String};
-    use std::option::{Self, Option};
-    
+    use std::option;
+
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
+    use sui::event;
     
     use nft_protocol::collection::{Self, MintAuthority};
-    use nft_protocol::supply_policy;
     use nft_protocol::soulbound::{Self, SoulBound};
+    use nft_protocol::utils::{to_string_vector};
     use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::supply_policy;
 
-    /// An NFT `Unique` data object with standard fields.
+    /// An NFT `SocialProfile` data object with standard fields.
     struct SocialProfile has key, store {
         id: UID,
-        // TODO: Should be string to be parsed by client
-        profile_picture: Option<ID>,
+        profile_picture: String,
         username: String,
         biography: String,
         media: Media,
     }
 
     struct Media has store, drop, copy {
-        // TODO: Allow for arbitrary new fields
-        twitter: String,
-        discord: String,
-        telegram: String,
+        keys: vector<String>,
+        values: vector<String>,
     }
 
     struct MintArgs has drop {
         username: String,
+        profile_picture: String,
         biography: String,
         media: Media,
     }
@@ -60,10 +57,10 @@ module nft_protocol::social_profile {
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_nft<T, M: store>(
         username: vector<u8>,
+        profile_picture: vector<u8>,
         biography: vector<u8>,
-        twitter: vector<u8>,
-        discord: vector<u8>,
-        telegram: vector<u8>,
+        media_keys: vector<vector<u8>>,
+        media_values: vector<vector<u8>>,
         mint: &MintAuthority<T>,
         recipient: address,
         ctx: &mut TxContext,
@@ -73,12 +70,16 @@ module nft_protocol::social_profile {
             supply_policy::is_blind(collection::supply_policy(mint)), 0
         );
 
+        let media = Media {
+            keys: to_string_vector(&mut media_keys),
+            values: to_string_vector(&mut media_values),
+        };
+
         let args = mint_args(
             username,
+            profile_picture,
             biography,
-            twitter,
-            discord,
-            telegram,
+            media,
         );
 
         mint_and_transfer<T>(
@@ -90,7 +91,7 @@ module nft_protocol::social_profile {
 
     // === Entrypoints ===
 
-    /// Burns embedded `Nft` along with its `Unique`. It invokes `burn_nft()`
+    /// Burns embedded `Nft` along with its `SocialProfile`. It invokes `burn_nft()`
     public entry fun burn_nft<T>(
         soulbound: SoulBound<Nft<T, SocialProfile>>,
     ) {
@@ -99,60 +100,46 @@ module nft_protocol::social_profile {
 
     // === Getter Functions  ===
 
-    /// Get the Nft Unique's `id`
+    /// Get the Nft SocialProfile's `id`
     public fun id(
         nft_data: &SocialProfile,
     ): ID {
         *object::uid_as_inner(&nft_data.id)
     }
 
-    /// Get the Nft Unique's `id` as reference
+    /// Get the Nft SocialProfile's `id` as reference
     public fun id_ref(
         nft_data: &SocialProfile,
     ): &ID {
         object::uid_as_inner(&nft_data.id)
     }
 
-    /// Get the Nft Unique's `profile_picture`
+    /// Get the Nft SocialProfile's `profile_picture`
     public fun profile_picture(
         nft_data: &SocialProfile,
-    ): Option<ID> {
-        nft_data.profile_picture
+    ): &String {
+        &nft_data.profile_picture
     }
 
-    /// Get the Nft Unique's `username`
+    /// Get the Nft SocialProfile's `username`
     public fun username(
         nft_data: &SocialProfile,
     ): String {
         nft_data.username
     }
 
-    /// Get the Nft Unique's `biography`
+    /// Get the Nft SocialProfile's `biography`
     public fun biography(
         nft_data: &SocialProfile,
     ): String {
         nft_data.biography
     }
 
-    /// Get the Nft Unique's `twitter`
-    public fun twitter(
+    /// Get the Nft SocialProfile's `media`
+    public fun media(
         nft_data: &SocialProfile,
-    ): String {
-        nft_data.media.twitter
-    }
-
-    /// Get the Nft Unique's `biography`
-    public fun telegram(
-        nft_data: &SocialProfile,
-    ): String {
-        nft_data.media.telegram
-    }
-
-    /// Get the Nft Unique's `biography`
-    public fun discord(
-        nft_data: &SocialProfile,
-    ): String {
-        nft_data.media.discord
+    ): &Media {
+        &nft_data.media
     }
 
     // === Private Functions ===
@@ -176,7 +163,7 @@ module nft_protocol::social_profile {
 
         let nft_data = SocialProfile {
             id: data_id,            
-            profile_picture: option::none(),
+            profile_picture: args.profile_picture,
             username: args.username,
             biography: args.biography,
             media: args.media,
@@ -223,19 +210,15 @@ module nft_protocol::social_profile {
 
     fun mint_args(
         username: vector<u8>,
+        profile_picture: vector<u8>,
         biography: vector<u8>,
-        twitter: vector<u8>,
-        discord: vector<u8>,
-        telegram: vector<u8>,
+        media: Media,
     ): MintArgs {
-        let media = Media {
-            twitter: string::utf8(twitter),
-            discord: string::utf8(discord),
-            telegram: string::utf8(telegram),
-        };
+
 
         MintArgs {
             username: string::utf8(username),
+            profile_picture: string::utf8(profile_picture),
             biography: string::utf8(biography),
             media: media,
         }
