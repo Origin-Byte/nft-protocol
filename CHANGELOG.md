@@ -6,16 +6,16 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] - 2022-10-21
 
 Changed:
+- Updated `Sui` to version `0.12.1`
 - Moved the supply mint policy responsibility off the `Collection` object to a separate
   object `MintAuthority`
 - `Slingshot` has now witness pattern `Slingshot<phantom T, M>` where 
   `T` represents the exported NFT type and `M` the market type
 - `Slingshot` module has entrypoints `claim_nft_embedded` and `claim_nt_loose`
-- `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead
-  of `Option<u64>` to facilitate function call on the client side
+- `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead of `Option<u64>` to facilitate function call on the client side
 
 Added:
 
