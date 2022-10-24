@@ -15,6 +15,7 @@
 module nft_protocol::fixed_price {
     use std::vector;
     
+    use sui::pay;
     use sui::sui::{SUI};
     use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
@@ -171,7 +172,7 @@ module nft_protocol::fixed_price {
 
         // Split coin into price and change, then transfer 
         // the price and keep the change
-        coin::split_and_transfer<SUI>(
+        pay::split_and_transfer<SUI>(
             wallet,
             price,
             receiver,
@@ -224,7 +225,7 @@ module nft_protocol::fixed_price {
 
         // Split coin into price and change, then transfer 
         // the price and keep the change
-        coin::split_and_transfer<SUI>(
+        pay::split_and_transfer<SUI>(
             wallet,
             price,
             receiver,
