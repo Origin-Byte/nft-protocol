@@ -238,8 +238,7 @@ module nft_protocol::collectibles {
 
     // === Supply Functions ===
 
-    /// NFT `Collectible` data objects have an opt-in `supply.max`.
-    /// `Data` objects without supply will have `option::none()` in its value.
+    /// NFT `Collectible` data objects have a `supply.max`.
     /// This Function call adds a value to the supply max.
     public entry fun ceil_supply<T, M: store>(
         collection: &Collection<T, M>,
@@ -258,8 +257,8 @@ module nft_protocol::collectibles {
     }
 
     /// Increases the `supply.max` of the NFT `Collectible`
-    /// by the `value` amount
-    public entry fun increase_supply_cap<T, M: store>(
+    /// by the `value` amount.
+    public entry fun increase_supply_ceil<T, M: store>(
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
         value: u64
@@ -277,9 +276,9 @@ module nft_protocol::collectibles {
 
     /// Decreases the `supply.max` of the NFT `Collectible`
     /// by the `value` amount.
-    /// This function call fails if one attempts to decrease the supply cap
+    /// This function call fails if one attempts to decrease the supply ceil
     /// to a value below the current supply.
-    public entry fun decrease_supply_cap<T, M: store>(
+    public entry fun decrease_supply_ceil<T, M: store>(
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
         value: u64
