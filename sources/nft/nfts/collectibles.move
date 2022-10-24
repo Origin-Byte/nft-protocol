@@ -7,7 +7,6 @@ module nft_protocol::collectibles {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use std::string::{Self, String};
-    use std::option::{Option};
     
     use sui::transfer;
     use sui::tx_context::{TxContext};
@@ -19,6 +18,8 @@ module nft_protocol::collectibles {
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::nft::{Self, Nft};
+
+    const U64_MAX: u64 = 18446744073709551615;
 
     struct Collectible has key, store {
         id: UID,
@@ -40,7 +41,7 @@ module nft_protocol::collectibles {
         description: String,
         url: Url,
         attributes: Attributes,
-        max_supply: Option<u64>,
+        max_supply: u64,
     }
 
     struct MintDataEvent has copy, drop {
@@ -71,7 +72,7 @@ module nft_protocol::collectibles {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        max_supply: Option<u64>,
+        max_supply: u64,
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
@@ -115,7 +116,7 @@ module nft_protocol::collectibles {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        max_supply: Option<u64>,
+        max_supply: u64,
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
@@ -134,7 +135,7 @@ module nft_protocol::collectibles {
             max_supply,
         );
 
-        collection::increase_supply(mint, 1);
+        collection::increment_supply(mint, 1);
 
         mint_and_share_data(
             args,
@@ -159,7 +160,7 @@ module nft_protocol::collectibles {
         // whereas the launchad is directly calling `nft::mint_nft_loose`.
         // This means that it is not increasing supply. This needs to fix
         // with high priority.
-        supply::increase_supply(&mut nft_data.supply, 1);
+        supply::increment_supply(&mut nft_data.supply, 1);
 
         let nft = nft::mint_nft_loose<T, Collectible>(
             nft_data_id(nft_data),
@@ -231,7 +232,7 @@ module nft_protocol::collectibles {
     ) {
         assert!(nft::data_id(&nft) == id(nft_data), err::nft_data_mismatch());
 
-        supply::decrease_supply(&mut nft_data.supply, 1);
+        supply::decrement_supply(&mut nft_data.supply, 1);
         nft::burn_loose_nft(nft);
     }
 
@@ -240,7 +241,7 @@ module nft_protocol::collectibles {
     /// NFT `Collectible` data objects have an opt-in `supply.max`.
     /// `Data` objects without supply will have `option::none()` in its value.
     /// This Function call adds a value to the supply max.
-    public entry fun cap_supply<T, M: store>(
+    public entry fun ceil_supply<T, M: store>(
         collection: &Collection<T, M>,
         nft_data: &mut Collectible,
         value: u64
@@ -250,7 +251,7 @@ module nft_protocol::collectibles {
             err::collection_is_not_mutable()
         );
 
-        supply::cap_supply(
+        supply::ceil_supply(
             &mut nft_data.supply,
             value
         )
@@ -268,7 +269,7 @@ module nft_protocol::collectibles {
             err::collection_is_not_mutable()
         );
 
-        supply::increase_cap(
+        supply::increase_ceil(
             &mut nft_data.supply,
             value
         )
@@ -288,7 +289,7 @@ module nft_protocol::collectibles {
             err::collection_is_not_mutable()
         );
 
-        supply::decrease_cap(
+        supply::decrease_ceil(
             &mut nft_data.supply,
             value
         )
@@ -401,7 +402,7 @@ module nft_protocol::collectibles {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        max_supply: Option<u64>,
+        max_supply: u64,
     ): MintArgs {
         let attributes = Attributes {
             keys: attribute_keys,
