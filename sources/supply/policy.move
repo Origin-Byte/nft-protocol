@@ -15,7 +15,7 @@ module nft_protocol::supply_policy {
     }
 
     public fun create_regulated(
-        max_supply: Option<u64>,
+        max_supply: u64,
         frozen: bool,
     ): SupplyPolicy {
         SupplyPolicy {
@@ -46,9 +46,9 @@ module nft_protocol::supply_policy {
         option::borrow_mut(&mut policy.supply)
     }
 
-    public fun cap_supply(policy: &mut SupplyPolicy, value: u64) {
+    public fun ceil_supply(policy: &mut SupplyPolicy, value: u64) {
         assert!(policy.regulated == true, err::supply_policy_mismatch());
-        supply::cap_supply(option::borrow_mut(&mut policy.supply), value);
+        supply::ceil_supply(option::borrow_mut(&mut policy.supply), value);
     }
 
     /// Increases the `supply.max` by the `value` amount for 
@@ -59,7 +59,7 @@ module nft_protocol::supply_policy {
     ) {
         assert!(!regulated(policy), err::supply_policy_mismatch());
 
-        supply::increase_cap(
+        supply::increase_ceil(
             supply_mut(policy),
             value
         )
@@ -75,32 +75,32 @@ module nft_protocol::supply_policy {
     ) {
         assert!(!regulated(policy), err::supply_policy_mismatch());
 
-        supply::decrease_cap(
+        supply::decrease_ceil(
             supply_mut(policy),
             value
         )
     }
 
     /// Increase `supply.current` for regulated policies
-    public fun increase_supply(
+    public fun increment_supply(
         policy: &mut SupplyPolicy,
         value: u64
     ) {
         assert!(regulated(policy), err::supply_policy_mismatch());
 
-        supply::increase_supply(
+        supply::increment_supply(
             supply_mut(policy),
             value
         )
     }
 
-    public fun decrease_supply(
+    public fun decrement_supply(
         policy: &mut SupplyPolicy,
         value: u64
     ) {
         assert!(regulated(policy), err::supply_policy_mismatch());
 
-        supply::decrease_supply(
+        supply::decrement_supply(
             supply_mut(policy),
             value
         )
