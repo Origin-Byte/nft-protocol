@@ -7,6 +7,5 @@ edition = "2021"
 
 [dependencies]
 serde_yaml = "0.9.13"
-serde = "1.0.145"
-titlecase = "2.2.1"
+thiserror = "1.0.37"
 strfmt = "0.2.2"

@@ -1,13 +1,13 @@
 module nft_protocol::{module_name} {{
-    use sui::tx_context::{{Self, TxContext}};
-
     use std::vector;
+
+    use sui::tx_context::{{Self, TxContext}};
     
     use nft_protocol::collection::{{MintAuthority}};
-    use nft_protocol::{market_module}::{{Self, {market_type}}};
-    use nft_protocol::slingshot::Slingshot;
+    use nft_protocol::{market_module}{market_module_imports};
     use nft_protocol::std_collection;
     use nft_protocol::{nft_type};
+    {slingshot_import}
 
     struct {witness} has drop {{}}
 

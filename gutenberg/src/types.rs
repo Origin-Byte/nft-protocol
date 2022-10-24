@@ -22,7 +22,11 @@ impl FromStr for NftType {
             "Unique" => Ok(NftType::Unique),
             "Collectibles" => Ok(NftType::Collectibles),
             "CNft" => Ok(NftType::CNft),
-            _ => Err(()),
+            _ => {
+                println!("The NftType provided is not supported");
+                
+                Err(())
+            }
         }
     }
 }
@@ -54,9 +58,9 @@ impl NftType {
         }
     }
 
-    pub fn mint_func(&self, witness: &str, market_type: &str,) -> String {
+    pub fn mint_func(&self, witness: &str, market_type: &str,) -> Box<str> {
         // TODO: Need to add support for unregulated collections
-        match self {
+        let func = match self {
             NftType::Unique => format!(
                 "public entry fun mint_nft(\n        \
                     name: vector<u8>,\n        \
@@ -90,7 +94,7 @@ impl NftType {
                     url: vector<u8>,\n        \
                     attribute_keys: vector<vector<u8>>,\n        \
                     attribute_values: vector<vector<u8>>,\n        \
-                    max_supply: Option<u64>,\n        \
+                    max_supply: u64,\n        \
                     mint: &mut MintAuthority<{}>,\n        \
                     ctx: &mut TxContext,\n    \
                 ) {{\n        \
@@ -114,7 +118,7 @@ impl NftType {
                     url: vector<u8>,\n        \
                     attribute_keys: vector<vector<u8>>,\n        \
                     attribute_values: vector<vector<u8>>,\n        \
-                    max_supply: Option<u64>,\n        \
+                    max_supply: u64,\n        \
                     mint: &mut MintAuthority<{}>,\n        \
                     ctx: &mut TxContext,\n    \
                 ) {{\n        \
@@ -131,7 +135,8 @@ impl NftType {
                 }}",
                 witness, witness
             ),
-        }
+        };
+        func.into_boxed_str()
     }
 }
 
@@ -162,8 +167,8 @@ pub struct FixedPrice {
 impl FixedPrice {
     pub fn new(price: u64, whitelist: bool) -> Self {
         FixedPrice {
-            price: price,
-            whitelist: whitelist,
+            price,
+            whitelist,
         }
     }
 }

@@ -1,5 +1,5 @@
 Collection:
-  name: "Suinamis"
+  name: "Suinsense"
   description: "A Unique NFT collection of Suinamis on Sui"
   symbol: "SUIN"
   max_supply: 100
@@ -11,9 +11,9 @@ Collection:
   is_mutable: true
   data: "Some extra data"
 
-NftType: "Collectibles"
+NftType: "Unique"
 
 Launchpad:
   market_type: "fixed_price"
-  prices: [1000]
-  whitelists: [false]
+  prices: ["Yakes!", "yohh"]
+  whitelists: [false, true]
