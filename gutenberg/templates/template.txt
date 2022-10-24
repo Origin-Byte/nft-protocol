@@ -45,27 +45,5 @@ module nft_protocol::{module_name} {{
         );
     }}
 
-    public entry fun mint_nft(
-        name: vector<u8>,
-        description: vector<u8>,
-        url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint_authority: &mut MintAuthority<{witness}>,
-        sale_index: u64,
-        launchpad: &mut Slingshot<{witness}, FixedPriceMarket>,
-        ctx: &mut TxContext,
-    ) {{
-        {nft_type}::mint_regulated_nft(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
-            mint_authority,
-            sale_index,
-            launchpad,
-            ctx,
-        );
-    }}
+    {mint_function}
 }}

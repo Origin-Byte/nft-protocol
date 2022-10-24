@@ -117,18 +117,18 @@ impl Schema {
         let nft_type = self.nft_type.nft_type().into_boxed_str();
 
         let mut vars = HashMap::new();
-        vars.insert("name".to_string(), &self.collection.name);
-        vars.insert("nft_type".to_string(), &nft_type);
-        vars.insert("description".to_string(), &self.collection.description);
-        vars.insert("max_supply".to_string(), &self.collection.max_supply);
-        vars.insert("symbol".to_string(), &self.collection.symbol);
-        vars.insert("receiver".to_string(), &self.collection.receiver);
+        vars.insert("name".to_string(), self.collection.name.to_string());
+        vars.insert("nft_type".to_string(), nft_type.to_string());
+        vars.insert("description".to_string(), self.collection.description.to_string());
+        vars.insert("max_supply".to_string(), self.collection.max_supply.to_string());
+        vars.insert("symbol".to_string(), self.collection.symbol.to_string());
+        vars.insert("receiver".to_string(), self.collection.receiver.to_string());
         vars.insert(
             "royalty_fee_bps".to_string(),
-           &self.collection.royalty_fee_bps,
+           self.collection.royalty_fee_bps.to_string(),
         );
-        vars.insert("extra_data".to_string(), &self.collection.data);
-        vars.insert("is_mutable".to_string(), &self.collection.is_mutable);
+        vars.insert("extra_data".to_string(), self.collection.data.to_string());
+        vars.insert("is_mutable".to_string(), self.collection.is_mutable.to_string());
 
         let module_name = self
             .collection
@@ -154,95 +154,94 @@ impl Schema {
                     "        vector::push_back(&mut tags, b\"{}\");",
                     tag
                 )})
-            .fold("".to_string(), |acc, x, | acc + "\n" + &x);
+            .fold("".to_string(), |acc, x, | acc + "\n" + &x)
+            .into_boxed_str();
 
-        let mut tags: String = "".to_string();
+        vars.insert("module_name".to_string(), module_name.to_string());
+        vars.insert("witness".to_string(), witness.to_string());
+        vars.insert("tags".to_string(), tags.to_string());
 
-        for tag_v in tags_vec {
-            let tag = format!(
-                "        vector::push_back(&mut tags, b\"{}\");",
-                tag_v
-            );
+        let (mut prices, mut whitelists) = match &self.launchpad.market_type {
+            MarketType::FixedPriceMarket { sales } => {
+                let prices: Vec<u64> = sales
+                    .iter()
+                    .map(|m| m.price)
+                    .collect();
 
-            tags = [tags, tag].join("\n").to_string();
-        }
+                let whitelists: Vec<bool> = sales
+                    .iter()
+                    .map(|m| m.whitelist)
+                    .collect();
 
-        vars.insert("module_name".to_string(), &module_name);
-        vars.insert("witness".to_string(), &witness);
-        // vars.insert("tags".to_string(), tags.clone());
+                (prices, whitelists)
+            }
+        };
 
-        // let (mut prices, mut whitelists) = match &self.launchpad.market_type {
-        //     MarketType::FixedPriceMarket { sales } => {
-        //         let prices: Vec<u64> = sales
-        //             .iter()
-        //             .map(|m| m.price)
-        //             .collect();
+        let define_whitelists = if whitelists.len() == 1 {
+            "let whitelisting = ".to_string() 
+                + &whitelists.pop().unwrap().to_string() 
+                + ";"
+        } else {
+            let mut loc = "let whitelisting = vector::empty();\n".to_string();
 
-        //         let whitelists: Vec<bool> = sales
-        //             .iter()
-        //             .map(|m| m.whitelist)
-        //             .collect();
+            for _w in whitelists.clone() {
+                loc = loc 
+                    + "        vector::push_back(&mut whitelisting, " 
+                    + &whitelists.pop().unwrap().to_string() 
+                    + ");\n"
+            }
+            loc
+        };
 
-        //         (prices, whitelists)
-        //     }
-        // };
-
-        // let define_whitelists = if whitelists.len() == 1 {
-        //     "let whitelisting = ".to_string() 
-        //         + &whitelists.pop().unwrap().to_string() 
-        //         + ";"
-        // } else {
-        //     let mut loc = "let whitelisting = vector::empty();".to_string();
-
-        //     for _w in whitelists.clone() {
-        //         loc = loc 
-        //             + "vector::push_back(" 
-        //             + &whitelists.pop().unwrap().to_string() 
-        //             + ");"
-        //     }
-        //     loc
-        // };
-
-        // let sale_type = if prices.len() == 1 {
-        //     "create_single_market".to_string()
-        // } else {
-        //     "create_multi_market".to_string()
-        // };
+        let sale_type = if prices.len() == 1 {
+            "create_single_market".to_string()
+        } else {
+            "create_multi_market".to_string()
+        };
 
 
-        // let define_prices = if prices.len() == 1 {
-        //     "let pricing = ".to_string() 
-        //         + &prices.pop().unwrap().to_string() 
-        //         + ";"
-        // } else {
-        //     let mut loc = "let pricing = vector::empty();".to_string();
+        let define_prices = if prices.len() == 1 {
+            "let pricing = ".to_string() 
+                + &prices.pop().unwrap().to_string() 
+                + ";"
+        } else {
+            let mut loc = "let pricing = vector::empty();\n".to_string();
 
-        //     for _p in prices.clone() {
-        //         loc = loc 
-        //             + "vector::push_back(" 
-        //             + &prices.pop().unwrap().to_string() 
-        //             + ");"
-        //     }
-        //     loc
-        // };
+            for _p in prices.clone() {
+                loc = loc 
+                    + "        vector::push_back(&mut pricing, " 
+                    + &prices.pop().unwrap().to_string() 
+                    + ");\n"
+            }
+            loc
+        };
 
-        // vars.insert(
-        //     "market_type".to_string(),
-        //     self.launchpad.market_type.to_string().clone(),
-        // );
-        // vars.insert(
-        //     "market_module".to_string(),
-        //     self.launchpad.market_type.market_module().clone(),
-        // );
+        vars.insert(
+            "market_type".to_string(),
+            self.launchpad.market_type.market_type().to_string(),
+        );
+        vars.insert(
+            "market_module".to_string(),
+            self.launchpad.market_type.market_module().to_string(),
+        );
 
-        // vars.insert("sale_type".to_string(), sale_type.clone());
-        // vars.insert("is_embedded".to_string(), self.nft_type.is_embedded().clone());
+        vars.insert("sale_type".to_string(), sale_type);
+        vars.insert("is_embedded".to_string(), self.nft_type.is_embedded().to_string());
 
-        // vars.insert("define_prices".to_string(), define_prices.clone());
-        // vars.insert("define_whitelists".to_string(), define_whitelists.clone());
+        vars.insert("define_prices".to_string(), define_prices);
+        vars.insert("define_whitelists".to_string(), define_whitelists);
 
-        // let mut f = File::create("my_nfts.move")?;
-        // f.write_all(strfmt(&fmt, &vars).unwrap().as_bytes())?;
+        vars.insert("mint_function".to_string(), self.nft_type.mint_func(
+            &witness, &self.launchpad.market_type.market_type().to_string(),
+        ));
+
+        let path = format!(
+            "../sources/examples/{}.move",
+            module_name
+        );
+
+        let mut f = File::create(path)?;
+        f.write_all(strfmt(&fmt, &vars).unwrap().as_bytes())?;
 
         Ok(())
     }
