@@ -9,6 +9,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ## [Unreleased]
 
 Changed:
+- Togling sale status permission via `fixed_price::sale_on` and`fized_price::sale_off` is now a permissioned action, that can only be done by the admin
 - Simplified `supply` module by removing changing field `max` from `Option<u64>` to `u64`
 
 ## [0.5.0] - 2022-10-21
