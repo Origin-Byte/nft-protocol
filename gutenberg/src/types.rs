@@ -39,20 +39,20 @@ impl NftType {
 
     pub fn nft_type(&self) -> String {
         let nft_type = match self {
-            NftType::Unique => "unique",
+            NftType::Unique => "unique_nft",
             NftType::Collectibles => "collectibles",
             NftType::CNft => "c_nft",
         };
         nft_type.to_string()
     }
 
-    pub fn is_embedded(&self) -> bool {
+    pub fn is_embedded(&self) -> String {
         let is_embedded = match self {
-            NftType::Unique => true,
-            NftType::Collectibles => false,
-            NftType::CNft => false,
+            NftType::Unique => "true",
+            NftType::Collectibles => "false",
+            NftType::CNft => "false",
         };
-        is_embedded
+        is_embedded.to_string()
     }
 }
 
@@ -76,8 +76,8 @@ impl MarketType {
 }
 
 pub struct FixedPrice {
-    price: u64,
-    whitelist: bool,
+    pub price: u64,
+    pub whitelist: bool,
 }
 
 impl FixedPrice {
