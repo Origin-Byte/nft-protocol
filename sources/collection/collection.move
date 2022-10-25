@@ -1,8 +1,8 @@
 //! Module of a generic `Collection` type and a `MintAuthority` type.
-//! 
+//!
 //! It acts as a generic interface for NFT Collections and it allows for
 //! the creation of arbitrary domain specific implementations.
-//! 
+//!
 //! The `MintAuthority` object gives power to the owner to mint objects.
 //! There is only one `MintAuthority` per `Collection`.
 //! The Mint Authority object contains a `SupplyPolicy` which
@@ -10,22 +10,22 @@
 //! A Collection with unregulated Supply policy is a collection that
 //! does not keep track of its current supply objects. This allows for the
 //! minting process to be parallelized.
-//! 
+//!
 //! A Collection with regulated Supply policy is a collection that
-//! keeps track of its current supply objects. This means that whilst the 
+//! keeps track of its current supply objects. This means that whilst the
 //! minting can be parallelized on the client side, on the blockchain side
 //! nodes will have to lock the `MintAuthority` object in order to mutate
 //! it sequentially. Regulated Supply allows for collections to have limited
-//! or unlimited supply. The `MintAuthority` owner can modify the 
+//! or unlimited supply. The `MintAuthority` owner can modify the
 //! `max_supply` a posteriori, as long as the `Supply` is not frozen.
-//! After this function call the `Supply` object will not yet be set to 
-//! frozen, in order to give creators the ability to ammend it prior to 
+//! After this function call the `Supply` object will not yet be set to
+//! frozen, in order to give creators the ability to ammend it prior to
 //! the primary sale taking place.
-//! 
+//!
 //! TODO: Consider adding a function `destroy_unregulated`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
-//! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that 
+//! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that
 //! `is_mutable` refers to the NFTs and `frozen` refers to the collection
 module nft_protocol::collection {
     use std::vector;
@@ -45,8 +45,8 @@ module nft_protocol::collection {
     const U64_MAX: u64 = 18446744073709551615;
 
     /// An NFT `Collection` object with a generic `M`etadata.
-    /// 
-    /// The `Metadata` is a type exported by an upstream contract which is 
+    ///
+    /// The `Metadata` is a type exported by an upstream contract which is
     /// used to store additional information about the NFT.
     struct Collection<phantom T, M: store> has key, store {
         id: UID,
@@ -57,25 +57,25 @@ module nft_protocol::collection {
         /// Address that receives the mint price in Sui
         receiver: address,
         /// Nft Collection Tags is an enumeration of tags, represented
-        /// as strings. An NFT Tag is a string that categorises the domain 
+        /// as strings. An NFT Tag is a string that categorises the domain
         /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
         /// This allows wallets and marketplaces to organise NFTs by its
         /// domain specificity.
         tags: Tags,
-        /// Determines if the collection and its associated NFTs are 
+        /// Determines if the collection and its associated NFTs are
         /// mutable. Once turned `false` it cannot be reversed. Collection
         /// owners however will still be able to push and pop tags to the
         /// `tags` field.
         is_mutable: bool,
-        /// Field determining the amount of royaly fees in basis points, 
+        /// Field determining the amount of royaly fees in basis points,
         /// charged in market transactions.
-        /// TODO: It is likely that this field will change as we design 
+        /// TODO: It is likely that this field will change as we design
         /// the royalty enforcement standard
         royalty_fee_bps: u64,
         creators: vector<Creator>,
         /// ID of `MintAuthority` object
         mint_authority: ID,
-        /// The `Metadata` is a type exported by an upstream contract which is 
+        /// The `Metadata` is a type exported by an upstream contract which is
         /// used to store additional information about the NFT.
         metadata: M,
     }
@@ -108,7 +108,7 @@ module nft_protocol::collection {
         symbol: String,
         receiver: address,
         tags: vector<String>,
-        is_mutable: bool, 
+        is_mutable: bool,
         royalty_fee_bps: u64,
     }
 
@@ -126,25 +126,25 @@ module nft_protocol::collection {
     /// object gives power to the owner to mint objects. There is only one
     /// `MintAuthority` per `Collection`. The Mint Authority object contains a
     /// `SupplyPolicy` which can be regulated or unregulated.
-    /// 
+    ///
     /// A Collection with unregulated Supply policy is a collection that
     /// does not keep track of its current supply objects. This allows for the
     /// minting process to be parallelized.
-    /// 
+    ///
     /// To initialise a collection with a unregulated `SupplyPolicy`,
-    /// the parameter `max_supply` should be given as `0`. 
-    /// 
+    /// the parameter `max_supply` should be given as `0`.
+    ///
     /// A Collection with regulated Supply policy is a collection that
-    /// keeps track of its current supply objects. This means that whilst the 
+    /// keeps track of its current supply objects. This means that whilst the
     /// minting can be parallelized on the client side, on the blockchain side
     /// nodes will have to lock the `MintAuthority` object in order to mutate
     /// it sequentially. Regulated Supply allows for collections to have limited
-    /// or unlimited supply. The `MintAuthority` owner can modify the 
+    /// or unlimited supply. The `MintAuthority` owner can modify the
     /// `max_supply` a posteriori, as long as the `Supply` is not frozen.
-    /// After this function call the `Supply` object will not yet be set to 
-    /// frozen, in order to give creators the ability to ammend it prior to 
+    /// After this function call the `Supply` object will not yet be set to
+    /// frozen, in order to give creators the ability to ammend it prior to
     /// the primary sale taking place.
-    /// 
+    ///
     /// To initialise a collection with regualred `SupplyPolicy`, the parameter
     /// `max_supply` should be above `0`. To create an unlimited supply the
     /// parameter `max_supply` should be equal to the biggest integer number
@@ -190,7 +190,7 @@ module nft_protocol::collection {
         }
     }
 
-    
+
     /// Burn a Collection with regulated supply object and
     /// returns the Metadata object
     public fun burn_regulated<T, M: store>(
@@ -411,7 +411,7 @@ module nft_protocol::collection {
         }
     }
 
-    /// `Limited` collections can have a cap on the maximum supply, however 
+    /// `Limited` collections can have a cap on the maximum supply, however
     /// the supply cap can also be `option::none()`. This function call
     /// adds a value to the supply cap.
     public entry fun cap_supply<T>(
@@ -424,7 +424,7 @@ module nft_protocol::collection {
         )
     }
 
-    /// Increases the `supply.cap` by the `value` amount for 
+    /// Increases the `supply.cap` by the `value` amount for
     /// `Limited` collections. Invokes `supply::increase_cap()`
     public entry fun increase_max_supply<T>(
         mint: &mut MintAuthority<T>,
@@ -436,7 +436,7 @@ module nft_protocol::collection {
         );
     }
 
-    /// Decreases the `supply.cap` by the `value` amount for 
+    /// Decreases the `supply.cap` by the `value` amount for
     /// `Limited` collections. This function call fails if one attempts
     /// to decrease the supply cap to a value below the current supply.
     /// Invokes `supply::decrease_cap()`

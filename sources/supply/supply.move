@@ -26,7 +26,7 @@ module nft_protocol::supply {
     public fun increase_cap(supply: &mut Supply, value: u64) {
         assert!(!option::is_none(&supply.max), err::supply_is_unlimited());
         assert!(supply.frozen == false, err::frozen_supply());
-        
+
         let cap = option::extract(&mut supply.max);
         option::fill(&mut supply.max, cap + value);
     }
@@ -34,14 +34,14 @@ module nft_protocol::supply {
     public fun decrease_cap(supply: &mut Supply, value: u64) {
         assert!(!option::is_none(&supply.max), err::supply_is_unlimited());
         assert!(supply.frozen == false, err::frozen_supply());
-        
+
         // Decrease in supply cap cannot result in supply cap smaller
         // than current supply
         assert!(
             *option::borrow(&supply.max) - value > supply.current,
             err::max_supply_cannot_be_below_current_supply()
         );
-        
+
         let max = option::extract(&mut supply.max);
         option::fill(&mut supply.max, max + value);
     }

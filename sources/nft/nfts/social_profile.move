@@ -1,5 +1,5 @@
 //! Module of a NFT `SocialProfile` data type.
-//! 
+//!
 //! It acts as a standard domain-specific implementation of an Social Profile.
 module nft_protocol::social_profile {
     use std::string::{Self, String};
@@ -8,7 +8,7 @@ module nft_protocol::social_profile {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
     use sui::event;
-    
+
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::soulbound::{Self, SoulBound};
     use nft_protocol::utils::{to_string_vector};
@@ -53,7 +53,7 @@ module nft_protocol::social_profile {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the collection owner, or if it is a shared collection.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_nft<T, M: store>(
         username: vector<u8>,
@@ -162,7 +162,7 @@ module nft_protocol::social_profile {
         );
 
         let nft_data = SocialProfile {
-            id: data_id,            
+            id: data_id,
             profile_picture: args.profile_picture,
             username: args.username,
             biography: args.biography,

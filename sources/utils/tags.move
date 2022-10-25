@@ -1,7 +1,7 @@
 //! @title tags
 //! @notice Tags type in Move.
 module nft_protocol::tags {
-    // TODO: Consider using `VecSet` instead of `VecMap` since 
+    // TODO: Consider using `VecSet` instead of `VecMap` since
     // keys are simply indices
     use std::vector;
     use std::string::{String};

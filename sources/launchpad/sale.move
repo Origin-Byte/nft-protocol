@@ -1,11 +1,11 @@
 //! Module representing `Sale` Outlets of `Launchpad`s.
-//! 
-//! Launchpads can now have multiple sale outlets, repsented 
+//!
+//! Launchpads can now have multiple sale outlets, repsented
 //! through `sales: vector<Sale<T, M>>`, which meants that NFT creators can
 //! perform tiered sales. An example of this would be an Gaming NFT creator
-//! separating the sale based on NFT rarity and emit whitelist tokens to 
+//! separating the sale based on NFT rarity and emit whitelist tokens to
 //! different users for different rarities depending on the user's game score.
-//! 
+//!
 //! The Sale object is agnostic to the Market mechanism and instead decides to
 //! outsource this logic to generic `Market` object. This way developers can
 //! come up with their plug-and-play market primitives, of which some examples
@@ -29,7 +29,7 @@ module nft_protocol::sale {
     }
 
     /// This object acts as an intermediate step between the payment
-    /// and the transfer of the NFT. The user first has to call 
+    /// and the transfer of the NFT. The user first has to call
     /// `buy_nft_certificate` which mints and transfers the `NftCertificate` to
     /// the user. This object will dictate which NFT the userwill receive by
     /// calling the endpoint `claim_nft`
@@ -94,7 +94,7 @@ module nft_protocol::sale {
         ctx: &mut TxContext,
     ): NftCertificate {
         let nft_id = pop_nft(sale);
-        
+
         let certificate = NftCertificate {
             id: object::new(ctx),
             launchpad_id: launchpad_id,

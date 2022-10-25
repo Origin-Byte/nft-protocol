@@ -31,12 +31,12 @@ module nft_protocol::soulbound {
     public fun unlock_nft<N: key + store>(
         soulbound: SoulBound<N>,
     ): N {
-        
+
         let SoulBound {
             id,
             inner,
         } = soulbound;
-        
+
         object::delete(id);
 
         inner

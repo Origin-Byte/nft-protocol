@@ -1,8 +1,8 @@
 //! Module contaning `SupplyPolicy` type.
-//! 
+//!
 //! A `SupplyPolicy` can be regulated or unregulated. Regulated policies
-//! can have a ceiling on the maximum supply and keep track 
-//! of the current supply, whilst unregulated policies have no supply 
+//! can have a ceiling on the maximum supply and keep track
+//! of the current supply, whilst unregulated policies have no supply
 //! constraints nor they keep track of the number of minted objects.
 module nft_protocol::supply_policy {
     use std::option::{Self, Option};
@@ -10,7 +10,7 @@ module nft_protocol::supply_policy {
     use nft_protocol::err;
 
     struct SupplyPolicy has store {
-        regulated: bool, 
+        regulated: bool,
         supply: Option<Supply>,
     }
 
@@ -51,7 +51,7 @@ module nft_protocol::supply_policy {
         supply::cap_supply(option::borrow_mut(&mut policy.supply), value);
     }
 
-    /// Increases the `supply.max` by the `value` amount for 
+    /// Increases the `supply.max` by the `value` amount for
     /// regulated policies. Invokes `supply::increase_cap()`
     public fun increase_max_supply(
         policy: &mut SupplyPolicy,
@@ -65,7 +65,7 @@ module nft_protocol::supply_policy {
         )
     }
 
-    /// Decreases the `supply.cap` by the `value` amount for 
+    /// Decreases the `supply.cap` by the `value` amount for
     /// regulated policies. This function call fails if one attempts
     /// to decrease the supply cap to a value below the current supply.
     /// Invokes `supply::decrease_cap()`

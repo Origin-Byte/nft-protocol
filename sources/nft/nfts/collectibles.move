@@ -1,5 +1,5 @@
 //! Module of a collectibles NFT `Collectible` data type.
-//! 
+//!
 //! It acts as a standard domain-specific implementation of an NFT type with
 //! supply, fitting use cases such as Digital Collectibles (e.g. Baseball
 //! cards).
@@ -8,11 +8,11 @@ module nft_protocol::collectibles {
     use sui::object::{Self, UID, ID};
     use std::string::{Self, String};
     use std::option::{Option};
-    
+
     use sui::transfer;
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
-    
+
     use nft_protocol::err;
     use nft_protocol::supply_policy;
     use nft_protocol::collection::{Self, Collection, MintAuthority};
@@ -57,13 +57,13 @@ module nft_protocol::collectibles {
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// 
-    /// Mints a Collectible data object for NFT(s) from an unregulated 
+    ///
+    /// Mints a Collectible data object for NFT(s) from an unregulated
     /// `Collection`.
-    /// The only way to mint the NFT data for a collection is to give a 
-    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// The only way to mint the NFT data for a collection is to give a
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
     /// given collection if one is the `MintAuthority` owner.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_unregulated_nft_data<T>(
         name: vector<u8>,
@@ -99,15 +99,15 @@ module nft_protocol::collectibles {
 
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
-    /// 
-    /// Mints a Collectible data object for NFT(s) from a regulated 
+    ///
+    /// Mints a Collectible data object for NFT(s) from a regulated
     /// `Collection`.
-    /// The only way to mint the NFT data for a collection is to give a 
-    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a 
+    /// The only way to mint the NFT data for a collection is to give a
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
     /// given collection if one is the `MintAuthority` owner.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_regulated_nft_data<T>(
         name: vector<u8>,
@@ -146,7 +146,7 @@ module nft_protocol::collectibles {
     /// Mints loose NFT and transfers it to `recipient`
     /// Invokes `mint_nft_loose()`.
     /// This function call comes after the minting of the `Data` object.
-    /// 
+    ///
     /// To be called by Launchpad contract
     /// TODO: The flow here needs to be reconsidered
     public fun mint_nft<T, M: store>(
@@ -174,9 +174,9 @@ module nft_protocol::collectibles {
 
     // === Entrypoints ===
 
-    /// Burns loose NFT `Collectible` data. Burning a loose NFT `Collectible` 
-    /// data can only be done once all the underlying `Nft`s pointing to that 
-    /// object have been burned (or if none have been minted yet). 
+    /// Burns loose NFT `Collectible` data. Burning a loose NFT `Collectible`
+    /// data can only be done once all the underlying `Nft`s pointing to that
+    /// object have been burned (or if none have been minted yet).
     /// In other words, the `supply.current` must be zero.
     public entry fun burn_limited_collection_nft_data<T, M: store>(
         nft_data: Collectible,
