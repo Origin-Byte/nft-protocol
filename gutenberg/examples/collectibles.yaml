@@ -1,3 +1,5 @@
+NftType: "Collectibles"
+
 Collection:
   name: "Suinamis"
   description: "A Unique NFT collection of Suinamis on Sui"
@@ -10,8 +12,6 @@ Collection:
   royalty_fee_bps: 100
   is_mutable: true
   data: "Some extra data"
-
-NftType: "Collectibles"
 
 Launchpad:
   market_type: "fixed_price"

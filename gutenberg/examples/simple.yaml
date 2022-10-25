@@ -1,3 +1,5 @@
+NftType: "Unique"
+
 Collection:
   name: "Suisurfers"
   description: "A Unique NFT collection of Suisurfers on Sui"
@@ -10,8 +12,6 @@ Collection:
   royalty_fee_bps: 100
   is_mutable: true
   data: "Some extra data"
-
-NftType: "Unique"
 
 Launchpad:
   market_type: "fixed_price"

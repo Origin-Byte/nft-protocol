@@ -1,4 +1,4 @@
-- Sui v0.10.0
+- Sui v0.12.1
 
 # Install
 
@@ -24,7 +24,7 @@ Considering the broad range of NFT use cases, there are situations in which we w
 - We can separate the NFT object from its Data object, hence allowing the Data object itself to be shared and mutated accordingly
 
 In the OriginByte protocol, an `NFT` object is a hybrid object that can take two shapes:
-- The shape of an NFT that embeds is own data, aka an Embedded NFT; 
+- The shape of an NFT that embeds is own data, aka an Embedded NFT;
 - The shape of an NFT which does not embed its own data and contains solely a pointer to its data object, aka a Loose NFT.
 
 This design allows us to keep only one ultimate type while simultaneously allowing the NFT to embed its data or to loosely pointing to it, depending on the use case. It is also possible to dynamically join or split the data object from the NFT object, therefore allowing for arbitrary dynamic behaviour.
@@ -110,9 +110,9 @@ The collection object, `Collection<phantom T, M: store, C: store>`, has the foll
 | ---------------- | ------------- | ----------- |
 | `id`             | `UID`         | The UID of the collection object |
 | `name`           | `String`      | The name of the collection |
-| `description`    | `String`      | The name of the collection |
+| `description`    | `String`      | The description of the collection |
 | `symbol`         | `String`      | The symbol/ticker of the collection |
-| `receiver`       | `address`     | Address that receives the mint price in Sui |
+| `receiver`       | `address`     | Address that receives the royalty proceeds |
 | `tags`           | `Tags`        | A set of strings that categorize the domain in which the NFT operates |
 | `is_mutable`     | `bool`        | A configuration field that dictates whether NFTs are mutable |
 | `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs * |
@@ -133,7 +133,7 @@ The collection object has the following functions that mutate state:
 
 - `mint_capped` which mints a collection object with capped supply and returns it
 - `mint_uncapped` which mints a collection object with unlimited supply and returns it
-- `increase_supply` which increments `current_supply` by one 
+- `increase_supply` which increments `current_supply` by one
 - `decrease_supply` which decreases `current_supply` by one
 - `burn` which burns the collection object if `current_supply` is zero
 
@@ -262,7 +262,7 @@ The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 
 It has the following init and drop functions:
 - `create` to create the Slingshot launchpad (called by the market module)
-- `delete` to destroy the Slingshot launchpad (called by the market module) 
+- `delete` to destroy the Slingshot launchpad (called by the market module)
 
 ### Fixed Price Market
 
