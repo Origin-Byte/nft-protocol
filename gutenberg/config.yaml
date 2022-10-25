@@ -1,19 +1,18 @@
-NftType: "Unique"
+NftType:
 
 Collection:
-  name: "Suimarinara"
-  description: "A Unique NFT collection of Pizzas on Sui"
-  symbol: "PIZZ"
-  max_supply: 100
-  receiver: "0x6c86ac4a796204ea09a87b6130db0c38263c1890"
+  name:
+  description:
+  symbol:
+  max_supply:
+  receiver:
   tags:
-    - "Art"
-    - "PFP"
-  royalty_fee_bps: 100
-  is_mutable: true
-  data: "Some extra data"
+    -
+  royalty_fee_bps:
+  is_mutable:
+  data:
 
 Launchpad:
-  market_type: "fixed_price"
-  prices: [100, 100]
-  whitelists: [false, true]
+  market_type:
+  prices: []
+  whitelists: []
