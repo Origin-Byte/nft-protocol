@@ -37,7 +37,10 @@ impl Collection {
             .ok_or_else(|| err::miss("tags"))?
             .into_iter()
             .map(|tag| {
-                let tag_n = tag.as_str().ok_or_else(|| err::format("tags"))?.to_string();
+                let tag_n = tag
+                    .as_str()
+                    .ok_or_else(|| err::format("tags"))?
+                    .to_string();
 
                 Ok(tag_n)
             })
@@ -45,14 +48,34 @@ impl Collection {
 
         let collection = Collection {
             name: get(&yaml, "Collection", "name", FieldType::StrLit)?,
-            description: get(&yaml, "Collection", "description", FieldType::StrLit)?,
+            description: get(
+                &yaml,
+                "Collection",
+                "description",
+                FieldType::StrLit,
+            )?,
             symbol: get(&yaml, "Collection", "symbol", FieldType::StrLit)?,
-            max_supply: get(&yaml, "Collection", "max_supply", FieldType::Number)?,
+            max_supply: get(
+                &yaml,
+                "Collection",
+                "max_supply",
+                FieldType::Number,
+            )?,
             receiver: get(&yaml, "Collection", "receiver", FieldType::StrLit)?,
-            royalty_fee_bps: get(&yaml, "Collection", "royalty_fee_bps", FieldType::Number)?,
+            royalty_fee_bps: get(
+                &yaml,
+                "Collection",
+                "royalty_fee_bps",
+                FieldType::Number,
+            )?,
             tags,
             data: get(&yaml, "Collection", "data", FieldType::StrLit)?,
-            is_mutable: get(&yaml, "Collection", "is_mutable", FieldType::Bool)?,
+            is_mutable: get(
+                &yaml,
+                "Collection",
+                "is_mutable",
+                FieldType::Bool,
+            )?,
         };
 
         Ok(collection)
@@ -68,7 +91,8 @@ impl Launchpad {
         }
 
         let price_binding = serde_yaml::to_value(&yaml["Launchpad"]["prices"])?;
-        let wl_binding = serde_yaml::to_value(&yaml["Launchpad"]["whitelists"])?;
+        let wl_binding =
+            serde_yaml::to_value(&yaml["Launchpad"]["whitelists"])?;
 
         if !price_binding.is_sequence() {
             if price_binding.is_null() {
@@ -96,8 +120,11 @@ impl Launchpad {
             .iter()
             .zip(wl_vec)
             .map(|(price, whitelist)| {
-                let price = price.as_u64().ok_or_else(|| err::format("prices"))?;
-                let whitelist = whitelist.as_bool().ok_or_else(|| err::miss("whitelists"))?;
+                let price =
+                    price.as_u64().ok_or_else(|| err::format("prices"))?;
+                let whitelist = whitelist
+                    .as_bool()
+                    .ok_or_else(|| err::miss("whitelists"))?;
 
                 Ok(FixedPrice::new(price, whitelist))
             })
@@ -135,12 +162,16 @@ impl Schema {
 
         tags_vec
             .into_iter()
-            .map(|tag| format!("        vector::push_back(&mut tags, b\"{}\");", tag))
+            .map(|tag| {
+                format!("        vector::push_back(&mut tags, b\"{}\");", tag)
+            })
             .fold("".to_string(), |acc, x| acc + "\n" + &x)
             .into_boxed_str()
     }
 
-    pub fn write_whitelists(whitelists: &mut Vec<bool>) -> Result<Box<str>, GutenError> {
+    pub fn write_whitelists(
+        whitelists: &mut Vec<bool>,
+    ) -> Result<Box<str>, GutenError> {
         let define_whitelists = if whitelists.len() == 1 {
             "let whitelisting = ".to_string()
                 + &whitelists
@@ -195,7 +226,8 @@ impl Schema {
             MarketType::FixedPriceMarket { sales } => {
                 let prices: Vec<u64> = sales.iter().map(|m| m.price).collect();
 
-                let whitelists: Vec<bool> = sales.iter().map(|m| m.whitelist).collect();
+                let whitelists: Vec<bool> =
+                    sales.iter().map(|m| m.whitelist).collect();
 
                 (prices, whitelists)
             }
@@ -205,7 +237,8 @@ impl Schema {
     pub fn write_move(&self) -> Result<(), GutenError> {
         let file_path = "templates/template.txt";
 
-        let fmt = fs::read_to_string(file_path).expect("Should have been able to read the file");
+        let fmt = fs::read_to_string(file_path)
+            .expect("Should have been able to read the file");
 
         let nft_type = self.nft_type.nft_type().into_boxed_str();
         let market_type = self.launchpad.market_type.market_type();
@@ -290,7 +323,8 @@ impl Schema {
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
 
-        let path = format!("../sources/examples/{}.move", &module_name.to_string());
+        let path =
+            format!("../sources/examples/{}.move", &module_name.to_string());
 
         let mut f = File::create(path)?;
 
@@ -298,7 +332,9 @@ impl Schema {
             strfmt(&fmt, &vars)
                 // This is expected not to result in an error since we
                 // have explicitly handled all error cases
-                .unwrap_or_else(|_| panic!("This error is not expected and should not occur."))
+                .unwrap_or_else(|_| {
+                    panic!("This error is not expected and should not occur.")
+                })
                 .as_bytes(),
         )?;
 
