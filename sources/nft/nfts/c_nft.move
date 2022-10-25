@@ -83,7 +83,7 @@ module nft_protocol::c_nft {
         description: String,
         url: Url,
         attributes: Attributes,
-        max_supply: Option<u64>,
+        max_supply: u64,
     }
 
     struct MintDataEvent has copy, drop {
@@ -130,7 +130,7 @@ module nft_protocol::c_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        max_supply: Option<u64>,
+        max_supply: u64,
         mint: &MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
@@ -146,7 +146,7 @@ module nft_protocol::c_nft {
             url,
             to_string_vector(&mut attribute_keys),
             to_string_vector(&mut attribute_values),
-            option::none(),
+            max_supply,
         );
 
         mint_and_share_data<C>(
@@ -186,7 +186,7 @@ module nft_protocol::c_nft {
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
-        max_supply: Option<u64>,
+        max_supply: u64,
         mint: &mut MintAuthority<T>,
         ctx: &mut TxContext,
     ) {
@@ -205,7 +205,7 @@ module nft_protocol::c_nft {
             max_supply,
         );
 
-        collection::increase_supply(mint, 1);
+        collection::increment_supply(mint, 1);
 
         mint_and_share_data<C>(
             args,
@@ -225,7 +225,7 @@ module nft_protocol::c_nft {
     (
         nfts_data: vector<Composable<C>>,
         mint: &mut MintAuthority<T>,
-        max_supply: Option<u64>,
+        max_supply: u64,
         ctx: &mut TxContext,
     ) {
         let data_vec: VecMap<ID, ComposableClone<C>> = vec_map::empty();
@@ -295,7 +295,7 @@ module nft_protocol::c_nft {
     ) {
         // TODO: should we allow for the minting of more than one NFT at 
         // a time?
-        supply::increase_supply(&mut nft_data.supply, 1);
+        supply::increment_supply(&mut nft_data.supply, 1);
 
         let nft = nft::mint_nft_loose<T, Data>(
             nft_data_id(nft_data),
@@ -355,7 +355,7 @@ module nft_protocol::c_nft {
         vector::destroy_empty(nfts);
         vector::destroy_empty(nfts_data);
 
-        supply::increase_supply(&mut combo_data.supply, 1);
+        supply::increment_supply(&mut combo_data.supply, 1);
 
         let nft = nft::mint_nft_loose<T, Data>(
             object::uid_to_inner(&combo_data.id),
@@ -377,7 +377,7 @@ module nft_protocol::c_nft {
     ) {
         assert!(nft::data_id(&nft) == id(nft_data), err::nft_data_mismatch());
 
-        supply::decrease_supply(&mut nft_data.supply, 1);
+        supply::decrement_supply(&mut nft_data.supply, 1);
         nft::burn_loose_nft(nft);
     }
 
@@ -396,7 +396,7 @@ module nft_protocol::c_nft {
         // If so, then burn pointer and mint pointer for each nfts_data
         assert!(nft::data_id(&nft) == id(c_nft_data), err::nft_data_mismatch());
 
-        supply::decrease_supply(&mut c_nft_data.supply, 1);
+        supply::decrement_supply(&mut c_nft_data.supply, 1);
         nft::burn_loose_nft(nft);
 
         let len = vector::length(&nfts_data);
@@ -493,7 +493,7 @@ module nft_protocol::c_nft {
     fun mint_and_share_data<C: store + copy>(
         args: MintArgs,
         collection_id: ID,
-        max_supply: Option<u64>,
+        max_supply: u64,
         ctx: &mut TxContext,
     ) {
         let data_id = object::new(ctx);
@@ -529,7 +529,7 @@ module nft_protocol::c_nft {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        max_supply: Option<u64>,
+        max_supply: u64,
     ): MintArgs {
         let attributes = Attributes {
             keys: attribute_keys,
