@@ -109,7 +109,7 @@ Once the yaml configuration file is correctly populated it is time to run Gutenb
 
 ### 3. Deploy the Contract
 
-To run the newly created smart contract in conjunction to the NFT protocol, run the following sh script from the parent folder:
+To deploy the newly created smart contract in conjunction to the NFT protocol, run the following sh script from the parent folder:
 
 `./bin/publish.sh`
 
