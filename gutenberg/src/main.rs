@@ -1,10 +1,10 @@
+pub mod err;
 pub mod prelude;
 pub mod schema;
 pub mod types;
-pub mod err;
 
-use crate::schema::*;
 use crate::err::*;
+use crate::schema::*;
 
 fn main() -> Result<(), GutenError> {
     let f = std::fs::File::open("config.yaml")?;

@@ -1,5 +1,5 @@
-use thiserror::Error;
 use std::fmt::Display;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum GutenError {
@@ -22,16 +22,13 @@ pub fn miss(msg: impl Display) -> GutenError {
 }
 
 pub fn format<'a>(msg: impl Display + PartialEq<&'a str>) -> GutenError {
-
     if (msg == "prices") | (msg == "whitelists") {
-        let example = if msg =="prices" {"100" } else {"true"};
+        let example = if msg == "prices" { "100" } else { "true" };
 
         println!(
             "[WrongFormat] Consider representing the field `{}` as an array \
             (e.g. [{}]) instead of a number (e.g. {})",
-            msg,
-            example,
-            example,
+            msg, example, example,
         );
     } else {
         println!("[WrongFormat] The field `{}` has the wrong format", msg);

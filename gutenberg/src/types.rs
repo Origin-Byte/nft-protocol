@@ -24,7 +24,7 @@ impl FromStr for NftType {
             "CNft" => Ok(NftType::CNft),
             _ => {
                 println!("The NftType provided is not supported");
-                
+
                 Err(())
             }
         }
@@ -58,7 +58,7 @@ impl NftType {
         }
     }
 
-    pub fn mint_func(&self, witness: &str, market_type: &str,) -> Box<str> {
+    pub fn mint_func(&self, witness: &str, market_type: &str) -> Box<str> {
         // TODO: Need to add support for unregulated collections
         let func = match self {
             NftType::Unique => format!(
@@ -166,9 +166,6 @@ pub struct FixedPrice {
 
 impl FixedPrice {
     pub fn new(price: u64, whitelist: bool) -> Self {
-        FixedPrice {
-            price,
-            whitelist,
-        }
+        FixedPrice { price, whitelist }
     }
 }
