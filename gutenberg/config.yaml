@@ -1,7 +1,9 @@
+NftType: "Unique"
+
 Collection:
-  name: "Suinsense"
-  description: "A Unique NFT collection of Suinamis on Sui"
-  symbol: "SUIN"
+  name: "Suimarinara"
+  description: "A Unique NFT collection of Pizzas on Sui"
+  symbol: "PIZZ"
   max_supply: 100
   receiver: "0x6c86ac4a796204ea09a87b6130db0c38263c1890"
   tags:
@@ -11,9 +13,7 @@ Collection:
   is_mutable: true
   data: "Some extra data"
 
-NftType: "Unique"
-
 Launchpad:
   market_type: "fixed_price"
-  prices: ["Yakes!", "yohh"]
+  prices: [100, 100]
   whitelists: [false, true]

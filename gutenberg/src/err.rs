@@ -9,6 +9,8 @@ pub enum GutenError {
     WrongFormat,
     #[error("Parsing error has occured")]
     SerdeYaml(serde_yaml::Error),
+    #[error("An IO error has occured")]
+    IoError(std::io::Error),
     #[error("An unexpected error has occurred")]
     UnexpectedErrror,
 }
@@ -31,6 +33,8 @@ pub fn format<'a>(msg: impl Display + PartialEq<&'a str>) -> GutenError {
             example,
             example,
         );
+    } else {
+        println!("[WrongFormat] The field `{}` has the wrong format", msg);
     }
 
     GutenError::WrongFormat
@@ -39,5 +43,10 @@ pub fn format<'a>(msg: impl Display + PartialEq<&'a str>) -> GutenError {
 impl From<serde_yaml::Error> for GutenError {
     fn from(e: serde_yaml::Error) -> Self {
         GutenError::SerdeYaml(e)
+    }
+}
+impl From<std::io::Error> for GutenError {
+    fn from(e: std::io::Error) -> Self {
+        GutenError::IoError(e)
     }
 }

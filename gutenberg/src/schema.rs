@@ -1,7 +1,7 @@
 extern crate strfmt;
 use crate::types::*;
 use crate::err::{self, GutenError};
-// use anyhow::{Context, Result};
+
 
 use std::collections::HashMap;
 use std::io::prelude::*;
@@ -35,7 +35,13 @@ pub struct Launchpad {
 }
 
 impl Collection {
-    pub fn from_yaml(yaml: &Value) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_yaml(yaml: &Value) -> Result<Self, GutenError> {
+        let collection = serde_yaml::to_value(&yaml["Collection"])?;
+
+        if collection.is_null() {
+            return Err(err::miss("Collection"))
+        }
+
         let tag_binding = serde_yaml::to_value(&yaml["Collection"]["tags"])?;
 
         let tags: Vec<String> = tag_binding
@@ -76,6 +82,12 @@ impl Collection {
 
 impl Launchpad {
     pub fn from_yaml(yaml: &Value) -> Result<Self, GutenError> {
+        let launchpad = serde_yaml::to_value(&yaml["Launchpad"])?;
+
+        if launchpad.is_null() {
+            return Err(err::miss("Launchpad"))
+        }
+
         let price_binding = serde_yaml::to_value(&yaml["Launchpad"]["prices"])?;
         let wl_binding = serde_yaml::to_value(&yaml["Launchpad"]["whitelists"])?;
 
@@ -84,7 +96,6 @@ impl Launchpad {
                 return Err(err::miss("prices"))
             }
             return Err(err::format("prices"))
-
         }
 
         if !wl_binding.is_sequence() {
@@ -108,7 +119,7 @@ impl Launchpad {
             .map(|mkt| {
                 let price = mkt.0
                     .as_u64()
-                    .ok_or_else(|| {err::miss("whitelists")})?;
+                    .ok_or_else(|| {err::format("prices")})?;
                 let whitelist = mkt.1
                     .as_bool()
                     .ok_or_else(|| {err::miss("whitelists")})?;
@@ -127,7 +138,7 @@ impl Launchpad {
 }
 
 impl Schema {
-    pub fn from_yaml(yaml: &Value) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_yaml(yaml: &Value) -> Result<Self, GutenError> {
         let nft_type_str = serde_yaml::to_value(&yaml["NftType"])?
             .as_str()
             .ok_or_else(|| err::miss("NftType"))?
@@ -235,7 +246,7 @@ impl Schema {
         }
     }
 
-    pub fn write_move(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write_move(&self) -> Result<(), GutenError> {
         let file_path = "templates/template.txt";
 
         let fmt = fs::read_to_string(file_path)
@@ -325,6 +336,7 @@ impl Schema {
         );
 
         let mut f = File::create(path)?;
+        
         f.write_all(strfmt(&fmt, &vars)
             // This is expected not to result in an error since we
             // have explicitly handled all error cases
@@ -344,6 +356,10 @@ pub fn get(
     field_type: FieldType,
 ) -> Result<Box<str>, GutenError> {
     let value = serde_yaml::to_value(&data[category][field])?;
+
+    if value.is_null() {
+        return Err(err::miss(field))
+    }
 
     let result = match field_type {
         FieldType::StrLit => value
