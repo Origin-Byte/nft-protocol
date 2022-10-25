@@ -107,9 +107,12 @@ Once the yaml configuration file is correctly populated it is time to run Gutenb
 `cd gutenberg/`
 `cargo run`
 
-This will generate the Move collection
-
-TODO: Describe how the module name is chosen.
-
-
 ### 3. Deploy the Contract
+
+To run the newly created smart contract in conjunction to the NFT protocol, run the following sh script from the parent folder:
+
+`./bin/publish.sh`
+
+Please note that in the current version, the NFT protocol modules will themselves be deployed along with the newly created NFT module, however in the upcoming version of this tool, the newly created NFT module will tap into a readily deployed contract on-chain.
+
+To publish the module on-chain, one will require to have a .env file with the field `GAS` with an object ID of Gas object. To enquire the CLI as to what GAS object IDs one can use you will need to have the Sui cli installed as well as having and active address and be connected to the DevNet. To check for the a Gas object ID please run `sui client gas`. Please also note that your active address should be funded via the faucet, and therefore it should have SUI coin balance available.
