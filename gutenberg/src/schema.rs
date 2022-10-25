@@ -95,9 +95,9 @@ impl Launchpad {
         let market_vec = prices_vec
             .iter()
             .zip(wl_vec)
-            .map(|mkt| {
-                let price = mkt.0.as_u64().ok_or_else(|| err::format("prices"))?;
-                let whitelist = mkt.1.as_bool().ok_or_else(|| err::miss("whitelists"))?;
+            .map(|(price, whitelist)| {
+                let price = price.as_u64().ok_or_else(|| err::format("prices"))?;
+                let whitelist = whitelist.as_bool().ok_or_else(|| err::miss("whitelists"))?;
 
                 Ok(FixedPrice::new(price, whitelist))
             })
@@ -153,15 +153,10 @@ impl Schema {
         } else {
             let mut loc = "let whitelisting = vector::empty();\n".to_string();
 
-            for _w in whitelists.clone() {
+            for w in whitelists.drain(..) {
                 loc = loc
                     + "        vector::push_back(&mut whitelisting, "
-                    + &whitelists
-                        .pop()
-                        // This is expected not to result in an error since
-                        // the field whitelists has already been validated
-                        .ok_or_else(|| GutenError::UnexpectedErrror)?
-                        .to_string()
+                    + &w.to_string()
                     + ");\n"
             }
             loc
@@ -183,15 +178,10 @@ impl Schema {
         } else {
             let mut loc = "let pricing = vector::empty();\n".to_string();
 
-            for _p in prices.clone() {
+            for p in prices.drain(..) {
                 loc = loc
                     + "        vector::push_back(&mut pricing, "
-                    + &prices
-                        .pop()
-                        // This is expected not to result in an error since
-                        // the field whitelists has already been validated
-                        .ok_or_else(|| GutenError::UnexpectedErrror)?
-                        .to_string()
+                    + &p.to_string()
                     + ");\n"
             }
             loc.to_string()
