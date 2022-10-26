@@ -229,7 +229,6 @@ Collectibles NFT data object, `Collectible`, has the following data model:
 | Field        | Type         | Description                                              |
 | ------------ | ------------ | -------------------------------------------------------- |
 | `id`         | `UID`        | The UID of the NFT metadata object                       |
-| `index`      | `u64`        | The index of the NFT in relation to the whole collection |
 | `url`        | `Url`        | The URL of the NFT                                       |
 | `attributes` | `Attributes` | Attributes of a given NFT                                |
 | `supply`     | `Supply`     | Object determining Supply limit of the NFT               |
