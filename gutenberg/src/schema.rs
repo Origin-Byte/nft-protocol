@@ -358,7 +358,25 @@ impl Schema {
     }
 
     /// Associated function that generates Move code to declare and
-    /// push whitelisting values to a Move vector structure
+    /// push whitelisting values to a Move vector structure.
+    ///
+    /// It will write the following code if there is only one value in
+    /// the whitelist yaml array:
+    ///
+    ///`let whitelisting = <BOOL_VALUE>;`
+    ///
+    /// If there are multiple values it means its a launchpad sale
+    /// with multiple sales and therefore the function signature will
+    /// expect a vector instead, so it writes:
+    ///
+    /// ```text
+    /// let whitelisting = vector::empty();
+    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
+    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
+    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
+    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
+    /// ...
+    /// ```
     pub fn write_whitelists(
         whitelists: &mut Vec<bool>,
     ) -> Result<Box<str>, GutenError> {
@@ -387,7 +405,25 @@ impl Schema {
     }
 
     /// Associated funciton that generates Move code to declare and
-    /// push price values to a Move vector structure
+    /// push price values to a Move vector structure.
+    ///
+    /// It will write the following code if there is only one value in
+    /// the price yaml array:
+    ///
+    ///`let pricing = <U64_VALUE>;`
+    ///
+    /// If there are multiple values it means its a launchpad sale
+    /// with multiple sales and therefore the function signature will
+    /// expect a vector instead, so it writes:
+    ///
+    /// ```text
+    /// let pricing = vector::empty();
+    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
+    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
+    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
+    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
+    /// ...
+    /// ```
     pub fn write_prices(prices: &mut Vec<u64>) -> Result<Box<str>, GutenError> {
         let define_prices = if prices.len() == 1 {
             "let pricing = ".to_string()
