@@ -245,18 +245,28 @@ module nft_protocol::fixed_price {
     // // === Modifier Functions ===
 
     /// Toggle the Slingshot's `live` to `true` therefore
-    /// making the NFT sale live.
+    /// making the NFT sale live. Permissioned endpoint to be called by `admin`.
     public entry fun sale_on<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,
+        ctx: &mut TxContext
     ) {
+        assert!(
+            slingshot::admin(slingshot) == tx_context::sender(ctx),
+            err::wrong_launchpad_admin()
+        );
         slingshot::sale_on(slingshot);
     }
 
     /// Toggle the Slingshot's `live` to `false` therefore
-    /// pausing or stopping the NFT sale.
+    /// pausing or stopping the NFT sale. Permissioned endpoint to be called by `admin`.
     public entry fun sale_off<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,
+        ctx: &mut TxContext
     ) {
+        assert!(
+            slingshot::admin(slingshot) == tx_context::sender(ctx),
+            err::wrong_launchpad_admin()
+        );
         slingshot::sale_off(slingshot);
     }
 
