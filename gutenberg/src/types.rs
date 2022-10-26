@@ -1,12 +1,20 @@
+//! Module containing enums that facilitate the generation of Move
+//! code. Fields in the yaml file, such as `NftType`, are represented via a
+//! String but should match to a value in a given Enum. Such Enums represent
+//! the type of NFTs available or the type of Markets available on our
+//! OriginByte protocol.
 use std::str::FromStr;
 
+/// Enum representing the NFT types currently available in the protocol
 #[derive(Debug)]
 pub enum NftType {
+    // TODO: Need to add support for Soulbound
     Unique,
     Collectibles,
     CNft,
 }
 
+/// Enum representing to what type a given yaml field should be parsed to
 #[derive(Debug)]
 pub enum FieldType {
     StrLit,
@@ -58,6 +66,9 @@ impl NftType {
         }
     }
 
+    /// Writes Move code for an entry function meant to be called by
+    /// the Creators to mint NFTs. Depending on the NFTtype the function
+    /// parameters change, therefore pattern match the NFT type.
     pub fn mint_func(&self, witness: &str, market_type: &str) -> Box<str> {
         // TODO: Need to add support for unregulated collections
         let func = match self {
@@ -141,7 +152,7 @@ impl NftType {
 }
 
 pub enum SalesType {
-    SingleMarket, // create_single_market
+    SingleMarket,
     MultiMarket,
 }
 
