@@ -219,6 +219,7 @@ module nft_protocol::safe {
         assert_not_exlusively_listed(rc);
 
         rc.version = new_id(ctx);
+        rc.transfer_cap_counter = 0;
     }
 
     fun create_safe_(ctx: &mut TxContext): OwnerCap {
