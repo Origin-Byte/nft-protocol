@@ -12,7 +12,7 @@ module nft_protocol::transfer_whitelist {
         collections: VecSet<ID>,
         /// If None, then there's no whitelist and everyone is allowed.
         /// Otherwise the ID must be in the vec set.
-        entities: Option<VecSet<ID>>,
+        authorities: Option<VecSet<ID>>,
     }
 
     /// To add a collection to the list, we need a confirmation by both the
@@ -36,7 +36,7 @@ module nft_protocol::transfer_whitelist {
     /// Any collection is allowed to remove itself from any whitelist at any
     /// time.
     ///
-    /// It's always the creator's right to decide at any point what entities
+    /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
     public fun remove_itself<W>(collection: &UID, list: &mut Whitelist<W>) {
         vec_set::remove(
@@ -61,11 +61,11 @@ module nft_protocol::transfer_whitelist {
         entity: &ID,
         list: &mut Whitelist<W>,
     ) {
-        if (option::is_none(&list.entities)) {
-            list.entities = option::some(vec_set::singleton(entity));
+        if (option::is_none(&list.authorities)) {
+            list.authorities = option::some(vec_set::singleton(entity));
         } else {
             vec_set::insert(
-                option::borrow_mut(&mut list.entities),
+                option::borrow_mut(&mut list.authorities),
                 *entity,
             );
         }
@@ -79,8 +79,23 @@ module nft_protocol::transfer_whitelist {
         list: &mut Whitelist<W>,
     ) {
         vec_set::remove(
-            option::borrow_mut(&mut list.entities),
+            option::borrow_mut(&mut list.authorities),
             entity,
         );
+    }
+
+    public fun can_be_transferred<W>(
+        collection: &ID,
+        authority: &ID,
+        whitelist: &Whitelist<W>,
+    ): bool {
+        if (option::is_none(&whitelist.authorities)) {
+            return true
+        };
+
+        let e = option::borrow(&whitelist.authorities);
+
+        vec_set::contains(e, authority) &&
+            vec_set::contains(&whitelist.collections, collection)
     }
 }
