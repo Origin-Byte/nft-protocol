@@ -243,7 +243,7 @@ module nft_protocol::safe {
         new_id
     }
 
-    //------- getters -------
+    // === Getters ===
 
     public fun owner_cap_safe(cap: &OwnerCap): ID {
         cap.safe
@@ -266,7 +266,7 @@ module nft_protocol::safe {
         cap.is_exlusive
     }
 
-    //------- assertions -------
+    // === Assertions ===
 
     public fun assert_owner_cap(cap: &OwnerCap, safe: &Safe) {
         assert!(cap.safe == object::id(safe), err::safe_cap_mismatch());
