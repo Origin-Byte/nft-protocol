@@ -7,7 +7,6 @@ module nft_protocol::collectibles {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use std::string::{Self, String};
-
     use sui::transfer;
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};

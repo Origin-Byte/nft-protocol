@@ -1,0 +1,18 @@
+NftType:
+
+Collection:
+  name:
+  description:
+  symbol:
+  max_supply:
+  receiver:
+  tags:
+    -
+  royalty_fee_bps:
+  is_mutable:
+  data:
+
+Launchpad:
+  market_type:
+  prices: []
+  whitelists: []
