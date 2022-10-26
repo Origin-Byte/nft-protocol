@@ -114,7 +114,7 @@ To define a custom path and file name one can run the following command:
 
 ### 3. Deploy the Contract
 
-To run the newly created smart contract in conjunction to the NFT protocol, run the following sh script from the parent folder:
+To deploy the newly created smart contract in conjunction to the NFT protocol, run the following sh script from the parent folder:
 
 `./bin/publish.sh`
 
