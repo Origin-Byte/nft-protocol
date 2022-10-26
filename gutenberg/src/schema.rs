@@ -234,7 +234,10 @@ impl Schema {
         }
     }
 
-    pub fn write_move(&self) -> Result<(), GutenError> {
+    pub fn write_move(
+        &self,
+        output_opt: Option<PathBuf>,
+    ) -> Result<(), GutenError> {
         let file_path = "templates/template.txt";
 
         let fmt = fs::read_to_string(file_path)
@@ -264,9 +267,6 @@ impl Schema {
 
         let (mut prices, mut whitelists) = self.get_sale_outlets();
 
-        let define_whitelists = Schema::write_whitelists(&mut whitelists)?;
-        let define_prices = Schema::write_prices(&mut prices)?;
-
         let sale_type = if prices.len() == 1 {
             "create_single_market"
         } else {
@@ -274,6 +274,9 @@ impl Schema {
         }
         .to_string()
         .into_boxed_str();
+
+        let define_whitelists = Schema::write_whitelists(&mut whitelists)?;
+        let define_prices = Schema::write_prices(&mut prices)?;
 
         let market_module_imports = if is_embedded {
             format!("::{{Self, {}}}", market_type)
@@ -323,10 +326,25 @@ impl Schema {
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
 
-        let path =
-            format!("../sources/examples/{}.move", &module_name.to_string());
+        let mut output = PathBuf::new();
 
-        let mut f = File::create(path)?;
+        if output_opt.is_none() {
+            output.push(format!(
+                "../sources/examples/{}.move",
+                &module_name.to_string()
+            ));
+        } else {
+            // This can be safely unwrapped since we make sure there is Some()
+            output.push(output_opt.unwrap());
+
+            // Create directories if they do not exist
+            let path = output.as_path();
+            if let Some(p) = path.parent() {
+                fs::create_dir_all(p)?
+            };
+        }
+
+        let mut f = File::create(output)?;
 
         f.write_all(
             strfmt(&fmt, &vars)

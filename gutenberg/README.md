@@ -107,6 +107,11 @@ Once the yaml configuration file is correctly populated it is time to run Gutenb
 `cd gutenberg/`
 `cargo run`
 
+By default the Move module will be written in `../sources/examples/<MODULE_NAME>.move`
+
+To define a custom path and file name one can run the following command:
+`cargo run ../<CUSTOM_PATH>/<FILENAME>.move`
+
 ### 3. Deploy the Contract
 
 To run the newly created smart contract in conjunction to the NFT protocol, run the following sh script from the parent folder:

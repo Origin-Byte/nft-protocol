@@ -8,5 +8,7 @@ pub use std::collections::HashMap;
 pub use std::fs;
 pub use std::fs::File;
 pub use std::io::prelude::*;
+pub use std::path::PathBuf;
 pub use std::str::FromStr;
 pub use strfmt::strfmt;
+pub use structopt::StructOpt;
