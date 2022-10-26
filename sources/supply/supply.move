@@ -27,21 +27,19 @@ module nft_protocol::supply {
     public fun increase_ceil(supply: &mut Supply, value: u64) {
         assert!(supply.max != U64_MAX, err::supply_is_unlimited());
         assert!(supply.frozen == false, err::frozen_supply());
-        
         supply.max = supply.max + value;
     }
 
     public fun decrease_ceil(supply: &mut Supply, value: u64) {
         assert!(supply.max != U64_MAX, err::supply_is_unlimited());
         assert!(supply.frozen == false, err::frozen_supply());
-        
+
         // Decrease in supply cap cannot result in supply cap smaller
         // than current supply
         assert!(
             supply.max - value > supply.current,
             err::max_supply_cannot_be_below_current_supply()
         );
-        
         supply.max = supply.max - value;
     }
 

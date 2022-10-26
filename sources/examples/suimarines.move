@@ -2,7 +2,7 @@ module nft_protocol::suimarines {
     use sui::tx_context::{Self, TxContext};
 
     use std::vector;
-    
+
     use nft_protocol::collection::{MintAuthority};
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
     use nft_protocol::slingshot::Slingshot;

@@ -1,8 +1,8 @@
 //! Module of a generic `Slingshot` type.
-//! 
+//!
 //! It acts as a generic interface for Launchpads and it allows for
 //! the creation of arbitrary domain specific implementations.
-//! 
+//!
 //! The slingshot acts as the object that configures the primary NFT realease
 //! strategy, that is the primary market sale. Primary market sales can take
 //! many shapes, depending on the business level requirements.
@@ -12,7 +12,7 @@ module nft_protocol::slingshot {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
-    
+
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::err;
     use nft_protocol::sale::{Self, Sale, NftCertificate};
@@ -104,7 +104,7 @@ module nft_protocol::slingshot {
         admin: address,
         collection_id: ID,
         receiver: address,
-        is_embedded: bool, 
+        is_embedded: bool,
     ): InitSlingshot {
 
         InitSlingshot {
@@ -119,9 +119,9 @@ module nft_protocol::slingshot {
 
     /// Once the user has bought an NFT certificate, this method can be called
     /// to claim/redeem the NFT that has been allocated by the launchpad. The
-    /// `NFTOwned` object in the function signature should correspond to the 
+    /// `NFTOwned` object in the function signature should correspond to the
     /// NFT ID mentioned in the certificate.
-    /// 
+    ///
     /// We add the slingshot as a phantom parameter since it is the parent object
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
@@ -149,9 +149,9 @@ module nft_protocol::slingshot {
 
     /// Once the user has bought an NFT certificate, this method can be called
     /// to claim/redeem the NFT that has been allocated by the launchpad. The
-    /// `NFTOwned` object in the function signature should correspond to the 
+    /// `NFTOwned` object in the function signature should correspond to the
     /// NFT ID mentioned in the certificate.
-    /// 
+    ///
     /// We add the slingshot as a phantom parameter since it is the parent object
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
@@ -189,7 +189,7 @@ module nft_protocol::slingshot {
 
     // === Modifier Functions ===
 
-    /// Toggle the Slingshot's `live` to `true` therefore 
+    /// Toggle the Slingshot's `live` to `true` therefore
     /// making the NFT sale live.
     public fun sale_on<T, M>(
         slingshot: &mut Slingshot<T, M>,
@@ -197,7 +197,7 @@ module nft_protocol::slingshot {
         slingshot.live = true
     }
 
-    /// Toggle the Slingshot's `live` to `false` therefore 
+    /// Toggle the Slingshot's `live` to `false` therefore
     /// pausing or stopping the NFT sale.
     public fun sale_off<T, M>(
         slingshot: &mut Slingshot<T, M>,
@@ -228,7 +228,7 @@ module nft_protocol::slingshot {
     ): &ID {
         object::uid_as_inner(&slingshot.id)
     }
-    
+
     /// Get the Slingshot's `live`
     public fun live<T, M>(
         slingshot: &Slingshot<T, M>,

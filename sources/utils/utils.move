@@ -10,8 +10,7 @@ module nft_protocol::utils {
 
     public fun to_string_vector(
         vec: &mut vector<vector<u8>>
-    ): vector<String>
-     {
+    ): vector<String> {
         let new_vec: vector<String> = vector::empty();
 
         let len = vector::length(vec);
