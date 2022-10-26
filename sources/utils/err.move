@@ -2,7 +2,7 @@
 //! which distinguishes them from errors in other packages.
 module nft_protocol::err {
 
-    const Prefix: u64 = 999100;
+    const Prefix: u64 = 13370000;
 
     public fun nft_not_embedded(): u64 {
         return Prefix + 01
@@ -102,5 +102,11 @@ module nft_protocol::err {
 
     public fun certificate_does_not_correspond_to_nft_given(): u64 {
         return Prefix + 208
+    }
+
+    // Safe
+
+    public fun safe_owner_mismatch(): u64 {
+        return Prefix + 300
     }
 }
