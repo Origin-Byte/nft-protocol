@@ -23,7 +23,7 @@ module nft_protocol::err {
     public fun wrong_nft_data_provided(): u64 {
         return Prefix + 05
     }
-    
+
     public fun nft_data_mismatch(): u64 {
         return Prefix + 06
     }

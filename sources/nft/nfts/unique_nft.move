@@ -1,6 +1,6 @@
 //! Module of a unique NFT `Unique` data type.
-//! 
-//! It acts as a standard domain-specific implementation of an NFT type, 
+//!
+//! It acts as a standard domain-specific implementation of an NFT type,
 //! fitting use cases such as Art and PFP NFT Collections. It uses the main
 //! NFT module to mint embedded NFTs.
 module nft_protocol::unique_nft {
@@ -8,11 +8,11 @@ module nft_protocol::unique_nft {
     use sui::object::{Self, UID, ID};
     use std::string::{Self, String};
     use std::option;
-    
+
     use sui::transfer;
     use sui::tx_context::{TxContext};
     use sui::url::{Self, Url};
-    
+
     use nft_protocol::err;
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
@@ -61,7 +61,7 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the `MintAuthority` owner.
-    ///  
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_unregulated_nft<T, Market: store>(
         name: vector<u8>,
@@ -71,7 +71,7 @@ module nft_protocol::unique_nft {
         attribute_values: vector<vector<u8>>,
         mint: &MintAuthority<T>,
         sale_index: u64,
-        // TODO: Ideally we do not take a mutable reference such that 
+        // TODO: Ideally we do not take a mutable reference such that
         // no lock is needed
         launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
@@ -105,7 +105,7 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the `MintAuthority` owner.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint_regulated_nft<T, Market: store>(
         name: vector<u8>,
@@ -149,7 +149,7 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the `MintAuthority` owner.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun direct_mint_unregulated_nft<T>(
         name: vector<u8>,
@@ -189,7 +189,7 @@ module nft_protocol::unique_nft {
     /// The only way to mint the NFT for a collection is to give a reference to
     /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
     /// if one is the `MintAuthority` owner.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun direct_mint_regulated_nft<T>(
         name: vector<u8>,
@@ -214,7 +214,7 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_keys),
             to_string_vector(&mut attribute_values),
         );
-        
+
         collection::increment_supply(mint, 1);
 
         mint_and_transfer<T>(

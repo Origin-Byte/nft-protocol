@@ -1,14 +1,14 @@
 //! Module of a standard collection `StdMeta` type.
-//! 
+//!
 //! Collections can be defined with regulated or unregulated supply.
-//! A collection with regulated supply is a collection that keeps track of 
-//! how many objects currently exist. This means that each time an object is 
+//! A collection with regulated supply is a collection that keeps track of
+//! how many objects currently exist. This means that each time an object is
 //! minted the supply counter will increment. For collections with
 //! unregulated supply, there is no counter to increment since the collection
 //! does not keep track of current supply. Therefore, mints can be completely
 //! parallelized.
-//! 
-//! Standard collection allows for the addition of arbitrary String 
+//!
+//! Standard collection allows for the addition of arbitrary String
 //! data to a `Collection`.
 module nft_protocol::std_collection {
     use std::string::{Self, String};
@@ -43,9 +43,9 @@ module nft_protocol::std_collection {
 
     // === Functions exposed to Witness Module ===
 
-    /// Mint one `Collection` with `Metadata` object and share collection 
+    /// Mint one `Collection` with `Metadata` object and share collection
     /// object. If a collection is made shared.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun mint<T>(
         // Name of the Nft Collection. This parameter is a
@@ -55,7 +55,7 @@ module nft_protocol::std_collection {
         // Symbol of the Nft Collection. This parameter is a
         // vector of bytes that should enconde to utf8
         symbol: vector<u8>,
-        // Defines the maximum supply of the collection. To create an 
+        // Defines the maximum supply of the collection. To create an
         // unregulated supply set `max_supply=0`, otherwise any value above
         // zero will make the supply regulated.
         max_supply: u64,

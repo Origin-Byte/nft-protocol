@@ -1,32 +1,32 @@
 //! Module of a Fixed Price Sale `Market` type.
-//! 
+//!
 //! It implments a fixed price launchpad configuration.
-//! 
+//!
 //! NFT creators can decide if they want to create a simple primary market sale
 //! via `create_single_market` or if they want to create a tiered market sale
 //! by segregating NFTs by different sale segments (e.g. based on rarity).
-//! 
+//!
 //! Each sale segment can have a whitelisting process, each with their own
 //! whitelist tokens.
-//! 
+//!
 //! TODO: Consider if we want to be able to delete the launchpad object
 //! TODO: Remove code duplication between `buy_nft_certificate` and
 //! `buy_whitelisted_nft_certificate`
 module nft_protocol::fixed_price {
     use std::vector;
-    
+
     use sui::pay;
     use sui::sui::{SUI};
     use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
-    
+
     use nft_protocol::err;
     use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::sale::{Self};
     use nft_protocol::whitelist::{Self, Whitelist};
-    
+
     struct FixedPriceMarket has key, store {
         id: UID,
         price: u64,
@@ -34,10 +34,10 @@ module nft_protocol::fixed_price {
 
     // === Functions exposed to Witness Module ===
 
-    /// Creates a fixed price single market `Launchpad`, that is, a Launchpad 
-    /// with a single `Sale` outlet in its field `sales`. Lauchpad is set as 
+    /// Creates a fixed price single market `Launchpad`, that is, a Launchpad
+    /// with a single `Sale` outlet in its field `sales`. Lauchpad is set as
     /// a shared object with an `admin` that can call privelleged endpoints.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun create_single_market<T: drop>(
         witness: T,
@@ -69,7 +69,7 @@ module nft_protocol::fixed_price {
             receiver,
             is_embedded
         );
-        
+
         slingshot::create<T, FixedPriceMarket>(
             witness,
             sale,
@@ -78,14 +78,14 @@ module nft_protocol::fixed_price {
         );
     }
 
-    /// Creates a fixed price multi market `Launchpad`, that is, a Launchpad 
+    /// Creates a fixed price multi market `Launchpad`, that is, a Launchpad
     /// with a multiple `Sale` outlets in its field `sales`. This funcitonality
-    /// allows for the creation of tiered amrket sales by segregating NFTs 
+    /// allows for the creation of tiered amrket sales by segregating NFTs
     /// by different sale segments (e.g. based on rarity, or preciousness).
-    /// 
+    ///
     /// Lauchpad is set as a shared object with an `admin` that can
     /// call privelleged endpoints.
-    /// 
+    ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun create_multi_market<T: drop>(
         witness: T,
@@ -119,7 +119,7 @@ module nft_protocol::fixed_price {
             );
 
             vector::push_back(&mut sales, sale);
-            
+
             len = len - 1;
             index = index + 1;
         };
@@ -130,7 +130,7 @@ module nft_protocol::fixed_price {
             receiver,
             is_embedded,
         );
-        
+
         slingshot::create<T, FixedPriceMarket>(
             witness,
             sales,
@@ -157,7 +157,7 @@ module nft_protocol::fixed_price {
         assert!(slingshot::live(slingshot) == true, err::launchpad_not_live());
 
         let launchpad_id = slingshot::id(slingshot);
-        
+
         let receiver = slingshot::receiver(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
@@ -170,7 +170,7 @@ module nft_protocol::fixed_price {
 
         assert!(coin::value(wallet) > price, err::coin_amount_below_price());
 
-        // Split coin into price and change, then transfer 
+        // Split coin into price and change, then transfer
         // the price and keep the change
         pay::split_and_transfer<SUI>(
             wallet,
@@ -223,7 +223,7 @@ module nft_protocol::fixed_price {
 
         assert!(coin::value(wallet) > price, err::coin_amount_below_price());
 
-        // Split coin into price and change, then transfer 
+        // Split coin into price and change, then transfer
         // the price and keep the change
         pay::split_and_transfer<SUI>(
             wallet,
@@ -244,7 +244,7 @@ module nft_protocol::fixed_price {
 
     // // === Modifier Functions ===
 
-    /// Toggle the Slingshot's `live` to `true` therefore 
+    /// Toggle the Slingshot's `live` to `true` therefore
     /// making the NFT sale live. Permissioned endpoint to be called by `admin`.
     public entry fun sale_on<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,
@@ -257,7 +257,7 @@ module nft_protocol::fixed_price {
         slingshot::sale_on(slingshot);
     }
 
-    /// Toggle the Slingshot's `live` to `false` therefore 
+    /// Toggle the Slingshot's `live` to `false` therefore
     /// pausing or stopping the NFT sale. Permissioned endpoint to be called by `admin`.
     public entry fun sale_off<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,
@@ -270,7 +270,7 @@ module nft_protocol::fixed_price {
         slingshot::sale_off(slingshot);
     }
 
-    /// Permissioned endpoint to be called by `admin` to edit the fixed price 
+    /// Permissioned endpoint to be called by `admin` to edit the fixed price
     /// of the launchpad configuration.
     public entry fun new_price<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,

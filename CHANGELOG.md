@@ -9,16 +9,18 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ## [Unreleased]
 
 Changed:
+
 - Togling sale status permission via `fixed_price::sale_on` and`fized_price::sale_off` is now a permissioned action, that can only be done by the admin
 - Simplified `supply` module by removing changing field `max` from `Option<u64>` to `u64`
 
 ## [0.5.0] - 2022-10-21
 
 Changed:
+
 - Updated `Sui` to version `0.12.1`
 - Moved the supply mint policy responsibility off the `Collection` object to a separate
   object `MintAuthority`
-- `Slingshot` has now witness pattern `Slingshot<phantom T, M>` where 
+- `Slingshot` has now witness pattern `Slingshot<phantom T, M>` where
   `T` represents the exported NFT type and `M` the market type
 - `Slingshot` module has entrypoints `claim_nft_embedded` and `claim_nt_loose`
 - `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead of `Option<u64>` to facilitate function call on the client side
@@ -29,6 +31,7 @@ Added:
 - Error handling via `err` module
 
 Removed:
+
 - `cap` module with objects `Limited` and `Unlimited` that regulate the supply
   of NFT collections
 - Removed field `cap` from `Collection` object, removing the supply mint policy
@@ -36,10 +39,10 @@ Removed:
 - Removed field `index` from `unique_nft::Unique`, `collectibles::Collectible` and
   `c_nft::Data`
 
-
 ## [0.4.0] - 2022-10-11
 
 ### Changed
+
 - Reimplemented `nft` module with `nft::Nft` object and removed `NftOwned`
 - Reimplemented `collection` module with `collection::Collection` object
 - Collection data fields now belong to `collection::Collection`
@@ -52,11 +55,12 @@ Removed:
 - NFT Collections can now only be created via witness type
 
 ### Added
-- `unique_nft` module and `unique_nft:Unique` object serving as domain-specific 
+
+- `unique_nft` module and `unique_nft:Unique` object serving as domain-specific
   embedded NFT implementation
-- `collectibles` module and `collectibles:Collectible` object serving as domain-specific 
+- `collectibles` module and `collectibles:Collectible` object serving as domain-specific
   loose NFT implementation
-- `c_nft` module and `c_nft:Composable` object serving as domain-specific 
+- `c_nft` module and `c_nft:Composable` object serving as domain-specific
   loose NFT implementation
 - `sale` module to be able to perform multiple sales per slingshot launchpad
 - `whitelist` module to be able to perform whitelisted sales
@@ -66,11 +70,13 @@ Removed:
   object
 
 ### Removed
+
 - `std_nft` module and `std_nft::StdNft` object
 
 ## [0.3.0] - 2022-09-20
 
 ### Changed
+
 - Renamed move package from `nftProtocol` to `NftProtocol`.
 - Renamed field `uri` to `url` for `std_nft::NftMeta`
 - Changed parameter `collection` from `ID` to `&Collection<T, Meta>`
@@ -79,6 +85,7 @@ Removed:
 ## [0.3.0] - 2022-09-20
 
 ### Changed
+
 - Renamed field `uri` to `url` for `std_nft::NftMeta`
 - Changed parameter `collection` from `ID` to `&Collection<T, Meta>`
   in `fixed_price::create`
@@ -86,19 +93,19 @@ Removed:
 ## [0.2.0] - 2022-09-20
 
 ### Added
+
 - The following objects with `key`, `store` abilities:
   - `slingshot::Slingshot` as generic launchpad
   - `fixed_price::LaunchpadConfig` as fixed price launchpad configuration
   - `fixed_price::NftCertificate` as certificate to redeem NFT
 - The following structs to be used as witnesses:
   - `fixed_price::FixedPriceSale`
-- Method `std_nft::mint_to_launchpad` to mint an NFT an transfer it to a 
+- Method `std_nft::mint_to_launchpad` to mint an NFT an transfer it to a
   launchpad
 
-
 ### Changed
-- Bumped Sui version to `devnet-0.9.0`
 
+- Bumped Sui version to `devnet-0.9.0`
 
 ## [0.1.0] - 2022-09-14
 
@@ -111,5 +118,5 @@ Removed:
   - `std_nft::NftMeta` as NFT metadata
 - The following structs to be used as witnesses:
   - `std_nft::StdNft`
-  - `std_collection::StdCollection` 
+  - `std_collection::StdCollection`
 - The object type `tags::Tags` with `copy`, `drop`, `store`
