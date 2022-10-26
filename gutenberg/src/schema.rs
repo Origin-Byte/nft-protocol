@@ -238,7 +238,7 @@ impl Schema {
         &self,
         output_opt: Option<PathBuf>,
     ) -> Result<(), GutenError> {
-        let file_path = "templates/template.txt";
+        let file_path = "templates/template.move";
 
         let fmt = fs::read_to_string(file_path)
             .expect("Should have been able to read the file");
