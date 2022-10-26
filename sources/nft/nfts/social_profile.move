@@ -55,7 +55,7 @@ module nft_protocol::social_profile {
     /// if one is the collection owner, or if it is a shared collection.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_nft<T, M: store>(
+    public fun mint_nft<T>(
         username: vector<u8>,
         profile_picture: vector<u8>,
         biography: vector<u8>,
