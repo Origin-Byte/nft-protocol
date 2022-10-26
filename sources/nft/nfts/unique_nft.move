@@ -132,7 +132,7 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_values),
         );
 
-        collection::increase_supply(mint, 1);
+        collection::increment_supply(mint, 1);
 
         mint_to_launchpad(
             args,
@@ -215,7 +215,7 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_values),
         );
 
-        collection::increase_supply(mint, 1);
+        collection::increment_supply(mint, 1);
 
         mint_and_transfer<T>(
             args,
