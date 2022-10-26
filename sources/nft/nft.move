@@ -33,7 +33,7 @@ module nft_protocol::nft {
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
 
     // NFT object with an option to hold `D`ata object
-    struct Nft<phantom T, D: store> has key, store {
+    struct Nft<phantom T, D: store> has key {
         id: UID,
         logical_owner: address,
         collection: ID,
