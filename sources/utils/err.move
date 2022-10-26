@@ -106,7 +106,15 @@ module nft_protocol::err {
 
     // Safe
 
-    public fun safe_owner_mismatch(): u64 {
+    public fun safe_cap_mismatch(): u64 {
         return Prefix + 300
+    }
+
+    public fun safe_does_not_contain_nft(): u64 {
+        return Prefix + 301
+    }
+
+    public fun nft_exlusively_listed(): u64 {
+        return Prefix + 302
     }
 }
