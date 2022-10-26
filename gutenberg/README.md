@@ -9,7 +9,7 @@ This codebase requires installation of the [Sui CLI](https://docs.sui.io/build/i
 
 1. `$ cargo build` to build the gutenberg
 2. `$ cargo run` to run the gutenberg and build the move module
-3. `./bin/publish.sh` to publish the modules on localnet or devnet // TODO
+3. `./bin/publish.sh` to publish the modules on localnet or devnet
 
 # Gutenberg
 
