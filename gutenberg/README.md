@@ -1,4 +1,5 @@
-- Sui v0.12.1
+- rustc 1.64.0
+- sui v0.12.1
 
 # Install
 
