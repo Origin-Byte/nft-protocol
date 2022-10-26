@@ -26,13 +26,17 @@ module nft_protocol::nft {
 
     use sui::event;
     use sui::object::{Self, UID, ID};
-    use sui::tx_context::{TxContext};
+    use sui::tx_context::{Self, TxContext};
+    use sui::transfer;
 
     use nft_protocol::err;
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
 
     // NFT object with an option to hold `D`ata object
     struct Nft<phantom T, D: store> has key, store {
         id: UID,
+        logical_owner: address,
+        collection: ID,
         data_id: ID,
         data: Option<D>,
     }
@@ -157,6 +161,59 @@ module nft_protocol::nft {
         nft: &Nft<T, D>,
     ): bool {
         option::is_none(&nft.data)
+    }
+
+    // === Transfer Functions ===
+
+    public fun transfer<T, D: store, W>(
+        nft: Nft<T, D>,
+        target: address,
+        authority: &UID,
+        whitelist: &Whitelist<W>,
+    ) {
+        let is_ok = transfer_whitelist::can_be_transferred(
+            &nft.collection,
+            object::uid_as_inner(authority),
+            whitelist,
+        );
+        assert!(is_ok, err::authority_not_whitelisted());
+
+        transfer::transfer(nft, target);
+    }
+
+    public fun transfer_to_owner<T, D: store>(nft: Nft<T, D>) {
+        transfer::transfer(nft, nft.logical_owner);
+    }
+
+    public fun transfer_to_object<T, D: store, Target, W>(
+        nft: Nft<T, D>,
+        target: &mut Target,
+        authority: &UID,
+        whitelist: &Whitelist<W>,
+    ) {
+        let is_ok = transfer_whitelist::can_be_transferred(
+            &nft.collection,
+            object::uid_as_inner(authority),
+            whitelist,
+        );
+        assert!(is_ok, err::authority_not_whitelisted());
+
+        // TODO: move to given target
+        abort(0);
+    }
+
+    public fun priviledged_transfer_to_object<T, D: store, Target>(
+        nft: Nft<T, D>,
+        target: &mut Target,
+        ctx: &mut TxContext,
+    ) {
+        assert!(
+            nft.logical_owner == tx_context::sender(ctx),
+            err::not_nft_owner(),
+        );
+
+        // TODO: move to given target
+        abort(0);
     }
 
     // === Getter Functions  ===
