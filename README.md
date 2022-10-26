@@ -79,7 +79,7 @@ Note: We are considering simplifying the Collection type by removing the generic
 
 Since the NFTs are type exported, each NFT collection will have to deploy its type-specific contract that interfaces with OriginByte modules.
 
-Consider two sample NFT collections: Suimarines and Suiway Surfers. To launch these collections on Sui, the creators will deploy the contracts `suimarines` and `suiway_surfers` (this deployment will in the future be made via an OriginByte SDK). Creators will be able to choose which NFT implementation they want their collection to have (i.e. Unique NFTs, Collectibles, Composable NFTs, Tickets, Loyalty Points, etc.):
+Consider two sample NFT collections: Suimarines and Suiway Surfers. To launch these collections on Sui, the creators will deploy the contracts `suimarines` and `suiway_surfers` (this deployment is facilitated via our [Gutenberg](https://github.com/Origin-Byte/nft-protocol/tree/main/gutenberg) program). Creators will be able to choose which NFT implementation they want their collection to have (i.e. Unique NFTs, Collectibles, Composable NFTs, Tickets, Loyalty Points, etc.):
 
 <img src="assets/3_layer.png" width="632" height="395" />
 
@@ -90,6 +90,7 @@ The core vision is that any developer can build a custom implementation on top o
 - `nft_protocol::c_nft`
 
 These domain-specific modules in turn communicate with the base module `nft_protocol::nft` to mint the NFTs and to perform basic actions such as morphing the NFT from loose to embedded and vice-versa.
+
 
 ### Relationship to Collection object
 
@@ -196,12 +197,13 @@ The generic NFT object has the following functions to be called by an upstream c
 
 ### Unique NFT (Embedded)
 
-Unite NFT data object, `Unique`, has the following data model:
+The Unique NFT type is the our plain-vanilla type. It's the right type for a collection of unique Art NFTs and it's our simplest NFT implemenation.
+
+Unique NFT data object, `Unique`, has the following data model:
 
 | Field           | Type         | Description                                              |
 | --------------- | ------------ | -------------------------------------------------------- |
 | `id`            | `UID`        | The UID of the NFT metadata object                       |
-| `index`         | `u64`        | The index of the NFT in relation to the whole collection |
 | `name`          | `String`     | Name of the NFT object                                   |
 | `description`   | `String`     | Description of the NFT object                            |
 | `collection_id` | `ID`         | ID pointer to Collection object                          |
@@ -220,7 +222,9 @@ The NFT metadata object has the following functions:
 
 ### Collectibles NFT (Loose)
 
-Collectible NFT data object, `Collectible`, has the following data model:
+The Collectibles NFT type is the perfect type for representing digital collectibles which are typically not unique. If we consider collected baseball or football cards, each card has its own supply (i.e. The better the player the rarer the card). This is precisely what the NFT Type allows us to do. It uses our Loose NFT implementation, in other words the data object is separated from the NFTs themselses. For a collection of 100 different baseball cards, the NFT creator will create 100 data objects, each representing a different card. Each card will have its own supply. Once the data objects have been minted by the NFT creators, users can come in an mint the collectible NFTs.
+
+Collectibles NFT data object, `Collectible`, has the following data model:
 
 | Field        | Type         | Description                                              |
 | ------------ | ------------ | -------------------------------------------------------- |
@@ -241,6 +245,10 @@ The NFT metadata object has the following functions:
 - `burn_nft` to burn an NFT
 
 ### Composable cNFTs (Loose)
+
+The Composable NFT type (cNFT) take NFTs to a whole new level, allowing them to be merged and creating Combo NFTs. At its core our cNFT implementation is similar to our Collectibles implementation in that each different NFT (data object) can have its own supply. The stark difference is that in this implementation, the creators can define composability rules by calling `compose_data_objects`. By calling this function creators are essentially defining which NFTs can be merged together, and how many times they can be merged together. 
+
+This implementation is perfect for NFT collections with Tradeable Traits.
 
 Composable NFT (cNFT) data object, `Composable<C: store + copy>`, has the following data model:
 
