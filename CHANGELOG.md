@@ -8,6 +8,10 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ## [Unreleased]
 
+Added:
+- Gutenberg: A rust templating engine to write Move NFT collection specific
+  modules that top into our protocol.
+
 Changed:
 
 - Togling sale status permission via `fixed_price::sale_on` and`fized_price::sale_off` is now a permissioned action, that can only be done by the admin

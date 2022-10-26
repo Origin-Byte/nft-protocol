@@ -24,7 +24,6 @@ Considering the broad range of NFT use cases, there are situations in which we w
 - We can separate the NFT object from its Data object, hence allowing the Data object itself to be shared and mutated accordingly
 
 In the OriginByte protocol, an `NFT` object is a hybrid object that can take two shapes:
-
 - The shape of an NFT that embeds is own data, aka an Embedded NFT;
 - The shape of an NFT which does not embed its own data and contains solely a pointer to its data object, aka a Loose NFT.
 
@@ -113,19 +112,19 @@ When minting an NFT, you need to pass on a mutable reference to the Collection o
 
 The collection object, `Collection<phantom T, M: store, C: store>`, has the following data model:
 
-| Field             | Type              | Description                                                                    |
-| ----------------- | ----------------- | ------------------------------------------------------------------------------ |
-| `id`              | `UID`             | The UID of the collection object                                               |
-| `name`            | `String`          | The name of the collection                                                     |
-| `description`     | `String`          | The name of the collection                                                     |
-| `symbol`          | `String`          | The symbol/ticker of the collection                                            |
-| `receiver`        | `address`         | Address that receives the mint price in Sui                                    |
-| `tags`            | `Tags`            | A set of strings that categorize the domain in which the NFT operates          |
-| `is_mutable`      | `bool`            | A configuration field that dictates whether NFTs are mutable                   |
-| `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs \*                    |
-| `creators`        | `vector<Creator>` | A vector containing the information of the creators                            |
-| `metadata`        | `M`               | A generic type representing the metadata object embedded in the NFT collection |
-| `cap`             | `C`               | A generic type refering to the Supply Policy of the collection                 |
+| Field            | Type          | Description |
+| ---------------- | ------------- | ----------- |
+| `id`             | `UID`         | The UID of the collection object |
+| `name`           | `String`      | The name of the collection |
+| `description`    | `String`      | The description of the collection |
+| `symbol`         | `String`      | The symbol/ticker of the collection |
+| `receiver`       | `address`     | Address that receives the royalty proceeds |
+| `tags`           | `Tags`        | A set of strings that categorize the domain in which the NFT operates |
+| `is_mutable`     | `bool`        | A configuration field that dictates whether NFTs are mutable |
+| `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs * |
+| `creators`        | `vector<Creator>` | A vector containing the information of the creators |
+| `metadata`       | `M`        | A generic type representing the metadata object embedded in the NFT collection |
+| `cap` | `C`         | A generic type refering to the Supply Policy of the collection |
 
 - `royalty_fee_bps` is currently not being utilized but will be used in the standard launchpad module.
 
