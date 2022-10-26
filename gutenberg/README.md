@@ -12,13 +12,16 @@ This codebase requires installation of the [Sui CLI](https://docs.sui.io/build/i
 
 # Gutenberg
 
-A templating engine to write Move modules for NFT Collections.
+Automagically writing Move smart contracts so you don’t have to!
 
-In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs of a given NFT Collection have their own type exported Move module.
+Gutenberg is a templating engine for writing Move modules for NFT Collections.
 
-What this means in practice is that creators will have to deploy their own Move module every time they want to create a new NFT collection. We do not expect NFT creators to have to deal with the technical details of writing a Move smart contract, therefore Gutenberg's purpose is to automagically write the Move smart contract on behalf of the NFT creator.
+In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs of a given Collection have their own type-exported Move module.
 
-We describe the process to configure the NFT collection and run Gutenberg in the following steps.
+In practice, this means that creators will have to deploy their own Move module every time they want to create a new NFT collection. We don’t think NFT creators should have to deal with the technicalities of writing Move smart contracts, so we created Gutenberg to do it for you.
+
+We describe the process for configuring NFT collections and running Gutenberg in the following steps.
+
 
 ### 1. Configure the NFT Collection
 
@@ -49,7 +52,7 @@ The top-level fields are defined as follows:
 
 | Field            | Type          | Description |
 | ---------------- | ------------- | ---------------- |
-| `NftType`        | `String`      | Acts as an Enum for all the NftTypes available in OriginByte ("Unique", "Collectibles" & "CNft") |
+| `NftType`        | `String`      | Acts as an Enum for all the NFT Types available in OriginByte (`Unique`, `Collectibles`, `CNft`) |
 | `Collection`     | `Dictionary`  | List of fields defining the collection |
 | `Launchpad`      | `Dictionary`  | List of fields defining the launchpad |
 
@@ -80,9 +83,9 @@ Some examples of yaml configurations are provided in `/gutenberg/examples`.
 
 #### Single vs. Multiple Sale Outlets
 
-OriginByte's launchpad configuration allows creators to segregage their NFT sales into tiers, having each tier its own price and whitelisting settings.
+OriginByte's launchpad configurations allow creators to segregate their NFT sales into tiers, with each tier having its own price and whitelisting settings.
 
-An example of a single sale configuration follows:
+Here is an example of a single sale configuration:
 
 ```
 Launchpad:
@@ -102,7 +105,7 @@ Launchpad:
 
 ### 2. Run Gutenberg
 
-Once the yaml configuration file is correctly populated it is time to run Gutenberg via:
+Once the YAML configuration file is correctly populated, it’s then time to run Gutenberg via:
 
 `cd gutenberg/`
 `cargo run`
@@ -114,10 +117,10 @@ To define a custom path and file name one can run the following command:
 
 ### 3. Deploy the Contract
 
-To deploy the newly created smart contract in conjunction to the NFT protocol, run the following sh script from the parent folder:
+To deploy the newly created smart contract in conjunction with the NFT protocol, run the following sh script from the parent folder:
 
 `./bin/publish.sh`
 
-Please note that in the current version, the NFT protocol modules will themselves be deployed along with the newly created NFT module, however in the upcoming version of this tool, the newly created NFT module will tap into a readily deployed contract on-chain.
+Please note that in the current version, the NFT protocol modules will themselves be deployed along with the newly created NFT module. However, in the upcoming version of this tool, newly created NFT modules will tap into a readily deployed contract on-chain.
 
-To publish the module on-chain, one will require to have a .env file with the field `GAS` with an object ID of Gas object. To enquire the CLI as to what GAS object IDs one can use you will need to have the Sui cli installed as well as having and active address and be connected to the DevNet. To check for the a Gas object ID please run `sui client gas`. Please also note that your active address should be funded via the faucet, and therefore it should have SUI coin balance available.
+To publish the module on-chain, you’ll be required to have a .env file with the field `GAS` and an object ID of the Gas object. To enquire the CLI on what GAS object IDs can be used, you’ll need to be connected to the DevNet, have an active address, and also have the Sui CLI installed. To check for the Gas object ID, run `sui client gas`. Please also note that your active address should be funded via the faucet, and therefore it should have a SUI coin balance available.
