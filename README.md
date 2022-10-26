@@ -222,7 +222,7 @@ The NFT metadata object has the following functions:
 
 ### Collectibles NFT (Loose)
 
-The Collectibles NFT type is the perfect type for representing digital collectibles which are typically not unique. If we consider collected baseball or football cards, each card has its own supply (i.e. The better the player the rarer the card). This is precisely what the NFT Type allows us to do. It uses our Loose NFT implementation, in other words the data object is separated from the NFTs themselses. For a collection of 100 different baseball cards, the NFT creator will create 100 data objects, each representing a different card. Each card will have its own supply. Once the data objects have been minted by the NFT creators, users can come in an mint the collectible NFTs.
+The Collectibles NFT type is the perfect type for representing digital collectibles which are typically not unique. If we consider collected baseball or football cards, each card has its own supply (i.e. The better the player the rarer the card). This is precisely what the NFT Type allows us to do. It uses our Loose NFT implementation, in other words the data object is separated from the NFTs themselves. For a collection of 100 different baseball cards, the NFT creator will create 100 data objects, each representing a different card. Each card will have its own supply. Once the data objects have been minted by the NFT creators, users can come in and mint the collectible NFTs.
 
 Collectibles NFT data object, `Collectible`, has the following data model:
 
@@ -248,7 +248,7 @@ The NFT metadata object has the following functions:
 
 The Composable NFT type (cNFT) take NFTs to a whole new level, allowing them to be merged and creating Combo NFTs. At its core our cNFT implementation is similar to our Collectibles implementation in that each different NFT (data object) can have its own supply. The stark difference is that in this implementation, the creators can define composability rules by calling `compose_data_objects`. By calling this function creators are essentially defining which NFTs can be merged together, and how many times they can be merged together. 
 
-This implementation is perfect for NFT collections with Tradeable Traits.
+This implementation is perfect for NFT collections with Tradable Traits.
 
 Composable NFT (cNFT) data object, `Composable<C: store + copy>`, has the following data model:
 
