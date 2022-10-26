@@ -36,7 +36,11 @@ module nft_protocol::err {
         return Prefix + 08
     }
 
-    // Supply
+    public fun not_nft_owner(): u64 {
+        return Prefix + 09
+    }
+
+    // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {
         return Prefix + 100
@@ -104,7 +108,7 @@ module nft_protocol::err {
         return Prefix + 208
     }
 
-    // Safe
+    // === Safe ===
 
     public fun safe_cap_mismatch(): u64 {
         return Prefix + 300
@@ -116,5 +120,11 @@ module nft_protocol::err {
 
     public fun nft_exlusively_listed(): u64 {
         return Prefix + 302
+    }
+
+    // === Whitelist ===
+
+    public fun authority_not_whitelisted(): u64 {
+        return Prefix + 400
     }
 }
