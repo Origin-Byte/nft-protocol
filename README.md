@@ -55,6 +55,8 @@ To mint an embedded NFT, modules will call the function `nft::mint_nft_embedded`
 
 In contrast, since loose NFTs do not wrap the data object within itself, they can represent 1-to-many relationships between the data object and the NFT objects. Basically, one can mint any amount of NFTs pointing to a single data object. This is ideal to represent digital collectibles, such as digital football or baseball cards, as well as gaming items that more than one user should have access to.
 
+Whilst Embedded NFTs have a simpler design and thus are more suitable for simple use cases, Loose NFTs are more suitable for digital collectibles and on-chain gaming items. Since they separate the data from the NFT, they can substantially reduce the amount of data redundancy you would otherwise have if you would use Embedded NFTs. A practical example is, if any creator wants to mint million of gaming NFTs it is dramatically cheaper to use the Loose NFT implementation.
+
 In loose NFTs, the `Data` object is first minted and only then the NFTs associated to that object are minted.
 
 To mint a loose NFT, modules will first create the data object on-chain and then allows the NFTs to be minted on the fly when needed, via the function call `nft::mint_nft_loose`.
@@ -91,6 +93,7 @@ The core vision is that any developer can build a custom implementation on top o
 
 These domain-specific modules in turn communicate with the base module `nft_protocol::nft` to mint the NFTs and to perform basic actions such as morphing the NFT from loose to embedded and vice-versa.
 
+To summarise, the core NFT module is responsible for wrapping all NFTs with a unified type `Nft<T>` whilst still providing enough flexibility by allowing NFTs to be Embedded or Loose. The modules that build on top of it, such as the Unique, Collectible and CNft, are responsible for building NFTs with specific behaviour and metadata fields. Finally, the contracts to be deployed by the creators (e.g. Suimarines) allows all NFTs of that collection to have the same type `T` and therefore in conjunction with our core module create a unified type `Nft<T>` (e.g. `Nft<SUIMARINES>`).
 
 ### Relationship to Collection object
 
@@ -305,6 +308,8 @@ And has the following entry functions to be called directly by the client code:
 - `burn_nft` burns an NFT
 
 ### Slingshot Launchpad
+
+In order for NFT creators to better control the flow of creating and releasing NFTs to the public we have created a launchpad module called Slingshot. Slingshot allows you to define what market primitive you want to utilise (i.e. Fixed Price sales, Auctions, etc.) and to break down your sales strategy into tiers, which with their own whitelisting configuration.
 
 The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 
