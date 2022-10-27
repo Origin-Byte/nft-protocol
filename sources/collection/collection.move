@@ -192,7 +192,7 @@ module nft_protocol::collection {
 
     /// Burn a Collection with regulated supply object and
     /// returns the Metadata object
-    public fun burn_regulated<T, M: store>(
+    public entry fun burn_regulated<T, M: store>(
         collection: Collection<T, M>,
         mint: MintAuthority<T>,
     ): M {
@@ -238,7 +238,7 @@ module nft_protocol::collection {
 
     /// Make Collections immutable
     /// WARNING: this is irreversible, use with care
-    public fun freeze_collection<T, M: store>(
+    public entry fun freeze_collection<T, M: store>(
         collection: &mut Collection<T, M>,
     ) {
         // Only modify if collection is mutable
