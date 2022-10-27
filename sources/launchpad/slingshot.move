@@ -158,13 +158,13 @@ module nft_protocol::slingshot {
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft_loose<T, M: store, D: key + store>(
         slingshot: &Slingshot<T, M>,
-        nft_data: D,
+        nft_data: &D,
         certificate: NftCertificate,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         assert!(
-            object::id(&nft_data) == sale::nft_id(&certificate),
+            object::id(nft_data) == sale::nft_id(&certificate),
             err::certificate_does_not_correspond_to_nft_given()
         );
 
@@ -175,9 +175,8 @@ module nft_protocol::slingshot {
         // We are currently not increasing the current supply of the NFT
         // being minted (both collectibles and cNFT implementation have a concept
         // of supply).
-        let nft = nft::mint_nft_embedded<T, D>(
-            object::id(&nft_data),
-            nft_data,
+        let nft = nft::mint_nft_loose<T, D>(
+            object::id(nft_data),
             ctx,
         );
 

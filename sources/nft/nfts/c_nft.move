@@ -220,7 +220,7 @@ module nft_protocol::c_nft {
     /// holders of those NFTs to merge them together to create a cNFT.
     ///
     /// The newly composed object has a its own maximum supply of NFTs.
-    public fun compose_data_objects
+    public entry fun compose_data_objects
         <T, C: store + copy>
     (
         nfts_data: vector<Composable<C>>,
@@ -288,6 +288,7 @@ module nft_protocol::c_nft {
     ///
     /// To be called by Launchpad contract
     /// TODO: The flow here needs to be reconsidered
+    /// TODO: To be deprecated --> calls should be done to the nft module
     public fun mint_nft<T, C: store + copy>(
         nft_data: &mut Composable<C>,
         recipient: address,

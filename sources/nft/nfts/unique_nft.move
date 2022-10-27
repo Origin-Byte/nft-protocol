@@ -214,7 +214,6 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_keys),
             to_string_vector(&mut attribute_values),
         );
-
         collection::increment_supply(mint, 1);
 
         mint_and_transfer<T>(

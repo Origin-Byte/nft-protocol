@@ -14,13 +14,16 @@ module nft_protocol::suimarines {
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let receiver = @0xA;
 
+        let tags: vector<vector<u8>> = vector::empty();
+        vector::push_back(&mut tags, b"Art");
+
         let collection_id = std_collection::mint<SUIMARINES>(
             b"Suimarines",
             b"A Unique NFT collection of Submarines on Sui",
             b"SUIM", // symbol
             100, // max_supply
             receiver, // Royalty receiver
-            vector::singleton(b"Art"), // tags
+            tags,
             100, // royalty_fee_bps
             false, // is_mutable
             b"Some extra data",

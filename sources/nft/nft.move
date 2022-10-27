@@ -137,7 +137,7 @@ module nft_protocol::nft {
     public fun burn_embedded_nft<T, D: store>(
         nft: Nft<T, D>,
     ): Option<D> {
-        assert!(is_loose(&nft), err::nft_not_embedded());
+        assert!(!is_loose(&nft), err::nft_not_embedded());
 
         event::emit(
             BurnEvent {

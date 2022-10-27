@@ -6,12 +6,19 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] - 2022-10-26
+
+Added:
+- Gutenberg: A rust templating engine to write Move NFT collection specific
+  modules that top into our protocol.
 
 Changed:
 
 - Togling sale status permission via `fixed_price::sale_on` and`fized_price::sale_off` is now a permissioned action, that can only be done by the admin
 - Simplified `supply` module by removing changing field `max` from `Option<u64>` to `u64`
+- Renamed `collectibles` module to `collectible`
+- Functions `compose_data_objects` in module `collectible` and `c_nft` are now entry functions
+- Fixed `slingshot::claim_nft_loose` and it now accepts nft_data as generic `&D` instead of `D`
 
 ## [0.5.0] - 2022-10-21
 
