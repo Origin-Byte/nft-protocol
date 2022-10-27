@@ -159,6 +159,7 @@ module nft_protocol::fixed_price {
         let launchpad_id = slingshot::id(slingshot);
 
         let receiver = slingshot::receiver(slingshot);
+        let collection_id = slingshot::collection_id(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is NOT whitelisted
@@ -179,7 +180,12 @@ module nft_protocol::fixed_price {
             ctx
         );
 
-        let certificate = sale::issue_nft_certificate(sale, launchpad_id, ctx);
+        let certificate = sale::issue_nft_certificate(
+            sale,
+            launchpad_id,
+            collection_id,
+            ctx
+        );
 
         transfer::transfer(
             certificate,
@@ -206,6 +212,7 @@ module nft_protocol::fixed_price {
         let launchpad_id = slingshot::id(slingshot);
 
         let receiver = slingshot::receiver(slingshot);
+        let collection_id = slingshot::collection_id(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is whitelisted
@@ -234,7 +241,12 @@ module nft_protocol::fixed_price {
 
         whitelist::burn_whitelist_token(whitelist_token);
 
-        let certificate = sale::issue_nft_certificate(sale, launchpad_id, ctx);
+        let certificate = sale::issue_nft_certificate(
+            sale,
+            launchpad_id,
+            collection_id,
+            ctx
+        );
 
         transfer::transfer(
             certificate,

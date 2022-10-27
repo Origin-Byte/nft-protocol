@@ -43,7 +43,7 @@ module nft_protocol::suimarines {
         );
     }
 
-    public entry fun mint_nft(
+    public entry fun mint_nft_data(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -54,15 +54,13 @@ module nft_protocol::suimarines {
         launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
-        unique_nft::mint_regulated_nft(
+        unique_nft::mint_regulated_nft_data(
             name,
             description,
             url,
             attribute_keys,
             attribute_values,
             mint_authority,
-            sale_index,
-            launchpad,
             ctx,
         );
     }

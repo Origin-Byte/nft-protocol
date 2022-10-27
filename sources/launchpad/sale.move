@@ -36,6 +36,7 @@ module nft_protocol::sale {
     struct NftCertificate has key, store {
         id: UID,
         launchpad_id: ID,
+        collection_id: ID,
         nft_id: ID,
     }
 
@@ -91,13 +92,15 @@ module nft_protocol::sale {
     public fun issue_nft_certificate<T, M>(
         sale: &mut Sale<T, M>,
         launchpad_id: ID,
+        collection_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
         let nft_id = pop_nft(sale);
 
         let certificate = NftCertificate {
             id: object::new(ctx),
-            launchpad_id: launchpad_id,
+            launchpad_id,
+            collection_id,
             nft_id: nft_id,
         };
 
@@ -110,6 +113,7 @@ module nft_protocol::sale {
         let NftCertificate {
             id,
             launchpad_id: _,
+            collection_id: _,
             nft_id: _,
         } = certificate;
 
@@ -175,5 +179,11 @@ module nft_protocol::sale {
         sale: &Sale<T, M>,
     ): bool {
         sale.whitelisted
+    }
+
+    public fun collection_id(
+        certificate: &NftCertificate,
+    ): ID {
+        certificate.collection_id
     }
 }
