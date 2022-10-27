@@ -1,9 +1,9 @@
-//! Module of a collectibles NFT `Collectible` data type.
+//! Module of a collectible NFT `Collectible` data type.
 //!
 //! It acts as a standard domain-specific implementation of an NFT type with
 //! supply, fitting use cases such as Digital Collectibles (e.g. Baseball
 //! cards).
-module nft_protocol::collectibles {
+module nft_protocol::collectible {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use std::string::{Self, String};
@@ -149,6 +149,7 @@ module nft_protocol::collectibles {
     ///
     /// To be called by Launchpad contract
     /// TODO: The flow here needs to be reconsidered
+    /// TODO: To be deprecated --> calls should be done to the nft module
     public fun mint_nft<T, M: store>(
         _mint: &MintAuthority<T>,
         nft_data: &mut Collectible,
@@ -178,7 +179,7 @@ module nft_protocol::collectibles {
     /// data can only be done once all the underlying `Nft`s pointing to that
     /// object have been burned (or if none have been minted yet).
     /// In other words, the `supply.current` must be zero.
-    public entry fun burn_limited_collection_nft_data<T, M: store>(
+    public entry fun burn_regulated_collection_nft_data<T, M: store>(
         nft_data: Collectible,
         mint: &mut MintAuthority<T>,
         collection: &mut Collection<T, M>,

@@ -10,7 +10,7 @@ use std::str::FromStr;
 pub enum NftType {
     // TODO: Need to add support for Soulbound
     Unique,
-    Collectibles,
+    Collectible,
     CNft,
 }
 
@@ -28,7 +28,7 @@ impl FromStr for NftType {
     fn from_str(input: &str) -> Result<NftType, Self::Err> {
         match input {
             "Unique" => Ok(NftType::Unique),
-            "Collectibles" => Ok(NftType::Collectibles),
+            "Collectible" => Ok(NftType::Collectible),
             "CNft" => Ok(NftType::CNft),
             _ => {
                 println!("The NftType provided is not supported");
@@ -43,7 +43,7 @@ impl NftType {
     pub fn nft_module(&self) -> String {
         let nft_module = match self {
             NftType::Unique => "unique_nft",
-            NftType::Collectibles => "collectibles",
+            NftType::Collectible => "collectible",
             NftType::CNft => "c_nft",
         };
         nft_module.to_string()
@@ -52,7 +52,7 @@ impl NftType {
     pub fn nft_type(&self) -> String {
         let nft_type = match self {
             NftType::Unique => "unique_nft",
-            NftType::Collectibles => "collectibles",
+            NftType::Collectible => "collectible",
             NftType::CNft => "c_nft",
         };
         nft_type.to_string()
@@ -61,7 +61,7 @@ impl NftType {
     pub fn is_embedded(&self) -> bool {
         match self {
             NftType::Unique => true,
-            NftType::Collectibles => false,
+            NftType::Collectible => false,
             NftType::CNft => false,
         }
     }
@@ -98,7 +98,7 @@ impl NftType {
                 }}",
                 witness, witness, market_type
             ),
-            NftType::Collectibles => format!(
+            NftType::Collectible => format!(
                 "public entry fun mint_nft<T>(\n        \
                     name: vector<u8>,\n        \
                     description: vector<u8>,\n        \
@@ -109,7 +109,7 @@ impl NftType {
                     mint: &mut MintAuthority<{}>,\n        \
                     ctx: &mut TxContext,\n    \
                 ) {{\n        \
-                    collectibles::mint_regulated_nft_data(\n            \
+                    collectible::mint_regulated_nft_data(\n            \
                         name,\n            \
                         description,\n            \
                         url,\n            \

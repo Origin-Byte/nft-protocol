@@ -53,7 +53,7 @@ The top-level fields are defined as follows:
 
 | Field            | Type          | Description |
 | ---------------- | ------------- | ---------------- |
-| `NftType`        | `String`      | Acts as an Enum for all the NFT Types available in OriginByte (`Unique`, `Collectibles`, `CNft`) |
+| `NftType`        | `String`      | Acts as an Enum for all the NFT Types available in OriginByte (`Unique`, `Collectible`, `CNft`) |
 | `Collection`     | `Dictionary`  | List of fields defining the collection |
 | `Launchpad`      | `Dictionary`  | List of fields defining the launchpad |
 
