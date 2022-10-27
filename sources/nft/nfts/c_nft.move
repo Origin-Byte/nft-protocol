@@ -300,6 +300,8 @@ module nft_protocol::c_nft {
 
         let nft = nft::mint_nft_loose<T, Data>(
             nft_data_id(nft_data),
+            recipient,
+            nft_data.collection_id,
             ctx,
         );
 
@@ -360,6 +362,8 @@ module nft_protocol::c_nft {
 
         let nft = nft::mint_nft_loose<T, Data>(
             object::uid_to_inner(&combo_data.id),
+            recipient,
+            combo_data.collection_id,
             ctx,
         );
 
@@ -389,15 +393,15 @@ module nft_protocol::c_nft {
     /// objects when we merge them, therefore we maintain consistency.
     public entry fun split_c_nft<T, MetaColl: store, C: store + copy>(
         nft: Nft<T, Composable<C>>,
-        c_nft_data: &mut Composable<C>,
+        combo_data: &mut Composable<C>,
         nfts_data: vector<Composable<C>>,
         ctx: &mut TxContext,
     ) {
         // Assert that nft pointer corresponds to c_nft_data
         // If so, then burn pointer and mint pointer for each nfts_data
-        assert!(nft::data_id(&nft) == id(c_nft_data), err::nft_data_mismatch());
+        assert!(nft::data_id(&nft) == id(combo_data), err::nft_data_mismatch());
 
-        supply::decrement_supply(&mut c_nft_data.supply, 1);
+        supply::decrement_supply(&mut combo_data.supply, 1);
         nft::burn_loose_nft(nft);
 
         let len = vector::length(&nfts_data);
@@ -407,6 +411,8 @@ module nft_protocol::c_nft {
 
             let nft = nft::mint_nft_loose<T, Composable<C>>(
                 id(&data),
+                tx_context::sender(ctx),
+                combo_data.collection_id,
                 ctx,
             );
 

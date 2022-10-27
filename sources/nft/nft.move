@@ -54,6 +54,8 @@ module nft_protocol::nft {
     /// Create a loose `Nft` and returns it.
     public fun mint_nft_loose<T, D: store>(
         data_id: ID,
+        logical_owner: address,
+        collection: ID,
         ctx: &mut TxContext,
     ): Nft<T, D> {
         let nft_id = object::new(ctx);
@@ -67,6 +69,8 @@ module nft_protocol::nft {
 
         Nft {
             id: nft_id,
+            logical_owner,
+            collection,
             data_id: data_id,
             data: option::none(),
         }
@@ -75,6 +79,8 @@ module nft_protocol::nft {
     /// Create a embeded `Nft` and returns it.
     public fun mint_nft_embedded<T, D: store>(
         data_id: ID,
+        logical_owner: address,
+        collection: ID,
         data: D,
         ctx: &mut TxContext,
     ): Nft<T, D> {
@@ -89,6 +95,8 @@ module nft_protocol::nft {
 
         Nft {
             id: nft_id,
+            logical_owner,
+            collection,
             data_id: data_id,
             data: option::some(data),
         }
@@ -125,6 +133,8 @@ module nft_protocol::nft {
 
         let Nft {
             id,
+            logical_owner: _,
+            collection: _,
             data_id: _,
             data,
         } = nft;
@@ -148,6 +158,8 @@ module nft_protocol::nft {
 
         let Nft {
             id,
+            logical_owner: _,
+            collection: _,
             data_id: _,
             data,
         } = nft;
@@ -182,7 +194,8 @@ module nft_protocol::nft {
     }
 
     public fun transfer_to_owner<T, D: store>(nft: Nft<T, D>) {
-        transfer::transfer(nft, nft.logical_owner);
+        let logical_owner = nft.logical_owner;
+        transfer::transfer(nft, logical_owner);
     }
 
     public fun transfer_to_object<T, D: store, Target, W>(
