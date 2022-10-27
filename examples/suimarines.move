@@ -30,13 +30,13 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        let whitelisting = vector::empty();
-        vector::push_back(&mut whitelisting, true);
-        vector::push_back(&mut whitelisting, false);
+        let whitelist = vector::empty();
+        vector::push_back(&mut whitelist, true);
+        vector::push_back(&mut whitelist, false);
 
-        let pricing = vector::empty();
-        vector::push_back(&mut pricing, 1000);
-        vector::push_back(&mut pricing, 2000);
+        let prices = vector::empty();
+        vector::push_back(&mut prices, 1000);
+        vector::push_back(&mut prices, 2000);
 
         fixed_price::create_market(
             witness,
@@ -44,8 +44,7 @@ module nft_protocol::suimarines {
             collection_id,
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
             true, // is_embedded
-            whitelisting, // whitelist
-            pricing, // price
+            whitelist, prices,
             ctx,
         );
     }

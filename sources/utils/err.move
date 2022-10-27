@@ -103,4 +103,27 @@ module nft_protocol::err {
     public fun certificate_does_not_correspond_to_nft_given(): u64 {
         return Prefix + 208
     }
+
+    public fun sale_outlet_has_no_nfts_to_sell(): u64 {
+        return Prefix + 209
+    }
+
+    public fun market_parameters_length_mismatch(): u64 {
+        return Prefix + 210
+    }
+
+    // Auction
+
+    public fun order_does_not_exist(): u64 {
+        return Prefix + 301
+    }
+
+    public fun order_owner_must_be_sender(): u64 {
+        return Prefix + 302
+    }
+
+    public fun order_price_below_reserve(): u64 {
+        return Prefix + 303
+    }
+
 }

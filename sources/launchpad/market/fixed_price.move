@@ -54,12 +54,13 @@ module nft_protocol::fixed_price {
         prices: vector<u64>,
         ctx: &mut TxContext,
     ) {
-        let len = vector::length(&prices);
+        assert!(
+            vector::length(&whitelists) == vector::length(&prices),
+            err::market_parameters_length_mismatch()
+        );
+
         let sales = vector::empty();
-
-        let index = 0;
-
-        while (len > 0) {
+        while (!vector::is_empty(&whitelists)) {
             let price = vector::pop_back(&mut prices);
             let whitelist = vector::pop_back(&mut whitelists);
 
@@ -76,9 +77,6 @@ module nft_protocol::fixed_price {
             );
 
             vector::push_back(&mut sales, sale);
-
-            len = len - 1;
-            index = index + 1;
         };
 
         let args = slingshot::init_args(

@@ -87,10 +87,8 @@ impl Schema {
 
         let tags = self.write_tags();
 
-        let (prices, whitelists) = self.get_sale_outlets()?;
-
-        let define_whitelists = Schema::write_whitelists(whitelists)?;
-        let define_prices = Schema::write_prices(prices)?;
+        let define_market_arguments = self.write_define_market_arguments();
+        let market_arguments = self.write_market_arguments();
 
         let market_module_imports = if is_embedded {
             format!("::{{Self, {}}}", market_type)
@@ -107,9 +105,7 @@ impl Schema {
         .to_string()
         .into_boxed_str();
 
-        let mint_func = self
-            .nft_type
-            .mint_func(&witness, &self.launchpad.market_type.market_type());
+        let mint_func = self.nft_type.mint_func(&witness, &market_type);
 
         let mut vars = HashMap::new();
 
@@ -130,9 +126,9 @@ impl Schema {
         vars.insert("market_module_imports", &market_module_imports);
         vars.insert("slingshot_import", &slingshot_import);
         vars.insert("is_embedded", &is_embedded_str);
-        vars.insert("define_prices", &define_prices);
-        vars.insert("define_whitelists", &define_whitelists);
         vars.insert("mint_function", &mint_func);
+        vars.insert("define_market_arguments", &define_market_arguments);
+        vars.insert("market_arguments", &market_arguments);
 
         let vars: HashMap<String, String> = vars
             .into_iter()
@@ -165,85 +161,59 @@ impl Schema {
             .into_boxed_str()
     }
 
-    pub fn get_sale_outlets(
-        &self,
-    ) -> Result<(Vec<u64>, Vec<bool>), GutenError> {
-        match &self.launchpad.market_type {
-            MarketType::FixedPrice { prices, whitelists } => {
-                if prices.len() != whitelists.len() {
-                    return Err(GutenError::MismatchedOutletParams);
-                }
+    /// Associated function that generates Move code to declare and push market
+    /// specific data.
+    pub fn write_define_market_arguments(&self) -> Box<str> {
+        let mut out = String::new();
 
-                Ok((prices.clone(), whitelists.clone()))
+        match &self.launchpad.market_type {
+            MarketType::FixedPrice { whitelists, .. }
+            | MarketType::Auction { whitelists, .. } => {
+                out.write_str("let whitelist = vector::empty();\n").unwrap();
+                for w in whitelists {
+                    out.write_fmt(format_args!(
+                        "        vector::push_back(&mut whitelist, {w});\n"
+                    ))
+                    .unwrap();
+                }
             }
         }
+
+        match &self.launchpad.market_type {
+            MarketType::FixedPrice { prices, .. } => {
+                out.write_str("\n        let prices = vector::empty();\n")
+                    .unwrap();
+                for p in prices {
+                    out.write_fmt(format_args!(
+                        "        vector::push_back(&mut prices, {p});\n"
+                    ))
+                    .unwrap();
+                }
+            }
+            MarketType::Auction { reserve_prices, .. } => {
+                out.write_str(
+                    "\n        let reserve_prices = vector::empty();\n",
+                )
+                .unwrap();
+                for p in reserve_prices {
+                    out.write_fmt(format_args!(
+                        "        vector::push_back(&mut reserve_prices, {p});\n"
+                    ))
+                    .unwrap();
+                }
+            }
+        };
+
+        out.into_boxed_str()
     }
 
-    /// Associated function that generates Move code to declare and
-    /// push whitelisting values to a Move vector structure.
-    ///
-    /// It will write the following code if there is only one value in
-    /// the whitelist yaml array:
-    ///
-    ///`let whitelisting = <BOOL_VALUE>;`
-    ///
-    /// If there are multiple values it means its a launchpad sale
-    /// with multiple sales and therefore the function signature will
-    /// expect a vector instead, so it writes:
-    ///
-    /// ```text
-    /// let whitelisting = vector::empty();
-    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
-    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
-    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
-    /// vector::push_back(&mut whitelisting, <BOOL_VALUE>);
-    /// ...
-    /// ```
-    pub fn write_whitelists(
-        whitelists: Vec<bool>,
-    ) -> Result<Box<str>, GutenError> {
-        let mut loc = "let whitelisting = vector::empty();\n".to_string();
-
-        for w in whitelists {
-            loc.write_fmt(format_args!(
-                "        vector::push_back(&mut whitelisting, {w});\n"
-            ))
-            .unwrap();
+    /// Associated function that generates Move code to declare pass market
+    /// specific arguments to the `create_market` function.
+    pub fn write_market_arguments(&self) -> Box<str> {
+        match self.launchpad.market_type {
+            MarketType::FixedPrice { .. } => "whitelist, prices,",
+            MarketType::Auction { .. } => "whitelist, reserve_prices,",
         }
-
-        Ok(loc.into_boxed_str())
-    }
-
-    /// Associated funciton that generates Move code to declare and
-    /// push price values to a Move vector structure.
-    ///
-    /// It will write the following code if there is only one value in
-    /// the price yaml array:
-    ///
-    ///`let pricing = <U64_VALUE>;`
-    ///
-    /// If there are multiple values it means its a launchpad sale
-    /// with multiple sales and therefore the function signature will
-    /// expect a vector instead, so it writes:
-    ///
-    /// ```text
-    /// let pricing = vector::empty();
-    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
-    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
-    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
-    /// vector::push_back(&mut whitelisting, <U64_VALUE>);
-    /// ...
-    /// ```
-    pub fn write_prices(prices: Vec<u64>) -> Result<Box<str>, GutenError> {
-        let mut loc = "let pricing = vector::empty();\n".to_string();
-
-        for p in prices {
-            loc.write_fmt(format_args!(
-                "        vector::push_back(&mut pricing, {p});\n"
-            ))
-            .unwrap();
-        }
-
-        Ok(loc.into_boxed_str())
+        .into()
     }
 }
