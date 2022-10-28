@@ -326,6 +326,8 @@ module nft_protocol::unique_nft {
         );
     }
 
+    // Launchpad is an entrypoint to OriginByte ecosystem where `NFT` ownership
+    // is regulated by `Safe`.
     fun mint_to_launchpad<T, M: store>(
         args: MintArgs,
         collection_id: ID,
@@ -361,10 +363,7 @@ module nft_protocol::unique_nft {
 
         sale::add_nft<T, M>(sale, nft::id(&nft));
 
-        transfer::transfer_to_object(
-            nft,
-            launchpad,
-        );
+        slingshot::deposit(launchpad, nft);
     }
 
     fun burn_nft_<T>(

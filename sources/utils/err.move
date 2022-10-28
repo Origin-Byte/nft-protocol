@@ -36,6 +36,22 @@ module nft_protocol::err {
         return Prefix + 08
     }
 
+    public fun nft_already_exists(): u64 {
+        return Prefix + 09
+    }
+
+    public fun nft_doesnt_exist(): u64 {
+        return Prefix + 10
+    }
+
+    public fun incorrect_safe_disposition(): u64 {
+        return Prefix + 11
+    }
+
+    public fun not_owner_of_safe(): u64 {
+        return Prefix + 12
+    }
+
     // Supply
 
     public fun supply_policy_mismatch(): u64 {

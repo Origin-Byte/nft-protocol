@@ -16,8 +16,10 @@ module nft_protocol::slingshot {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::err;
     use nft_protocol::sale::{Self, Sale, NftCertificate};
+    use nft_protocol::safe::{Self, Safe};
+    use nft_protocol::transferability::{Self, EnforceNop, EnforceMintRoyalty};
 
-    struct Slingshot<phantom T, M> has key, store{
+    struct Slingshot<phantom T, M> has key, store {
         id: UID,
         /// The ID of the Collection object
         collection_id: ID,
@@ -34,6 +36,7 @@ module nft_protocol::slingshot {
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
+        safe: Safe<EnforceNop, EnforceMintRoyalty>,
     }
 
     struct InitSlingshot has drop {
@@ -70,6 +73,7 @@ module nft_protocol::slingshot {
             receiver: args.receiver,
             sales: sales,
             is_embedded: args.is_embedded,
+            safe: safe::new(ctx),
         };
 
         transfer::share_object(slingshot);
@@ -93,9 +97,12 @@ module nft_protocol::slingshot {
             receiver: _,
             sales,
             is_embedded: _,
+            safe,
         } = slingshot;
 
         object::delete(id);
+
+        // TODO: Destroy or transfer `Safe`
 
         sales
     }
@@ -113,6 +120,19 @@ module nft_protocol::slingshot {
             receiver,
             is_embedded
         }
+    }
+
+    public fun deposit<T, M, D: store>(
+        slingshot: &mut Slingshot<T, M>,
+        // TODO: Dont know what `T` is in `Nft`
+        nft: Nft<T, D>
+    ) {
+        // We do not enforce anything for the deposit operation so just use
+        // the no-op.
+        let enforce = transferability::new_nop();
+        safe::deposit(&mut slingshot.safe, &enforce, nft);
+        // EnforceNop is dropped automatically
+        // and the `NFT` will never be able to leave a `Safe` again
     }
 
     // === Entrypoints ===
