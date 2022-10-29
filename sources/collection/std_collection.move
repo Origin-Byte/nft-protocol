@@ -18,7 +18,7 @@ module nft_protocol::std_collection {
     use sui::tx_context::{TxContext};
     use sui::event;
 
-    use nft_protocol::collection::{Self, Collection, MintAuthority};
+    use nft_protocol::collection;
     use nft_protocol::utils::{to_string_vector};
 
     struct StdMeta has store {
@@ -122,32 +122,33 @@ module nft_protocol::std_collection {
 
     // === Entrypoints ===
 
-    /// Burn a Standard regulated Collection. Invokes `burn_regulated()`.
-    public entry fun burn_regulated<T>(
-        collection: Collection<T, StdMeta>,
-        mint: MintAuthority<T>,
-    ) {
+    // TODO: Requires fixing
+    // /// Burn a Standard regulated Collection. Invokes `burn_regulated()`.
+    // public entry fun burn_regulated<T>(
+    //     collection: Collection<T, StdMeta>,
+    //     mint: MintAuthority<T>,
+    // ) {
 
-        event::emit(
-            BurnEvent {
-                object_id: object::id(&collection),
-            }
-        );
+    //     event::emit(
+    //         BurnEvent {
+    //             object_id: object::id(&collection),
+    //         }
+    //     );
 
-        // Delete generic Collection object
-        let metadata = collection::burn_regulated(
-            collection,
-            mint,
-        );
+    //     // Delete generic Collection object
+    //     let metadata = collection::burn_regulated(
+    //         collection,
+    //         mint,
+    //     );
 
-        let StdMeta {
-            id,
-            json: _,
-        } = metadata;
+    //     let StdMeta {
+    //         id,
+    //         json: _,
+    //     } = metadata;
 
-        // Delete collection metadata
-        object::delete(id);
-    }
+    //     // Delete collection metadata
+    //     object::delete(id);
+    // }
 
     // === Getter Functions ===
 
