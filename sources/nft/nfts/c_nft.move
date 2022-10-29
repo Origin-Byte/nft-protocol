@@ -478,6 +478,22 @@ module nft_protocol::c_nft {
         &data.attributes
     }
 
+    /// Get the Nft Collectible's `attributes.keys`
+    public fun attribute_keys<C: store + copy>(
+        comp: &Composable<C>,
+    ): &vector<String> {
+        let data = option::borrow(&comp.data);
+        &data.attributes.keys
+    }
+
+    /// Get the Nft Collectible's `attributes.values`
+    public fun attribute_values<C: store + copy>(
+        comp: &Composable<C>,
+    ): &vector<String> {
+        let data = option::borrow(&comp.data);
+        &data.attributes.keys
+    }
+
     /// Get the Nft Data's `supply`
     public fun supply<C: store + copy>(
         nft_data: &Composable<C>,

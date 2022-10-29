@@ -284,6 +284,20 @@ module nft_protocol::unique_nft {
         &nft_data.attributes
     }
 
+    /// Get the Nft Collectible's `attributes.keys`
+    public fun attribute_keys(
+        nft_data: &Unique,
+    ): &vector<String> {
+        &nft_data.attributes.keys
+    }
+
+    /// Get the Nft Collectible's `attributes.values`
+    public fun attribute_values(
+        nft_data: &Unique,
+    ): &vector<String> {
+        &nft_data.attributes.values
+    }
+
     // === Private Functions ===
 
     fun nft_data_id(nft_data: &Unique): ID {
