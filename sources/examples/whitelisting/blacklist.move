@@ -7,12 +7,13 @@ module nft_protocol::blacklist {
     //! However, we require a witness type to give that reference.
     //! If that a witness type is banned, then we fail the tx.
 
-    use sui::tx_context::{Self, TxContext};
+    use nft_protocol::collection::Collection;
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use std::ascii::String;
+    use std::type_name;
     use sui::object::{Self, UID};
     use sui::transfer::{transfer, share_object};
-    use std::ascii::String;
-    use nft_protocol::transfer_whitelist::{Self, Whitelist};
-    use std::type_name;
+    use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
     struct Witness has drop {}
@@ -44,14 +45,16 @@ module nft_protocol::blacklist {
     /// Only the creator is allowed to insert their collection.
     ///
     /// However, any creator can insert their collection into simple whitelist.
-    public fun insert_collection<CW: drop>(
-        collection_witness: CW,
+    public entry fun insert_collection<T, M: store>(
+        collection: &Collection<T, M>,
         list: &mut Blacklist,
+        ctx: &mut TxContext,
     ) {
         transfer_whitelist::insert_collection(
             Witness {},
-            collection_witness,
+            collection,
             &mut list.inner,
+            ctx,
         );
     }
 

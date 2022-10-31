@@ -5,9 +5,10 @@ module nft_protocol::free_for_all {
     //! Basically any collection which adds itself to this whitelist is saying:
     //! we're ok with anyone transferring NFTs.
 
-    use sui::tx_context::TxContext;
-    use sui::transfer::share_object;
+    use nft_protocol::collection::Collection;
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use sui::transfer::share_object;
+    use sui::tx_context::TxContext;
 
     struct Witness has drop {}
 
@@ -18,14 +19,16 @@ module nft_protocol::free_for_all {
     /// Only the creator is allowed to insert their collection.
     ///
     /// However, any creator can insert their collection into simple whitelist.
-    public fun insert_collection<CW: drop>(
-        collection_witness: CW,
+    public fun insert_collection<T, M: store>(
+        collection: &Collection<T, M>,
         list: &mut Whitelist<Witness>,
+        ctx: &mut TxContext,
     ) {
         transfer_whitelist::insert_collection(
             Witness {},
-            collection_witness,
+            collection,
             list,
+            ctx,
         );
     }
 }

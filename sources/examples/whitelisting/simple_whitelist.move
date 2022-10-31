@@ -6,11 +6,12 @@ module nft_protocol::simple_whitelist {
     //! Only the owner of a whitelist can add/remove authorities (such as
     //! orderbook or auction contracts.)
 
-    use sui::tx_context::{Self, TxContext};
+    use nft_protocol::collection::Collection;
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use std::ascii::String;
     use sui::object::{Self, UID};
     use sui::transfer::{transfer, share_object};
-    use std::ascii::String;
-    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use sui::tx_context::{Self, TxContext};
 
     struct Witness has drop {}
 
@@ -29,14 +30,16 @@ module nft_protocol::simple_whitelist {
     /// Only the creator is allowed to insert their collection.
     ///
     /// However, any creator can insert their collection into simple whitelist.
-    public fun insert_collection<CW: drop>(
-        collection_witness: CW,
+    public entry fun insert_collection<T, M: store>(
+        collection: &Collection<T, M>,
         list: &mut Whitelist<Witness>,
+        ctx: &mut TxContext,
     ) {
         transfer_whitelist::insert_collection(
             Witness {},
-            collection_witness,
+            collection,
             list,
+            ctx,
         );
     }
 
