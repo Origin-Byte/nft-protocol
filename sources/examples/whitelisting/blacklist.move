@@ -4,8 +4,8 @@ module nft_protocol::blacklist {
     //! The whitelist is by default open to all. Therefore returning a mutable
     //! reference to it with `borrow_mut_inner` means anyone can call transfer.
     //!
-    //! However, we require a one time witness type to give that reference. And
-    //! if such witness is banned, then we fail the tx.
+    //! However, we require a witness type to give that reference.
+    //! If that a witness type is banned, then we fail the tx.
 
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID};
@@ -14,14 +14,13 @@ module nft_protocol::blacklist {
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use std::type_name;
     use sui::vec_set::{Self, VecSet};
-    use sui::types::is_one_time_witness;
 
-    struct BLACKLIST has drop {}
+    struct Witness has drop {}
 
     struct Blacklist has key {
         id: UID,
         banned_witnesses: VecSet<String>,
-        inner: Whitelist<BLACKLIST>,
+        inner: Whitelist<Witness>,
     }
 
     /// The owner of this single writer object is the admin of this blacklist
@@ -32,10 +31,11 @@ module nft_protocol::blacklist {
 
     /// Anyone can create their own blacklist.
     public entry fun create(ctx: &mut TxContext) {
+        let inner = transfer_whitelist::create(Witness {}, ctx);
         share_object(Blacklist {
             id: object::new(ctx),
             banned_witnesses: vec_set::empty(),
-            inner: transfer_whitelist::create(BLACKLIST {}, ctx),
+            inner,
         });
 
         transfer(OwnerCap { id: object::new(ctx) }, tx_context::sender(ctx));
@@ -49,7 +49,7 @@ module nft_protocol::blacklist {
         list: &mut Blacklist,
     ) {
         transfer_whitelist::insert_collection(
-            BLACKLIST {},
+            Witness {},
             collection_witness,
             &mut list.inner,
         );
@@ -58,11 +58,9 @@ module nft_protocol::blacklist {
     /// Anyone can use this list to authorize a transfer as long as they have
     /// an access to a witness that is not banned.
     public fun borrow_mut_inner<Admin: drop>(
-        authority_witness: Admin,
+        _authority_witness: Admin,
         list: &mut Blacklist,
-    ): &mut Whitelist<BLACKLIST> {
-        assert!(is_one_time_witness(&authority_witness), 0);
-
+    ): &mut Whitelist<Witness> {
         let is_banned = vec_set::contains(
             &list.banned_witnesses,
             &type_name::into_string(type_name::get<Admin>()),

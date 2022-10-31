@@ -12,7 +12,7 @@ module nft_protocol::simple_whitelist {
     use std::ascii::String;
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
 
-    struct SIMPLEWHITELIST has drop {}
+    struct Witness has drop {}
 
     /// The owner of this single writer object is the admin of this whitelisting
     /// organization.
@@ -22,7 +22,7 @@ module nft_protocol::simple_whitelist {
 
     /// Anyone can create their own simple whitelist.
     public entry fun create(ctx: &mut TxContext) {
-        share_object(transfer_whitelist::create(SIMPLEWHITELIST {}, ctx));
+        share_object(transfer_whitelist::create(Witness {}, ctx));
         transfer(OwnerCap { id: object::new(ctx) }, tx_context::sender(ctx));
     }
 
@@ -31,10 +31,10 @@ module nft_protocol::simple_whitelist {
     /// However, any creator can insert their collection into simple whitelist.
     public fun insert_collection<CW: drop>(
         collection_witness: CW,
-        list: &mut Whitelist<SIMPLEWHITELIST>,
+        list: &mut Whitelist<Witness>,
     ) {
         transfer_whitelist::insert_collection(
-            SIMPLEWHITELIST {},
+            Witness {},
             collection_witness,
             list,
         );
@@ -44,11 +44,11 @@ module nft_protocol::simple_whitelist {
     public entry fun insert_authority(
         authority_witness_type: String,
         _owner: &OwnerCap,
-        list: &mut Whitelist<SIMPLEWHITELIST>,
+        list: &mut Whitelist<Witness>,
         _ctx: &mut TxContext,
     ) {
         transfer_whitelist::insert_authority(
-            SIMPLEWHITELIST {},
+            Witness {},
             authority_witness_type,
             list,
         );
@@ -58,11 +58,11 @@ module nft_protocol::simple_whitelist {
     public entry fun remove_authority(
         authority_witness_type: String,
         _owner: &OwnerCap,
-        list: &mut Whitelist<SIMPLEWHITELIST>,
+        list: &mut Whitelist<Witness>,
         _ctx: &mut TxContext,
     ) {
         transfer_whitelist::remove_authority(
-            SIMPLEWHITELIST {},
+            Witness {},
             &authority_witness_type,
             list,
         );
