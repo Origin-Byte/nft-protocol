@@ -135,4 +135,8 @@ module nft_protocol::err {
     public fun authority_not_whitelisted(): u64 {
         return Prefix + 400
     }
+
+    public fun sender_not_collection_creator(): u64 {
+        return Prefix + 401
+    }
 }

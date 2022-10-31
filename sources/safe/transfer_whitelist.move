@@ -12,12 +12,14 @@ module nft_protocol::transfer_whitelist {
     //!     version of their witness type. The OB then uses this witness type
     //!     to authorize transfers.
 
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::err;
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
     use sui::object;
     use sui::object::UID;
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
     struct Whitelist<phantom Admin> has key, store {
@@ -51,12 +53,15 @@ module nft_protocol::transfer_whitelist {
     /// collection to the whitelist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the whitelist owner a way to combat spam.
-    public fun insert_collection<Admin: drop, CW: drop>(
+    public fun insert_collection<Admin: drop, T, M: store>(
         _whitelist_witness: Admin,
-        _collection_witness: CW,
+        collection: &Collection<T, M>,
         list: &mut Whitelist<Admin>,
+        ctx: &mut TxContext,
     ) {
-        vec_set::insert(&mut list.collections, type_into_string<CW>());
+        assert_is_creator(collection, ctx);
+
+        vec_set::insert(&mut list.collections, type_into_string<T>());
     }
 
     /// Any collection is allowed to remove itself from any whitelist at any
@@ -64,11 +69,14 @@ module nft_protocol::transfer_whitelist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public fun remove_itself<Admin, CW: drop>(
-        _collection_witness: CW,
+    public fun remove_itself<Admin, T, M: store>(
+        collection: &Collection<T, M>,
         list: &mut Whitelist<Admin>,
+        ctx: &mut TxContext,
     ) {
-        vec_set::remove(&mut list.collections, &type_into_string<CW>());
+        assert_is_creator(collection, ctx);
+
+        vec_set::remove(&mut list.collections, &type_into_string<T>());
     }
 
     /// The whitelist owner can remove any collection at any point.
@@ -130,5 +138,18 @@ module nft_protocol::transfer_whitelist {
 
     fun type_into_string<T>(): String {
         type_name::into_string(type_name::get<T>())
+    }
+
+    fun assert_is_creator<T, M: store>(
+        collection: &Collection<T, M>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(
+            collection::is_creator(
+                tx_context::sender(ctx),
+                collection::creators(collection),
+            ),
+            err::sender_not_collection_creator(),
+        );
     }
 }
