@@ -5,12 +5,14 @@ module nft_protocol::safe {
     use sui::object;
     use sui::transfer::{share_object, transfer};
     use nft_protocol::err;
-    use nft_protocol::nft::Nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_whitelist::Whitelist;
+    use sui::object_bag::{Self, ObjectBag};
 
     struct Safe has key {
         id: UID,
-        nfts: VecMap<ID, NftRef>,
+        refs: VecMap<ID, NftRef>,
+        nfts: ObjectBag,
     }
 
     /// Keeps info about an NFT which enables us to issue transfer caps etc.
@@ -83,7 +85,8 @@ module nft_protocol::safe {
         assert_owner_cap(owner_cap, safe);
         assert_contains_nft(&nft, safe);
 
-        let rc = vec_map::get_mut(&mut safe.nfts, &nft);
+        let safe_id = object::id(safe);
+        let rc = vec_map::get_mut(&mut safe.refs, &nft);
         assert_not_exlusively_listed(rc);
         rc.transfer_cap_counter = rc.transfer_cap_counter + 1;
         if (rc.transfer_cap_counter == 1) {
@@ -94,7 +97,7 @@ module nft_protocol::safe {
             id: object::new(ctx),
             is_exlusive: false,
             nft: nft,
-            safe: object::id(safe),
+            safe: safe_id,
             version: rc.version,
         }
     }
@@ -111,7 +114,8 @@ module nft_protocol::safe {
         assert_owner_cap(owner_cap, safe);
         assert_contains_nft(&nft, safe);
 
-        let rc = vec_map::get_mut(&mut safe.nfts, &nft);
+        let safe_id = object::id(safe);
+        let rc = vec_map::get_mut(&mut safe.refs, &nft);
         assert_not_exlusively_listed(rc);
 
         rc.transfer_cap_counter = 1;
@@ -121,7 +125,7 @@ module nft_protocol::safe {
             id: object::new(ctx),
             is_exlusive: true,
             nft: nft,
-            safe: object::id(safe),
+            safe: safe_id,
             version: rc.version,
         }
     }
@@ -135,28 +139,33 @@ module nft_protocol::safe {
     ) {
         assert_deposit_cap(deposit_cap, safe);
 
-        vec_map::insert(&mut safe.nfts, object::id(&nft), NftRef {
+        let nft_id = object::id(&nft);
+
+        vec_map::insert(&mut safe.refs, nft_id, NftRef {
             version: new_id(ctx),
             transfer_cap_counter: 0,
             is_exlusively_listed: false,
         });
 
-        // TODO: transfer nft as a child obj
-        abort(0)
+        object_bag::add(&mut safe.nfts, nft_id, nft);
     }
 
     /// Remove an NFT from the `Safe` and give it back to the logical owner.
-    public fun withdraw_nft<T>(
-        nft: ID,
+    public fun withdraw_nft<T, D: store>(
+        nft_id: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
     ) {
         assert_owner_cap(owner_cap, safe);
-        assert_contains_nft(&nft, safe);
+        assert_contains_nft(&nft_id, safe);
 
-        // TODO: get NFT
-        // TODO: move from safe to logical owner
-        abort(0)
+        let (_, ref) = vec_map::remove(&mut safe.refs, &nft_id);
+        // an exlusively listed NFT must first have its transfer cap burned
+        // via fun burn_transfer_cap
+        assert_not_exlusively_listed(&ref);
+
+        let nft = object_bag::remove<ID, Nft<T, D>>(&mut safe.nfts, nft_id);
+        nft::transfer_to_owner(nft);
     }
 
     /// Use a transfer cap to get an NFT out of the `Safe`.
@@ -164,19 +173,32 @@ module nft_protocol::safe {
     /// If the NFT is not exlusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft<T, W>(
-        nft: ID,
+    public fun transfer_nft<T, D: store, W>(
+        nft_id: ID,
         transfer_cap: TransferCap,
         recipient: address,
+        authority: &UID,
         whitelist: &Whitelist<W>,
         safe: &mut Safe,
     ) {
-        assert_transfer_cap(&transfer_cap, safe);
-        assert_contains_nft(&nft, safe);
+        assert_transfer_cap_of_safe(&transfer_cap, safe);
+        assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
+        assert_contains_nft(&nft_id, safe);
 
-        // TODO: get NFT
-        // TODO: move from safe to new owner
-        abort(0)
+        let (_, ref) = vec_map::remove(&mut safe.refs, &nft_id);
+        assert_version_match(&ref, &transfer_cap);
+
+        let TransferCap {
+            id,
+            safe: _,
+            nft: _,
+            version: _,
+            is_exlusive: _,
+        } = transfer_cap;
+        object::delete(id);
+
+        let nft = object_bag::remove<ID, Nft<T, D>>(&mut safe.nfts, nft_id);
+        nft::transfer(nft, recipient, authority, whitelist);
     }
 
     /// Destroys given transfer cap. This is mainly useful for exlusively listed
@@ -185,7 +207,7 @@ module nft_protocol::safe {
         transfer_cap: TransferCap,
         safe: &mut Safe,
     ) {
-        assert_transfer_cap(&transfer_cap, safe);
+        assert_transfer_cap_of_safe(&transfer_cap, safe);
 
         let TransferCap {
             id,
@@ -196,7 +218,7 @@ module nft_protocol::safe {
         } = transfer_cap;
         object::delete(id);
 
-        let rc = vec_map::get_mut(&mut safe.nfts, &nft);
+        let rc = vec_map::get_mut(&mut safe.refs, &nft);
         if (rc.version == version) {
             rc.transfer_cap_counter = rc.transfer_cap_counter - 1;
             if (rc.transfer_cap_counter == 0) {
@@ -205,6 +227,9 @@ module nft_protocol::safe {
         }
     }
 
+    /// Changes the transfer ref version, thereby invalidating all existing
+    /// `TransferCap` objects.
+    ///
     /// Can happen only if the NFT is not listed exlusively.
     public fun delist_nft(
         nft: &ID,
@@ -215,7 +240,7 @@ module nft_protocol::safe {
         assert_owner_cap(owner_cap, safe);
         assert_contains_nft(nft, safe);
 
-        let rc = vec_map::get_mut(&mut safe.nfts, nft);
+        let rc = vec_map::get_mut(&mut safe.refs, nft);
         assert_not_exlusively_listed(rc);
 
         rc.version = new_id(ctx);
@@ -225,7 +250,8 @@ module nft_protocol::safe {
     fun create_safe_(ctx: &mut TxContext): OwnerCap {
         let safe = Safe {
             id: object::new(ctx),
-            nfts: vec_map::empty(),
+            refs: vec_map::empty(),
+            nfts: object_bag::new(ctx),
         };
         let cap = OwnerCap {
             id: object::new(ctx),
@@ -277,17 +303,25 @@ module nft_protocol::safe {
         assert!(cap.safe == object::id(safe), err::safe_cap_mismatch());
     }
 
-    public fun assert_transfer_cap(cap: &TransferCap, safe: &Safe) {
+    public fun assert_transfer_cap_of_safe(cap: &TransferCap, safe: &Safe) {
         assert!(cap.safe == object::id(safe), err::safe_cap_mismatch());
+    }
+
+    public fun assert_nft_of_transfer_cap(nft: &ID, cap: &TransferCap) {
+        assert!(&cap.nft == nft, err::transfer_cap_nft_mismatch());
     }
 
     public fun assert_contains_nft(nft: &ID, safe: &Safe) {
         assert!(
-            vec_map::contains(&safe.nfts, nft), err::safe_does_not_contain_nft()
+            vec_map::contains(&safe.refs, nft), err::safe_does_not_contain_nft()
         );
     }
 
     public fun assert_not_exlusively_listed(rc: &NftRef) {
         assert!(!rc.is_exlusively_listed, err::nft_exlusively_listed());
+    }
+
+    public fun assert_version_match(rc: &NftRef, cap: &TransferCap) {
+        assert!(rc.version == cap.version, err::transfer_cap_expired());
     }
 }

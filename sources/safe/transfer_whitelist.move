@@ -62,7 +62,7 @@ module nft_protocol::transfer_whitelist {
         list: &mut Whitelist<W>,
     ) {
         if (option::is_none(&list.authorities)) {
-            list.authorities = option::some(vec_set::singleton(entity));
+            list.authorities = option::some(vec_set::singleton(*entity));
         } else {
             vec_set::insert(
                 option::borrow_mut(&mut list.authorities),

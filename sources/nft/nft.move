@@ -33,7 +33,7 @@ module nft_protocol::nft {
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
 
     // NFT object with an option to hold `D`ata object
-    struct Nft<phantom T, D: store> has key {
+    struct Nft<phantom T, D: store> has key, store {
         id: UID,
         logical_owner: address,
         collection: ID,
@@ -200,7 +200,7 @@ module nft_protocol::nft {
 
     public fun transfer_to_object<T, D: store, Target, W>(
         nft: Nft<T, D>,
-        target: &mut Target,
+        _target: &mut Target,
         authority: &UID,
         whitelist: &Whitelist<W>,
     ) {
@@ -211,13 +211,13 @@ module nft_protocol::nft {
         );
         assert!(is_ok, err::authority_not_whitelisted());
 
-        // TODO: move to given target
-        abort(0);
+        // TODO: https://github.com/MystenLabs/sui/issues/5584
+        abort(0)
     }
 
     public fun priviledged_transfer_to_object<T, D: store, Target>(
         nft: Nft<T, D>,
-        target: &mut Target,
+        _target: &mut Target,
         ctx: &mut TxContext,
     ) {
         assert!(
@@ -225,8 +225,8 @@ module nft_protocol::nft {
             err::not_nft_owner(),
         );
 
-        // TODO: move to given target
-        abort(0);
+        // TODO: https://github.com/MystenLabs/sui/issues/5584
+        abort(0)
     }
 
     // === Getter Functions  ===

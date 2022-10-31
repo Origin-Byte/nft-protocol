@@ -171,6 +171,8 @@ module nft_protocol::social_profile {
 
         let nft = nft::mint_nft_embedded<T, SocialProfile>(
             nft_data_id(&nft_data),
+            recipient,
+            nft_data_id(&nft_data), // TODO: what is the collection id here?
             nft_data,
             ctx
         );

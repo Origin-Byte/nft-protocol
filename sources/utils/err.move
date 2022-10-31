@@ -122,6 +122,14 @@ module nft_protocol::err {
         return Prefix + 302
     }
 
+    public fun transfer_cap_nft_mismatch(): u64 {
+        return Prefix + 303
+    }
+
+    public fun transfer_cap_expired(): u64 {
+        return Prefix + 304
+    }
+
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
