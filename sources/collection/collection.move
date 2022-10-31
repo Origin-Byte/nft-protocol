@@ -537,8 +537,8 @@ module nft_protocol::collection {
     /// Get the Collections's `tags`
     public fun tags<T, M: store>(
         collection: &Collection<T, M>,
-    ): Tags {
-        collection.tags
+    ): &Tags {
+        &collection.tags
     }
 
     /// Get the Collection's `is_mutable`
@@ -558,8 +558,8 @@ module nft_protocol::collection {
     /// Get the Collection's `creators`
     public fun creators<T, M: store>(
         collection: &Collection<T, M>,
-    ): vector<Creator> {
-        collection.creators
+    ): &vector<Creator> {
+        &collection.creators
     }
 
     /// Get an immutable reference to Collections's `cap`
@@ -600,6 +600,24 @@ module nft_protocol::collection {
         mint: &MintAuthority<T>,
     ): ID {
         mint.collection_id
+    }
+
+    // === Utility Function ===
+
+    public fun is_creator(
+        who: address,
+        creators: &vector<Creator>,
+    ): bool {
+        let i = 0;
+        while (i < vector::length(creators)) {
+            let creator = vector::borrow(creators, i);
+            if (creator.creator_address == who) {
+                return true
+            };
+            i = i + 1;
+        };
+
+        false
     }
 
     // === Private Functions ===
