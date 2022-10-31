@@ -2,7 +2,7 @@ module nft_protocol::transfer_whitelist {
     //! Whitelists NFT transfers.
     //!
     //! Three generics at play:
-    //! 1. WW (whitelist witness) enables any organization to start their own
+    //! 1. Admin (whitelist witness) enables any organization to start their own
     //!     whitelist and manage it according to their own rules;
     //! 2. CW (collection witness) enpowers creators to add or remove their
     //!     collections to whitelists;
@@ -12,13 +12,15 @@ module nft_protocol::transfer_whitelist {
     //!     version of their witness type. The OB then uses this witness type
     //!     to authorize transfers.
 
+    use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
-    use sui::vec_set::{Self, VecSet};
+    use sui::object;
     use sui::object::UID;
-    use std::ascii::String;
+    use sui::tx_context::TxContext;
+    use sui::vec_set::{Self, VecSet};
 
-    struct Whitelist<phantom W> has key {
+    struct Whitelist<phantom Admin> has key, store {
         id: UID,
         /// Which collections does this whitelist apply to?
         ///
@@ -31,6 +33,17 @@ module nft_protocol::transfer_whitelist {
         authorities: Option<VecSet<String>>,
     }
 
+    public fun create<Admin: drop>(
+        _witness: Admin,
+        ctx: &mut TxContext
+    ): Whitelist<Admin> {
+        Whitelist {
+            id: object::new(ctx),
+            collections: vec_set::empty(),
+            authorities: option::none(),
+        }
+    }
+
     /// To add a collection to the list, we need a confirmation by both the
     /// whitelist authority and the collection creator via witness pattern.
     ///
@@ -38,10 +51,10 @@ module nft_protocol::transfer_whitelist {
     /// collection to the whitelist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the whitelist owner a way to combat spam.
-    public fun insert_collection<WW: drop, CW: drop>(
-        _whitelist_witness: WW,
+    public fun insert_collection<Admin: drop, CW: drop>(
+        _whitelist_witness: Admin,
         _collection_witness: CW,
-        list: &mut Whitelist<WW>,
+        list: &mut Whitelist<Admin>,
     ) {
         vec_set::insert(&mut list.collections, type_into_string<CW>());
     }
@@ -51,28 +64,28 @@ module nft_protocol::transfer_whitelist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public fun remove_itself<WW, CW: drop>(
+    public fun remove_itself<Admin, CW: drop>(
         _collection_witness: CW,
-        list: &mut Whitelist<WW>,
+        list: &mut Whitelist<Admin>,
     ) {
         vec_set::remove(&mut list.collections, &type_into_string<CW>());
     }
 
     /// The whitelist owner can remove any collection at any point.
-    public fun remove_collection<WW: drop>(
-        _whitelist_witness: WW,
+    public fun remove_collection<Admin: drop>(
+        _whitelist_witness: Admin,
         collection_witness_type: &String,
-        list: &mut Whitelist<WW>,
+        list: &mut Whitelist<Admin>,
     ) {
         vec_set::remove(&mut list.collections, collection_witness_type);
     }
 
     /// To insert a new authority into a list we need confirmation by the
     /// whitelist authority (via witness.)
-    public fun insert_authority<WW: drop>(
-        _whitelist_witness: WW,
+    public fun insert_authority<Admin: drop>(
+        _whitelist_witness: Admin,
         authority_witness_type: String,
-        list: &mut Whitelist<WW>,
+        list: &mut Whitelist<Admin>,
     ) {
         if (option::is_none(&list.authorities)) {
             list.authorities = option::some(
@@ -88,10 +101,10 @@ module nft_protocol::transfer_whitelist {
 
     /// The whitelist authority (via witness) can at any point remove any
     /// authority from their list.
-    public fun remove_authority<WW: drop>(
-        _whitelist_witness: WW,
+    public fun remove_authority<Admin: drop>(
+        _whitelist_witness: Admin,
         authority_witness_type: &String,
-        list: &mut Whitelist<WW>,
+        list: &mut Whitelist<Admin>,
     ) {
         vec_set::remove(
             option::borrow_mut(&mut list.authorities),
@@ -101,9 +114,9 @@ module nft_protocol::transfer_whitelist {
 
     /// Checks whether given authority witness is in the whitelist, and also
     /// whether given collection witness (CW) is in the whitelist.
-    public fun can_be_transferred<WW, CW, Auth: drop>(
+    public fun can_be_transferred<Admin, CW, Auth: drop>(
         _authority_witness: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist<Admin>,
     ): bool {
         if (option::is_none(&whitelist.authorities)) {
             return true
