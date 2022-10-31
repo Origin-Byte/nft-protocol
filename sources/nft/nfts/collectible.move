@@ -347,6 +347,20 @@ module nft_protocol::collectible {
         &nft_data.attributes
     }
 
+    /// Get the Nft Collectible's `attributes.keys`
+    public fun attribute_keys(
+        nft_data: &Collectible,
+    ): &vector<String> {
+        &nft_data.attributes.keys
+    }
+
+    /// Get the Nft Collectible's `attributes.values`
+    public fun attribute_values(
+        nft_data: &Collectible,
+    ): &vector<String> {
+        &nft_data.attributes.values
+    }
+
     /// Get the Nft Collectible's `supply` as reference
     public fun supply(
         nft_data: &Collectible,

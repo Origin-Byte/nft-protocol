@@ -189,56 +189,56 @@ module nft_protocol::collection {
         }
     }
 
+    // TODO: Requires fixing
+    // /// Burn a Collection with regulated supply object and
+    // /// returns the Metadata object
+    // public entry fun burn_regulated<T, M: store>(
+    //     collection: Collection<T, M>,
+    //     mint: MintAuthority<T>,
+    // ): M {
+    //     assert!(
+    //         supply::current(supply_policy::supply(&mint.supply_policy)) == 0,
+    //         err::supply_is_not_zero()
+    //     );
 
-    /// Burn a Collection with regulated supply object and
-    /// returns the Metadata object
-    public fun burn_regulated<T, M: store>(
-        collection: Collection<T, M>,
-        mint: MintAuthority<T>,
-    ): M {
-        assert!(
-            supply::current(supply_policy::supply(&mint.supply_policy)) == 0,
-            err::supply_is_not_zero()
-        );
+    //     let MintAuthority {
+    //         id,
+    //         collection_id: _,
+    //         supply_policy,
+    //     } = mint;
 
-        let MintAuthority {
-            id,
-            collection_id: _,
-            supply_policy,
-        } = mint;
+    //     object::delete(id);
 
-        object::delete(id);
+    //     event::emit(
+    //         BurnEvent {
+    //             collection_id: id(&collection),
+    //         }
+    //     );
 
-        event::emit(
-            BurnEvent {
-                collection_id: id(&collection),
-            }
-        );
+    //     let Collection {
+    //         id,
+    //         name: _,
+    //         description: _,
+    //         symbol: _,
+    //         receiver: _,
+    //         tags: _,
+    //         is_mutable: _,
+    //         royalty_fee_bps: _,
+    //         creators: _,
+    //         mint_authority: _,
+    //         metadata,
+    //     } = collection;
 
-        let Collection {
-            id,
-            name: _,
-            description: _,
-            symbol: _,
-            receiver: _,
-            tags: _,
-            is_mutable: _,
-            royalty_fee_bps: _,
-            creators: _,
-            mint_authority: _,
-            metadata,
-        } = collection;
+    //     supply_policy::destroy_regulated(supply_policy);
 
-        supply_policy::destroy_regulated(supply_policy);
+    //     object::delete(id);
 
-        object::delete(id);
-
-        metadata
-    }
+    //     metadata
+    // }
 
     /// Make Collections immutable
     /// WARNING: this is irreversible, use with care
-    public fun freeze_collection<T, M: store>(
+    public entry fun freeze_collection<T, M: store>(
         collection: &mut Collection<T, M>,
     ) {
         // Only modify if collection is mutable

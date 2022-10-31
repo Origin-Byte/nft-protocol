@@ -66,16 +66,13 @@ To mint a loose NFT, modules will first create the data object on-chain and then
 In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs of a given NFT Collection have their own type `T` which is expressed as:
 
 - `Nft<T, D>`
-- `Collection<T, M, C>`
+- `Collection<T, M>`
 
 Where the following generics represent:
 
 - `T` NFT type export that types the `Nft` and `Collection` object
 - `D` a generic for the NFT `Data` object type
 - `M` a generic for the Collection `Metadta` object type
-- `C` a generic for the Collection `Cap` object type
-
-Note: We are considering simplifying the Collection type by removing the generic `C`.
 
 ### A 3-layered approach
 
@@ -114,7 +111,7 @@ When minting an NFT, you need to pass on a mutable reference to the Collection o
 
 ### Collection
 
-The collection object, `Collection<phantom T, M: store, C: store>`, has the following data model:
+The collection object, `Collection<phantom T, M: store>`, has the following data model:
 
 | Field            | Type          | Description |
 | ---------------- | ------------- | ----------- |
@@ -128,7 +125,6 @@ The collection object, `Collection<phantom T, M: store, C: store>`, has the foll
 | `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs * |
 | `creators`        | `vector<Creator>` | A vector containing the information of the creators |
 | `metadata`       | `M`        | A generic type representing the metadata object embedded in the NFT collection |
-| `cap` | `C`         | A generic type refering to the Supply Policy of the collection |
 
 - `royalty_fee_bps` is currently not being utilized but will be used in the standard launchpad module.
 
@@ -140,16 +136,13 @@ Where `Creators` is a struct with the following fields:
 - `verified` which is a bool value that represents if the creator address has been verified via signed transaction (this functionality is still not implemented)
 - `share_of_royalty` as the percentage share that the creator has over `royalty_fee_bps`.
 
-The collection object has the following functions that mutate state:
 
-- `mint_capped` which mints a collection object with capped supply and returns it
-- `mint_uncapped` which mints a collection object with unlimited supply and returns it
-- `increase_supply` which increments `current_supply` by one
-- `decrease_supply` which decreases `current_supply` by one
-- `burn` which burns the collection object if `current_supply` is zero
+The function associated to the intial creation of the Collection is meant to be called by the standard collection `std_collection` contract:
 
-and the following modifier functions:
+- `mint` which mints a collection object, with or without regulated supply, mints a `MintAuthority` object and transfers it to the `recipient`, and returns the collection object. The `MintAuthority` object is meant to be owned by the creators and gives them the power to either minting the NFTs (embeeded) or mint the associated data objects (loose).
 
+The contract also exposes the following entry function to be called by the client code:
+- `burn_regulated` to delete a collection provided that the current supply is zero
 - `freeze_collection` (irreversible)
 - `rename`
 - `change_description`
@@ -160,9 +153,24 @@ and the following modifier functions:
 - `change_royalty` changes the field `royalty_fee_bps`
 - `add_creator` pushes a `Creator` to the `creators` field
 - `remove_creator` pops a `Creator` from the `creators` field
-- `cap_supply`: `Limited` collections can have a cap on the maximum supply, however the supply cap can also be `option::none()`. This function call adds a value to the supply cap.
-- `increase_supply_cap`
-- decrease_supply_cap
+- `ceil_supply`: Regulated collections can have a cap on the maximum supply. This function call adds a value to the maximum supply.
+- `increase_max_supply`
+- `decrease_max_supply`
+
+#### Mint Authority
+
+As mentioned previously, the collection module also defines an object called `MintAuthority` This object gives power to the owner to mint objects for that collection. It has the following fields:
+
+- `id`
+- `collection_id`
+- `supply_policy`
+  - `regulated` (i.e true or false)
+  - `supply`
+    - `frozen` (i.e. true or false)
+    - `max`
+    - `current`
+
+The supply policy of a collection, defined by its corresponding Mint Authority object, can either be regulated or unregulated. A regulated supply means that every time an object is minted, a counter will be incremented and the `supply.current` will be increased. This essentially means that regulated supplies keep track of their supply on-chain, and therefore during the minting process nodes will have to operate a lock on the `MintAuthority` object during parallel mint transactions. Unregulated supplies on the other hand do not keep on-chain track of their current supply and therefore nodes will not require to operate a lock on the `MintAuthority` object and hence mint transactions can be fully independent from each other.
 
 ### Standard Collection Metadata
 
@@ -173,11 +181,13 @@ The standard collection metadata object, `StdMeta`, has the following data model
 | `id`   | `UID`    | The UID of the standard collection metadata object |
 | `json` | `String` | An open string field to add any arbitrary data     |
 
-The collection metadata object has the following functions that mutate state:
+The functions associated to the intial creation of the Collection on-chain is meant to be called by the contract deployed by the creators:
 
-- `mint_and_transfer` mints a collection object, it's corresponding metadata object, and transfers it to a recipient
-- `mint_and_share` mints a collection object, it's corresponding metadata object, and makes it a shared object
-- `burn_limited_collection` which burns the limited collection object and subsequently the metadata object if the NFT supply is zero.
+- `mint` mints a collection object, it's corresponding metadata object, and makes it a shared object
+
+The following entry functions can be called directly by the client code:
+
+- `burn_regulated` which burns a regulated collection object and subsequently the metadata object if the NFT supply is zero. It can only be called by the `MintAuthority` owner
 
 ### NFT (Base type)
 
