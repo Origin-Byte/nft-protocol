@@ -1,4 +1,17 @@
 module nft_protocol::transfer_whitelist {
+    //! Whitelists NFT transfers.
+    //!
+    //! Three generics at play:
+    //! 1. WW (whitelist witness) enables any organization to start their own
+    //!     whitelist and manage it according to their own rules;
+    //! 2. CW (collection witness) enpowers creators to add or remove their
+    //!     collections to whitelists;
+    //! 3. Auth (3rd party witness) is used to authorize contracts via their
+    //!     witness types. If e.g. an orderbook trading contract wants to be
+    //!     included in a whitelist, the whitelist admin adds the stringified
+    //!     version of their witness type. The OB then uses this witness type
+    //!     to authorize transfers.
+
     use std::option::{Self, Option};
     use std::type_name;
     use sui::vec_set::{Self, VecSet};
@@ -19,7 +32,7 @@ module nft_protocol::transfer_whitelist {
     }
 
     /// To add a collection to the list, we need a confirmation by both the
-    /// whitelist authority (via witness) and the collection creator (via &UID.)
+    /// whitelist authority and the collection creator via witness pattern.
     ///
     /// If the whitelist authority wants to enable any creator to add their
     /// collection to the whitelist, they can reexport this function in their
@@ -54,8 +67,8 @@ module nft_protocol::transfer_whitelist {
         vec_set::remove(&mut list.collections, collection_witness_type);
     }
 
-    /// To insert a new authority into a list we need confirmation by the whitelist
-    /// authority (via witness.)
+    /// To insert a new authority into a list we need confirmation by the
+    /// whitelist authority (via witness.)
     public fun insert_authority<WW: drop>(
         _whitelist_witness: WW,
         authority_witness_type: String,
@@ -86,6 +99,8 @@ module nft_protocol::transfer_whitelist {
         );
     }
 
+    /// Checks whether given authority witness is in the whitelist, and also
+    /// whether given collection witness (CW) is in the whitelist.
     public fun can_be_transferred<WW, CW, Auth: drop>(
         _authority_witness: Auth,
         whitelist: &Whitelist<WW>,
