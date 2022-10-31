@@ -321,7 +321,6 @@ module nft_protocol::unique_nft {
         let nft = nft::mint_nft_embedded<T, Unique>(
             nft_data_id(&nft_data),
             recipient,
-            collection_id,
             nft_data,
             ctx
         );

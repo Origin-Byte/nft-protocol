@@ -146,7 +146,6 @@ module nft_protocol::slingshot {
         let nft = nft::mint_nft_loose<T, D>(
             object::id(&nft_data),
             recipient,
-            sale::collection_id(&certificate),
             ctx,
         );
 
@@ -189,7 +188,6 @@ module nft_protocol::slingshot {
         let nft = nft::mint_nft_loose<T, D>(
             object::id(nft_data),
             recipient,
-            sale::collection_id(&certificate),
             ctx,
         );
 

@@ -165,7 +165,6 @@ module nft_protocol::collectible {
         let nft = nft::mint_nft_loose<T, Collectible>(
             nft_data_id(nft_data),
             recipient,
-            nft_data.collection_id,
             ctx,
         );
 

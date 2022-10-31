@@ -173,12 +173,12 @@ module nft_protocol::safe {
     /// If the NFT is not exlusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft<T, D: store, W>(
+    public fun transfer_nft<T, D: store, WW, Auth: drop>(
         nft_id: ID,
         transfer_cap: TransferCap,
         recipient: address,
-        authority: &UID,
-        whitelist: &Whitelist<W>,
+        authority: Auth,
+        whitelist: &Whitelist<WW>,
         safe: &mut Safe,
     ) {
         assert_transfer_cap_of_safe(&transfer_cap, safe);

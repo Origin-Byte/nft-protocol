@@ -26,7 +26,7 @@ module nft_protocol::nft {
 
     use sui::event;
     use sui::object::{Self, UID, ID};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
     use sui::transfer;
 
     use nft_protocol::err;
@@ -36,7 +36,6 @@ module nft_protocol::nft {
     struct Nft<phantom T, D: store> has key, store {
         id: UID,
         logical_owner: address,
-        collection: ID,
         data_id: ID,
         data: Option<D>,
     }
@@ -55,7 +54,6 @@ module nft_protocol::nft {
     public fun mint_nft_loose<T, D: store>(
         data_id: ID,
         logical_owner: address,
-        collection: ID,
         ctx: &mut TxContext,
     ): Nft<T, D> {
         let nft_id = object::new(ctx);
@@ -70,7 +68,6 @@ module nft_protocol::nft {
         Nft {
             id: nft_id,
             logical_owner,
-            collection,
             data_id: data_id,
             data: option::none(),
         }
@@ -80,7 +77,6 @@ module nft_protocol::nft {
     public fun mint_nft_embedded<T, D: store>(
         data_id: ID,
         logical_owner: address,
-        collection: ID,
         data: D,
         ctx: &mut TxContext,
     ): Nft<T, D> {
@@ -96,7 +92,6 @@ module nft_protocol::nft {
         Nft {
             id: nft_id,
             logical_owner,
-            collection,
             data_id: data_id,
             data: option::some(data),
         }
@@ -134,7 +129,6 @@ module nft_protocol::nft {
         let Nft {
             id,
             logical_owner: _,
-            collection: _,
             data_id: _,
             data,
         } = nft;
@@ -159,7 +153,6 @@ module nft_protocol::nft {
         let Nft {
             id,
             logical_owner: _,
-            collection: _,
             data_id: _,
             data,
         } = nft;
@@ -177,15 +170,14 @@ module nft_protocol::nft {
 
     // === Transfer Functions ===
 
-    public fun transfer<T, D: store, W>(
+    public fun transfer<T, D: store, WW, Auth: drop>(
         nft: Nft<T, D>,
         target: address,
-        authority: &UID,
-        whitelist: &Whitelist<W>,
+        authority: Auth,
+        whitelist: &Whitelist<WW>,
     ) {
-        let is_ok = transfer_whitelist::can_be_transferred(
-            &nft.collection,
-            object::uid_as_inner(authority),
+        let is_ok = transfer_whitelist::can_be_transferred<WW, T, Auth>(
+            authority,
             whitelist,
         );
         assert!(is_ok, err::authority_not_whitelisted());
@@ -196,37 +188,6 @@ module nft_protocol::nft {
     public fun transfer_to_owner<T, D: store>(nft: Nft<T, D>) {
         let logical_owner = nft.logical_owner;
         transfer::transfer(nft, logical_owner);
-    }
-
-    public fun transfer_to_object<T, D: store, Target, W>(
-        nft: Nft<T, D>,
-        _target: &mut Target,
-        authority: &UID,
-        whitelist: &Whitelist<W>,
-    ) {
-        let is_ok = transfer_whitelist::can_be_transferred(
-            &nft.collection,
-            object::uid_as_inner(authority),
-            whitelist,
-        );
-        assert!(is_ok, err::authority_not_whitelisted());
-
-        // TODO: https://github.com/MystenLabs/sui/issues/5584
-        abort(0)
-    }
-
-    public fun priviledged_transfer_to_object<T, D: store, Target>(
-        nft: Nft<T, D>,
-        _target: &mut Target,
-        ctx: &mut TxContext,
-    ) {
-        assert!(
-            nft.logical_owner == tx_context::sender(ctx),
-            err::not_nft_owner(),
-        );
-
-        // TODO: https://github.com/MystenLabs/sui/issues/5584
-        abort(0)
     }
 
     // === Getter Functions  ===

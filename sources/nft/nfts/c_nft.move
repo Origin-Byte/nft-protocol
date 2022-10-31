@@ -301,7 +301,6 @@ module nft_protocol::c_nft {
         let nft = nft::mint_nft_loose<T, Data>(
             nft_data_id(nft_data),
             recipient,
-            nft_data.collection_id,
             ctx,
         );
 
@@ -363,7 +362,6 @@ module nft_protocol::c_nft {
         let nft = nft::mint_nft_loose<T, Data>(
             object::uid_to_inner(&combo_data.id),
             recipient,
-            combo_data.collection_id,
             ctx,
         );
 
@@ -412,7 +410,6 @@ module nft_protocol::c_nft {
             let nft = nft::mint_nft_loose<T, Composable<C>>(
                 id(&data),
                 tx_context::sender(ctx),
-                combo_data.collection_id,
                 ctx,
             );
 
