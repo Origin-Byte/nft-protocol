@@ -23,7 +23,7 @@ module nft_protocol::safe {
         /// We don't use monotonically increasing integer so that we can remove
         /// withdrawn NFTs from the map.
         version: ID,
-        /// How many transfer caps are there for this version of Rc.
+        /// How many transfer caps are there for this version.
         transfer_cap_counter: u64,
         /// Only one `TransferCap` of the latest version can exist.
         /// An exlusively listed NFT cannot have its `TransferCap` revoked.
@@ -86,11 +86,11 @@ module nft_protocol::safe {
         assert_contains_nft(&nft, safe);
 
         let safe_id = object::id(safe);
-        let rc = vec_map::get_mut(&mut safe.refs, &nft);
-        assert_not_exlusively_listed(rc);
-        rc.transfer_cap_counter = rc.transfer_cap_counter + 1;
-        if (rc.transfer_cap_counter == 1) {
-            rc.version = new_id(ctx);
+        let ref = vec_map::get_mut(&mut safe.refs, &nft);
+        assert_not_exlusively_listed(ref);
+        ref.transfer_cap_counter = ref.transfer_cap_counter + 1;
+        if (ref.transfer_cap_counter == 1) {
+            ref.version = new_id(ctx);
         };
 
         TransferCap {
@@ -98,7 +98,7 @@ module nft_protocol::safe {
             is_exlusive: false,
             nft: nft,
             safe: safe_id,
-            version: rc.version,
+            version: ref.version,
         }
     }
 
@@ -115,18 +115,18 @@ module nft_protocol::safe {
         assert_contains_nft(&nft, safe);
 
         let safe_id = object::id(safe);
-        let rc = vec_map::get_mut(&mut safe.refs, &nft);
-        assert_not_exlusively_listed(rc);
+        let ref = vec_map::get_mut(&mut safe.refs, &nft);
+        assert_not_exlusively_listed(ref);
 
-        rc.transfer_cap_counter = 1;
-        rc.version = new_id(ctx);
+        ref.transfer_cap_counter = 1;
+        ref.version = new_id(ctx);
 
         TransferCap {
             id: object::new(ctx),
             is_exlusive: true,
             nft: nft,
             safe: safe_id,
-            version: rc.version,
+            version: ref.version,
         }
     }
 
@@ -218,11 +218,11 @@ module nft_protocol::safe {
         } = transfer_cap;
         object::delete(id);
 
-        let rc = vec_map::get_mut(&mut safe.refs, &nft);
-        if (rc.version == version) {
-            rc.transfer_cap_counter = rc.transfer_cap_counter - 1;
-            if (rc.transfer_cap_counter == 0) {
-                rc.is_exlusively_listed = false;
+        let ref = vec_map::get_mut(&mut safe.refs, &nft);
+        if (ref.version == version) {
+            ref.transfer_cap_counter = ref.transfer_cap_counter - 1;
+            if (ref.transfer_cap_counter == 0) {
+                ref.is_exlusively_listed = false;
             };
         }
     }
@@ -240,11 +240,11 @@ module nft_protocol::safe {
         assert_owner_cap(owner_cap, safe);
         assert_contains_nft(nft, safe);
 
-        let rc = vec_map::get_mut(&mut safe.refs, nft);
-        assert_not_exlusively_listed(rc);
+        let ref = vec_map::get_mut(&mut safe.refs, nft);
+        assert_not_exlusively_listed(ref);
 
-        rc.version = new_id(ctx);
-        rc.transfer_cap_counter = 0;
+        ref.version = new_id(ctx);
+        ref.transfer_cap_counter = 0;
     }
 
     fun create_safe_(ctx: &mut TxContext): OwnerCap {
@@ -317,11 +317,11 @@ module nft_protocol::safe {
         );
     }
 
-    public fun assert_not_exlusively_listed(rc: &NftRef) {
-        assert!(!rc.is_exlusively_listed, err::nft_exlusively_listed());
+    public fun assert_not_exlusively_listed(ref: &NftRef) {
+        assert!(!ref.is_exlusively_listed, err::nft_exlusively_listed());
     }
 
-    public fun assert_version_match(rc: &NftRef, cap: &TransferCap) {
-        assert!(rc.version == cap.version, err::transfer_cap_expired());
+    public fun assert_version_match(ref: &NftRef, cap: &TransferCap) {
+        assert!(ref.version == cap.version, err::transfer_cap_expired());
     }
 }
