@@ -14,7 +14,10 @@ module nft_protocol::safe {
 
     struct Safe has key {
         id: UID,
+        /// Accounting for deposited NFTs. Each NFT in the object bag is
+        /// represented in this map.
         refs: VecMap<ID, NftRef>,
+        /// Holds the actual NFT objects as child objects.
         nfts: ObjectBag,
         /// If set to false, the owner can select which collections can be
         /// deposited to the safe.
@@ -23,7 +26,7 @@ module nft_protocol::safe {
         /// whether a collection is stored in this set.
         ///
         /// Enables more granular control over NFTs to combat spam.
-        enabled_deposits: VecSet<TypeName>,
+        collections_with_enabled_deposits: VecSet<TypeName>,
     }
 
     /// Keeps info about an NFT which enables us to issue transfer caps etc.
@@ -91,7 +94,7 @@ module nft_protocol::safe {
     ///
     /// Otherwise, there's a risk of a race condition as multiple non-exclusive
     /// transfer caps can be created.
-    public fun create_transfer_cap(
+    public entry fun create_transfer_cap(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
@@ -120,7 +123,7 @@ module nft_protocol::safe {
     /// Creates an irrevocable and exclusive transfer cap.
     ///
     /// Useful for trading contracts which cannot claim an NFT atomically.
-    public fun create_exlusive_transfer_cap(
+    public entry fun create_exlusive_transfer_cap(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
@@ -166,10 +169,10 @@ module nft_protocol::safe {
         assert_owner_cap(owner_cap, safe);
 
         let col_type = type_name::get<T>();
-        if (vec_set::contains(&safe.enabled_deposits, &col_type)) {
-            vec_set::remove(&mut safe.enabled_deposits, &col_type);
+        if (vec_set::contains(&safe.collections_with_enabled_deposits, &col_type)) {
+            vec_set::remove(&mut safe.collections_with_enabled_deposits, &col_type);
         } else {
-            vec_set::insert(&mut safe.enabled_deposits, col_type);
+            vec_set::insert(&mut safe.collections_with_enabled_deposits, col_type);
         };
     }
 
@@ -310,7 +313,7 @@ module nft_protocol::safe {
             refs: vec_map::empty(),
             nfts: object_bag::new(ctx),
             accepts_any_deposit: true,
-            enabled_deposits: vec_set::empty(),
+            collections_with_enabled_deposits: vec_set::empty(),
         };
         let cap = OwnerCap {
             id: object::new(ctx),
@@ -437,7 +440,7 @@ module nft_protocol::safe {
     public fun assert_can_deposit<T>(safe: &Safe) {
         if (!safe.accepts_any_deposit) {
             assert!(
-                vec_set::contains(&safe.enabled_deposits, &type_name::get<T>()),
+                vec_set::contains(&safe.collections_with_enabled_deposits, &type_name::get<T>()),
                 err::safe_does_not_accept_deposits(),
             );
         }
