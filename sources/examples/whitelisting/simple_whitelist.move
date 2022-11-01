@@ -8,7 +8,6 @@ module nft_protocol::simple_whitelist {
 
     use nft_protocol::collection::Collection;
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
-    use std::ascii::String;
     use sui::object::{Self, UID, ID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
@@ -51,33 +50,29 @@ module nft_protocol::simple_whitelist {
     }
 
     /// Only the owner of the whitelist can manage it
-    public entry fun insert_authority(
-        authority_witness_type: String,
+    public entry fun insert_authority<Auth>(
         owner: &OwnerCap,
         list: &mut Whitelist<Witness>,
         _ctx: &mut TxContext,
     ) {
         assert!(object::id(list) == owner.list_id, 0);
 
-        transfer_whitelist::insert_authority(
+        transfer_whitelist::insert_authority<Witness, Auth>(
             Witness {},
-            authority_witness_type,
             list,
         );
     }
 
     /// Only the owner of the whitelist can manage it
-    public entry fun remove_authority(
-        authority_witness_type: String,
+    public entry fun remove_authority<Auth>(
         owner: &OwnerCap,
         list: &mut Whitelist<Witness>,
         _ctx: &mut TxContext,
     ) {
         assert!(object::id(list) == owner.list_id, 0);
 
-        transfer_whitelist::remove_authority(
+        transfer_whitelist::remove_authority<Witness, Auth>(
             Witness {},
-            &authority_witness_type,
             list,
         );
     }
