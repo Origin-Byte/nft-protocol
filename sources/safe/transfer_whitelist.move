@@ -14,9 +14,8 @@ module nft_protocol::transfer_whitelist {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::err;
-    use std::ascii::String;
     use std::option::{Self, Option};
-    use std::type_name;
+    use std::type_name::{Self, TypeName};
     use sui::object;
     use sui::object::UID;
     use sui::tx_context::{Self, TxContext};
@@ -26,13 +25,13 @@ module nft_protocol::transfer_whitelist {
         id: UID,
         /// Which collections does this whitelist apply to?
         ///
-        /// This is a string gotten from `type_name::get` function
-        collections: VecSet<String>,
+        /// We use reflection to avoid generics.
+        collections: VecSet<TypeName>,
         /// If None, then there's no whitelist and everyone is allowed.
         ///
         /// Otherwise we use a witness pattern but store the witness object as
         /// the output of `type_name::get`.
-        authorities: Option<VecSet<String>>,
+        authorities: Option<VecSet<TypeName>>,
     }
 
     public fun create<Admin: drop>(
@@ -61,7 +60,7 @@ module nft_protocol::transfer_whitelist {
     ) {
         assert_is_creator(collection, ctx);
 
-        vec_set::insert(&mut list.collections, type_into_string<T>());
+        vec_set::insert(&mut list.collections, type_name::get<T>());
     }
 
     /// Any collection is allowed to remove itself from any whitelist at any
@@ -76,47 +75,52 @@ module nft_protocol::transfer_whitelist {
     ) {
         assert_is_creator(collection, ctx);
 
-        vec_set::remove(&mut list.collections, &type_into_string<T>());
+        vec_set::remove(&mut list.collections, &type_name::get<T>());
     }
 
     /// The whitelist owner can remove any collection at any point.
-    public fun remove_collection<Admin: drop>(
+    public fun remove_collection<Admin: drop, T>(
         _whitelist_witness: Admin,
-        collection_witness_type: &String,
         list: &mut Whitelist<Admin>,
     ) {
-        vec_set::remove(&mut list.collections, collection_witness_type);
+        vec_set::remove(&mut list.collections, &type_name::get<T>());
+    }
+
+    /// Removes all collections from this list.
+    public fun clear_collections<Admin: drop>(
+        _whitelist_witness: Admin,
+        list: &mut Whitelist<Admin>,
+    ) {
+        list.collections = vec_set::empty();
     }
 
     /// To insert a new authority into a list we need confirmation by the
     /// whitelist authority (via witness.)
-    public fun insert_authority<Admin: drop>(
+    public fun insert_authority<Admin: drop, Auth>(
         _whitelist_witness: Admin,
-        authority_witness_type: String,
         list: &mut Whitelist<Admin>,
     ) {
         if (option::is_none(&list.authorities)) {
             list.authorities = option::some(
-                vec_set::singleton(authority_witness_type)
+                vec_set::singleton(type_name::get<Auth>())
             );
         } else {
             vec_set::insert(
                 option::borrow_mut(&mut list.authorities),
-                authority_witness_type,
+                type_name::get<Auth>(),
             );
         }
     }
 
     /// The whitelist authority (via witness) can at any point remove any
     /// authority from their list.
-    public fun remove_authority<Admin: drop>(
+    public fun remove_authority<Admin: drop, Auth>(
         _whitelist_witness: Admin,
-        authority_witness_type: &String,
         list: &mut Whitelist<Admin>,
     ) {
         vec_set::remove(
             option::borrow_mut(&mut list.authorities),
-            authority_witness_type,
+            &type_name::get<Auth>(),
         );
     }
 
@@ -132,12 +136,8 @@ module nft_protocol::transfer_whitelist {
 
         let e = option::borrow(&whitelist.authorities);
 
-        vec_set::contains(e, &type_into_string<Auth>()) &&
-            vec_set::contains(&whitelist.collections, &type_into_string<CW>())
-    }
-
-    fun type_into_string<T>(): String {
-        type_name::into_string(type_name::get<T>())
+        vec_set::contains(e, &type_name::get<Auth>()) &&
+            vec_set::contains(&whitelist.collections, &type_name::get<CW>())
     }
 
     fun assert_is_creator<T, M: store>(
