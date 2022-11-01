@@ -12,7 +12,9 @@ module nft_protocol::collectible {
     use sui::url::{Self, Url};
 
     use nft_protocol::err;
+    use nft_protocol::sale;
     use nft_protocol::supply_policy;
+    use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::collection::{Self, Collection, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply::{Self, Supply};
@@ -58,26 +60,30 @@ module nft_protocol::collectible {
     /// Mints loose NFT `Collectible` data and shares it.
     /// Invokes `mint_and_share_data()`.
     ///
-    /// Mints a Collectible data object for NFT(s) from an unregulated
+    /// Mints a Collectible data object for NFT(s) from a regulated
     /// `Collection`.
     /// The only way to mint the NFT data for a collection is to give a
     /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
     /// given collection if one is the `MintAuthority` owner.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unregulated_nft_data<T>(
+    ///
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun prepare_launchpad_mint<T, M: store>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: u64,
-        mint: &MintAuthority<T>,
+        mint: &mut MintAuthority<T>,
+        sale_outlet: u64,
+        launchpad: &mut Slingshot<T, M>,
         ctx: &mut TxContext,
     ) {
-        // Assert that it has an unregulated supply policy
+        // Assert that it has a regulated supply policy
         assert!(
-            !supply_policy::regulated(collection::supply_policy(mint)),
+            supply_policy::regulated(collection::supply_policy(mint)),
             err::supply_policy_mismatch(),
         );
 
@@ -90,26 +96,72 @@ module nft_protocol::collectible {
             max_supply,
         );
 
+        collection::increment_supply(mint, 1);
+
+        let data_uid = object::new(ctx);
+        let data_id = object::uid_to_inner(&data_uid);
+
         mint_and_share_data(
+            data_uid,
             args,
             collection::mint_collection_id(mint),
-            ctx,
+        );
+
+        let sale = slingshot::sale_mut(launchpad, sale_outlet);
+
+        sale::add_nft<T, M>(
+            sale,
+            data_id,
+            max_supply
         );
     }
 
-    /// Mints loose NFT `Collectible` data and shares it.
-    /// Invokes `mint_and_share_data()`.
-    ///
-    /// Mints a Collectible data object for NFT(s) from a regulated
-    /// `Collection`.
-    /// The only way to mint the NFT data for a collection is to give a
-    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
-    /// given collection if one is the `MintAuthority` owner.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_regulated_nft_data<T>(
+    // // TODO: REMOVE THIS, THERE IS NO POINT BEING REGULATED WHILE USING THE LAUNCHPAD...
+    // /// Mints loose NFT `Collectible` data and shares it.
+    // /// Invokes `mint_and_share_data()`.
+    // ///
+    // /// Mints a Collectible data object for NFT(s) from an unregulated
+    // /// `Collection`.
+    // /// The only way to mint the NFT data for a collection is to give a
+    // /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
+    // /// given collection if one is the `MintAuthority` owner.
+    // ///
+    // /// To be called by the Witness Module deployed by NFT creator.
+    // /// TODO: delete this function, recylcle the documentation
+    // public fun prepare_nft_release_unregulated<T>(
+    //     name: vector<u8>,
+    //     description: vector<u8>,
+    //     url: vector<u8>,
+    //     attribute_keys: vector<vector<u8>>,
+    //     attribute_values: vector<vector<u8>>,
+    //     max_supply: u64,
+    //     mint: &MintAuthority<T>,
+    //     ctx: &mut TxContext,
+    // ) {
+    //     // Assert that it has an unregulated supply policy
+    //     assert!(
+    //         !supply_policy::regulated(collection::supply_policy(mint)),
+    //         err::supply_policy_mismatch(),
+    //     );
+
+    //     let args = mint_args(
+    //         name,
+    //         description,
+    //         url,
+    //         to_string_vector(&mut attribute_keys),
+    //         to_string_vector(&mut attribute_values),
+    //         max_supply,
+    //     );
+
+    //     mint_and_share_data(
+    //         args,
+    //         collection::mint_collection_id(mint),
+    //         ctx,
+    //     );
+    // }
+
+    // TODO: Documentation comments
+    public fun prepare_direct_mint<T>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -136,21 +188,59 @@ module nft_protocol::collectible {
 
         collection::increment_supply(mint, 1);
 
+        let data_uid = object::new(ctx);
+
         mint_and_share_data(
+            data_uid,
             args,
             collection::mint_collection_id(mint),
-            ctx,
         );
     }
 
+    // TODO: Documentation comments
+    public fun prepare_thunder_mint<T>(
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
+        max_supply: u64,
+        mint: &mut MintAuthority<T>,
+        ctx: &mut TxContext,
+    ) {
+        // Assert that it has a regulated supply policy
+        assert!(
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
+        );
+
+        let args = mint_args(
+            name,
+            description,
+            url,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
+            max_supply,
+        );
+
+        collection::increment_supply(mint, 1);
+
+        let data_uid = object::new(ctx);
+
+        mint_and_share_data(
+            data_uid,
+            args,
+            collection::mint_collection_id(mint),
+        );
+    }
+
+    // TODO: Update documentation
     /// Mints loose NFT and transfers it to `recipient`
     /// Invokes `mint_nft_loose()`.
     /// This function call comes after the minting of the `Data` object.
     ///
-    /// To be called by Launchpad contract
     /// TODO: The flow here needs to be reconsidered
-    /// TODO: To be deprecated --> calls should be done to the nft module
-    public fun mint_nft<T, M: store>(
+    public fun mint<T, M: store>(
         _mint: &MintAuthority<T>,
         nft_data: &mut Collectible,
         recipient: address,
@@ -383,12 +473,10 @@ module nft_protocol::collectible {
     }
 
     fun mint_and_share_data(
+        data_id: UID,
         args: MintArgs,
         collection_id: ID,
-        ctx: &mut TxContext,
     ) {
-        let data_id = object::new(ctx);
-
         event::emit(
             MintDataEvent {
                 object_id: object::uid_to_inner(&data_id),

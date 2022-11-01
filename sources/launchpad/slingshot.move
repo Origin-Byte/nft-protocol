@@ -169,7 +169,7 @@ module nft_protocol::slingshot {
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft_loose<T, M: store, D: key + store>(
         slingshot: &Slingshot<T, M>,
-        nft_data: &D,
+        nft_data: &mut D,
         certificate: NftCertificate,
         recipient: address,
         ctx: &mut TxContext,

@@ -17,8 +17,6 @@ module nft_protocol::unique_nft {
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply_policy;
-    use nft_protocol::slingshot::{Self, Slingshot};
-    use nft_protocol::sale;
     use nft_protocol::nft::{Self, Nft};
 
     /// An NFT `Unique` data object with standard fields.
@@ -55,50 +53,7 @@ module nft_protocol::unique_nft {
 
     // === Functions exposed to Witness Module ===
 
-    /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
-    /// Invokes `mint_to_launchpad()`.
-    /// Mints an NFT from a `Collection` with unregulated supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the `MintAuthority` owner.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_unregulated_nft<T, Market: store>(
-        name: vector<u8>,
-        description: vector<u8>,
-        url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint: &MintAuthority<T>,
-        sale_index: u64,
-        // TODO: Ideally we do not take a mutable reference such that
-        // no lock is needed
-        launchpad: &mut Slingshot<T, Market>,
-        ctx: &mut TxContext,
-    ) {
-        // Assert that it has an unregulated supply policy
-        assert!(
-            !supply_policy::regulated(collection::supply_policy(mint)),
-            err::supply_policy_mismatch(),
-        );
-
-        let args = mint_args(
-            name,
-            description,
-            url,
-            to_string_vector(&mut attribute_keys),
-            to_string_vector(&mut attribute_values),
-        );
-
-        mint_to_launchpad(
-            args,
-            collection::mint_collection_id(mint),
-            sale_index,
-            launchpad,
-            ctx,
-        );
-    }
-
+    // TODO: updated comment
     /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
     /// Invokes `mint_to_launchpad()`.
     /// Mints an NFT from a `Collection` with regulated supply.
@@ -107,15 +62,13 @@ module nft_protocol::unique_nft {
     /// if one is the `MintAuthority` owner.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint_regulated_nft<T, Market: store>(
+    public fun prepare_launchpad_mint<T>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         mint: &mut MintAuthority<T>,
-        sale_index: u64,
-        launchpad: &mut Slingshot<T, Market>,
         ctx: &mut TxContext,
     ) {
         // Assert that it has regulated supply policy
@@ -134,51 +87,9 @@ module nft_protocol::unique_nft {
 
         collection::increment_supply(mint, 1);
 
-        mint_to_launchpad(
+        mint_and_share_data(
             args,
             collection::mint_collection_id(mint),
-            sale_index,
-            launchpad,
-            ctx,
-        );
-    }
-
-    /// Mint one embedded `Nft` with `Unique` data and send it to `recipient`.
-    /// Invokes `mint_and_transfer()`.
-    /// Mints an NFT from a `Collection` with unregulated supply.
-    /// The only way to mint the NFT for a collection is to give a reference to
-    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
-    /// if one is the `MintAuthority` owner.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    public fun direct_mint_unregulated_nft<T>(
-        name: vector<u8>,
-        description: vector<u8>,
-        url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint: &MintAuthority<T>,
-        recipient: address,
-        ctx: &mut TxContext,
-    ) {
-        // Assert that it has an unregulated supply policy
-        assert!(
-            !supply_policy::regulated(collection::supply_policy(mint)),
-            err::supply_policy_mismatch()
-        );
-
-        let args = mint_args(
-            name,
-            description,
-            url,
-            to_string_vector(&mut attribute_keys),
-            to_string_vector(&mut attribute_values),
-        );
-
-        mint_and_transfer<T>(
-            args,
-            collection::mint_collection_id(mint),
-            recipient,
             ctx,
         );
     }
@@ -191,7 +102,7 @@ module nft_protocol::unique_nft {
     /// if one is the `MintAuthority` owner.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun direct_mint_regulated_nft<T>(
+    public entry fun mint<T>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -215,6 +126,85 @@ module nft_protocol::unique_nft {
             to_string_vector(&mut attribute_values),
         );
         collection::increment_supply(mint, 1);
+
+        mint_and_transfer<T>(
+            args,
+            collection::mint_collection_id(mint),
+            recipient,
+            ctx,
+        );
+    }
+
+    // // TODO: To be removed, recycle the comment
+    // /// Mint one embedded `Nft` with `Unique` data and send it to `Launchpad`.
+    // /// Invokes `mint_to_launchpad()`.
+    // /// Mints an NFT from a `Collection` with unregulated supply.
+    // /// The only way to mint the NFT for a collection is to give a reference to
+    // /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    // /// if one is the `MintAuthority` owner.
+    // ///
+    // /// To be called by the Witness Module deployed by NFT creator.
+    // public fun prepare_nft_release_unregulated<T>(
+    //     name: vector<u8>,
+    //     description: vector<u8>,
+    //     url: vector<u8>,
+    //     attribute_keys: vector<vector<u8>>,
+    //     attribute_values: vector<vector<u8>>,
+    //     mint: &MintAuthority<T>,
+    //     ctx: &mut TxContext,
+    // ) {
+    //     // Assert that it has an unregulated supply policy
+    //     assert!(
+    //         !supply_policy::regulated(collection::supply_policy(mint)),
+    //         err::supply_policy_mismatch(),
+    //     );
+
+    //     let args = mint_args(
+    //         name,
+    //         description,
+    //         url,
+    //         to_string_vector(&mut attribute_keys),
+    //         to_string_vector(&mut attribute_values),
+    //     );
+
+    //     mint_and_share_data(
+    //         args,
+    //         collection::mint_collection_id(mint),
+    //         ctx,
+    //     );
+    // }
+
+    /// Mint one embedded `Nft` with `Unique` data and send it to `recipient`.
+    /// Invokes `mint_and_transfer()`.
+    /// Mints an NFT from a `Collection` with unregulated supply.
+    /// The only way to mint the NFT for a collection is to give a reference to
+    /// [`UID`]. One is only allowed to mint `Nft`s for a given collection
+    /// if one is the `MintAuthority` owner.
+    ///
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun thunder_mint<T>(
+        name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
+        mint: &MintAuthority<T>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        // Assert that it has an unregulated supply policy
+        assert!(
+            !supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch()
+        );
+
+        let args = mint_args(
+            name,
+            description,
+            url,
+            to_string_vector(&mut attribute_keys),
+            to_string_vector(&mut attribute_values),
+        );
 
         mint_and_transfer<T>(
             args,
@@ -340,11 +330,10 @@ module nft_protocol::unique_nft {
         );
     }
 
-    fun mint_to_launchpad<T, M: store>(
+    // TODO: add documentation
+    fun mint_and_share_data(
         args: MintArgs,
         collection_id: ID,
-        sale_index: u64,
-        launchpad: &mut Slingshot<T, M>,
         ctx: &mut TxContext,
     ) {
         let data_id = object::new(ctx);
@@ -356,7 +345,7 @@ module nft_protocol::unique_nft {
             }
         );
 
-        let nft_data = Unique {
+        let data = Unique {
             id: data_id,
             name: args.name,
             description: args.description,
@@ -365,20 +354,7 @@ module nft_protocol::unique_nft {
             attributes: args.attributes,
         };
 
-        let nft = nft::mint_nft_embedded<T, Unique>(
-            nft_data_id(&nft_data),
-            nft_data,
-            ctx
-        );
-
-        let sale = slingshot::sale_mut(launchpad, sale_index);
-
-        sale::add_nft<T, M>(sale, nft::id(&nft));
-
-        transfer::transfer_to_object(
-            nft,
-            launchpad,
-        );
+        transfer::share_object(data);
     }
 
     fun burn_nft_<T>(
