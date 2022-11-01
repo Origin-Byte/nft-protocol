@@ -9,7 +9,7 @@ module nft_protocol::simple_whitelist {
     use nft_protocol::collection::Collection;
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use std::ascii::String;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
 
@@ -19,12 +19,19 @@ module nft_protocol::simple_whitelist {
     /// organization.
     struct OwnerCap has key {
         id: UID,
+        list_id: ID,
     }
 
     /// Anyone can create their own simple whitelist.
     public entry fun create(ctx: &mut TxContext) {
-        share_object(transfer_whitelist::create(Witness {}, ctx));
-        transfer(OwnerCap { id: object::new(ctx) }, tx_context::sender(ctx));
+        let list = transfer_whitelist::create(Witness {}, ctx);
+        let list_id = object::id(&list);
+
+        share_object(list);
+        transfer(
+            OwnerCap { id: object::new(ctx), list_id },
+            tx_context::sender(ctx),
+        );
     }
 
     /// Only the creator is allowed to insert their collection.
@@ -46,10 +53,12 @@ module nft_protocol::simple_whitelist {
     /// Only the owner of the whitelist can manage it
     public entry fun insert_authority(
         authority_witness_type: String,
-        _owner: &OwnerCap,
+        owner: &OwnerCap,
         list: &mut Whitelist<Witness>,
         _ctx: &mut TxContext,
     ) {
+        assert!(object::id(list) == owner.list_id, 0);
+
         transfer_whitelist::insert_authority(
             Witness {},
             authority_witness_type,
@@ -60,10 +69,12 @@ module nft_protocol::simple_whitelist {
     /// Only the owner of the whitelist can manage it
     public entry fun remove_authority(
         authority_witness_type: String,
-        _owner: &OwnerCap,
+        owner: &OwnerCap,
         list: &mut Whitelist<Witness>,
         _ctx: &mut TxContext,
     ) {
+        assert!(object::id(list) == owner.list_id, 0);
+
         transfer_whitelist::remove_authority(
             Witness {},
             &authority_witness_type,
