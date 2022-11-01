@@ -185,6 +185,22 @@ module nft_protocol::nft {
         transfer::transfer(nft, target);
     }
 
+    public fun change_logical_owner<T, D: store, WW, Auth: drop>(
+        nft: &mut Nft<T, D>,
+        target: address,
+        authority: Auth,
+        whitelist: &Whitelist<WW>,
+    ) {
+
+        let is_ok = transfer_whitelist::can_be_transferred<WW, T, Auth>(
+            authority,
+            whitelist,
+        );
+        assert!(is_ok, err::authority_not_whitelisted());
+
+        nft.logical_owner = target;
+    }
+
     public fun transfer_to_owner<T, D: store>(nft: Nft<T, D>) {
         let logical_owner = nft.logical_owner;
         transfer::transfer(nft, logical_owner);
