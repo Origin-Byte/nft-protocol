@@ -230,23 +230,8 @@ module nft_protocol::safe {
         whitelist: &Whitelist<WW>,
         safe: &mut Safe,
     ) {
-        assert_transfer_cap_of_safe(&transfer_cap, safe);
-        assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
-        assert_contains_nft(&nft_id, safe);
+        let nft = get_nft_for_transfer_<T, D>(nft_id, transfer_cap, safe);
 
-        let (_, ref) = vec_map::remove(&mut safe.refs, &nft_id);
-        assert_version_match(&ref, &transfer_cap);
-
-        let TransferCap {
-            id,
-            safe: _,
-            nft: _,
-            version: _,
-            is_exlusive: _,
-        } = transfer_cap;
-        object::delete(id);
-
-        let nft = object_bag::remove<ID, Nft<T, D>>(&mut safe.nfts, nft_id);
         nft::transfer(nft, recipient, authority, whitelist);
     }
 
@@ -267,31 +252,15 @@ module nft_protocol::safe {
         target: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        assert_transfer_cap_of_safe(&transfer_cap, source);
-        assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
-        assert_contains_nft(&nft_id, source);
+        let nft = get_nft_for_transfer_<T, D>(nft_id, transfer_cap, source);
 
-        let (_, ref) = vec_map::remove(&mut source.refs, &nft_id);
-        assert_version_match(&ref, &transfer_cap);
-
-        let TransferCap {
-            id,
-            safe: _,
-            nft: _,
-            version: _,
-            is_exlusive: _,
-        } = transfer_cap;
-        object::delete(id);
-
-        let nft = object_bag::remove<ID, Nft<T, D>>(&mut source.nfts, nft_id);
         nft::change_logical_owner(&mut nft, recipient, authority, whitelist);
-
         deposit_nft(nft, target, ctx);
     }
 
     /// Destroys given transfer cap. This is mainly useful for exlusively listed
     /// NFTs.
-    public fun burn_transfer_cap(
+    public entry fun burn_transfer_cap(
         transfer_cap: TransferCap,
         safe: &mut Safe,
     ) {
@@ -319,16 +288,16 @@ module nft_protocol::safe {
     /// `TransferCap` objects.
     ///
     /// Can happen only if the NFT is not listed exlusively.
-    public fun delist_nft(
-        nft: &ID,
+    public entry fun delist_nft(
+        nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
         assert_owner_cap(owner_cap, safe);
-        assert_contains_nft(nft, safe);
+        assert_contains_nft(&nft, safe);
 
-        let ref = vec_map::get_mut(&mut safe.refs, nft);
+        let ref = vec_map::get_mut(&mut safe.refs, &nft);
         assert_not_exlusively_listed(ref);
 
         ref.version = new_id(ctx);
@@ -374,6 +343,44 @@ module nft_protocol::safe {
         });
 
         object_bag::add(&mut safe.nfts, nft_id, nft);
+
+        event::emit(
+            DepositEvent {
+                safe: object::id(safe),
+                nft: nft_id,
+            }
+        );
+    }
+
+    fun get_nft_for_transfer_<T, D: store>(
+        nft_id: ID,
+        transfer_cap: TransferCap,
+        safe: &mut Safe,
+    ): Nft<T, D> {
+        event::emit(
+            TransferEvent {
+                safe: object::id(safe),
+                nft: nft_id,
+            }
+        );
+
+        assert_transfer_cap_of_safe(&transfer_cap, safe);
+        assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
+        assert_contains_nft(&nft_id, safe);
+
+        let (_, ref) = vec_map::remove(&mut safe.refs, &nft_id);
+        assert_version_match(&ref, &transfer_cap);
+
+        let TransferCap {
+            id,
+            safe: _,
+            nft: _,
+            version: _,
+            is_exlusive: _,
+        } = transfer_cap;
+        object::delete(id);
+
+        object_bag::remove<ID, Nft<T, D>>(&mut safe.nfts, nft_id)
     }
 
     // === Getters ===
