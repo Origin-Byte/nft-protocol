@@ -11,7 +11,7 @@ module nft_protocol::blacklist {
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use std::ascii::String;
     use std::type_name;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
@@ -28,18 +28,24 @@ module nft_protocol::blacklist {
     /// organization.
     struct OwnerCap has key {
         id: UID,
+        list_id: ID,
     }
 
     /// Anyone can create their own blacklist.
     public entry fun create(ctx: &mut TxContext) {
         let inner = transfer_whitelist::create(Witness {}, ctx);
-        share_object(Blacklist {
+        let list = Blacklist {
             id: object::new(ctx),
             banned_witnesses: vec_set::empty(),
             inner,
-        });
+        };
+        let list_id = object::id(&list);
 
-        transfer(OwnerCap { id: object::new(ctx) }, tx_context::sender(ctx));
+        share_object(list);
+        transfer(
+            OwnerCap { id: object::new(ctx), list_id, },
+            tx_context::sender(ctx),
+        );
     }
 
     /// Only the creator is allowed to insert their collection.
@@ -60,36 +66,40 @@ module nft_protocol::blacklist {
 
     /// Anyone can use this list to authorize a transfer as long as they have
     /// an access to a witness that is not banned.
-    public fun borrow_mut_inner<Admin: drop>(
+    public fun borrow_inner<Admin: drop>(
         _authority_witness: Admin,
-        list: &mut Blacklist,
-    ): &mut Whitelist<Witness> {
+        list: &Blacklist,
+    ): &Whitelist<Witness> {
         let is_banned = vec_set::contains(
             &list.banned_witnesses,
             &type_name::into_string(type_name::get<Admin>()),
         );
         assert!(!is_banned, 0);
 
-        &mut list.inner
+        &list.inner
     }
 
     /// Only the owner of the whitelist can manage it
     public entry fun ban(
         authority_witness_type: String,
-        _owner: &OwnerCap,
+        owner: &OwnerCap,
         list: &mut Blacklist,
         _ctx: &mut TxContext,
     ) {
+        assert!(object::id(list) == owner.list_id, 0);
+
         vec_set::insert(&mut list.banned_witnesses, authority_witness_type);
     }
 
     /// Only the owner of the whitelist can manage it
     public entry fun unban(
         authority_witness_type: String,
-        _owner: &OwnerCap,
+        owner: &OwnerCap,
         list: &mut Blacklist,
         _ctx: &mut TxContext,
     ) {
+        assert!(object::id(list) == owner.list_id, 0);
+
         vec_set::remove(&mut list.banned_witnesses, &authority_witness_type);
     }
 }
