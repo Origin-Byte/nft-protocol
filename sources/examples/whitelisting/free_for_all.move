@@ -19,7 +19,7 @@ module nft_protocol::free_for_all {
     /// Only the creator is allowed to insert their collection.
     ///
     /// However, any creator can insert their collection into simple whitelist.
-    public fun insert_collection<T, M: store>(
+    public entry fun insert_collection<T, M: store>(
         collection: &Collection<T, M>,
         list: &mut Whitelist<Witness>,
         ctx: &mut TxContext,
