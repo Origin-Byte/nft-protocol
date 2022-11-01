@@ -130,6 +130,10 @@ module nft_protocol::err {
         return Prefix + 304
     }
 
+    public fun safe_does_not_accept_deposits(): u64 {
+        return Prefix + 305
+    }
+
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
