@@ -174,18 +174,18 @@ module nft_protocol::nft {
     /// the NFT to the recipient address.
     public fun transfer<T, D: store, WW, Auth: drop>(
         nft: Nft<T, D>,
-        target: address,
+        recipient: address,
         authority: Auth,
         whitelist: &Whitelist<WW>,
     ) {
-        change_logical_owner(&mut nft, target, authority, whitelist);
-        transfer::transfer(nft, target);
+        change_logical_owner(&mut nft, recipient, authority, whitelist);
+        transfer::transfer(nft, recipient);
     }
 
     /// Whitelisted contracts (by creator) can change logical owner of an NFT.
     public fun change_logical_owner<T, D: store, WW, Auth: drop>(
         nft: &mut Nft<T, D>,
-        target: address,
+        recipient: address,
         authority: Auth,
         whitelist: &Whitelist<WW>,
     ) {
@@ -195,7 +195,7 @@ module nft_protocol::nft {
         );
         assert!(is_ok, err::authority_not_whitelisted());
 
-        nft.logical_owner = target;
+        nft.logical_owner = recipient;
     }
 
     /// Clawing back an NFT is always possible.
