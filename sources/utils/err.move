@@ -143,4 +143,26 @@ module nft_protocol::err {
     public fun sender_not_collection_creator(): u64 {
         return Prefix + 401
     }
+
+    // === Trading ===
+
+    public fun order_does_not_exist(): u64 {
+        return Prefix + 500
+    }
+
+    public fun order_owner_must_be_sender(): u64 {
+        return Prefix + 501
+    }
+
+    public fun nft_collection_mismatch(): u64 {
+        return Prefix + 502
+    }
+
+    public fun nft_id_mismatch(): u64 {
+        return Prefix + 503
+    }
+
+    public fun action_not_public(): u64 {
+        return Prefix + 504
+    }
 }
