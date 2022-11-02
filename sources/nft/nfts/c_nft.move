@@ -111,24 +111,29 @@ module nft_protocol::c_nft {
 
     // === Functions exposed to Witness Module ===
 
-    /// Mints loose NFT `Composable` data and shares it.
+    /// Creates a `Composable` data object, shares it, and adds it's `ID` to
+    /// a dedicated launchpad `sale_outlet`. Composable NFTs have themselves
+    /// a supply, and therefore the parameter `max_supply` determines how many
+    /// NFTs can be minted from the launchpad.
+    ///
     /// Invokes `mint_and_share_data()`.
     ///
-    /// Mints a Composable data object for NFT(s) from a `Collection`
-    /// with regulated supply
-    /// Mints a Collectible data object for NFT(s) from an unregulated
-    /// `Collection`.
+    /// Creates a Composable data object for NFT(s) from a `Collection`
+    /// with regulated supply. Note that unregulated collections should not use
+    /// the launchpad since the minting process would stop taking advangage of
+    /// the fast broadcast transactions.
+    ///
     /// The only way to mint the NFT data for a collection is to give a
     /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
     /// given collection if one is the `MintAuthority` owner.
     ///
     /// This function call bootstraps the minting of leaf node NFTs in a
     /// Composable collection with regulated supply. This function does
-    /// not serve to compose Composable objects, but simply to create the
+    /// not serve to compose Combo objects, but simply to create the
     /// intial objects that are supposed to give rise to the composability tree.
     ///
     /// For a regulated collection with supply of 100 objects, this function
-    /// will be called in total 100 times to mint such objects. Once these
+    /// ought to be called 100 times in total to mint such objects. Once these
     /// objects are brought to existance the collection creator can start
     /// creating composable objects which determine which NFTs can be merged
     /// and what the supply of those configurations are.
@@ -182,56 +187,33 @@ module nft_protocol::c_nft {
         );
     }
 
-    // /// Mints loose NFT `Composable` data object and shares it.
-    // /// Invokes `mint_and_share_data()`.
-    // ///
-    // /// Mints a Collectible data object for NFT(s) from an unregulated
-    // /// `Collection`.
-    // /// The only way to mint the NFT data for a collection is to give a
-    // /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
-    // /// given collection if one is the `MintAuthority` owner.
-    // ///
-    // /// This function call bootstraps the minting of leaf node NFTs in a
-    // /// Composable collection with unregulated supply. This function does not
-    // /// serve to compose Composable objects, but simply to create the intial
-    // /// objects that are supposed to give rise to the composability tree.
-    // ///
-    // /// To be called by the Witness Module deployed by NFT creator.
-    // // TODO: delete this function, recylcle the documentation
-    // public fun mint_unregulated_nft_data<T, C: store + copy>(
-    //     name: vector<u8>,
-    //     description: vector<u8>,
-    //     url: vector<u8>,
-    //     attribute_keys: vector<vector<u8>>,
-    //     attribute_values: vector<vector<u8>>,
-    //     max_supply: u64,
-    //     mint: &MintAuthority<T>,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     // Assert that it has an uregulated supply policy
-    //     assert!(
-    //         !supply_policy::regulated(collection::supply_policy(mint)),
-    //         err::supply_policy_mismatch(),
-    //     );
-
-    //     let args = mint_args(
-    //         name,
-    //         description,
-    //         url,
-    //         to_string_vector(&mut attribute_keys),
-    //         to_string_vector(&mut attribute_values),
-    //         max_supply,
-    //     );
-
-    //     mint_and_share_data<C>(
-    //         args,
-    //         collection::mint_collection_id(mint),
-    //         max_supply,
-    //         ctx,
-    //     );
-    // }
-
-    // TODO: Documentation comments
+    /// Creates `Composable` data, shares it, with the intent of preparing for
+    /// a direct mint. Composable NFTs have themselves a supply, and therefore
+    /// the parameter `max_supply` determines how many NFTs can be minted.
+    ///
+    /// Invokes `mint_and_share_data()`.
+    ///
+    /// Creates a Composable data object for NFT(s) from a `Collection`
+    /// with regulated supply. Note that unregulated collections should use the
+    /// thunder mint instead, in order to take advantage of fast broadcast
+    /// transactions.
+    ///
+    /// The only way to mint the NFT data for a collection is to give a
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
+    /// given collection if one is the `MintAuthority` owner.
+    ///
+    /// This function call bootstraps the minting of leaf node NFTs in a
+    /// Composable collection with regulated supply. This function does
+    /// not serve to compose Combo objects, but simply to create the
+    /// intial objects that are supposed to give rise to the composability tree.
+    ///
+    /// For a regulated collection with supply of 100 objects, this function
+    /// ought to be called 100 times in total to mint such objects. Once these
+    /// objects are brought to existance the collection creator can start
+    /// creating composable objects which determine which NFTs can be merged
+    /// and what the supply of those configurations are.
+    ///
+    /// To be called by the Witness Module deployed by NFT creator.
     public fun prepare_direct_mint<T, C: store + copy>(
         name: vector<u8>,
         description: vector<u8>,
@@ -269,7 +251,37 @@ module nft_protocol::c_nft {
         );
     }
 
-    // TODO: Documentation comments
+    /// Creates `Composable` data, shares it, with the intent of preparing for
+    /// a thunder mint. A thunder mint works like a direct mint, except that it
+    /// takes full advantage of fast broadcast transactions. Composable NFTs
+    /// have themselves a supply, and therefore the parameter `max_supply`
+    /// determines how many NFTs can be minted.
+    ///
+    /// Invokes `mint_and_share_data()`.
+    ///
+    /// Creates a Composable data object for NFT(s) from a `Collection`
+    /// with unregulated supply. Note that regulated collections should use the
+    /// direct mint instead, since they won't be able to tap into fast
+    /// broadcast transactions.
+    ///
+    /// The only way to mint the NFT data for a collection is to give a
+    /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
+    /// given collection if one is the `MintAuthority` owner.
+    ///
+    /// This function call bootstraps the minting of leaf node NFTs in a
+    /// Composable collection with regulated supply. This function does
+    /// not serve to compose Combo objects, but simply to create the
+    /// intial objects that are supposed to give rise to the composability tree.
+    ///
+    /// For a unregulates collections with inderterminate supply, this function
+    /// ought to be called as many times as the owner of the `MintAuthority`
+    /// wants, corresponding to the amount of data objects the Creator wants to
+    /// have for the collection. Once these objects are brought to existance
+    /// the collection creator can start creating composable objects which
+    /// determine which NFTs can be merged and what the supply of those
+    /// configurations are.
+    ///
+    /// To be called by the Witness Module deployed by NFT creator.
     public fun prepare_thunder_mint<T, C: store + copy>(
         name: vector<u8>,
         description: vector<u8>,
@@ -307,15 +319,16 @@ module nft_protocol::c_nft {
         );
     }
 
-    /// Mints loose NFT and transfers it to `recipient`
+    /// Mints loose NFT and transfers it to `recipient`. This is an entry
+    /// function to be called by the client code for direct or thunder mints.
+    /// For launchpad mints, the launchpad calls `nft::mint_nft_loose()`
+    /// directly.
+    ///
     /// Invokes `mint_nft_loose()`.
+    ///
     /// This function call comes after the minting of the leaf node
     /// `Collectibles` data object.
-    ///
-    /// To be called by Launchpad contract
-    /// TODO: The flow here needs to be reconsidered
-    /// TODO: To be deprecated --> calls should be done to the nft module
-    public fun mint<T, C: store + copy>(
+    public entry fun mint<T, C: store + copy>(
         nft_data: &mut Composable<C>,
         recipient: address,
         ctx: &mut TxContext,

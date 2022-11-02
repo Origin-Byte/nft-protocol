@@ -57,16 +57,18 @@ module nft_protocol::collectible {
 
     // === Functions exposed to Witness Module ===
 
-    /// Mints loose NFT `Collectible` data and shares it.
+    /// Mints loose NFT `Collectible` data and shares it, and adds it's `ID` to
+    /// a dedicated launchpad `sale_outlet`. Collectible NFTs have themselves
+    /// a supply, and therefore the parameter `max_supply` determines how many
+    /// NFTs can be minted from the launchpad.
+    ///
     /// Invokes `mint_and_share_data()`.
     ///
-    /// Mints a Collectible data object for NFT(s) from a regulated
-    /// `Collection`.
+    /// Creates a Collectible data object for NFT(s) from a `Collection`
+    /// with regulated supply.
     /// The only way to mint the NFT data for a collection is to give a
     /// reference to [`UID`]. One is only allowed to mint `Nft`s for a
     /// given collection if one is the `MintAuthority` owner.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun prepare_launchpad_mint<T, M: store>(
