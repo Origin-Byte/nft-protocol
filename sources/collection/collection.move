@@ -66,11 +66,6 @@ module nft_protocol::collection {
         /// owners however will still be able to push and pop tags to the
         /// `tags` field.
         is_mutable: bool,
-        /// Field determining the amount of royaly fees in basis points,
-        /// charged in market transactions.
-        /// TODO: It is likely that this field will change as we design
-        /// the royalty enforcement standard
-        royalty_fee_bps: u64,
         creators: vector<Creator>,
         /// ID of `MintAuthority` object
         mint_authority: ID,
@@ -182,7 +177,6 @@ module nft_protocol::collection {
             receiver: args.receiver,
             tags: tags::from_vec_string(&mut args.tags),
             is_mutable: args.is_mutable,
-            royalty_fee_bps: args.royalty_fee_bps,
             creators: vector::empty(),
             mint_authority: mint_object_id,
             metadata: metadata,
@@ -354,14 +348,6 @@ module nft_protocol::collection {
             &mut collection.tags,
             tag_index,
         );
-    }
-
-    /// Change field `royalty_fee_bps` in `Collection`
-    public entry fun change_royalty<T, M: store>(
-        collection: &mut Collection<T, M>,
-        royalty_fee_bps: u64,
-    ) {
-        collection.royalty_fee_bps = royalty_fee_bps;
     }
 
     /// Add a `Creator` to `Collection`
@@ -546,13 +532,6 @@ module nft_protocol::collection {
         collection: &Collection<T, M>,
     ): bool {
         collection.is_mutable
-    }
-
-    /// Get the Collection's `royalty_fee_bps`
-    public fun royalty<T, M: store>(
-        collection: &Collection<T, M>,
-    ): u64 {
-        collection.royalty_fee_bps
     }
 
     /// Get the Collection's `creators`
