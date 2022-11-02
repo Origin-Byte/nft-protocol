@@ -28,6 +28,9 @@ module nft_protocol::orderbook {
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
+    use nft_protocol::royalties;
+
+    struct Witness has drop {}
 
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
@@ -108,7 +111,7 @@ module nft_protocol::orderbook {
         /// How many tokens does the seller want for their NFT in exchange.
         price: u64,
         /// Capability to get an NFT from a safe.
-        nft_cap: TransferCap,
+        transfer_cap: TransferCap,
         /// Who owns the NFT.
         owner: address,
         /// If the NFT is offered via a marketplace or a wallet, the
@@ -142,7 +145,7 @@ module nft_protocol::orderbook {
         /// in Sui yet
         ///
         /// https://github.com/MystenLabs/sui/issues/2083
-        nft_cap: Option<TransferCap>,
+        transfer_cap: Option<TransferCap>,
         buyer: address,
         paid: Balance<FT>,
         commission: Option<AskCommission>,
@@ -155,25 +158,25 @@ module nft_protocol::orderbook {
     /// If the `price` is higher than the lowest ask requested price, then we
     /// execute a trade straight away. Otherwise we add the bid to the
     /// orderbook's state.
-    public entry fun create_bid<W, C: key + store, FT>(
+    public entry fun create_bid<W, C, D: store, FT>(
         book: &mut Orderbook<W, C, FT>,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         assert!(book.protected_actions.create_bid, err::action_not_public());
-        create_bid_(book, price, option::none(), wallet, ctx)
+        create_bid_<W, C, D, FT>(book, price, option::none(), wallet, ctx)
     }
-    public fun create_bid_protected<W: drop, C: key + store, FT>(
+    public fun create_bid_protected<W: drop, C, D: store, FT>(
         _witness: W,
         book: &mut Orderbook<W, C, FT>,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        create_bid_(book, price, option::none(), wallet, ctx)
+        create_bid_<W, C, D, FT>(book, price, option::none(), wallet, ctx)
     }
-    public entry fun create_bid_with_commission<W, C: key + store, FT>(
+    public entry fun create_bid_with_commission<W, C, D: store, FT>(
         book: &mut Orderbook<W, C, FT>,
         price: u64,
         beneficiary: address,
@@ -186,9 +189,11 @@ module nft_protocol::orderbook {
             beneficiary,
             cut: balance::split(coin::balance_mut(wallet), commission_ft),
         };
-        create_bid_(book, price, option::some(commission), wallet, ctx)
+        create_bid_<W, C, D, FT>(
+            book, price, option::some(commission), wallet, ctx,
+        )
     }
-    public fun create_bid_with_commission_protected<W: drop, C: key + store, FT>(
+    public fun create_bid_with_commission_protected<W: drop, C, D: store, FT>(
         _witness: W,
         book: &mut Orderbook<W, C, FT>,
         price: u64,
@@ -201,7 +206,9 @@ module nft_protocol::orderbook {
             beneficiary,
             cut: balance::split(coin::balance_mut(wallet), commission_ft),
         };
-        create_bid_(book, price, option::some(commission), wallet, ctx)
+        create_bid_<W, C, D, FT>(
+            book, price, option::some(commission), wallet, ctx,
+        )
     }
 
     /// Cancel a bid owned by the sender at given price. If there are two bids
@@ -229,36 +236,36 @@ module nft_protocol::orderbook {
     /// there exists a bid with higher offer than `requsted_tokens`, then trade
     /// is immeidately executed. Otherwise the NFT is transferred to a newly
     /// created ask object and the object is inserted to the orderbook.
-    public entry fun create_ask<W, C: key + store, FT, WW>(
+    public entry fun create_ask<W, C, D: store, FT, WW>(
         book: &mut Orderbook<W, C, FT>,
         requsted_tokens: u64,
-        nft_cap: TransferCap,
+        transfer_cap: TransferCap,
         safe: &mut Safe,
         whitelist: &Whitelist<WW>,
         ctx: &mut TxContext,
     ) {
         assert!(book.protected_actions.create_ask, err::action_not_public());
-        create_ask_(
-            book, requsted_tokens, option::none(), nft_cap, safe, whitelist, ctx
+        create_ask_<W, C, D, FT, WW>(
+            book, requsted_tokens, option::none(), transfer_cap, safe, whitelist, ctx
         )
     }
-    public fun create_ask_protected<W: drop, C: key + store, FT, WW>(
+    public fun create_ask_protected<W: drop, C, D: store, FT, WW>(
         _witness: W,
         book: &mut Orderbook<W, C, FT>,
         requsted_tokens: u64,
-        nft_cap: TransferCap,
+        transfer_cap: TransferCap,
         safe: &mut Safe,
         whitelist: &Whitelist<WW>,
         ctx: &mut TxContext,
     ) {
-        create_ask_(
-            book, requsted_tokens, option::none(), nft_cap, safe, whitelist, ctx
+        create_ask_<W, C, D, FT, WW>(
+            book, requsted_tokens, option::none(), transfer_cap, safe, whitelist, ctx
         )
     }
-    public entry fun create_ask_with_commission<W, C: key + store, FT, WW>(
+    public entry fun create_ask_with_commission<W, C, D: store, FT, WW>(
         book: &mut Orderbook<W, C, FT>,
         requsted_tokens: u64,
-        nft_cap: TransferCap,
+        transfer_cap: TransferCap,
         beneficiary: address,
         commission: u64,
         safe: &mut Safe,
@@ -270,21 +277,21 @@ module nft_protocol::orderbook {
             cut: commission,
             beneficiary,
         };
-        create_ask_(
+        create_ask_<W, C, D, FT, WW>(
             book,
             requsted_tokens,
             option::some(commission),
-            nft_cap,
+            transfer_cap,
             safe,
             whitelist,
             ctx,
         )
     }
-    public fun create_ask_with_commission_protected<W: drop, C: key + store, FT, WW>(
+    public fun create_ask_with_commission_protected<W: drop, C, D: store, FT, WW>(
         _witness: W,
         book: &mut Orderbook<W, C, FT>,
         requsted_tokens: u64,
-        nft_cap: TransferCap,
+        transfer_cap: TransferCap,
         beneficiary: address,
         commission: u64,
         safe: &mut Safe,
@@ -295,11 +302,11 @@ module nft_protocol::orderbook {
             cut: commission,
             beneficiary,
         };
-        create_ask_(
+        create_ask_<W, C, D, FT, WW>(
             book,
             requsted_tokens,
             option::some(commission),
-            nft_cap,
+            transfer_cap,
             safe,
             whitelist,
             ctx,
@@ -333,7 +340,7 @@ module nft_protocol::orderbook {
     /// Buys a specific NFT from the orderbook. This is an atypical OB API as
     /// with fungible tokens, you just want to get the cheapest ask.
     /// However, with NFTs, you might want to get a specific one.
-    public entry fun buy_nft<W, C: key + store, FT, WW>(
+    public entry fun buy_nft<W, C, D: store, FT, WW>(
         book: &mut Orderbook<W, C, FT>,
         nft_id: ID,
         price: u64,
@@ -343,9 +350,11 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         assert!(book.protected_actions.buy_nft, err::action_not_public());
-        buy_nft_(book, nft_id, price, wallet, safe, whitelist, ctx)
+        buy_nft_<W, C, D, FT, WW>(
+            book, nft_id, price, wallet, safe, whitelist, ctx
+        )
     }
-    public entry fun buy_nft_protected<W: drop, C: key + store, FT, WW>(
+    public entry fun buy_nft_protected<W: drop, C, D: store, FT, WW>(
         _witness: W,
         book: &mut Orderbook<W, C, FT>,
         nft_id: ID,
@@ -355,7 +364,9 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist<WW>,
         ctx: &mut TxContext,
     ) {
-        buy_nft_(book, nft_id, price, wallet, safe, whitelist, ctx)
+        buy_nft_<W, C, D, FT, WW>(
+            book, nft_id, price, wallet, safe, whitelist, ctx
+        )
     }
 
     /// When a bid is created and there's an ask with a lower price, then the
@@ -363,13 +374,13 @@ module nft_protocol::orderbook {
     /// That's because we don't know the `Safe` ID up front in OB.
     /// Therefore, the tx creates `TradeIntermediate` which then has to be
     /// permission-lessly resolved via this endpoint.
-    public entry fun finish_trade<W, C: key + store, FT, WW>(
+    public entry fun finish_trade<W, C, D: store, FT, WW>(
         trade: &mut TradeIntermediate<W, FT>,
         safe: &mut Safe,
         whitelist: &Whitelist<WW>,
         ctx: &mut TxContext,
     ) {
-        finish_trade_(trade, safe, whitelist, ctx)
+        finish_trade_<W, C, D, FT, WW>(trade, safe, whitelist, ctx)
     }
 
     /// `C`ollection kind of NFTs to be traded, and `F`ungible `T`oken to be
@@ -458,7 +469,7 @@ module nft_protocol::orderbook {
     }
 
     public fun ask_nft(ask: &Ask): &TransferCap {
-        &ask.nft_cap
+        &ask.transfer_cap
     }
 
     public fun ask_owner(ask: &Ask): address {
@@ -479,7 +490,7 @@ module nft_protocol::orderbook {
         }
     }
 
-    fun create_bid_<W, C: key + store, FT>(
+    fun create_bid_<W, C, D: store, FT>(
         book: &mut Orderbook<W, C, FT>,
         price: u64,
         bid_commission: Option<BidCommission<FT>>,
@@ -516,7 +527,7 @@ module nft_protocol::orderbook {
                 id,
                 price: _,
                 owner: _,
-                nft_cap,
+                transfer_cap,
                 commission: ask_commission,
             } = ask;
             object::delete(id);
@@ -524,7 +535,7 @@ module nft_protocol::orderbook {
             // see also `finish_trade` entry point
             share_object(TradeIntermediate<W, FT> {
                 id: object::new(ctx),
-                nft_cap: option::some(nft_cap),
+                transfer_cap: option::some(transfer_cap),
                 commission: ask_commission,
                 buyer,
                 paid: bid_offer,
@@ -603,19 +614,17 @@ module nft_protocol::orderbook {
         option::destroy_none(commission);
     }
 
-    fun create_ask_<W, C: key + store, FT, WW>(
+    fun create_ask_<W, C, D: store, FT, WW>(
         book: &mut Orderbook<W, C, FT>,
         price: u64,
         ask_commission: Option<AskCommission>,
-        nft_cap: TransferCap,
+        transfer_cap: TransferCap,
         safe: &mut Safe,
         whitelist: &Whitelist<WW>,
         ctx: &mut TxContext,
     ) {
-        assert!(
-            object::id(safe) == safe::exclusive_transfer_cap_safe_id(&nft_cap),
-            err::nft_collection_mismatch(),
-        );
+        safe::assert_transfer_cap_of_safe(&transfer_cap, safe);
+        safe::assert_transfer_cap_exlusive(&transfer_cap);
 
         let seller = tx_context::sender(ctx);
 
@@ -644,7 +653,7 @@ module nft_protocol::orderbook {
                 commission: bid_commission,
             } = bid;
 
-            pay_for_nft(
+            pay_for_nft<W, FT>(
                 &mut bid_offer,
                 buyer,
                 &mut ask_commission,
@@ -653,8 +662,13 @@ module nft_protocol::orderbook {
             option::destroy_none(ask_commission);
             balance::destroy_zero(bid_offer);
 
-            let nft = safe::trade_nft_exclusive<W, C>(nft_cap, whitelist, safe);
-            transfer(nft, buyer);
+            safe::transfer_nft_to_recipient<C, D, WW, Witness>(
+                transfer_cap,
+                buyer,
+                Witness {},
+                whitelist,
+                safe,
+            );
 
             transfer_bid_commission(bid_commission, ctx);
         } else {
@@ -663,7 +677,7 @@ module nft_protocol::orderbook {
                 id,
                 price,
                 owner: seller,
-                nft_cap,
+                transfer_cap,
                 commission: ask_commission,
             };
             // store the Ask object
@@ -694,7 +708,7 @@ module nft_protocol::orderbook {
             owner,
             id,
             price: _,
-            nft_cap,
+            transfer_cap,
             commission: _,
         } = remove_ask(
             &mut book.asks,
@@ -705,10 +719,10 @@ module nft_protocol::orderbook {
         assert!(owner != sender, err::order_owner_must_be_sender());
 
         object::delete(id);
-        transfer(nft_cap, sender);
+        transfer(transfer_cap, sender);
     }
 
-    fun buy_nft_<W, C: key + store, FT>(
+    fun buy_nft_<W, C, D: store, FT, WW>(
         book: &mut Orderbook<W, C, FT>,
         nft_id: ID,
         price: u64,
@@ -721,7 +735,7 @@ module nft_protocol::orderbook {
 
         let Ask {
             id,
-            nft_cap,
+            transfer_cap,
             owner: _,
             price: _,
             commission: maybe_commission,
@@ -734,9 +748,7 @@ module nft_protocol::orderbook {
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
 
-        let trade = collection::begin_nft_trade(&book.id, ctx);
-        pay_for_nft(
-            &mut trade,
+        pay_for_nft<W, FT>(
             &mut bid_offer,
             buyer,
             &mut maybe_commission,
@@ -745,11 +757,16 @@ module nft_protocol::orderbook {
         option::destroy_none(maybe_commission);
         balance::destroy_zero(bid_offer);
 
-        let nft = safe::trade_nft_exclusive<W, C>(nft_cap, trade, whitelist, safe);
-        transfer(nft, buyer);
+        safe::transfer_nft_to_recipient<C, D, WW, Witness>(
+            transfer_cap,
+            buyer,
+            Witness {},
+            whitelist,
+            safe,
+        );
     }
 
-    fun finish_trade_<W, C: key + store, FT>(
+    fun finish_trade_<W, C, D: store, FT, WW>(
         trade: &mut TradeIntermediate<W, FT>,
         safe: &mut Safe,
         whitelist: &Whitelist<WW>,
@@ -757,31 +774,31 @@ module nft_protocol::orderbook {
     ) {
         let TradeIntermediate {
             id: _,
-            nft_cap,
-            trade_receipt,
+            transfer_cap,
             paid,
             buyer,
             commission: maybe_commission,
         } = trade;
 
-        let trade = option::extract(trade_receipt);
-        let nft_cap = option::extract(nft_cap);
+        let transfer_cap = option::extract(transfer_cap);
 
-        assert!(
-            object::id(safe) == safe::exclusive_transfer_cap_safe_id(&nft_cap),
-            err::nft_collection_mismatch(),
-        );
+        safe::assert_transfer_cap_of_safe(&transfer_cap, safe);
+        safe::assert_transfer_cap_exlusive(&transfer_cap);
 
-        pay_for_nft(
-            &mut trade,
+        pay_for_nft<W, FT>(
             paid,
             *buyer,
             maybe_commission,
             ctx,
         );
 
-        let nft = safe::trade_nft_exclusive<W, C>(nft_cap, trade, whitelist, safe);
-        transfer(nft, *buyer);
+        safe::transfer_nft_to_recipient<C, D, WW, Witness>(
+            transfer_cap,
+            *buyer,
+            Witness {},
+            whitelist,
+            safe,
+        );
     }
 
     /// Finds an ask of a given NFT advertized for the given price. Removes it
@@ -799,7 +816,7 @@ module nft_protocol::orderbook {
         while (asks_count > index) {
             let ask = vector::borrow(price_level, index);
             // on the same price level, we search for the specified NFT
-            if (nft_id == safe::exclusive_transfer_cap_nft_id(&ask.nft_cap)) {
+            if (nft_id == safe::transfer_cap_nft(&ask.transfer_cap)) {
                 break
             };
 
@@ -812,7 +829,6 @@ module nft_protocol::orderbook {
     }
 
     fun pay_for_nft<W, FT>(
-        trade: &mut TradeReceipt<W>,
         paid: &mut Balance<FT>,
         buyer: address,
         maybe_commission: &mut Option<AskCommission>,
@@ -827,25 +843,29 @@ module nft_protocol::orderbook {
                 cut, beneficiary,
             } = option::extract(maybe_commission);
 
+            // associates both payments with each other
+            let trade = object::new(ctx);
+
             // `p` - `c` goes to seller
-            collection::add_nft_payment(
-                trade,
+            royalties::create_with_trade<W, FT>(
                 balance::split(paid, amount - cut),
                 buyer,
+                object::uid_to_inner(&trade),
                 ctx,
             );
             // `c` goes to the marketplace
-            collection::add_nft_payment(
-                trade,
+            royalties::create_with_trade<W, FT>(
                 balance::split(paid, cut),
                 beneficiary,
+                object::uid_to_inner(&trade),
                 ctx,
             );
+
+            object::delete(trade);
         } else {
             // no commission, all `p` goes to seller
 
-            collection::add_nft_payment(
-                trade,
+            royalties::create<W, FT>(
                 balance::split(paid, amount),
                 buyer,
                 ctx,

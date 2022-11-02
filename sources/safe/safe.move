@@ -432,6 +432,10 @@ module nft_protocol::safe {
         assert!(!ref.is_exlusively_listed, err::nft_exlusively_listed());
     }
 
+    public fun assert_transfer_cap_exlusive(cap: &TransferCap) {
+        assert!(cap.is_exlusive, err::nft_not_exlusively_listed());
+    }
+
     public fun assert_version_match(ref: &NftRef, cap: &TransferCap) {
         assert!(ref.version == cap.version, err::transfer_cap_expired());
     }

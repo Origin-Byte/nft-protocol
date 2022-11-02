@@ -134,6 +134,10 @@ module nft_protocol::err {
         return Prefix + 305
     }
 
+    public fun nft_not_exlusively_listed(): u64 {
+        return Prefix + 306
+    }
+
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
@@ -154,15 +158,7 @@ module nft_protocol::err {
         return Prefix + 501
     }
 
-    public fun nft_collection_mismatch(): u64 {
-        return Prefix + 502
-    }
-
-    public fun nft_id_mismatch(): u64 {
-        return Prefix + 503
-    }
-
     public fun action_not_public(): u64 {
-        return Prefix + 504
+        return Prefix + 502
     }
 }
