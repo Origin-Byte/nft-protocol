@@ -15,7 +15,6 @@ module nft_protocol::orderbook {
 
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
-    // TODO: assert transfer cap exlusive
 
     use nft_protocol::crit_bit::{Self, CB as CBTree};
     use nft_protocol::err;
