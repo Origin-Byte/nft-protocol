@@ -226,14 +226,13 @@ module nft_protocol::safe {
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
     public fun transfer_nft_to_recipient<T, D: store, WW, Auth: drop>(
-        nft_id: ID,
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
         whitelist: &Whitelist<WW>,
         safe: &mut Safe,
     ) {
-        let nft = get_nft_for_transfer_<T, D>(nft_id, transfer_cap, safe);
+        let nft = get_nft_for_transfer_<T, D>(transfer_cap, safe);
 
         nft::transfer(nft, recipient, authority, whitelist);
     }
@@ -246,7 +245,6 @@ module nft_protocol::safe {
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
     public fun transfer_nft_to_safe<T, D: store, WW, Auth: drop>(
-        nft_id: ID,
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
@@ -255,7 +253,7 @@ module nft_protocol::safe {
         target: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        let nft = get_nft_for_transfer_<T, D>(nft_id, transfer_cap, source);
+        let nft = get_nft_for_transfer_<T, D>(transfer_cap, source);
 
         nft::change_logical_owner(&mut nft, recipient, authority, whitelist);
         deposit_nft(nft, target, ctx);
@@ -356,10 +354,11 @@ module nft_protocol::safe {
     }
 
     fun get_nft_for_transfer_<T, D: store>(
-        nft_id: ID,
         transfer_cap: TransferCap,
         safe: &mut Safe,
     ): Nft<T, D> {
+        let nft_id = transfer_cap.nft;
+
         event::emit(
             TransferEvent {
                 safe: object::id(safe),
