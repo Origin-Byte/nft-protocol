@@ -1,4 +1,4 @@
-- Sui v0.12.1
+- Sui v0.14.0
 
 # Install
 
@@ -24,6 +24,7 @@ Considering the broad range of NFT use cases, there are situations in which we w
 - We can separate the NFT object from its Data object, hence allowing the Data object itself to be shared and mutated accordingly
 
 In the OriginByte protocol, an `NFT` object is a hybrid object that can take two shapes:
+
 - The shape of an NFT that embeds is own data, aka an Embedded NFT;
 - The shape of an NFT which does not embed its own data and contains solely a pointer to its data object, aka a Loose NFT.
 
@@ -113,18 +114,18 @@ When minting an NFT, you need to pass on a mutable reference to the Collection o
 
 The collection object, `Collection<phantom T, M: store>`, has the following data model:
 
-| Field            | Type          | Description |
-| ---------------- | ------------- | ----------- |
-| `id`             | `UID`         | The UID of the collection object |
-| `name`           | `String`      | The name of the collection |
-| `description`    | `String`      | The description of the collection |
-| `symbol`         | `String`      | The symbol/ticker of the collection |
-| `receiver`       | `address`     | Address that receives the royalty proceeds |
-| `tags`           | `Tags`        | A set of strings that categorize the domain in which the NFT operates |
-| `is_mutable`     | `bool`        | A configuration field that dictates whether NFTs are mutable |
-| `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs * |
-| `creators`        | `vector<Creator>` | A vector containing the information of the creators |
-| `metadata`       | `M`        | A generic type representing the metadata object embedded in the NFT collection |
+| Field             | Type              | Description                                                                    |
+| ----------------- | ----------------- | ------------------------------------------------------------------------------ |
+| `id`              | `UID`             | The UID of the collection object                                               |
+| `name`            | `String`          | The name of the collection                                                     |
+| `description`     | `String`          | The description of the collection                                              |
+| `symbol`          | `String`          | The symbol/ticker of the collection                                            |
+| `receiver`        | `address`         | Address that receives the royalty proceeds                                     |
+| `tags`            | `Tags`            | A set of strings that categorize the domain in which the NFT operates          |
+| `is_mutable`      | `bool`            | A configuration field that dictates whether NFTs are mutable                   |
+| `royalty_fee_bps` | `u64`             | The royalty fees creators accumulate on the sale of NFTs \*                    |
+| `creators`        | `vector<Creator>` | A vector containing the information of the creators                            |
+| `metadata`        | `M`               | A generic type representing the metadata object embedded in the NFT collection |
 
 - `royalty_fee_bps` is currently not being utilized but will be used in the standard launchpad module.
 
@@ -136,12 +137,12 @@ Where `Creators` is a struct with the following fields:
 - `verified` which is a bool value that represents if the creator address has been verified via signed transaction (this functionality is still not implemented)
 - `share_of_royalty` as the percentage share that the creator has over `royalty_fee_bps`.
 
-
 The function associated to the intial creation of the Collection is meant to be called by the standard collection `std_collection` contract:
 
 - `mint` which mints a collection object, with or without regulated supply, mints a `MintAuthority` object and transfers it to the `recipient`, and returns the collection object. The `MintAuthority` object is meant to be owned by the creators and gives them the power to either minting the NFTs (embeeded) or mint the associated data objects (loose).
 
 The contract also exposes the following entry function to be called by the client code:
+
 - `burn_regulated` to delete a collection provided that the current supply is zero
 - `freeze_collection` (irreversible)
 - `rename`
@@ -193,10 +194,10 @@ The following entry functions can be called directly by the client code:
 
 Generic NFT object, `Nft<phantom T, D: store>`, has the following data model:
 
-| Field     | Type        | Description |
-| --------- | ----------- | ----------- |
-| `id`      | `UID`       | The UID of the generic NFT object |
-| `data_id` | `ID`        | A pointer to the collection object |
+| Field     | Type        | Description                                                               |
+| --------- | ----------- | ------------------------------------------------------------------------- |
+| `id`      | `UID`       | The UID of the generic NFT object                                         |
+| `data_id` | `ID`        | A pointer to the collection object                                        |
 | `data`    | `Option<D>` | An optional generic type representing the data object embedded in the NFT |
 
 All functions associated to this module are meant to be called by the upstream modules (i.e. Unique NFT, Collectible, cNFT modules). It has the following functions:
@@ -216,14 +217,14 @@ The Unique NFT type is the our plain-vanilla type. It's the right type for a col
 
 Unique NFT data object, `Unique`, has the following data model:
 
-| Field           | Type         | Description                                              |
-| --------------- | ------------ | -------------------------------------------------------- |
-| `id`            | `UID`        | The UID of the NFT metadata object                       |
-| `name`          | `String`     | Name of the NFT object                                   |
-| `description`   | `String`     | Description of the NFT object                            |
-| `collection_id` | `ID`         | ID pointer to Collection object                          |
-| `url`           | `Url`        | The URL of the NFT                                       |
-| `attributes`    | `Attributes` | Attributes of a given NFT                                |
+| Field           | Type         | Description                        |
+| --------------- | ------------ | ---------------------------------- |
+| `id`            | `UID`        | The UID of the NFT metadata object |
+| `name`          | `String`     | Name of the NFT object             |
+| `description`   | `String`     | Description of the NFT object      |
+| `collection_id` | `ID`         | ID pointer to Collection object    |
+| `url`           | `Url`        | The URL of the NFT                 |
+| `attributes`    | `Attributes` | Attributes of a given NFT          |
 
 Where `Attributes` is a struct with the field `keys`, the attribute keys represented as string vector, in other words the set of traits (e.g. Hat, Color of T-shirt, Fur type, etc.) and NFT has, and `values` of such traits (e.g. Straw Hat, White T-shirt, Blue Fur, etc.).
 
@@ -242,11 +243,10 @@ The following entry functions can be called directly via the Unique NFT module:
 
 The Collectible NFT type is perfect for representing digital collectibles that aren’t typically unique.
 
-It can be used to create collectibles like baseball or football cards, where each card has its own supply (i.e. The better the player the rarer the card). This is enabled by utilizing a Loose NFT implementation,  which separates the data object from the NFTs themselves.
+It can be used to create collectibles like baseball or football cards, where each card has its own supply (i.e. The better the player the rarer the card). This is enabled by utilizing a Loose NFT implementation, which separates the data object from the NFTs themselves.
 
 Example:
 For a collection of 100 different baseball cards, the NFT creator will create 100 data objects, with each representing a different card. Each card will have its own supply and once the data objects are minted by the NFT creators, users can come in and mint the NFTs.
-
 
 Collectible NFT data object, `Collectible`, has the following data model:
 
@@ -290,15 +290,16 @@ Alternatively, in a conventional NFT collection, cNFTs could be used by creators
 
 Composable NFT (cNFT) data object, `Composable<C: store + copy>`, has the following data model:
 
-| Field           | Type            | Description|
-| --------------- | --------------- | -----------|
-| `id`            | `UID`           | The UID of the NFT metadata object |
-| `data`          | `Option<Data>`  | Composable `Data` objects can have some `Data` struct attached to it. Currently, only the objects at the leaf nodes of the composability tree have `Data` whilst the others have `option::none() |
-| `collection_id` | `ID`            | The ID of the NFT Collection |
+| Field           | Type            | Description                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | `UID`           | The UID of the NFT metadata object                                                                                                                                                                                                                                                                                                                                                  |
+| `data`          | `Option<Data>`  | Composable `Data` objects can have some `Data` struct attached to it. Currently, only the objects at the leaf nodes of the composability tree have `Data` whilst the others have `option::none()                                                                                                                                                                                    |
+| `collection_id` | `ID`            | The ID of the NFT Collection                                                                                                                                                                                                                                                                                                                                                        |
 | `supply`        | `Supply`        | Each composable has its own supply. This allows for configuration scarcity. If two objects, both with a supply of 10, merge to produce a composably of both, this composable object can have its own supply. This means that even if both leaf node objects have supply of 10, if the supply of the root node composable object is 5 then the NFTs can only be merge up to 5 times. |
-| `componenets`   | `VecMap<ID, C>` | A VecMap storing a list of `C` structs which represent cloned versions of the constituent objects. These structs do not have key ability and can be copied for the sake of clonability. It is structured as VecMap such that we can have the original object `ID`s as the key for each `C` |
+| `componenets`   | `VecMap<ID, C>` | A VecMap storing a list of `C` structs which represent cloned versions of the constituent objects. These structs do not have key ability and can be copied for the sake of clonability. It is structured as VecMap such that we can have the original object `ID`s as the key for each `C`                                                                                          |
 
 The `Data` objects have the following fields:
+
 - `name`
 - `description`
 - `url`
@@ -312,6 +313,7 @@ All functions associated to the initial creation of the constituent NFT Data obj
 The minting of the constituent NFTs themselves occurs in the launchpad phase, via the function call `nft::mint_loose_nft`. The minting of the Combo NFTs occurs at a later phase when NFT owners decide to merge the NFTs they own.
 
 And has the following entry functions to be called directly by the client code:
+
 - `compose_data_objects` is a permissioned method to be called by the NFT creators, creating combo data objects. Combo objects serve as a mechanism to describe which NFTs can be merged. Merging two NFTs is only allowed if there is an associated combo object for such merger.
 - `mint_c_nft` is responsible for merging NFTs and transfering the Combo NFT to the owner.
 - `split_c_nft` performs the opposite action of `mint_c_nft`. It burns the Combo NFT and returns the constituent NFTs back to the owner.
@@ -323,16 +325,15 @@ In order for NFT creators to better control the flow of creating and releasing N
 
 The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 
-| Field           | Type                 | Description |
-| --------------- | -------------------- | ----------- |
-| `id`            | `UID`                | The UID of the Slingshot object |
-| `collection_id` | `ID`                 | The ID of the NFT Collection object |
-| `live`          | `bool`               | Boolean indicating if the sale is live |
-| `admin`         | `address`            | The address of the administrator |
-| `receiver`      | `address`            | The address of the receiver of funds |
+| Field           | Type                 | Description                                                                     |
+| --------------- | -------------------- | ------------------------------------------------------------------------------- |
+| `id`            | `UID`                | The UID of the Slingshot object                                                 |
+| `collection_id` | `ID`                 | The ID of the NFT Collection object                                             |
+| `live`          | `bool`               | Boolean indicating if the sale is live                                          |
+| `admin`         | `address`            | The address of the administrator                                                |
+| `receiver`      | `address`            | The address of the receiver of funds                                            |
 | `sales`         | `vector<Sale<T, M>>` | Vector of all Sale outleds that, each outles holding IDs owned by the slingshot |
-| `is_embedded`   | `bool`               | Field determining if NFTs are embedded or loose |
-
+| `is_embedded`   | `bool`               | Field determining if NFTs are embedded or loose                                 |
 
 All functions associated to creation and deletion of the Launchpad are meant to be called by the upstream modules (i.e. currently only the Fixed Price module):
 
@@ -340,10 +341,12 @@ All functions associated to creation and deletion of the Launchpad are meant to 
 - `delete` to destroy the Slingshot launchpad (called by the market module)
 
 Whereas entry functions associated to redeeming the NFTs can be called directly by the client code:
+
 - `claim_nft_embedded` to redeem an embedded NFT
 - `claim_nft_loose` to redeem a loose NFT
 
 Note: One can only claim an NFT after having bought the NFT certificate from the sale. This action occurs directly in the market module.
+
 ### Fixed Price Market
 
 The Fixed Price Market object, `Market`, has the following data model:
@@ -364,6 +367,7 @@ The market modules also have entry functions that are meant to be called directl
 - `buy_whitelisted_nft_certificate` to buy an NFT certificate from a whitelisted Sales outlet
 
 In addition, the administrator of the Launchpad can call the following function:
+
 - `new_price` permissioned entry function to change the price of the sale
 
 ## Guides for NFT Creators, Wallets and Marketplaces
