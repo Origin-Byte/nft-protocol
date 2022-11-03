@@ -7,6 +7,8 @@ pub enum GutenError {
     MissingField,
     #[error("A field seems to have the wrong format")]
     WrongFormat,
+    #[error("Sale outlet parameters must have the same length")]
+    MismatchedOutletParams,
     #[error("Parsing error has occured")]
     SerdeYaml(serde_yaml::Error),
     #[error("An IO error has occured")]

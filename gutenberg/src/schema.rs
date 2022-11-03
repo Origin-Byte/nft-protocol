@@ -86,7 +86,7 @@ impl Schema {
 
         let tags = self.write_tags();
 
-        let (mut prices, mut whitelists) = self.get_sale_outlets();
+        let (mut prices, mut whitelists) = self.get_sale_outlets()?;
 
         let sale_type = if prices.len() == 1 {
             "create_single_market"
@@ -173,10 +173,16 @@ impl Schema {
             .into_boxed_str()
     }
 
-    pub fn get_sale_outlets(&self) -> (Vec<u64>, Vec<bool>) {
+    pub fn get_sale_outlets(
+        &self,
+    ) -> Result<(Vec<u64>, Vec<bool>), GutenError> {
         match &self.launchpad.market_type {
             MarketType::FixedPrice { prices, whitelists } => {
-                (prices.clone(), whitelists.clone())
+                if prices.len() != whitelists.len() {
+                    return Err(GutenError::MismatchedOutletParams);
+                }
+
+                Ok((prices.clone(), whitelists.clone()))
             }
         }
     }

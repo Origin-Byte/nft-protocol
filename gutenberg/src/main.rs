@@ -17,7 +17,7 @@ struct Opt {
 fn main() -> Result<(), GutenError> {
     let opt = Opt::parse_args_default_or_exit();
 
-    let f = std::fs::File::open("config.yaml")?;
+    let f = std::fs::File::open(opt.config)?;
     let schema = serde_yaml::from_reader::<_, Schema>(f)?;
 
     let output = opt.path.unwrap_or_else(|| {
