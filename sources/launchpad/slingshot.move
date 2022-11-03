@@ -12,6 +12,7 @@ module nft_protocol::slingshot {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
+    use sui::dynamic_object_field;
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::err;
@@ -127,11 +128,14 @@ module nft_protocol::slingshot {
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft_embedded<T, M: store, D: store>(
-        slingshot: &Slingshot<T, M>,
-        nft: Nft<T, D>,
+        slingshot: &mut Slingshot<T, M>,
+        nft_id: ID,
         certificate: NftCertificate,
         recipient: address,
     ) {
+        let nft: Nft<T, D> =
+            dynamic_object_field::remove(&mut slingshot.id, nft_id);
+
         assert!(
             nft::id(&nft) == sale::nft_id(&certificate),
             err::certificate_does_not_correspond_to_nft_given()
@@ -210,6 +214,18 @@ module nft_protocol::slingshot {
         sale: Sale<T, M>
     ) {
         vector::push_back(&mut slingshot.sales, sale);
+    }
+
+    /// Adds NFT as a dynamic child object with its ID as key.
+    public fun mint_nft_to<T, M, D: store>(
+        slingshot: &mut Slingshot<T, M>,
+        nft: Nft<T, D>,
+    ) {
+        dynamic_object_field::add(
+            &mut slingshot.id,
+            object::id(&nft),
+            nft,
+        );
     }
 
     // === Getter Functions ===

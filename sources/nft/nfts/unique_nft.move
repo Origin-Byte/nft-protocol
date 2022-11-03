@@ -375,10 +375,7 @@ module nft_protocol::unique_nft {
 
         sale::add_nft<T, M>(sale, nft::id(&nft));
 
-        transfer::transfer_to_object(
-            nft,
-            launchpad,
-        );
+        slingshot::mint_nft_to(launchpad, nft);
     }
 
     fun burn_nft_<T>(
