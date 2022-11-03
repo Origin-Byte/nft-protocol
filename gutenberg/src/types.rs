@@ -3,10 +3,10 @@
 //! String but should match to a value in a given Enum. Such Enums represent
 //! the type of NFTs available or the type of Markets available on our
 //! OriginByte protocol.
-use std::str::FromStr;
+use serde::Deserialize;
 
 /// Enum representing the NFT types currently available in the protocol
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub enum NftType {
     // TODO: Need to add support for Soulbound
     Unique,
@@ -20,23 +20,6 @@ pub enum FieldType {
     StrLit,
     Bool,
     Number,
-}
-
-impl FromStr for NftType {
-    type Err = ();
-
-    fn from_str(input: &str) -> Result<NftType, Self::Err> {
-        match input {
-            "Unique" => Ok(NftType::Unique),
-            "Collectible" => Ok(NftType::Collectible),
-            "CNft" => Ok(NftType::CNft),
-            _ => {
-                println!("The NftType provided is not supported");
-
-                Err(())
-            }
-        }
-    }
 }
 
 impl NftType {
@@ -156,27 +139,33 @@ pub enum SalesType {
     MultiMarket,
 }
 
+#[derive(Deserialize)]
+#[serde(tag = "market_type", rename_all = "snake_case")]
 pub enum MarketType {
-    FixedPriceMarket { sales: Vec<FixedPrice> },
+    FixedPrice {
+        prices: Vec<u64>,
+        whitelists: Vec<bool>,
+    },
+    Auction {
+        reserve_prices: Vec<u64>,
+        whitelists: Vec<bool>,
+    },
 }
 
 impl MarketType {
     pub fn market_type(&self) -> Box<str> {
-        "FixedPriceMarket".to_string().into_boxed_str()
+        match self {
+            MarketType::FixedPrice { .. } => "FixedPriceMarket",
+            MarketType::Auction { .. } => "AuctionMarket",
+        }
+        .into()
     }
 
     pub fn market_module(&self) -> Box<str> {
-        "fixed_price".to_string().into_boxed_str()
-    }
-}
-
-pub struct FixedPrice {
-    pub price: u64,
-    pub whitelist: bool,
-}
-
-impl FixedPrice {
-    pub fn new(price: u64, whitelist: bool) -> Self {
-        FixedPrice { price, whitelist }
+        match self {
+            MarketType::FixedPrice { .. } => "fixed_price",
+            MarketType::Auction { .. } => "auction",
+        }
+        .into()
     }
 }

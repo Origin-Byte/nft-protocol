@@ -43,6 +43,7 @@ module nft_protocol::suimonsters {
         vector::push_back(&mut pricing, 2000);
         vector::push_back(&mut pricing, 3000);
         vector::push_back(&mut pricing, 4000);
+        vector::push_back(&mut pricing, 5000);
 
         
         fixed_price::create_multi_market(
