@@ -11,7 +11,6 @@ fn example_schema() {
         .map(Result::unwrap)
         .map(|dir| {
             let config = File::open(dir.path()).unwrap();
-            dbg!(&config);
             assert_schema(config);
         })
         .collect::<()>()
@@ -42,10 +41,8 @@ fn assert_schema(config: File) -> Schema {
 
 /// Asserts that the generated file matches the expected output
 fn assert_equal(config: File, expected: String) {
-    let schema = assert_schema(config);
-
     let mut output = Vec::new();
-    schema.write_move(&mut output).unwrap();
+    assert_schema(config).write_move(&mut output).unwrap();
     let output = String::from_utf8(output).unwrap();
 
     pretty_assertions::assert_eq!(output, expected);
