@@ -146,17 +146,12 @@ pub enum MarketType {
         prices: Vec<u64>,
         whitelists: Vec<bool>,
     },
-    Auction {
-        reserve_prices: Vec<u64>,
-        whitelists: Vec<bool>,
-    },
 }
 
 impl MarketType {
     pub fn market_type(&self) -> Box<str> {
         match self {
             MarketType::FixedPrice { .. } => "FixedPriceMarket",
-            MarketType::Auction { .. } => "AuctionMarket",
         }
         .into()
     }
@@ -164,7 +159,6 @@ impl MarketType {
     pub fn market_module(&self) -> Box<str> {
         match self {
             MarketType::FixedPrice { .. } => "fixed_price",
-            MarketType::Auction { .. } => "auction",
         }
         .into()
     }

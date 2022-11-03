@@ -178,10 +178,6 @@ impl Schema {
             MarketType::FixedPrice { prices, whitelists } => {
                 (prices.clone(), whitelists.clone())
             }
-            MarketType::Auction {
-                reserve_prices,
-                whitelists,
-            } => (reserve_prices.clone(), whitelists.clone()),
         }
     }
 
