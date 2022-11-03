@@ -4,8 +4,7 @@ module nft_protocol::suimarines {
     use std::vector;
 
     use nft_protocol::collection::{MintAuthority};
-    use nft_protocol::fixed_price::{Self, FixedPriceMarket};
-    use nft_protocol::slingshot::Slingshot;
+    use nft_protocol::fixed_price;
     use nft_protocol::std_collection;
     use nft_protocol::unique_nft;
 
@@ -50,8 +49,6 @@ module nft_protocol::suimarines {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         mint_authority: &mut MintAuthority<SUIMARINES>,
-        sale_index: u64,
-        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
         unique_nft::mint_regulated_nft_data(

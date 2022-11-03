@@ -18,7 +18,7 @@ module nft_protocol::sale {
 
     use nft_protocol::err;
 
-    struct Sale<phantom T, Market> has key, store{
+    struct Sale<phantom T, Market> has key, store {
         id: UID,
         tier_index: u64,
         whitelisted: bool,
