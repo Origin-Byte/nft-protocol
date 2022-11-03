@@ -7,17 +7,22 @@ use crate::err::*;
 use crate::prelude::*;
 use crate::schema::*;
 
-#[derive(Debug, StructOpt)]
+use gumdrop::Options;
+
+#[derive(Debug, Options)]
 struct Opt {
-    /// Output file path, stdout if not present
-    #[structopt(parse(from_os_str))]
+    #[options(help = "print help message")]
+    help: bool,
+    #[options(help = "output file path, stdout if not present")]
     path: Option<PathBuf>,
+    #[options(help = "configuration file", default = "config.yaml")]
+    config: PathBuf,
 }
 
 fn main() -> Result<(), GutenError> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse_args_default_or_exit();
 
-    let f = std::fs::File::open("config.yaml")?;
+    let f = std::fs::File::open(opt.config)?;
 
     let yaml: serde_yaml::Value = serde_yaml::from_reader(f)?;
 
