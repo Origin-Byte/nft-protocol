@@ -319,7 +319,7 @@ module nft_protocol::c_nft {
         );
     }
 
-    /// Mints loose NFT and transfers it to `recipient`. This is an entry
+    /// Mints Composable NFT and transfers it to `recipient`. This is an entry
     /// function to be called by the client code for direct or thunder mints.
     /// For launchpad mints, the launchpad calls `nft::mint_nft_loose()`
     /// directly.
@@ -327,7 +327,7 @@ module nft_protocol::c_nft {
     /// Invokes `mint_nft_loose()`.
     ///
     /// This function call comes after the minting of the leaf node
-    /// `Collectibles` data object.
+    /// `Composable` data object.
     public entry fun mint<T, C: store + copy>(
         nft_data: &mut Composable<C>,
         recipient: address,
@@ -583,7 +583,7 @@ module nft_protocol::c_nft {
         &data.attributes
     }
 
-    /// Get the Nft Collectible's `attributes.keys`
+    /// Get the Nft Composable's `attributes.keys`
     public fun attribute_keys<C: store + copy>(
         comp: &Composable<C>,
     ): &vector<String> {
@@ -591,7 +591,7 @@ module nft_protocol::c_nft {
         &data.attributes.keys
     }
 
-    /// Get the Nft Collectible's `attributes.values`
+    /// Get the Nft Composable's `attributes.values`
     public fun attribute_values<C: store + copy>(
         comp: &Composable<C>,
     ): &vector<String> {
