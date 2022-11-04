@@ -50,6 +50,7 @@ version = "0.1.0"
 dependencies = [
  "gumdrop",
  "pretty_assertions",
+ "serde",
  "serde_yaml",
  "strfmt",
  "thiserror",
@@ -127,6 +128,20 @@ name = "serde"
 version = "1.0.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d193d69bae983fc11a79df82342761dfbf28a99fc8d203dca4c3c1b590948965"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.147"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f1d362ca8fc9c3e3a7484440752472d68a6caa98f1ab81d99b5dfe517cec852"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "serde_yaml"
