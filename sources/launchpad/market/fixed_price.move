@@ -286,7 +286,7 @@ module nft_protocol::fixed_price {
     /// of the launchpad configuration.
     public entry fun new_price<T>(
         slingshot: &mut Slingshot<T, FixedPriceMarket>,
-        sale_index: u64,
+        sale_outlet: u64,
         new_price: u64,
         ctx: &mut TxContext,
     ) {
@@ -295,7 +295,7 @@ module nft_protocol::fixed_price {
             err::wrong_launchpad_admin()
         );
 
-        let sale = slingshot::sale_mut(slingshot, sale_index);
+        let sale = slingshot::sale_mut(slingshot, sale_outlet);
 
         sale::market_mut(sale).price = new_price;
     }

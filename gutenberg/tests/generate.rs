@@ -34,6 +34,24 @@ fn collectible() {
     assert_equal(config, expected);
 }
 
+#[test]
+fn c_nft() {
+    let config = File::open("./examples/c_nft.yaml").unwrap();
+    let expected =
+        fs::read_to_string("../sources/examples/suricannes.move").unwrap();
+
+    assert_equal(config, expected);
+}
+
+#[test]
+fn simple() {
+    let config = File::open("./examples/simple.yaml").unwrap();
+    let expected =
+        fs::read_to_string("../sources/examples/suimarines.move").unwrap();
+
+    assert_equal(config, expected);
+}
+
 /// Asserts that the config file has correct schema
 fn assert_schema(config: File) -> Schema {
     serde_yaml::from_reader::<_, Schema>(config).unwrap()

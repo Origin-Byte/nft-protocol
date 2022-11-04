@@ -16,4 +16,4 @@ Collection:
 Launchpad:
   market_type: "fixed_price"
   prices: [1000, 2000, 3000, 4000, 5000]
-  whitelists: [false, true, true, true]
+  whitelists: [false, true, true, true, true]

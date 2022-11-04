@@ -99,20 +99,12 @@ impl Schema {
         let define_whitelists = Schema::write_whitelists(&mut whitelists)?;
         let define_prices = Schema::write_prices(&mut prices)?;
 
-        let market_module_imports = if is_embedded {
-            format!("::{{Self, {}}}", market_type)
-        } else {
-            "".to_string()
-        }
-        .into_boxed_str();
+        let market_module_imports =
+            format!("::{{Self, {}}}", market_type).into_boxed_str();
 
-        let slingshot_import = if is_embedded {
-            "use nft_protocol::slingshot::Slingshot;"
-        } else {
-            ""
-        }
-        .to_string()
-        .into_boxed_str();
+        let slingshot_import = "use nft_protocol::slingshot::Slingshot;"
+            .to_string()
+            .into_boxed_str();
 
         let mint_func = self
             .nft_type
