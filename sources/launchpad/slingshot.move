@@ -14,7 +14,7 @@ module nft_protocol::slingshot {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_object_field;
 
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::err;
     use nft_protocol::sale::{Self, Sale, NftCertificate};
 
@@ -137,8 +137,8 @@ module nft_protocol::slingshot {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        let nft: Nft<T, D> =
-            dynamic_object_field::remove(&mut slingshot.id, nft_id);
+        // let nft: Nft<T, D> =
+        //     dynamic_object_field::remove(&mut slingshot.id, nft_id);
 
         assert!(
             object::id(&nft_data) == sale::nft_id(&certificate),

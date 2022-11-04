@@ -139,7 +139,7 @@ module nft_protocol::c_nft {
     /// and what the supply of those configurations are.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun prepare_launchpad_mint<T, C: store + copy, M>(
+    public fun prepare_launchpad_mint<T, M, C: store + copy>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,

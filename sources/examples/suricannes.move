@@ -1,10 +1,10 @@
-module nft_protocol::suinamis {
+module nft_protocol::suricannes {
     use std::vector;
 
     use sui::tx_context::{Self, TxContext};
 
     // NFT Modules
-    use nft_protocol::collectible;
+    use nft_protocol::c_nft;
     use nft_protocol::std_collection;
     use nft_protocol::collection::{MintAuthority};
 
@@ -12,17 +12,17 @@ module nft_protocol::suinamis {
     use nft_protocol::slingshot::Slingshot;
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
 
-    struct SUINAMIS has drop {}
+    struct SURICANNES has drop {}
 
-    fun init(witness: SUINAMIS, ctx: &mut TxContext) {
+    fun init(witness: SURICANNES, ctx: &mut TxContext) {
         let tags: vector<vector<u8>> = vector::empty();
         vector::push_back(&mut tags, b"Art");
         vector::push_back(&mut tags, b"PFP");
 
-        let collection_id = std_collection::mint<SUINAMIS>(
-            b"Suinamis",
-            b"A Unique NFT collection of Suinamis on Sui",
-            b"SUIN", // symbol
+        let collection_id = std_collection::mint<SURICANNES>(
+            b"Suricannes",
+            b"A Unique NFT collection of Hurricanes on Sui",
+            b"SURI", // symbol
             100, // max_supply
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // Royalty receiver
             tags,
@@ -55,12 +55,12 @@ module nft_protocol::suinamis {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         max_supply: u64,
-        mint: &mut MintAuthority<SUINAMIS>,
+        mint: &mut MintAuthority<SURICANNES>,
         sale_outlet: u64,
-        launchpad: &mut Slingshot<SUINAMIS, FixedPriceMarket>,
+        launchpad: &mut Slingshot<SURICANNES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
-        collectible::prepare_launchpad_mint<SUINAMIS, FixedPriceMarket>(
+        c_nft::prepare_launchpad_mint<SURICANNES, FixedPriceMarket, c_nft::Data>(
             name,
             description,
             url,

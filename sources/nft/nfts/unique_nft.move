@@ -15,6 +15,8 @@ module nft_protocol::unique_nft {
     use sui::url::{Self, Url};
 
     use nft_protocol::err;
+    use nft_protocol::sale;
+    use nft_protocol::slingshot::{Self, Slingshot};
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply_policy;
@@ -72,13 +74,15 @@ module nft_protocol::unique_nft {
     /// ought to be called 100 times in total to mint such objects.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun prepare_launchpad_mint<T>(
+    public fun prepare_launchpad_mint<T, M>(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         mint: &mut MintAuthority<T>,
+        sale_outlet: u64,
+        launchpad: &mut Slingshot<T, M>,
         ctx: &mut TxContext,
     ) {
         // Assert that it has regulated supply policy
@@ -97,10 +101,21 @@ module nft_protocol::unique_nft {
 
         collection::increment_supply(mint, 1);
 
+        let data_uid = object::new(ctx);
+        let data_id = object::uid_to_inner(&data_uid);
+
         mint_and_share_data(
+            data_uid,
             args,
             collection::mint_collection_id(mint),
-            ctx,
+        );
+
+        let sale = slingshot::sale_mut(launchpad, sale_outlet);
+
+        sale::add_nft<T, M>(
+            sale,
+            data_id,
+            1
         );
     }
 
@@ -322,12 +337,10 @@ module nft_protocol::unique_nft {
     }
 
     fun mint_and_share_data(
+        data_id: UID,
         args: MintArgs,
         collection_id: ID,
-        ctx: &mut TxContext,
     ) {
-        let data_id = object::new(ctx);
-
         event::emit(
             MintDataEvent {
                 object_id: object::uid_to_inner(&data_id),
