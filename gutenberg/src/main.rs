@@ -1,11 +1,6 @@
-pub mod err;
-pub mod prelude;
-pub mod schema;
-pub mod types;
-
-use crate::err::*;
-use crate::prelude::*;
-use crate::schema::*;
+use gutenberg::err::*;
+use gutenberg::prelude::*;
+use gutenberg::schema::*;
 
 use gumdrop::Options;
 
@@ -28,7 +23,21 @@ fn main() -> Result<(), GutenError> {
 
     let schema = Schema::from_yaml(&yaml)?;
 
-    schema.write_move(opt.path)?;
+    let output = opt.path.unwrap_or_else(|| {
+        PathBuf::from_str(&format!(
+            "../sources/examples/{}.move",
+            &schema.module_name().to_string()
+        ))
+        .unwrap()
+    });
+
+    match output.parent() {
+        Some(p) => fs::create_dir_all(p)?,
+        None => {}
+    }
+
+    let mut f = File::create(output)?;
+    schema.write_move(&mut f)?;
 
     Ok(())
 }
