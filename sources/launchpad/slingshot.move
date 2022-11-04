@@ -12,6 +12,7 @@ module nft_protocol::slingshot {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
+    use sui::dynamic_object_field;
 
     use nft_protocol::nft;
     use nft_protocol::err;
@@ -136,6 +137,9 @@ module nft_protocol::slingshot {
         recipient: address,
         ctx: &mut TxContext,
     ) {
+        let nft: Nft<T, D> =
+            dynamic_object_field::remove(&mut slingshot.id, nft_id);
+
         assert!(
             object::id(&nft_data) == sale::nft_id(&certificate),
             err::certificate_does_not_correspond_to_nft_given()
@@ -221,6 +225,18 @@ module nft_protocol::slingshot {
         sale: Sale<T, M>
     ) {
         vector::push_back(&mut slingshot.sales, sale);
+    }
+
+    /// Adds NFT as a dynamic child object with its ID as key.
+    public fun mint_nft_to<T, M, D: store>(
+        slingshot: &mut Slingshot<T, M>,
+        nft: Nft<T, D>,
+    ) {
+        dynamic_object_field::add(
+            &mut slingshot.id,
+            object::id(&nft),
+            nft,
+        );
     }
 
     // === Getter Functions ===

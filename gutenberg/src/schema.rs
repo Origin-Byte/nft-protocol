@@ -4,8 +4,12 @@
 //! by the caller.
 use crate::prelude::*;
 
+use serde::Deserialize;
+
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
+#[derive(Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct Schema {
     pub collection: Collection,
     pub nft_type: NftType,
@@ -13,6 +17,7 @@ pub struct Schema {
 }
 
 /// Contains the metadata fields of the collection
+#[derive(Deserialize)]
 pub struct Collection {
     /// The name of the collection
     pub name: Box<str>,
@@ -35,180 +40,30 @@ pub struct Collection {
 }
 
 /// Contains the market configurations of the launchpad
+#[derive(Deserialize)]
 pub struct Launchpad {
     /// Enum field containing the MarketType and its corresponding
     /// config parameters such as price and whitelisting
+    #[serde(flatten)]
     pub market_type: MarketType,
 }
 
-impl Collection {
-    /// Logic responsible for parsing the `Collection` dictionary present
-    /// in `config.yaml` and dump it into a `Collection` struct
-    pub fn from_yaml(yaml: &Value) -> Result<Self, GutenError> {
-        let collection = serde_yaml::to_value(&yaml["Collection"])?;
-
-        if collection.is_null() {
-            return Err(err::miss("Collection"));
-        }
-
-        let tag_binding = serde_yaml::to_value(&yaml["Collection"]["tags"])?;
-
-        let tags: Vec<String> = tag_binding
-            .as_sequence()
-            .ok_or_else(|| err::miss("tags"))?
-            .into_iter()
-            .map(|tag| {
-                let tag_n = tag
-                    .as_str()
-                    .ok_or_else(|| err::format("tags"))?
-                    .to_string();
-
-                Ok(tag_n)
-            })
-            .collect::<Result<Vec<String>, GutenError>>()?;
-
-        let collection = Collection {
-            name: Schema::get_field(
-                &yaml,
-                "Collection",
-                "name",
-                FieldType::StrLit,
-            )?,
-            description: Schema::get_field(
-                &yaml,
-                "Collection",
-                "description",
-                FieldType::StrLit,
-            )?,
-            symbol: Schema::get_field(
-                &yaml,
-                "Collection",
-                "symbol",
-                FieldType::StrLit,
-            )?,
-            max_supply: Schema::get_field(
-                &yaml,
-                "Collection",
-                "max_supply",
-                FieldType::Number,
-            )?,
-            receiver: Schema::get_field(
-                &yaml,
-                "Collection",
-                "receiver",
-                FieldType::StrLit,
-            )?,
-            royalty_fee_bps: Schema::get_field(
-                &yaml,
-                "Collection",
-                "royalty_fee_bps",
-                FieldType::Number,
-            )?,
-            tags,
-            data: Schema::get_field(
-                &yaml,
-                "Collection",
-                "data",
-                FieldType::StrLit,
-            )?,
-            is_mutable: Schema::get_field(
-                &yaml,
-                "Collection",
-                "is_mutable",
-                FieldType::Bool,
-            )?,
-        };
-
-        Ok(collection)
-    }
-}
-
-impl Launchpad {
-    /// Logic responsible for parsing the `Launchpad` dictionary present
-    /// in `config.yaml` and dump it into a `Launchpad` struct
-    pub fn from_yaml(yaml: &Value) -> Result<Self, GutenError> {
-        let launchpad = serde_yaml::to_value(&yaml["Launchpad"])?;
-
-        if launchpad.is_null() {
-            return Err(err::miss("Launchpad"));
-        }
-
-        let price_binding = serde_yaml::to_value(&yaml["Launchpad"]["prices"])?;
-        let wl_binding =
-            serde_yaml::to_value(&yaml["Launchpad"]["whitelists"])?;
-
-        if !price_binding.is_sequence() {
-            if price_binding.is_null() {
-                return Err(err::miss("prices"));
-            }
-            return Err(err::format("prices"));
-        }
-
-        if !wl_binding.is_sequence() {
-            if price_binding.is_null() {
-                return Err(err::miss("whitelists"));
-            }
-            return Err(err::format("whitelists"));
-        }
-
-        let prices_vec = price_binding
-            .as_sequence()
-            .ok_or_else(|| err::miss("prices"))?;
-
-        let wl_vec = wl_binding
-            .as_sequence()
-            .ok_or_else(|| err::miss("whitelists"))?;
-
-        let market_vec = prices_vec
-            .iter()
-            .zip(wl_vec)
-            .map(|(price, whitelist)| {
-                let price =
-                    price.as_u64().ok_or_else(|| err::format("prices"))?;
-                let whitelist = whitelist
-                    .as_bool()
-                    .ok_or_else(|| err::miss("whitelists"))?;
-
-                Ok(FixedPrice::new(price, whitelist))
-            })
-            .collect::<Result<Vec<FixedPrice>, GutenError>>()?;
-
-        let launchpad = Launchpad {
-            market_type: MarketType::FixedPriceMarket { sales: market_vec },
-        };
-
-        Ok(launchpad)
-    }
-}
-
 impl Schema {
-    /// Higher level method responsible for parsing `config.yaml` and
-    /// dump it into a `Schema` struct
-    pub fn from_yaml(yaml: &Value) -> Result<Self, GutenError> {
-        let nft_type_str = serde_yaml::to_value(&yaml["NftType"])?
-            .as_str()
-            .ok_or_else(|| err::miss("NftType"))?
-            .to_string();
-
-        let nft_type = NftType::from_str(nft_type_str.as_str())
-            .unwrap_or_else(|_| panic!("Unsupported NftType provided."));
-
-        let schema = Schema {
-            collection: Collection::from_yaml(yaml)?,
-            nft_type,
-            launchpad: Launchpad::from_yaml(yaml)?,
-        };
-
-        Ok(schema)
+    pub fn module_name(&self) -> Box<str> {
+        self.collection
+            .name
+            .to_lowercase()
+            .replace(" ", "_")
+            .into_boxed_str()
     }
 
     /// Higher level method responsible for generating Move code from the
     /// struct `Schema` and dump it into a default folder
     /// `../sources/examples/<module_name>.move` or custom folder defined by
     /// the caller.
-    pub fn write_move(
+    pub fn write_move<W: std::io::Write>(
         &self,
-        output_opt: Option<PathBuf>,
+        mut output: W,
     ) -> Result<(), GutenError> {
         let file_path = "templates/template.move";
 
@@ -220,13 +75,7 @@ impl Schema {
         let is_embedded = self.nft_type.is_embedded();
         let is_embedded_str = is_embedded.to_string().into_boxed_str();
         let market_module = &self.launchpad.market_type.market_module();
-
-        let module_name = self
-            .collection
-            .name
-            .to_lowercase()
-            .replace(" ", "_")
-            .into_boxed_str();
+        let module_name = self.module_name();
 
         let witness = self
             .collection
@@ -237,7 +86,7 @@ impl Schema {
 
         let tags = self.write_tags();
 
-        let (mut prices, mut whitelists) = self.get_sale_outlets();
+        let (mut prices, mut whitelists) = self.get_sale_outlets()?;
 
         let sale_type = if prices.len() == 1 {
             "create_single_market"
@@ -298,27 +147,7 @@ impl Schema {
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
 
-        let mut output = PathBuf::new();
-
-        if output_opt.is_none() {
-            output.push(format!(
-                "../sources/examples/{}.move",
-                &module_name.to_string()
-            ));
-        } else {
-            // This can be safely unwrapped since we make sure there is Some()
-            output.push(output_opt.unwrap());
-
-            // Create directories if they do not exist
-            let path = output.as_path();
-            if let Some(p) = path.parent() {
-                fs::create_dir_all(p)?
-            };
-        }
-
-        let mut f = File::create(output)?;
-
-        f.write_all(
+        output.write_all(
             strfmt(&fmt, &vars)
                 // This is expected not to result in an error since we
                 // have explicitly handled all error cases
@@ -344,15 +173,16 @@ impl Schema {
             .into_boxed_str()
     }
 
-    pub fn get_sale_outlets(&self) -> (Vec<u64>, Vec<bool>) {
+    pub fn get_sale_outlets(
+        &self,
+    ) -> Result<(Vec<u64>, Vec<bool>), GutenError> {
         match &self.launchpad.market_type {
-            MarketType::FixedPriceMarket { sales } => {
-                let prices: Vec<u64> = sales.iter().map(|m| m.price).collect();
+            MarketType::FixedPrice { prices, whitelists } => {
+                if prices.len() != whitelists.len() {
+                    return Err(GutenError::MismatchedOutletParams);
+                }
 
-                let whitelists: Vec<bool> =
-                    sales.iter().map(|m| m.whitelist).collect();
-
-                (prices, whitelists)
+                Ok((prices.clone(), whitelists.clone()))
             }
         }
     }

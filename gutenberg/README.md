@@ -116,6 +116,8 @@ By default the Move module will be written in `../sources/examples/<MODULE_NAME>
 To define a custom path and file name one can run the following command:
 `cargo run ../<CUSTOM_PATH>/<FILENAME>.move`
 
+Custom configuration files can be provided using the `--config` argument `$ cargo run -- --config ./examples/simple.yaml`.
+
 ### 3. Deploy the Contract
 
 To deploy the newly created smart contract in conjunction with the NFT protocol, run the following sh script from the parent folder:

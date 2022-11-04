@@ -321,7 +321,6 @@ module nft_protocol::unique_nft {
         );
     }
 
-    // TODO: add documentation
     fun mint_and_share_data(
         args: MintArgs,
         collection_id: ID,
