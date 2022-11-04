@@ -339,6 +339,7 @@ module nft_protocol::c_nft {
 
         let nft = nft::mint_nft_loose<T, Data>(
             nft_data_id(nft_data),
+            tx_context::sender(ctx),
             ctx,
         );
 
