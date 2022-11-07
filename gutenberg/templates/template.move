@@ -2,7 +2,7 @@ module nft_protocol::{module_name} {{
     use std::vector;
 
     use sui::tx_context::{{Self, TxContext}};
-    
+
     use nft_protocol::collection::{{MintAuthority}};
     use nft_protocol::{market_module}{market_module_imports};
     use nft_protocol::std_collection;
@@ -30,10 +30,8 @@ module nft_protocol::{module_name} {{
         );
 
         {define_whitelists}
-
         {define_prices}
-        
-        {market_module}::{sale_type}(
+        {market_module}::create_market(
             witness,
             tx_context::sender(ctx), // admin
             collection_id,

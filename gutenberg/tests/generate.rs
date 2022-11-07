@@ -17,10 +17,10 @@ fn example_schema() {
 }
 
 #[test]
-fn multi_sales() {
-    let config = File::open("./examples/multi_sales.yaml").unwrap();
+fn simple() {
+    let config = File::open("./examples/simple.yaml").unwrap();
     let expected =
-        fs::read_to_string("../sources/examples/multi_sales.move").unwrap();
+        fs::read_to_string("../sources/examples/suimarines.move").unwrap();
 
     assert_equal(config, expected);
 }

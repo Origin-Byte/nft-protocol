@@ -34,50 +34,6 @@ module nft_protocol::fixed_price {
 
     // === Functions exposed to Witness Module ===
 
-    /// Creates a fixed price single market `Launchpad`, that is, a Launchpad
-    /// with a single `Sale` outlet in its field `sales`. Lauchpad is set as
-    /// a shared object with an `admin` that can call privelleged endpoints.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    public fun create_single_market<T: drop>(
-        witness: T,
-        admin: address,
-        collection_id: ID,
-        receiver: address,
-        is_embedded: bool,
-        whitelist: bool,
-        price: u64,
-        ctx: &mut TxContext,
-    ) {
-        let market = FixedPriceMarket {
-            id: object::new(ctx),
-            price,
-        };
-
-        let sale = vector::singleton(
-            sale::create<T, FixedPriceMarket>(
-                0,
-                whitelist,
-                market,
-                ctx,
-            )
-        );
-
-        let args = slingshot::init_args(
-            admin,
-            collection_id,
-            receiver,
-            is_embedded
-        );
-
-        slingshot::create<T, FixedPriceMarket>(
-            witness,
-            sale,
-            args,
-            ctx,
-        );
-    }
-
     /// Creates a fixed price multi market `Launchpad`, that is, a Launchpad
     /// with a multiple `Sale` outlets in its field `sales`. This funcitonality
     /// allows for the creation of tiered amrket sales by segregating NFTs
@@ -87,7 +43,7 @@ module nft_protocol::fixed_price {
     /// call privelleged endpoints.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun create_multi_market<T: drop>(
+    public fun create_market<T: drop>(
         witness: T,
         admin: address,
         collection_id: ID,

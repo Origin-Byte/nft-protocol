@@ -2,7 +2,7 @@ module nft_protocol::suinamis {
     use std::vector;
 
     use sui::tx_context::{Self, TxContext};
-    
+
     use nft_protocol::collection::{MintAuthority};
     use nft_protocol::fixed_price;
     use nft_protocol::std_collection;
@@ -31,11 +31,13 @@ module nft_protocol::suinamis {
             ctx,
         );
 
-        let whitelisting = false;
+        let whitelisting = vector::empty();
+        vector::push_back(&mut whitelisting, false);
 
-        let pricing = 1000;
-        
-        fixed_price::create_single_market(
+        let pricing = vector::empty();
+        vector::push_back(&mut pricing, 1000);
+
+        fixed_price::create_market(
             witness,
             tx_context::sender(ctx), // admin
             collection_id,
