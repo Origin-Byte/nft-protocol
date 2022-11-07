@@ -143,4 +143,10 @@ module nft_protocol::err {
     public fun sender_not_collection_creator(): u64 {
         return Prefix + 401
     }
+
+    // === Utils ===
+
+    public fun package_mismatch(): u64 {
+        return Prefix + 500
+    }
 }
