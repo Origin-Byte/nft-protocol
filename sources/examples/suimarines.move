@@ -1,29 +1,28 @@
 module nft_protocol::suimarines {
-    use sui::tx_context::{Self, TxContext};
-
     use std::vector;
+
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection::{MintAuthority};
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
-    use nft_protocol::slingshot::Slingshot;
     use nft_protocol::std_collection;
     use nft_protocol::unique_nft;
+    use nft_protocol::slingshot::Slingshot;
 
     struct SUIMARINES has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let receiver = @0xA;
-
         let tags: vector<vector<u8>> = vector::empty();
+        
         vector::push_back(&mut tags, b"Art");
 
         let collection_id = std_collection::mint<SUIMARINES>(
             b"Suimarines",
-            b"A Unique NFT collection of Submarines on Sui",
+            b"A Unique NFT collection of Suimarines on Sui",
             b"SUIM", // symbol
             100, // max_supply
-            receiver, // Royalty receiver
-            tags,
+            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // Royalty receiver
+            tags, // tags
             100, // royalty_fee_bps
             false, // is_mutable
             b"Some extra data",
@@ -31,14 +30,22 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        fixed_price::create_single_market(
+        let whitelisting = vector::empty();
+        vector::push_back(&mut whitelisting, true);
+        vector::push_back(&mut whitelisting, false);
+
+        let pricing = vector::empty();
+        vector::push_back(&mut pricing, 1000);
+        vector::push_back(&mut pricing, 2000);
+
+        fixed_price::create_market(
             witness,
             tx_context::sender(ctx), // admin
             collection_id,
-            receiver,
+            @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
             true, // is_embedded
-            false, // whitelist
-            100, // price
+            whitelisting, // whitelist
+            pricing, // price
             ctx,
         );
     }

@@ -8,7 +8,7 @@ use gumdrop::Options;
 struct Opt {
     #[options(help = "print help message")]
     help: bool,
-    #[options(help = "output file path, stdout if not present")]
+    #[options(free, help = "output file path, stdout if not present")]
     path: Option<PathBuf>,
     #[options(help = "configuration file", default = "config.yaml")]
     config: PathBuf,
@@ -28,13 +28,14 @@ fn main() -> Result<(), GutenError> {
         .unwrap()
     });
 
-    match output.parent() {
-        Some(p) => fs::create_dir_all(p)?,
-        None => {}
+    if let Some(p) = output.parent() {
+        fs::create_dir_all(p)?;
     }
 
     let mut f = File::create(output)?;
-    schema.write_move(&mut f)?;
+    if let Err(err) = schema.write_move(&mut f) {
+        eprintln!("{err}");
+    }
 
     Ok(())
 }
