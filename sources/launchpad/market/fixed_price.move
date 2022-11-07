@@ -34,10 +34,11 @@ module nft_protocol::fixed_price {
 
     // === Functions exposed to Witness Module ===
 
-    /// Creates a fixed price multi market `Launchpad`, that is, a Launchpad
-    /// with a multiple `Sale` outlets in its field `sales`. This funcitonality
-    /// allows for the creation of tiered amrket sales by segregating NFTs
-    /// by different sale segments (e.g. based on rarity, or preciousness).
+    /// Creates a fixed price `Launchpad` sale. A sale can be simple or tiered,
+    /// that is, a tiered sale `Launchpad` has multiple `Sale` outlets in its 
+    /// field `sales`. This funcitonality allows for the creation of tiered 
+    /// market sales by segregating NFTs by different sale segments
+    /// (e.g. based on rarity, or preciousness).
     ///
     /// Lauchpad is set as a shared object with an `admin` that can
     /// call privelleged endpoints.
