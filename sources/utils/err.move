@@ -149,4 +149,8 @@ module nft_protocol::err {
     public fun package_mismatch(): u64 {
         return Prefix + 500
     }
+
+    public fun must_be_witness(): u64 {
+        return Prefix + 501
+    }
 }

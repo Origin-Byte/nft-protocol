@@ -156,7 +156,7 @@ module nft_protocol::bidding {
         whitelist: &Whitelist<WW>,
         ctx: &mut TxContext,
     ) {
-        utils::assert_exported_by_same_package<W, C>();
+        utils::assert_witnesses_of_same_package<C, W>();
         safe::assert_transfer_cap_of_safe(&transfer_cap, safe);
         safe::assert_nft_of_transfer_cap(&bid.nft, &transfer_cap);
 

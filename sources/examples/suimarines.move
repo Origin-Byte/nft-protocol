@@ -58,8 +58,8 @@ module nft_protocol::suimarines {
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         mint_authority: &mut MintAuthority<SUIMARINES>,
-        sale_index: u64,
-        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
+        _sale_index: u64,
+        _launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
         unique_nft::mint_regulated_nft_data(

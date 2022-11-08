@@ -32,20 +32,27 @@ module nft_protocol::utils {
         new_vec
     }
 
-    public fun assert_exported_by_same_package<A, B>() {
-        let package_a = get_package_as_string<A>();
-        let package_b = get_package_as_string<B>();
+    public fun assert_witnesses_of_same_package<OneTimeWitness, Witness>() {
+        let (package_a, _) = get_package_and_type<OneTimeWitness>();
+        let (package_b, witness_type) = get_package_and_type<Witness>();
 
         assert!(package_a == package_b, err::package_mismatch());
+        assert!(witness_type == string::utf8(b"Witness"), err::must_be_witness());
     }
 
-    fun get_package_as_string<T>(): String {
+    public fun get_package_and_type<T>(): (String, String) {
         let delimiter = string::utf8(b"::");
 
         let t = string::utf8(ascii::into_bytes(
             type_name::into_string(type_name::get<T>())
         ));
 
-        sub_string(&t, 0, string::index_of(&t, &delimiter))
+        // TBD: this can probably be hard-coded as all hex addrs are 32 bytes
+        let delimiter_index = string::index_of(&t, &delimiter);
+
+        let package = sub_string(&t, 0, string::index_of(&t, &delimiter));
+        let type = sub_string(&t, delimiter_index + 2, string::length(&t));
+
+        (package, type)
     }
 }
