@@ -1,4 +1,4 @@
-- Sui v0.14.0
+- Sui v0.15.0
 
 # Install
 

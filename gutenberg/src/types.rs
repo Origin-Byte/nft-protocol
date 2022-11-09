@@ -14,14 +14,6 @@ pub enum NftType {
     CNft,
 }
 
-/// Enum representing to what type a given yaml field should be parsed to
-#[derive(Debug)]
-pub enum FieldType {
-    StrLit,
-    Bool,
-    Number,
-}
-
 impl NftType {
     pub fn nft_module(&self) -> String {
         let nft_module = match self {

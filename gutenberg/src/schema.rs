@@ -5,6 +5,7 @@
 use crate::prelude::*;
 
 use serde::Deserialize;
+use std::fmt::Write;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
@@ -53,7 +54,7 @@ impl Schema {
         self.collection
             .name
             .to_lowercase()
-            .replace(" ", "_")
+            .replace(' ', "_")
             .into_boxed_str()
     }
 
@@ -81,23 +82,15 @@ impl Schema {
             .collection
             .name
             .to_uppercase()
-            .replace(" ", "")
+            .replace(' ', "")
             .into_boxed_str();
 
         let tags = self.write_tags();
 
-        let (mut prices, mut whitelists) = self.get_sale_outlets()?;
+        let (prices, whitelists) = self.get_sale_outlets()?;
 
-        let sale_type = if prices.len() == 1 {
-            "create_single_market"
-        } else {
-            "create_multi_market"
-        }
-        .to_string()
-        .into_boxed_str();
-
-        let define_whitelists = Schema::write_whitelists(&mut whitelists)?;
-        let define_prices = Schema::write_prices(&mut prices)?;
+        let define_whitelists = Schema::write_whitelists(whitelists)?;
+        let define_prices = Schema::write_prices(prices)?;
 
         let market_module_imports =
             format!("::{{Self, {}}}", market_type).into_boxed_str();
@@ -125,10 +118,9 @@ impl Schema {
         vars.insert("witness", &witness);
         vars.insert("tags", &tags);
         vars.insert("market_type", &market_type);
-        vars.insert("market_module", &market_module);
+        vars.insert("market_module", market_module);
         vars.insert("market_module_imports", &market_module_imports);
         vars.insert("slingshot_import", &slingshot_import);
-        vars.insert("sale_type", &sale_type);
         vars.insert("is_embedded", &is_embedded_str);
         vars.insert("define_prices", &define_prices);
         vars.insert("define_whitelists", &define_whitelists);
@@ -157,7 +149,7 @@ impl Schema {
         let tags_vec = &self.collection.tags;
 
         tags_vec
-            .into_iter()
+            .iter()
             .map(|tag| {
                 format!("        vector::push_back(&mut tags, b\"{}\");", tag)
             })
@@ -200,30 +192,18 @@ impl Schema {
     /// ...
     /// ```
     pub fn write_whitelists(
-        whitelists: &mut Vec<bool>,
+        whitelists: Vec<bool>,
     ) -> Result<Box<str>, GutenError> {
-        let define_whitelists = if whitelists.len() == 1 {
-            "let whitelisting = ".to_string()
-                + &whitelists
-                    .pop()
-                    // This is expected not to result in an error since
-                    // the field whitelists has already been validated
-                    .ok_or_else(|| GutenError::UnexpectedErrror)?
-                    .to_string()
-                + ";"
-        } else {
-            let mut loc = "let whitelisting = vector::empty();\n".to_string();
+        let mut loc = "let whitelisting = vector::empty();\n".to_string();
 
-            for w in whitelists.drain(..) {
-                loc = loc
-                    + "        vector::push_back(&mut whitelisting, "
-                    + &w.to_string()
-                    + ");\n"
-            }
-            loc
-        };
+        for w in whitelists {
+            loc.write_fmt(format_args!(
+                "        vector::push_back(&mut whitelisting, {w});\n"
+            ))
+            .unwrap();
+        }
 
-        Ok(define_whitelists.into_boxed_str())
+        Ok(loc.into_boxed_str())
     }
 
     /// Associated funciton that generates Move code to declare and
@@ -246,60 +226,16 @@ impl Schema {
     /// vector::push_back(&mut whitelisting, <U64_VALUE>);
     /// ...
     /// ```
-    pub fn write_prices(prices: &mut Vec<u64>) -> Result<Box<str>, GutenError> {
-        let define_prices = if prices.len() == 1 {
-            "let pricing = ".to_string()
-                + &prices
-                    .pop()
-                    // This is expected not to result in an error since
-                    // the field whitelists has already been validated
-                    .ok_or_else(|| GutenError::UnexpectedErrror)?
-                    .to_string()
-                + ";"
-        } else {
-            let mut loc = "let pricing = vector::empty();\n".to_string();
+    pub fn write_prices(prices: Vec<u64>) -> Result<Box<str>, GutenError> {
+        let mut loc = "let pricing = vector::empty();\n".to_string();
 
-            for p in prices.drain(..) {
-                loc = loc
-                    + "        vector::push_back(&mut pricing, "
-                    + &p.to_string()
-                    + ");\n"
-            }
-            loc.to_string()
-        };
-
-        Ok(define_prices.into_boxed_str())
-    }
-
-    /// Associated function that parses a field from the `config.yaml` and returns
-    /// the value in `Box<str>` format wrapped in `Result`.
-    pub fn get_field(
-        data: &serde_yaml::Value,
-        category: &str,
-        field: &str,
-        field_type: FieldType,
-    ) -> Result<Box<str>, GutenError> {
-        let value = serde_yaml::to_value(&data[category][field])?;
-
-        if value.is_null() {
-            return Err(err::miss(field));
+        for p in prices {
+            loc.write_fmt(format_args!(
+                "        vector::push_back(&mut pricing, {p});\n"
+            ))
+            .unwrap();
         }
 
-        let result = match field_type {
-            FieldType::StrLit => value
-                .as_str()
-                .ok_or_else(|| err::format(field))?
-                .to_string(),
-            FieldType::Number => value
-                .as_u64()
-                .ok_or_else(|| err::format(field))?
-                .to_string(),
-            FieldType::Bool => value
-                .as_bool()
-                .ok_or_else(|| err::format(field))?
-                .to_string(),
-        };
-
-        Ok(result.into_boxed_str())
+        Ok(loc.into_boxed_str())
     }
 }
