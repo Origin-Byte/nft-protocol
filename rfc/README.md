@@ -55,7 +55,7 @@ There may be however more bespoke royalty calculations such as progressive royal
 
 As we have mentioned previously, there is no way for the module that computes the royalty equation to be sure that $P$, which comes from the oracle, is the correct execution price.
 Therefore $P$ can only come from whitelisted trading contracts which the NFT Creator is sure is not spoofing the trade price.
-If we consider a proof or Royalty payment, such as the `RoyaltyReceipt`, we mustn’t mint any sort of receipt based on client input, because we cannot guarantee that they are honest when stating how much an NFT is being sold for.
+If we consider a proof of Royalty payment, such as the `RoyaltyReceipt`, we mustn’t mint any sort of receipt based on client input, because we cannot guarantee that they are honest when stating how much an NFT is being sold for.
 Similarly, if we trust market contracts, they might not be honest.
 Although socially, it’s easier to control market contracts, any solution in which a party to the trade can spoof the price to avoid paying the full royalty amount cannot be called a strong royalty enforcement scheme.
 
@@ -138,7 +138,7 @@ The ones marked with **con** are perceived disadvantages of not having `Trans
 
 **Fast Minting**
 
-One of the use cases we would like NFTs to guarantee is the ability to fast mint via broadcast transactions, however this is no longer possible if we restrict NFTs to always live inside the `Safe` layer, assuming `Safe`s are always share objects.
+One of the use cases we would like NFTs to guarantee is the ability to fast mint via broadcast transactions, however this is no longer possible if we restrict NFTs to always live inside the `Safe` layer, assuming `Safe`s are always shared objects.
 If we relax this assumption and allow for `Safe`s to be a Single Writer Object (SWO), we could mint an NFT, transfer its ownership to a newly made `Safe` and transfer `Safe` to the user.
 Only after mint time, we make `Safe` shared and issue an `OwnerCap` to the owner.
 
@@ -168,7 +168,7 @@ The reason why both signatures must be collected is because either the `owner` k
 Yet, it is important to allow the `owner` keypair to be able to freeze the assets.
 Presumably, the `owner` keypair will most likely be a hot wallet whilst the `backup` keypair a cold wallet.
 Allowing the freezing to occur only with the backup wallet is dangerous, because by the time the user finds out about the compromised keypair, it will have to physically commute to the location of the cold wallet.
-Therefore the user should be able to call`freeze_safe()` with the `owner` keypair and send a signature later with the backup keypair within the `resolution_time` defined (which should give enough human time to act).
+Therefore the user should be able to call `freeze_safe()` with the `owner` keypair and send a signature later with the backup keypair within the `resolution_time` defined (which should give enough human time to act).
 
 ## 3. Gaming Interactions
 
