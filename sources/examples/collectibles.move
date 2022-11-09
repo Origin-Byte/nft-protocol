@@ -5,12 +5,9 @@ module nft_protocol::suinamis {
 
     use nft_protocol::collectible;
     use nft_protocol::collection::{MintAuthority};
-    use nft_protocol::fixed_price;
-    use nft_protocol::std_collection;
-
-    // Market Modules
-    use nft_protocol::slingshot::Slingshot;
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
+    use nft_protocol::slingshot::Slingshot;
+    use nft_protocol::std_collection;
 
     struct SUINAMIS has drop {}
 

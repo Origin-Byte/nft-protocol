@@ -1,11 +1,13 @@
 module nft_protocol::suimarines {
+    use std::vector;
+
+    use sui::tx_context::{Self, TxContext};
+
     use nft_protocol::collection::{MintAuthority};
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
     use nft_protocol::slingshot::Slingshot;
     use nft_protocol::std_collection;
     use nft_protocol::unique_nft;
-    use std::vector;
-    use sui::tx_context::{Self, TxContext};
 
     struct SUIMARINES has drop {}
 
