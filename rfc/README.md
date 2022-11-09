@@ -39,6 +39,16 @@ However, it means that NFTs will always live under the ownership of a shared obj
 
 The important aspects to preserve in our opinion is to guarantee broadcast transactions for the initial mint, as well as to guarantee that in-game UX is not degraded if one has to rely on full-consensus transactions (More on this in part 4).
 
+### Custom royalty policies
+
+Any proposal must take into account the fact that the way royalties are charged can change in future.
+Therefore, the logic to calculate the amount from sale mustn't live in trading contracts nor in the NFT protocol.
+
+In our protocol, we give the trading contracts an ability to [state how much was an NFT sold for][royalties-create] and [wrap][royalties-wrap] those funds.
+Then, these funds are [unwrapped][royalties-unwrap] in the collection's contract.
+Royalties are distributed to creators.
+Rest of the coins are sent to the stated beneficiaries, such as the NFT seller or a marketplace as a commission.
+
 ## 2. Market (Liquidity Layer)
 
 **Price Spoofing**
@@ -193,3 +203,9 @@ To achieve Mutable interactions we propose:
 
 - When a player starts playing a game, a gaming session is initiated and the safe will emit a `MutabilityCap` for the NFT that will be mutated.
 - When mutations occur in-game the game server will register them in a log and will commit those changes all batched in one transaction at the end of the gaming session. During the gaming session, the NFT will be locked in the safe, because the MutCap will not allow the NFT to be sold, whilst it exists.
+
+<!-- List of References -->
+
+[royalties-create]: https://github.com/Origin-Byte/nft-protocol/pull/55/files#diff-848f60a39c0a2b392cefcab5fd63a28fabb63ba5ae36ae3ee8cfb1e4806ba946R45
+[royalties-wrap]: https://github.com/Origin-Byte/nft-protocol/pull/56/files#diff-8920d99e9e5dc1b6a6906a4be24ef8dd2c4a9b309e8d4ee18b9f948b8260464aR849
+[royalties-unwrap]: https://github.com/Origin-Byte/nft-protocol/pull/55/files#diff-9d165ff8b9976dfde3cd877bca57c0c6d78510846827a4722c4c8e3dfde65ff6R76
