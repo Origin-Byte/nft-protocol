@@ -1,9 +1,9 @@
 [package]
 name = "NftProtocol"
-version = "0.6.0"
+version = "0.8.0"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet-0.14.0" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "72bc4cb" }
 
 [addresses]
 nft_protocol = "0x0"
