@@ -1,3 +1,5 @@
+# RFC: NFTs, Safe, Royalty Enforcement and the Liquidity Layer
+
 Following the Sui Builder House's discussion on the design around the Safe, Royalty Enforcement and the Liquidity Layer, we offer our perspective on the design, and propose some implementations that either preserve or unlock the business specifications described below.
 
 ## Specifications
