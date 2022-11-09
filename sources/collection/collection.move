@@ -22,7 +22,6 @@
 //! frozen, in order to give creators the ability to ammend it prior to
 //! the primary sale taking place.
 //!
-//! TODO: Consider adding a function `destroy_unregulated`?
 //! TODO: Consider adding a struct object Collection Proof
 //! TODO: Verify creator in function to add creator, and function to post verify
 //! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that
@@ -116,7 +115,7 @@ module nft_protocol::collection {
 
 
     /// Initialises a `MintAuthority` and transfers it to `authority` and
-    /// initialized `Collection` object and returns it. The `MintAuthority`
+    /// initializes a `Collection` object and returns it. The `MintAuthority`
     /// object gives power to the owner to mint objects. There is only one
     /// `MintAuthority` per `Collection`. The Mint Authority object contains a
     /// `SupplyPolicy` which can be regulated or unregulated.
@@ -183,52 +182,20 @@ module nft_protocol::collection {
         }
     }
 
-    // TODO: Requires fixing
-    // /// Burn a Collection with regulated supply object and
-    // /// returns the Metadata object
-    // public entry fun burn_regulated<T, M: store>(
-    //     collection: Collection<T, M>,
-    //     mint: MintAuthority<T>,
-    // ): M {
-    //     assert!(
-    //         supply::current(supply_policy::supply(&mint.supply_policy)) == 0,
-    //         err::supply_is_not_zero()
-    //     );
-
-    //     let MintAuthority {
-    //         id,
-    //         collection_id: _,
-    //         supply_policy,
-    //     } = mint;
-
-    //     object::delete(id);
-
-    //     event::emit(
-    //         BurnEvent {
-    //             collection_id: id(&collection),
-    //         }
-    //     );
-
-    //     let Collection {
-    //         id,
-    //         name: _,
-    //         description: _,
-    //         symbol: _,
-    //         receiver: _,
-    //         tags: _,
-    //         is_mutable: _,
-    //         royalty_fee_bps: _,
-    //         creators: _,
-    //         mint_authority: _,
-    //         metadata,
-    //     } = collection;
-
-    //     supply_policy::destroy_regulated(supply_policy);
-
-    //     object::delete(id);
-
-    //     metadata
-    // }
+    /// Shares the `MintAuthority` object of a given `Collection`. For NFT
+    /// collections that require users to be the ones to mint the data, one
+    /// requires the `MintAuthority` to be shared, such that they can access the
+    /// nft mint functions.
+    ///
+    /// An example of this could be a Domain Name Service protocol, which
+    /// relies on users calling the nft mint function themselses and therefore
+    /// minting their domain name.
+    public fun share_authority<T, M: store>(
+        authority: MintAuthority<T>,
+        _collection: &Collection<T, M>,
+    ) {
+        transfer::share_object(authority);
+    }
 
     /// Make Collections immutable
     /// WARNING: this is irreversible, use with care
