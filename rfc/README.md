@@ -1,3 +1,5 @@
+Following the Sui Builder House's discussion on the design around the Safe, Royalty Enforcement and the Liquidity Layer, we offer our perspective on the design, and propose some implementations that either preserve or unlock the business specifications described below.
+
 ## Specifications
 
 We want NFTs to be able to tap into the following use cases:
@@ -47,7 +49,7 @@ Therefore, the logic to calculate the amount from sale mustn't live in trading c
 In our protocol, we give the trading contracts an ability to [state how much was an NFT sold for][royalties-create] and [wrap][royalties-wrap] those funds.
 Then, these funds are [unwrapped][royalties-unwrap] in the collection's contract.
 Royalties are distributed to creators.
-Rest of the coins are sent to the stated beneficiaries, such as the NFT seller or a marketplace as a commission.
+The rest of the coins are sent to the stated beneficiaries, such as the NFT seller or a marketplace as a commission.
 
 ## 2. Market (Liquidity Layer)
 
@@ -73,7 +75,7 @@ Although socially, it’s easier to control market contracts, any solution in wh
 
 In our proposal we rely on the use of `TransferCap` and `ExclusiveTransferCap` to delegate transferability to the buyer, in order to settle the trade.
 
-An exclusive listing, achieved via `ExclusiveTransferCap`, is helpful in fast-paced trading algorithms where the tx sender does not know in advance whose NFT they are buying, as discussed in depth [here](https://github.com/MystenLabs/sui/pull/4887#discussion_r984862924).
+An exclusive listing, achieved via `ExclusiveTransferCap`, is helpful in fast-paced trading algorithms where the tx sender does not know in advance whose NFT they are buying, as discussed in depth [here][exclusive-listing].
 In our opinion, any implementation of the safe must enable exclusive listing.
 
 Another interesting use case for exclusive listing is lending.
@@ -85,7 +87,7 @@ The lender can _at any point_ claw it back.
 
 Our current understanding is that an Event-based approach to listing has been proposed as a way to resolve the lingering `TransferCaps` problem.
 
-That is, a safe implementation which is based on solely emitting an event, ie. it differs from Originbyte’s proposal, or the Sam’s initial [RFC](https://github.com/MystenLabs/sui/pull/4887), in that it does not create a [transfer cap](https://github.com/Origin-Byte/nft-protocol/pull/48/files#diff-f68ac7246e29135ec825b983e3d3fc3e9c33f602e582fca3a0946bdb66511afaR55) object.
+That is, a safe implementation which is based on solely emitting an event, ie. it differs from Originbyte’s proposal, or Sam’s initial [RFC][rfc], in that it does not create a [transfer cap][origin-byte-transfer-cap] object.
 It is our understanding that it relies on off-chain services to monitor these events.
 If someone wanted to create an on-chain trading contract, they would need to bridge the safe with that contract off-chain.
 The safe owner would list their NFT for sale by upfront stating the price of the NFT and enabling anyone who pays it to get the NFT.
@@ -109,7 +111,7 @@ The reason why an event-based proposal for safe does not necessarily alleviate t
 
 By removing the concept of `TransferCap`s in favor of a purely event-based proposal, ie. the safe _only_ emits events when an NFT is listed, we lose some important properties:
 auctions and exclusive listing (although can be patched on).
-This argument is based on the hypothetical Safe entry functions discussed during the Sui Builder House:
+This argument is based on the hypothetical Safe entry functions discussed at the Sui Builder House:
 
 - `list(Safe, Safe, Price)`
 - `buy(Safe, Safe, Payer)`
@@ -157,28 +159,38 @@ Only after mint time, we make `Safe` shared and issue an `OwnerCap` to the owner
 Since, the mint transaction does not charge any royalties, by making `tx_context::sender(ctx)` optionally different from the `recipient` in `transfer<T: key>(obj: T, recipient: address)` we can enable the minting transaction to be signed by the burner wallet, whilst the NFT is received by the `recipient` wallet.
 This is extremely helpful in that it limits the risk exposure to malicious transactions to the number of assets owned by the burner wallet.
 
-**Salvage NFTs from a compromised wallet**
+**Failsafes for compromised or lost wallets**
 
 If a user keypair gets compromised there should be some failsafe in order to:
 
 1. Stop further NFTs and other Assets from being stollen (stanch the bleeding)
 2. Transfer ownership of all NFTs to a `Safe` of a given backup keypair (remediate the problem)
 
+In addition, if a the user loses access to its keypair, there should be a resolution method to recover the NFTs from the Safe. We propose a resolution mechanism as follows:
+
 We propose the introduction of a fields `owner: address` and `backup: Option<address>` to the Safe, and restrict polymorphic transfer of `OwnerCap` for added security.
-While it can make it inconvenient, the transfer of `OwnerCap` can only be made by collecting two signatures, the `owner` and `backup` signature.
-Furthermore, both `owner` and `backup` addresses can call the function `freeze_safe()` which stops the Safe from emitting `TransferCap`s or from listing assets for a given `resolution_time` (e.g. 1 week).
-The purpose of this function is to stanch the bleeding in case one of the keypairs gets compromised.
-Then, the following functions are exposed:
+While it can make it inconvenient, the transfer of `OwnerCap` can only be made by collecting two signatures, the `owner` and `backup` signature. One could ask - if we have a field `owner` why would we bother having `OwnerCap`? - and in a nutshell we think OwnerCap is still useful as it facilitates Safe discoverability (wallets can simply query the `OwnerCap`s owned by the user).
 
-- `unfreeze_safe()` will unfreeze the safe once it has collected signature from both `owner` and `backup` address
-- `rescue_assets()` to move the assets to a safe with a new `owner` and `backup` address.
+If an `owner` address gets compromised, the user can use the `owner` keypair to call `freeze_safe()` which stops the Safe from emitting `TransferCap`s or from listing assets. The user can also use the `backup` address to call `freeze_safe()`. Yet, it is important to allow the `owner` keypair to be able to freeze the assets. Presumably, the `owner` keypair will most likely be a hot wallet whilst the `backup` keypair a cold wallet. Allowing the freezing to occur only with the backup wallet is dangerous, because by the time the user finds out about the compromised keypair, it will have to physically commute to the location of the cold wallet.
 
-The reason why both signatures must be collected is because either the `owner` keypair and the `backup` keypair can be compromised individually, but compromising both keypairs at the same time is exponentially harder, assuming the user takes appropriate security measures (i.e. stores keypairs in different locations).
+We therefore allow `freeze_safe()` by both the `owner` and the `backup` address. But what if a malicious agent who gained access to one of the keypairs calls `freeze_safe()` and therefore freezes all of the user's assets? To defend against malicious freezes we introduce the concept of `resolution_time` (e.g. 1 week). When a safe gets frozen by one of the keypairs, it will remain frozen during the `resolution_time` and will automatically unfreeze after such period has passed. To prolong the freeze, the user will have to sign with both the `owner` and the `backup` address.
 
-Yet, it is important to allow the `owner` keypair to be able to freeze the assets.
-Presumably, the `owner` keypair will most likely be a hot wallet whilst the `backup` keypair a cold wallet.
-Allowing the freezing to occur only with the backup wallet is dangerous, because by the time the user finds out about the compromised keypair, it will have to physically commute to the location of the cold wallet.
-Therefore the user should be able to call `freeze_safe()` with the `owner` keypair and send a signature later with the backup keypair within the `resolution_time` defined (which should give enough human time to act).
+In addition, to unfreeze the safe within the resolution time by calling `unfreeze_safe()`, the user will have to collect both the signature of `owner` and `backup` address.
+
+Finally, to rescue the assets out of a Safe owned by the compromised keypair, the user will call `rescue_assets()` to move its assets to a new Safe. The Safe will have to collect the signatures from both the `owner` and `backup` address in order to rescue the funds.
+
+Note that this mechanism is agnostic to which keypair was compromised. The reason why both signatures must be collected is because either the `owner` keypair and the `backup` keypair can be compromised individually, but compromising both keypairs at the same time is exponentially harder, assuming the user takes appropriate security measures (i.e. stores keypairs in different locations).
+
+Let us now consider the case where one of the keypairs gets lost. If the user lost access to the `owner` keypair, the `backup` keypair should allow for the retrieval of the assets, all the while not introducing a vulnerability vector. Once more we can rely on the concept of `resolution_time`.
+
+If the user loses the `owner` keypair, he or she will be able to call `rescue_assets()` signing with `backup` keypair. If the the `owner` keypair does not refute the rescuing of the assets by calling `refute_rescue` within the given `resolution_time` then the funds will be ultimately rescued. To ultimately refute the rescue, both `owner` and `backup` signatures need to be collected.
+
+This mechanism is extremely useful as it allows for defending against a compromised key and a lost key, reducing the vulnerability surface to the following cases:
+- User loses both `owner` and `backup` keypair
+- Both `owner` and `backup` keypair get compromised
+- User loses one of the keypairs whilst the other gets compromised
+
+One last thing to point out is that `resolution_time` should be such that if gives enough human time to act (i.e. weeks / months).
 
 ## 3. Gaming Interactions
 
@@ -188,7 +200,7 @@ In general we see two NFT usage patterns in games:
 2. A game checks if player has given NFT, renders it in the game if so and mutates the gaming asset according to event occurring in the game (Mutable interaction)
 
 We call these Mutable and Immutable Interactions.
-We will also call Market Interactions, whenever a given NFT has `TrasnferCap`s issued or is being listed by the `Safe`.
+We will also call Market Interactions, whenever a given NFT has `TransferCap`s issued or is being listed by the `Safe`.
 
 Immutable interactions can occur in parallel to Market interactions.
 This can be achieved by:
@@ -204,8 +216,20 @@ To achieve Mutable interactions we propose:
 - When a player starts playing a game, a gaming session is initiated and the safe will emit a `MutabilityCap` for the NFT that will be mutated.
 - When mutations occur in-game the game server will register them in a log and will commit those changes all batched in one transaction at the end of the gaming session. During the gaming session, the NFT will be locked in the safe, because the MutCap will not allow the NFT to be sold, whilst it exists.
 
+## TLDR
+
+The TLDR follows that:
+
+- Any NFT ownership model we settle on should satisfy the properties and specification above described;
+- Both TransferCap and Event-based approach satisfy to some degree the requirements, however we believe TransferCap approach will simplify the implementation of exclusive listing because the smart contract doesn't have to implement logic for de-listing an exclusively listed NFT. If I list something exlusively without transfer cap, I cannot de-list it as user without going to the source smart contract and getting its permission;
+- We have added some implementation proposals around the burner wallets and fail safes around compromised or lost keypairs, which we would like to get your opinion on;
+- We also propose a flow for games and Dapps to interact with the NFTs and would like to hear your opinion as well.
+
 <!-- List of References -->
 
+[exclusive-listing]: https://github.com/MystenLabs/sui/pull/4887#discussion_r984862924
+[origin-byte-transfer-cap]: https://github.com/Origin-Byte/nft-protocol/pull/48/files#diff-f68ac7246e29135ec825b983e3d3fc3e9c33f602e582fca3a0946bdb66511afaR55
+[rfc]: https://github.com/MystenLabs/sui/pull/4887
 [royalties-create]: https://github.com/Origin-Byte/nft-protocol/pull/55/files#diff-848f60a39c0a2b392cefcab5fd63a28fabb63ba5ae36ae3ee8cfb1e4806ba946R45
 [royalties-wrap]: https://github.com/Origin-Byte/nft-protocol/pull/56/files#diff-8920d99e9e5dc1b6a6906a4be24ef8dd2c4a9b309e8d4ee18b9f948b8260464aR849
 [royalties-unwrap]: https://github.com/Origin-Byte/nft-protocol/pull/55/files#diff-9d165ff8b9976dfde3cd877bca57c0c6d78510846827a4722c4c8e3dfde65ff6R76
