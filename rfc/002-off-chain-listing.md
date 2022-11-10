@@ -1,5 +1,9 @@
 # Off-chain listing
 
+The default way of listing an NFT is to use a client such as a wallet.
+The client implements the API of some trading contract.
+The API is going to differ contract to contract.
+
 We explore an pattern which shifts complexity from clients to the trading contracts maintainers.
 The clients, such as wallets or marketplaces, only need to know an address of a trading contract.
 They don't have to implement the interface (`entry fun`) of the trading contract to list an NFT.
