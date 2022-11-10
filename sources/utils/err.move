@@ -146,7 +146,7 @@ module nft_protocol::err {
 
     // === Utils ===
 
-    public fun package_mismatch(): u64 {
+    public fun witness_source_mismatch(): u64 {
         return Prefix + 500
     }
 

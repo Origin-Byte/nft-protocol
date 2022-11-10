@@ -39,14 +39,15 @@ module nft_protocol::utils {
     ///
     /// They must be from the same module for this assertion to be ok.
     public fun assert_witnesses_of_same_package<OneTimeWitness, Witness>() {
-        let (package_a, _) = get_package_and_type<OneTimeWitness>();
-        let (package_b, witness_type) = get_package_and_type<Witness>();
+        let (package_a, module_a, _) = get_package_module_type<OneTimeWitness>();
+        let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
 
-        assert!(package_a == package_b, err::package_mismatch());
+        assert!(package_a == package_b, err::witness_source_mismatch());
+        assert!(module_a == module_b, err::witness_source_mismatch());
         assert!(witness_type == string::utf8(b"Witness"), err::must_be_witness());
     }
 
-    public fun get_package_and_type<T>(): (String, String) {
+    public fun get_package_module_type<T>(): (String, String, String) {
         let delimiter = string::utf8(b"::");
 
         let t = string::utf8(ascii::into_bytes(
@@ -54,11 +55,16 @@ module nft_protocol::utils {
         ));
 
         // TBD: this can probably be hard-coded as all hex addrs are 32 bytes
-        let delimiter_index = string::index_of(&t, &delimiter);
+        let package_delimiter_index = string::index_of(&t, &delimiter);
+        let package_addr = sub_string(&t, 0, string::index_of(&t, &delimiter));
 
-        let package = sub_string(&t, 0, string::index_of(&t, &delimiter));
-        let type = sub_string(&t, delimiter_index + 2, string::length(&t));
+        let tail = sub_string(&t, package_delimiter_index + 2, string::length(&t));
 
-        (package, type)
+        let module_delimiter_index = string::index_of(&tail, &delimiter);
+        let module_name = sub_string(&tail, 0, module_delimiter_index);
+
+        let type_name = sub_string(&tail, module_delimiter_index + 2, string::length(&tail));
+
+        (package_addr, module_name, type_name)
     }
 }
