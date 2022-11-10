@@ -153,4 +153,10 @@ module nft_protocol::err {
     public fun must_be_witness(): u64 {
         return Prefix + 501
     }
+
+    // === Trading ===
+
+    public fun sender_not_owner(): u64 {
+        return Prefix + 600
+    }
 }

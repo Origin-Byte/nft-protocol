@@ -1,4 +1,5 @@
 module nft_protocol::bidding {
+    use nft_protocol::err;
     use nft_protocol::royalties;
     use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_whitelist::Whitelist;
@@ -12,8 +13,6 @@ module nft_protocol::bidding {
     use sui::tx_context::{Self, TxContext};
 
     struct Witness has drop {}
-
-    // TODO: close bid
 
     struct Bid<phantom FT> has key {
         id: UID,
@@ -121,6 +120,11 @@ module nft_protocol::bidding {
         );
     }
 
+    /// If a user wants to cancel their position, they get their coins back.
+    public entry fun close_bid<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
+        close_bid_(bid, ctx);
+    }
+
     fun create_bid_<FT>(
         nft: ID,
         price: u64,
@@ -181,6 +185,23 @@ module nft_protocol::bidding {
         transfer_bid_commission(&mut bid.commission, ctx);
 
         emit(BidClosed<FT> { id: nft_id, sold: true });
+    }
+
+    fun close_bid_<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
+        assert!(bid.buyer == sender, err::sender_not_owner());
+
+        let total = balance::value(&bid.offer);
+        let offer = coin::take(&mut bid.offer, total, ctx);
+
+        if (option::is_some(&bid.commission)) {
+            let BidCommission { beneficiary: _, cut } =
+                option::extract(&mut bid.commission);
+
+            balance::join(coin::balance_mut(&mut offer), cut);
+        };
+
+        transfer(offer, sender);
     }
 
     /// TODO: deduplicate with OB
