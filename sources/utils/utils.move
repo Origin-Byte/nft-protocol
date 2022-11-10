@@ -32,6 +32,12 @@ module nft_protocol::utils {
         new_vec
     }
 
+    /// One time witness is a type exported by a contract which follows the
+    /// module name.
+    ///
+    /// Witness is a type always in form "struct Witness has drop {}"
+    ///
+    /// They must be from the same module for this assertion to be ok.
     public fun assert_witnesses_of_same_package<OneTimeWitness, Witness>() {
         let (package_a, _) = get_package_and_type<OneTimeWitness>();
         let (package_b, witness_type) = get_package_and_type<Witness>();
