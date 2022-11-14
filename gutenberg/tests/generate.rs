@@ -19,8 +19,7 @@ fn example_schema() {
 #[test]
 fn simple() {
     let config = File::open("./examples/simple.yaml").unwrap();
-    let expected =
-        fs::read_to_string("../sources/examples/suimarines.move").unwrap();
+    let expected = fs::read_to_string("../examples/suimarines.move").unwrap();
 
     assert_equal(config, expected);
 }
@@ -28,8 +27,7 @@ fn simple() {
 #[test]
 fn collectible() {
     let config = File::open("./examples/collectibles.yaml").unwrap();
-    let expected =
-        fs::read_to_string("../sources/examples/collectibles.move").unwrap();
+    let expected = fs::read_to_string("../examples/collectibles.move").unwrap();
 
     assert_equal(config, expected);
 }
