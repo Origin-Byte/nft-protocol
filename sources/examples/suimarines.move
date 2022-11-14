@@ -86,7 +86,7 @@ module nft_protocol::suimarines {
     }
 
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<Witness, FT>,
+        payment: &mut TradePayment<SUIMARINES, Witness, FT>,
         collection: &Collection<SUIMARINES, std_collection::StdMeta>,
         ctx: &mut TxContext,
     ) {
