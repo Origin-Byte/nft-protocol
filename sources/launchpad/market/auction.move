@@ -158,6 +158,11 @@ module nft_protocol::auction {
     }
 
     /// Cancels a single bid at the given price level in a FIFO manner
+    ///
+    /// Bids can always be canceled no matter whether the auction is live.
+    //
+    // TODO(https://github.com/Origin-Byte/nft-protocol/issues/76):
+    // Cancel all bids endpoint
     public entry fun cancel_bid<T>(
         wallet: &mut Coin<SUI>,
         slingshot: &mut Slingshot<T, AuctionMarket>,
@@ -165,7 +170,6 @@ module nft_protocol::auction {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        // TODO: Orders can always be cancelled?
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         cancel_bid_(
@@ -265,7 +269,8 @@ module nft_protocol::auction {
                 sale,
                 launchpad_id,
                 receiver,
-                // TODO: Investigate whether this logic should be paginated
+                // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
+                // Investigate whether this logic should be paginated
                 nfts_to_sell,
                 ctx
             );
@@ -299,7 +304,6 @@ module nft_protocol::auction {
     }
 
     /// Cancels a single order in a FIFO manner
-    // TODO: Cancel all bids endpoint
     fun cancel_bid_(
         book: &mut AuctionMarket,
         wallet: &mut Coin<SUI>,

@@ -349,14 +349,16 @@ Note: One can only claim an NFT after having bought the NFT certificate from the
 
 ### Launchpad Markets
 
-Market modules export the `create_market` endpoint which can be used to create a launchpad with optional tiered sales. 
+Market modules export the `create_market` endpoint which can be used to create a launchpad with optional tiered sales.
 
 The standard provides multiple types of markets that can be used, including fixed price and dutch auction markets. NFTs to be sold can be seggregated by sales outlets, each with different prices and different options for whitelisting rules.
 
-Market modules also have entry functions that are meant to be called directly by client code:
+Market modules have entry functions that are meant to be called directly by client code.
 
-- `buy_nft_certificate` to buy an NFT certificate from a permissionless Sales outlet
-- `buy_whitelisted_nft_certificate` to buy an NFT certificate from a whitelisted Sales outlet
+Launchpad administrators can call the following functions:
+
+- `sale_on` permissioned entry function making the NFT sale live
+- `sale_off` permissioned entry function pausing the NFT sale
 
 #### Fixed Price Market
 
@@ -367,9 +369,34 @@ The fixed price market object, `FixedPriceMarket`, has the following data model:
 | `id`    | `UID` | The UID of the Slingshot object    |
 | `price` | `u64` | The price of a NFT for sale in SUI |
 
-In addition, the administrator of the Launchpad can call the following function:
+Clients can directly call the following entry functions to interact with the market:
+
+- `buy_nft_certificate` to buy an NFT certificate from a permissionless Sales outlet
+- `buy_whitelisted_nft_certificate` to buy an NFT certificate from a whitelisted Sales outlet
+
+Additionaly, the administrator of the Launchpad can call the following function:
 
 - `new_price` permissioned entry function to change the price of the sale
+
+#### Auction Market
+
+The auction market object, `AuctionMarket`, has the following data model:
+
+| Field           | Type                     | Description                                  |
+| ----------------| ------------------------ | -------------------------------------------- |
+| `id`            | `UID`                    | The UID of the Slingshot object              |
+| `reserve_price` | `u64`                    | The price of a NFT for sale in SUI           |
+| `bids`          | `movemate::crit_bit::CB` | Collection of all bids placed in the auction |
+
+Clients can directly call the following entry functions to interact with the market:
+
+- `create_bid` place a bid for a number of NFTs at a chosen price
+- `create_bid_whitelisted` place a bid for a number of whitelisted NFTs at a chosen price
+- `cancel_bid` cancel a single bid at the given price level in a FIFO manner
+
+In addition, the administrator of the Launchpad can call the following function:
+
+- `sale_cancel` permissioned entry function to cancel the NFT auction. `sale_cancel` refunds all open bids in contrast to `sale_off` which only pauses bidding.
 
 ## Guides for NFT Creators, Wallets and Marketplaces
 
