@@ -380,6 +380,8 @@ Additionaly, the administrator of the Launchpad can call the following function:
 
 #### Auction Market
 
+Auction market implements a Dutch auction to determine the price and allocate NFTs to bidders. In such an auction, the lowest price needed to sell all the NFTs will be the price which will be charged to bidders. However, auction owners can set a reserve price, disallowing bids on prices lower than the reserve.
+
 The auction market object, `AuctionMarket`, has the following data model:
 
 | Field           | Type                     | Description                                  |
@@ -397,6 +399,7 @@ Clients can directly call the following entry functions to interact with the mar
 In addition, the administrator of the Launchpad can call the following function:
 
 - `sale_cancel` permissioned entry function to cancel the NFT auction. `sale_cancel` refunds all open bids in contrast to `sale_off` which only pauses bidding.
+- `sale_conclude` permissioned entry function to conclude the NFT auction, determine the price, and match NFTs with winning bids. Remaining bids are canceled.
 
 ## Guides for NFT Creators, Wallets and Marketplaces
 
