@@ -321,7 +321,9 @@ And has the following entry functions to be called directly by the client code:
 
 ### Slingshot Launchpad
 
-In order for NFT creators to better control the flow of creating and releasing NFTs to the public we have created a launchpad module called Slingshot. Slingshot allows you to define what market primitive you want to utilise (i.e. Fixed Price sales, Auctions, etc.) and to break down your sales strategy into tiers, which with their own whitelisting configuration.
+In order for NFT creators to better control the flow of creating and releasing NFTs to the public we have created a launchpad module called Slingshot. Slingshot allows you to define what market primitive you want to utilise (i.e. Fixed Price, Auction, etc.) and to break down your sales strategy into tiers, with custom configuration for each.
+
+Custom configuration can include whether the tier is whitelisted or the price at which an NFT from the tier can be bought at.
 
 The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 
@@ -335,12 +337,12 @@ The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 | `sales`         | `vector<Sale<T, M>>` | Vector of all Sale outleds that, each outles holding IDs owned by the slingshot |
 | `is_embedded`   | `bool`               | Field determining if NFTs are embedded or loose                                 |
 
-All functions associated to creation and deletion of the Launchpad are meant to be called by the upstream modules (i.e. currently only the Fixed Price module):
+All functions associated to creation and deletion of the Launchpad are meant to be called by upstream market modules:
 
 - `create` to create the Slingshot launchpad (called by the market module)
 - `delete` to destroy the Slingshot launchpad (called by the market module)
 
-Whereas entry functions associated to redeeming the NFTs can be called directly by the client code:
+Whereas entry functions associated to redeeming the NFTs can be called directly by client code:
 
 - `claim_nft_embedded` to redeem an embedded NFT
 - `claim_nft_loose` to redeem a loose NFT
