@@ -1,4 +1,4 @@
-- Sui v0.15.0
+- Sui v0.15.1
 
 # Install
 
@@ -347,24 +347,25 @@ Whereas entry functions associated to redeeming the NFTs can be called directly 
 
 Note: One can only claim an NFT after having bought the NFT certificate from the sale. This action occurs directly in the market module.
 
-### Fixed Price Market
+### Launchpad Markets
 
-The Fixed Price Market object, `Market`, has the following data model:
+Market modules export the `create_market` endpoint which can be used to create a launchpad with optional tiered sales. 
+
+The standard provides multiple types of markets that can be used, including fixed price and dutch auction markets. NFTs to be sold can be seggregated by sales outlets, each with different prices and different options for whitelisting rules.
+
+Market modules also have entry functions that are meant to be called directly by client code:
+
+- `buy_nft_certificate` to buy an NFT certificate from a permissionless Sales outlet
+- `buy_whitelisted_nft_certificate` to buy an NFT certificate from a whitelisted Sales outlet
+
+#### Fixed Price Market
+
+The fixed price market object, `FixedPriceMarket`, has the following data model:
 
 | Field   | Type  | Description                        |
 | ------- | ----- | ---------------------------------- |
 | `id`    | `UID` | The UID of the Slingshot object    |
 | `price` | `u64` | The price of a NFT for sale in SUI |
-
-Market modules export two functions two types of launchpads. These functinos are meant to be called by the contract deployed by the NFT creators:
-
-- `create_single_market` to create a Single Fixed Price launchpad with option for whitelisting rules
-- `create_multi_market` to create a Fixed Price launchpad with tiered sales, in that NFTs to be sold can be seggregated by sales outlets, each with different prices and different options for whitelisting rules
-
-The market modules also have entry functions that are meant to be called directly by the client code:
-
-- `buy_nft_certificate` to buy an NFT certificate from a permissionless Sales outlet
-- `buy_whitelisted_nft_certificate` to buy an NFT certificate from a whitelisted Sales outlet
 
 In addition, the administrator of the Launchpad can call the following function:
 
