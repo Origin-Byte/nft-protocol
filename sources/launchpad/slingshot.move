@@ -136,6 +136,9 @@ module nft_protocol::slingshot {
         recipient: address,
         ctx: &mut TxContext,
     ) {
+        // let nft: Nft<T, D> =
+        //     dynamic_object_field::remove(&mut slingshot.id, nft_id);
+
         assert!(
             object::id(&nft_data) == sale::nft_id(&certificate),
             err::certificate_does_not_correspond_to_nft_given()
@@ -145,7 +148,7 @@ module nft_protocol::slingshot {
 
         let nft = nft::mint_nft_loose<T, D>(
             object::id(&nft_data),
-            recipient,
+            tx_context::sender(ctx),
             ctx,
         );
 
@@ -170,7 +173,7 @@ module nft_protocol::slingshot {
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft_loose<T, M: store, D: key + store>(
         slingshot: &Slingshot<T, M>,
-        nft_data: &D,
+        nft_data: &mut D,
         certificate: NftCertificate,
         recipient: address,
         ctx: &mut TxContext,

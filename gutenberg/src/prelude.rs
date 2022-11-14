@@ -11,4 +11,3 @@ pub use std::io::prelude::*;
 pub use std::path::PathBuf;
 pub use std::str::FromStr;
 pub use strfmt::strfmt;
-pub use structopt::StructOpt;

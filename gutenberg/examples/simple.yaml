@@ -1,19 +1,18 @@
 NftType: "Unique"
 
 Collection:
-  name: "Suisurfers"
-  description: "A Unique NFT collection of Suisurfers on Sui"
-  symbol: "SUIS"
+  name: "Suimarines"
+  description: "A Unique NFT collection of Suimarines on Sui"
+  symbol: "SUIM"
   max_supply: 100
   receiver: "0x6c86ac4a796204ea09a87b6130db0c38263c1890"
   tags:
     - "Art"
-    - "PFP"
   royalty_fee_bps: 100
-  is_mutable: true
+  is_mutable: false
   data: "Some extra data"
 
 Launchpad:
   market_type: "fixed_price"
-  prices: [1000]
-  whitelists: [false]
+  prices: [1000, 2000]
+  whitelists: [true, false]

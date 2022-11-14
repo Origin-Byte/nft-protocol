@@ -148,17 +148,27 @@ module nft_protocol::err {
         return Prefix + 401
     }
 
-    // === Trading ===
+    // === Utils ===
 
-    public fun order_does_not_exist(): u64 {
+    public fun witness_source_mismatch(): u64 {
         return Prefix + 500
     }
 
-    public fun order_owner_must_be_sender(): u64 {
+    public fun must_be_witness(): u64 {
         return Prefix + 501
     }
 
+    // === Trading ===
+
+    public fun order_does_not_exist(): u64 {
+        return Prefix + 600
+    }
+
+    public fun order_owner_must_be_sender(): u64 {
+        return Prefix + 601
+    }
+
     public fun action_not_public(): u64 {
-        return Prefix + 502
+        return Prefix + 602
     }
 }
