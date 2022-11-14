@@ -5,7 +5,10 @@
 use crate::prelude::*;
 
 use serde::Deserialize;
+
+use std::collections::HashMap;
 use std::fmt::Write;
+use std::fs;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
@@ -136,7 +139,7 @@ impl Schema {
             .collect();
 
         output.write_all(
-            strfmt(&fmt, &vars)
+            strfmt::strfmt(&fmt, &vars)
                 // This is expected not to result in an error since we
                 // have explicitly handled all error cases
                 .unwrap_or_else(|_| {
