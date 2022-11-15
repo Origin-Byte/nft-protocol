@@ -349,7 +349,7 @@ Note: One can only claim an NFT after having bought the NFT certificate from the
 
 ### Launchpad Markets
 
-Market modules export the `create_market` endpoint which can be used to create a launchpad with optional tiered sales. 
+Market modules export the `create_market` endpoint which can be used to create a launchpad with optional tiered sales.
 
 The standard provides multiple types of markets that can be used, including fixed price and dutch auction markets. NFTs to be sold can be seggregated by sales outlets, each with different prices and different options for whitelisting rules.
 
@@ -375,6 +375,10 @@ In addition, the administrator of the Launchpad can call the following function:
 
 Note: This section needs to be developed.
 
-### Deploy a simple NFT collection
+### Deploy an NFT collection
 
-To deploy your own NFT collection follow our guide on how to use [Gutenberg](https://github.com/Origin-Byte/nft-protocol/blob/main/gutenberg/README.md) to automagically generate your collection specific Move module.
+To deploy an NFT collection you will need to create a SUI [Move](https://docs.sui.io/build/move) contract.
+
+Creating your own contract is quite difficult, so we created a way that you can do it automagically! To create your own NFT collection, follow our guide on how to use [Gutenberg](./gutenberg/) which automagically generates a contract for your NFT collection.
+
+To deploy your newly created smart contract follow the deploy instructions found in [docs/deploy](../docs/deploy.md).
