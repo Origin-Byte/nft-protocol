@@ -32,6 +32,14 @@ fn collectible() {
     assert_equal(config, expected);
 }
 
+#[test]
+fn auction() {
+    let config = File::open("./examples/auction.yaml").unwrap();
+    let expected = fs::read_to_string("../examples/suitraders.move").unwrap();
+
+    assert_equal(config, expected);
+}
+
 /// Asserts that the config file has correct schema
 fn assert_schema(config: File) -> Schema {
     serde_yaml::from_reader::<_, Schema>(config).unwrap()

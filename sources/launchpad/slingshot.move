@@ -3,7 +3,7 @@
 //! It acts as a generic interface for Launchpads and it allows for
 //! the creation of arbitrary domain specific implementations.
 //!
-//! The slingshot acts as the object that configures the primary NFT realease
+//! The slingshot acts as the object that configures the primary NFT release
 //! strategy, that is the primary market sale. Primary market sales can take
 //! many shapes, depending on the business level requirements.
 module nft_protocol::slingshot {
@@ -272,6 +272,13 @@ module nft_protocol::slingshot {
         &slingshot.sales
     }
 
+    /// Get the Slingshot's `sales` address mutably
+    public fun sales_mut<T, M>(
+        slingshot: &mut Slingshot<T, M>,
+    ): &mut vector<Sale<T, M>> {
+        &mut slingshot.sales
+    }
+
     /// Get the Slingshot's `sale` address
     public fun sale<T, M>(
         slingshot: &Slingshot<T, M>,
@@ -280,7 +287,7 @@ module nft_protocol::slingshot {
         vector::borrow(&slingshot.sales, index)
     }
 
-    /// Get the Slingshot's `sale` address
+    /// Get the Slingshot's `sale` address mutably
     public fun sale_mut<T, M>(
         slingshot: &mut Slingshot<T, M>,
         index: u64,

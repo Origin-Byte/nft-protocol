@@ -132,7 +132,15 @@ module nft_protocol::sale {
         sale: &mut Sale<T, Market>,
     ): ID {
         let nfts = &mut sale.nfts;
+        assert!(!vector::is_empty(nfts), err::sale_outlet_has_no_nfts_to_sell());
         vector::pop_back(nfts)
+    }
+
+    /// Check how many `nfts` there are to sell
+    public fun length<T, Market>(
+        sale: &Sale<T, Market>,
+    ): u64 {
+        vector::length(&sale.nfts)
     }
 
     public fun market<T, M>(
