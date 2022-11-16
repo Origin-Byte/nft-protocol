@@ -19,7 +19,12 @@ fn main() -> Result<(), GutenError> {
     let opt = Opt::parse_args_default_or_exit();
 
     let f = fs::File::open(opt.config)?;
-    let schema = serde_yaml::from_reader::<_, Schema>(f)?;
+
+    let de = serde_yaml::Deserializer::from_reader(f);
+    let schema: Schema = match serde_path_to_error::deserialize(de) {
+        Ok(schema) => schema,
+        Err(err) => todo!(),
+    };
 
     let output = opt.path.unwrap_or_else(|| {
         PathBuf::from(&format!(
