@@ -1,4 +1,4 @@
-module nft_protocol::auction {
+module nft_protocol::dutch_auction {
     //! Auction where bids are fungible tokens.
     //! Winning bids are awarded NFTs.
 
@@ -19,26 +19,24 @@ module nft_protocol::auction {
     use nft_protocol::sale::{Self, Sale};
     use nft_protocol::whitelist::{Self, Whitelist};
 
-    struct AuctionMarket has key, store {
+    struct DutchAuctionMarket has key, store {
         id: UID,
         /// The minimum price at which NFTs can be sold
         reserve_price: u64,
         /// A bid order stores amount of "T"okens the buyer is willing to
         /// purchase
         bids: CBTree<vector<Bid>>,
+        /// Whether the auction is currently live
+        live: bool
     }
 
-    /// An offer for a number of NFTs
+    /// A bid for one NFT
     struct Bid has store {
-        /// Total bid amount
-        ///
-        /// Total bid amount is equal to the product of the price level the bid
-        /// is placed at and the number of NFTs that the bid is for.
+        /// Amount is equal to the price that the bidder is ready to pay for
+        /// one NFT.
         amount: Balance<SUI>,
-        /// The quantity of tokens for which the bid is placed
-        quantity: u64,
-        /// The address of the user who created this bid and who will receive an
-        /// NFT in exchange for their tokens.
+        /// The address of the user who created this bid and who will receive
+        /// an NFT in exchange for their tokens.
         owner: address,
     }
 
@@ -64,13 +62,14 @@ module nft_protocol::auction {
             let reserve_price = vector::pop_back(&mut reserve_prices);
             let whitelist = vector::pop_back(&mut whitelists);
 
-            let auction = AuctionMarket {
+            let auction = DutchAuctionMarket {
                 id: object::new(ctx),
                 reserve_price,
-                bids: crit_bit::empty()
+                bids: crit_bit::empty(),
+                live: false,
             };
 
-            let sale = sale::create<W, AuctionMarket>(
+            let sale = sale::create<W, DutchAuctionMarket>(
                 0,
                 whitelist,
                 auction,
@@ -87,7 +86,7 @@ module nft_protocol::auction {
             is_embedded
         );
 
-        slingshot::create<W, AuctionMarket>(
+        slingshot::create<W, DutchAuctionMarket>(
             witness,
             sales,
             args,
@@ -100,7 +99,7 @@ module nft_protocol::auction {
     /// Creates a bid in a FIFO manner, previous bids are retained
     public entry fun create_bid<T>(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<T, AuctionMarket>,
+        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
         tier_index: u64,
         price: u64,
         quantity: u64,
@@ -125,7 +124,7 @@ module nft_protocol::auction {
 
     public entry fun create_bid_whitelisted<T>(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<T, AuctionMarket>,
+        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
         tier_index: u64,
         whitelist_token: Whitelist,
         price: u64,
@@ -165,7 +164,7 @@ module nft_protocol::auction {
     // Cancel all bids endpoint
     public entry fun cancel_bid<T>(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<T, AuctionMarket>,
+        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
         tier_index: u64,
         price: u64,
         ctx: &mut TxContext,
@@ -187,7 +186,7 @@ module nft_protocol::auction {
     ///
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_on<T>(
-        slingshot: &mut Slingshot<T, AuctionMarket>,
+        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -202,7 +201,7 @@ module nft_protocol::auction {
     ///
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_off<T>(
-        slingshot: &mut Slingshot<T, AuctionMarket>,
+        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -218,7 +217,7 @@ module nft_protocol::auction {
     ///
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_cancel<T>(
-        slingshot: &mut Slingshot<T, AuctionMarket>,
+        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -246,7 +245,7 @@ module nft_protocol::auction {
     ///
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_conclude<T>(
-        slingshot: &mut Slingshot<T, AuctionMarket>,
+        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -284,33 +283,46 @@ module nft_protocol::auction {
     // === Private Functions ===
 
     fun create_bid_(
-        auction: &mut AuctionMarket,
+        auction: &mut DutchAuctionMarket,
         wallet: &mut Coin<SUI>,
         price: u64,
         quantity: u64,
         bidder: address,
     ) {
-        assert!(price >= auction.reserve_price, err::order_price_below_reserve());
+        assert!(
+            price >= auction.reserve_price,
+            err::order_price_below_reserve()
+        );
 
-        let amount = balance::split(coin::balance_mut(wallet), price * quantity);
+        // Create price level if it does not exist
+        if (!crit_bit::has_key(&auction.bids, (price as u128))) {
+            crit_bit::insert(
+                &mut auction.bids,
+                (price as u128),
+                vector::empty()
+            );
+        };
 
-        let bid = Bid { amount, quantity, owner: bidder };
+        let price_level =
+            crit_bit::borrow_mut(&mut auction.bids, (price as u128));
 
-        if (crit_bit::has_key(&auction.bids, (price as u128))) {
-            vector::push_back(crit_bit::borrow_mut(&mut auction.bids, (price as u128)), bid);
-        } else {
-            crit_bit::insert(&mut auction.bids, (price as u128), vector::singleton(bid));
+        // Make `quantity` number of bids
+        let index = 0;
+        while (quantity > index) {
+            let amount = balance::split(coin::balance_mut(wallet), price);
+            vector::push_back(price_level, Bid { amount, owner: bidder });
+            index = index + 1;
         }
     }
 
     /// Cancels a single order in a FIFO manner
     fun cancel_bid_(
-        book: &mut AuctionMarket,
+        auction: &mut DutchAuctionMarket,
         wallet: &mut Coin<SUI>,
         price: u64,
         sender: address,
     ) {
-        let bids = &mut book.bids;
+        let bids = &mut auction.bids;
 
         assert!(
             crit_bit::has_key(bids, (price as u128)),
@@ -337,7 +349,7 @@ module nft_protocol::auction {
     }
 
     // Cancels all bids present on the auction book
-    fun cancel_auction(book: &mut AuctionMarket, ctx: &mut TxContext) {
+    fun cancel_auction(book: &mut DutchAuctionMarket, ctx: &mut TxContext) {
         let bids = &mut book.bids;
 
         while (!crit_bit::is_empty(bids)) {
@@ -360,14 +372,14 @@ module nft_protocol::auction {
     }
 
     fun refund_bid(bid: Bid, wallet: &mut Coin<SUI>, sender: &address) {
-        let Bid { amount, quantity: _quantity, owner } = bid;
+        let Bid { amount, owner } = bid;
         assert!(sender == &owner, err::order_owner_must_be_sender());
 
         balance::join(coin::balance_mut(wallet), amount);
     }
 
     fun conclude_auction<T>(
-        sale: &mut Sale<T, AuctionMarket>,
+        sale: &mut Sale<T, DutchAuctionMarket>,
         launchpad_id: ID,
         receiver: address,
         // Use to specify how many NFTs will be transfered to the winning bids
@@ -400,57 +412,40 @@ module nft_protocol::auction {
             // Match in FIFO order
             let bid = vector::remove(price_level, 0);
 
-            // Bid may exceed the number of NFTs left to sell
-            if (nfts_to_sell < bid.quantity) {
-                // Need to split bid into two
-                let remaining_quantity = bid.quantity - nfts_to_sell;
-                bid.quantity = nfts_to_sell;
-
-                // Infer the initial offer price of the bid
-                let price = balance::value(&bid.amount) / bid.quantity;
-                let remaining_amount = price * remaining_quantity;
-                let remaining_bid = Bid {
-                    amount: balance::split(&mut bid.amount, remaining_amount),
-                    quantity: remaining_quantity,
-                    owner: bid.owner,
-                };
-
-                // We can ignore priority as remaining orders will be canceled
-                vector::push_back(price_level, remaining_bid);
-            };
-
             fill_price = max_key;
-            nfts_to_sell = nfts_to_sell - bid.quantity;
+            nfts_to_sell = nfts_to_sell - 1;
             vector::push_back(&mut bids_to_fill, bid);
         };
 
         while (!vector::is_empty(&bids_to_fill)) {
-            let Bid {amount, quantity, owner} = vector::pop_back(&mut bids_to_fill);
-            let wallet = coin::from_balance(amount, ctx);
+            let Bid {amount, owner} = vector::pop_back(&mut bids_to_fill);
+            let funds = coin::from_balance(amount, ctx);
 
-            while (quantity > 0) {
-                pay::split_and_transfer<SUI>(
-                    &mut wallet,
-                    // SAFE: Price levels will respect u64 bounds
-                    (fill_price as u64),
-                    receiver,
-                    ctx
-                );
+            pay::split_and_transfer<SUI>(
+                &mut funds,
+                // SAFE: Price levels will respect u64 bounds
+                (fill_price as u64),
+                receiver,
+                ctx
+            );
 
-                let certificate = sale::issue_nft_certificate(sale, launchpad_id, ctx);
+            let certificate = sale::issue_nft_certificate(
+                sale,
+                launchpad_id,
+                ctx
+            );
 
-                transfer::transfer(
-                    certificate,
-                    tx_context::sender(ctx),
-                );
+            // Transfer certificate to winning bid
+            transfer::transfer(
+                certificate,
+                owner,
+            );
 
-                quantity = quantity - 1;
-            };
-
-            if (coin::value(&wallet) == 0) {
-                coin::destroy_zero(wallet);
+            if (coin::value(&funds) == 0) {
+                coin::destroy_zero(funds);
             } else {
-                transfer::transfer(wallet, owner);
+                // Transfer bidding coins back to bid owner
+                transfer::transfer(funds, owner);
             }
         };
 

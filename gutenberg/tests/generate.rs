@@ -35,8 +35,7 @@ fn collectible() {
 #[test]
 fn auction() {
     let config = File::open("./examples/auction.yaml").unwrap();
-    let expected =
-        fs::read_to_string("../sources/examples/suitraders.move").unwrap();
+    let expected = fs::read_to_string("../examples/suitraders.move").unwrap();
 
     assert_equal(config, expected);
 }

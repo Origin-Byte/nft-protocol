@@ -13,7 +13,6 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let tags: vector<vector<u8>> = vector::empty();
-        
         vector::push_back(&mut tags, b"Art");
 
         let collection_id = std_collection::mint<SUIMARINES>(

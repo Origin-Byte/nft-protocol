@@ -98,7 +98,7 @@ impl Schema {
         .into_boxed_str();
 
         let slingshot_import = if is_embedded {
-            "use nft_protocol::slingshot::Slingshot;"
+            "    use nft_protocol::slingshot::Slingshot;"
         } else {
             ""
         }
@@ -150,15 +150,17 @@ impl Schema {
 
     /// Generates Move code to push tags to a Move `vector` structure
     pub fn write_tags(&self) -> Box<str> {
-        let tags_vec = &self.collection.tags;
+        let mut out =
+            String::from("let tags: vector<vector<u8>> = vector::empty();\n");
+        for tag in self.collection.tags.iter() {
+            out.write_fmt(format_args!(
+                "        vector::push_back(&mut tags, b\"{}\");\n",
+                tag
+            ))
+            .unwrap();
+        }
 
-        tags_vec
-            .iter()
-            .map(|tag| {
-                format!("        vector::push_back(&mut tags, b\"{}\");", tag)
-            })
-            .fold("".to_string(), |acc, x| acc + "\n" + &x)
-            .into_boxed_str()
+        out.into_boxed_str()
     }
 
     /// Associated function that generates Move code to declare and push market

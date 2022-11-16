@@ -148,7 +148,7 @@ impl MarketType {
     pub fn market_type(&self) -> Box<str> {
         match self {
             MarketType::FixedPrice { .. } => "FixedPriceMarket",
-            MarketType::Auction { .. } => "AuctionMarket",
+            MarketType::Auction { .. } => "DutchAuctionMarket",
         }
         .into()
     }
@@ -156,7 +156,7 @@ impl MarketType {
     pub fn market_module(&self) -> Box<str> {
         match self {
             MarketType::FixedPrice { .. } => "fixed_price",
-            MarketType::Auction { .. } => "auction",
+            MarketType::Auction { .. } => "dutch_auction",
         }
         .into()
     }

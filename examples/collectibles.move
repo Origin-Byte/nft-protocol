@@ -7,13 +7,12 @@ module nft_protocol::suinamis {
     use nft_protocol::fixed_price;
     use nft_protocol::std_collection;
     use nft_protocol::collectible;
-    
+
 
     struct SUINAMIS has drop {}
 
     fun init(witness: SUINAMIS, ctx: &mut TxContext) {
         let tags: vector<vector<u8>> = vector::empty();
-        
         vector::push_back(&mut tags, b"Art");
         vector::push_back(&mut tags, b"PFP");
 

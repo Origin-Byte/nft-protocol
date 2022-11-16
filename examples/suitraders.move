@@ -4,7 +4,7 @@ module nft_protocol::suitraders {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection::{MintAuthority};
-    use nft_protocol::auction::{Self, AuctionMarket};
+    use nft_protocol::dutch_auction::{Self, DutchAuctionMarket};
     use nft_protocol::std_collection;
     use nft_protocol::unique_nft;
     use nft_protocol::slingshot::Slingshot;
@@ -13,7 +13,6 @@ module nft_protocol::suitraders {
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
         let tags: vector<vector<u8>> = vector::empty();
-        
         vector::push_back(&mut tags, b"Art");
         vector::push_back(&mut tags, b"PFP");
 
@@ -39,7 +38,7 @@ module nft_protocol::suitraders {
         vector::push_back(&mut reserve_prices, 1000);
         vector::push_back(&mut reserve_prices, 2000);
 
-        auction::create_market(
+        dutch_auction::create_market(
             witness,
             tx_context::sender(ctx), // admin
             collection_id,
@@ -58,7 +57,7 @@ module nft_protocol::suitraders {
         attribute_values: vector<vector<u8>>,
         mint_authority: &mut MintAuthority<SUITRADERS>,
         sale_index: u64,
-        launchpad: &mut Slingshot<SUITRADERS, AuctionMarket>,
+        launchpad: &mut Slingshot<SUITRADERS, DutchAuctionMarket>,
         ctx: &mut TxContext,
     ) {
         unique_nft::mint_regulated_nft(
