@@ -1,3 +1,4 @@
+// TODO(https://github.com/Origin-Byte/nft-protocol/issues/80): Market slingshot is toggled globally
 module nft_protocol::dutch_auction {
     //! Auction where bids are fungible tokens.
     //! Winning bids are awarded NFTs.
@@ -208,7 +209,6 @@ module nft_protocol::dutch_auction {
             slingshot::admin(slingshot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
-
         slingshot::sale_off(slingshot);
     }
 
