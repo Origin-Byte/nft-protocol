@@ -12,7 +12,7 @@ rev = "4409cd3bab257f806b369e3b17359a9713fea544"
 git = "https://github.com/Origin-Byte/movemate.git"
 subdir = "sui"
 # devnet-0.15.2
-rev = "cd2f07aae20307ed80e9ae9033d6a5ed79396691"
+rev = "fec6c98ad32fd875afcd807aa759ad7ccbbfd0e0"
 
 [addresses]
 nft_protocol = "0x0"
