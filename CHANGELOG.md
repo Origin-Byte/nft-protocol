@@ -12,6 +12,9 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Updated Sui dep to `0.15.1`
 
+### Added
+- Added `dutch_auction` market primitive to the launchpad
+
 ## [0.8.0] - 2022-11-09
 
 ### Changed
