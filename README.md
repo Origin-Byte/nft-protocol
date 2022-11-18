@@ -1,4 +1,4 @@
-- Sui v0.15.2
+- Sui v0.16.0
 
 # Install
 
@@ -387,7 +387,7 @@ Auction market implements a Dutch auction to determine the price and allocate NF
 The auction market object, `AuctionMarket`, has the following data model:
 
 | Field           | Type                     | Description                                  |
-| ----------------| ------------------------ | -------------------------------------------- |
+| --------------- | ------------------------ | -------------------------------------------- |
 | `id`            | `UID`                    | The UID of the Slingshot object              |
 | `reserve_price` | `u64`                    | The price of a NFT for sale in SUI           |
 | `bids`          | `movemate::crit_bit::CB` | Collection of all bids placed in the auction |
