@@ -94,7 +94,7 @@ module nft_protocol::safe {
     ///
     /// Otherwise, there's a risk of a race condition as multiple non-exclusive
     /// transfer caps can be created.
-    public entry fun create_transfer_cap(
+    public fun create_transfer_cap(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
@@ -123,7 +123,7 @@ module nft_protocol::safe {
     /// Creates an irrevocable and exclusive transfer cap.
     ///
     /// Useful for trading contracts which cannot claim an NFT atomically.
-    public entry fun create_exlusive_transfer_cap(
+    public fun create_exlusive_transfer_cap(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,

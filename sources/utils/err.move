@@ -134,36 +134,36 @@ module nft_protocol::err {
     // === Safe ===
 
     public fun safe_cap_mismatch(): u64 {
-        return Prefix + 300
+        return Prefix + 400
     }
 
     public fun safe_does_not_contain_nft(): u64 {
-        return Prefix + 301
+        return Prefix + 401
     }
 
     public fun nft_exlusively_listed(): u64 {
-        return Prefix + 302
+        return Prefix + 402
     }
 
     public fun transfer_cap_nft_mismatch(): u64 {
-        return Prefix + 303
+        return Prefix + 403
     }
 
     public fun transfer_cap_expired(): u64 {
-        return Prefix + 304
+        return Prefix + 404
     }
 
     public fun safe_does_not_accept_deposits(): u64 {
-        return Prefix + 305
+        return Prefix + 405
     }
 
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
-        return Prefix + 400
+        return Prefix + 500
     }
 
     public fun sender_not_collection_creator(): u64 {
-        return Prefix + 401
+        return Prefix + 501
     }
 }
