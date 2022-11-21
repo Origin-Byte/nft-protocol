@@ -225,11 +225,11 @@ module nft_protocol::safe {
     /// If the NFT is not exlusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft_to_recipient<T, D: store, WW, Auth: drop>(
+    public fun transfer_nft_to_recipient<T, D: store, Auth: drop>(
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
         safe: &mut Safe,
     ) {
         let nft = get_nft_for_transfer_<T, D>(transfer_cap, safe);
@@ -244,11 +244,11 @@ module nft_protocol::safe {
     /// If the NFT is not exlusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft_to_safe<T, D: store, WW, Auth: drop>(
+    public fun transfer_nft_to_safe<T, D: store, Auth: drop>(
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
         source: &mut Safe,
         target: &mut Safe,
         ctx: &mut TxContext,
