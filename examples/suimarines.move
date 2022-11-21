@@ -6,12 +6,10 @@ module nft_protocol::suimarines {
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{Self, Collection, MintAuthority};
-    use nft_protocol::fixed_price::{Self, FixedPriceMarket};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::fixed_price;
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::slingshot::Slingshot;
     use nft_protocol::std_collection;
-    use nft_protocol::unique_nft;
 
 
     /// One time witness is only instantiated in the init method
@@ -55,30 +53,6 @@ module nft_protocol::suimarines {
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
             true, // is_embedded
             whitelist, prices,
-            ctx,
-        );
-    }
-
-    public entry fun prepare_mint(
-        name: vector<u8>,
-        description: vector<u8>,
-        url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint_authority: &mut MintAuthority<SUIMARINES>,
-        sale_outlet: u64,
-        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
-        ctx: &mut TxContext,
-    ) {
-        unique_nft::prepare_launchpad_mint<SUIMARINES, FixedPriceMarket>(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
-            mint_authority,
-            sale_outlet,
-            launchpad,
             ctx,
         );
     }
