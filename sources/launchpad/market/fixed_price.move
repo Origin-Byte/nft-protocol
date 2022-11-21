@@ -35,8 +35,8 @@ module nft_protocol::fixed_price {
     // === Functions exposed to Witness Module ===
 
     /// Creates a fixed price `Launchpad` sale. A sale can be simple or tiered,
-    /// that is, a tiered sale `Launchpad` has multiple `Sale` outlets in its 
-    /// field `sales`. This funcitonality allows for the creation of tiered 
+    /// that is, a tiered sale `Launchpad` has multiple `Sale` outlets in its
+    /// field `sales`. This funcitonality allows for the creation of tiered
     /// market sales by segregating NFTs by different sale segments
     /// (e.g. based on rarity, or preciousness).
     ///
@@ -114,7 +114,6 @@ module nft_protocol::fixed_price {
         let launchpad_id = slingshot::id(slingshot);
 
         let receiver = slingshot::receiver(slingshot);
-        let collection_id = slingshot::collection_id(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is NOT whitelisted
@@ -138,7 +137,6 @@ module nft_protocol::fixed_price {
         let certificate = sale::issue_nft_certificate(
             sale,
             launchpad_id,
-            collection_id,
             ctx
         );
 
@@ -167,7 +165,6 @@ module nft_protocol::fixed_price {
         let launchpad_id = slingshot::id(slingshot);
 
         let receiver = slingshot::receiver(slingshot);
-        let collection_id = slingshot::collection_id(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is whitelisted
@@ -199,7 +196,6 @@ module nft_protocol::fixed_price {
         let certificate = sale::issue_nft_certificate(
             sale,
             launchpad_id,
-            collection_id,
             ctx
         );
 

@@ -22,16 +22,10 @@ module nft_protocol::sale {
         id: UID,
         tier_index: u64,
         whitelisted: bool,
-        // Vector of all IDs owned by the slingshot along with a `u64` value
-        // representing the supply to be minted.
-        nfts: vector<NftToSell>,
+        // Vector of all IDs owned by the slingshot
+        nfts: vector<ID>,
         queue: vector<ID>,
         market: Market,
-    }
-
-    struct NftToSell has copy, drop, store {
-        id: ID,
-        supply: u64,
     }
 
     /// This object acts as an intermediate step between the payment
@@ -42,7 +36,6 @@ module nft_protocol::sale {
     struct NftCertificate has key, store {
         id: UID,
         launchpad_id: ID,
-        collection_id: ID,
         nft_id: ID,
     }
 
@@ -98,16 +91,14 @@ module nft_protocol::sale {
     public fun issue_nft_certificate<T, M>(
         sale: &mut Sale<T, M>,
         launchpad_id: ID,
-        collection_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
-        let nft_to_sell = pop_nft(sale);
+        let nft_id = pop_nft(sale);
 
         let certificate = NftCertificate {
             id: object::new(ctx),
-            launchpad_id,
-            collection_id,
-            nft_id: nft_to_sell.id,
+            launchpad_id: launchpad_id,
+            nft_id: nft_id,
         };
 
         certificate
@@ -119,7 +110,6 @@ module nft_protocol::sale {
         let NftCertificate {
             id,
             launchpad_id: _,
-            collection_id: _,
             nft_id: _,
         } = certificate;
 
@@ -130,10 +120,9 @@ module nft_protocol::sale {
     public fun add_nft<T, Market>(
         sale: &mut Sale<T, Market>,
         id: ID,
-        supply: u64,
     ) {
         let nfts = &mut sale.nfts;
-        vector::push_back(nfts, NftToSell {id, supply});
+        vector::push_back(nfts, id);
     }
 
     /// Pops an NFT's ID from the `nfts` field in `Sale` object
@@ -141,7 +130,7 @@ module nft_protocol::sale {
     /// TODO: Need to push the ID to the queue
     fun pop_nft<T, Market>(
         sale: &mut Sale<T, Market>,
-    ): NftToSell {
+    ): ID {
         let nfts = &mut sale.nfts;
         assert!(!vector::is_empty(nfts), err::sale_outlet_has_no_nfts_to_sell());
         vector::pop_back(nfts)
@@ -194,11 +183,5 @@ module nft_protocol::sale {
         sale: &Sale<T, M>,
     ): bool {
         sale.whitelisted
-    }
-
-    public fun collection_id(
-        certificate: &NftCertificate,
-    ): ID {
-        certificate.collection_id
     }
 }
