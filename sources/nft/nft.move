@@ -104,7 +104,7 @@ module nft_protocol::nft {
         nft: NFT,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
     ) {
         change_logical_owner(&mut nft, recipient, authority, whitelist);
         transfer::transfer(nft, recipient);
@@ -115,9 +115,9 @@ module nft_protocol::nft {
         nft: &mut NFT,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
     ) {
-        let is_ok = transfer_whitelist::can_be_transferred<WW, T, Auth>(
+        let is_ok = transfer_whitelist::can_be_transferred<T, Auth>(
             authority,
             whitelist,
         );

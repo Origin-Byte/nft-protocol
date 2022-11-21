@@ -22,7 +22,7 @@ fn main() -> Result<(), GutenError> {
 
     let output = opt.path.unwrap_or_else(|| {
         PathBuf::from_str(&format!(
-            "../examples/{}.move",
+            "../sources/{}.move",
             &schema.module_name().to_string()
         ))
         .unwrap()
