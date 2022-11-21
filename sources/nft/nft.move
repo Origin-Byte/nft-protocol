@@ -26,174 +26,86 @@ module nft_protocol::nft {
 
     use sui::event;
     use sui::object::{Self, UID, ID};
+    use sui::object_bag::{Self, ObjectBag};
     use sui::tx_context::{TxContext};
 
     use nft_protocol::err;
 
-    // NFT object with an option to hold `D`ata object
-    struct Nft<phantom T, D: store> has key, store {
+    // NFT object with phantom type `T`
+    struct Nft<phantom T> has key, store {
         id: UID,
-        data_id: ID,
-        data: Option<D>,
+        bag: ObjectBag
     }
 
     struct MintEvent has copy, drop {
         nft_id: ID,
-        data_id: ID,
     }
 
     struct BurnEvent has copy, drop {
         nft_id: ID,
-        data_id: ID,
     }
 
-    /// Create a loose `Nft` and returns it.
-    public fun mint_nft_loose<T, D: store>(
-        data_id: ID,
+    /// Create a `Nft` and returns it.
+    public fun mint_nft<T>(
         ctx: &mut TxContext,
-    ): Nft<T, D> {
+    ): Nft<T> {
         let nft_id = object::new(ctx);
 
         event::emit(
             MintEvent {
                 nft_id: object::uid_to_inner(&nft_id),
-                data_id: data_id,
             }
         );
 
         Nft {
             id: nft_id,
-            data_id: data_id,
-            data: option::none(),
+            bag: object_bag::new(ctx),
         }
     }
 
-    /// Create a embeded `Nft` and returns it.
-    public fun mint_nft_embedded<T, D: store>(
-        data_id: ID,
-        data: D,
-        ctx: &mut TxContext,
-    ): Nft<T, D> {
-        let nft_id = object::new(ctx);
-
-        event::emit(
-            MintEvent {
-                nft_id: object::uid_to_inner(&nft_id),
-                data_id: data_id,
-            }
-        );
-
-        Nft {
-            id: nft_id,
-            data_id: data_id,
-            data: option::some(data),
-        }
-    }
-
-    public fun join_nft_data<T, D: store>(
-        nft: &mut Nft<T, D>,
-        data: D,
+    public fun burn_nft<T>(
+        nft: Nft<T>,
     ) {
-        assert!(option::is_none(&nft.data), err::nft_not_loose());
-
-        option::fill(&mut nft.data, data);
-    }
-
-    public fun split_nft_data<T, D: store>(
-        nft: &mut Nft<T, D>,
-    ): D {
-        assert!(!option::is_none(&nft.data), err::nft_not_embedded());
-
-        option::extract(&mut nft.data)
-    }
-
-    public fun burn_loose_nft<T, D: store>(
-        nft: Nft<T, D>,
-    ) {
-        assert!(is_loose(&nft), err::nft_not_loose());
+        assert!(object_bag::is_empty(&nft.bag), err::bag_not_empty());
 
         event::emit(
             BurnEvent {
                 nft_id: id(&nft),
-                data_id: nft.data_id,
             }
         );
 
         let Nft {
             id,
-            data_id: _,
-            data,
+            bag,
         } = nft;
 
         object::delete(id);
-
-        option::destroy_none(data);
-    }
-
-    public fun burn_embedded_nft<T, D: store>(
-        nft: Nft<T, D>,
-    ): Option<D> {
-        assert!(!is_loose(&nft), err::nft_not_embedded());
-
-        event::emit(
-            BurnEvent {
-                nft_id: id(&nft),
-                data_id: nft.data_id,
-            }
-        );
-
-        let Nft {
-            id,
-            data_id: _,
-            data,
-        } = nft;
-
-        object::delete(id);
-
-        data
-    }
-
-    public fun is_loose<T, D: store>(
-        nft: &Nft<T, D>,
-    ): bool {
-        option::is_none(&nft.data)
+        object_bag::destroy_empty(bag);
     }
 
     // === Getter Functions  ===
 
-    public fun id<T, D: store>(
-        nft: &Nft<T, D>,
+    public fun id<T>(
+        nft: &Nft<T>,
     ): ID {
         object::uid_to_inner(&nft.id)
     }
 
-    public fun id_ref<T, D: store>(
-        nft: &Nft<T, D>,
+    public fun id_ref<T>(
+        nft: &Nft<T>,
     ): &ID {
         object::uid_as_inner(&nft.id)
     }
 
-    public fun data_id<T, D: store>(
-        nft: &Nft<T, D>,
-    ): ID {
-        nft.data_id
+    public fun bag<T>(
+        nft: &Nft<T>,
+    ): &ObjectBag {
+        &nft.bag
     }
 
-    public fun data_id_ref<T, D: store>(
-        nft: &Nft<T, D>,
-    ): &ID {
-        &nft.data_id
-    }
-
-    public fun data_ref<T, D: store>(
-        nft: &Nft<T, D>,
-    ): &D {
-        option::borrow(&nft.data)
-    }
-
-    public fun data_ref_mut<T, D: store>(
-        nft: &mut Nft<T, D>,
-    ): &mut D {
-        option::borrow_mut(&mut nft.data)
+    public fun bag_mut<T>(
+        nft: &mut Nft<T>,
+    ): &mut ObjectBag {
+        &mut nft.bag
     }
 }

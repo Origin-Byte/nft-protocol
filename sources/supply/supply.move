@@ -9,6 +9,10 @@ module nft_protocol::supply {
         current: u64,
     }
 
+    public fun new(max: u64, frozen: bool): Supply {
+        Supply { frozen: frozen, max: max, current: 0 }
+    }
+
     // === Supply <-> morphing and accessors  ===
 
     public fun max(supply: &Supply): u64 {
@@ -60,9 +64,5 @@ module nft_protocol::supply {
     public fun destroy(supply: Supply) {
         assert!(supply.current == 0, err::supply_is_not_zero());
         let Supply { frozen: _, max: _, current: _ } = supply;
-    }
-
-    public fun new(max: u64, frozen: bool): Supply {
-        Supply { frozen: frozen, max: max, current: 0 }
     }
 }

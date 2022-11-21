@@ -126,4 +126,8 @@ module nft_protocol::err {
         return Prefix + 303
     }
 
+    public fun bag_not_empty(): u64 {
+        return Prefix + 304
+    }
+
 }

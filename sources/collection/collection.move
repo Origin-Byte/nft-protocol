@@ -47,36 +47,9 @@ module nft_protocol::collection {
     ///
     /// The `Metadata` is a type exported by an upstream contract which is
     /// used to store additional information about the NFT.
-    struct Collection<phantom T, M: store> has key, store {
+    struct Collection<phantom T> has key, store {
         id: UID,
-        name: String,
-        description: String,
-        // TODO: Should symbol be limited to x number of chars?
-        symbol: String,
-        /// Address that receives the mint price in Sui
-        receiver: address,
-        /// Nft Collection Tags is an enumeration of tags, represented
-        /// as strings. An NFT Tag is a string that categorises the domain
-        /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
-        /// This allows wallets and marketplaces to organise NFTs by its
-        /// domain specificity.
-        tags: Tags,
-        /// Determines if the collection and its associated NFTs are
-        /// mutable. Once turned `false` it cannot be reversed. Collection
-        /// owners however will still be able to push and pop tags to the
-        /// `tags` field.
-        is_mutable: bool,
-        /// Field determining the amount of royaly fees in basis points,
-        /// charged in market transactions.
-        /// TODO: It is likely that this field will change as we design
-        /// the royalty enforcement standard
-        royalty_fee_bps: u64,
-        creators: vector<Creator>,
-        /// ID of `MintAuthority` object
-        mint_authority: ID,
-        /// The `Metadata` is a type exported by an upstream contract which is
-        /// used to store additional information about the NFT.
-        metadata: M,
+        bag: ObjectBag,
     }
 
     /// The `MintAuthority` object gives power to the owner to mint objects.
