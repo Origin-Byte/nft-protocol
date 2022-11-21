@@ -22,22 +22,68 @@
 //! represent 1-to-many relationships. Essentially this allows us to build
 //! NFTs which effectively have a supply.
 module nft_protocol::nft {
-    use std::option::{Self, Option};
-
-    use sui::event;
-    use sui::object::{Self, UID, ID};
-    use sui::tx_context::TxContext;
-    use sui::transfer;
-
     use nft_protocol::err;
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use nft_protocol::utils;
+    use std::option::{Self, Option};
+    use std::type_name::{Self, TypeName};
+    use sui::bag::{Self, Bag};
+    use sui::event;
+    use sui::object::{Self, UID, ID};
+    use sui::tx_context::{Self, TxContext};
 
-    // NFT object with an option to hold `D`ata object
-    struct Nft<phantom T, D: store> has key, store {
+    struct NFT has key, store {
         id: UID,
-        logical_owner: address,
-        data_id: ID,
-        data: Option<D>,
+        bag: Bag,
+    }
+
+    struct DomainKey has copy, drop, store {
+        type: TypeName,
+    }
+
+    public fun new(ctx: &mut TxContext): NFT {
+        NFT {
+            id: object::new(ctx),
+            bag: bag::new(ctx),
+        }
+    }
+
+    public fun has_domain<D: store>(nft: &NFT): bool {
+        bag::contains_with_type<DomainKey, D>(&nft.bag, dkey<D>())
+    }
+
+    public fun borrow_domain<D: store>(nft: &NFT): &D {
+        bag::borrow<DomainKey, D>(&nft.bag, dkey<D>())
+    }
+
+    public fun borrow_domain_mut<D: store, W: drop>(
+        _witness: W,
+        nft: &mut NFT,
+    ): &mut D {
+        utils::assert_same_package_as_witness<W, D>();
+        bag::borrow_mut<DomainKey, D>(&mut nft.bag, dkey<D>())
+
+    }
+
+    public fun add_domain<V: store>(
+        nft: &mut NFT,
+        v: V,
+    ) {
+        bag::add(&mut nft.bag, dkey<V>(), v);
+    }
+
+    public fun remove_domain<W: drop, V: store>(
+        _witness: W,
+        nft: &mut NFT,
+    ): V {
+        utils::assert_same_package_as_witness<W, V>();
+        bag::remove(&mut nft.bag, dkey<V>())
+    }
+
+    fun dkey<D>(): DomainKey {
+        DomainKey {
+            type: type_name::get<D>(),
+        }
     }
 
     struct MintEvent has copy, drop {
@@ -50,130 +96,12 @@ module nft_protocol::nft {
         data_id: ID,
     }
 
-    /// Create a loose `Nft` and returns it.
-    public fun mint_nft_loose<T, D: store>(
-        data_id: ID,
-        logical_owner: address,
-        ctx: &mut TxContext,
-    ): Nft<T, D> {
-        let nft_id = object::new(ctx);
-
-        event::emit(
-            MintEvent {
-                nft_id: object::uid_to_inner(&nft_id),
-                data_id: data_id,
-            }
-        );
-
-        Nft {
-            id: nft_id,
-            logical_owner,
-            data_id: data_id,
-            data: option::none(),
-        }
-    }
-
-    /// Create a embeded `Nft` and returns it.
-    public fun mint_nft_embedded<T, D: store>(
-        data_id: ID,
-        logical_owner: address,
-        data: D,
-        ctx: &mut TxContext,
-    ): Nft<T, D> {
-        let nft_id = object::new(ctx);
-
-        event::emit(
-            MintEvent {
-                nft_id: object::uid_to_inner(&nft_id),
-                data_id: data_id,
-            }
-        );
-
-        Nft {
-            id: nft_id,
-            logical_owner,
-            data_id: data_id,
-            data: option::some(data),
-        }
-    }
-
-    public fun join_nft_data<T, D: store>(
-        nft: &mut Nft<T, D>,
-        data: D,
-    ) {
-        assert!(option::is_none(&nft.data), err::nft_not_loose());
-
-        option::fill(&mut nft.data, data);
-    }
-
-    public fun split_nft_data<T, D: store>(
-        nft: &mut Nft<T, D>,
-    ): D {
-        assert!(!option::is_none(&nft.data), err::nft_not_embedded());
-
-        option::extract(&mut nft.data)
-    }
-
-    public fun burn_loose_nft<T, D: store>(
-        nft: Nft<T, D>,
-    ) {
-        assert!(is_loose(&nft), err::nft_not_loose());
-
-        event::emit(
-            BurnEvent {
-                nft_id: id(&nft),
-                data_id: nft.data_id,
-            }
-        );
-
-        let Nft {
-            id,
-            logical_owner: _,
-            data_id: _,
-            data,
-        } = nft;
-
-        object::delete(id);
-
-        option::destroy_none(data);
-    }
-
-    public fun burn_embedded_nft<T, D: store>(
-        nft: Nft<T, D>,
-    ): Option<D> {
-        assert!(!is_loose(&nft), err::nft_not_embedded());
-
-        event::emit(
-            BurnEvent {
-                nft_id: id(&nft),
-                data_id: nft.data_id,
-            }
-        );
-
-        let Nft {
-            id,
-            logical_owner: _,
-            data_id: _,
-            data,
-        } = nft;
-
-        object::delete(id);
-
-        data
-    }
-
-    public fun is_loose<T, D: store>(
-        nft: &Nft<T, D>,
-    ): bool {
-        option::is_none(&nft.data)
-    }
-
     // === Transfer Functions ===
 
     /// If the authority was whitelisted by the creator, we transfer
     /// the NFT to the recipient address.
-    public fun transfer<T, D: store, WW, Auth: drop>(
-        nft: Nft<T, D>,
+    public fun transfer<WW, Auth: drop>(
+        nft: NFT,
         recipient: address,
         authority: Auth,
         whitelist: &Whitelist<WW>,
@@ -183,8 +111,8 @@ module nft_protocol::nft {
     }
 
     /// Whitelisted contracts (by creator) can change logical owner of an NFT.
-    public fun change_logical_owner<T, D: store, WW, Auth: drop>(
-        nft: &mut Nft<T, D>,
+    public fun change_logical_owner<WW, Auth: drop>(
+        nft: &mut NFT,
         recipient: address,
         authority: Auth,
         whitelist: &Whitelist<WW>,
