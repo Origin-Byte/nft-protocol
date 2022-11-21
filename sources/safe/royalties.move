@@ -47,7 +47,7 @@ module nft_protocol::royalties {
     /// # Important
     /// `W` is not the collection's one-time-witness, but collection auth token
     /// witness.
-    public entry fun create<C, W, FT>(
+    public fun create<C, W, FT>(
         amount: Balance<FT>,
         beneficiary: address,
         ctx: &mut TxContext,
@@ -58,7 +58,7 @@ module nft_protocol::royalties {
     /// # Important
     /// `W` is not the collection's one-time-witness, but collection auth token
     /// witness.
-    public entry fun create_with_trade<C, W, FT>(
+    public fun create_with_trade<C, W, FT>(
         amount: Balance<FT>,
         beneficiary: address,
         trade: ID,

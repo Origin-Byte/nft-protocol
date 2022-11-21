@@ -120,7 +120,6 @@ module nft_protocol::collectible {
         sale::add_nft<T, M>(
             sale,
             data_id,
-            max_supply
         );
     }
 
