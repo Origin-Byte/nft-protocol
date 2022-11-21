@@ -15,6 +15,7 @@ module nft_protocol::royalties {
     //! implementation will be such that they include everything in one batched
     //! tx if possible, or have automation.
 
+    use nft_protocol::utils;
     use std::option::{Self, Option};
     use sui::balance::{Self, Balance};
     use sui::coin;
@@ -25,7 +26,11 @@ module nft_protocol::royalties {
     /// `W` is the collection's witness (not the one time witness!) which
     /// helps us ensure that the right royalty collection logic is operating
     /// on this receipt.
-    struct TradePayment<phantom W, phantom FT> has key {
+    ///
+    /// 1. `C`ollection one-time-witness
+    /// 2. Collection's `W`itness
+    /// 3. `F`ungible `T`oken
+    struct TradePayment<phantom C, phantom W, phantom FT> has key {
         id: UID,
         amount: Balance<FT>,
         /// The address where the amount should be transferred to.
@@ -42,37 +47,27 @@ module nft_protocol::royalties {
     /// # Important
     /// `W` is not the collection's one-time-witness, but collection auth token
     /// witness.
-    public entry fun create<W, FT>(
+    public fun create<C, W, FT>(
         amount: Balance<FT>,
         beneficiary: address,
         ctx: &mut TxContext,
     ) {
-        share_object(TradePayment<W, FT> {
-            id: object::new(ctx),
-            amount,
-            beneficiary,
-            trade: option::none(),
-        });
+        create_<C, W, FT>(amount, beneficiary, option::none(), ctx)
     }
 
     /// # Important
     /// `W` is not the collection's one-time-witness, but collection auth token
     /// witness.
-    public entry fun create_with_trade<W, FT>(
+    public fun create_with_trade<C, W, FT>(
         amount: Balance<FT>,
         beneficiary: address,
         trade: ID,
         ctx: &mut TxContext,
     ) {
-        share_object(TradePayment<W, FT> {
-            id: object::new(ctx),
-            amount,
-            beneficiary,
-            trade: option::some(trade),
-        });
+        create_<C, W, FT>(amount, beneficiary, option::some(trade), ctx)
     }
 
-    public fun balance<W, FT>(payment: &TradePayment<W, FT>): &Balance<FT> {
+    public fun balance<C, W, FT>(payment: &TradePayment<C, W, FT>): &Balance<FT> {
         &payment.amount
     }
 
@@ -81,20 +76,20 @@ module nft_protocol::royalties {
     /// Typically, this would be a witness exported from the collection contract
     /// and it would access the balance to calculate the royalty in its custom
     /// implementation.
-    public fun balance_mut<W: drop, FT>(
+    public fun balance_mut<C, W: drop, FT>(
         _witness: W,
-        payment: &mut TradePayment<W, FT>,
+        payment: &mut TradePayment<C, W, FT>,
     ): &mut Balance<FT> {
         &mut payment.amount
     }
 
-    public fun beneficiary<W, FT>(payment: &TradePayment<W, FT>): address {
+    public fun beneficiary<C, W, FT>(payment: &TradePayment<C, W, FT>): address {
         payment.beneficiary
     }
 
-    public fun transfer_remaining_to_beneficiary<W: drop, FT>(
+    public fun transfer_remaining_to_beneficiary<C, W: drop, FT>(
         _witness: W,
-        payment: &mut TradePayment<W, FT>,
+        payment: &mut TradePayment<C, W, FT>,
         ctx: &mut TxContext,
     ) {
         let amount = balance::value(&payment.amount);
@@ -108,5 +103,20 @@ module nft_protocol::royalties {
                 payment.beneficiary
             );
         }
+    }
+
+    fun create_<C, W, FT>(
+        amount: Balance<FT>,
+        beneficiary: address,
+        trade: Option<ID>,
+        ctx: &mut TxContext,
+    ) {
+        utils::assert_witnesses_of_same_package<C, W>();
+        share_object(TradePayment<C, W, FT> {
+            id: object::new(ctx),
+            amount,
+            beneficiary,
+            trade,
+        });
     }
 }

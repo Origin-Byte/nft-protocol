@@ -172,24 +172,24 @@ module nft_protocol::nft {
 
     /// If the authority was whitelisted by the creator, we transfer
     /// the NFT to the recipient address.
-    public fun transfer<T, D: store, WW, Auth: drop>(
+    public fun transfer<T, D: store, Auth: drop>(
         nft: Nft<T, D>,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
     ) {
         change_logical_owner(&mut nft, recipient, authority, whitelist);
         transfer::transfer(nft, recipient);
     }
 
     /// Whitelisted contracts (by creator) can change logical owner of an NFT.
-    public fun change_logical_owner<T, D: store, WW, Auth: drop>(
+    public fun change_logical_owner<T, D: store, Auth: drop>(
         nft: &mut Nft<T, D>,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
     ) {
-        let is_ok = transfer_whitelist::can_be_transferred<WW, T, Auth>(
+        let is_ok = transfer_whitelist::can_be_transferred<T, Auth>(
             authority,
             whitelist,
         );

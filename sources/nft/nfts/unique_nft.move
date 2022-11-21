@@ -115,7 +115,6 @@ module nft_protocol::unique_nft {
         sale::add_nft<T, M>(
             sale,
             data_id,
-            1
         );
     }
 

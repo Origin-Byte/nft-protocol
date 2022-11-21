@@ -94,7 +94,7 @@ module nft_protocol::safe {
     ///
     /// Otherwise, there's a risk of a race condition as multiple non-exclusive
     /// transfer caps can be created.
-    public entry fun create_transfer_cap(
+    public fun create_transfer_cap(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
@@ -123,7 +123,7 @@ module nft_protocol::safe {
     /// Creates an irrevocable and exclusive transfer cap.
     ///
     /// Useful for trading contracts which cannot claim an NFT atomically.
-    public entry fun create_exlusive_transfer_cap(
+    public fun create_exlusive_transfer_cap(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
@@ -225,11 +225,11 @@ module nft_protocol::safe {
     /// If the NFT is not exlusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft_to_recipient<T, D: store, WW, Auth: drop>(
+    public fun transfer_nft_to_recipient<T, D: store, Auth: drop>(
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
         safe: &mut Safe,
     ) {
         let nft = get_nft_for_transfer_<T, D>(transfer_cap, safe);
@@ -244,11 +244,11 @@ module nft_protocol::safe {
     /// If the NFT is not exlusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft_to_safe<T, D: store, WW, Auth: drop>(
+    public fun transfer_nft_to_safe<T, D: store, Auth: drop>(
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist<WW>,
+        whitelist: &Whitelist,
         source: &mut Safe,
         target: &mut Safe,
         ctx: &mut TxContext,

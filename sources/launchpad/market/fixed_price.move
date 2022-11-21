@@ -35,8 +35,8 @@ module nft_protocol::fixed_price {
     // === Functions exposed to Witness Module ===
 
     /// Creates a fixed price `Launchpad` sale. A sale can be simple or tiered,
-    /// that is, a tiered sale `Launchpad` has multiple `Sale` outlets in its 
-    /// field `sales`. This funcitonality allows for the creation of tiered 
+    /// that is, a tiered sale `Launchpad` has multiple `Sale` outlets in its
+    /// field `sales`. This funcitonality allows for the creation of tiered
     /// market sales by segregating NFTs by different sale segments
     /// (e.g. based on rarity, or preciousness).
     ///
@@ -54,12 +54,13 @@ module nft_protocol::fixed_price {
         prices: vector<u64>,
         ctx: &mut TxContext,
     ) {
-        let len = vector::length(&prices);
+        assert!(
+            vector::length(&whitelists) == vector::length(&prices),
+            err::market_parameters_length_mismatch()
+        );
+
         let sales = vector::empty();
-
-        let index = 0;
-
-        while (len > 0) {
+        while (!vector::is_empty(&whitelists)) {
             let price = vector::pop_back(&mut prices);
             let whitelist = vector::pop_back(&mut whitelists);
 
@@ -76,9 +77,6 @@ module nft_protocol::fixed_price {
             );
 
             vector::push_back(&mut sales, sale);
-
-            len = len - 1;
-            index = index + 1;
         };
 
         let args = slingshot::init_args(
@@ -116,7 +114,6 @@ module nft_protocol::fixed_price {
         let launchpad_id = slingshot::id(slingshot);
 
         let receiver = slingshot::receiver(slingshot);
-        let collection_id = slingshot::collection_id(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is NOT whitelisted
@@ -140,7 +137,6 @@ module nft_protocol::fixed_price {
         let certificate = sale::issue_nft_certificate(
             sale,
             launchpad_id,
-            collection_id,
             ctx
         );
 
@@ -169,7 +165,6 @@ module nft_protocol::fixed_price {
         let launchpad_id = slingshot::id(slingshot);
 
         let receiver = slingshot::receiver(slingshot);
-        let collection_id = slingshot::collection_id(slingshot);
         let sale = slingshot::sale_mut(slingshot, tier_index);
 
         // Infer that sales is whitelisted
@@ -201,7 +196,6 @@ module nft_protocol::fixed_price {
         let certificate = sale::issue_nft_certificate(
             sale,
             launchpad_id,
-            collection_id,
             ctx
         );
 

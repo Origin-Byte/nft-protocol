@@ -1,4 +1,4 @@
-- Sui v0.15.0
+- Sui v0.16.0
 
 # Install
 
@@ -321,7 +321,9 @@ And has the following entry functions to be called directly by the client code:
 
 ### Slingshot Launchpad
 
-In order for NFT creators to better control the flow of creating and releasing NFTs to the public we have created a launchpad module called Slingshot. Slingshot allows you to define what market primitive you want to utilise (i.e. Fixed Price sales, Auctions, etc.) and to break down your sales strategy into tiers, which with their own whitelisting configuration.
+In order for NFT creators to better control the flow of creating and releasing NFTs to the public we have created a launchpad module called Slingshot. Slingshot allows you to define what market primitive you want to utilise (i.e. Fixed Price, Auction, etc.) and to break down your sales strategy into tiers, with custom configuration for each.
+
+Custom configuration can include whether the tier is whitelisted or the price at which an NFT from the tier can be bought at.
 
 The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 
@@ -335,40 +337,71 @@ The Slingshot object, `Slingshot<phantom T, M>`, has the following data model:
 | `sales`         | `vector<Sale<T, M>>` | Vector of all Sale outleds that, each outles holding IDs owned by the slingshot |
 | `is_embedded`   | `bool`               | Field determining if NFTs are embedded or loose                                 |
 
-All functions associated to creation and deletion of the Launchpad are meant to be called by the upstream modules (i.e. currently only the Fixed Price module):
+All functions associated to creation and deletion of the Launchpad are meant to be called by upstream market modules:
 
 - `create` to create the Slingshot launchpad (called by the market module)
 - `delete` to destroy the Slingshot launchpad (called by the market module)
 
-Whereas entry functions associated to redeeming the NFTs can be called directly by the client code:
+Whereas entry functions associated to redeeming the NFTs can be called directly by client code:
 
 - `claim_nft_embedded` to redeem an embedded NFT
 - `claim_nft_loose` to redeem a loose NFT
 
 Note: One can only claim an NFT after having bought the NFT certificate from the sale. This action occurs directly in the market module.
 
-### Fixed Price Market
+### Launchpad Markets
 
-The Fixed Price Market object, `Market`, has the following data model:
+Market modules export the `create_market` endpoint which can be used to create a launchpad with optional tiered sales.
+
+The standard provides multiple types of markets that can be used, including fixed price and dutch auction markets. NFTs to be sold can be seggregated by sales outlets, each with different prices and different options for whitelisting rules.
+
+Market modules have entry functions that are meant to be called directly by client code.
+
+Launchpad administrators can call the following functions:
+
+- `sale_on` permissioned entry function making the NFT sale live
+- `sale_off` permissioned entry function pausing the NFT sale
+
+#### Fixed Price Market
+
+The fixed price market object, `FixedPriceMarket`, has the following data model:
 
 | Field   | Type  | Description                        |
 | ------- | ----- | ---------------------------------- |
 | `id`    | `UID` | The UID of the Slingshot object    |
 | `price` | `u64` | The price of a NFT for sale in SUI |
 
-Market modules export two functions two types of launchpads. These functinos are meant to be called by the contract deployed by the NFT creators:
-
-- `create_single_market` to create a Single Fixed Price launchpad with option for whitelisting rules
-- `create_multi_market` to create a Fixed Price launchpad with tiered sales, in that NFTs to be sold can be seggregated by sales outlets, each with different prices and different options for whitelisting rules
-
-The market modules also have entry functions that are meant to be called directly by the client code:
+Clients can directly call the following entry functions to interact with the market:
 
 - `buy_nft_certificate` to buy an NFT certificate from a permissionless Sales outlet
 - `buy_whitelisted_nft_certificate` to buy an NFT certificate from a whitelisted Sales outlet
 
-In addition, the administrator of the Launchpad can call the following function:
+Additionaly, the administrator of the Launchpad can call the following function:
 
 - `new_price` permissioned entry function to change the price of the sale
+
+#### Auction Market
+
+Auction market implements a Dutch auction to determine the price and allocate NFTs to bidders. In such an auction, the lowest price needed to sell all the NFTs will be the price which will be charged to bidders. However, auction owners can set a reserve price, disallowing bids on prices lower than the reserve.
+
+The auction market object, `AuctionMarket`, has the following data model:
+
+| Field           | Type                     | Description                                  |
+| --------------- | ------------------------ | -------------------------------------------- |
+| `id`            | `UID`                    | The UID of the Slingshot object              |
+| `reserve_price` | `u64`                    | The price of a NFT for sale in SUI           |
+| `bids`          | `movemate::crit_bit::CB` | Collection of all bids placed in the auction |
+
+Clients can directly call the following entry functions to interact with the market:
+
+- `create_bid` place a bid for a number of NFTs at a chosen price
+- `create_bid_whitelisted` place a bid for a number of whitelisted NFTs at a chosen price
+- `cancel_bid` cancel a single bid at the given price level in a FIFO manner
+
+In addition, the administrator of the Launchpad can call the following function:
+
+- `sale_cancel` permissioned entry function to cancel the NFT auction. `sale_cancel` refunds all open bids in contrast to `sale_off` which only pauses bidding.
+- `sale_conclude` permissioned entry function to conclude the NFT auction, determine the price, and match NFTs with winning bids. Remaining bids are canceled.
 
 ## Guides for NFT Creators, Wallets and Marketplaces
 

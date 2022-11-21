@@ -183,7 +183,6 @@ module nft_protocol::c_nft {
         sale::add_nft<T, M>(
             sale,
             data_id,
-            max_supply
         );
     }
 

@@ -2,7 +2,6 @@
 module nft_protocol::test_assert_witnesses_of_same_package {
     use nft_protocol::utils::{get_package_module_type, assert_witnesses_of_same_package};
     use nft_protocol::test_foo;
-    // use std::debug::print;
     use std::string;
 
     struct Witness has drop {}
@@ -39,4 +38,10 @@ module nft_protocol::test_assert_witnesses_of_same_package {
     public fun it_must_be_witness() {
         assert_witnesses_of_same_package<ASSERT_WITNESSES_OF_SAME_PACKAGE, Witness2>();
     }
+}
+
+module nft_protocol::test_foo {
+    struct Witness has drop {}
+    struct Witness2 has drop {}
+    struct TEST_FOO has drop {}
 }

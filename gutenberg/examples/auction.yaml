@@ -1,0 +1,19 @@
+NftType: "Unique"
+
+Collection:
+  name: "Suitraders"
+  description: "A Unique NFT collection of Suitraders on Sui"
+  symbol: "SUITR"
+  max_supply: 100
+  receiver: "0x6c86ac4a796204ea09a87b6130db0c38263c1890"
+  tags:
+    - "Art"
+    - "PFP"
+  royalty_fee_bps: 100
+  is_mutable: true
+  data: "Some extra data"
+
+Launchpad:
+  market_type: "auction"
+  reserve_prices: [1000, 2000]
+  whitelists: [true, false]
