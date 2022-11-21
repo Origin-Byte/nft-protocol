@@ -33,19 +33,9 @@ fn collectible() {
 }
 
 #[test]
-fn c_nft() {
-    let config = File::open("./examples/c_nft.yaml").unwrap();
-    let expected =
-        fs::read_to_string("../sources/examples/suricannes.move").unwrap();
-
-    assert_equal(config, expected);
-}
-
-#[test]
-fn simple() {
-    let config = File::open("./examples/simple.yaml").unwrap();
-    let expected =
-        fs::read_to_string("../sources/examples/suimarines.move").unwrap();
+fn auction() {
+    let config = File::open("./examples/auction.yaml").unwrap();
+    let expected = fs::read_to_string("../examples/suitraders.move").unwrap();
 
     assert_equal(config, expected);
 }

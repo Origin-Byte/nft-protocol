@@ -108,30 +108,57 @@ module nft_protocol::err {
         return Prefix + 208
     }
 
-    // === Safe ===
-
-    public fun safe_cap_mismatch(): u64 {
-        return Prefix + 300
+    public fun sale_outlet_has_no_nfts_to_sell(): u64 {
+        return Prefix + 209
     }
 
-    public fun safe_does_not_contain_nft(): u64 {
+    public fun market_parameters_length_mismatch(): u64 {
+        return Prefix + 210
+    }
+
+    // === Trading ===
+
+    public fun order_does_not_exist(): u64 {
         return Prefix + 301
     }
 
-    public fun nft_exlusively_listed(): u64 {
+    public fun order_owner_must_be_sender(): u64 {
         return Prefix + 302
     }
 
-    public fun transfer_cap_nft_mismatch(): u64 {
+    public fun order_price_below_reserve(): u64 {
         return Prefix + 303
     }
 
-    public fun transfer_cap_expired(): u64 {
+    public fun action_not_public(): u64 {
         return Prefix + 304
     }
 
+
+    // === Safe ===
+
+    public fun safe_cap_mismatch(): u64 {
+        return Prefix + 400
+    }
+
+    public fun safe_does_not_contain_nft(): u64 {
+        return Prefix + 401
+    }
+
+    public fun nft_exlusively_listed(): u64 {
+        return Prefix + 402
+    }
+
+    public fun transfer_cap_nft_mismatch(): u64 {
+        return Prefix + 403
+    }
+
+    public fun transfer_cap_expired(): u64 {
+        return Prefix + 404
+    }
+
     public fun safe_does_not_accept_deposits(): u64 {
-        return Prefix + 305
+        return Prefix + 405
     }
 
     public fun nft_not_exlusively_listed(): u64 {
@@ -141,11 +168,15 @@ module nft_protocol::err {
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
-        return Prefix + 400
+        return Prefix + 500
     }
 
     public fun sender_not_collection_creator(): u64 {
-        return Prefix + 401
+        return Prefix + 501
+    }
+
+    public fun sender_not_whitelist_admin(): u64 {
+        return Prefix + 502
     }
 
     // === Utils ===
@@ -156,19 +187,5 @@ module nft_protocol::err {
 
     public fun must_be_witness(): u64 {
         return Prefix + 501
-    }
-
-    // === Trading ===
-
-    public fun order_does_not_exist(): u64 {
-        return Prefix + 600
-    }
-
-    public fun order_owner_must_be_sender(): u64 {
-        return Prefix + 601
-    }
-
-    public fun action_not_public(): u64 {
-        return Prefix + 602
     }
 }
