@@ -17,6 +17,7 @@ jobs:
 
       - name: Get Sui SDK
         run: |
+          cp .env.dist .env
           source .env
 
           wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
