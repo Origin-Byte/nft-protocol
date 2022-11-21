@@ -3,7 +3,6 @@ module nft_protocol::bidding {
     use nft_protocol::royalties;
     use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_whitelist::Whitelist;
-    use nft_protocol::utils;
     use std::option::{Self, Option};
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
@@ -18,6 +17,7 @@ module nft_protocol::bidding {
         id: UID,
         nft: ID,
         buyer: address,
+        safe: ID,
         offer: Balance<FT>,
         commission: Option<BidCommission<FT>>,
     }
@@ -60,14 +60,16 @@ module nft_protocol::bidding {
 
     public entry fun create_bid<FT>(
         nft: ID,
+        buyers_safe: ID,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        create_bid_(nft, price, option::none(), wallet, ctx);
+        create_bid_(nft, buyers_safe, price, option::none(), wallet, ctx);
     }
     public entry fun create_bid_with_commission<FT>(
         nft: ID,
+        buyers_safe: ID,
         price: u64,
         beneficiary: address,
         commission_ft: u64,
@@ -78,31 +80,34 @@ module nft_protocol::bidding {
             beneficiary,
             cut: balance::split(coin::balance_mut(wallet), commission_ft),
         };
-        create_bid_(nft, price, option::some(commission), wallet, ctx);
+        create_bid_(nft, buyers_safe, price, option::some(commission), wallet, ctx);
     }
 
-    public entry fun sell_nft<W, C, D: store, FT>(
+    public entry fun sell_nft<C, W, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
-        safe: &mut Safe,
+        sellers_safe: &mut Safe,
+        buyers_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        sell_nft_<W, C, D, FT>(
+        sell_nft_<C, W, FT>(
             bid,
             transfer_cap,
             option::none(),
-            safe,
+            sellers_safe,
+            buyers_safe,
             whitelist,
             ctx,
         );
     }
-    public entry fun sell_nft_with_commission<W, C, D: store, FT>(
+    public entry fun sell_nft_with_commission<C, W, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         beneficiary: address,
         commission_ft: u64,
-        safe: &mut Safe,
+        sellers_safe: &mut Safe,
+        buyers_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
@@ -110,11 +115,12 @@ module nft_protocol::bidding {
             cut: commission_ft,
             beneficiary,
         };
-        sell_nft_<W, C, D, FT>(
+        sell_nft_<C, W, FT>(
             bid,
             transfer_cap,
             option::some(commission),
-            safe,
+            sellers_safe,
+            buyers_safe,
             whitelist,
             ctx,
         );
@@ -127,6 +133,7 @@ module nft_protocol::bidding {
 
     fun create_bid_<FT>(
         nft: ID,
+        buyers_safe: ID,
         price: u64,
         commission: Option<BidCommission<FT>>,
         wallet: &mut Coin<FT>,
@@ -140,6 +147,7 @@ module nft_protocol::bidding {
             nft,
             offer,
             buyer,
+            safe: buyers_safe,
             commission,
         };
         let bid_id = object::id(&bid);
@@ -152,17 +160,18 @@ module nft_protocol::bidding {
         });
     }
 
-    fun sell_nft_<W, C, D: store, FT>(
+    fun sell_nft_<C, W, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         ask_commission: Option<AskCommission>,
-        safe: &mut Safe,
+        sellers_safe: &mut Safe,
+        buyers_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        utils::assert_witnesses_of_same_package<C, W>();
-        safe::assert_transfer_cap_of_safe(&transfer_cap, safe);
+        safe::assert_transfer_cap_of_safe(&transfer_cap, sellers_safe);
         safe::assert_nft_of_transfer_cap(&bid.nft, &transfer_cap);
+        safe::assert_id(buyers_safe, bid.safe);
 
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
 
@@ -174,12 +183,14 @@ module nft_protocol::bidding {
         );
         option::destroy_none(ask_commission);
 
-        safe::transfer_nft_to_recipient<C, D, Witness>(
+        safe::transfer_nft_to_safe<C, Witness>(
             transfer_cap,
             bid.buyer,
             Witness {},
             whitelist,
-            safe,
+            sellers_safe,
+            buyers_safe,
+            ctx,
         );
 
         transfer_bid_commission(&mut bid.commission, ctx);

@@ -157,6 +157,10 @@ module nft_protocol::err {
         return Prefix + 405
     }
 
+    public fun safe_id_mismatch(): u64 {
+        return Prefix + 406
+    }
+
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
