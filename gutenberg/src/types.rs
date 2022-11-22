@@ -131,7 +131,7 @@ pub enum SalesType {
     MultiMarket,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "market_type", rename_all = "snake_case")]
 pub enum MarketType {
     FixedPrice {

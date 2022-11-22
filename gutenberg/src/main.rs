@@ -20,10 +20,13 @@ fn main() -> Result<(), GutenError> {
 
     let f = fs::File::open(opt.config)?;
 
-    let de = serde_yaml::Deserializer::from_reader(f);
-    let schema: Schema = match serde_path_to_error::deserialize(de) {
+    let schema: Schema = match serde_yaml::from_reader(f) {
         Ok(schema) => schema,
-        Err(err) => todo!(),
+        Err(err) => {
+            eprintln!("Gutenberg could not generate smart contract due to");
+            eprintln!("{}", err);
+            std::process::exit(2);
+        }
     };
 
     let output = opt.path.unwrap_or_else(|| {

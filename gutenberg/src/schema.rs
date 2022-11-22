@@ -6,6 +6,7 @@ use crate::err::GutenError;
 use crate::types::{MarketType, NftType};
 
 use serde::Deserialize;
+use strfmt::strfmt;
 
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -13,7 +14,7 @@ use std::fs;
 
 /// Struct that acts as an intermediate data structure representing the yaml
 /// configuration of the NFT collection.
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Schema {
     pub collection: Collection,
@@ -22,7 +23,7 @@ pub struct Schema {
 }
 
 /// Contains the metadata fields of the collection
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Collection {
     /// The name of the collection
     pub name: Box<str>,
@@ -31,7 +32,7 @@ pub struct Collection {
     /// The symbol/ticker of the collection
     pub symbol: Box<str>,
     /// The total supply of the collection
-    pub max_supply: Box<str>,
+    pub max_supply: u64,
     /// Address that receives the sale and royalty proceeds
     pub receiver: Box<str>,
     /// A set of strings that categorize the domain in which the NFT operates
@@ -45,7 +46,7 @@ pub struct Collection {
 }
 
 /// Contains the market configurations of the launchpad
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Launchpad {
     /// Enum field containing the MarketType and its corresponding
     /// config parameters such as price and whitelisting
@@ -111,12 +112,15 @@ impl Schema {
 
         let mint_func = self.nft_type.mint_func(&witness, &market_type);
 
+        let max_supply =
+            format!("{}", self.collection.max_supply).into_boxed_str();
+
         let mut vars = HashMap::new();
 
         vars.insert("name", &self.collection.name);
         vars.insert("nft_type", &nft_type);
         vars.insert("description", &self.collection.description);
-        vars.insert("max_supply", &self.collection.max_supply);
+        vars.insert("max_supply", &max_supply);
         vars.insert("symbol", &self.collection.symbol);
         vars.insert("receiver", &self.collection.receiver);
         vars.insert("royalty_fee_bps", &self.collection.royalty_fee_bps);
@@ -140,7 +144,7 @@ impl Schema {
             .collect();
 
         output.write_all(
-            strfmt::strfmt(&fmt, &vars)
+            strfmt(&fmt, &vars)
                 // This is expected not to result in an error since we
                 // have explicitly handled all error cases
                 .unwrap_or_else(|_| {
