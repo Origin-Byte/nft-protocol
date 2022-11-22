@@ -1,16 +1,28 @@
 module nft_protocol::suimarines {
     use std::vector;
+    use std::string;
 
     use sui::balance;
     use sui::coin;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
+    use sui::url;
 
+    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::domains;
+    use nft_protocol::sale::{Self, NftCertificate};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::fixed_price;
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::std_collection;
 
+    /// Modules can define their own domains and define the API through which
+    /// they are accessible.
+    ///
+    /// Only the current module can define mutable API on the domain.
+    struct SuimarineDomain has store {
+        experience: u64
+    }
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -55,6 +67,32 @@ module nft_protocol::suimarines {
             whitelist, prices,
             ctx,
         );
+    }
+
+    public entry fun redeem_certificate(
+        certificate: NftCertificate,
+        ctx: &mut TxContext
+    ): NFT<SUIMARINES> {
+        // TODO: Check whether NftCertificate is issued for this collection
+        // Pending on Launchpad refactor completion
+        sale::burn_certificate(certificate);
+
+        let display = domains::display_new(
+            string::utf8(b"Suimarine"),
+            string::utf8(b"A Unique NFT collection of Suimarines on Sui"),
+            url::new_unsafe_from_bytes(b"OriginByte.io")
+        );
+
+        let suimarine = SuimarineDomain {
+            experience: 0,
+        };
+
+        let nft = nft::new<SUIMARINES>(ctx);
+        // Suimarines now support the display standard
+        nft::add_domain(&mut nft, display);
+        nft::add_domain(&mut nft, suimarine);
+
+        nft
     }
 
     public entry fun collect_royalty<FT>(
