@@ -1,0 +1,15 @@
+[package]
+name = "sui-capybaras"
+version = "0.1.0"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework"
+# devnet-0.16.0
+rev = "6c001d0c491d1481fd4b477881d320e2421a6517"
+
+[dependencies.NftProtocol]
+local = "../.."
+
+[addresses]
+capy = "0x0"
