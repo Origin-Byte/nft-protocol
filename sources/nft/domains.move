@@ -57,49 +57,4 @@ module nft_protocol::domains {
 
         option::some(url(nft::borrow_domain<C, DisplayDomain>(nft)))
     }
-
-    /// Defines a standard domain that defines the royalties that must be paid
-    /// when trading the NFT.
-    ///
-    /// If no royalties are owned then the domain will not be present on the
-    /// NFT.
-    ///
-    /// [RoyaltyDomain] is not yet integrated with the remainder of
-    /// `nft_protocol` however serves to illustrate that royalty policies can
-    /// be defined on the NFT level.
-    struct RoyaltyDomain has store {
-        bps: u64,
-        recipient: address,
-    }
-
-    public fun royalty_new(bps: u64, recipient: address): RoyaltyDomain {
-        RoyaltyDomain {
-            bps,
-            recipient
-        }
-    }
-
-    public fun bps(royalty: &RoyaltyDomain): u64 {
-        royalty.bps
-    }
-
-    public fun royalty_bps<C>(nft: &NFT<C>): Option<u64> {
-        if (!nft::has_domain<C, RoyaltyDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(bps(nft::borrow_domain<C, RoyaltyDomain>(nft)))
-    }
-
-    public fun recipient(royalty: &RoyaltyDomain): address {
-        royalty.recipient
-    }
-
-    public fun royalty_recipient<C>(nft: &NFT<C>): Option<address> {
-        if (!nft::has_domain<C, RoyaltyDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(recipient(nft::borrow_domain<C, RoyaltyDomain>(nft)))
-    }
 }
