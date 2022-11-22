@@ -7,7 +7,7 @@
 module nft_protocol::composable {
     use std::vector;
 
-    use sui::object::{ID, UID};
+    use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -58,7 +58,7 @@ module nft_protocol::composable {
     /// the NFTs of it's [ComposableDomain]
     public entry fun assert_composable_ownership<C>(nft: &NFT<C>, safe: &Safe, ctx: &mut TxContext) {
         // Prove top-level ownership
-        assert_ownership(nft::id(nft), safe, ctx);
+        assert_ownership(object::id(nft), safe, ctx);
 
         if (!nft::has_domain<C, ComposableDomain>(nft)) {
             return

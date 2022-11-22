@@ -19,7 +19,7 @@
 module nft_protocol::borrowed {
     use std::vector;
 
-    use sui::object::UID;
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -60,7 +60,7 @@ module nft_protocol::borrowed {
         ctx: &mut TxContext
     ) {
         // Prove top-level ownership
-        assert_ownership(nft::id(nft), safe, ctx);
+        assert_ownership(object::id(nft), safe, ctx);
 
         let borrowed = nft::borrow_domain<C, BorrowedDomain>(nft);
 
@@ -85,6 +85,6 @@ module nft_protocol::borrowed {
         // mutable access had to have been made explicit and does not have to
         // be protected against by default.
         let owned_nft = composable::owned_mut(nft);
-        vector::push_back(owned_nft, nft::id(nft_child))
+        vector::push_back(owned_nft, object::id(nft_child))
     }
 }
