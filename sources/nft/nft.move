@@ -8,7 +8,7 @@ module nft_protocol::nft {
     use nft_protocol::utils;
     use std::type_name::{Self, TypeName};
     use sui::bag::{Self, Bag};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, ID, UID};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -28,6 +28,10 @@ module nft_protocol::nft {
             bag: bag::new(ctx),
             logical_owner: tx_context::sender(ctx),
         }
+    }
+
+    public fun id<C>(nft: &NFT<C>): ID {
+        object::uid_to_inner(&nft.id)
     }
 
     public fun has_domain<C, D: store>(nft: &NFT<C>): bool {
