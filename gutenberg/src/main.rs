@@ -1,8 +1,9 @@
-use gutenberg::err::*;
 use gutenberg::prelude::*;
-use gutenberg::schema::*;
 
 use gumdrop::Options;
+
+use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Options)]
 struct Opt {
@@ -17,22 +18,29 @@ struct Opt {
 fn main() -> Result<(), GutenError> {
     let opt = Opt::parse_args_default_or_exit();
 
-    let f = std::fs::File::open(opt.config)?;
-    let schema = serde_yaml::from_reader::<_, Schema>(f)?;
+    let f = fs::File::open(opt.config)?;
+
+    let schema: Schema = match serde_yaml::from_reader(f) {
+        Ok(schema) => schema,
+        Err(err) => {
+            eprintln!("Gutenberg could not generate smart contract due to");
+            eprintln!("{}", err);
+            std::process::exit(2);
+        }
+    };
 
     let output = opt.path.unwrap_or_else(|| {
-        PathBuf::from_str(&format!(
+        PathBuf::from(&format!(
             "../examples/{}.move",
             &schema.module_name().to_string()
         ))
-        .unwrap()
     });
 
     if let Some(p) = output.parent() {
         fs::create_dir_all(p)?;
     }
 
-    let mut f = File::create(output)?;
+    let mut f = fs::File::create(output)?;
     if let Err(err) = schema.write_move(&mut f) {
         eprintln!("{err}");
     }

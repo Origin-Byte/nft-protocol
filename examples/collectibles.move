@@ -7,13 +7,12 @@ module nft_protocol::suinamis {
     use nft_protocol::fixed_price;
     use nft_protocol::std_collection;
     use nft_protocol::collectible;
-    
+
 
     struct SUINAMIS has drop {}
 
     fun init(witness: SUINAMIS, ctx: &mut TxContext) {
         let tags: vector<vector<u8>> = vector::empty();
-        
         vector::push_back(&mut tags, b"Art");
         vector::push_back(&mut tags, b"PFP");
 
@@ -31,11 +30,11 @@ module nft_protocol::suinamis {
             ctx,
         );
 
-        let whitelisting = vector::empty();
-        vector::push_back(&mut whitelisting, false);
+        let whitelist = vector::empty();
+        vector::push_back(&mut whitelist, false);
 
-        let pricing = vector::empty();
-        vector::push_back(&mut pricing, 1000);
+        let prices = vector::empty();
+        vector::push_back(&mut prices, 1000);
 
         fixed_price::create_market(
             witness,
@@ -43,8 +42,7 @@ module nft_protocol::suinamis {
             collection_id,
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
             false, // is_embedded
-            whitelisting, // whitelist
-            pricing, // price
+            whitelist, prices,
             ctx,
         );
     }

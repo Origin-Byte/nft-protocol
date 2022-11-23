@@ -7,14 +7,12 @@ module nft_protocol::{module_name} {{
     use nft_protocol::{market_module}{market_module_imports};
     use nft_protocol::std_collection;
     use nft_protocol::{nft_type};
-    {slingshot_import}
+{slingshot_import}
 
     struct {witness} has drop {{}}
 
     fun init(witness: {witness}, ctx: &mut TxContext) {{
-        let tags: vector<vector<u8>> = vector::empty();
         {tags}
-
         let collection_id = std_collection::mint<{witness}>(
             b"{name}",
             b"{description}",
@@ -29,16 +27,14 @@ module nft_protocol::{module_name} {{
             ctx,
         );
 
-        {define_whitelists}
-        {define_prices}
+        {define_market_arguments}
         {market_module}::create_market(
             witness,
             tx_context::sender(ctx), // admin
             collection_id,
             @{receiver},
             {is_embedded}, // is_embedded
-            whitelisting, // whitelist
-            pricing, // price
+            {market_arguments}
             ctx,
         );
     }}
