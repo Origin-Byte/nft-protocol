@@ -13,6 +13,6 @@ Collection:
   data:
 
 Launchpad:
-  market_type:
+  market_type: "fixed_price"
   prices: []
   whitelists: []

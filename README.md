@@ -412,6 +412,10 @@ In addition, the administrator of the Launchpad can call the following function:
 
 Note: This section needs to be developed.
 
-### Deploy a simple NFT collection
+### Deploy an NFT collection
 
-To deploy your own NFT collection follow our guide on how to use [Gutenberg](https://github.com/Origin-Byte/nft-protocol/blob/main/gutenberg/README.md) to automagically generate your collection specific Move module.
+To deploy an NFT collection you will need to create a SUI [Move](https://docs.sui.io/build/move) contract.
+
+Creating your own contract is quite difficult, so we created a way that you can do it automagically! To create your own NFT collection, follow our guide on how to use [Gutenberg](./gutenberg/) which automagically generates a contract for your NFT collection.
+
+To deploy your newly created smart contract follow the deploy instructions found in [docs/deploy](../docs/deploy.md).
