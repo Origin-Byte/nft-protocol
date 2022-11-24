@@ -41,6 +41,7 @@ module nft_protocol::collection {
     use nft_protocol::tags::{Self, Tags};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
+    use nft_protocol::domain::{domain_key, DomainKey};
 
     const U64_MAX: u64 = 18446744073709551615;
 
@@ -70,12 +71,12 @@ module nft_protocol::collection {
         creators: vector<Creator>,
         /// ID of `MintAuthority` object
         mint_authority: ID,
+        // TODO(https://github.com/Origin-Byte/nft-protocol/issues/103): Implement RoyaltyDomain
         royalty_fee_bps: u64,
         /// Domain storage equivalent to NFT domains which allows collections
         /// to implement custom metadata.
-        ///
-        /// TODO: Should Collection domains be immutable?
-        /// TODO: Implement display, tag, etc. domains for Collection
+        //
+        // TODO(https://github.com/Origin-Byte/nft-protocol/issues/102): Implement DisplayDomain for NFT and Collection
         domains: Bag,
     }
 
@@ -455,6 +456,40 @@ module nft_protocol::collection {
         )
     }
 
+    // === Domain Functions ===
+
+    public fun has_domain<C, D: store>(nft: &Collection<C>): bool {
+        bag::contains_with_type<DomainKey, D>(&nft.domains, domain_key<D>())
+    }
+
+    public fun borrow_domain<C, D: store>(nft: &Collection<C>): &D {
+        bag::borrow<DomainKey, D>(&nft.domains, domain_key<D>())
+    }
+
+    public fun borrow_domain_mut<C, D: store, W: drop>(
+        _witness: W,
+        nft: &mut Collection<C>,
+    ): &mut D {
+        utils::assert_same_module_as_witness<W, D>();
+        bag::borrow_mut<DomainKey, D>(&mut nft.domains, domain_key<D>())
+
+    }
+
+    public fun add_domain<C, V: store>(
+        nft: &mut Collection<C>,
+        v: V,
+    ) {
+        bag::add(&mut nft.domains, domain_key<V>(), v);
+    }
+
+    public fun remove_domain<C, W: drop, V: store>(
+        _witness: W,
+        nft: &mut Collection<C>,
+    ): V {
+        utils::assert_same_module_as_witness<W, V>();
+        bag::remove(&mut nft.domains, domain_key<V>())
+    }
+
     // === Supply Functions ===
 
     /// Increments current supply for regulated collections.
@@ -563,7 +598,7 @@ module nft_protocol::collection {
     }
 
     /// Get the Collection's `royalty_fee_bps`
-    // TODO: Remove with RoyaltyDomain
+    // TODO(https://github.com/Origin-Byte/nft-protocol/issues/103): Implement RoyaltyDomain
     public fun royalty<T>(
         collection: &Collection<T>,
     ): u64 {
