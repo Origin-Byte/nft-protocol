@@ -2,23 +2,21 @@ module nft_protocol::safe {
     use nft_protocol::err;
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::transfer_whitelist::Whitelist;
-    use sui::vec_set::{Self, VecSet};
+    use std::type_name::{Self, TypeName};
     use sui::event;
-    use sui::object_bag::{Self, ObjectBag};
     use sui::object;
     use sui::object::{ID, UID};
     use sui::transfer::{share_object, transfer};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
-    use std::type_name::{Self, TypeName};
+    use sui::vec_set::{Self, VecSet};
+    use sui::dynamic_object_field::{Self as dof};
 
     struct Safe has key {
         id: UID,
         /// Accounting for deposited NFTs. Each NFT in the object bag is
         /// represented in this map.
         refs: VecMap<ID, NftRef>,
-        /// Holds the actual NFT objects as child objects.
-        nfts: ObjectBag,
         /// If set to false, the owner can select which collections can be
         /// deposited to the safe.
         accepts_any_deposit: bool,
@@ -291,7 +289,6 @@ module nft_protocol::safe {
         let safe = Safe {
             id: object::new(ctx),
             refs: vec_map::empty(),
-            nfts: object_bag::new(ctx),
             accepts_any_deposit: true,
             collections_with_enabled_deposits: vec_set::empty(),
         };
@@ -325,7 +322,7 @@ module nft_protocol::safe {
             is_exlusively_listed: false,
         });
 
-        object_bag::add(&mut safe.nfts, nft_id, nft);
+        dof::add(&mut safe.id, nft_id, nft);
 
         event::emit(
             DepositEvent {
@@ -364,7 +361,7 @@ module nft_protocol::safe {
         } = transfer_cap;
         object::delete(id);
 
-        object_bag::remove<ID, NFT<T>>(&mut safe.nfts, nft_id)
+        dof::remove<ID, NFT<T>>(&mut safe.id, nft_id)
     }
 
     // === Getters ===
