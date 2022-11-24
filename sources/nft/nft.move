@@ -42,7 +42,7 @@ module nft_protocol::nft {
         _witness: W,
         nft: &mut NFT<C>,
     ): &mut D {
-        utils::assert_same_package_as_witness<W, D>();
+        utils::assert_same_module_as_witness<W, D>();
         bag::borrow_mut<DomainKey, D>(&mut nft.bag, dkey<D>())
 
     }
@@ -58,7 +58,7 @@ module nft_protocol::nft {
         _witness: W,
         nft: &mut NFT<C>,
     ): V {
-        utils::assert_same_package_as_witness<W, V>();
+        utils::assert_same_module_as_witness<W, V>();
         bag::remove(&mut nft.bag, dkey<V>())
     }
 

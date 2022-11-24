@@ -38,7 +38,7 @@ module nft_protocol::utils {
     /// Witness is a type always in form "struct Witness has drop {}"
     ///
     /// They must be from the same module for this assertion to be ok.
-    public fun assert_same_package_as_witness<OneTimeWitness, Witness>() {
+    public fun assert_same_module_as_witness<OneTimeWitness, Witness>() {
         let (package_a, module_a, _) = get_package_module_type<OneTimeWitness>();
         let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
 
