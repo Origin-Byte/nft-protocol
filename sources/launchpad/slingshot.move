@@ -13,9 +13,8 @@ module nft_protocol::slingshot {
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft;
     use nft_protocol::err;
-    use nft_protocol::sale::{Self, Sale, NftCertificate};
+    use nft_protocol::sale::Sale;
 
     struct Slingshot<phantom T, M> has key, store{
         id: UID,
@@ -113,93 +112,6 @@ module nft_protocol::slingshot {
             receiver,
             is_embedded
         }
-    }
-
-    // === Entrypoints ===
-
-    /// Once the user has bought an NFT certificate, this method can be called
-    /// to claim/redeem the NFT that has been allocated by the launchpad. The
-    /// `NFTOwned` object in the function signature should correspond to the
-    /// NFT ID mentioned in the certificate.
-    ///
-    /// We add the slingshot as a phantom parameter since it is the parent object
-    /// of the NFT. Since the slingshot is a shared object anyone can mention it
-    /// in the function signature and therefore be able to mention its child
-    /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft_embedded<T, M: store, D: key + store>(
-        slingshot: &Slingshot<T, M>,
-        // TODO: nft_data is a shared object, we should confirm that we can
-        // add it directly as a parameter since this transfers ownership to the
-        // function's scope
-        nft_data: D,
-        certificate: NftCertificate,
-        recipient: address,
-        ctx: &mut TxContext,
-    ) {
-        // let nft: Nft<T, D> =
-        //     dynamic_object_field::remove(&mut slingshot.id, nft_id);
-
-        assert!(
-            object::id(&nft_data) == sale::nft_id(&certificate),
-            err::certificate_does_not_correspond_to_nft_given()
-        );
-
-        assert!(is_embedded(slingshot), err::nft_not_embedded());
-
-        let nft = nft::mint_nft_loose<T, D>(
-            object::id(&nft_data),
-            tx_context::sender(ctx),
-            ctx,
-        );
-
-        sale::burn_certificate(certificate);
-
-        nft::join_nft_data(&mut nft, nft_data);
-
-        transfer::transfer(
-            nft,
-            recipient,
-        );
-    }
-
-    /// Once the user has bought an NFT certificate, this method can be called
-    /// to claim/redeem the NFT that has been allocated by the launchpad. The
-    /// `NFTOwned` object in the function signature should correspond to the
-    /// NFT ID mentioned in the certificate.
-    ///
-    /// We add the slingshot as a phantom parameter since it is the parent object
-    /// of the NFT. Since the slingshot is a shared object anyone can mention it
-    /// in the function signature and therefore be able to mention its child
-    /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft_loose<T, M: store, D: key + store>(
-        slingshot: &Slingshot<T, M>,
-        nft_data: &mut D,
-        certificate: NftCertificate,
-        recipient: address,
-        ctx: &mut TxContext,
-    ) {
-        assert!(
-            object::id(nft_data) == sale::nft_id(&certificate),
-            err::certificate_does_not_correspond_to_nft_given()
-        );
-
-        assert!(!is_embedded(slingshot), err::nft_not_loose());
-
-        // We are currently not increasing the current supply of the NFT
-        // being minted (both collectibles and cNFT implementation have a concept
-        // of supply).
-        let nft = nft::mint_nft_loose<T, D>(
-            object::id(nft_data),
-            recipient,
-            ctx,
-        );
-
-        sale::burn_certificate(certificate);
-
-        transfer::transfer(
-            nft,
-            recipient,
-        );
     }
 
     // === Modifier Functions ===

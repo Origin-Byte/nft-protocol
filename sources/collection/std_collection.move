@@ -18,12 +18,15 @@ module nft_protocol::std_collection {
     use sui::tx_context::{TxContext};
     use sui::event;
 
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::utils::{to_string_vector};
 
     struct StdMeta has store {
         id: UID,
         json: String,
+        /// Field determining the amount of royalty fees in basis points,
+        /// charged in market transactions.
+        royalty_fee_bps: u64,
     }
 
     struct InitStandardCollection has drop {
@@ -87,6 +90,7 @@ module nft_protocol::std_collection {
         let metadata = StdMeta {
             id: object::new(ctx),
             json: args.json,
+            royalty_fee_bps,
         };
 
         let collection_args = collection::init_args(
@@ -180,8 +184,15 @@ module nft_protocol::std_collection {
         &mut meta.json
     }
 
+    /// Get the Collection's `royalty_fee_bps`
+    public fun royalty<T>(
+        collection: &Collection<T, StdMeta>,
+    ): u64 {
+        collection::metadata(collection).royalty_fee_bps
+    }
 
-    // // === Private Functions ===
+
+    // === Private Functions ===
 
     fun init_args(
         name: String,

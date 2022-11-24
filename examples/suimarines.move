@@ -1,15 +1,24 @@
 module nft_protocol::suimarines {
     use std::vector;
 
+    use sui::balance;
+    use sui::coin;
+    use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{MintAuthority};
-    use nft_protocol::fixed_price::{Self, FixedPriceMarket};
-    use nft_protocol::slingshot::Slingshot;
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::fixed_price;
+    use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::std_collection;
-    use nft_protocol::unique_nft;
 
+
+    /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
+
+    /// Can be used for authorization of other actions post-creation. It is
+    /// vital that this struct is not freely given to any contract, because it
+    /// serves as an auth token.
+    struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let tags: vector<vector<u8>> = vector::empty();
@@ -48,27 +57,24 @@ module nft_protocol::suimarines {
         );
     }
 
-    public entry fun prepare_mint(
-        name: vector<u8>,
-        description: vector<u8>,
-        url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint_authority: &mut MintAuthority<SUIMARINES>,
-        sale_outlet: u64,
-        launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
+    public entry fun collect_royalty<FT>(
+        payment: &mut TradePayment<SUIMARINES, Witness, FT>,
+        collection: &Collection<SUIMARINES, std_collection::StdMeta>,
         ctx: &mut TxContext,
     ) {
-        unique_nft::prepare_launchpad_mint<SUIMARINES, FixedPriceMarket>(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
-            mint_authority,
-            sale_outlet,
-            launchpad,
-            ctx,
+        let b = royalties::balance_mut(Witness {}, payment);
+
+        let amount = balance::value(b);
+        let bps = std_collection::royalty(collection);
+        // TODO: how do basis point work? what's the basis?
+        // TODO: decimal precision
+        let royalty = amount / 100 * bps;
+
+        transfer(
+            coin::take(b, royalty, ctx),
+            collection::receiver(collection),
         );
+
+        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 }
