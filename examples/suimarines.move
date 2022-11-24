@@ -24,14 +24,14 @@ module nft_protocol::suimarines {
         vector::push_back(&mut tags, b"Art");
 
         let collection_id = collection::mint<SUIMARINES>(
-            b"Suitraders",
-            b"A Unique NFT collection of Suitraders on Sui",
-            b"SUITR", // symbol
+            b"Suimarines",
+            b"A Unique NFT collection of Suimarines on Sui",
+            b"SUIM", // symbol
             100, // max supply
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // royalty receiver
             tags,
             100, // royalty fee bps
-            true, // is mutable
+            false, // is mutable
             tx_context::sender(ctx), // mint authority,
             ctx,
         );
