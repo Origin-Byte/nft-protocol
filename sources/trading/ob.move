@@ -20,6 +20,7 @@ module nft_protocol::orderbook {
     use nft_protocol::err;
     use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::utils;
     use std::option::{Self, Option};
     use std::vector;
     use sui::balance::{Self, Balance};
@@ -160,7 +161,8 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        // TODO: assert same package witness as C
+        utils::assert_same_module_as_witness<W, C>();
+
         create_bid_<C, FT>(book, price, option::none(), wallet, ctx)
     }
     public entry fun create_bid_with_commission<C, FT>(
@@ -189,6 +191,8 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         let commission = new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
@@ -216,6 +220,8 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
     }
 
@@ -245,6 +251,8 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         create_ask_<C, FT>(
             book, requsted_tokens, option::none(), transfer_cap, safe, whitelist, ctx
         )
@@ -285,6 +293,8 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         let commission = new_ask_commission(
             beneficiary,
             commission,
@@ -321,6 +331,8 @@ module nft_protocol::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         cancel_ask_(book, nft_price, nft_id, ctx)
     }
 
@@ -351,6 +363,8 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         buy_nft_<C, FT>(
             book, nft_id, price, wallet, safe, whitelist, ctx
         )
@@ -389,16 +403,20 @@ module nft_protocol::orderbook {
         _witness: W,
         ctx: &mut TxContext,
     ): Orderbook<C, FT> {
+        utils::assert_same_module_as_witness<W, C>();
+
         create_<C, FT>(no_protection(), ctx)
     }
-    // public fun share_object<C, FT>(ob: Orderbook<C, FT>) {
-    //     share_object(ob);
-    // }
+    public fun share<C, FT>(ob: Orderbook<C, FT>) {
+        share_object(ob);
+    }
 
     public fun toggle_protection_on_buy_nft<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         book.protected_actions.buy_nft =
             !book.protected_actions.buy_nft;
     }
@@ -406,6 +424,8 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         book.protected_actions.cancel_ask =
             !book.protected_actions.cancel_ask;
     }
@@ -413,6 +433,8 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         book.protected_actions.cancel_bid =
             !book.protected_actions.cancel_bid;
     }
@@ -420,6 +442,8 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         book.protected_actions.create_ask =
             !book.protected_actions.create_ask;
     }
@@ -427,6 +451,8 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
+
         book.protected_actions.create_bid =
             !book.protected_actions.create_bid;
     }
