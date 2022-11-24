@@ -34,8 +34,10 @@ module nft_protocol::collection {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
     use sui::transfer;
+    use sui::bag::{Self, Bag};
 
     use nft_protocol::err;
+    use nft_protocol::utils;
     use nft_protocol::tags::{Self, Tags};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
@@ -46,7 +48,7 @@ module nft_protocol::collection {
     ///
     /// The `Metadata` is a type exported by an upstream contract which is
     /// used to store additional information about the NFT.
-    struct Collection<phantom T, M: store> has key, store {
+    struct Collection<phantom T> has key, store {
         id: UID,
         name: String,
         description: String,
@@ -68,9 +70,13 @@ module nft_protocol::collection {
         creators: vector<Creator>,
         /// ID of `MintAuthority` object
         mint_authority: ID,
-        /// The `Metadata` is a type exported by an upstream contract which is
-        /// used to store additional information about the NFT.
-        metadata: M,
+        royalty_fee_bps: u64,
+        /// Domain storage equivalent to NFT domains which allows collections
+        /// to implement custom metadata.
+        ///
+        /// TODO: Should Collection domains be immutable?
+        /// TODO: Implement display, tag, etc. domains for Collection
+        domains: Bag,
     }
 
     /// The `MintAuthority` object gives power to the owner to mint objects.
@@ -102,7 +108,6 @@ module nft_protocol::collection {
         receiver: address,
         tags: vector<String>,
         is_mutable: bool,
-        royalty_fee_bps: u64,
     }
 
     struct MintEvent has copy, drop {
@@ -113,6 +118,57 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
+    /// Mint `Collection` and share.
+    ///
+    /// To be called by the Witness Module deployed by NFT creator.
+    public fun mint<T>(
+        // Name of the Nft Collection. This parameter is a
+        // vector of bytes that encondes to utf8
+        name: vector<u8>,
+        description: vector<u8>,
+        // Symbol of the Nft Collection. This parameter is a
+        // vector of bytes that should enconde to utf8
+        symbol: vector<u8>,
+        // Defines the maximum supply of the collection. To create an
+        // unregulated supply set `max_supply=0`, otherwise any value above
+        // zero will make the supply regulated.
+        max_supply: u64,
+        receiver: address,
+        // TODO: When will we be able to pass vector<String>?
+        // https://github.com/MystenLabs/sui/pull/4627
+        tags: vector<vector<u8>>,
+        royalty_fee_bps: u64,
+        is_mutable: bool,
+        authority: address,
+        ctx: &mut TxContext,
+    ): ID {
+        let collection_args = init_args(
+            string::utf8(name),
+            string::utf8(description),
+            string::utf8(symbol),
+            receiver,
+            utils::to_string_vector(&mut tags),
+            is_mutable,
+        );
+
+        let collection = create<T>(
+            collection_args,
+            max_supply,
+            royalty_fee_bps,
+            authority,
+            ctx,
+        );
+
+        let collection_id = id(&collection);
+
+        event::emit(
+            MintEvent { collection_id }
+        );
+
+        transfer::share_object(collection);
+
+        collection_id
+    }
 
     /// Initialises a `MintAuthority` and transfers it to `authority` and
     /// initializes a `Collection` object and returns it. The `MintAuthority`
@@ -142,13 +198,13 @@ module nft_protocol::collection {
     /// `max_supply` should be above `0`. To create an unlimited supply the
     /// parameter `max_supply` should be equal to the biggest integer number
     /// that can be stored in a u64, which is `18446744073709551615`.
-    public fun mint<T, M: store>(
+    fun create<T>(
         args: InitCollection,
         max_supply: u64,
-        metadata: M,
+        royalty_fee_bps: u64,
         authority: address,
         ctx: &mut TxContext,
-    ): Collection<T, M> {
+    ): Collection<T> {
         let id = object::new(ctx);
 
         event::emit(
@@ -167,7 +223,6 @@ module nft_protocol::collection {
             authority,
         );
 
-
         Collection {
             id,
             name: args.name,
@@ -178,7 +233,8 @@ module nft_protocol::collection {
             is_mutable: args.is_mutable,
             creators: vector::empty(),
             mint_authority: mint_object_id,
-            metadata: metadata,
+            royalty_fee_bps,
+            domains: bag::new(ctx),
         }
     }
 
@@ -192,15 +248,15 @@ module nft_protocol::collection {
     /// minting their domain name.
     public fun share_authority<T, M: store>(
         authority: MintAuthority<T>,
-        _collection: &Collection<T, M>,
+        _collection: &Collection<T>,
     ) {
         transfer::share_object(authority);
     }
 
     /// Make Collections immutable
     /// WARNING: this is irreversible, use with care
-    public entry fun freeze_collection<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun freeze_collection<T>(
+        collection: &mut Collection<T>,
     ) {
         // Only modify if collection is mutable
         assert!(
@@ -218,7 +274,6 @@ module nft_protocol::collection {
         receiver: address,
         tags: vector<String>,
         is_mutable: bool,
-        royalty_fee_bps: u64,
     ): InitCollection {
         InitCollection {
             name,
@@ -227,15 +282,14 @@ module nft_protocol::collection {
             receiver,
             tags,
             is_mutable,
-            royalty_fee_bps,
         }
     }
 
     // === Modifier Entry Functions ===
 
     /// Modify the Collections's `name`
-    public entry fun rename<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun rename<T>(
+        collection: &mut Collection<T>,
         name: vector<u8>,
     ) {
         // Only modify if collection is mutable
@@ -248,8 +302,8 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `description`
-    public entry fun change_description<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun change_description<T>(
+        collection: &mut Collection<T>,
         description: vector<u8>,
     ) {
         // Only modify if collection is mutable
@@ -262,8 +316,8 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `symbol`
-    public entry fun change_symbol<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun change_symbol<T>(
+        collection: &mut Collection<T>,
         symbol: vector<u8>,
     ) {
         // Only modify if collection is mutable
@@ -276,8 +330,8 @@ module nft_protocol::collection {
     }
 
     /// Modify the Collections's `receiver`
-    public entry fun change_receiver<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun change_receiver<T>(
+        collection: &mut Collection<T>,
         receiver: address,
     ) {
         // Only modify if collection is mutable
@@ -293,8 +347,8 @@ module nft_protocol::collection {
     /// Contrary to other fields, tags can be always added by
     /// the collection owner, even if the collection is marked
     /// as immutable.
-    public entry fun push_tag<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun push_tag<T>(
+        collection: &mut Collection<T>,
         tag: vector<u8>,
     ) {
         tags::push_tag(
@@ -307,8 +361,8 @@ module nft_protocol::collection {
     /// Contrary to other fields, tags can be always removed by
     /// the collection owner, even if the collection is marked
     /// as immutable.
-    public entry fun pop_tag<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun pop_tag<T>(
+        collection: &mut Collection<T>,
         tag_index: u64,
     ) {
         tags::pop_tag(
@@ -318,8 +372,8 @@ module nft_protocol::collection {
     }
 
     /// Add a `Creator` to `Collection`
-    public entry fun add_creator<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun add_creator<T>(
+        collection: &mut Collection<T>,
         creator_address: address,
         share_of_royalty: u8,
     ) {
@@ -345,8 +399,8 @@ module nft_protocol::collection {
     }
 
     /// Remove a `Creator` from `Collection`
-    public entry fun remove_creator<T, M: store>(
-        collection: &mut Collection<T, M>,
+    public entry fun remove_creator<T>(
+        collection: &mut Collection<T>,
         creator_address: address,
     ) {
         // Only modify if collection is mutable
@@ -446,66 +500,74 @@ module nft_protocol::collection {
     // === Getter Functions ===
 
     /// Get the Collections's `id`
-    public fun id<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun id<T>(
+        collection: &Collection<T>,
     ): ID {
         object::uid_to_inner(&collection.id)
     }
 
     /// Get the Collections's `id` as reference
-    public fun id_ref<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun id_ref<T>(
+        collection: &Collection<T>,
     ): &ID {
         object::uid_as_inner(&collection.id)
     }
 
     /// Get the Collections's `name`
-    public fun name<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun name<T>(
+        collection: &Collection<T>,
     ): &String {
         &collection.name
     }
 
     /// Get the Collections's `description`
-    public fun description<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun description<T>(
+        collection: &Collection<T>,
     ): &String {
         &collection.description
     }
 
     /// Get the Collections's `symbol`
-    public fun symbol<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun symbol<T>(
+        collection: &Collection<T>,
     ): &String {
         &collection.symbol
     }
 
     /// Get the Collections's `receiver`
-    public fun receiver<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun receiver<T>(
+        collection: &Collection<T>,
     ): address {
         collection.receiver
     }
 
     /// Get the Collections's `tags`
-    public fun tags<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun tags<T>(
+        collection: &Collection<T>,
     ): &Tags {
         &collection.tags
     }
 
     /// Get the Collection's `is_mutable`
-    public fun is_mutable<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun is_mutable<T>(
+        collection: &Collection<T>,
     ): bool {
         collection.is_mutable
     }
 
     /// Get the Collection's `creators`
-    public fun creators<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun creators<T>(
+        collection: &Collection<T>,
     ): &vector<Creator> {
         &collection.creators
+    }
+
+    /// Get the Collection's `royalty_fee_bps`
+    // TODO: Remove with RoyaltyDomain
+    public fun royalty<T>(
+        collection: &Collection<T>,
+    ): u64 {
+        collection.royalty_fee_bps
     }
 
     /// Get an immutable reference to Collections's `cap`
@@ -522,31 +584,12 @@ module nft_protocol::collection {
         &mut mint.supply_policy
     }
 
-    /// Get an immutable reference to Collections's `Metadata`
-    public fun metadata<T, M: store>(
-        collection: &Collection<T, M>,
-    ): &M {
-        &collection.metadata
-    }
-
-    /// Get a mutable reference to Collections's `metadata`
-    public fun metadata_mut<T, M: store>(
-        collection: &mut Collection<T, M>,
-    ): &mut M {
-        // Only return mutable reference if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        &mut collection.metadata
-    }
-
     public fun mint_collection_id<T>(
         mint: &MintAuthority<T>,
     ): ID {
         mint.collection_id
     }
+
 
     // === Utility Function ===
 

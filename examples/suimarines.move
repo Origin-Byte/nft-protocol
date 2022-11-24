@@ -9,7 +9,6 @@ module nft_protocol::suimarines {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::fixed_price;
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::std_collection;
 
 
     /// One time witness is only instantiated in the init method
@@ -24,17 +23,16 @@ module nft_protocol::suimarines {
         let tags: vector<vector<u8>> = vector::empty();
         vector::push_back(&mut tags, b"Art");
 
-        let collection_id = std_collection::mint<SUIMARINES>(
-            b"Suimarines",
-            b"A Unique NFT collection of Suimarines on Sui",
-            b"SUIM", // symbol
-            100, // max_supply
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // Royalty receiver
-            tags, // tags
-            100, // royalty_fee_bps
-            false, // is_mutable
-            b"Some extra data",
-            tx_context::sender(ctx), // mint authority
+        let collection_id = collection::mint<SUIMARINES>(
+            b"Suitraders",
+            b"A Unique NFT collection of Suitraders on Sui",
+            b"SUITR", // symbol
+            100, // max supply
+            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // royalty receiver
+            tags,
+            100, // royalty fee bps
+            true, // is mutable
+            tx_context::sender(ctx), // mint authority,
             ctx,
         );
 
@@ -59,13 +57,13 @@ module nft_protocol::suimarines {
 
     public entry fun collect_royalty<FT>(
         payment: &mut TradePayment<SUIMARINES, Witness, FT>,
-        collection: &Collection<SUIMARINES, std_collection::StdMeta>,
+        collection: &Collection<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
 
         let amount = balance::value(b);
-        let bps = std_collection::royalty(collection);
+        let bps = collection::royalty(collection);
         // TODO: how do basis point work? what's the basis?
         // TODO: decimal precision
         let royalty = amount / 100 * bps;
