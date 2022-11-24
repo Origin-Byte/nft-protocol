@@ -83,7 +83,7 @@ module nft_protocol::bidding {
         create_bid_(nft, buyers_safe, price, option::some(commission), wallet, ctx);
     }
 
-    public entry fun sell_nft<C, W, FT>(
+    public entry fun sell_nft<C, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         sellers_safe: &mut Safe,
@@ -91,7 +91,7 @@ module nft_protocol::bidding {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        sell_nft_<C, W, FT>(
+        sell_nft_<C, FT>(
             bid,
             transfer_cap,
             option::none(),
@@ -101,7 +101,7 @@ module nft_protocol::bidding {
             ctx,
         );
     }
-    public entry fun sell_nft_with_commission<C, W, FT>(
+    public entry fun sell_nft_with_commission<C, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         beneficiary: address,
@@ -115,7 +115,7 @@ module nft_protocol::bidding {
             cut: commission_ft,
             beneficiary,
         };
-        sell_nft_<C, W, FT>(
+        sell_nft_<C, FT>(
             bid,
             transfer_cap,
             option::some(commission),
@@ -160,7 +160,7 @@ module nft_protocol::bidding {
         });
     }
 
-    fun sell_nft_<C, W, FT>(
+    fun sell_nft_<C, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         ask_commission: Option<AskCommission>,
@@ -175,7 +175,7 @@ module nft_protocol::bidding {
 
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
 
-        pay_for_nft<C, W, FT>(
+        pay_for_nft<C, FT>(
             &mut bid.offer,
             bid.buyer,
             &mut ask_commission,
@@ -216,7 +216,7 @@ module nft_protocol::bidding {
     }
 
     /// TODO: deduplicate with OB
-    fun pay_for_nft<C, W, FT>(
+    fun pay_for_nft<C, FT>(
         paid: &mut Balance<FT>,
         buyer: address,
         maybe_commission: &mut Option<AskCommission>,
@@ -235,14 +235,14 @@ module nft_protocol::bidding {
             let trade = object::new(ctx);
 
             // `p` - `c` goes to seller
-            royalties::create_with_trade<C, W, FT>(
+            royalties::create_with_trade<C, FT>(
                 balance::split(paid, amount - cut),
                 buyer,
                 object::uid_to_inner(&trade),
                 ctx,
             );
             // `c` goes to the marketplace
-            royalties::create_with_trade<C, W, FT>(
+            royalties::create_with_trade<C, FT>(
                 balance::split(paid, cut),
                 beneficiary,
                 object::uid_to_inner(&trade),
@@ -253,7 +253,7 @@ module nft_protocol::bidding {
         } else {
             // no commission, all `p` goes to seller
 
-            royalties::create<C, W, FT>(
+            royalties::create<C, FT>(
                 balance::split(paid, amount),
                 buyer,
                 ctx,
