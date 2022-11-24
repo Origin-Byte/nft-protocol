@@ -528,7 +528,8 @@ module nft_protocol::orderbook {
                 paid: bid_offer,
             });
 
-            transfer_bid_commission(bid_commission, ctx);
+            transfer_bid_commission(&mut bid_commission, ctx);
+            option::destroy_none(bid_commission);
         } else {
             let order = Bid {
                 offer: bid_offer,
@@ -657,7 +658,8 @@ module nft_protocol::orderbook {
                 safe,
             );
 
-            transfer_bid_commission(bid_commission, ctx);
+            transfer_bid_commission(&mut bid_commission, ctx);
+            option::destroy_none(bid_commission);
         } else {
             let id = object::new(ctx);
             let ask = Ask {

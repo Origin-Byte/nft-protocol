@@ -54,16 +54,15 @@ module nft_protocol::trading {
     }
 
     public fun transfer_bid_commission<FT>(
-        commission: Option<BidCommission<FT>>,
+        commission: &mut Option<BidCommission<FT>>,
         ctx: &mut TxContext,
     ) {
-        if (option::is_some(&commission)) {
+        if (option::is_some(commission)) {
             let BidCommission { beneficiary, cut } =
-                option::extract(&mut commission);
+                option::extract(commission);
 
             transfer(coin::from_balance(cut, ctx), beneficiary);
         };
-        option::destroy_none(commission);
     }
 
     public fun pay_for_nft<C, FT>(
