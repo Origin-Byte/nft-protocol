@@ -16,7 +16,7 @@ module nft_protocol::orderbook {
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
 
-    use nft_protocol::crit_bit::{Self, CB as CBTree};
+    use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
     use nft_protocol::err;
     use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_whitelist::Whitelist;
