@@ -40,6 +40,10 @@ module nft_protocol::err {
         return Prefix + 09
     }
 
+    public fun nft_doesnt_exist(): u64 {
+        return Prefix + 10
+    }
+
     // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {

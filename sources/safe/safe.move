@@ -27,6 +27,7 @@ module nft_protocol::safe {
         ///
         /// Enables more granular control over NFTs to combat spam.
         collections_with_enabled_deposits: VecSet<TypeName>,
+        owner: address,
     }
 
     /// Keeps info about an NFT which enables us to issue transfer caps etc.
@@ -294,6 +295,7 @@ module nft_protocol::safe {
             nfts: object_bag::new(ctx),
             accepts_any_deposit: true,
             collections_with_enabled_deposits: vec_set::empty(),
+            owner: tx_context::sender(ctx),
         };
         let cap = OwnerCap {
             id: object::new(ctx),
@@ -371,6 +373,14 @@ module nft_protocol::safe {
 
     public fun owner_cap_safe(cap: &OwnerCap): ID {
         cap.safe
+    }
+
+    public fun owner(safe: &Safe): address {
+        safe.owner
+    }
+
+    public fun contains(safe: &Safe, nft_id: ID): bool {
+        object_bag::contains(&safe.nfts, nft_id)
     }
 
     public fun accepts_any_deposit(safe: &Safe): bool {
