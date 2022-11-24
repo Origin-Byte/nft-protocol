@@ -426,4 +426,8 @@ module nft_protocol::safe {
             );
         }
     }
+
+    public fun assert_id(safe: &Safe, id: ID) {
+        assert!(object::id(safe) == id, err::safe_id_mismatch());
+    }
 }
