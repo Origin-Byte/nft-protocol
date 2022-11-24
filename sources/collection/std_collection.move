@@ -24,7 +24,7 @@ module nft_protocol::std_collection {
     struct StdMeta has store {
         id: UID,
         json: String,
-        /// Field determining the amount of royaly fees in basis points,
+        /// Field determining the amount of royalty fees in basis points,
         /// charged in market transactions.
         royalty_fee_bps: u64,
     }
