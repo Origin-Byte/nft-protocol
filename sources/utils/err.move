@@ -170,4 +170,14 @@ module nft_protocol::err {
     public fun sender_not_whitelist_admin(): u64 {
         return Prefix + 502
     }
+
+    // === Utils ===
+
+    public fun witness_source_mismatch(): u64 {
+        return Prefix + 500
+    }
+
+    public fun must_be_witness(): u64 {
+        return Prefix + 501
+    }
 }
