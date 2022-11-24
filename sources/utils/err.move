@@ -165,6 +165,10 @@ module nft_protocol::err {
         return Prefix + 306
     }
 
+    public fun safe_id_mismatch(): u64 {
+        return Prefix + 307
+    }
+
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
@@ -182,10 +186,16 @@ module nft_protocol::err {
     // === Utils ===
 
     public fun witness_source_mismatch(): u64 {
-        return Prefix + 500
+        return Prefix + 600
     }
 
     public fun must_be_witness(): u64 {
-        return Prefix + 501
+        return Prefix + 601
+    }
+
+    // === Trading ===
+
+    public fun sender_not_owner(): u64 {
+        return Prefix + 700
     }
 }
