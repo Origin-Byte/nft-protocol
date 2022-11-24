@@ -95,12 +95,8 @@ impl Schema {
         let define_market_arguments = self.write_define_market_arguments();
         let market_arguments = self.write_market_arguments();
 
-        let market_module_imports = if is_embedded {
-            format!("::{{Self, {}}}", market_type)
-        } else {
-            "".to_string()
-        }
-        .into_boxed_str();
+        let market_module_imports =
+            format!("::{{Self, {}}}", market_type).into_boxed_str();
 
         let slingshot_import = if is_embedded {
             "    use nft_protocol::slingshot::Slingshot;"

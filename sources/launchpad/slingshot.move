@@ -12,9 +12,8 @@ module nft_protocol::slingshot {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
-    use sui::dynamic_object_field;
 
-    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::nft;
     use nft_protocol::err;
     use nft_protocol::sale::{Self, Sale, NftCertificate};
 
@@ -127,23 +126,35 @@ module nft_protocol::slingshot {
     /// of the NFT. Since the slingshot is a shared object anyone can mention it
     /// in the function signature and therefore be able to mention its child
     /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft_embedded<T, M: store, D: store>(
-        slingshot: &mut Slingshot<T, M>,
-        nft_id: ID,
+    public entry fun claim_nft_embedded<T, M: store, D: key + store>(
+        slingshot: &Slingshot<T, M>,
+        // TODO: nft_data is a shared object, we should confirm that we can
+        // add it directly as a parameter since this transfers ownership to the
+        // function's scope
+        nft_data: D,
         certificate: NftCertificate,
         recipient: address,
+        ctx: &mut TxContext,
     ) {
-        let nft: Nft<T, D> =
-            dynamic_object_field::remove(&mut slingshot.id, nft_id);
+        // let nft: Nft<T, D> =
+        //     dynamic_object_field::remove(&mut slingshot.id, nft_id);
 
         assert!(
-            nft::id(&nft) == sale::nft_id(&certificate),
+            object::id(&nft_data) == sale::nft_id(&certificate),
             err::certificate_does_not_correspond_to_nft_given()
+        );
+
+        assert!(is_embedded(slingshot), err::nft_not_embedded());
+
+        let nft = nft::mint_nft_loose<T, D>(
+            object::id(&nft_data),
+            tx_context::sender(ctx),
+            ctx,
         );
 
         sale::burn_certificate(certificate);
 
-        assert!(is_embedded(slingshot), err::nft_not_embedded());
+        nft::join_nft_data(&mut nft, nft_data);
 
         transfer::transfer(
             nft,
@@ -162,7 +173,7 @@ module nft_protocol::slingshot {
     /// objects as well, the NFTs owned by it.
     public entry fun claim_nft_loose<T, M: store, D: key + store>(
         slingshot: &Slingshot<T, M>,
-        nft_data: &D,
+        nft_data: &mut D,
         certificate: NftCertificate,
         recipient: address,
         ctx: &mut TxContext,
@@ -172,8 +183,6 @@ module nft_protocol::slingshot {
             err::certificate_does_not_correspond_to_nft_given()
         );
 
-        sale::burn_certificate(certificate);
-
         assert!(!is_embedded(slingshot), err::nft_not_loose());
 
         // We are currently not increasing the current supply of the NFT
@@ -181,8 +190,11 @@ module nft_protocol::slingshot {
         // of supply).
         let nft = nft::mint_nft_loose<T, D>(
             object::id(nft_data),
+            recipient,
             ctx,
         );
+
+        sale::burn_certificate(certificate);
 
         transfer::transfer(
             nft,
@@ -216,18 +228,6 @@ module nft_protocol::slingshot {
         vector::push_back(&mut slingshot.sales, sale);
     }
 
-    /// Adds NFT as a dynamic child object with its ID as key.
-    public fun mint_nft_to<T, M, D: store>(
-        slingshot: &mut Slingshot<T, M>,
-        nft: Nft<T, D>,
-    ) {
-        dynamic_object_field::add(
-            &mut slingshot.id,
-            object::id(&nft),
-            nft,
-        );
-    }
-
     // === Getter Functions ===
 
     /// Get the Slingshot `id`
@@ -242,6 +242,13 @@ module nft_protocol::slingshot {
         slingshot: &Slingshot<T, M>,
     ): &ID {
         object::uid_as_inner(&slingshot.id)
+    }
+
+    /// Get the Slingshot's `collection_id`
+    public fun collection_id<T, M>(
+        slingshot: &Slingshot<T, M>,
+    ): ID {
+        slingshot.collection_id
     }
 
     /// Get the Slingshot's `live`

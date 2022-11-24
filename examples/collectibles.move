@@ -3,11 +3,7 @@ module nft_protocol::suinamis {
 
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{MintAuthority};
-    use nft_protocol::fixed_price;
-    use nft_protocol::std_collection;
     use nft_protocol::collectible;
-
 
     struct SUINAMIS has drop {}
 
@@ -22,7 +18,7 @@ module nft_protocol::suinamis {
             b"SUIN", // symbol
             100, // max_supply
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // Royalty receiver
-            tags, // tags
+            tags,
             100, // royalty_fee_bps
             true, // is_mutable
             b"Some extra data",
@@ -42,12 +38,13 @@ module nft_protocol::suinamis {
             collection_id,
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
             false, // is_embedded
-            whitelist, prices,
+            whitelist,
+            prices,
             ctx,
         );
     }
 
-    public entry fun mint_nft<T>(
+    public entry fun prepare_mint(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
@@ -55,9 +52,11 @@ module nft_protocol::suinamis {
         attribute_values: vector<vector<u8>>,
         max_supply: u64,
         mint: &mut MintAuthority<SUINAMIS>,
+        sale_outlet: u64,
+        launchpad: &mut Slingshot<SUINAMIS, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
-        collectible::mint_regulated_nft_data(
+        collectible::prepare_launchpad_mint<SUINAMIS, FixedPriceMarket>(
             name,
             description,
             url,
@@ -65,6 +64,8 @@ module nft_protocol::suinamis {
             attribute_values,
             max_supply,
             mint,
+            sale_outlet,
+            launchpad,
             ctx,
         );
     }

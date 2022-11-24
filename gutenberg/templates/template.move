@@ -3,9 +3,7 @@ module nft_protocol::{module_name} {{
 
     use sui::tx_context::{{Self, TxContext}};
 
-    use nft_protocol::collection::{{MintAuthority}};
     use nft_protocol::{market_module}{market_module_imports};
-    use nft_protocol::std_collection;
     use nft_protocol::{nft_type};
 {slingshot_import}
 
@@ -19,7 +17,7 @@ module nft_protocol::{module_name} {{
             b"{symbol}", // symbol
             {max_supply}, // max_supply
             @{receiver}, // Royalty receiver
-            tags, // tags
+            tags,
             {royalty_fee_bps}, // royalty_fee_bps
             {is_mutable}, // is_mutable
             b"{extra_data}",

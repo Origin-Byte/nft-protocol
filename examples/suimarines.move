@@ -5,9 +5,9 @@ module nft_protocol::suimarines {
 
     use nft_protocol::collection::{MintAuthority};
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
+    use nft_protocol::slingshot::Slingshot;
     use nft_protocol::std_collection;
     use nft_protocol::unique_nft;
-    use nft_protocol::slingshot::Slingshot;
 
     struct SUIMARINES has drop {}
 
@@ -48,25 +48,25 @@ module nft_protocol::suimarines {
         );
     }
 
-    public entry fun mint_nft(
+    public entry fun prepare_mint(
         name: vector<u8>,
         description: vector<u8>,
         url: vector<u8>,
         attribute_keys: vector<vector<u8>>,
         attribute_values: vector<vector<u8>>,
         mint_authority: &mut MintAuthority<SUIMARINES>,
-        sale_index: u64,
+        sale_outlet: u64,
         launchpad: &mut Slingshot<SUIMARINES, FixedPriceMarket>,
         ctx: &mut TxContext,
     ) {
-        unique_nft::mint_regulated_nft(
+        unique_nft::prepare_launchpad_mint<SUIMARINES, FixedPriceMarket>(
             name,
             description,
             url,
             attribute_keys,
             attribute_values,
             mint_authority,
-            sale_index,
+            sale_outlet,
             launchpad,
             ctx,
         );

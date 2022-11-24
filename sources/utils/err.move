@@ -2,7 +2,7 @@
 //! which distinguishes them from errors in other packages.
 module nft_protocol::err {
 
-    const Prefix: u64 = 999100;
+    const Prefix: u64 = 13370000;
 
     public fun nft_not_embedded(): u64 {
         return Prefix + 01
@@ -36,7 +36,11 @@ module nft_protocol::err {
         return Prefix + 08
     }
 
-    // Supply
+    public fun not_nft_owner(): u64 {
+        return Prefix + 09
+    }
+
+    // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {
         return Prefix + 100
@@ -126,4 +130,44 @@ module nft_protocol::err {
         return Prefix + 303
     }
 
+
+    // === Safe ===
+
+    public fun safe_cap_mismatch(): u64 {
+        return Prefix + 400
+    }
+
+    public fun safe_does_not_contain_nft(): u64 {
+        return Prefix + 401
+    }
+
+    public fun nft_exlusively_listed(): u64 {
+        return Prefix + 402
+    }
+
+    public fun transfer_cap_nft_mismatch(): u64 {
+        return Prefix + 403
+    }
+
+    public fun transfer_cap_expired(): u64 {
+        return Prefix + 404
+    }
+
+    public fun safe_does_not_accept_deposits(): u64 {
+        return Prefix + 405
+    }
+
+    // === Whitelist ===
+
+    public fun authority_not_whitelisted(): u64 {
+        return Prefix + 500
+    }
+
+    public fun sender_not_collection_creator(): u64 {
+        return Prefix + 501
+    }
+
+    public fun sender_not_whitelist_admin(): u64 {
+        return Prefix + 502
+    }
 }

@@ -26,13 +26,16 @@ module nft_protocol::nft {
 
     use sui::event;
     use sui::object::{Self, UID, ID};
-    use sui::tx_context::{TxContext};
+    use sui::tx_context::TxContext;
+    use sui::transfer;
 
     use nft_protocol::err;
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
 
     // NFT object with an option to hold `D`ata object
     struct Nft<phantom T, D: store> has key, store {
         id: UID,
+        logical_owner: address,
         data_id: ID,
         data: Option<D>,
     }
@@ -50,6 +53,7 @@ module nft_protocol::nft {
     /// Create a loose `Nft` and returns it.
     public fun mint_nft_loose<T, D: store>(
         data_id: ID,
+        logical_owner: address,
         ctx: &mut TxContext,
     ): Nft<T, D> {
         let nft_id = object::new(ctx);
@@ -63,6 +67,7 @@ module nft_protocol::nft {
 
         Nft {
             id: nft_id,
+            logical_owner,
             data_id: data_id,
             data: option::none(),
         }
@@ -71,6 +76,7 @@ module nft_protocol::nft {
     /// Create a embeded `Nft` and returns it.
     public fun mint_nft_embedded<T, D: store>(
         data_id: ID,
+        logical_owner: address,
         data: D,
         ctx: &mut TxContext,
     ): Nft<T, D> {
@@ -85,6 +91,7 @@ module nft_protocol::nft {
 
         Nft {
             id: nft_id,
+            logical_owner,
             data_id: data_id,
             data: option::some(data),
         }
@@ -121,6 +128,7 @@ module nft_protocol::nft {
 
         let Nft {
             id,
+            logical_owner: _,
             data_id: _,
             data,
         } = nft;
@@ -144,6 +152,7 @@ module nft_protocol::nft {
 
         let Nft {
             id,
+            logical_owner: _,
             data_id: _,
             data,
         } = nft;
@@ -157,6 +166,42 @@ module nft_protocol::nft {
         nft: &Nft<T, D>,
     ): bool {
         option::is_none(&nft.data)
+    }
+
+    // === Transfer Functions ===
+
+    /// If the authority was whitelisted by the creator, we transfer
+    /// the NFT to the recipient address.
+    public fun transfer<T, D: store, Auth: drop>(
+        nft: Nft<T, D>,
+        recipient: address,
+        authority: Auth,
+        whitelist: &Whitelist,
+    ) {
+        change_logical_owner(&mut nft, recipient, authority, whitelist);
+        transfer::transfer(nft, recipient);
+    }
+
+    /// Whitelisted contracts (by creator) can change logical owner of an NFT.
+    public fun change_logical_owner<T, D: store, Auth: drop>(
+        nft: &mut Nft<T, D>,
+        recipient: address,
+        authority: Auth,
+        whitelist: &Whitelist,
+    ) {
+        let is_ok = transfer_whitelist::can_be_transferred<T, Auth>(
+            authority,
+            whitelist,
+        );
+        assert!(is_ok, err::authority_not_whitelisted());
+
+        nft.logical_owner = recipient;
+    }
+
+    /// Clawing back an NFT is always possible.
+    public fun transfer_to_owner<T, D: store>(nft: Nft<T, D>) {
+        let logical_owner = nft.logical_owner;
+        transfer::transfer(nft, logical_owner);
     }
 
     // === Getter Functions  ===
