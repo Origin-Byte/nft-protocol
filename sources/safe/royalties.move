@@ -111,7 +111,7 @@ module nft_protocol::royalties {
         trade: Option<ID>,
         ctx: &mut TxContext,
     ) {
-        utils::assert_witnesses_of_same_package<C, W>();
+        utils::assert_same_module_as_witness<C, W>();
         share_object(TradePayment<C, W, FT> {
             id: object::new(ctx),
             amount,

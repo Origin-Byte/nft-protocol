@@ -136,8 +136,8 @@ module nft_protocol::transfer_whitelist {
     }
 
     /// Checks whether given authority witness is in the whitelist, and also
-    /// whether given collection witness (CW) is in the whitelist.
-    public fun can_be_transferred<CW, Auth: drop>(
+    /// whether given collection witness (C) is in the whitelist.
+    public fun can_be_transferred<C, Auth: drop>(
         _authority_witness: Auth,
         whitelist: &Whitelist,
     ): bool {
@@ -148,7 +148,7 @@ module nft_protocol::transfer_whitelist {
         let e = option::borrow(&whitelist.authorities);
 
         vec_set::contains(e, &type_name::get<Auth>()) &&
-            vec_set::contains(&whitelist.collections, &type_name::get<CW>())
+            vec_set::contains(&whitelist.collections, &type_name::get<C>())
     }
 
     fun assert_is_creator<T, M: store>(

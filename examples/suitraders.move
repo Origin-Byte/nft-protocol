@@ -3,11 +3,8 @@ module nft_protocol::suitraders {
 
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{MintAuthority};
-    use nft_protocol::dutch_auction::{Self, DutchAuctionMarket};
+    use nft_protocol::dutch_auction;
     use nft_protocol::std_collection;
-    use nft_protocol::unique_nft;
-    use nft_protocol::slingshot::Slingshot;
 
     struct SUITRADERS has drop {}
 
@@ -45,30 +42,6 @@ module nft_protocol::suitraders {
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
             true, // is_embedded
             whitelist, reserve_prices,
-            ctx,
-        );
-    }
-
-    public entry fun mint_nft(
-        name: vector<u8>,
-        description: vector<u8>,
-        url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint_authority: &mut MintAuthority<SUITRADERS>,
-        sale_index: u64,
-        launchpad: &mut Slingshot<SUITRADERS, DutchAuctionMarket>,
-        ctx: &mut TxContext,
-    ) {
-        unique_nft::mint_regulated_nft(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
-            mint_authority,
-            sale_index,
-            launchpad,
             ctx,
         );
     }
