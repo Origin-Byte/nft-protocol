@@ -48,7 +48,15 @@ module nft_protocol::nft {
     public fun add_domain<C, V: store>(
         nft: &mut NFT<C>,
         v: V,
+        ctx: &mut TxContext,
     ) {
+        // If NFT is a shared objects then malicious actors can freely add
+        // their domains without the owners permission.
+        assert!(
+            tx_context::sender(ctx) == nft.logical_owner,
+            err::not_nft_owner()
+        );
+
         bag::add(&mut nft.bag, domain_key<V>(), v);
     }
 
