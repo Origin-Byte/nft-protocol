@@ -3,6 +3,7 @@ module nft_protocol::display {
     use std::option::{Self, Option};
 
     use sui::url::Url;
+    use sui::tx_context::TxContext;
 
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::collection::{Self, Collection};
@@ -20,7 +21,10 @@ module nft_protocol::display {
         &domain.description
     }
 
-    public fun new_display_domain(name: String, description: String): DisplayDomain {
+    public fun new_display_domain(
+        name: String,
+        description: String
+    ): DisplayDomain {
         DisplayDomain {
             name,
             description,
@@ -44,9 +48,10 @@ module nft_protocol::display {
     public fun add_display_domain<C>(
         nft: &mut NFT<C>,
         name: String,
-        description: String
+        description: String,
+        ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, new_display_domain(name, description));
+        nft::add_domain(nft, new_display_domain(name, description), ctx);
     }
 
     public fun add_collection_display_domain<C>(
@@ -65,7 +70,9 @@ module nft_protocol::display {
         option::some(*name(display_domain(nft)))
     }
 
-    public fun collection_display_name<C>(nft: &Collection<C>): Option<String> {
+    public fun collection_display_name<C>(
+        nft: &Collection<C>
+    ): Option<String> {
         if (!collection::has_domain<C, DisplayDomain>(nft)) {
             return option::none()
         };
@@ -81,7 +88,9 @@ module nft_protocol::display {
         option::some(*description(display_domain(nft)))
     }
 
-    public fun collection_display_description<C>(nft: &Collection<C>): Option<String> {
+    public fun collection_display_description<C>(
+        nft: &Collection<C>
+    ): Option<String> {
         if (!collection::has_domain<C, DisplayDomain>(nft)) {
             return option::none()
         };
@@ -123,8 +132,12 @@ module nft_protocol::display {
         option::some(*url(collection::borrow_domain<C, UrlDomain>(nft)))
     }
 
-    public fun add_url_domain<C>(nft: &mut NFT<C>, url: Url) {
-        nft::add_domain(nft, new_url_domain(url));
+    public fun add_url_domain<C>(
+        nft: &mut NFT<C>,
+        url: Url,
+        ctx: &mut TxContext
+    ) {
+        nft::add_domain(nft, new_url_domain(url), ctx);
     }
 
     public fun add_collection_url_domain<C>(nft: &mut Collection<C>, url: Url) {

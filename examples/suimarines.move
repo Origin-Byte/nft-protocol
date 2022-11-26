@@ -45,6 +45,11 @@ module nft_protocol::suimarines {
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
         );
 
+        display::add_collection_url_domain(
+            &mut collection,
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        );
+
         let collection_id = collection::mint<SUIMARINES>(collection);
 
         let whitelist = vector::empty();
@@ -101,6 +106,7 @@ module nft_protocol::suimarines {
             &mut nft,
             string::utf8(b"Suimarine"),
             string::utf8(b"A Unique NFT collection of Suimarines on Sui"),
+            ctx,
         );
 
         transfer(nft, tx_context::sender(ctx));

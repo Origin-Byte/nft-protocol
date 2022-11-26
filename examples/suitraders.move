@@ -34,6 +34,11 @@ module nft_protocol::suitraders {
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
         );
 
+        display::add_collection_url_domain(
+            &mut collection,
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        );
+
         let collection_id = collection::mint<SUITRADERS>(collection);
 
         let whitelist = vector::empty();
