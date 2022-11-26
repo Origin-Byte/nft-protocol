@@ -186,7 +186,7 @@ module nft_protocol::collection {
             authority,
         );
 
-        let collection = Collection {
+        Collection {
             id,
             symbol: string::utf8(symbol),
             receiver,
@@ -196,9 +196,7 @@ module nft_protocol::collection {
             mint_authority: mint_object_id,
             royalty_fee_bps,
             domains: bag::new(ctx),
-        };
-
-        collection
+        }
     }
 
     /// Shares the `MintAuthority` object of a given `Collection`. For NFT

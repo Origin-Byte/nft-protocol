@@ -13,7 +13,7 @@ module nft_protocol::suimarines {
     use nft_protocol::fixed_price;
     use nft_protocol::royalties::{Self, TradePayment};
 
-    use nft_protocol::display_ext;
+    use nft_protocol::display;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -39,7 +39,7 @@ module nft_protocol::suimarines {
         );
 
         // Register custom domains
-        display_ext::add_collection_display_domain(
+        display::add_collection_display_domain(
             &mut collection,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
@@ -97,7 +97,7 @@ module nft_protocol::suimarines {
 
         let nft = nft::new<SUIMARINES>(ctx);
 
-        display_ext::add_display_domain(
+        display::add_display_domain(
             &mut nft,
             string::utf8(b"Suimarine"),
             string::utf8(b"A Unique NFT collection of Suimarines on Sui"),

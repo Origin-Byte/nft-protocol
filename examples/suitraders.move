@@ -7,7 +7,7 @@ module nft_protocol::suitraders {
     use nft_protocol::dutch_auction;
     use nft_protocol::collection;
 
-    use nft_protocol::display_ext;
+    use nft_protocol::display;
 
     struct SUITRADERS has drop {}
 
@@ -28,7 +28,7 @@ module nft_protocol::suitraders {
         );
 
         // Register custom domains
-        display_ext::add_collection_display_domain(
+        display::add_collection_display_domain(
             &mut collection,
             string::utf8(b"Suitraders"),
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
