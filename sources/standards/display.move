@@ -62,42 +62,6 @@ module nft_protocol::display {
         collection::add_domain(nft, new_display_domain(name, description));
     }
 
-    public fun display_name<C>(nft: &NFT<C>): Option<String> {
-        if (!nft::has_domain<C, DisplayDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(*name(display_domain(nft)))
-    }
-
-    public fun collection_display_name<C>(
-        nft: &Collection<C>
-    ): Option<String> {
-        if (!collection::has_domain<C, DisplayDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(*name(collection_display_domain(nft)))
-    }
-
-    public fun display_description<C>(nft: &NFT<C>): Option<String> {
-        if (!nft::has_domain<C, DisplayDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(*description(display_domain(nft)))
-    }
-
-    public fun collection_display_description<C>(
-        nft: &Collection<C>
-    ): Option<String> {
-        if (!collection::has_domain<C, DisplayDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(*description(collection_display_domain(nft)))
-    }
-
     /// === UrlDomain ===
 
     struct UrlDomain has store {
@@ -140,7 +104,10 @@ module nft_protocol::display {
         nft::add_domain(nft, new_url_domain(url), ctx);
     }
 
-    public fun add_collection_url_domain<C>(nft: &mut Collection<C>, url: Url) {
+    public fun add_collection_url_domain<C>(
+        nft: &mut Collection<C>,
+        url: Url
+    ) {
         collection::add_domain(nft, new_url_domain(url));
     }
 }
