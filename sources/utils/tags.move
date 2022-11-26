@@ -4,7 +4,7 @@ module nft_protocol::tags {
     // TODO: Consider using `VecSet` instead of `VecMap` since
     // keys are simply indices
     use std::vector;
-    use std::string::{String};
+    use std::string::String;
     use sui::vec_map::{Self, VecMap};
     use nft_protocol::utils::to_string_vector;
 
