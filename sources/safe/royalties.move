@@ -15,13 +15,15 @@ module nft_protocol::royalties {
     //! implementation will be such that they include everything in one batched
     //! tx if possible, or have automation.
 
-    use nft_protocol::utils;
     use std::option::{Self, Option};
+
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::TxContext;
+
+    use nft_protocol::utils;
 
     /// `W` is the collection's witness (not the one time witness!) which
     /// helps us ensure that the right royalty collection logic is operating
