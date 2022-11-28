@@ -4,22 +4,23 @@ module nft_protocol::whitelist {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::sale::{Self, Sale};
-    use nft_protocol::slingshot::{Self, Slingshot};
+    use nft_protocol::sale::{Self, Outlet};
+    use nft_protocol::launchpad::{Self, Launchpad, Slingshot};
 
     struct Whitelist has key {
         id: UID,
         sale_id: ID,
     }
 
-    public fun whitelist_address<T, Market>(
-        launchpad: &Slingshot<T, Market>,
-        sale: &Sale<T, Market>,
+    public fun whitelist_address<T>(
+        _launchpad: &Launchpad<T>,
+        slingshot: &Slingshot,
+        sale: &Outlet,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         assert!(
-            tx_context::sender(ctx) == slingshot::admin(launchpad),
+            tx_context::sender(ctx) == launchpad::admin(slingshot),
             err::wrong_launchpad_admin()
         );
         let sale_id = sale::id(sale);

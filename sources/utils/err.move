@@ -190,4 +190,9 @@ module nft_protocol::err {
     public fun sender_not_owner(): u64 {
         return Prefix + 700
     }
+
+    // === Generic ===
+    public fun generic_bag_full(): u64 {
+        return Prefix + 800
+    }
 }
