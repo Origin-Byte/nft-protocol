@@ -1,4 +1,4 @@
-//! Module of a generic `Slingshot` type.
+//! Module of a generic `Trebuchet` type.
 //!
 //! It acts as a generic interface for Launchpads and it allows for
 //! the creation of arbitrary domain specific implementations.
@@ -14,17 +14,17 @@ module nft_protocol::launchpad {
     use sui::object_table::{Self, ObjectTable};
 
     use nft_protocol::err;
-    use nft_protocol::sale::{Outlet};
-    use nft_protocol::generic::Generic;
+    use nft_protocol::outlet::{Outlet};
+    use nft_protocol::generic::{Self, Generic};
 
     struct Launchpad<phantom T> has key, store{
         id: UID,
         /// The address of the administrator
         admin: address,
-        launches: ObjectTable<ID, Slingshot>,
+        launches: ObjectTable<ID, Trebuchet>,
     }
 
-    struct Slingshot has key, store{
+    struct Trebuchet has key, store{
         id: UID,
         /// The ID of the Collections object
         collections: vector<ID>,
@@ -34,22 +34,22 @@ module nft_protocol::launchpad {
         admin: address,
         /// The address of the receiver of funds
         receiver: address,
-        /// Vector of all Sale outlets that, each outles holding IDs owned by the slingshot
-        sales: vector<Outlet>,
+        /// Vector of all markets outlets that, each outles holding IDs owned by the slingshot
+        markets: vector<Generic>,
         /// Field determining if NFTs are embedded or looose.
-        /// Embedded NFTs will be directly owned by the Slingshot whilst
+        /// Embedded NFTs will be directly owned by the Trebuchet whilst
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
         fee_config: Generic,
     }
 
-    struct CreateSlingshotEvent has copy, drop {
+    struct CreateTrebuchetEvent has copy, drop {
         object_id: ID,
         collection_id: ID,
     }
 
-    struct DeleteSlingshotEvent has copy, drop {
+    struct DeleteTrebuchetEvent has copy, drop {
         object_id: ID,
         collection_id: ID,
     }
@@ -71,21 +71,18 @@ module nft_protocol::launchpad {
             err::wrong_launchpad_admin()
         );
 
-        let launchpad = Launchpad {
+        let launchpad = Launchpad<T> {
             id: uid,
             admin,
-            launches:
+            launches: object_table::new<ID, Trebuchet>(ctx),
         };
-
-        object_table::add(&mut launchpad.launches, id, slingshot);
     }
 
-    // === Slingshot Functions ===
+    // === Trebuchet Functions ===
 
-    /// Initialises a `Slingshot` object and adds it to the `Launchpad` object
-    public fun init_slingshot<T: drop>(
+    /// Initialises a `Trebuchet` object and adds it to the `Launchpad` object
+    public fun init_trebuchet<T: drop>(
         launchpad: &mut Launchpad<T>,
-        sales: vector<Outlet>,
         admin: address,
         collections: vector<ID>,
         receiver: address,
@@ -102,13 +99,15 @@ module nft_protocol::launchpad {
             err::wrong_launchpad_admin()
         );
 
-        let slingshot = Slingshot {
+        let markets = vector::empty();
+
+        let slingshot = Trebuchet {
             id: uid,
             collections,
             live: false,
             admin,
             receiver,
-            sales,
+            markets,
             is_embedded,
             fee_config,
         };
@@ -116,9 +115,9 @@ module nft_protocol::launchpad {
         object_table::add(&mut launchpad.launches, id, slingshot);
     }
 
-    // /// Burn the `Slingshot`
+    // /// Burn the `Trebuchet`
     // public fun delete<T: drop>(
-    //     slingshot: Slingshot,
+    //     slingshot: Trebuchet,
     //     ctx: &mut TxContext,
     // ): vector<Outlet> {
     //     assert!(
@@ -126,7 +125,7 @@ module nft_protocol::launchpad {
     //         err::wrong_launchpad_admin()
     //     );
 
-    //     let Slingshot {
+    //     let Trebuchet {
     //         id,
     //         collection_id: _,
     //         live: _,
@@ -143,107 +142,121 @@ module nft_protocol::launchpad {
 
     // === Modifier Functions ===
 
-    /// Toggle the Slingshot's `live` to `true` therefore
+    /// Toggle the Trebuchet's `live` to `true` therefore
     /// making the NFT sale live.
     public fun sale_on<T>(
-        slingshot: &mut Slingshot,
+        _launchpad: &mut Launchpad<T>,
+        slingshot: &mut Trebuchet,
     ) {
         slingshot.live = true
     }
 
-    /// Toggle the Slingshot's `live` to `false` therefore
+    /// Toggle the Trebuchet's `live` to `false` therefore
     /// pausing or stopping the NFT sale.
     public fun sale_off<T>(
-        slingshot: &mut Slingshot,
+        _launchpad: &mut Launchpad<T>,
+        slingshot: &mut Trebuchet,
     ) {
         slingshot.live = false
     }
 
     /// Adds a sale outlet `Outlet` to `sales` field
     public fun add_sale_outlet<T>(
-        slingshot: &mut Slingshot,
-        sale: Outlet,
+        _launchpad: &mut Launchpad<T>,
+        slingshot: &mut Trebuchet,
+        market: Outlet,
     ) {
-        vector::push_back(&mut slingshot.sales, sale);
+        vector::push_back(&mut slingshot.markets, market);
     }
 
     // === Getter Functions ===
 
-    /// Get the Slingshot `id`
+    /// Get the Trebuchet `id`
     public fun id<T>(
-        slingshot: &Slingshot,
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
     ): ID {
         object::uid_to_inner(&slingshot.id)
     }
 
-    /// Get the Slingshot `id` as reference
+    /// Get the Trebuchet `id` as reference
     public fun id_ref<T>(
-        slingshot: &Slingshot,
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
     ): &ID {
         object::uid_as_inner(&slingshot.id)
     }
 
-    /// Get the Slingshot's `collection_id`
+    /// Get the Trebuchet's `collection_id`
     public fun collections<T>(
-        slingshot: &Slingshot,
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
     ): &vector<ID> {
         &slingshot.collections
     }
 
-    /// Get the Slingshot's `live`
+    /// Get the Trebuchet's `live`
     public fun live<T>(
-        slingshot: &Slingshot,
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
     ): bool {
         slingshot.live
     }
 
-    /// Get the Slingshot's `receiver` address
+    /// Get the Trebuchet's `receiver` address
     public fun receiver<T>(
-        slingshot: &Slingshot,
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
     ): address {
         slingshot.receiver
     }
 
-    /// Get the Slingshot's `admin` address
+    /// Get the Trebuchet's `admin` address
     public fun admin<T>(
-        slingshot: &Slingshot,
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
     ): address {
         slingshot.admin
     }
 
-    /// Get the Slingshot's sale `Outlet` address
+    /// Get the Trebuchet's sale `Outlet` address
     public fun sales<T>(
-        slingshot: &Slingshot,
-    ): &vector<Outlet> {
-        &slingshot.sales
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
+    ): &vector<Generic> {
+        &slingshot.markets
     }
 
-    /// Get the Slingshot's `sales` address mutably
+    /// Get the Trebuchet's `sales` address mutably
     public fun sales_mut<T>(
-        slingshot: &mut Slingshot,
-    ): &mut vector<Outlet> {
-        &mut slingshot.sales
+        _launchpad: &mut Launchpad<T>,
+        slingshot: &mut Trebuchet,
+    ): &mut vector<Generic> {
+        &mut slingshot.markets
     }
 
-    /// Get the Slingshot's `sale` address
-    public fun Sale(
-        slingshot: &Slingshot,
+    /// Get the Trebuchet's `sale` address
+    public fun sale<T>(
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
         index: u64,
-    ): &Outlet {
-        vector::borrow(&slingshot.sales, index)
+    ): &Generic {
+        vector::borrow(&slingshot.markets, index)
     }
 
-    /// Get the Slingshot's `sale` address mutably
+    /// Get the Trebuchet's `sale` address mutably
     public fun sale_mut<T>(
-        slingshot: &mut Slingshot,
+        _launchpad: &mut Launchpad<T>,
+        slingshot: &mut Trebuchet,
         index: u64,
-    ): &mut Outlet {
-        vector::borrow_mut(&mut slingshot.sales, index)
+    ): &mut Generic {
+        vector::borrow_mut(&mut slingshot.markets, index)
     }
 
-    /// Get the Slingshot's `is_embedded` bool
+    /// Get the Trebuchet's `is_embedded` bool
     public fun is_embedded<T>(
-        slingshot: &Slingshot,
+        _launchpad: &Launchpad<T>,
+        slingshot: &Trebuchet,
     ): bool {
         slingshot.is_embedded
     }

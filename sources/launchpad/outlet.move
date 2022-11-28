@@ -10,14 +10,13 @@
 //! outsource this logic to generic `Market` object. This way developers can
 //! come up with their plug-and-play market primitives, of which some examples
 //! are Dutch Auctions, Sealed-Bid Auctions, etc.
-module nft_protocol::sale {
+module nft_protocol::outlet {
     use std::vector;
 
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::generic::Generic;
 
     struct Outlet has key, store {
         id: UID,
@@ -26,7 +25,6 @@ module nft_protocol::sale {
         // Vector of all IDs owned by the slingshot
         nfts: vector<ID>,
         queue: vector<ID>,
-        market: Generic,
     }
 
     /// This object acts as an intermediate step between the payment
@@ -43,7 +41,6 @@ module nft_protocol::sale {
     public fun create(
         tier_index: u64,
         whitelisted: bool,
-        market: Generic,
         ctx: &mut TxContext,
     ): Outlet {
         let id = object::new(ctx);
@@ -57,14 +54,13 @@ module nft_protocol::sale {
             whitelisted,
             nfts,
             queue,
-            market,
         }
     }
 
     /// Burn the `Outlet` and return the `Market` object
     public fun delete(
         sale_box: Outlet,
-    ): Generic {
+    ) {
         assert!(
             vector::length(&sale_box.nfts) == 0,
             err::sale_outlet_still_has_nfts_to_sell()
@@ -80,12 +76,9 @@ module nft_protocol::sale {
             whitelisted: _,
             nfts: _,
             queue: _,
-            market,
         } = sale_box;
 
         object::delete(id);
-
-        market
     }
 
     // TODO: need to add a function with nft_id as function parameter
@@ -142,18 +135,6 @@ module nft_protocol::sale {
         sale: &Outlet,
     ): u64 {
         vector::length(&sale.nfts)
-    }
-
-    public fun market(
-        sale: &Outlet,
-    ): &Generic {
-        &sale.market
-    }
-
-    public fun market_mut(
-        sale: &mut Outlet,
-    ): &mut Generic {
-        &mut sale.market
     }
 
     public fun nft_id(

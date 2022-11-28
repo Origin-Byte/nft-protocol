@@ -12,7 +12,7 @@ module nft_protocol::generic {
         object: ObjectBag,
     }
 
-    public fun new<C>(ctx: &mut TxContext): Generic {
+    public fun new(ctx: &mut TxContext): Generic {
         Generic {
             id: object::new(ctx),
             object: object_bag::new(ctx),
