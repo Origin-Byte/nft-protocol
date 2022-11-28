@@ -27,9 +27,6 @@
 //! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that
 //! `is_mutable` refers to the NFTs and `frozen` refers to the collection
 module nft_protocol::collection {
-    use std::vector;
-    use std::string;
-
     use sui::event;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
@@ -39,6 +36,7 @@ module nft_protocol::collection {
     use nft_protocol::err;
     use nft_protocol::utils;
     use nft_protocol::tags::{Self, Tags};
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
     use nft_protocol::domain::{domain_key, DomainKey};
@@ -49,12 +47,6 @@ module nft_protocol::collection {
     /// used to store additional information about the NFT.
     struct Collection<phantom T> has key, store {
         id: UID,
-        /// Nft Collection Tags is an enumeration of tags, represented
-        /// as strings. An NFT Tag is a string that categorises the domain
-        /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
-        /// This allows wallets and marketplaces to organise NFTs by its
-        /// domain specificity.
-        tags: Tags,
         /// Determines if the collection and its associated NFTs are
         /// mutable. Once turned `false` it cannot be reversed. Collection
         /// owners however will still be able to push and pop tags to the
@@ -150,9 +142,6 @@ module nft_protocol::collection {
         // unregulated supply set `max_supply=0`, otherwise any value above
         // zero will make the supply regulated.
         max_supply: u64,
-        // TODO: When will we be able to pass vector<String>?
-        // https://github.com/MystenLabs/sui/pull/4627
-        tags: vector<vector<u8>>,
         is_mutable: bool,
         authority: address,
         ctx: &mut TxContext,
@@ -177,7 +166,6 @@ module nft_protocol::collection {
 
         Collection {
             id,
-            tags: tags::from_vec_string(&mut utils::to_string_vector(&mut tags)),
             is_mutable,
             creators: vector::empty(),
             mint_authority: mint_object_id,
@@ -215,34 +203,6 @@ module nft_protocol::collection {
     }
 
     // === Modifier Entry Functions ===
-
-    /// Add a tag to the Collections's `tags`
-    /// Contrary to other fields, tags can be always added by
-    /// the collection owner, even if the collection is marked
-    /// as immutable.
-    public entry fun push_tag<T>(
-        collection: &mut Collection<T>,
-        tag: vector<u8>,
-    ) {
-        tags::push_tag(
-            &mut collection.tags,
-            string::utf8(tag),
-        );
-    }
-
-    /// Removes a tag to the Collections's `tags`
-    /// Contrary to other fields, tags can be always removed by
-    /// the collection owner, even if the collection is marked
-    /// as immutable.
-    public entry fun pop_tag<T>(
-        collection: &mut Collection<T>,
-        tag_index: u64,
-    ) {
-        tags::pop_tag(
-            &mut collection.tags,
-            tag_index,
-        );
-    }
 
     /// Add a `Creator` to `Collection`
     public entry fun add_creator<T>(
@@ -420,13 +380,6 @@ module nft_protocol::collection {
         object::uid_as_inner(&collection.id)
     }
 
-    /// Get the Collections's `tags`
-    public fun tags<T>(
-        collection: &Collection<T>,
-    ): &Tags {
-        &collection.tags
-    }
-
     /// Get the Collection's `is_mutable`
     public fun is_mutable<T>(
         collection: &Collection<T>,
@@ -546,7 +499,6 @@ module nft_protocol::collection {
         sui::test_scenario::next_tx(scenario, creator);
         share(create<T>(
             1,
-            vector::empty(),
             true,
             creator,
             sui::test_scenario::ctx(scenario),

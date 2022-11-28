@@ -14,6 +14,7 @@ module nft_protocol::suimarines {
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::royalty_bps;
     use nft_protocol::sale::{Self, NftCertificate};
+    use nft_protocol::tags;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -24,12 +25,8 @@ module nft_protocol::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let tags: vector<vector<u8>> = vector::empty();
-        vector::push_back(&mut tags, b"Art");
-
         let collection = collection::create<SUIMARINES>(
             100, // max supply
-            tags,
             false, // is mutable
             tx_context::sender(ctx), // mint authority
             ctx,
@@ -58,7 +55,13 @@ module nft_protocol::suimarines {
             100, // royalty fee bps
         );
 
-        let collection_id = collection::share<SUIMARINES>(collection);
+        let tags: vector<vector<u8>> = vector::empty();
+        vector::push_back(&mut tags, b"Art");
+
+        tags::add_collection_tag_domain(
+            &mut collection,
+            tags::from_byte_vec(tags),
+        );
 
         let whitelist = vector::empty();
         vector::push_back(&mut whitelist, true);
