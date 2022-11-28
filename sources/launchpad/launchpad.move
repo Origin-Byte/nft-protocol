@@ -161,10 +161,10 @@ module nft_protocol::launchpad {
     }
 
     /// Adds a sale outlet `Outlet` to `sales` field
-    public fun add_sale_outlet<T>(
+    public fun add_market<T>(
         _launchpad: &mut Launchpad<T>,
         slingshot: &mut Trebuchet,
-        market: Outlet,
+        market: Generic,
     ) {
         vector::push_back(&mut slingshot.markets, market);
     }
@@ -236,7 +236,7 @@ module nft_protocol::launchpad {
     }
 
     /// Get the Trebuchet's `sale` address
-    public fun sale<T>(
+    public fun market<T>(
         _launchpad: &Launchpad<T>,
         slingshot: &Trebuchet,
         index: u64,
@@ -245,7 +245,7 @@ module nft_protocol::launchpad {
     }
 
     /// Get the Trebuchet's `sale` address mutably
-    public fun sale_mut<T>(
+    public fun market_mut<T>(
         _launchpad: &mut Launchpad<T>,
         slingshot: &mut Trebuchet,
         index: u64,

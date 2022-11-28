@@ -71,6 +71,12 @@ module nft_protocol::fixed_price {
                 price,
             }
         );
+
+        launchpad::add_market(
+            launchpad,
+            trebuchet,
+            market,
+        );
     }
 
     // === Entrypoints ===
@@ -95,10 +101,12 @@ module nft_protocol::fixed_price {
         let launchpad_id = launchpad::id(launchpad, trebuchet);
 
         let receiver = launchpad::receiver(launchpad, trebuchet);
-        let sale = launchpad::sale_mut(launchpad, trebuchet, tier_index);
 
         // Infer that sales is NOT whitelisted
-        assert!(!outlet::whitelisted(sale), err::sale_is_not_whitelisted());
+        assert!(
+            !outlet::whitelisted(&market.outlet),
+            err::sale_is_not_whitelisted()
+        );
 
         let price = market.price;
 
@@ -114,7 +122,7 @@ module nft_protocol::fixed_price {
         );
 
         let certificate = outlet::issue_nft_certificate(
-            sale,
+            &mut market.outlet,
             launchpad_id,
             ctx
         );
@@ -146,14 +154,16 @@ module nft_protocol::fixed_price {
         let launchpad_id = launchpad::id(launchpad, trebuchet);
 
         let receiver = launchpad::receiver(launchpad, trebuchet);
-        let sale = launchpad::sale_mut(launchpad, trebuchet, tier_index);
 
         // Infer that sales is whitelisted
-        assert!(outlet::whitelisted(sale), err::sale_is_whitelisted());
+        assert!(
+            outlet::whitelisted(&market.outlet),
+            err::sale_is_whitelisted(),
+        );
 
         // Infer that whitelist token corresponds to correct sale outlet
         assert!(
-            whitelist::sale_id(&whitelist_token) == outlet::id(sale),
+            whitelist::sale_id(&whitelist_token) == outlet::id(&market.outlet),
             err::incorrect_whitelist_token()
         );
 
@@ -173,7 +183,7 @@ module nft_protocol::fixed_price {
         whitelist::burn_whitelist_token(whitelist_token);
 
         let certificate = outlet::issue_nft_certificate(
-            sale,
+            &mut market.outlet,
             launchpad_id,
             ctx
         );
