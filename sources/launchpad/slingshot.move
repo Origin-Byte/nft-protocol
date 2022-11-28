@@ -16,10 +16,17 @@ module nft_protocol::slingshot {
     use nft_protocol::err;
     use nft_protocol::sale::Sale;
 
-    struct Slingshot<phantom T, M> has key, store{
+    struct Launchpad<phantom T, M> has key, store{
         id: UID,
-        /// The ID of the Collection object
-        collection_id: ID,
+        /// The address of the administrator
+        admin: address,
+        launches: ObjectTable<ID, Slingshot>,
+    }
+
+    struct Slingshot<M> has key, store{
+        id: UID,
+        /// The ID of the Collections object
+        collections: vector<ID>,
         /// Boolean indicating if the sale is live
         live: bool,
         /// The address of the administrator
@@ -33,6 +40,7 @@ module nft_protocol::slingshot {
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
+        fee: ObjectBag,
     }
 
     struct InitSlingshot has drop {
