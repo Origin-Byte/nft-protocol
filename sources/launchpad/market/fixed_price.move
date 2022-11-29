@@ -45,9 +45,8 @@ module nft_protocol::fixed_price {
     /// call privelleged endpoints.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun create_market<T: drop>(
-        _witness: T,
-        launchpad: &mut Launchpad<T>,
+    public fun create_market(
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         tier: u64,
         is_whitelisted: bool,
@@ -87,16 +86,16 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_nft_certificate<T>(
+    public entry fun buy_nft_certificate(
         wallet: &mut Coin<SUI>,
-        launchpad: &mut Launchpad<T>,
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         market: &mut FixedPriceMarket,
         tier_index: u64,
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(launchpad::live<T>(launchpad, trebuchet) == true, err::launchpad_not_live());
+        assert!(launchpad::live(launchpad, trebuchet) == true, err::launchpad_not_live());
 
         let launchpad_id = launchpad::id(launchpad, trebuchet);
 
@@ -139,9 +138,9 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_whitelisted_nft_certificate<T>(
+    public entry fun buy_whitelisted_nft_certificate(
         wallet: &mut Coin<SUI>,
-        launchpad: &mut Launchpad<T>,
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         market: &mut FixedPriceMarket,
         tier_index: u64,
@@ -198,8 +197,8 @@ module nft_protocol::fixed_price {
 
     /// Toggle the Slingshot's `live` to `true` therefore
     /// making the NFT sale live. Permissioned endpoint to be called by `admin`.
-    public entry fun sale_on<T>(
-        launchpad: &mut Launchpad<T>,
+    public entry fun sale_on(
+        launchpad: &mut Launchpad,
         slingshot: &mut Trebuchet,
         ctx: &mut TxContext
     ) {
@@ -212,8 +211,8 @@ module nft_protocol::fixed_price {
 
     /// Toggle the Slingshot's `live` to `false` therefore
     /// pausing or stopping the NFT sale. Permissioned endpoint to be called by `admin`.
-    public entry fun sale_off<T>(
-        launchpad: &mut Launchpad<T>,
+    public entry fun sale_off(
+        launchpad: &mut Launchpad,
         slingshot: &mut Trebuchet,
         ctx: &mut TxContext
     ) {
@@ -226,8 +225,8 @@ module nft_protocol::fixed_price {
 
     /// Permissioned endpoint to be called by `admin` to edit the fixed price
     /// of the launchpad configuration.
-    public entry fun new_price<T>(
-        launchpad: &mut Launchpad<T>,
+    public entry fun new_price(
+        launchpad: &mut Launchpad,
         slingshot: &mut Trebuchet,
         market: &mut FixedPriceMarket,
         new_price: u64,

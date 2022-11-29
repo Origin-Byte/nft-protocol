@@ -45,9 +45,8 @@ module nft_protocol::dutch_auction {
 
     // === Functions exposed to Witness Module ===
 
-    public fun create_market<W: drop>(
-        witness: W,
-        launchpad: &mut Launchpad<W>,
+    public fun create_market(
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         tier: u64,
         is_whitelisted: bool,
@@ -84,9 +83,9 @@ module nft_protocol::dutch_auction {
     // === Entrypoints ===
 
     /// Creates a bid in a FIFO manner, previous bids are retained
-    public entry fun create_bid<T>(
+    public entry fun create_bid(
         wallet: &mut Coin<SUI>,
-        launchpad: &mut Launchpad<T>,
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         market: &mut DutchAuctionMarket,
         price: u64,
@@ -108,9 +107,9 @@ module nft_protocol::dutch_auction {
         );
     }
 
-    public entry fun create_bid_whitelisted<T>(
+    public entry fun create_bid_whitelisted(
         wallet: &mut Coin<SUI>,
-        launchpad: &mut Launchpad<T>,
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         market: &mut DutchAuctionMarket,
         whitelist_token: Whitelist,
@@ -147,9 +146,9 @@ module nft_protocol::dutch_auction {
     //
     // TODO(https://github.com/Origin-Byte/nft-protocol/issues/76):
     // Cancel all bids endpoint
-    public entry fun cancel_bid<T>(
+    public entry fun cancel_bid(
         wallet: &mut Coin<SUI>,
-        launchpad: &mut Launchpad<T>,
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         market: &mut DutchAuctionMarket,
         price: u64,
@@ -169,8 +168,8 @@ module nft_protocol::dutch_auction {
     /// to place bids on the NFT collection.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_on<T>(
-        launchpad: &mut Launchpad<T>,
+    public entry fun sale_on(
+        launchpad: &mut Launchpad,
         slingshot: &mut Trebuchet,
         ctx: &mut TxContext
     ) {
@@ -185,8 +184,8 @@ module nft_protocol::dutch_auction {
     /// This does not allocate any NFTs to bidders.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_off<T>(
-        launchpad: &mut Launchpad<T>,
+    public entry fun sale_off(
+        launchpad: &mut Launchpad,
         slingshot: &mut Trebuchet,
         ctx: &mut TxContext
     ) {
@@ -201,8 +200,8 @@ module nft_protocol::dutch_auction {
     /// All bids will be cancelled and refunded.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_cancel<T>(
-        launchpad: &mut Launchpad<T>,
+    public entry fun sale_cancel(
+        launchpad: &mut Launchpad,
         slingshot: &mut Trebuchet,
         market: &mut DutchAuctionMarket,
         ctx: &mut TxContext
@@ -222,8 +221,8 @@ module nft_protocol::dutch_auction {
     /// NFTs will be allocated to the winning biddeers.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_conclude<T>(
-        launchpad: &mut Launchpad<T>,
+    public entry fun sale_conclude(
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         slingshot: &mut Trebuchet,
         market: &mut DutchAuctionMarket,
@@ -353,8 +352,8 @@ module nft_protocol::dutch_auction {
         balance::join(coin::balance_mut(wallet), amount);
     }
 
-    fun conclude_auction<T>(
-        launchpad: &mut Launchpad<T>,
+    fun conclude_auction(
+        launchpad: &mut Launchpad,
         trebuchet: &mut Trebuchet,
         auction: &mut DutchAuctionMarket,
         launchpad_id: ID,
