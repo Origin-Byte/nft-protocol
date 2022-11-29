@@ -28,13 +28,13 @@ module nft_protocol::test_assert_same_module_as_witness {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370500)]
+    #[expected_failure(abort_code = 13370600)]
     public fun it_must_same_package() {
         assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, test_foo::Witness>();
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370501)]
+    #[expected_failure(abort_code = 13370601)]
     public fun it_must_be_witness() {
         assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, Witness2>();
     }
