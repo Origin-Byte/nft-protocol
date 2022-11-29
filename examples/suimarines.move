@@ -8,7 +8,9 @@ module nft_protocol::suimarines {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::fixed_price;
+    use nft_protocol::generic;
     use nft_protocol::royalties::{Self, TradePayment};
+    use nft_protocol::launchpad::Self;
 
 
     /// One time witness is only instantiated in the init method
@@ -43,6 +45,25 @@ module nft_protocol::suimarines {
         let prices = vector::empty();
         vector::push_back(&mut prices, 1000);
         vector::push_back(&mut prices, 2000);
+
+        let admin = @0x6c86ac4a796204ea09a87b6430db0c38263c1890;
+
+        // launchpad::init_launchpad(
+        //     launchpad_admin,
+        //     ctx,
+        // );
+
+        let collections = vector::singleton(collection_id);
+
+        launchpad::init_trebuchet(
+            launchpad,
+            admin,
+            collections,
+            @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
+            true, // is_embedded
+            generic::new(ctx), // fee config
+            ctx,
+        );
 
         fixed_price::create_market(
             witness,
