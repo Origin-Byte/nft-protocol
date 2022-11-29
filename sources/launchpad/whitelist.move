@@ -12,15 +12,15 @@ module nft_protocol::whitelist {
         sale_id: ID,
     }
 
-    public fun whitelist_address<T>(
-        launchpad: &Launchpad<T>,
+    public fun whitelist_address(
+        launchpad: &Launchpad,
         trebuchet: &Trebuchet,
         sale: &Outlet,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         assert!(
-            tx_context::sender(ctx) == launchpad::admin<T>(launchpad, trebuchet),
+            tx_context::sender(ctx) == launchpad::admin(launchpad, trebuchet),
             err::wrong_launchpad_admin()
         );
         let sale_id = outlet::id(sale);
