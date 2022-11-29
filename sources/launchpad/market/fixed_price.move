@@ -111,11 +111,20 @@ module nft_protocol::fixed_price {
 
         assert!(coin::value(wallet) > price, err::coin_amount_below_price());
 
+        let fee_amount = launchpad::fee(launchpad, trebuchet) * price;
+        let net_price = price - fee_amount;
+
+        let fee = coin::split<SUI>(
+            wallet,
+            fee_amount,
+            ctx,
+        );
+
         // Split coin into price and change, then transfer
         // the price and keep the change
         pay::split_and_transfer<SUI>(
             wallet,
-            price,
+            net_price,
             receiver,
             ctx
         );

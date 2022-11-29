@@ -42,7 +42,7 @@ module nft_protocol::launchpad {
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
-        fee_config: Generic,
+        fee: u64,
     }
 
     struct CreateTrebuchetEvent has copy, drop {
@@ -84,7 +84,7 @@ module nft_protocol::launchpad {
         collections: vector<ID>,
         receiver: address,
         is_embedded: bool,
-        fee_config: Generic,
+        fee: u64,
         ctx: &mut TxContext,
     ) {
         let uid = object::new(ctx);
@@ -108,7 +108,7 @@ module nft_protocol::launchpad {
             receiver,
             markets,
             is_embedded,
-            fee_config,
+            fee,
         };
 
         object_table::add(&mut launchpad.launches, id, slingshot);
@@ -258,5 +258,13 @@ module nft_protocol::launchpad {
         slingshot: &Trebuchet,
     ): bool {
         slingshot.is_embedded
+    }
+
+     /// Get the Trebuchet's `fee` amount
+    public fun fee(
+        _launchpad: &Launchpad,
+        slingshot: &Trebuchet,
+    ): u64 {
+        slingshot.fee
     }
 }
