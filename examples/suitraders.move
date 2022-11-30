@@ -19,9 +19,7 @@ module nft_protocol::suitraders {
         let collection = collection::create<SUITRADERS>(
             b"SUITR", // symbol
             100, // max supply
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // royalty receiver
             tags,
-            100, // royalty fee bps
             true, // is mutable
             tx_context::sender(ctx), // mint authority
             ctx,
