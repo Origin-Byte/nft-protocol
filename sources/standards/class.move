@@ -10,6 +10,7 @@ module nft_protocol::class {
 
     use nft_protocol::err;
     use nft_protocol::utils;
+    use nft_protocol::nft::{Self, NFT};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::domain::{domain_key, DomainKey};
@@ -34,7 +35,7 @@ module nft_protocol::class {
         id: ID,
     }
 
-    /// Create a `ClassData` object and shares it.
+    /// Create a `Class` object and shares it.
     public fun create<C>(
         ctx: &mut TxContext,
         supply: u64,
@@ -56,6 +57,25 @@ module nft_protocol::class {
         };
 
         transfer::share_object(class);
+    }
+
+    /// Create a `ClassData` object and adds it to NFT.
+    public fun mint_instance<C>(
+        ctx: &mut TxContext,
+        nft: &mut NFT<C>,
+        class: &mut Class,
+        mint_authority: &MintAuthority<C>,
+    ) {
+        let id = object::new(ctx);
+
+        supply::increment_supply(&mut class.supply, 1);
+
+        let class_data = ClassData {
+            id,
+            data: id(class),
+        };
+
+        nft::add_domain(nft, class_data, ctx);
     }
 
     // === Domain Functions ===
