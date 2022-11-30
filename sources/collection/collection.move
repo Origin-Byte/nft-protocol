@@ -462,6 +462,18 @@ module nft_protocol::collection {
         object::uid_as_inner(&collection.id)
     }
 
+    public fun mint_id<T>(
+        authority: &MintAuthority<T>,
+    ): ID {
+        object::uid_to_inner(&authority.id)
+    }
+
+    public fun mint_id_ref<T>(
+        authority: &MintAuthority<T>,
+    ): &ID {
+        object::uid_as_inner(&authority.id)
+    }
+
     /// Get the Collections's `symbol`
     public fun symbol<T>(
         collection: &Collection<T>,
