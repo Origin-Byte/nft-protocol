@@ -2,110 +2,99 @@
 //!
 //! It acts as a generic interface for NFTs and it allows for
 //! the creation of arbitrary domain specific implementations.
-//!
-//! The `NFT` type is a hybrid object that can take two shapes: The shape of an
-//! NFT that embeds is own data, an Embedded NFT; and the shape of an
-//! NFT that does not embed its own data and containst solely a pointer to its
-//! data object, a Loose NFT.
-//!
-//! With this design we can keep only one ultimate type whilst the NFT can be
-//! embedded or loose depending on the use case. It is also possible to
-//! dynamically join or split the data object from the NFT object, therefore
-//! allowing for dynamic behaviour.
-//!
-//! For embedded NFTs, the `Data` object and the `NFT` object is minted in one
-//! step. For loose NFTs the `Data` object is first minted and only then the
-//! NFT(s) associated to that object is(are) minted.
-//!
-//! Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships
-//! between the NFT object and the Data object. In contrast, loose NFTs can
-//! represent 1-to-many relationships. Essentially this allows us to build
-//! NFTs which effectively have a supply.
 module nft_protocol::nft {
-    use std::option::{Self, Option};
-
-    use sui::event;
-    use sui::object::{Self, UID, ID};
-    use sui::object_bag::{Self, ObjectBag};
-    use sui::tx_context::{TxContext};
-
     use nft_protocol::err;
+    use nft_protocol::domain::{domain_key, DomainKey};
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use nft_protocol::utils;
 
-    // NFT object with phantom type `T`
-    struct Nft<phantom T> has key, store {
+    use sui::bag::{Self, Bag};
+    use sui::object::{Self, UID};
+    use sui::transfer;
+    use sui::tx_context::{Self, TxContext};
+
+    struct NFT<phantom C> has key, store {
         id: UID,
-        bag: ObjectBag
+        bag: Bag,
+        logical_owner: address,
     }
 
-    struct MintEvent has copy, drop {
-        nft_id: ID,
-    }
-
-    struct BurnEvent has copy, drop {
-        nft_id: ID,
-    }
-
-    /// Create a `Nft` and returns it.
-    public fun mint_nft<T>(
-        ctx: &mut TxContext,
-    ): Nft<T> {
-        let nft_id = object::new(ctx);
-
-        event::emit(
-            MintEvent {
-                nft_id: object::uid_to_inner(&nft_id),
-            }
-        );
-
-        Nft {
-            id: nft_id,
-            bag: object_bag::new(ctx),
+    public fun new<C>(ctx: &mut TxContext): NFT<C> {
+        NFT {
+            id: object::new(ctx),
+            bag: bag::new(ctx),
+            logical_owner: tx_context::sender(ctx),
         }
     }
 
-    public fun burn_nft<T>(
-        nft: Nft<T>,
-    ) {
-        assert!(object_bag::is_empty(&nft.bag), err::bag_not_empty());
+    // === Domain Functions ===
 
-        event::emit(
-            BurnEvent {
-                nft_id: id(&nft),
-            }
+    public fun has_domain<C, D: store>(nft: &NFT<C>): bool {
+        bag::contains_with_type<DomainKey, D>(&nft.bag, domain_key<D>())
+    }
+
+    public fun borrow_domain<C, D: store>(nft: &NFT<C>): &D {
+        bag::borrow<DomainKey, D>(&nft.bag, domain_key<D>())
+    }
+
+    public fun borrow_domain_mut<C, D: store, W: drop>(
+        _witness: W,
+        nft: &mut NFT<C>,
+    ): &mut D {
+        utils::assert_same_module_as_witness<W, D>();
+        bag::borrow_mut<DomainKey, D>(&mut nft.bag, domain_key<D>())
+    }
+
+    public fun add_domain<C, V: store>(
+        nft: &mut NFT<C>,
+        v: V,
+        ctx: &mut TxContext,
+    ) {
+        // If NFT is a shared objects then malicious actors could freely add
+        // their domains without the owners permission.
+        assert!(
+            tx_context::sender(ctx) == nft.logical_owner,
+            err::not_nft_owner()
         );
 
-        let Nft {
-            id,
-            bag,
-        } = nft;
-
-        object::delete(id);
-        object_bag::destroy_empty(bag);
+        bag::add(&mut nft.bag, domain_key<V>(), v);
     }
 
-    // === Getter Functions  ===
-
-    public fun id<T>(
-        nft: &Nft<T>,
-    ): ID {
-        object::uid_to_inner(&nft.id)
+    public fun remove_domain<C, W: drop, V: store>(
+        _witness: W,
+        nft: &mut NFT<C>,
+    ): V {
+        utils::assert_same_module_as_witness<W, V>();
+        bag::remove(&mut nft.bag, domain_key<V>())
     }
 
-    public fun id_ref<T>(
-        nft: &Nft<T>,
-    ): &ID {
-        object::uid_as_inner(&nft.id)
+    // === Transfer Functions ===
+
+    /// If the authority was whitelisted by the creator, we transfer
+    /// the NFT to the recipient address.
+    public fun transfer<C, Auth: drop>(
+        nft: NFT<C>,
+        recipient: address,
+        authority: Auth,
+        whitelist: &Whitelist,
+    ) {
+        change_logical_owner(&mut nft, recipient, authority, whitelist);
+        transfer::transfer(nft, recipient);
     }
 
-    public fun bag<T>(
-        nft: &Nft<T>,
-    ): &ObjectBag {
-        &nft.bag
-    }
+    /// Whitelisted contracts (by creator) can change logical owner of an NFT.
+    public fun change_logical_owner<C, Auth: drop>(
+        nft: &mut NFT<C>,
+        recipient: address,
+        authority: Auth,
+        whitelist: &Whitelist,
+    ) {
+        let is_ok = transfer_whitelist::can_be_transferred<C, Auth>(
+            authority,
+            whitelist,
+        );
+        assert!(is_ok, err::authority_not_whitelisted());
 
-    public fun bag_mut<T>(
-        nft: &mut Nft<T>,
-    ): &mut ObjectBag {
-        &mut nft.bag
+        nft.logical_owner = recipient;
     }
 }

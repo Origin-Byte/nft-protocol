@@ -12,11 +12,9 @@ module nft_protocol::slingshot {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
-    use sui::dynamic_object_field;
 
-    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::err;
-    use nft_protocol::sale::{Self, Sale, NftCertificate};
+    use nft_protocol::sale::Sale;
 
     struct Slingshot<phantom T, M> has key, store{
         id: UID,
@@ -116,80 +114,6 @@ module nft_protocol::slingshot {
         }
     }
 
-    // === Entrypoints ===
-
-    /// Once the user has bought an NFT certificate, this method can be called
-    /// to claim/redeem the NFT that has been allocated by the launchpad. The
-    /// `NFTOwned` object in the function signature should correspond to the
-    /// NFT ID mentioned in the certificate.
-    ///
-    /// We add the slingshot as a phantom parameter since it is the parent object
-    /// of the NFT. Since the slingshot is a shared object anyone can mention it
-    /// in the function signature and therefore be able to mention its child
-    /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft_embedded<T, M: store, D: store>(
-        slingshot: &mut Slingshot<T, M>,
-        nft_id: ID,
-        certificate: NftCertificate,
-        recipient: address,
-    ) {
-        let nft: Nft<T, D> =
-            dynamic_object_field::remove(&mut slingshot.id, nft_id);
-
-        assert!(
-            nft::id(&nft) == sale::nft_id(&certificate),
-            err::certificate_does_not_correspond_to_nft_given()
-        );
-
-        sale::burn_certificate(certificate);
-
-        assert!(is_embedded(slingshot), err::nft_not_embedded());
-
-        transfer::transfer(
-            nft,
-            recipient,
-        );
-    }
-
-    /// Once the user has bought an NFT certificate, this method can be called
-    /// to claim/redeem the NFT that has been allocated by the launchpad. The
-    /// `NFTOwned` object in the function signature should correspond to the
-    /// NFT ID mentioned in the certificate.
-    ///
-    /// We add the slingshot as a phantom parameter since it is the parent object
-    /// of the NFT. Since the slingshot is a shared object anyone can mention it
-    /// in the function signature and therefore be able to mention its child
-    /// objects as well, the NFTs owned by it.
-    public entry fun claim_nft_loose<T, M: store, D: key + store>(
-        slingshot: &Slingshot<T, M>,
-        nft_data: &D,
-        certificate: NftCertificate,
-        recipient: address,
-        ctx: &mut TxContext,
-    ) {
-        assert!(
-            object::id(nft_data) == sale::nft_id(&certificate),
-            err::certificate_does_not_correspond_to_nft_given()
-        );
-
-        sale::burn_certificate(certificate);
-
-        assert!(!is_embedded(slingshot), err::nft_not_loose());
-
-        // We are currently not increasing the current supply of the NFT
-        // being minted (both collectibles and cNFT implementation have a concept
-        // of supply).
-        let nft = nft::mint_nft_loose<T, D>(
-            object::id(nft_data),
-            ctx,
-        );
-
-        transfer::transfer(
-            nft,
-            recipient,
-        );
-    }
-
     // === Modifier Functions ===
 
     /// Toggle the Slingshot's `live` to `true` therefore
@@ -216,18 +140,6 @@ module nft_protocol::slingshot {
         vector::push_back(&mut slingshot.sales, sale);
     }
 
-    /// Adds NFT as a dynamic child object with its ID as key.
-    public fun mint_nft_to<T, M, D: store>(
-        slingshot: &mut Slingshot<T, M>,
-        nft: Nft<T, D>,
-    ) {
-        dynamic_object_field::add(
-            &mut slingshot.id,
-            object::id(&nft),
-            nft,
-        );
-    }
-
     // === Getter Functions ===
 
     /// Get the Slingshot `id`
@@ -242,6 +154,13 @@ module nft_protocol::slingshot {
         slingshot: &Slingshot<T, M>,
     ): &ID {
         object::uid_as_inner(&slingshot.id)
+    }
+
+    /// Get the Slingshot's `collection_id`
+    public fun collection_id<T, M>(
+        slingshot: &Slingshot<T, M>,
+    ): ID {
+        slingshot.collection_id
     }
 
     /// Get the Slingshot's `live`

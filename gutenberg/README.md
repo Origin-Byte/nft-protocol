@@ -1,34 +1,23 @@
-- rustc 1.64.0
-- sui v0.15.1
-
-# Install
-
-This codebase requires installation of the [Sui CLI](https://docs.sui.io/build/install).
-
-# Built and Test
-
-1. `$ cargo build` to build the gutenberg
-2. `$ cargo run` to run the gutenberg and build the move module
-3. `./bin/publish.sh` to publish the modules on localnet or devnet
-
 # Gutenberg
 
-Automagically writing Move smart contracts so you don’t have to!
+Automagically write Move smart contracts so you don’t have to!
 
-Gutenberg is a templating engine for writing Move modules for NFT Collections.
+Gutenberg is a templating engine for writing Move modules for OriginByte NFT collections.
 
-In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs of a given Collection have their own type-exported Move module.
+In the spirit of the design philosophy presented in this [RFC](https://github.com/MystenLabs/sui/blob/a49613a52d1556386464be7d138c379773f35499/sui_programmability/examples/nft_standard/README.md), NFTs have their own type-exported Move module which can be deployed.
 
 In practice, this means that creators will have to deploy their own Move module every time they want to create a new NFT collection. We don’t think NFT creators should have to deal with the technicalities of writing Move smart contracts, so we created Gutenberg to do it for you.
 
 We describe the process for configuring NFT collections and running Gutenberg in the following steps.
 
+### 1. Configure your NFT Collection
 
-### 1. Configure the NFT Collection
+To configure an NFT collection, the creator will have to populate a configuration file.
 
-To configure the NFT collection, the creator will have to populate the file `gutenberg/config.yaml`, which has the following structure:
+A number of example configuration files are available in [`gutenberg/examples`](./examples).
+A blank template is available in [`gutenberg/config.yaml`](./config.yaml) which has the following structure:
 
-```
+```yaml
 NftType:
 
 Collection:
@@ -44,7 +33,7 @@ Collection:
   data:
 
 Launchpad:
-  market_type:
+  market_type: "fixed_price"
   prices: []
   whitelists: []
 ```
@@ -52,15 +41,15 @@ Launchpad:
 The top-level fields are defined as follows:
 
 | Field            | Type          | Description |
-| ---------------- | ------------- | ---------------- |
-| `NftType`        | `String`      | Acts as an Enum for all the NFT Types available in OriginByte (`Unique`, `Collectible`, `CNft`) |
+| ---------------- | ------------- | ----------- |
+| `NftType`        | `String`      | Name of the NFT type (`Unique`, `Collectible`, `CNft`) |
 | `Collection`     | `Dictionary`  | List of fields defining the collection |
 | `Launchpad`      | `Dictionary`  | List of fields defining the launchpad |
 
-Where the fields for the Collection are:
+Where the fields for `Collection` are:
 
-| Field            | Type      | Description |
-| ---------------- | --------- | ---------------- |
+| Field           | Type       | Description |
+| --------------- | ---------- | ----------- |
 | name            | `String`   | The name of the collection |
 | description     | `String`   | The description of the collection |
 | symbol          | `String`   | The symbol/ticker of the collection |
@@ -71,14 +60,26 @@ Where the fields for the Collection are:
 | is_mutable      | `Boolean`  | A configuration field that dictates whether NFTs are mutable |
 | data            | `String`   | Field for extra data |
 
-And where the fields for the Launchpad are:
+And where the fields for `Launchpad` are:
 
-| Field            | Type      | Description |
-| ---------------- | --------- | ---------------- |
-| market_type      | `String`           | Acts as an Enum for all the market types available in OriginByte (currently only "fixed_price") |
-| prices           | `Array<Integer>`   | Array of prices for all sale outlets |
-| whitelists       | `Array<Boolean>`   | Array of whitelisting setup for all sale outlets |
+| Field        | Type               | Description |
+| ------------ | ------------------ | ----------- |
+| market_type  | `String`           | Name of the market type (`fixed_price`, `auction`) |
+| ..           | `MarketParameters` | Each market type defines different parameters |
 
+Each market type can derfne different `MarketParameters` parameters.
+
+| Field          | Type               | Description |
+| -------------- | ------------------ | ----------- |
+| `FixedPrice`   |                    |             |
+| -------------- | ------------------ | ----------- |
+| prices         | `Array<Integer>`   | Array of prices for sale outlets |
+| whitelists     | `Array<Boolean>`   | Array defining whether the outlet is whitelisted |
+| -------------- | ------------------ | ----------- |
+| `Auction`      |                    |             |
+| -------------- | ------------------ | ----------- |
+| reserve_prices | `Array<Integer>`   | Array of reserve prices for sale outlets |
+| whitelists     | `Array<Boolean>`   | Array defining whether the outlet is whitelisted |
 
 Some examples of yaml configurations are provided in `/gutenberg/examples`.
 
@@ -88,7 +89,7 @@ OriginByte's launchpad configurations allow creators to segregate their NFT sale
 
 Here is an example of a single sale configuration:
 
-```
+```yaml
 Launchpad:
   market_type: "fixed_price"
   prices: [1000]
@@ -97,33 +98,38 @@ Launchpad:
 
 Whilst a multi sale configuration is:
 
-```
+```yaml
 Launchpad:
-  market_type: "fixed_price"
-  prices: [1000, 2000, 3000, 4000, 5000]
+  market_type: "auction"
+  reserve_prices: [1000, 2000, 3000, 4000]
   whitelists: [false, true, true, true]
 ```
 
 ### 2. Run Gutenberg
 
-Once the YAML configuration file is correctly populated, it’s then time to run Gutenberg via:
+Once your YAML configuration file is ready, it’s then time to run the Gutenberg executable.
 
-`cd gutenberg/`
-`cargo run`
+```shell
+gutenberg
+```
 
-By default the Move module will be written in `../examples/<MODULE_NAME>.move`
+This will use a configuration file, `./config.yaml`, and write the Move contract to `../examples/<MODULE_NAME>.move` by default.
 
-To define a custom path and file name one can run the following command:
-`cargo run ../<CUSTOM_PATH>/<FILENAME>.move`
+To define a custom configuration and output path one can run the following command:
 
-Custom configuration files can be provided using the `--config` argument `$ cargo run -- --config ./examples/simple.yaml`.
+```shell
+gutenberg --config <CONFIGURATION_PATH>/<CONFIG>.yaml <CUSTOM_PATH>/<FILENAME>.move
+```
+
+You can obtain a `gutenberg` executable by building it using [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and running the following commands, or using `cargo run` directly:
+
+```shell
+cd gutenberg
+cargo build --release
+```
+
+Alternatively, you can [download a pre-built executable](https://github.com/Origin-Byte/nft-protocol/tags) once these become available.
 
 ### 3. Deploy the Contract
 
-To deploy the newly created smart contract in conjunction with the NFT protocol, run the following sh script from the parent folder:
-
-`./bin/publish.sh`
-
-Please note that in the current version, the NFT protocol modules will themselves be deployed along with the newly created NFT module. However, in the upcoming version of this tool, newly created NFT modules will tap into a readily deployed contract on-chain.
-
-To publish the module on-chain, you’ll be required to have a .env file with the field `GAS` and an object ID of the Gas object. To enquire the CLI on what GAS object IDs can be used, you’ll need to be connected to the DevNet, have an active address, and also have the Sui CLI installed. To check for the Gas object ID, run `sui client gas`. Please also note that your active address should be funded via the faucet, and therefore it should have a SUI coin balance available.
+To deploy your newly created smart contract follow the deploy instructions found in [docs/deploy](../docs/deploy.md).

@@ -48,43 +48,46 @@ impl NftType {
         // TODO: Need to add support for unregulated collections
         let func = match self {
             NftType::Unique => format!(
-                "public entry fun mint_nft(\n        \
+                "public entry fun prepare_mint(\n        \
                     name: vector<u8>,\n        \
                     description: vector<u8>,\n        \
                     url: vector<u8>,\n        \
                     attribute_keys: vector<vector<u8>>,\n        \
                     attribute_values: vector<vector<u8>>,\n        \
-                    mint_authority: &mut MintAuthority<{}>,\n        \
-                    sale_index: u64,\n        \
-                    launchpad: &mut Slingshot<{}, {}>,\n        \
+                    mint_authority: &mut MintAuthority<{witness}>,\n        \
+                    sale_outlet: u64,\n        \
+                    launchpad: &mut Slingshot<{witness}, {market_type}>,\n        \
                     ctx: &mut TxContext,\n    \
                 ) {{\n        \
-                    unique_nft::mint_regulated_nft(\n            \
+                    unique_nft::prepare_launchpad_mint<{witness}, {market_type}>(\n            \
                         name,\n            \
                         description,\n            \
                         url,\n            \
                         attribute_keys,\n            \
                         attribute_values,\n            \
                         mint_authority,\n            \
-                        sale_index,\n            \
+                        sale_outlet,\n            \
                         launchpad,\n            \
                         ctx,\n        \
                     );\n    \
                 }}",
-                witness, witness, market_type
+                witness = witness,
+                market_type = market_type,
             ),
             NftType::Collectible => format!(
-                "public entry fun mint_nft<T>(\n        \
+                "public entry fun prepare_mint(\n        \
                     name: vector<u8>,\n        \
                     description: vector<u8>,\n        \
                     url: vector<u8>,\n        \
                     attribute_keys: vector<vector<u8>>,\n        \
                     attribute_values: vector<vector<u8>>,\n        \
                     max_supply: u64,\n        \
-                    mint: &mut MintAuthority<{}>,\n        \
+                    mint: &mut MintAuthority<{witness}>,\n        \
+                    sale_outlet: u64,\n        \
+                    launchpad: &mut Slingshot<{witness}, {market_type}>,\n        \
                     ctx: &mut TxContext,\n    \
                 ) {{\n        \
-                    collectible::mint_regulated_nft_data(\n            \
+                    collectible::prepare_launchpad_mint<{witness}, {market_type}>(\n            \
                         name,\n            \
                         description,\n            \
                         url,\n            \
@@ -92,23 +95,28 @@ impl NftType {
                         attribute_values,\n            \
                         max_supply,\n            \
                         mint,\n            \
+                        sale_outlet,\n            \
+                        launchpad,\n            \
                         ctx,\n        \
                     );\n    \
                 }}",
-                witness,
+                witness = witness,
+                market_type = market_type,
             ),
             NftType::CNft => format!(
-                "public entry fun mint_nft(\n        \
+                "public entry fun prepare_mint(\n        \
                     name: vector<u8>,\n        \
                     description: vector<u8>,\n        \
                     url: vector<u8>,\n        \
                     attribute_keys: vector<vector<u8>>,\n        \
                     attribute_values: vector<vector<u8>>,\n        \
                     max_supply: u64,\n        \
-                    mint: &mut MintAuthority<{}>,\n        \
+                    mint: &mut MintAuthority<{witness}>,\n        \
+                    sale_outlet: u64,\n        \
+                    launchpad: &mut Slingshot<{witness}, {market_type}>,\n        \
                     ctx: &mut TxContext,\n    \
                 ) {{\n        \
-                    c_nft::mint_regulated_nft_data<{}, c_nft::Data>(\n            \
+                    c_nft::prepare_launchpad_mint<{witness}, {market_type}, c_nft::Data>(\n            \
                         name,\n            \
                         description,\n            \
                         url,\n            \
@@ -116,10 +124,13 @@ impl NftType {
                         attribute_values,\n            \
                         max_supply,\n            \
                         mint,\n            \
+                        sale_outlet,\n            \
+                        launchpad,\n            \
                         ctx,\n        \
                     );\n    \
                 }}",
-                witness, witness
+                witness = witness,
+                market_type = market_type,
             ),
         };
         func.into_boxed_str()
@@ -131,7 +142,7 @@ pub enum SalesType {
     MultiMarket,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "market_type", rename_all = "snake_case")]
 pub enum MarketType {
     FixedPrice {

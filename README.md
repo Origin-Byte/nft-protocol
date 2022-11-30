@@ -1,4 +1,9 @@
-- Sui v0.15.2
+TODO:
+- Reinsert Launchpad entry functions
+- Reinsert removed events
+- Update Gutenberg and Type Exported contracts
+
+- Sui v0.16.0
 
 # Install
 
@@ -387,7 +392,7 @@ Auction market implements a Dutch auction to determine the price and allocate NF
 The auction market object, `AuctionMarket`, has the following data model:
 
 | Field           | Type                     | Description                                  |
-| ----------------| ------------------------ | -------------------------------------------- |
+| --------------- | ------------------------ | -------------------------------------------- |
 | `id`            | `UID`                    | The UID of the Slingshot object              |
 | `reserve_price` | `u64`                    | The price of a NFT for sale in SUI           |
 | `bids`          | `movemate::crit_bit::CB` | Collection of all bids placed in the auction |
@@ -407,6 +412,10 @@ In addition, the administrator of the Launchpad can call the following function:
 
 Note: This section needs to be developed.
 
-### Deploy a simple NFT collection
+### Deploy an NFT collection
 
-To deploy your own NFT collection follow our guide on how to use [Gutenberg](https://github.com/Origin-Byte/nft-protocol/blob/main/gutenberg/README.md) to automagically generate your collection specific Move module.
+To deploy an NFT collection you will need to create a SUI [Move](https://docs.sui.io/build/move) contract.
+
+Creating your own contract is quite difficult, so we created a way that you can do it automagically! To create your own NFT collection, follow our guide on how to use [Gutenberg](./gutenberg/) which automagically generates a contract for your NFT collection.
+
+To deploy your newly created smart contract follow the deploy instructions found in [docs/deploy](../docs/deploy.md).
