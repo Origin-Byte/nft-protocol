@@ -5,6 +5,8 @@ module nft_protocol::royalty {
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::collection::{Self, Collection};
 
+    const BPS: u64 = 10_000;
+
     struct RoyaltyDomain has store {
         /// Address that receives the mint and trade royalties
         receiver: address,
@@ -21,7 +23,7 @@ module nft_protocol::royalty {
     }
 
     public fun calculate(domain: &RoyaltyDomain, amount: u64): u64  {
-        amount / 10000 * royalty_fee_bps(domain)
+        amount / BPS * royalty_fee_bps(domain)
     }
 
     public fun new(
