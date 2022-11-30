@@ -50,7 +50,7 @@ module nft_protocol::suimarines {
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
-        let collection_id = collection::mint<SUIMARINES>(collection);
+        let collection_id = collection::share<SUIMARINES>(collection);
 
         let whitelist = vector::empty();
         vector::push_back(&mut whitelist, true);

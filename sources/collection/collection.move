@@ -106,10 +106,10 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    /// Mint `Collection` and share.
+    /// Shares `Collection`.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint<C>(
+    public fun share<C>(
         collection: Collection<C>,
     ): ID {
         let collection_id = id(&collection);
