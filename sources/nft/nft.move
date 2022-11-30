@@ -50,7 +50,7 @@ module nft_protocol::nft {
         v: V,
         ctx: &mut TxContext,
     ) {
-        // If NFT is a shared objects then malicious actors can freely add
+        // If NFT is a shared objects then malicious actors could freely add
         // their domains without the owners permission.
         assert!(
             tx_context::sender(ctx) == nft.logical_owner,
