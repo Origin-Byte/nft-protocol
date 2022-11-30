@@ -53,12 +53,6 @@ module nft_protocol::collection {
         symbol: String,
         /// Address that receives the mint price in Sui
         receiver: address,
-        /// Nft Collection Tags is an enumeration of tags, represented
-        /// as strings. An NFT Tag is a string that categorises the domain
-        /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
-        /// This allows wallets and marketplaces to organise NFTs by its
-        /// domain specificity.
-        tags: Tags,
         /// Determines if the collection and its associated NFTs are
         /// mutable. Once turned `false` it cannot be reversed. Collection
         /// owners however will still be able to push and pop tags to the
@@ -190,7 +184,6 @@ module nft_protocol::collection {
             id,
             symbol: string::utf8(symbol),
             receiver,
-            tags: tags::from_vec_string(&mut utils::to_string_vector(&mut tags)),
             is_mutable: is_mutable,
             creators: vector::empty(),
             mint_authority: mint_object_id,
@@ -256,34 +249,6 @@ module nft_protocol::collection {
         );
 
         collection.receiver = receiver;
-    }
-
-    /// Add a tag to the Collections's `tags`
-    /// Contrary to other fields, tags can be always added by
-    /// the collection owner, even if the collection is marked
-    /// as immutable.
-    public entry fun push_tag<T>(
-        collection: &mut Collection<T>,
-        tag: vector<u8>,
-    ) {
-        tags::push_tag(
-            &mut collection.tags,
-            string::utf8(tag),
-        );
-    }
-
-    /// Removes a tag to the Collections's `tags`
-    /// Contrary to other fields, tags can be always removed by
-    /// the collection owner, even if the collection is marked
-    /// as immutable.
-    public entry fun pop_tag<T>(
-        collection: &mut Collection<T>,
-        tag_index: u64,
-    ) {
-        tags::pop_tag(
-            &mut collection.tags,
-            tag_index,
-        );
     }
 
     /// Add a `Creator` to `Collection`
@@ -486,13 +451,6 @@ module nft_protocol::collection {
         collection: &Collection<T>,
     ): address {
         collection.receiver
-    }
-
-    /// Get the Collections's `tags`
-    public fun tags<T>(
-        collection: &Collection<T>,
-    ): &Tags {
-        &collection.tags
     }
 
     /// Get the Collection's `is_mutable`

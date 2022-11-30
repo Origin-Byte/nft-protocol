@@ -1,3 +1,8 @@
+/// Nft Collection Tags is an enumeration of tags, represented
+/// as Types. An NFT Tag is a type that categorises the domain
+/// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
+/// This allows wallets and marketplaces to organise NFTs by its
+/// domain specificity.
 module nft_protocol::tags {
     // TODO: Consider using `VecSet` instead of `VecMap` since
     // keys are simply indices
@@ -68,10 +73,18 @@ module nft_protocol::tags {
         }
     }
 
+    /// Add a tag to the Collections's `tags`
+    /// Contrary to other fields, tags can be always added by
+    /// the collection owner, even if the collection is marked
+    /// as immutable.
     public fun push_tag(bag: &mut Bag, num: u64) {
         add_tag(bag, num);
     }
 
+    /// Removes a tag to the Collections's `tags`
+    /// Contrary to other fields, tags can be always removed by
+    /// the collection owner, even if the collection is marked
+    /// as immutable.
     public fun pop_tag(bag: &mut Bag, num: u64) {
         remove_tag(bag, num);
     }
