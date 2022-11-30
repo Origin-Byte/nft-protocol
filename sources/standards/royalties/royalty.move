@@ -7,30 +7,30 @@ module nft_protocol::royalty {
 
     const BPS: u64 = 10_000;
 
-    struct RoyaltyDomain has store {
+    struct BpsRoyaltyDomain has store {
         /// Address that receives the mint and trade royalties
         receiver: address,
         /// Royalty charged on trades in basis poitns
         royalty_fee_bps: u64,
     }
 
-    public fun receiver(domain: &RoyaltyDomain): address {
+    public fun receiver(domain: &BpsRoyaltyDomain): address {
         domain.receiver
     }
 
-    public fun royalty_fee_bps(domain: &RoyaltyDomain): u64 {
+    public fun royalty_fee_bps(domain: &BpsRoyaltyDomain): u64 {
         domain.royalty_fee_bps
     }
 
-    public fun calculate(domain: &RoyaltyDomain, amount: u64): u64  {
+    public fun calculate(domain: &BpsRoyaltyDomain, amount: u64): u64  {
         amount / BPS * royalty_fee_bps(domain)
     }
 
     public fun new(
         receiver: address,
         royalty_fee_bps: u64,
-    ): RoyaltyDomain {
-        RoyaltyDomain {
+    ): BpsRoyaltyDomain {
+        BpsRoyaltyDomain {
             receiver,
             royalty_fee_bps,
         }
@@ -39,7 +39,7 @@ module nft_protocol::royalty {
     /// === Mutability ===
 
     public fun set_receiver(
-        domain: &mut RoyaltyDomain,
+        domain: &mut BpsRoyaltyDomain,
         receiver: address,
         ctx: &mut TxContext,
     ) {
@@ -52,7 +52,7 @@ module nft_protocol::royalty {
     }
 
     public fun set_royalty_fee(
-        domain: &mut RoyaltyDomain,
+        domain: &mut BpsRoyaltyDomain,
         royalty_fee_bps: u64,
         ctx: &mut TxContext,
     ) {
@@ -68,13 +68,13 @@ module nft_protocol::royalty {
 
     public fun royalty_domain<C>(
         nft: &NFT<C>,
-    ): &RoyaltyDomain {
+    ): &BpsRoyaltyDomain {
         nft::borrow_domain(nft)
     }
 
     public fun collection_royalty_domain<C>(
         nft: &Collection<C>,
-    ): &RoyaltyDomain {
+    ): &BpsRoyaltyDomain {
         collection::borrow_domain(nft)
     }
 
