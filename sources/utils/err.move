@@ -44,6 +44,10 @@ module nft_protocol::err {
         return Prefix + 10
     }
 
+    public fun mint_authority_mistmatch(): u64 {
+        return Prefix + 11
+    }
+
     // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {
