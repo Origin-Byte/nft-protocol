@@ -12,7 +12,7 @@ module nft_protocol::suimarines {
     use nft_protocol::fixed_price;
     use nft_protocol::nft;
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::royalty;
+    use nft_protocol::royalty_bps;
     use nft_protocol::sale::{Self, NftCertificate};
 
     /// One time witness is only instantiated in the init method
@@ -48,7 +48,7 @@ module nft_protocol::suimarines {
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
-        royalty::add_collection_royalty_domain(
+        royalty_bps::add_collection_royalty_domain(
             &mut collection,
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // royalty receiver
             100, // royalty fee bps
@@ -80,14 +80,14 @@ module nft_protocol::suimarines {
         collection: &Collection<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
-        let domain = royalty::collection_royalty_domain(collection);
+        let domain = royalty_bps::collection_royalty_domain(collection);
 
         let b = royalties::balance_mut(Witness {}, payment);
-        let royalty = royalty::calculate(domain, balance::value(b));
+        let royalty = royalty_bps::calculate(domain, balance::value(b));
 
         transfer(
             coin::take(b, royalty, ctx),
-            royalty::receiver(domain),
+            royalty_bps::receiver(domain),
         );
 
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);

@@ -776,9 +776,7 @@ module nft_protocol::test_safe {
         let col = collection::create<Foo>(
             b"foo",
             1,
-            USER,
             vector::empty(),
-            0,
             true,
             USER,
             ctx(scenario),
