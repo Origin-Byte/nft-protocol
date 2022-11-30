@@ -574,9 +574,7 @@ module nft_protocol::collection {
         share(create<T>(
             b"foo",
             1,
-            creator,
             vector::empty(),
-            0,
             true,
             creator,
             sui::test_scenario::ctx(scenario),
