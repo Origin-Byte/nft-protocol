@@ -1,7 +1,7 @@
 // TODO: Constant Royalty domain
 // TODO: Another royalty domain type mechanism could be such that the domain
 // has a dynamic objects with relevant Balance<FT> into which these are stored.
-module nft_protocol::royalty {
+module nft_protocol::royalty_bps {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
