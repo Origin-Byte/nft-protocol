@@ -39,7 +39,6 @@ module nft_protocol::example_free_for_all {
     // --- Tests ---
 
     use sui::test_scenario::{Self, Scenario, ctx};
-    use std::vector;
 
     const USER: address = @0xA1C04;
 
@@ -64,24 +63,6 @@ module nft_protocol::example_free_for_all {
 
     struct Foo has drop {}
     fun dummy_collection(scenario: &mut Scenario): Collection<Foo> {
-        collection::mint<Foo>(
-            b"foo",
-            b"foo",
-            b"foo",
-            1,
-            USER,
-            vector::empty(),
-            0,
-            true,
-            USER,
-            ctx(scenario),
-        );
-        test_scenario::next_tx(scenario, USER);
-
-        let col = test_scenario::take_shared(scenario);
-        collection::add_creator(&mut col, USER, 0);
-
-        col
+        collection::dummy_collection(USER, scenario)
     }
-
 }

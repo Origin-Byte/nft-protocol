@@ -599,4 +599,30 @@ module nft_protocol::collection {
             }
         }
     }
+
+    // === Test only helpers ===
+
+    #[test_only]
+    public fun dummy_collection<T>(
+        creator: address,
+        scenario: &mut sui::test_scenario::Scenario,
+    ): Collection<T> {
+        sui::test_scenario::next_tx(scenario, creator);
+        share(create<T>(
+            b"foo",
+            1,
+            creator,
+            vector::empty(),
+            0,
+            true,
+            creator,
+            sui::test_scenario::ctx(scenario),
+        ));
+        sui::test_scenario::next_tx(scenario, creator);
+        let col = sui::test_scenario::take_shared(scenario);
+
+        add_creator(&mut col, creator, 0);
+
+        col
+    }
 }

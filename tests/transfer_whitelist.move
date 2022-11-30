@@ -2,7 +2,6 @@
 module nft_protocol::test_transfer_whitelist {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_whitelist;
-    use std::vector;
     use sui::transfer::transfer;
     use sui::test_scenario::{Self, Scenario, ctx};
 
@@ -320,25 +319,6 @@ module nft_protocol::test_transfer_whitelist {
     }
 
     fun dummy_collection<T>(scenario: &mut Scenario): Collection<T> {
-        test_scenario::next_tx(scenario, CREATOR);
-
-        collection::mint<T>(
-            b"a",
-            b"a",
-            b"a",
-            1,
-            CREATOR,
-            vector::empty(),
-            0,
-            true,
-            CREATOR,
-            ctx(scenario),
-        );
-        test_scenario::next_tx(scenario, CREATOR);
-
-        let col: Collection<T> = test_scenario::take_shared(scenario);
-        collection::add_creator(&mut col, CREATOR, 0);
-
-        col
+        collection::dummy_collection(CREATOR, scenario)
     }
 }
