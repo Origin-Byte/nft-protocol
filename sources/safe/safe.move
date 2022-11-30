@@ -19,8 +19,8 @@ module nft_protocol::safe {
         refs: VecMap<ID, NftRef>,
         /// If set to false, the owner can select which collections can be
         /// deposited to the safe.
-        accepts_any_deposit: bool,
-        /// If the flag `accepts_any_deposit` is set to false, then we check
+        enable_any_deposit: bool,
+        /// If the flag `enable_any_deposit` is set to false, then we check
         /// whether a collection is stored in this set.
         ///
         /// Enables more granular control over NFTs to combat spam.
@@ -147,37 +147,55 @@ module nft_protocol::safe {
         }
     }
 
-    /// The owner can restrict deposits into the `Safe` from other users.
-    public entry fun toggle_accepts_any_deposit(
+    /// Only owner or whitelisted collections can deposit.
+    public entry fun restrict_deposits(
         owner_cap: &OwnerCap,
         safe: &mut Safe,
     ) {
         assert_owner_cap(owner_cap, safe);
 
-        safe.accepts_any_deposit = !safe.accepts_any_deposit;
+        safe.enable_any_deposit = false;
+    }
+    /// No restriction on deposits.
+    public entry fun enable_any_deposit(
+        owner_cap: &OwnerCap,
+        safe: &mut Safe,
+    ) {
+        assert_owner_cap(owner_cap, safe);
+
+        safe.enable_any_deposit = true;
     }
 
     /// The owner can restrict deposits into the `Safe` from given collection.
     ///
-    /// However, if the flag `Safe::accepts_any_deposit` is set to true, then
-    /// that takes precedence.
-    public entry fun toggle_deposits_of_collection<C>(
+    /// However, if the flag `Safe::enable_any_deposit` is set to true, then
+    /// it takes precedence.
+    public entry fun disable_deposits_of_collection<C>(
         owner_cap: &OwnerCap,
         safe: &mut Safe,
     ) {
         assert_owner_cap(owner_cap, safe);
 
         let col_type = type_name::get<C>();
-        if (vec_set::contains(&safe.collections_with_enabled_deposits, &col_type)) {
-            vec_set::remove(&mut safe.collections_with_enabled_deposits, &col_type);
-        } else {
-            vec_set::insert(&mut safe.collections_with_enabled_deposits, col_type);
-        };
+        vec_set::remove(&mut safe.collections_with_enabled_deposits, &col_type);
+    }
+    /// The owner can enable deposits into the `Safe` from given collection.
+    ///
+    /// However, if the flag `Safe::enable_any_deposit` is set to true, then
+    /// it takes precedence anyway.
+    public entry fun enable_deposits_of_collection<C>(
+        owner_cap: &OwnerCap,
+        safe: &mut Safe,
+    ) {
+        assert_owner_cap(owner_cap, safe);
+
+        let col_type = type_name::get<C>();
+        vec_set::insert(&mut safe.collections_with_enabled_deposits, col_type);
     }
 
     /// Transfer an NFT into the `Safe`.
     ///
-    /// Requires that `accepts_any_deposit` flag is set to true, or that the
+    /// Requires that `enable_any_deposit` flag is set to true, or that the
     /// `Safe` owner enabled NFTs of given collection to be inserted.
     public entry fun deposit_nft<T>(
         nft: NFT<T>,
@@ -290,7 +308,7 @@ module nft_protocol::safe {
         let safe = Safe {
             id: object::new(ctx),
             refs: vec_map::empty(),
-            accepts_any_deposit: true,
+            enable_any_deposit: true,
             collections_with_enabled_deposits: vec_set::empty(),
         };
         let cap = OwnerCap {
@@ -375,8 +393,8 @@ module nft_protocol::safe {
         cap.safe
     }
 
-    public fun accepts_any_deposit(safe: &Safe): bool {
-        safe.accepts_any_deposit
+    public fun are_all_deposits_enabled(safe: &Safe): bool {
+        safe.enable_any_deposit
     }
 
     public fun transfer_cap_safe(cap: &TransferCap): ID {
@@ -421,7 +439,7 @@ module nft_protocol::safe {
     }
 
     public fun assert_can_deposit<T>(safe: &Safe) {
-        if (!safe.accepts_any_deposit) {
+        if (!safe.enable_any_deposit) {
             assert!(
                 vec_set::contains(&safe.collections_with_enabled_deposits, &type_name::get<T>()),
                 err::safe_does_not_accept_deposits(),
