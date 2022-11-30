@@ -32,14 +32,24 @@ module nft_protocol::utils {
         new_vec
     }
 
-    /// One time witness is a type exported by a contract which follows the
-    /// module name.
+    /// First generic `T` is any type, second generic is `Witness`.
+    /// `Witness` is a type always in form "struct Witness has drop {}"
     ///
-    /// Witness is a type always in form "struct Witness has drop {}"
+    /// In this method, we check that `T` is exported by the same _module_.
+    /// That is both package ID, package name and module name must match.
+    /// Additionally, with accordance to the convention above, the second
+    /// generic `Witness` must be named `Witness` as a type.
     ///
-    /// They must be from the same module for this assertion to be ok.
-    public fun assert_same_module_as_witness<OneTimeWitness, Witness>() {
-        let (package_a, module_a, _) = get_package_module_type<OneTimeWitness>();
+    /// # Example
+    /// It's useful to assert that a one-time-witness is exported by the same
+    /// contract as `Witness`.
+    /// That's because one-time-witness is often used as a convention for
+    /// initiating e.g. a collection name.
+    /// However, it cannot be instantiated outside of the `init` function.
+    /// Therefore, the collection contract can export `Witness` which serves as
+    /// an auth token at a later stage.
+    public fun assert_same_module_as_witness<T, Witness>() {
+        let (package_a, module_a, _) = get_package_module_type<T>();
         let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
 
         assert!(package_a == package_b, err::witness_source_mismatch());
