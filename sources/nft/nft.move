@@ -43,13 +43,20 @@ module nft_protocol::nft {
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
         bag::borrow_mut<DomainKey, D>(&mut nft.bag, domain_key<D>())
-
     }
 
     public fun add_domain<C, V: store>(
         nft: &mut NFT<C>,
         v: V,
+        ctx: &mut TxContext,
     ) {
+        // If NFT is a shared objects then malicious actors could freely add
+        // their domains without the owners permission.
+        assert!(
+            tx_context::sender(ctx) == nft.logical_owner,
+            err::not_nft_owner()
+        );
+
         bag::add(&mut nft.bag, domain_key<V>(), v);
     }
 

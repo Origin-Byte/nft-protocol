@@ -40,6 +40,10 @@ module nft_protocol::err {
         return Prefix + 09
     }
 
+    public fun mint_authority_mistmatch(): u64 {
+        return Prefix + 10
+    }
+
     // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {
@@ -141,7 +145,7 @@ module nft_protocol::err {
         return Prefix + 401
     }
 
-    public fun nft_exlusively_listed(): u64 {
+    public fun nft_exclusively_listed(): u64 {
         return Prefix + 402
     }
 

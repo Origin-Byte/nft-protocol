@@ -43,16 +43,12 @@ module nft_protocol::collection {
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
     use nft_protocol::domain::{domain_key, DomainKey};
 
-    const U64_MAX: u64 = 18446744073709551615;
-
     /// An NFT `Collection` object with a generic `M`etadata.
     ///
     /// The `Metadata` is a type exported by an upstream contract which is
     /// used to store additional information about the NFT.
     struct Collection<phantom T> has key, store {
         id: UID,
-        name: String,
-        description: String,
         // TODO: Should symbol be limited to x number of chars?
         symbol: String,
         /// Address that receives the mint price in Sui
@@ -102,15 +98,6 @@ module nft_protocol::collection {
         share_of_royalty: u8,
     }
 
-    struct InitCollection has drop {
-        name: String,
-        description: String,
-        symbol: String,
-        receiver: address,
-        tags: vector<String>,
-        is_mutable: bool,
-    }
-
     struct MintEvent has copy, drop {
         collection_id: ID,
     }
@@ -119,47 +106,12 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    /// Mint `Collection` and share.
+    /// Shares `Collection`.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun mint<T>(
-        // Name of the Nft Collection. This parameter is a
-        // vector of bytes that encondes to utf8
-        name: vector<u8>,
-        description: vector<u8>,
-        // Symbol of the Nft Collection. This parameter is a
-        // vector of bytes that should enconde to utf8
-        symbol: vector<u8>,
-        // Defines the maximum supply of the collection. To create an
-        // unregulated supply set `max_supply=0`, otherwise any value above
-        // zero will make the supply regulated.
-        max_supply: u64,
-        receiver: address,
-        // TODO: When will we be able to pass vector<String>?
-        // https://github.com/MystenLabs/sui/pull/4627
-        tags: vector<vector<u8>>,
-        royalty_fee_bps: u64,
-        is_mutable: bool,
-        authority: address,
-        ctx: &mut TxContext,
+    public fun share<C>(
+        collection: Collection<C>,
     ): ID {
-        let collection_args = init_args(
-            string::utf8(name),
-            string::utf8(description),
-            string::utf8(symbol),
-            receiver,
-            utils::to_string_vector(&mut tags),
-            is_mutable,
-        );
-
-        let collection = create<T>(
-            collection_args,
-            max_supply,
-            royalty_fee_bps,
-            authority,
-            ctx,
-        );
-
         let collection_id = id(&collection);
 
         event::emit(
@@ -199,10 +151,20 @@ module nft_protocol::collection {
     /// `max_supply` should be above `0`. To create an unlimited supply the
     /// parameter `max_supply` should be equal to the biggest integer number
     /// that can be stored in a u64, which is `18446744073709551615`.
-    fun create<T>(
-        args: InitCollection,
+    public fun create<T>(
+        // Symbol of the Nft Collection. This parameter is a
+        // vector of bytes that should enconde to utf8
+        symbol: vector<u8>,
+        // Defines the maximum supply of the collection. To create an
+        // unregulated supply set `max_supply=0`, otherwise any value above
+        // zero will make the supply regulated.
         max_supply: u64,
+        receiver: address,
+        // TODO: When will we be able to pass vector<String>?
+        // https://github.com/MystenLabs/sui/pull/4627
+        tags: vector<vector<u8>>,
         royalty_fee_bps: u64,
+        is_mutable: bool,
         authority: address,
         ctx: &mut TxContext,
     ): Collection<T> {
@@ -226,12 +188,10 @@ module nft_protocol::collection {
 
         Collection {
             id,
-            name: args.name,
-            description: args.description,
-            symbol: args.symbol,
-            receiver: args.receiver,
-            tags: tags::from_vec_string(&mut args.tags),
-            is_mutable: args.is_mutable,
+            symbol: string::utf8(symbol),
+            receiver,
+            tags: tags::from_vec_string(&mut utils::to_string_vector(&mut tags)),
+            is_mutable: is_mutable,
             creators: vector::empty(),
             mint_authority: mint_object_id,
             royalty_fee_bps,
@@ -268,53 +228,7 @@ module nft_protocol::collection {
         collection.is_mutable = false;
     }
 
-    public fun init_args(
-        name: String,
-        description: String,
-        symbol: String,
-        receiver: address,
-        tags: vector<String>,
-        is_mutable: bool,
-    ): InitCollection {
-        InitCollection {
-            name,
-            description,
-            symbol,
-            receiver,
-            tags,
-            is_mutable,
-        }
-    }
-
     // === Modifier Entry Functions ===
-
-    /// Modify the Collections's `name`
-    public entry fun rename<T>(
-        collection: &mut Collection<T>,
-        name: vector<u8>,
-    ) {
-        // Only modify if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        collection.name = string::utf8(name);
-    }
-
-    /// Modify the Collections's `description`
-    public entry fun change_description<T>(
-        collection: &mut Collection<T>,
-        description: vector<u8>,
-    ) {
-        // Only modify if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        collection.description = string::utf8(description);
-    }
 
     /// Modify the Collections's `symbol`
     public entry fun change_symbol<T>(
@@ -548,18 +462,16 @@ module nft_protocol::collection {
         object::uid_as_inner(&collection.id)
     }
 
-    /// Get the Collections's `name`
-    public fun name<T>(
-        collection: &Collection<T>,
-    ): &String {
-        &collection.name
+    public fun mint_id<T>(
+        authority: &MintAuthority<T>,
+    ): ID {
+        object::uid_to_inner(&authority.id)
     }
 
-    /// Get the Collections's `description`
-    public fun description<T>(
-        collection: &Collection<T>,
-    ): &String {
-        &collection.description
+    public fun mint_id_ref<T>(
+        authority: &MintAuthority<T>,
+    ): &ID {
+        object::uid_as_inner(&authority.id)
     }
 
     /// Get the Collections's `symbol`
