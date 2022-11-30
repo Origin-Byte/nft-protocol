@@ -7,14 +7,13 @@ module nft_protocol::suimarines {
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft;
-    use nft_protocol::sale::{Self, NftCertificate};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::fixed_price;
-    use nft_protocol::royalties::{Self, TradePayment};
-
     use nft_protocol::display;
+    use nft_protocol::fixed_price;
+    use nft_protocol::nft;
+    use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::royalty;
+    use nft_protocol::sale::{Self, NftCertificate};
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -55,7 +54,7 @@ module nft_protocol::suimarines {
             100, // royalty fee bps
         );
 
-        let collection_id = collection::mint<SUIMARINES>(collection);
+        let collection_id = collection::share<SUIMARINES>(collection);
 
         let whitelist = vector::empty();
         vector::push_back(&mut whitelist, true);

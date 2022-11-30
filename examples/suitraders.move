@@ -37,7 +37,7 @@ module nft_protocol::suitraders {
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
-        let collection_id = collection::mint<SUITRADERS>(collection);
+        let collection_id = collection::share<SUITRADERS>(collection);
 
         let whitelist = vector::empty();
         vector::push_back(&mut whitelist, true);
