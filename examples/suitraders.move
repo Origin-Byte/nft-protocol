@@ -4,7 +4,7 @@ module nft_protocol::suitraders {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::dutch_auction;
-    use nft_protocol::std_collection;
+    use nft_protocol::collection;
 
     struct SUITRADERS has drop {}
 
@@ -13,17 +13,16 @@ module nft_protocol::suitraders {
         vector::push_back(&mut tags, b"Art");
         vector::push_back(&mut tags, b"PFP");
 
-        let collection_id = std_collection::mint<SUITRADERS>(
+        let collection_id = collection::mint<SUITRADERS>(
             b"Suitraders",
             b"A Unique NFT collection of Suitraders on Sui",
             b"SUITR", // symbol
-            100, // max_supply
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // Royalty receiver
-            tags, // tags
-            100, // royalty_fee_bps
-            true, // is_mutable
-            b"Some extra data",
-            tx_context::sender(ctx), // mint authority
+            100, // max supply
+            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // royalty receiver
+            tags,
+            100, // royalty fee bps
+            true, // is mutable
+            tx_context::sender(ctx), // mint authority,
             ctx,
         );
 

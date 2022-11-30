@@ -141,7 +141,7 @@ module nft_protocol::err {
         return Prefix + 401
     }
 
-    public fun nft_exlusively_listed(): u64 {
+    public fun nft_exclusively_listed(): u64 {
         return Prefix + 402
     }
 

@@ -56,9 +56,9 @@ module nft_protocol::transfer_whitelist {
     /// collection to the whitelist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the whitelist owner a way to combat spam.
-    public fun insert_collection<Admin: drop, T, M: store>(
+    public fun insert_collection<Admin: drop, T>(
         _whitelist_witness: Admin,
-        collection: &Collection<T, M>,
+        collection: &Collection<T>,
         list: &mut Whitelist,
         ctx: &mut TxContext,
     ) {
@@ -73,8 +73,8 @@ module nft_protocol::transfer_whitelist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public fun remove_itself<T, M: store>(
-        collection: &Collection<T, M>,
+    public fun remove_itself<T>(
+        collection: &Collection<T>,
         list: &mut Whitelist,
         ctx: &mut TxContext,
     ) {
@@ -151,8 +151,8 @@ module nft_protocol::transfer_whitelist {
             vec_set::contains(&whitelist.collections, &type_name::get<C>())
     }
 
-    fun assert_is_creator<T, M: store>(
-        collection: &Collection<T, M>,
+    fun assert_is_creator<T>(
+        collection: &Collection<T>,
         ctx: &mut TxContext,
     ) {
         assert!(
