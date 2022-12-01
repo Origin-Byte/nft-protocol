@@ -16,8 +16,9 @@ module nft_protocol::dutch_auction {
     use movemate::crit_bit::{Self, CB as CBTree};
 
     use nft_protocol::err;
-    use nft_protocol::slingshot::{Self, Slingshot};
-    use nft_protocol::sale::{Self, Sale};
+    use nft_protocol::generic;
+    use nft_protocol::launchpad::{Self, Launchpad, Trebuchet};
+    use nft_protocol::outlet::{Self, Outlet};
     use nft_protocol::whitelist::{Self, Whitelist};
 
     struct DutchAuctionMarket has key, store {
@@ -28,7 +29,8 @@ module nft_protocol::dutch_auction {
         /// purchase
         bids: CBTree<vector<Bid>>,
         /// Whether the auction is currently live
-        live: bool
+        live: bool,
+        outlet: Outlet,
     }
 
     /// A bid for one NFT
@@ -43,79 +45,61 @@ module nft_protocol::dutch_auction {
 
     // === Functions exposed to Witness Module ===
 
-    public fun create_market<W: drop>(
-        witness: W,
-        admin: address,
-        collection_id: ID,
-        receiver: address,
-        is_embedded: bool,
-        whitelists: vector<bool>,
-        reserve_prices: vector<u64>,
+    public fun create_market(
+        launchpad: &mut Launchpad,
+        trebuchet: &mut Trebuchet,
+        tier: u64,
+        is_whitelisted: bool,
+        reserve_price: u64,
         ctx: &mut TxContext
     ) {
-        assert!(
-            vector::length(&whitelists) == vector::length(&reserve_prices),
-            err::market_parameters_length_mismatch()
+        let outlet = outlet::create(
+            tier,
+            is_whitelisted,
+            ctx,
         );
 
-        let sales = vector::empty();
-        while (!vector::is_empty(&whitelists)) {
-            let reserve_price = vector::pop_back(&mut reserve_prices);
-            let whitelist = vector::pop_back(&mut whitelists);
+        let market = generic::new(ctx);
 
-            let auction = DutchAuctionMarket {
+        generic::add_object(
+            &mut market,
+            DutchAuctionMarket {
                 id: object::new(ctx),
                 reserve_price,
                 bids: crit_bit::empty(),
                 live: false,
-            };
-
-            let sale = sale::create<W, DutchAuctionMarket>(
-                0,
-                whitelist,
-                auction,
-                ctx
-            );
-
-            vector::push_back(&mut sales, sale);
-        };
-
-        let args = slingshot::init_args(
-            admin,
-            collection_id,
-            receiver,
-            is_embedded
+                outlet,
+            }
         );
 
-        slingshot::create<W, DutchAuctionMarket>(
-            witness,
-            sales,
-            args,
-            ctx
-        )
+        launchpad::add_market(
+            launchpad,
+            trebuchet,
+            market,
+        );
+
     }
 
     // === Entrypoints ===
 
     /// Creates a bid in a FIFO manner, previous bids are retained
-    public entry fun create_bid<T>(
+    public entry fun create_bid(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
-        tier_index: u64,
+        launchpad: &mut Launchpad,
+        trebuchet: &mut Trebuchet,
+        market: &mut DutchAuctionMarket,
         price: u64,
         quantity: u64,
         ctx: &mut TxContext,
     ) {
         // One can only place bids on NFT certificates if the slingshot is live
-        assert!(slingshot::live(slingshot), err::launchpad_not_live());
-
-        let sale = slingshot::sale_mut(slingshot, tier_index);
+        assert!(launchpad::live(launchpad, trebuchet), err::launchpad_not_live());
 
         // Infer that sales is NOT whitelisted
-        assert!(!sale::whitelisted(sale), err::sale_is_not_whitelisted());
+        assert!(!outlet::whitelisted(&market.outlet), err::sale_is_not_whitelisted());
 
         create_bid_(
-            sale::market_mut(sale),
+            market,
             wallet,
             price,
             quantity,
@@ -123,31 +107,30 @@ module nft_protocol::dutch_auction {
         );
     }
 
-    public entry fun create_bid_whitelisted<T>(
+    public entry fun create_bid_whitelisted(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
-        tier_index: u64,
+        launchpad: &mut Launchpad,
+        trebuchet: &mut Trebuchet,
+        market: &mut DutchAuctionMarket,
         whitelist_token: Whitelist,
         price: u64,
         quantity: u64,
         ctx: &mut TxContext,
     ) {
         // One can only place bids on NFT certificates if the slingshot is live
-        assert!(slingshot::live(slingshot), err::launchpad_not_live());
-
-        let sale = slingshot::sale_mut(slingshot, tier_index);
+        assert!(launchpad::live(launchpad, trebuchet), err::launchpad_not_live());
 
         // Infer that sales is whitelisted
-        assert!(sale::whitelisted(sale), err::sale_is_whitelisted());
+        assert!(outlet::whitelisted(&market.outlet), err::sale_is_whitelisted());
 
         // Infer that whitelist token corresponds to correct sale outlet
         assert!(
-            whitelist::sale_id(&whitelist_token) == sale::id(sale),
+            whitelist::sale_id(&whitelist_token) == outlet::id(&market.outlet),
             err::incorrect_whitelist_token()
         );
 
         create_bid_(
-            sale::market_mut(sale),
+            market,
             wallet,
             price,
             quantity,
@@ -163,17 +146,16 @@ module nft_protocol::dutch_auction {
     //
     // TODO(https://github.com/Origin-Byte/nft-protocol/issues/76):
     // Cancel all bids endpoint
-    public entry fun cancel_bid<T>(
+    public entry fun cancel_bid(
         wallet: &mut Coin<SUI>,
-        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
-        tier_index: u64,
+        launchpad: &mut Launchpad,
+        trebuchet: &mut Trebuchet,
+        market: &mut DutchAuctionMarket,
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let sale = slingshot::sale_mut(slingshot, tier_index);
-
         cancel_bid_(
-            sale::market_mut(sale),
+            market,
             wallet,
             price,
             tx_context::sender(ctx)
@@ -186,98 +168,90 @@ module nft_protocol::dutch_auction {
     /// to place bids on the NFT collection.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_on<T>(
-        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
+    public entry fun sale_on(
+        launchpad: &mut Launchpad,
+        slingshot: &mut Trebuchet,
         ctx: &mut TxContext
     ) {
         assert!(
-            slingshot::admin(slingshot) == tx_context::sender(ctx),
+            launchpad::admin(launchpad, slingshot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
-        slingshot::sale_on(slingshot);
+        launchpad::sale_on(launchpad, slingshot);
     }
 
     /// Toggle the Slingshot's `live` to `false` therefore pausing the auction.
     /// This does not allocate any NFTs to bidders.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_off<T>(
-        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
+    public entry fun sale_off(
+        launchpad: &mut Launchpad,
+        slingshot: &mut Trebuchet,
         ctx: &mut TxContext
     ) {
         assert!(
-            slingshot::admin(slingshot) == tx_context::sender(ctx),
+            launchpad::admin(launchpad, slingshot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
-        slingshot::sale_off(slingshot);
+        launchpad::sale_off(launchpad, slingshot);
     }
 
     /// Cancel the auction and toggle the Slingshot's `live` to `false`.
     /// All bids will be cancelled and refunded.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_cancel<T>(
-        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
+    public entry fun sale_cancel(
+        launchpad: &mut Launchpad,
+        slingshot: &mut Trebuchet,
+        market: &mut DutchAuctionMarket,
         ctx: &mut TxContext
     ) {
         assert!(
-            slingshot::admin(slingshot) == tx_context::sender(ctx),
+            launchpad::admin(launchpad, slingshot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
 
-        let sales = slingshot::sales_mut(slingshot);
+        cancel_auction(market, ctx);
 
-        let sale_outlet = 0;
-        let sale_count = vector::length(sales);
-        while (sale_outlet < sale_count) {
-            let sale = vector::borrow_mut(sales, sale_outlet);
 
-            cancel_auction(sale::market_mut(sale), ctx);
-
-            sale_outlet = sale_outlet + 1;
-        };
-
-        slingshot::sale_off(slingshot);
+        launchpad::sale_off(launchpad, slingshot);
     }
 
     /// Conclude the auction and toggle the Slingshot's `live` to `false`.
     /// NFTs will be allocated to the winning biddeers.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_conclude<T>(
-        slingshot: &mut Slingshot<T, DutchAuctionMarket>,
+    public entry fun sale_conclude(
+        launchpad: &mut Launchpad,
+        trebuchet: &mut Trebuchet,
+        slingshot: &mut Trebuchet,
+        market: &mut DutchAuctionMarket,
         ctx: &mut TxContext
     ) {
         assert!(
-            slingshot::admin(slingshot) == tx_context::sender(ctx),
+            launchpad::admin(launchpad, slingshot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
 
-        let launchpad_id = slingshot::id(slingshot);
+        let launchpad_id = launchpad::id(launchpad, slingshot);
 
-        let receiver = slingshot::receiver(slingshot);
-        let sales = slingshot::sales_mut(slingshot);
+        let receiver = launchpad::receiver(launchpad, slingshot);
 
-        let sale_outlet = 0;
-        let sale_count = vector::length(sales);
-        while (sale_outlet < sale_count) {
-            let sale = vector::borrow_mut(sales, sale_outlet);
-            let nfts_to_sell = sale::length(sale);
+        let nfts_to_sell = outlet::length(&market.outlet);
 
-            conclude_auction(
-                sale,
-                launchpad_id,
-                receiver,
-                // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
-                // Investigate whether this logic should be paginated
-                nfts_to_sell,
-                ctx
-            );
+        conclude_auction(
+            launchpad,
+            trebuchet,
+            market,
+            launchpad_id,
+            receiver,
+            // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
+            // Investigate whether this logic should be paginated
+            nfts_to_sell,
+            ctx
+        );
 
-            sale_outlet = sale_outlet + 1;
-        };
-
-        slingshot::sale_off(slingshot);
+        launchpad::sale_off(launchpad, slingshot);
     }
 
     // === Private Functions ===
@@ -378,8 +352,10 @@ module nft_protocol::dutch_auction {
         balance::join(coin::balance_mut(wallet), amount);
     }
 
-    fun conclude_auction<T>(
-        sale: &mut Sale<T, DutchAuctionMarket>,
+    fun conclude_auction(
+        launchpad: &mut Launchpad,
+        trebuchet: &mut Trebuchet,
+        auction: &mut DutchAuctionMarket,
         launchpad_id: ID,
         receiver: address,
         // Use to specify how many NFTs will be transfered to the winning bids
@@ -391,7 +367,6 @@ module nft_protocol::dutch_auction {
         nfts_to_sell: u64,
         ctx: &mut TxContext
     ) {
-        let auction = sale::market_mut(sale);
         let bids = &mut auction.bids;
 
         let fill_price = 0;
@@ -429,8 +404,8 @@ module nft_protocol::dutch_auction {
                 ctx
             );
 
-            let certificate = sale::issue_nft_certificate(
-                sale,
+            let certificate = outlet::issue_nft_certificate(
+                &mut auction.outlet,
                 launchpad_id,
                 ctx
             );

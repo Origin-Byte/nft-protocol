@@ -9,7 +9,7 @@ module nft_protocol::nft {
     use nft_protocol::utils;
 
     use sui::bag::{Self, Bag};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -96,5 +96,19 @@ module nft_protocol::nft {
         assert!(is_ok, err::authority_not_whitelisted());
 
         nft.logical_owner = recipient;
+    }
+
+    // === Getter Functions ===
+
+    public fun id<T>(
+        nft: &NFT<T>,
+    ): ID {
+        object::uid_to_inner(&nft.id)
+    }
+
+    public fun id_ref<T>(
+        nft: &NFT<T>,
+    ): &ID {
+        object::uid_as_inner(&nft.id)
     }
 }

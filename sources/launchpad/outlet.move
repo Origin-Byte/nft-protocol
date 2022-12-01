@@ -1,7 +1,7 @@
 //! Module representing `Sale` Outlets of `Launchpad`s.
 //!
 //! Launchpads can now have multiple sale outlets, repsented
-//! through `sales: vector<Sale<T, M>>`, which meants that NFT creators can
+//! through `sales: vector<Sale>`, which meants that NFT creators can
 //! perform tiered sales. An example of this would be an Gaming NFT creator
 //! separating the sale based on NFT rarity and emit whitelist tokens to
 //! different users for different rarities depending on the user's game score.
@@ -10,7 +10,7 @@
 //! outsource this logic to generic `Market` object. This way developers can
 //! come up with their plug-and-play market primitives, of which some examples
 //! are Dutch Auctions, Sealed-Bid Auctions, etc.
-module nft_protocol::sale {
+module nft_protocol::outlet {
     use std::vector;
 
     use sui::object::{Self, ID , UID};
@@ -18,14 +18,13 @@ module nft_protocol::sale {
 
     use nft_protocol::err;
 
-    struct Sale<phantom T, Market> has key, store {
+    struct Outlet has key, store {
         id: UID,
         tier_index: u64,
         whitelisted: bool,
         // Vector of all IDs owned by the slingshot
         nfts: vector<ID>,
         queue: vector<ID>,
-        market: Market,
     }
 
     /// This object acts as an intermediate step between the payment
@@ -39,31 +38,29 @@ module nft_protocol::sale {
         nft_id: ID,
     }
 
-    public fun create<T: drop, Market: store>(
+    public fun create(
         tier_index: u64,
         whitelisted: bool,
-        market: Market,
         ctx: &mut TxContext,
-    ): Sale<T, Market> {
+    ): Outlet {
         let id = object::new(ctx);
 
         let nfts = vector::empty();
         let queue = vector::empty();
 
-        Sale {
+        Outlet {
             id,
             tier_index,
             whitelisted,
             nfts,
             queue,
-            market,
         }
     }
 
-    /// Burn the `Sale` and return the `Market` object
-    public fun delete<T: drop, Market: store>(
-        sale_box: Sale<T, Market>,
-    ): Market {
+    /// Burn the `Outlet` and return the `Market` object
+    public fun delete(
+        sale_box: Outlet,
+    ) {
         assert!(
             vector::length(&sale_box.nfts) == 0,
             err::sale_outlet_still_has_nfts_to_sell()
@@ -73,23 +70,20 @@ module nft_protocol::sale {
             err::sale_outlet_still_has_nfts_to_redeem()
         );
 
-        let Sale {
+        let Outlet {
             id,
             tier_index: _,
             whitelisted: _,
             nfts: _,
             queue: _,
-            market,
         } = sale_box;
 
         object::delete(id);
-
-        market
     }
 
     // TODO: need to add a function with nft_id as function parameter
-    public fun issue_nft_certificate<T, M>(
-        sale: &mut Sale<T, M>,
+    public fun issue_nft_certificate(
+        sale: &mut Outlet,
         launchpad_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
@@ -116,20 +110,20 @@ module nft_protocol::sale {
         object::delete(id);
     }
 
-    /// Adds an NFT's ID to the `nfts` field in `Sale` object
-    public fun add_nft<T, Market>(
-        sale: &mut Sale<T, Market>,
+    /// Adds an NFT's ID to the `nfts` field in `Outlet` object
+    public fun add_nft(
+        sale: &mut Outlet,
         id: ID,
     ) {
         let nfts = &mut sale.nfts;
         vector::push_back(nfts, id);
     }
 
-    /// Pops an NFT's ID from the `nfts` field in `Sale` object
+    /// Pops an NFT's ID from the `nfts` field in `Outlet` object
     /// and returns respective `ID`
     /// TODO: Need to push the ID to the queue
-    fun pop_nft<T, Market>(
-        sale: &mut Sale<T, Market>,
+    fun pop_nft(
+        sale: &mut Outlet,
     ): ID {
         let nfts = &mut sale.nfts;
         assert!(!vector::is_empty(nfts), err::sale_outlet_has_no_nfts_to_sell());
@@ -137,22 +131,10 @@ module nft_protocol::sale {
     }
 
     /// Check how many `nfts` there are to sell
-    public fun length<T, Market>(
-        sale: &Sale<T, Market>,
+    public fun length(
+        sale: &Outlet,
     ): u64 {
         vector::length(&sale.nfts)
-    }
-
-    public fun market<T, M>(
-        sale: &Sale<T, M>,
-    ): &M {
-        &sale.market
-    }
-
-    public fun market_mut<T, M>(
-        sale: &mut Sale<T, M>,
-    ): &mut M {
-        &mut sale.market
     }
 
     public fun nft_id(
@@ -161,26 +143,26 @@ module nft_protocol::sale {
         certificate.nft_id
     }
 
-    public fun id<T, M>(
-        sale: &Sale<T, M>,
+    public fun id(
+        sale: &Outlet,
     ): ID {
         object::uid_to_inner(&sale.id)
     }
 
-    public fun id_ref<T, M>(
-        sale: &Sale<T, M>,
+    public fun id_ref(
+        sale: &Outlet,
     ): &ID {
         object::uid_as_inner(&sale.id)
     }
 
-    public fun index<T, M>(
-        sale: &Sale<T, M>,
+    public fun index(
+        sale: &Outlet,
     ): u64 {
         sale.tier_index
     }
 
-    public fun whitelisted<T, M>(
-        sale: &Sale<T, M>,
+    public fun whitelisted(
+        sale: &Outlet,
     ): bool {
         sale.whitelisted
     }

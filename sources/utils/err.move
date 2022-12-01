@@ -40,6 +40,10 @@ module nft_protocol::err {
         return Prefix + 09
     }
 
+    public fun mint_authority_mistmatch(): u64 {
+        return Prefix + 10
+    }
+
     // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {
@@ -189,5 +193,10 @@ module nft_protocol::err {
 
     public fun sender_not_owner(): u64 {
         return Prefix + 700
+    }
+
+    // === Generic ===
+    public fun generic_bag_full(): u64 {
+        return Prefix + 800
     }
 }
