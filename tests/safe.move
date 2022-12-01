@@ -35,7 +35,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370406)]
+    #[expected_failure(abort_code = 13370407)]
     fun it_fails_if_safe_id_mismatches() {
         let scenario = test_scenario::begin(USER);
 

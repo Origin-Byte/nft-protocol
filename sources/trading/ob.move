@@ -1,4 +1,4 @@
-module nft_protocol::orderbook {
+module nft_protocol::ob {
     //! Orderbook where bids are fungible tokens and asks are NFTs.
     //! A bid is a request to buy one NFT from a specific collection.
     //! An ask is one NFT with a min price condition.
@@ -151,7 +151,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(book.protected_actions.create_bid, err::action_not_public());
+        assert!(!book.protected_actions.create_bid, err::action_not_public());
         create_bid_<C, FT>(book, price, option::none(), wallet, ctx)
     }
     public fun create_bid_protected<W: drop, C, FT>(
@@ -161,7 +161,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         create_bid_<C, FT>(book, price, option::none(), wallet, ctx)
     }
@@ -173,7 +173,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(book.protected_actions.create_bid, err::action_not_public());
+        assert!(!book.protected_actions.create_bid, err::action_not_public());
         let commission = new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
@@ -191,7 +191,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         let commission = new_bid_commission(
             beneficiary,
@@ -210,7 +210,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(book.protected_actions.cancel_bid, err::action_not_public());
+        assert!(!book.protected_actions.cancel_bid, err::action_not_public());
         cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
     }
     public fun cancel_bid_protected<W: drop, C, FT>(
@@ -220,7 +220,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
     }
@@ -237,7 +237,7 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        assert!(book.protected_actions.create_ask, err::action_not_public());
+        assert!(!book.protected_actions.create_ask, err::action_not_public());
         create_ask_<C, FT>(
             book, requsted_tokens, option::none(), transfer_cap, safe, whitelist, ctx
         )
@@ -251,7 +251,7 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         create_ask_<C, FT>(
             book, requsted_tokens, option::none(), transfer_cap, safe, whitelist, ctx
@@ -267,7 +267,7 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        assert!(book.protected_actions.create_ask, err::action_not_public());
+        assert!(!book.protected_actions.create_ask, err::action_not_public());
         let commission = new_ask_commission(
             beneficiary,
             commission,
@@ -293,7 +293,7 @@ module nft_protocol::orderbook {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         let commission = new_ask_commission(
             beneficiary,
@@ -321,7 +321,7 @@ module nft_protocol::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert!(book.protected_actions.cancel_ask, err::action_not_public());
+        assert!(!book.protected_actions.cancel_ask, err::action_not_public());
         cancel_ask_(book, nft_price, nft_id, ctx)
     }
     public entry fun cancel_ask_protected<W: drop, C, FT>(
@@ -331,7 +331,7 @@ module nft_protocol::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         cancel_ask_(book, nft_price, nft_id, ctx)
     }
@@ -344,13 +344,14 @@ module nft_protocol::orderbook {
         nft_id: ID,
         price: u64,
         wallet: &mut Coin<FT>,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        assert!(book.protected_actions.buy_nft, err::action_not_public());
+        assert!(!book.protected_actions.buy_nft, err::action_not_public());
         buy_nft_<C, FT>(
-            book, nft_id, price, wallet, safe, whitelist, ctx
+            book, nft_id, price, wallet, seller_safe, buyer_safe, whitelist, ctx
         )
     }
     public entry fun buy_nft_protected<W: drop, C, FT>(
@@ -359,14 +360,15 @@ module nft_protocol::orderbook {
         nft_id: ID,
         price: u64,
         wallet: &mut Coin<FT>,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         buy_nft_<C, FT>(
-            book, nft_id, price, wallet, safe, whitelist, ctx
+            book, nft_id, price, wallet, seller_safe, buyer_safe, whitelist, ctx
         )
     }
 
@@ -377,11 +379,12 @@ module nft_protocol::orderbook {
     /// permission-lessly resolved via this endpoint.
     public entry fun finish_trade<C, FT>(
         trade: &mut TradeIntermediate<C, FT>,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        finish_trade_<C, FT>(trade, safe, whitelist, ctx)
+        finish_trade_<C, FT>(trade, seller_safe, buyer_safe, whitelist, ctx)
     }
 
     /// `C`ollection kind of NFTs to be traded, and `F`ungible `T`oken to be
@@ -393,17 +396,18 @@ module nft_protocol::orderbook {
     /// To implement specific logic in your smart contract, you can toggle the
     /// protection on specific actions. That will make them only accessible via
     /// witness protected methods.
-    public entry fun create<C: key, FT>(
+    public entry fun create<C, FT>(
         ctx: &mut TxContext,
     ) {
         let ob = create_<C, FT>(no_protection(), ctx);
+        // TBD: must be signed by a collection creator?
         share_object(ob);
     }
-    public fun create_protected<W: drop, C: key, FT>(
+    public fun create_protected<W: drop, C, FT>(
         _witness: W,
         ctx: &mut TxContext,
     ): Orderbook<C, FT> {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         create_<C, FT>(no_protection(), ctx)
     }
@@ -415,7 +419,7 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         book.protected_actions.buy_nft =
             !book.protected_actions.buy_nft;
@@ -424,7 +428,7 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         book.protected_actions.cancel_ask =
             !book.protected_actions.cancel_ask;
@@ -433,7 +437,7 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         book.protected_actions.cancel_bid =
             !book.protected_actions.cancel_bid;
@@ -442,7 +446,7 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         book.protected_actions.create_ask =
             !book.protected_actions.create_ask;
@@ -451,7 +455,7 @@ module nft_protocol::orderbook {
         _witness: W,
         book: &mut Orderbook<C, FT>,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        utils::assert_same_module_as_witness<C, W>();
 
         book.protected_actions.create_bid =
             !book.protected_actions.create_bid;
@@ -489,7 +493,7 @@ module nft_protocol::orderbook {
         ask.owner
     }
 
-    fun create_<C: key, FT>(
+    fun create_<C, FT>(
         protected_actions: WitnessProtectedActions,
         ctx: &mut TxContext,
     ): Orderbook<C, FT> {
@@ -684,6 +688,8 @@ module nft_protocol::orderbook {
                 safe,
             );
 
+            // TODO: trade intermediate cuz we need other safe
+
             transfer_bid_commission(&mut bid_commission, ctx);
             option::destroy_none(bid_commission);
         } else {
@@ -742,7 +748,8 @@ module nft_protocol::orderbook {
         nft_id: ID,
         price: u64,
         wallet: &mut Coin<FT>,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
@@ -772,18 +779,21 @@ module nft_protocol::orderbook {
         option::destroy_none(maybe_commission);
         balance::destroy_zero(bid_offer);
 
-        safe::transfer_nft_to_recipient<C, Witness>(
+        safe::transfer_nft_to_safe<C, Witness>(
             transfer_cap,
             buyer,
             Witness {},
             whitelist,
-            safe,
+            seller_safe,
+            buyer_safe,
+            ctx,
         );
     }
 
     fun finish_trade_<C, FT>(
         trade: &mut TradeIntermediate<C, FT>,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
@@ -797,7 +807,7 @@ module nft_protocol::orderbook {
 
         let transfer_cap = option::extract(transfer_cap);
 
-        safe::assert_transfer_cap_of_safe(&transfer_cap, safe);
+        safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
         safe::assert_transfer_cap_exlusive(&transfer_cap);
 
         pay_for_nft<C, FT>(
@@ -807,12 +817,14 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        safe::transfer_nft_to_recipient<C, Witness>(
+        safe::transfer_nft_to_safe<C, Witness>(
             transfer_cap,
             *buyer,
             Witness {},
             whitelist,
-            safe,
+            seller_safe,
+            buyer_safe,
+            ctx,
         );
     }
 

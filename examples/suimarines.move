@@ -1,3 +1,4 @@
+#[test_only]
 module nft_protocol::suimarines {
     use std::vector;
     use std::string;

@@ -162,11 +162,11 @@ module nft_protocol::err {
     }
 
     public fun nft_not_exlusively_listed(): u64 {
-        return Prefix + 306
+        return Prefix + 406
     }
 
     public fun safe_id_mismatch(): u64 {
-        return Prefix + 307
+        return Prefix + 407
     }
 
     // === Whitelist ===
