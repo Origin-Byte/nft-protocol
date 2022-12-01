@@ -17,7 +17,7 @@ module nft_protocol::classic_nft {
     use nft_protocol::collection::{Self, MintAuthority};
     use nft_protocol::utils::{to_string_vector};
     use nft_protocol::supply_policy;
-    use nft_protocol::slingshot::{Self, Slingshot};
+    use nft_protocol::launchpad::{Self, Launchpad, Trebuchet};
     use nft_protocol::sale;
     use nft_protocol::display;
     use nft_protocol::nft::{Self, Nft};
@@ -390,11 +390,12 @@ module nft_protocol::classic_nft {
         );
     }
 
-    fun mint_to_launchpad<T, M: store>(
-        args: MintArgs,
+    fun mint_to_launchpad<C, M: store>(
+        nft: Nft<C>,
         collection_id: ID,
         sale_index: u64,
-        launchpad: &mut Slingshot<T, M>,
+        launchpad: &mut Launchpad<T, M>,
+        trebuchet: Trebuchet,
         ctx: &mut TxContext,
     ) {
         let data_id = object::new(ctx);
@@ -406,20 +407,7 @@ module nft_protocol::classic_nft {
             }
         );
 
-        let nft_data = Unique {
-            id: data_id,
-            name: args.name,
-            description: args.description,
-            collection_id: collection_id,
-            url: args.url,
-            attributes: args.attributes,
-        };
-
-        let nft = nft::mint_nft_embedded<T, Unique>(
-            nft_data_id(&nft_data),
-            nft_data,
-            ctx
-        );
+        nft
 
         let sale = slingshot::sale_mut(launchpad, sale_index);
 

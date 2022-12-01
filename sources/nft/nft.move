@@ -101,13 +101,13 @@ module nft_protocol::nft {
     // === Getter Functions ===
 
     public fun id<T>(
-        nft: &NFT<T>,
+        nft: &Nft<T>,
     ): ID {
         object::uid_to_inner(&nft.id)
     }
 
     public fun id_ref<T>(
-        nft: &NFT<T>,
+        nft: &Nft<T>,
     ): &ID {
         object::uid_as_inner(&nft.id)
     }
