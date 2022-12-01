@@ -1,10 +1,13 @@
 module nft_protocol::suitraders {
     use std::vector;
+    use std::string;
 
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::dutch_auction;
-    use nft_protocol::std_collection;
+    use nft_protocol::collection;
+
+    use nft_protocol::display;
 
     struct SUITRADERS has drop {}
 
@@ -13,19 +16,28 @@ module nft_protocol::suitraders {
         vector::push_back(&mut tags, b"Art");
         vector::push_back(&mut tags, b"PFP");
 
-        let collection_id = std_collection::mint<SUITRADERS>(
-            b"Suitraders",
-            b"A Unique NFT collection of Suitraders on Sui",
+        let collection = collection::create<SUITRADERS>(
             b"SUITR", // symbol
-            100, // max_supply
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // Royalty receiver
-            tags, // tags
-            100, // royalty_fee_bps
-            true, // is_mutable
-            b"Some extra data",
+            100, // max supply
+            tags,
+            true, // is mutable
             tx_context::sender(ctx), // mint authority
             ctx,
         );
+
+        // Register custom domains
+        display::add_collection_display_domain(
+            &mut collection,
+            string::utf8(b"Suitraders"),
+            string::utf8(b"A unique NFT collection of Suitraders on Sui"),
+        );
+
+        display::add_collection_url_domain(
+            &mut collection,
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        );
+
+        let collection_id = collection::share<SUITRADERS>(collection);
 
         let whitelist = vector::empty();
         vector::push_back(&mut whitelist, true);

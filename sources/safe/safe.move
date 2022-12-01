@@ -2,27 +2,25 @@ module nft_protocol::safe {
     use nft_protocol::err;
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::transfer_whitelist::Whitelist;
-    use sui::vec_set::{Self, VecSet};
+    use std::type_name::{Self, TypeName};
     use sui::event;
-    use sui::object_bag::{Self, ObjectBag};
     use sui::object;
     use sui::object::{ID, UID};
     use sui::transfer::{share_object, transfer};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
-    use std::type_name::{Self, TypeName};
+    use sui::vec_set::{Self, VecSet};
+    use sui::dynamic_object_field::{Self as dof};
 
     struct Safe has key {
         id: UID,
         /// Accounting for deposited NFTs. Each NFT in the object bag is
         /// represented in this map.
         refs: VecMap<ID, NftRef>,
-        /// Holds the actual NFT objects as child objects.
-        nfts: ObjectBag,
         /// If set to false, the owner can select which collections can be
         /// deposited to the safe.
-        accepts_any_deposit: bool,
-        /// If the flag `accepts_any_deposit` is set to false, then we check
+        enable_any_deposit: bool,
+        /// If the flag `enable_any_deposit` is set to false, then we check
         /// whether a collection is stored in this set.
         ///
         /// Enables more granular control over NFTs to combat spam.
@@ -40,8 +38,8 @@ module nft_protocol::safe {
         /// How many transfer caps are there for this version.
         transfer_cap_counter: u64,
         /// Only one `TransferCap` of the latest version can exist.
-        /// An exlusively listed NFT cannot have its `TransferCap` revoked.
-        is_exlusively_listed: bool,
+        /// An exclusively listed NFT cannot have its `TransferCap` revoked.
+        is_exclusively_listed: bool,
     }
 
     /// Whoever owns this object can perform some admin actions against the
@@ -65,7 +63,7 @@ module nft_protocol::safe {
         ///
         /// If an NFT is listed exclusively, it cannot be revoked without
         /// burning the `TransferCap` first.
-        is_exlusive: bool,
+        is_exclusive: bool,
     }
 
     struct DepositEvent has copy, drop {
@@ -105,7 +103,7 @@ module nft_protocol::safe {
 
         let safe_id = object::id(safe);
         let ref = vec_map::get_mut(&mut safe.refs, &nft);
-        assert_not_exlusively_listed(ref);
+        assert_not_exclusively_listed_internal(ref);
         ref.transfer_cap_counter = ref.transfer_cap_counter + 1;
         if (ref.transfer_cap_counter == 1) {
             ref.version = new_id(ctx);
@@ -113,7 +111,7 @@ module nft_protocol::safe {
 
         TransferCap {
             id: object::new(ctx),
-            is_exlusive: false,
+            is_exclusive: false,
             nft: nft,
             safe: safe_id,
             version: ref.version,
@@ -123,7 +121,7 @@ module nft_protocol::safe {
     /// Creates an irrevocable and exclusive transfer cap.
     ///
     /// Useful for trading contracts which cannot claim an NFT atomically.
-    public fun create_exlusive_transfer_cap(
+    public fun create_exclusive_transfer_cap(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
@@ -134,51 +132,70 @@ module nft_protocol::safe {
 
         let safe_id = object::id(safe);
         let ref = vec_map::get_mut(&mut safe.refs, &nft);
-        assert_not_exlusively_listed(ref);
+        assert_not_exclusively_listed_internal(ref);
 
         ref.transfer_cap_counter = 1;
+        ref.is_exclusively_listed = true;
         ref.version = new_id(ctx);
 
         TransferCap {
             id: object::new(ctx),
-            is_exlusive: true,
+            is_exclusive: true,
             nft: nft,
             safe: safe_id,
             version: ref.version,
         }
     }
 
-    /// The owner can restrict deposits into the `Safe` from other users.
-    public entry fun toggle_accepts_any_deposit<T, D: store>(
+    /// Only owner or whitelisted collections can deposit.
+    public entry fun restrict_deposits(
         owner_cap: &OwnerCap,
         safe: &mut Safe,
     ) {
         assert_owner_cap(owner_cap, safe);
 
-        safe.accepts_any_deposit = !safe.accepts_any_deposit;
+        safe.enable_any_deposit = false;
+    }
+    /// No restriction on deposits.
+    public entry fun enable_any_deposit(
+        owner_cap: &OwnerCap,
+        safe: &mut Safe,
+    ) {
+        assert_owner_cap(owner_cap, safe);
+
+        safe.enable_any_deposit = true;
     }
 
     /// The owner can restrict deposits into the `Safe` from given collection.
     ///
-    /// However, if the flag `Safe::accepts_any_deposit` is set to true, then
-    /// that takes precedence.
-    public entry fun toggle_deposits_of_collection<T, D: store>(
+    /// However, if the flag `Safe::enable_any_deposit` is set to true, then
+    /// it takes precedence.
+    public entry fun disable_deposits_of_collection<C>(
         owner_cap: &OwnerCap,
         safe: &mut Safe,
     ) {
         assert_owner_cap(owner_cap, safe);
 
-        let col_type = type_name::get<T>();
-        if (vec_set::contains(&safe.collections_with_enabled_deposits, &col_type)) {
-            vec_set::remove(&mut safe.collections_with_enabled_deposits, &col_type);
-        } else {
-            vec_set::insert(&mut safe.collections_with_enabled_deposits, col_type);
-        };
+        let col_type = type_name::get<C>();
+        vec_set::remove(&mut safe.collections_with_enabled_deposits, &col_type);
+    }
+    /// The owner can enable deposits into the `Safe` from given collection.
+    ///
+    /// However, if the flag `Safe::enable_any_deposit` is set to true, then
+    /// it takes precedence anyway.
+    public entry fun enable_deposits_of_collection<C>(
+        owner_cap: &OwnerCap,
+        safe: &mut Safe,
+    ) {
+        assert_owner_cap(owner_cap, safe);
+
+        let col_type = type_name::get<C>();
+        vec_set::insert(&mut safe.collections_with_enabled_deposits, col_type);
     }
 
     /// Transfer an NFT into the `Safe`.
     ///
-    /// Requires that `accepts_any_deposit` flag is set to true, or that the
+    /// Requires that `enable_any_deposit` flag is set to true, or that the
     /// `Safe` owner enabled NFTs of given collection to be inserted.
     public entry fun deposit_nft<T>(
         nft: NFT<T>,
@@ -204,7 +221,7 @@ module nft_protocol::safe {
 
     /// Use a transfer cap to get an NFT out of the `Safe`.
     ///
-    /// If the NFT is not exlusively listed, it can happen that the transfer
+    /// If the NFT is not exclusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
     public fun transfer_nft_to_recipient<T, Auth: drop>(
@@ -223,7 +240,7 @@ module nft_protocol::safe {
     /// to the target `Safe`. The recipient address should match the owner of
     /// the target `Safe`.
     ///
-    /// If the NFT is not exlusively listed, it can happen that the transfer
+    /// If the NFT is not exclusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
     public fun transfer_nft_to_safe<T, Auth: drop>(
@@ -241,7 +258,7 @@ module nft_protocol::safe {
         deposit_nft(nft, target, ctx);
     }
 
-    /// Destroys given transfer cap. This is mainly useful for exlusively listed
+    /// Destroys given transfer cap. This is mainly useful for exclusively listed
     /// NFTs.
     public entry fun burn_transfer_cap(
         transfer_cap: TransferCap,
@@ -251,7 +268,7 @@ module nft_protocol::safe {
 
         let TransferCap {
             id,
-            is_exlusive: _,
+            is_exclusive: _,
             nft,
             safe: _,
             version,
@@ -262,7 +279,7 @@ module nft_protocol::safe {
         if (ref.version == version) {
             ref.transfer_cap_counter = ref.transfer_cap_counter - 1;
             if (ref.transfer_cap_counter == 0) {
-                ref.is_exlusively_listed = false;
+                ref.is_exclusively_listed = false;
             };
         }
     }
@@ -270,7 +287,7 @@ module nft_protocol::safe {
     /// Changes the transfer ref version, thereby invalidating all existing
     /// `TransferCap` objects.
     ///
-    /// Can happen only if the NFT is not listed exlusively.
+    /// Can happen only if the NFT is not listed exclusively.
     public entry fun delist_nft(
         nft: ID,
         owner_cap: &OwnerCap,
@@ -281,7 +298,7 @@ module nft_protocol::safe {
         assert_contains_nft(&nft, safe);
 
         let ref = vec_map::get_mut(&mut safe.refs, &nft);
-        assert_not_exlusively_listed(ref);
+        assert_not_exclusively_listed_internal(ref);
 
         ref.version = new_id(ctx);
         ref.transfer_cap_counter = 0;
@@ -291,8 +308,7 @@ module nft_protocol::safe {
         let safe = Safe {
             id: object::new(ctx),
             refs: vec_map::empty(),
-            nfts: object_bag::new(ctx),
-            accepts_any_deposit: true,
+            enable_any_deposit: true,
             collections_with_enabled_deposits: vec_set::empty(),
         };
         let cap = OwnerCap {
@@ -322,10 +338,10 @@ module nft_protocol::safe {
         vec_map::insert(&mut safe.refs, nft_id, NftRef {
             version: new_id(ctx),
             transfer_cap_counter: 0,
-            is_exlusively_listed: false,
+            is_exclusively_listed: false,
         });
 
-        object_bag::add(&mut safe.nfts, nft_id, nft);
+        dof::add(&mut safe.id, nft_id, nft);
 
         event::emit(
             DepositEvent {
@@ -360,21 +376,25 @@ module nft_protocol::safe {
             safe: _,
             nft: _,
             version: _,
-            is_exlusive: _,
+            is_exclusive: _,
         } = transfer_cap;
         object::delete(id);
 
-        object_bag::remove<ID, NFT<T>>(&mut safe.nfts, nft_id)
+        dof::remove<ID, NFT<T>>(&mut safe.id, nft_id)
     }
 
     // === Getters ===
+
+    public fun has_nft<C>(nft: ID, safe: &Safe): bool {
+        dof::exists_with_type<ID, NFT<C>>(&safe.id, nft)
+    }
 
     public fun owner_cap_safe(cap: &OwnerCap): ID {
         cap.safe
     }
 
-    public fun accepts_any_deposit(safe: &Safe): bool {
-        safe.accepts_any_deposit
+    public fun are_all_deposits_enabled(safe: &Safe): bool {
+        safe.enable_any_deposit
     }
 
     public fun transfer_cap_safe(cap: &TransferCap): ID {
@@ -386,8 +406,8 @@ module nft_protocol::safe {
     public fun transfer_cap_version(cap: &TransferCap): ID {
         cap.version
     }
-    public fun transfer_cap_is_exlusive(cap: &TransferCap): bool {
-        cap.is_exlusive
+    public fun transfer_cap_is_exclusive(cap: &TransferCap): bool {
+        cap.is_exclusive
     }
 
     // === Assertions ===
@@ -410,8 +430,8 @@ module nft_protocol::safe {
         );
     }
 
-    public fun assert_not_exlusively_listed(ref: &NftRef) {
-        assert!(!ref.is_exlusively_listed, err::nft_exlusively_listed());
+    public fun assert_not_exclusively_listed(cap: &TransferCap) {
+        assert!(!cap.is_exclusive, err::nft_exclusively_listed());
     }
 
     public fun assert_transfer_cap_exlusive(cap: &TransferCap) {
@@ -423,7 +443,7 @@ module nft_protocol::safe {
     }
 
     public fun assert_can_deposit<T>(safe: &Safe) {
-        if (!safe.accepts_any_deposit) {
+        if (!safe.enable_any_deposit) {
             assert!(
                 vec_set::contains(&safe.collections_with_enabled_deposits, &type_name::get<T>()),
                 err::safe_does_not_accept_deposits(),
@@ -433,5 +453,9 @@ module nft_protocol::safe {
 
     public fun assert_id(safe: &Safe, id: ID) {
         assert!(object::id(safe) == id, err::safe_id_mismatch());
+    }
+
+    fun assert_not_exclusively_listed_internal(ref: &NftRef) {
+        assert!(!ref.is_exclusively_listed, err::nft_exclusively_listed());
     }
 }
