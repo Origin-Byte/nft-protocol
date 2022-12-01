@@ -51,8 +51,6 @@ module nft_protocol::collection {
         id: UID,
         // TODO: Should symbol be limited to x number of chars?
         symbol: String,
-        /// Address that receives the mint price in Sui
-        receiver: address,
         /// Nft Collection Tags is an enumeration of tags, represented
         /// as strings. An NFT Tag is a string that categorises the domain
         /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
@@ -67,8 +65,6 @@ module nft_protocol::collection {
         creators: vector<Creator>,
         /// ID of `MintAuthority` object
         mint_authority: ID,
-        // TODO(https://github.com/Origin-Byte/nft-protocol/issues/103): Implement RoyaltyDomain
-        royalty_fee_bps: u64,
         /// Domain storage equivalent to NFT domains which allows collections
         /// to implement custom metadata.
         //
@@ -159,11 +155,9 @@ module nft_protocol::collection {
         // unregulated supply set `max_supply=0`, otherwise any value above
         // zero will make the supply regulated.
         max_supply: u64,
-        receiver: address,
         // TODO: When will we be able to pass vector<String>?
         // https://github.com/MystenLabs/sui/pull/4627
         tags: vector<vector<u8>>,
-        royalty_fee_bps: u64,
         is_mutable: bool,
         authority: address,
         ctx: &mut TxContext,
@@ -189,12 +183,10 @@ module nft_protocol::collection {
         Collection {
             id,
             symbol: string::utf8(symbol),
-            receiver,
             tags: tags::from_vec_string(&mut utils::to_string_vector(&mut tags)),
-            is_mutable: is_mutable,
+            is_mutable,
             creators: vector::empty(),
             mint_authority: mint_object_id,
-            royalty_fee_bps,
             domains: bag::new(ctx),
         }
     }
@@ -242,20 +234,6 @@ module nft_protocol::collection {
         );
 
         collection.symbol = string::utf8(symbol);
-    }
-
-    /// Modify the Collections's `receiver`
-    public entry fun change_receiver<T>(
-        collection: &mut Collection<T>,
-        receiver: address,
-    ) {
-        // Only modify if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        collection.receiver = receiver;
     }
 
     /// Add a tag to the Collections's `tags`
@@ -481,13 +459,6 @@ module nft_protocol::collection {
         &collection.symbol
     }
 
-    /// Get the Collections's `receiver`
-    public fun receiver<T>(
-        collection: &Collection<T>,
-    ): address {
-        collection.receiver
-    }
-
     /// Get the Collections's `tags`
     public fun tags<T>(
         collection: &Collection<T>,
@@ -507,14 +478,6 @@ module nft_protocol::collection {
         collection: &Collection<T>,
     ): &vector<Creator> {
         &collection.creators
-    }
-
-    /// Get the Collection's `royalty_fee_bps`
-    // TODO(https://github.com/Origin-Byte/nft-protocol/issues/103): Implement RoyaltyDomain
-    public fun royalty<T>(
-        collection: &Collection<T>,
-    ): u64 {
-        collection.royalty_fee_bps
     }
 
     /// Get an immutable reference to Collections's `cap`
@@ -610,5 +573,29 @@ module nft_protocol::collection {
                 vector::remove(v, i);
             }
         }
+    }
+
+    // === Test only helpers ===
+
+    #[test_only]
+    public fun dummy_collection<T>(
+        creator: address,
+        scenario: &mut sui::test_scenario::Scenario,
+    ): Collection<T> {
+        sui::test_scenario::next_tx(scenario, creator);
+        share(create<T>(
+            b"foo",
+            1,
+            vector::empty(),
+            true,
+            creator,
+            sui::test_scenario::ctx(scenario),
+        ));
+        sui::test_scenario::next_tx(scenario, creator);
+        let col = sui::test_scenario::take_shared(scenario);
+
+        add_creator(&mut col, creator, 0);
+
+        col
     }
 }
