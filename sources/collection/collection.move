@@ -28,7 +28,7 @@
 //! `is_mutable` refers to the NFTs and `frozen` refers to the collection
 module nft_protocol::collection {
     use std::vector;
-    use std::string::{Self, String};
+    use std::string;
 
     use sui::event;
     use sui::object::{Self, UID, ID};
@@ -49,8 +49,6 @@ module nft_protocol::collection {
     /// used to store additional information about the NFT.
     struct Collection<phantom T> has key, store {
         id: UID,
-        // TODO: Should symbol be limited to x number of chars?
-        symbol: String,
         /// Nft Collection Tags is an enumeration of tags, represented
         /// as strings. An NFT Tag is a string that categorises the domain
         /// in which the NFT operates (i.e. Art, Profile Picture, Gaming, etc.)
@@ -148,9 +146,6 @@ module nft_protocol::collection {
     /// parameter `max_supply` should be equal to the biggest integer number
     /// that can be stored in a u64, which is `18446744073709551615`.
     public fun create<T>(
-        // Symbol of the Nft Collection. This parameter is a
-        // vector of bytes that should enconde to utf8
-        symbol: vector<u8>,
         // Defines the maximum supply of the collection. To create an
         // unregulated supply set `max_supply=0`, otherwise any value above
         // zero will make the supply regulated.
@@ -182,7 +177,6 @@ module nft_protocol::collection {
 
         Collection {
             id,
-            symbol: string::utf8(symbol),
             tags: tags::from_vec_string(&mut utils::to_string_vector(&mut tags)),
             is_mutable,
             creators: vector::empty(),
@@ -221,20 +215,6 @@ module nft_protocol::collection {
     }
 
     // === Modifier Entry Functions ===
-
-    /// Modify the Collections's `symbol`
-    public entry fun change_symbol<T>(
-        collection: &mut Collection<T>,
-        symbol: vector<u8>,
-    ) {
-        // Only modify if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        collection.symbol = string::utf8(symbol);
-    }
 
     /// Add a tag to the Collections's `tags`
     /// Contrary to other fields, tags can be always added by
@@ -440,13 +420,6 @@ module nft_protocol::collection {
         object::uid_as_inner(&collection.id)
     }
 
-    /// Get the Collections's `symbol`
-    public fun symbol<T>(
-        collection: &Collection<T>,
-    ): &String {
-        &collection.symbol
-    }
-
     /// Get the Collections's `tags`
     public fun tags<T>(
         collection: &Collection<T>,
@@ -572,7 +545,6 @@ module nft_protocol::collection {
     ): Collection<T> {
         sui::test_scenario::next_tx(scenario, creator);
         share(create<T>(
-            b"foo",
             1,
             vector::empty(),
             true,
