@@ -39,7 +39,7 @@ module nft_protocol::class {
     public fun create<C>(
         ctx: &mut TxContext,
         supply: u64,
-        mint_authority: &MintAuthority<C>,
+        mint: &mut MintAuthority<C>,
     ) {
         let id = object::new(ctx);
 
@@ -52,9 +52,11 @@ module nft_protocol::class {
         let class = Class {
             id,
             supply: supply::new(supply, false),
-            mint_authority: collection::mint_id(mint_authority),
+            mint_authority: collection::mint_id(mint),
             bag: bag::new(ctx),
         };
+
+        collection::increment_supply(mint, 1);
 
         transfer::share_object(class);
     }
@@ -64,7 +66,7 @@ module nft_protocol::class {
         ctx: &mut TxContext,
         nft: &mut NFT<C>,
         class: &mut Class,
-        mint_authority: &MintAuthority<C>,
+        mint: &MintAuthority<C>,
     ) {
         let id = object::new(ctx);
 
@@ -98,12 +100,12 @@ module nft_protocol::class {
 
     public fun add_domain<C, V: store>(
         class: &mut Class,
-        mint_authority: &MintAuthority<C>,
+        mint: &MintAuthority<C>,
         v: V,
         ctx: &mut TxContext,
     ) {
         assert!(
-            collection::mint_id(mint_authority) == class.mint_authority,
+            collection::mint_id(mint) == class.mint_authority,
             err::mint_authority_mistmatch()
         );
 
