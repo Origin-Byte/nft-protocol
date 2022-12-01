@@ -1,7 +1,7 @@
 #[test_only]
 module nft_protocol::test_safe {
     use nft_protocol::collection;
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use std::vector;
@@ -261,7 +261,7 @@ module nft_protocol::test_safe {
         );
         assert!(!safe::has_nft<Foo>(nft_id, &safe), 0);
         test_scenario::next_tx(&mut scenario, USER);
-        let nft = test_scenario::take_from_sender<NFT<Foo>>(&scenario);
+        let nft = test_scenario::take_from_sender<Nft<Foo>>(&scenario);
         safe::deposit_nft<Foo>(
             nft,
             &mut safe,
@@ -343,7 +343,7 @@ module nft_protocol::test_safe {
         );
         assert!(!safe::has_nft<Foo>(nft_id, &safe), 0);
         test_scenario::next_tx(&mut scenario, USER);
-        let nft = test_scenario::take_from_sender<NFT<Foo>>(&scenario);
+        let nft = test_scenario::take_from_sender<Nft<Foo>>(&scenario);
         safe::deposit_nft<Foo>(
             nft,
             &mut safe,

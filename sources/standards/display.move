@@ -5,7 +5,7 @@ module nft_protocol::display {
     use sui::url::Url;
     use sui::tx_context::TxContext;
 
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
 
     struct DisplayDomain has store {
@@ -34,7 +34,7 @@ module nft_protocol::display {
     /// ====== Interoperability ===
 
     public fun display_domain<C>(
-        nft: &NFT<C>,
+        nft: &Nft<C>,
     ): &DisplayDomain {
         nft::borrow_domain(nft)
     }
@@ -46,7 +46,7 @@ module nft_protocol::display {
     }
 
     public fun add_display_domain<C>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         name: String,
         description: String,
         ctx: &mut TxContext,
@@ -80,7 +80,7 @@ module nft_protocol::display {
 
     /// ====== Interoperability ===
 
-    public fun display_url<C>(nft: &NFT<C>): Option<Url> {
+    public fun display_url<C>(nft: &Nft<C>): Option<Url> {
         if (!nft::has_domain<C, UrlDomain>(nft)) {
             return option::none()
         };
@@ -97,7 +97,7 @@ module nft_protocol::display {
     }
 
     public fun add_url_domain<C>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         url: Url,
         ctx: &mut TxContext
     ) {

@@ -5,7 +5,7 @@ module nft_protocol::royalty_bps {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
 
     const BPS: u64 = 10_000;
@@ -70,7 +70,7 @@ module nft_protocol::royalty_bps {
     /// === Interoperability ===
 
     public fun royalty_domain<C>(
-        nft: &NFT<C>,
+        nft: &Nft<C>,
     ): &BpsRoyaltyDomain {
         nft::borrow_domain(nft)
     }
@@ -82,7 +82,7 @@ module nft_protocol::royalty_bps {
     }
 
     public fun add_royalty_domain<C>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         receiver: address,
         royalty_fee_bps: u64,
         ctx: &mut TxContext,

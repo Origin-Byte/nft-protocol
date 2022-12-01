@@ -1,6 +1,6 @@
 module nft_protocol::safe {
     use nft_protocol::err;
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_whitelist::Whitelist;
     use std::type_name::{Self, TypeName};
     use sui::event;
@@ -14,7 +14,7 @@ module nft_protocol::safe {
 
     struct Safe has key {
         id: UID,
-        /// Accounting for deposited NFTs. Each NFT in the object bag is
+        /// Accounting for deposited Nfts. Each NFT in the object bag is
         /// represented in this map.
         refs: VecMap<ID, NftRef>,
         /// If set to false, the owner can select which collections can be
@@ -198,7 +198,7 @@ module nft_protocol::safe {
     /// Requires that `enable_any_deposit` flag is set to true, or that the
     /// `Safe` owner enabled NFTs of given collection to be inserted.
     public entry fun deposit_nft<T>(
-        nft: NFT<T>,
+        nft: Nft<T>,
         safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
@@ -209,7 +209,7 @@ module nft_protocol::safe {
 
     /// Transfer an NFT from owner to the `Safe`.
     public entry fun deposit_nft_priviledged<T>(
-        nft: NFT<T>,
+        nft: Nft<T>,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
         ctx: &mut TxContext,
@@ -329,7 +329,7 @@ module nft_protocol::safe {
     }
 
     fun deposit_nft_<T>(
-        nft: NFT<T>,
+        nft: Nft<T>,
         safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
@@ -354,7 +354,7 @@ module nft_protocol::safe {
     fun get_nft_for_transfer_<T>(
         transfer_cap: TransferCap,
         safe: &mut Safe,
-    ): NFT<T> {
+    ): Nft<T> {
         let nft_id = transfer_cap.nft;
 
         event::emit(
@@ -380,13 +380,13 @@ module nft_protocol::safe {
         } = transfer_cap;
         object::delete(id);
 
-        dof::remove<ID, NFT<T>>(&mut safe.id, nft_id)
+        dof::remove<ID, Nft<T>>(&mut safe.id, nft_id)
     }
 
     // === Getters ===
 
     public fun has_nft<C>(nft: ID, safe: &Safe): bool {
-        dof::exists_with_type<ID, NFT<C>>(&safe.id, nft)
+        dof::exists_with_type<ID, Nft<C>>(&safe.id, nft)
     }
 
     public fun owner_cap_safe(cap: &OwnerCap): ID {
