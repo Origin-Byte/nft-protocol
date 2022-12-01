@@ -5,7 +5,7 @@ module nft_protocol::whitelist {
 
     use nft_protocol::err;
     use nft_protocol::outlet::{Self, Outlet};
-    use nft_protocol::launchpad::{Self, Launchpad, Trebuchet};
+    use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct Whitelist has key {
         id: UID,
@@ -13,14 +13,13 @@ module nft_protocol::whitelist {
     }
 
     public fun whitelist_address(
-        launchpad: &Launchpad,
-        trebuchet: &Trebuchet,
+        slot: &Slot,
         sale: &Outlet,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         assert!(
-            tx_context::sender(ctx) == launchpad::admin(launchpad, trebuchet),
+            tx_context::sender(ctx) == launchpad::admin(slot),
             err::wrong_launchpad_admin()
         );
         let sale_id = outlet::id(sale);

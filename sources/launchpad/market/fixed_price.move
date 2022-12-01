@@ -106,8 +106,133 @@ module nft_protocol::fixed_price {
             err::sale_is_not_whitelisted()
         );
 
-        let price = market.price;
+        pay(
+            launchpad,
+            slot,
+            funds,
+            market.price,
+            ctx,
+        );
 
+        let certificate = outlet::issue_nft_certificate(
+            &mut market.outlet,
+            launchpad_id,
+            ctx
+        );
+
+        transfer::transfer(
+            certificate,
+            tx_context::sender(ctx),
+        );
+    }
+
+    /// Permissioned endpoint to buy NFT certificates for whitelisted sales.
+    /// To buy an NFT a user will first buy an NFT certificate. This guarantees
+    /// that the slingshot object is in full control of the selection process.
+    /// A `NftCertificate` object will be minted and transfered to the sender
+    /// of transaction. The sender can then use this certificate to call
+    /// `claim_nft` and claim the NFT that has been allocated by the slingshot
+    public entry fun buy_whitelisted_nft_certificate<C: key + store>(
+        launchpad: &mut Launchpad,
+        slot: &mut Slot,
+        funds: Coin<C>,
+        market: &mut FixedPriceMarket,
+        tier_index: u64,
+        whitelist_token: Whitelist,
+        ctx: &mut TxContext,
+    ) {
+        // One can only buy NFT certificates if the slingshot is live
+        assert!(launchpad::live(slot) == true, err::launchpad_not_live());
+
+        let launchpad_id = launchpad::id(slot);
+
+        let receiver = launchpad::receiver(slot);
+
+        // Infer that sales is whitelisted
+        assert!(
+            outlet::whitelisted(&market.outlet),
+            err::sale_is_whitelisted(),
+        );
+
+        // Infer that whitelist token corresponds to correct sale outlet
+        assert!(
+            whitelist::sale_id(&whitelist_token) == outlet::id(&market.outlet),
+            err::incorrect_whitelist_token()
+        );
+
+        pay(
+            launchpad,
+            slot,
+            funds,
+            market.price,
+            ctx,
+        );
+
+        whitelist::burn_whitelist_token(whitelist_token);
+
+        let certificate = outlet::issue_nft_certificate(
+            &mut market.outlet,
+            launchpad_id,
+            ctx
+        );
+
+        transfer::transfer(
+            certificate,
+            tx_context::sender(ctx),
+        );
+    }
+
+    // // === Modifier Functions ===
+
+    /// Toggle the Slingshot's `live` to `true` therefore
+    /// making the NFT sale live. Permissioned endpoint to be called by `admin`.
+    public entry fun sale_on(
+        slot: &mut Slot,
+        ctx: &mut TxContext
+    ) {
+        assert!(
+            launchpad::admin(slot) == tx_context::sender(ctx),
+            err::wrong_launchpad_admin()
+        );
+        launchpad::sale_on(slot, ctx);
+    }
+
+    /// Toggle the Slingshot's `live` to `false` therefore
+    /// pausing or stopping the NFT sale. Permissioned endpoint to be called by `admin`.
+    public entry fun sale_off(
+        slot: &mut Slot,
+        ctx: &mut TxContext
+    ) {
+        assert!(
+            launchpad::admin(slot) == tx_context::sender(ctx),
+            err::wrong_launchpad_admin()
+        );
+        launchpad::sale_off(slot, ctx);
+    }
+
+    /// Permissioned endpoint to be called by `admin` to edit the fixed price
+    /// of the launchpad configuration.
+    public entry fun new_price(
+        slot: &mut Slot,
+        market: &mut FixedPriceMarket,
+        new_price: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(
+            launchpad::admin(slot) == tx_context::sender(ctx),
+            err::wrong_launchpad_admin()
+        );
+
+        market.price = new_price;
+    }
+
+    public fun pay<C: key + store>(
+        launchpad: &mut Launchpad,
+        slot: &mut Slot,
+        funds: Coin<C>,
+        price: u64,
+        ctx: &mut TxContext,
+    ) {
         assert!(coin::value(&funds) > price, err::coin_amount_below_price());
 
         let change = coin::split<C>(
@@ -142,125 +267,6 @@ module nft_protocol::fixed_price {
         //     receiver,
         //     ctx
         // );
-
-        let certificate = outlet::issue_nft_certificate(
-            &mut market.outlet,
-            launchpad_id,
-            ctx
-        );
-
-        transfer::transfer(
-            certificate,
-            tx_context::sender(ctx),
-        );
-    }
-
-    /// Permissioned endpoint to buy NFT certificates for whitelisted sales.
-    /// To buy an NFT a user will first buy an NFT certificate. This guarantees
-    /// that the slingshot object is in full control of the selection process.
-    /// A `NftCertificate` object will be minted and transfered to the sender
-    /// of transaction. The sender can then use this certificate to call
-    /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_whitelisted_nft_certificate(
-        wallet: &mut Coin<SUI>,
-        launchpad: &mut Launchpad,
-        trebuchet: &mut Slot,
-        market: &mut FixedPriceMarket,
-        tier_index: u64,
-        whitelist_token: Whitelist,
-        ctx: &mut TxContext,
-    ) {
-        // One can only buy NFT certificates if the slingshot is live
-        assert!(launchpad::live(launchpad, trebuchet) == true, err::launchpad_not_live());
-
-        let launchpad_id = launchpad::id(launchpad, trebuchet);
-
-        let receiver = launchpad::receiver(launchpad, trebuchet);
-
-        // Infer that sales is whitelisted
-        assert!(
-            outlet::whitelisted(&market.outlet),
-            err::sale_is_whitelisted(),
-        );
-
-        // Infer that whitelist token corresponds to correct sale outlet
-        assert!(
-            whitelist::sale_id(&whitelist_token) == outlet::id(&market.outlet),
-            err::incorrect_whitelist_token()
-        );
-
-        let price = market.price;
-
-        assert!(coin::value(wallet) > price, err::coin_amount_below_price());
-
-        // Split coin into price and change, then transfer
-        // the price and keep the change
-        pay::split_and_transfer<SUI>(
-            wallet,
-            price,
-            receiver,
-            ctx
-        );
-
-        whitelist::burn_whitelist_token(whitelist_token);
-
-        let certificate = outlet::issue_nft_certificate(
-            &mut market.outlet,
-            launchpad_id,
-            ctx
-        );
-
-        transfer::transfer(
-            certificate,
-            tx_context::sender(ctx),
-        );
-    }
-
-    // // === Modifier Functions ===
-
-    /// Toggle the Slingshot's `live` to `true` therefore
-    /// making the NFT sale live. Permissioned endpoint to be called by `admin`.
-    public entry fun sale_on(
-        launchpad: &mut Launchpad,
-        slingshot: &mut Slot,
-        ctx: &mut TxContext
-    ) {
-        assert!(
-            launchpad::admin(launchpad, slingshot) == tx_context::sender(ctx),
-            err::wrong_launchpad_admin()
-        );
-        launchpad::sale_on(launchpad, slingshot);
-    }
-
-    /// Toggle the Slingshot's `live` to `false` therefore
-    /// pausing or stopping the NFT sale. Permissioned endpoint to be called by `admin`.
-    public entry fun sale_off(
-        launchpad: &mut Launchpad,
-        slingshot: &mut Slot,
-        ctx: &mut TxContext
-    ) {
-        assert!(
-            launchpad::admin(launchpad, slingshot) == tx_context::sender(ctx),
-            err::wrong_launchpad_admin()
-        );
-        launchpad::sale_off(launchpad, slingshot);
-    }
-
-    /// Permissioned endpoint to be called by `admin` to edit the fixed price
-    /// of the launchpad configuration.
-    public entry fun new_price(
-        launchpad: &mut Launchpad,
-        slingshot: &mut Slot,
-        market: &mut FixedPriceMarket,
-        new_price: u64,
-        ctx: &mut TxContext,
-    ) {
-        assert!(
-            launchpad::admin(launchpad, slingshot) == tx_context::sender(ctx),
-            err::wrong_launchpad_admin()
-        );
-
-        market.price = new_price;
     }
 
     // // === Getter Functions ===

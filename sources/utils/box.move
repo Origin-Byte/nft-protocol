@@ -44,7 +44,7 @@ module nft_protocol::box {
         bag::borrow<DomainKey, D>(&generic.object, domain_key<D>())
     }
 
-    public fun borrow_object_mut<D: store, W: drop>(
+    public fun borrow_object_mut<D: store>(
         generic: &mut Box,
     ): &mut D {
         bag::borrow_mut<DomainKey, D>(&mut generic.object, domain_key<D>())
