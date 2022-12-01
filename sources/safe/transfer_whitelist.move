@@ -141,14 +141,16 @@ module nft_protocol::transfer_whitelist {
         _authority_witness: Auth,
         whitelist: &Whitelist,
     ): bool {
+        let applies_to_collection =
+            vec_set::contains(&whitelist.collections, &type_name::get<C>());
+
         if (option::is_none(&whitelist.authorities)) {
-            return true
+            return applies_to_collection
         };
 
         let e = option::borrow(&whitelist.authorities);
 
-        vec_set::contains(e, &type_name::get<Auth>()) &&
-            vec_set::contains(&whitelist.collections, &type_name::get<C>())
+        applies_to_collection && vec_set::contains(e, &type_name::get<Auth>())
     }
 
     fun assert_is_creator<T>(
