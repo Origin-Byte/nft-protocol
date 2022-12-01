@@ -56,7 +56,35 @@ module nft_protocol::classic_nft {
 
     // === Functions exposed to Witness Module ===
 
-    public fun new<C>(
+    public fun mint_to_launchpad<C>(
+        name: String,
+        description: String,
+        _url: Url,
+        _attribute_keys: vector<String>,
+        _attribute_values: vector<String>,
+        mint: &mut MintAuthority<C>,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        assert!(
+            supply_policy::regulated(collection::supply_policy(mint)),
+            err::supply_policy_mismatch(),
+        );
+
+        let nft = nft::new<C>(ctx);
+
+        collection::increment_supply(mint, 1);
+
+        display::add_display_domain(
+            &mut nft,
+            name,
+            description,
+            ctx,
+        );
+
+        nft
+    }
+
+    public fun fast_mint<C>(
         name: String,
         description: String,
         _url: Url,
