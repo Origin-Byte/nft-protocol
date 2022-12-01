@@ -14,6 +14,7 @@
 //! `buy_whitelisted_nft_certificate`
 module nft_protocol::fixed_price {
     use sui::pay;
+    use sui::balance;
     use sui::sui::{SUI};
     use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
@@ -21,8 +22,8 @@ module nft_protocol::fixed_price {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::generic;
-    use nft_protocol::launchpad::{Self, Launchpad, Trebuchet};
+    use nft_protocol::object_box;
+    use nft_protocol::launchpad::{Self, Launchpad, Slot};
     use nft_protocol::outlet::{Self, Outlet};
     use nft_protocol::whitelist::{Self, Whitelist};
 
@@ -46,8 +47,7 @@ module nft_protocol::fixed_price {
     ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun create_market(
-        launchpad: &mut Launchpad,
-        trebuchet: &mut Trebuchet,
+        slot: &mut Slot,
         tier: u64,
         is_whitelisted: bool,
         price: u64,
@@ -59,9 +59,9 @@ module nft_protocol::fixed_price {
             ctx,
         );
 
-        let market = generic::new(ctx);
+        let market = object_box::empty(ctx);
 
-        generic::add_object(
+        object_box::add_object(
             &mut market,
             FixedPriceMarket {
                 id: object::new(ctx),
@@ -72,8 +72,7 @@ module nft_protocol::fixed_price {
         );
 
         launchpad::add_market(
-            launchpad,
-            trebuchet,
+            slot,
             market,
         );
     }
@@ -86,20 +85,20 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_nft_certificate(
-        wallet: &mut Coin<SUI>,
+    public entry fun buy_nft_certificate<C: key + store>(
         launchpad: &mut Launchpad,
-        trebuchet: &mut Trebuchet,
+        slot: &mut Slot,
+        funds: Coin<C>,
         market: &mut FixedPriceMarket,
         tier_index: u64,
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(launchpad::live(launchpad, trebuchet) == true, err::launchpad_not_live());
+        assert!(launchpad::live(slot) == true, err::launchpad_not_live());
 
-        let launchpad_id = launchpad::id(launchpad, trebuchet);
+        let launchpad_id = launchpad::id(slot);
 
-        let receiver = launchpad::receiver(launchpad, trebuchet);
+        let receiver = launchpad::receiver(slot);
 
         // Infer that sales is NOT whitelisted
         assert!(
@@ -109,25 +108,40 @@ module nft_protocol::fixed_price {
 
         let price = market.price;
 
-        assert!(coin::value(wallet) > price, err::coin_amount_below_price());
+        assert!(coin::value(&funds) > price, err::coin_amount_below_price());
 
-        let fee_amount = launchpad::fee(launchpad, trebuchet) * price;
-        let net_price = price - fee_amount;
-
-        let fee = coin::split<SUI>(
-            wallet,
-            fee_amount,
+        let change = coin::split<C>(
+            &mut funds,
+            price,
             ctx,
         );
 
-        // Split coin into price and change, then transfer
-        // the price and keep the change
-        pay::split_and_transfer<SUI>(
-            wallet,
-            net_price,
-            receiver,
-            ctx
+        let balance = coin::into_balance(funds);
+
+        let proceeds = launchpad::proceeds_mut<C>(
+            launchpad,
+            launchpad::id(slot),
         );
+
+        balance::join(proceeds, balance);
+
+        // let fee_amount = launchpad::fee(slot) * price;
+        // let net_price = price - fee_amount;
+
+        // let fee = coin::split<SUI>(
+        //     funds,
+        //     fee_amount,
+        //     ctx,
+        // );
+
+        // // Split coin into price and change, then transfer
+        // // the price and keep the change
+        // pay::split_and_transfer<SUI>(
+        //     funds,
+        //     net_price,
+        //     receiver,
+        //     ctx
+        // );
 
         let certificate = outlet::issue_nft_certificate(
             &mut market.outlet,
@@ -150,7 +164,7 @@ module nft_protocol::fixed_price {
     public entry fun buy_whitelisted_nft_certificate(
         wallet: &mut Coin<SUI>,
         launchpad: &mut Launchpad,
-        trebuchet: &mut Trebuchet,
+        trebuchet: &mut Slot,
         market: &mut FixedPriceMarket,
         tier_index: u64,
         whitelist_token: Whitelist,
@@ -208,7 +222,7 @@ module nft_protocol::fixed_price {
     /// making the NFT sale live. Permissioned endpoint to be called by `admin`.
     public entry fun sale_on(
         launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
+        slingshot: &mut Slot,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -222,7 +236,7 @@ module nft_protocol::fixed_price {
     /// pausing or stopping the NFT sale. Permissioned endpoint to be called by `admin`.
     public entry fun sale_off(
         launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
+        slingshot: &mut Slot,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -236,7 +250,7 @@ module nft_protocol::fixed_price {
     /// of the launchpad configuration.
     public entry fun new_price(
         launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
+        slingshot: &mut Slot,
         market: &mut FixedPriceMarket,
         new_price: u64,
         ctx: &mut TxContext,

@@ -1,31 +1,34 @@
-//! Module of a generic `Trebuchet` type.
+//! Module of a generic `Slot` type.
 //!
 //! It acts as a generic interface for Launchpads and it allows for
 //! the creation of arbitrary domain specific implementations.
 //!
-//! The slingshot acts as the object that configures the primary NFT release
+//! The slot acts as the object that configures the primary NFT release
 //! strategy, that is the primary market sale. Primary market sales can take
 //! many shapes, depending on the business level requirements.
 module nft_protocol::launchpad {
     use std::vector;
 
+    use sui::transfer;
+    use sui::table::{Self, Table};
     use sui::object::{Self, ID , UID};
+    use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
-    use sui::object_table::{Self, ObjectTable};
 
     use nft_protocol::err;
     use nft_protocol::outlet::{Outlet};
-    use nft_protocol::generic::{Self, Generic};
+    use nft_protocol::box::{Self, Box};
+    use nft_protocol::object_box::{Self, ObjectBox};
 
     struct Launchpad has key, store{
         id: UID,
         /// The address of the administrator
         admin: address,
         permissionless: bool,
-        launches: ObjectTable<ID, Trebuchet>,
+        proceeds: Table<ID, Box>,
     }
 
-    struct Trebuchet has key, store{
+    struct Slot has key, store{
         id: UID,
         /// The ID of the Collections object
         collections: vector<ID>,
@@ -35,22 +38,22 @@ module nft_protocol::launchpad {
         admin: address,
         /// The address of the receiver of funds
         receiver: address,
-        /// Vector of all markets outlets that, each outles holding IDs owned by the slingshot
-        markets: vector<Generic>,
+        /// Vector of all markets outlets that, each outles holding IDs owned by the slot
+        markets: vector<ObjectBox>,
         /// Field determining if NFTs are embedded or looose.
-        /// Embedded NFTs will be directly owned by the Trebuchet whilst
+        /// Embedded NFTs will be directly owned by the Slot whilst
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
         fee: u64,
     }
 
-    struct CreateTrebuchetEvent has copy, drop {
+    struct CreateSlotEvent has copy, drop {
         object_id: ID,
         collection_id: ID,
     }
 
-    struct DeleteTrebuchetEvent has copy, drop {
+    struct DeleteSlotEvent has copy, drop {
         object_id: ID,
         collection_id: ID,
     }
@@ -71,26 +74,25 @@ module nft_protocol::launchpad {
             id: uid,
             admin,
             permissionless,
-            launches: object_table::new<ID, Trebuchet>(ctx),
+            proceeds: table::new<ID, Box>(ctx),
         };
     }
 
-    // === Trebuchet Functions ===
+    // === Slot Functions ===
 
-    /// Initialises a `Trebuchet` object and adds it to the `Launchpad` object
-    public fun init_trebuchet(
+    /// Initialises a `Slot` object and adds it to the `Launchpad` object
+    public fun init_slot<C: store + drop>(
         launchpad: &mut Launchpad,
-        admin: address,
+        slot_admin: address,
         collections: vector<ID>,
         receiver: address,
         is_embedded: bool,
         fee: u64,
         ctx: &mut TxContext,
     ) {
-        let uid = object::new(ctx);
-
-        let id = object::uid_to_inner(&uid);
-
+        // If the launchpad is permissionless, anyone can call this function
+        // and create its slot. If not, only the launchpad admin can create the
+        // slot
         if (launchpad.permissionless == false) {
             assert!(
                 tx_context::sender(ctx) == launchpad.admin,
@@ -98,173 +100,179 @@ module nft_protocol::launchpad {
             );
         };
 
+        let uid = object::new(ctx);
+        let id = object::uid_to_inner(&uid);
+
         let markets = vector::empty();
 
-        let slingshot = Trebuchet {
+        let slot = Slot {
             id: uid,
             collections,
             live: false,
-            admin,
+            admin: slot_admin,
             receiver,
             markets,
             is_embedded,
             fee,
         };
 
-        object_table::add(&mut launchpad.launches, id, slingshot);
+        table::add(
+            &mut launchpad.proceeds,
+            id,
+            box::new(
+                balance::zero<C>(),
+                ctx,
+            ),
+        );
+
+        transfer::share_object(slot);
     }
-
-    // /// Burn the `Trebuchet`
-    // public fun delete(
-    //     slingshot: Trebuchet,
-    //     ctx: &mut TxContext,
-    // ): vector<Outlet> {
-    //     assert!(
-    //         tx_context::sender(ctx) == admin(&slingshot),
-    //         err::wrong_launchpad_admin()
-    //     );
-
-    //     let Trebuchet {
-    //         id,
-    //         collection_id: _,
-    //         live: _,
-    //         admin: _,
-    //         receiver: _,
-    //         sales,
-    //         is_embedded: _,
-    //     } = slingshot;
-
-    //     object::delete(id);
-
-    //     sales
-    // }
 
     // === Modifier Functions ===
 
-    /// Toggle the Trebuchet's `live` to `true` therefore
+    /// Toggle the Slot's `live` to `true` therefore
     /// making the NFT sale live.
     public fun sale_on(
-        _launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
+        slot: &mut Slot,
+        ctx: &mut TxContext,
     ) {
-        slingshot.live = true
+        assert!(
+            tx_context::sender(ctx) == slot.admin,
+            err::wrong_launchpad_admin()
+        );
+
+        slot.live = true
     }
 
-    /// Toggle the Trebuchet's `live` to `false` therefore
+    /// Toggle the Slot's `live` to `false` therefore
     /// pausing or stopping the NFT sale.
     public fun sale_off(
-        _launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
+        slot: &mut Slot,
+        ctx: &mut TxContext,
     ) {
-        slingshot.live = false
+        assert!(
+            tx_context::sender(ctx) == slot.admin,
+            err::wrong_launchpad_admin()
+        );
+
+        slot.live = false
     }
 
     /// Adds a sale outlet `Outlet` to `sales` field
     public fun add_market(
-        _launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
-        market: Generic,
+        slot: &mut Slot,
+        market: ObjectBox,
     ) {
-        vector::push_back(&mut slingshot.markets, market);
+        vector::push_back(&mut slot.markets, market);
     }
 
     // === Getter Functions ===
 
-    /// Get the Trebuchet `id`
+    /// Get the Slot `id`
     public fun id(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): ID {
-        object::uid_to_inner(&slingshot.id)
+        object::uid_to_inner(&slot.id)
     }
 
-    /// Get the Trebuchet `id` as reference
+    /// Get the Slot `id` as reference
     public fun id_ref(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): &ID {
-        object::uid_as_inner(&slingshot.id)
+        object::uid_as_inner(&slot.id)
     }
 
-    /// Get the Trebuchet's `collection_id`
+    /// Get the Slot's `collection_id`
     public fun collections(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): &vector<ID> {
-        &slingshot.collections
+        &slot.collections
     }
 
-    /// Get the Trebuchet's `live`
+    /// Get the Slot's `live`
     public fun live(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): bool {
-        slingshot.live
+        slot.live
     }
 
-    /// Get the Trebuchet's `receiver` address
+    /// Get the Slot's `receiver` address
     public fun receiver(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): address {
-        slingshot.receiver
+        slot.receiver
     }
 
-    /// Get the Trebuchet's `admin` address
+    /// Get the Slot's `admin` address
     public fun admin(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): address {
-        slingshot.admin
+        slot.admin
     }
 
-    /// Get the Trebuchet's sale `Outlet` address
+    /// Get the Slot's sale `Outlet` address
     public fun sales(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
-    ): &vector<Generic> {
-        &slingshot.markets
+        slot: &Slot,
+    ): &vector<ObjectBox> {
+        &slot.markets
     }
 
-    /// Get the Trebuchet's `sales` address mutably
+    /// Get the Slot's `sales` address mutably
     public fun sales_mut(
-        _launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
-    ): &mut vector<Generic> {
-        &mut slingshot.markets
+        slot: &mut Slot,
+    ): &mut vector<ObjectBox> {
+        &mut slot.markets
     }
 
-    /// Get the Trebuchet's `sale` address
-    public fun market(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
-        index: u64,
-    ): &Generic {
-        vector::borrow(&slingshot.markets, index)
-    }
+    // /// Get the Slot's `sale` address
+    // public fun market(
+    //     slot: &Slot,
+    //     index: u64,
+    // ): &Generic {
+    //     vector::borrow(&slot.markets, index)
+    // }
 
-    /// Get the Trebuchet's `sale` address mutably
-    public fun market_mut(
-        _launchpad: &mut Launchpad,
-        slingshot: &mut Trebuchet,
-        index: u64,
-    ): &mut Generic {
-        vector::borrow_mut(&mut slingshot.markets, index)
-    }
+    // /// Get the Slot's `sale` address mutably
+    // public fun market_mut(
+    //     slot: &mut Slot,
+    //     index: u64,
+    // ): &mut Generic {
+    //     vector::borrow_mut(&mut slot.markets, index)
+    // }
 
-    /// Get the Trebuchet's `is_embedded` bool
+    /// Get the Slot's `is_embedded` bool
     public fun is_embedded(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): bool {
-        slingshot.is_embedded
+        slot.is_embedded
     }
 
-     /// Get the Trebuchet's `fee` amount
+    /// Get the Slot's `fee` amount
     public fun fee(
-        _launchpad: &Launchpad,
-        slingshot: &Trebuchet,
+        slot: &Slot,
     ): u64 {
-        slingshot.fee
+        slot.fee
+    }
+
+    public fun proceeds<C: key + store>(
+        launchpad: &Launchpad,
+        slot_id: ID,
+    ): &Balance<C> {
+        let box = box::borrow_object<Balance<C>>(
+            table::borrow<ID, Box>(&launchpad.proceeds, slot_id)
+        );
+
+        box
+    }
+
+    public fun proceeds_mut<C: key + store>(
+        launchpad: &mut Launchpad,
+        slot_id: ID,
+    ): &mut Balance<C> {
+        let box = box::borrow_object_mut<Balance<C>>(
+            table::borrow_mut<ID, Box>(&mut launchpad.proceeds, slot_id)
+        );
+
+        box
     }
 }
