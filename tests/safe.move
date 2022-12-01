@@ -774,7 +774,6 @@ module nft_protocol::test_safe {
 
     fun dummy_whitelist(scenario: &mut Scenario): Whitelist {
         let col = collection::create<Foo>(
-            b"foo",
             1,
             vector::empty(),
             true,
