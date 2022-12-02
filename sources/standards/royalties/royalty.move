@@ -133,6 +133,7 @@ module nft_protocol::royalty {
     ) {
         let royalty_owed = calculate(domain, amount);
         let b = balance::split(source, royalty_owed);
+
         let contains_ft_balance = bag::contains_with_type<BalanceKey<FT>, Balance<FT>>(
             &domain.aggregator,
             BalanceKey<FT> {},
@@ -141,9 +142,10 @@ module nft_protocol::royalty {
         if (!contains_ft_balance) {
             bag::add(&mut domain.aggregator, BalanceKey<FT> {}, b);
         } else {
-            let a: &mut Balance<FT> =
-                bag::borrow_mut(&mut domain.aggregator, BalanceKey<FT> {});
-            balance::join(a, b);
+            balance::join(
+                bag::borrow_mut(&mut domain.aggregator, BalanceKey<FT> {}),
+                b,
+            );
         }
     }
 
