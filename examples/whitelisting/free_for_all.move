@@ -8,6 +8,8 @@ module nft_protocol::example_free_for_all {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
+
+    use sui::sui::SUI;
     use sui::transfer::share_object;
     use sui::tx_context::TxContext;
 
@@ -28,11 +30,8 @@ module nft_protocol::example_free_for_all {
         list: &mut Whitelist,
         ctx: &mut TxContext,
     ) {
-        transfer_whitelist::insert_collection(
-            Witness {},
-            collection,
-            list,
-            ctx,
+        transfer_whitelist::insert_collection<Witness, T, SUI>(
+            Witness {}, collection, list, ctx,
         );
     }
 

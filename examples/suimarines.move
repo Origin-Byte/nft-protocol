@@ -3,16 +3,17 @@ module nft_protocol::suimarines {
     use std::string;
 
     use sui::balance;
-    use sui::coin;
+    use sui::sui::SUI;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::ext;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display;
     use nft_protocol::fixed_price;
     use nft_protocol::nft;
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::royalty_bps;
+    use nft_protocol::royalty;
     use nft_protocol::sale::{Self, NftCertificate};
 
     /// One time witness is only instantiated in the init method
@@ -52,11 +53,17 @@ module nft_protocol::suimarines {
             string::utf8(b"SUIM")
         );
 
-        royalty_bps::add_collection_royalty_domain(
-            &mut collection,
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // royalty receiver
-            100, // royalty fee bps
+        let royalty_domain = royalty::from_address<SUI>(
+            @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
+            ctx,
         );
+
+        let royalty_domain = royalty::use_proportional_royalty(
+            royalty_domain,
+            nft_protocol::royalty_strategy_bps::new(100),
+        );
+
+        ext::add_collection_royalty_domain(&mut collection, royalty_domain);
 
         let collection_id = collection::share<SUIMARINES>(collection);
 
@@ -81,18 +88,14 @@ module nft_protocol::suimarines {
 
     public entry fun collect_royalty<FT>(
         payment: &mut TradePayment<SUIMARINES, FT>,
-        collection: &Collection<SUIMARINES>,
+        collection: &mut Collection<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
-        let domain = royalty_bps::collection_royalty_domain(collection);
-
         let b = royalties::balance_mut(Witness {}, payment);
-        let royalty = royalty_bps::calculate(domain, balance::value(b));
 
-        transfer(
-            coin::take(b, royalty, ctx),
-            royalty_bps::receiver(domain),
-        );
+        let domain = ext::collection_royalty_domain_mut(collection);
+        let trade_value = balance::value(b);
+        royalty::transfer_royalties(domain, b, trade_value);
 
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }

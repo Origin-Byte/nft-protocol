@@ -1,11 +1,15 @@
 #[test_only]
 module nft_protocol::test_safe {
+    use nft_protocol::ext;
     use nft_protocol::collection;
+    use nft_protocol::royalty;
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use std::vector;
+
     use sui::object;
+    use sui::sui::SUI;
     use sui::test_scenario::{Self, Scenario, ctx};
     use sui::transfer::transfer;
 
@@ -780,10 +784,12 @@ module nft_protocol::test_safe {
             USER,
             ctx(scenario),
         );
-        collection::add_creator(&mut col, USER, 0);
+
+        let royalty_domain = royalty::from_address(USER, ctx(scenario));
+        ext::add_collection_royalty_domain<Foo, SUI>(&mut col, royalty_domain);
 
         let wl = transfer_whitelist::create(Witness {}, ctx(scenario));
-        transfer_whitelist::insert_collection(
+        transfer_whitelist::insert_collection<Witness, Foo, SUI>(
             Witness {},
             &col,
             &mut wl,

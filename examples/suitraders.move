@@ -6,7 +6,6 @@ module nft_protocol::suitraders {
 
     use nft_protocol::dutch_auction;
     use nft_protocol::collection;
-
     use nft_protocol::display;
 
     struct SUITRADERS has drop {}
