@@ -162,7 +162,7 @@ module nft_protocol::transfer_whitelist {
         ctx: &mut TxContext,
     ) {
         assert!(
-            collection::has_domain<T, RoyaltyDomain<FT>>(collection),
+            collection::has_domain<T, RoyaltyDomain>(collection),
             err::sender_not_collection_creator(),
         );
 
@@ -170,7 +170,7 @@ module nft_protocol::transfer_whitelist {
         // to whitelist?
         assert!(
             royalty::contains_attribution(
-                collection::borrow_domain<T, RoyaltyDomain<FT>>(collection),
+                collection::borrow_domain<T, RoyaltyDomain>(collection),
                 tx_context::sender(ctx),
             ),
             err::sender_not_collection_creator(),

@@ -3,7 +3,6 @@ module nft_protocol::suimarines {
     use std::string;
 
     use sui::balance;
-    use sui::sui::SUI;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -53,7 +52,7 @@ module nft_protocol::suimarines {
             string::utf8(b"SUIM")
         );
 
-        let royalty_domain = royalty::from_address<SUI>(
+        let royalty_domain = royalty::from_address(
             @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
             ctx,
         );
