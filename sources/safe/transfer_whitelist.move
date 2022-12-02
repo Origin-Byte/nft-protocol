@@ -58,13 +58,13 @@ module nft_protocol::transfer_whitelist {
     /// collection to the whitelist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the whitelist owner a way to combat spam.
-    public fun insert_collection<Admin: drop, T, FT>(
+    public fun insert_collection<Admin: drop, T>(
         _whitelist_witness: Admin,
         collection: &Collection<T>,
         list: &mut Whitelist,
         ctx: &mut TxContext,
     ) {
-        assert_is_creator<T, FT>(collection, ctx);
+        assert_is_creator<T>(collection, ctx);
         assert_admin_witness<Admin>(list);
 
         vec_set::insert(&mut list.collections, type_name::get<T>());
@@ -75,12 +75,12 @@ module nft_protocol::transfer_whitelist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public fun remove_itself<T, FT>(
+    public fun remove_itself<T>(
         collection: &Collection<T>,
         list: &mut Whitelist,
         ctx: &mut TxContext,
     ) {
-        assert_is_creator<T, FT>(collection, ctx);
+        assert_is_creator<T>(collection, ctx);
 
         vec_set::remove(&mut list.collections, &type_name::get<T>());
     }
@@ -157,23 +157,18 @@ module nft_protocol::transfer_whitelist {
 
     // === Utility functions ===
 
-    fun assert_is_creator<T, FT>(
+    fun assert_is_creator<T>(
         collection: &Collection<T>,
         ctx: &mut TxContext,
     ) {
         assert!(
             collection::has_domain<T, RoyaltyDomain>(collection),
-            err::sender_not_collection_creator(),
+            err::address_not_attributed(),
         );
 
-        // TODO: What to do if royalty is unattributed, can anyone freely add
-        // to whitelist?
-        assert!(
-            royalty::contains_attribution(
-                collection::borrow_domain<T, RoyaltyDomain>(collection),
-                tx_context::sender(ctx),
-            ),
-            err::sender_not_collection_creator(),
+        royalty::assert_is_creator(
+            collection::borrow_domain<T, RoyaltyDomain>(collection),
+            tx_context::sender(ctx),
         );
     }
 

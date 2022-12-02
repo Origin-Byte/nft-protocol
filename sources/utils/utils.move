@@ -7,6 +7,13 @@ module nft_protocol::utils {
     use std::type_name;
     use std::vector;
 
+    /// Used to mark type fields in dynamic fields
+    struct Marker<phantom T> has copy, drop, store {}
+
+    public fun marker<T>(): Marker<T> {
+        Marker<T> {}
+    }
+
     /// This key does not exist in the map
     const ValueDoesNotExist: u64 = 1;
 

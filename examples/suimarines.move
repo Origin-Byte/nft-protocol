@@ -57,9 +57,10 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        let royalty_domain = royalty::use_proportional_royalty(
-            royalty_domain,
+        royalty::add_proportional_royalty(
+            &mut royalty_domain,
             nft_protocol::royalty_strategy_bps::new(100),
+            ctx,
         );
 
         ext::add_collection_royalty_domain(&mut collection, royalty_domain);

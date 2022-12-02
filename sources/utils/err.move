@@ -167,10 +167,6 @@ module nft_protocol::err {
         return Prefix + 500
     }
 
-    public fun sender_not_collection_creator(): u64 {
-        return Prefix + 501
-    }
-
     public fun sender_not_whitelist_admin(): u64 {
         return Prefix + 502
     }

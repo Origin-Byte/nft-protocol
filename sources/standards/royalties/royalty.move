@@ -5,28 +5,24 @@ module nft_protocol::royalty {
     use std::option;
 
     use sui::balance::{Self, Balance};
-    use sui::object::{Self, UID};
-    use sui::tx_context::TxContext;
-    use sui::dynamic_field::{Self as df};
+    use sui::tx_context::{Self, TxContext};
     use sui::bag::{Self, Bag};
 
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::attribution::{Self, Attributions, Creator};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty_strategy_constant::{
         Self, ConstantRoyaltyStrategy
     };
 
-    struct RoyaltyDomain has key, store {
-        id: UID,
-        /// Associates Balances of different coins.
-        aggregator: Bag,
+    struct RoyaltyDomain has store {
         /// Royalty attributions
         attributions: Attributions,
+        /// Royalty strategies
+        strategies: Bag,
+        /// Aggregates received royalties across different coins
+        aggregations: Bag,
     }
-
-    /// Different FT aggregators can be found under appropriate key in the
-    /// royalty domain's bag.
-    struct BalanceKey<phantom FT> has copy, drop, store {}
 
     public fun attributions(domain: &RoyaltyDomain): &Attributions {
         &domain.attributions
@@ -56,9 +52,9 @@ module nft_protocol::royalty {
     /// Creates a `RoyaltyDomain` object with a single creator attribution.
     public fun from_address(who: address, ctx: &mut TxContext): RoyaltyDomain {
         RoyaltyDomain {
-            id: object::new(ctx),
-            aggregator: bag::new(ctx),
             attributions: attribution::from_address(who),
+            strategies: bag::new(ctx),
+            aggregations: bag::new(ctx),
         }
     }
 
@@ -68,57 +64,97 @@ module nft_protocol::royalty {
         ctx: &mut TxContext
     ): RoyaltyDomain {
         RoyaltyDomain {
-            id: object::new(ctx),
-            aggregator: bag::new(ctx),
             attributions: attribution::from_creators(creators),
+            strategies: bag::new(ctx),
+            aggregations: bag::new(ctx),
         }
     }
 
     /// === Royalties ===
 
-    // Take owned value to only allow calling during construction
-    public fun use_proportional_royalty(
-        domain: RoyaltyDomain,
-        strategy: BpsRoyaltyStrategy
-    ): RoyaltyDomain {
-        df::add(&mut domain.id, royalty_strategy_bps::name(), strategy);
-        domain
+    public fun add_proportional_royalty(
+        domain: &mut RoyaltyDomain,
+        strategy: BpsRoyaltyStrategy,
+        ctx: &mut TxContext,
+    ) {
+        assert_is_creator(domain, tx_context::sender(ctx));
+
+        bag::add(
+            &mut domain.strategies,
+            utils::marker<BpsRoyaltyStrategy>(),
+            strategy
+        );
+    }
+
+    public fun add_constant_royalty<FT>(
+        domain: &mut RoyaltyDomain,
+        strategy: ConstantRoyaltyStrategy,
+        ctx: &mut TxContext,
+    ) {
+        assert_is_creator(domain, tx_context::sender(ctx));
+
+        bag::add(
+            &mut domain.strategies,
+            utils::marker<ConstantRoyaltyStrategy>(),
+            strategy
+        );
     }
 
     // Take owned value to only allow calling during construction
-    public fun use_constant_royalty(
-        domain: RoyaltyDomain,
-        strategy: ConstantRoyaltyStrategy
-    ): RoyaltyDomain {
-        df::add(&mut domain.id, royalty_strategy_constant::name(), strategy);
-        domain
+    public fun remove_proportional_royalty(
+        domain: &mut RoyaltyDomain,
+        ctx: &mut TxContext,
+    ) {
+        assert_is_creator(domain, tx_context::sender(ctx));
+
+        bag::remove<Marker<BpsRoyaltyStrategy>, BpsRoyaltyStrategy>(
+            &mut domain.strategies,
+            utils::marker<BpsRoyaltyStrategy>()
+        );
     }
+
+    // Take owned value to only allow calling during construction
+    public fun remove_constant_royalty<FT>(
+        domain: &mut RoyaltyDomain,
+        ctx: &mut TxContext,
+    ) {
+        assert_is_creator(domain, tx_context::sender(ctx));
+
+        bag::remove<Marker<ConstantRoyaltyStrategy>, ConstantRoyaltyStrategy>(
+            &mut domain.strategies,
+            utils::marker<ConstantRoyaltyStrategy>()
+        );
+    }
+
+    /// === Interoperability ===
 
     /// Calculate owed royalties from all the strategies defined on the domain
     public fun calculate(domain: &RoyaltyDomain, amount: u64): u64 {
         let royalty = 0;
 
-        let bps_strategy_name = royalty_strategy_bps::name();
-        if (df::exists_with_type<vector<u8>, BpsRoyaltyStrategy>(
-            &domain.id,
-            bps_strategy_name
-        )) {
-            let strategy = df::borrow<vector<u8>, BpsRoyaltyStrategy>(
-                &domain.id,
-                bps_strategy_name
+        let bps_strategy = utils::marker<BpsRoyaltyStrategy>();
+        if (
+            bag::contains_with_type<
+                Marker<BpsRoyaltyStrategy>, BpsRoyaltyStrategy
+            >(&domain.strategies, bps_strategy)
+        ) {
+            let strategy: &BpsRoyaltyStrategy = bag::borrow(
+                &domain.strategies,
+                bps_strategy,
             );
             royalty = royalty +
                 royalty_strategy_bps::calculate(strategy, amount);
         };
 
-        let constant_strategy_name = royalty_strategy_constant::name();
-        if (df::exists_with_type<vector<u8>, ConstantRoyaltyStrategy>(
-            &domain.id,
-            constant_strategy_name
-        )) {
-            let strategy = df::borrow<vector<u8>, ConstantRoyaltyStrategy>(
-                &domain.id,
-                constant_strategy_name
+        let constant_strategy = utils::marker<ConstantRoyaltyStrategy>();
+        if (
+            bag::contains_with_type<
+                Marker<ConstantRoyaltyStrategy>, ConstantRoyaltyStrategy
+            >(&domain.strategies, constant_strategy)
+        ) {
+            let strategy: &ConstantRoyaltyStrategy = bag::borrow(
+                &domain.strategies,
+                constant_strategy
             );
             royalty = royalty + royalty_strategy_constant::calculate(strategy);
         };
@@ -134,22 +170,30 @@ module nft_protocol::royalty {
         let royalty_owed = calculate(domain, amount);
         let b = balance::split(source, royalty_owed);
 
-        let contains_ft_balance = bag::contains_with_type<BalanceKey<FT>, Balance<FT>>(
-            &domain.aggregator,
-            BalanceKey<FT> {},
+        if (!bag::contains_with_type<utils::Marker<Balance<FT>>, Balance<FT>>(
+            &domain.aggregations,
+            utils::marker<Balance<FT>>()
+        )) {
+            bag::add(
+                &mut domain.aggregations,
+                utils::marker<Balance<FT>>(),
+                balance::zero<FT>(),
+            );
+        };
+
+        let aggregate = bag::borrow_mut(
+            &mut domain.aggregations,
+            utils::marker<Balance<FT>>()
         );
 
-        if (!contains_ft_balance) {
-            bag::add(&mut domain.aggregator, BalanceKey<FT> {}, b);
-        } else {
-            balance::join(
-                bag::borrow_mut(&mut domain.aggregator, BalanceKey<FT> {}),
-                b,
-            );
-        }
+        balance::join(aggregate, b);
     }
 
-    /// === Interoperability ===
+    /// === Utils ===
+
+    public fun assert_is_creator(domain: &RoyaltyDomain, who: address ) {
+        attribution::assert_is_creator(&domain.attributions, who);
+    }
 
     struct Witness has drop {}
 

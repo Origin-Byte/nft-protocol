@@ -4,9 +4,8 @@
 //! the creation of arbitrary domain specific implementations.
 module nft_protocol::nft {
     use nft_protocol::err;
-    use nft_protocol::domain::{domain_key, DomainKey};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
-    use nft_protocol::utils;
+    use nft_protocol::utils::{Self, Marker};
 
     use sui::bag::{Self, Bag};
     use sui::object::{Self, UID};
@@ -30,11 +29,11 @@ module nft_protocol::nft {
     // === Domain Functions ===
 
     public fun has_domain<C, D: store>(nft: &NFT<C>): bool {
-        bag::contains_with_type<DomainKey, D>(&nft.bag, domain_key<D>())
+        bag::contains_with_type<Marker<D>, D>(&nft.bag, utils::marker<D>())
     }
 
     public fun borrow_domain<C, D: store>(nft: &NFT<C>): &D {
-        bag::borrow<DomainKey, D>(&nft.bag, domain_key<D>())
+        bag::borrow<Marker<D>, D>(&nft.bag, utils::marker<D>())
     }
 
     public fun borrow_domain_mut<C, D: store, W: drop>(
@@ -42,7 +41,7 @@ module nft_protocol::nft {
         nft: &mut NFT<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<DomainKey, D>(&mut nft.bag, domain_key<D>())
+        bag::borrow_mut<Marker<D>, D>(&mut nft.bag, utils::marker<D>())
     }
 
     public fun add_domain<C, V: store>(
@@ -57,7 +56,7 @@ module nft_protocol::nft {
             err::not_nft_owner()
         );
 
-        bag::add(&mut nft.bag, domain_key<V>(), v);
+        bag::add(&mut nft.bag, utils::marker<V>(), v);
     }
 
     public fun remove_domain<C, W: drop, V: store>(
@@ -65,7 +64,7 @@ module nft_protocol::nft {
         nft: &mut NFT<C>,
     ): V {
         utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut nft.bag, domain_key<V>())
+        bag::remove(&mut nft.bag, utils::marker<V>())
     }
 
     // === Transfer Functions ===

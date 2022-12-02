@@ -104,14 +104,7 @@ module nft_protocol::attribution {
         new_creator: Creator,
         ctx: &mut TxContext,
     ) {
-        let tentative_index = index(attributions, tx_context::sender(ctx));
-
-        assert!(
-            option::is_some(&tentative_index),
-            err::address_not_attributed()
-        );
-
-        let creator_index = option::destroy_some(tentative_index);
+        let creator_index = assert_is_creator(attributions, tx_context::sender(ctx));
         let creator = get_mut(attributions, creator_index);
 
         assert!(
@@ -149,17 +142,8 @@ module nft_protocol::attribution {
         let creator = remove_creator(attributions, ctx);
 
         // Get creator to which shares will be transfered
-        let tentative_index = index(attributions, to);
-
-        assert!(
-            option::is_some(&tentative_index),
-            err::address_not_attributed()
-        );
-
-        let beneficiary = get_mut(
-            attributions,
-            option::destroy_some(tentative_index)
-        );
+        let beneficiary_index = assert_is_creator(attributions, to);
+        let beneficiary = get_mut(attributions, beneficiary_index);
 
         beneficiary.share_of_royalty_bps =
             beneficiary.share_of_royalty_bps + creator.share_of_royalty_bps;
@@ -169,18 +153,15 @@ module nft_protocol::attribution {
         attributions: &mut Attributions,
         ctx: &mut TxContext,
     ): Creator {
-        let tentative_index = index(attributions, tx_context::sender(ctx));
-
-        assert!(
-            option::is_some(&tentative_index),
-            err::address_not_attributed()
-        );
+        let index = assert_is_creator(attributions, tx_context::sender(ctx));
 
         vector::swap_remove(
             &mut attributions.creators,
-            (option::destroy_some(tentative_index) as u64)
+            (index as u64)
         )
     }
+
+    /// === Utils ===
 
     fun assert_total_shares(attributions: &Attributions) {
         let bps_total = 0;
@@ -193,5 +174,19 @@ module nft_protocol::attribution {
         };
 
         assert!(bps_total == BPS, err::invalid_total_share_of_royalties());
+    }
+
+    public fun assert_is_creator(
+        attributions: &Attributions,
+        who: address
+    ): u16 {
+        let tentative_index = index(attributions, who);
+
+        assert!(
+            option::is_some(&tentative_index),
+            err::address_not_attributed()
+        );
+
+        option::destroy_some(tentative_index)
     }
 }
