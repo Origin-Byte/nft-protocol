@@ -12,41 +12,41 @@ module nft_protocol::ext {
 
     /// === RoyaltyDomain ===
 
-    public fun royalty_domain<C, FT>(
+    public fun royalty_domain<C>(
         nft: &NFT<C>,
-    ): &RoyaltyDomain<FT> {
+    ): &RoyaltyDomain {
         nft::borrow_domain(nft)
     }
 
-    public fun collection_royalty_domain<C, FT>(
+    public fun collection_royalty_domain<C>(
         nft: &Collection<C>,
-    ): &RoyaltyDomain<FT> {
+    ): &RoyaltyDomain {
         collection::borrow_domain(nft)
     }
 
-    public fun royalty_domain_mut<C, FT>(
+    public fun royalty_domain_mut<C>(
         nft: &mut NFT<C>,
-    ): &mut RoyaltyDomain<FT> {
+    ): &mut RoyaltyDomain {
         nft::borrow_domain_mut(royalty::witness(), nft)
     }
 
-    public fun collection_royalty_domain_mut<C, FT>(
+    public fun collection_royalty_domain_mut<C>(
         nft: &mut Collection<C>,
-    ): &mut RoyaltyDomain<FT> {
+    ): &mut RoyaltyDomain {
         collection::borrow_domain_mut(royalty::witness(), nft)
     }
 
-    public fun add_royalty_domain<C, FT>(
+    public fun add_royalty_domain<C>(
         nft: &mut NFT<C>,
-        domain: RoyaltyDomain<FT>,
+        domain: RoyaltyDomain,
         ctx: &mut TxContext,
     ) {
         nft::add_domain(nft, domain, ctx);
     }
 
-    public fun add_collection_royalty_domain<C, FT>(
+    public fun add_collection_royalty_domain<C>(
         nft: &mut Collection<C>,
-        domain: RoyaltyDomain<FT>,
+        domain: RoyaltyDomain,
     ) {
         collection::add_domain(nft, domain);
     }

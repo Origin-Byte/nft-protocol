@@ -786,7 +786,7 @@ module nft_protocol::test_safe {
         );
 
         let royalty_domain = royalty::from_address(USER, ctx(scenario));
-        ext::add_collection_royalty_domain<Foo, SUI>(&mut col, royalty_domain);
+        ext::add_collection_royalty_domain<Foo>(&mut col, royalty_domain);
 
         let wl = transfer_whitelist::create(Witness {}, ctx(scenario));
         transfer_whitelist::insert_collection<Witness, Foo, SUI>(

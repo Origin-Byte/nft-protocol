@@ -8,6 +8,7 @@ module nft_protocol::royalty {
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field::{Self as df};
+    use sui::bag::{Self, Bag};
 
     use nft_protocol::attribution::{Self, Attributions, Creator};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
@@ -15,23 +16,27 @@ module nft_protocol::royalty {
         Self, ConstantRoyaltyStrategy
     };
 
-    struct RoyaltyDomain<phantom FT> has key, store {
+    struct RoyaltyDomain has key, store {
         id: UID,
-        /// Aggregates received royalties
-        aggregator: Balance<FT>,
+        /// Associates Balances of different coins.
+        aggregator: Bag,
         /// Royalty attributions
         attributions: Attributions,
     }
 
-    public fun attributions<FT>(domain: &RoyaltyDomain<FT>): &Attributions {
+    /// Different FT aggregators can be found under appropriate key in the
+    /// royalty domain's bag.
+    struct BalanceKey<phantom FT> has copy, drop, store {}
+
+    public fun attributions(domain: &RoyaltyDomain): &Attributions {
         &domain.attributions
     }
 
-    public fun attributions_mut<FT>(domain: &mut RoyaltyDomain<FT>): &mut Attributions {
+    public fun attributions_mut(domain: &mut RoyaltyDomain): &mut Attributions {
         &mut domain.attributions
     }
 
-    public fun contains_attribution<FT>(domain: &RoyaltyDomain<FT>, who: address): bool {
+    public fun contains_attribution(domain: &RoyaltyDomain, who: address): bool {
         option::is_some(&attribution::index(&domain.attributions, who))
     }
 
@@ -49,22 +54,22 @@ module nft_protocol::royalty {
     // }
 
     /// Creates a `RoyaltyDomain` object with a single creator attribution.
-    public fun from_address<FT>(who: address, ctx: &mut TxContext): RoyaltyDomain<FT> {
+    public fun from_address(who: address, ctx: &mut TxContext): RoyaltyDomain {
         RoyaltyDomain {
             id: object::new(ctx),
-            aggregator: balance::zero(),
+            aggregator: bag::new(ctx),
             attributions: attribution::from_address(who),
         }
     }
 
     /// Creates a `RoyaltyDomain` object with provided creator attributions.
-    public fun from_creators<FT>(
+    public fun from_creators(
         creators: vector<Creator>,
         ctx: &mut TxContext
-    ): RoyaltyDomain<FT> {
+    ): RoyaltyDomain {
         RoyaltyDomain {
             id: object::new(ctx),
-            aggregator: balance::zero(),
+            aggregator: bag::new(ctx),
             attributions: attribution::from_creators(creators),
         }
     }
@@ -72,25 +77,25 @@ module nft_protocol::royalty {
     /// === Royalties ===
 
     // Take owned value to only allow calling during construction
-    public fun use_proportional_royalty<FT>(
-        domain: RoyaltyDomain<FT>,
+    public fun use_proportional_royalty(
+        domain: RoyaltyDomain,
         strategy: BpsRoyaltyStrategy
-    ): RoyaltyDomain<FT> {
+    ): RoyaltyDomain {
         df::add(&mut domain.id, royalty_strategy_bps::name(), strategy);
         domain
     }
 
     // Take owned value to only allow calling during construction
-    public fun use_constant_royalty<FT>(
-        domain: RoyaltyDomain<FT>,
+    public fun use_constant_royalty(
+        domain: RoyaltyDomain,
         strategy: ConstantRoyaltyStrategy
-    ): RoyaltyDomain<FT> {
+    ): RoyaltyDomain {
         df::add(&mut domain.id, royalty_strategy_constant::name(), strategy);
         domain
     }
 
     /// Calculate owed royalties from all the strategies defined on the domain
-    public fun calculate<FT>(domain: &RoyaltyDomain<FT>, amount: u64): u64 {
+    public fun calculate(domain: &RoyaltyDomain, amount: u64): u64 {
         let royalty = 0;
 
         let bps_strategy_name = royalty_strategy_bps::name();
@@ -122,13 +127,24 @@ module nft_protocol::royalty {
     }
 
     public fun transfer_royalties<FT>(
-        domain: &mut RoyaltyDomain<FT>,
+        domain: &mut RoyaltyDomain,
         source: &mut Balance<FT>,
         amount: u64,
     ) {
         let royalty_owed = calculate(domain, amount);
         let b = balance::split(source, royalty_owed);
-        balance::join(&mut domain.aggregator, b);
+        let contains_ft_balance = bag::contains_with_type<BalanceKey<FT>, Balance<FT>>(
+            &domain.aggregator,
+            BalanceKey<FT> {},
+        );
+
+        if (!contains_ft_balance) {
+            bag::add(&mut domain.aggregator, BalanceKey<FT> {}, b);
+        } else {
+            let a: &mut Balance<FT> =
+                bag::borrow_mut(&mut domain.aggregator, BalanceKey<FT> {});
+            balance::join(a, b);
+        }
     }
 
     /// === Interoperability ===
