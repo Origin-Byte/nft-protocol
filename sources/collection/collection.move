@@ -27,8 +27,7 @@
 //! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that
 //! `is_mutable` refers to the NFTs and `frozen` refers to the collection
 module nft_protocol::collection {
-    use std::vector;
-    use std::string::{Self, String};
+    use std::string;
 
     use sui::event;
     use sui::object::{Self, UID, ID};
@@ -42,7 +41,6 @@ module nft_protocol::collection {
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
     use nft_protocol::domain::{domain_key, DomainKey};
-    use nft_protocol::royalty;
 
     /// An NFT `Collection` object with a generic `M`etadata.
     ///
@@ -448,7 +446,7 @@ module nft_protocol::collection {
         add_domain(
             &mut collection,
             // Creates RoyaltyDomain with attribution for `creator`
-            royalty::from_address<sui::sui::SUI>(
+            nft_protocol::royalty::from_address<sui::sui::SUI>(
                 creator,
                 test_scenario::ctx(scenario),
             ),
