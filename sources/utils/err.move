@@ -40,7 +40,7 @@ module nft_protocol::err {
         return Prefix + 09
     }
 
-    public fun mint_authority_mistmatch(): u64 {
+    public fun mint_authority_mismatch(): u64 {
         return Prefix + 10
     }
 
