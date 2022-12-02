@@ -106,7 +106,7 @@ module nft_protocol::class {
     ) {
         assert!(
             collection::mint_id(mint) == class.mint_authority,
-            err::mint_authority_mistmatch()
+            err::mint_authority_mismatch()
         );
 
         bag::add(&mut class.bag, domain_key<V>(), v);
