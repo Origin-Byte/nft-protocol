@@ -59,6 +59,8 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art(), ctx);
         tags::add_collection_tag_domain(&mut collection, tags);
 
+        let collection_id = collection::share<SUIMARINES>(collection);
+
         let whitelist = vector::empty();
         vector::push_back(&mut whitelist, true);
         vector::push_back(&mut whitelist, false);

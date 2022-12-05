@@ -1,11 +1,19 @@
 //! @title utils
 //! @notice Utility functions in Move.
 module nft_protocol::utils {
-    use nft_protocol::err;
     use std::ascii;
     use std::string::{Self, String, sub_string};
     use std::type_name;
     use std::vector;
+
+    use nft_protocol::err;
+
+    /// Used to mark type fields in dynamic fields
+    struct Marker<phantom T> has copy, drop, store {}
+
+    public fun marker<T>(): Marker<T> {
+        Marker<T> {}
+    }
 
     /// This key does not exist in the map
     const ValueDoesNotExist: u64 = 1;
