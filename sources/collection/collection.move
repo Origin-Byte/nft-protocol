@@ -155,7 +155,6 @@ module nft_protocol::collection {
         // https://github.com/MystenLabs/sui/pull/4627
         tags: vector<vector<u8>>,
         is_mutable: bool,
-        authority: address,
         ctx: &mut TxContext,
     ): (MintCap<T>, Collection<T>) {
         let id = object::new(ctx);
@@ -165,9 +164,6 @@ module nft_protocol::collection {
                 collection_id: object::uid_to_inner(&id),
             }
         );
-
-        let mint_object_uid = object::new(ctx);
-        let mint_object_id = object::uid_to_inner(&mint_object_uid);
 
         let cap = create_mint_cap<T>(
             object::uid_to_inner(&id),
@@ -180,7 +176,7 @@ module nft_protocol::collection {
             tags: tags::from_vec_string(&mut utils::to_string_vector(&mut tags)),
             is_mutable,
             creators: vector::empty(),
-            mint_authority: mint_object_id,
+            mint_authority: object::id(&cap),
             domains: bag::new(ctx),
         };
 
@@ -528,7 +524,6 @@ module nft_protocol::collection {
             1,
             vector::empty(),
             true,
-            creator,
             sui::test_scenario::ctx(scenario),
         );
 

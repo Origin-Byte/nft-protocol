@@ -1,11 +1,10 @@
 #[test_only]
 module nft_protocol::test_transfer_whitelist {
-    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_whitelist;
     use sui::transfer::transfer;
-    use sui::test_scenario::{Self, Scenario, ctx};
+    use sui::test_scenario::{Self, ctx};
 
-    // TODO: don't
+    // TODO: don't enable creating capability if witness mismatches
 
     struct Witness has drop {}
     struct Witness2 has drop {}
@@ -32,13 +31,12 @@ module nft_protocol::test_transfer_whitelist {
             Witness {},
             &col_cap,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         assert!(transfer_whitelist::can_be_transferred<Foo, Witness>(Witness {}, &wl), 0);
         assert!(!transfer_whitelist::can_be_transferred<Bar, Witness>(Witness {}, &wl), 0);
 
-        transfer_whitelist::remove_itself(&col_cap, &mut wl, ctx(&mut scenario));
+        transfer_whitelist::remove_itself(&col_cap, &mut wl);
 
         assert!(!transfer_whitelist::can_be_transferred<Foo, Witness>(Witness {}, &wl), 0);
 
@@ -46,56 +44,6 @@ module nft_protocol::test_transfer_whitelist {
         transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
-
-    // #[test]
-    // #[expected_failure(abort_code = 13370501)]
-    // fun it_fails_to_remove_collection_if_not_creator() {
-    //     let scenario = test_scenario::begin(ADMIN);
-
-    //     let col = dummy_collection<Foo>(&mut scenario);
-
-    //     test_scenario::next_tx(&mut scenario, ADMIN);
-    //     let wl = transfer_whitelist::create(Witness {}, ctx(&mut scenario));
-
-    //     test_scenario::next_tx(&mut scenario, CREATOR);
-    //     transfer_whitelist::insert_collection(
-    //         Witness {},
-    //         &col,
-    //         &mut wl,
-    //         ctx(&mut scenario),
-    //     );
-
-    //     test_scenario::next_tx(&mut scenario, ADMIN);
-
-    //     transfer_whitelist::remove_itself(&col, &mut wl, ctx(&mut scenario));
-
-    //     transfer(wl, ADMIN);
-    //     test_scenario::return_shared(col);
-    //     test_scenario::end(scenario);
-    // }
-
-    // #[test]
-    // #[expected_failure(abort_code = 13370501)]
-    // fun it_fails_to_insert_collection_if_not_creator() {
-    //     let scenario = test_scenario::begin(ADMIN);
-
-    //     let col = dummy_collection<Foo>(&mut scenario);
-
-    //     test_scenario::next_tx(&mut scenario, ADMIN);
-    //     let wl = transfer_whitelist::create(Witness {}, ctx(&mut scenario));
-
-    //     test_scenario::next_tx(&mut scenario, ADMIN);
-    //     transfer_whitelist::insert_collection(
-    //         Witness {},
-    //         &col,
-    //         &mut wl,
-    //         ctx(&mut scenario),
-    //     );
-
-    //     transfer(wl, ADMIN);
-    //     test_scenario::return_shared(col);
-    //     test_scenario::end(scenario);
-    // }
 
     #[test]
     #[expected_failure(abort_code = 13370502)]
@@ -114,7 +62,6 @@ module nft_protocol::test_transfer_whitelist {
             Witness2 {},
             &col_cap,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         transfer(wl, ADMIN);
@@ -139,7 +86,6 @@ module nft_protocol::test_transfer_whitelist {
             Witness {},
             &col_cap,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         transfer_whitelist::remove_collection<Witness2, Foo>(Witness2 {}, &mut wl);
@@ -153,11 +99,10 @@ module nft_protocol::test_transfer_whitelist {
     fun it_removes_collection_as_admin() {
         let scenario = test_scenario::begin(ADMIN);
 
-
-        let col_cap1 = transfer_whitelist::create_collection_cap<Bar, Witness>(
+        let col_cap1 = transfer_whitelist::create_collection_cap<Foo, Witness>(
             &Witness {}, ctx(&mut scenario),
         );
-        let col_cap2 = transfer_whitelist::create_collection_cap<Foo, Witness>(
+        let col_cap2 = transfer_whitelist::create_collection_cap<Bar, Witness>(
             &Witness {}, ctx(&mut scenario),
         );
 
@@ -169,13 +114,11 @@ module nft_protocol::test_transfer_whitelist {
             Witness {},
             &col_cap1,
             &mut wl,
-            ctx(&mut scenario),
         );
         transfer_whitelist::insert_collection(
             Witness {},
             &col_cap2,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         assert!(transfer_whitelist::can_be_transferred<Foo, Witness>(Witness {}, &wl), 0);
@@ -190,7 +133,6 @@ module nft_protocol::test_transfer_whitelist {
             Witness {},
             &col_cap1,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         transfer_whitelist::clear_collections(Witness {}, &mut wl);
@@ -220,7 +162,6 @@ module nft_protocol::test_transfer_whitelist {
             Witness {},
             &col_cap,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         transfer_whitelist::insert_authority<Witness, Witness2>(Witness {}, &mut wl);
@@ -257,7 +198,6 @@ module nft_protocol::test_transfer_whitelist {
             Witness {},
             &col_cap,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         transfer_whitelist::insert_authority<Witness, Witness2>(Witness {}, &mut wl);
@@ -321,13 +261,12 @@ module nft_protocol::test_transfer_whitelist {
             Witness {},
             &col_cap,
             &mut wl,
-            ctx(&mut scenario),
         );
 
         transfer_whitelist::clear_collections(Witness2 {}, &mut wl);
 
         transfer(wl, ADMIN);
-        transfer(wl, CREATOR);
+        transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 }

@@ -6,9 +6,8 @@ module nft_protocol::example_free_for_all {
     //! Basically any collection which adds itself to this whitelist is saying:
     //! we're ok with anyone transferring NFTs.
 
-    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
-    use sui::transfer::share_object;
+    use sui::transfer::{transfer, share_object};
     use sui::tx_context::TxContext;
 
     struct Witness has drop {}
@@ -24,23 +23,23 @@ module nft_protocol::example_free_for_all {
     ///
     /// However, any creator can insert their collection into simple whitelist.
     public entry fun insert_collection<T>(
-        collection: &Collection<T>,
+        col_cap: &transfer_whitelist::CollectionCap<T>,
         list: &mut Whitelist,
-        ctx: &mut TxContext,
     ) {
         transfer_whitelist::insert_collection(
             Witness {},
-            collection,
+            col_cap,
             list,
-            ctx,
         );
     }
 
     // --- Tests ---
 
-    use sui::test_scenario::{Self, Scenario, ctx};
+    use sui::test_scenario::{Self, ctx};
 
     const USER: address = @0xA1C04;
+
+    struct Foo has drop {}
 
     #[test]
     fun it_inserts_collection() {
@@ -52,17 +51,14 @@ module nft_protocol::example_free_for_all {
 
         let wl: Whitelist = test_scenario::take_shared(&scenario);
 
-        let col = dummy_collection(&mut scenario);
+        let col_cap = transfer_whitelist::create_collection_cap<Foo, Witness>(
+            &Witness {}, ctx(&mut scenario),
+        );
 
-        insert_collection(&col, &mut wl, ctx(&mut scenario));
+        insert_collection(&col_cap, &mut wl);
 
+        transfer(col_cap, USER);
         test_scenario::return_shared(wl);
-        test_scenario::return_shared(col);
         test_scenario::end(scenario);
-    }
-
-    struct Foo has drop {}
-    fun dummy_collection(scenario: &mut Scenario): Collection<Foo> {
-        collection::dummy_collection(USER, scenario)
     }
 }

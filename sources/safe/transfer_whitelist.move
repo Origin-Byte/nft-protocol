@@ -76,7 +76,6 @@ module nft_protocol::transfer_whitelist {
         _whitelist_witness: Admin,
         _authority: &CollectionCap<C>,
         list: &mut Whitelist,
-        ctx: &mut TxContext,
     ) {
         assert_admin_witness<Admin>(list);
 
@@ -91,7 +90,6 @@ module nft_protocol::transfer_whitelist {
     public fun remove_itself<C>(
         _authority: &CollectionCap<C>,
         list: &mut Whitelist,
-        ctx: &mut TxContext,
     ) {
         vec_set::remove(&mut list.collections, &type_name::get<C>());
     }
