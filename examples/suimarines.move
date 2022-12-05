@@ -29,7 +29,6 @@ module nft_protocol::suimarines {
         vector::push_back(&mut tags, b"Art");
 
         let collection = collection::create<SUIMARINES>(
-            b"SUIM", // symbol
             100, // max supply
             tags,
             false, // is mutable
@@ -47,6 +46,11 @@ module nft_protocol::suimarines {
         display::add_collection_url_domain(
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        );
+
+        display::add_collection_symbol_domain(
+            &mut collection,
+            string::utf8(b"SUIM")
         );
 
         royalty_bps::add_collection_royalty_domain(

@@ -17,7 +17,6 @@ module nft_protocol::suitraders {
         vector::push_back(&mut tags, b"PFP");
 
         let collection = collection::create<SUITRADERS>(
-            b"SUITR", // symbol
             100, // max supply
             tags,
             true, // is mutable
@@ -35,6 +34,11 @@ module nft_protocol::suitraders {
         display::add_collection_url_domain(
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        );
+
+        display::add_collection_symbol_domain(
+            &mut collection,
+            string::utf8(b"SUITR")
         );
 
         let collection_id = collection::share<SUITRADERS>(collection);
