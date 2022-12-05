@@ -1,40 +1,100 @@
 module nft_protocol::tags {
-    use std::vector;
-    use std::string::String;
-
-    use sui::vec_map::{Self, VecMap};
+    use sui::bag::{Self, Bag};
     use sui::tx_context::TxContext;
 
-    use nft_protocol::utils;
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::collection::{Self, Collection};
 
+    // === Tags ===
+
+    struct Art has store, drop {}
+    struct PFP has store, drop {}
+    struct Collectible has store, drop {}
+    struct GameAsset has store, drop {}
+    struct TokenisedAsset has store, drop {}
+    struct Ticker has store, drop {}
+    struct DomainName has store, drop {}
+    struct Gif has store, drop {}
+    struct Music has store, drop {}
+    struct Video has store, drop {}
+    struct Ticket has store, drop {}
+    struct License has store, drop {}
+
+    public fun art(): Art {
+        Art {}
+    }
+
+    public fun pfp(): PFP {
+        PFP {}
+    }
+
+    public fun collectible(): Collectible {
+        Collectible {}
+    }
+
+    public fun game_asset(): GameAsset {
+        GameAsset {}
+    }
+
+    public fun tokenised_asset(): TokenisedAsset {
+        TokenisedAsset {}
+    }
+
+    public fun ticker(): Ticker {
+        Ticker {}
+    }
+
+    public fun domain_name(): DomainName {
+        DomainName {}
+    }
+
+    public fun gif(): Gif {
+        Gif {}
+    }
+
+    public fun music(): Music {
+        Music {}
+    }
+
+    public fun video(): Video {
+        Video {}
+    }
+
+    public fun ticket(): Ticket {
+        Ticket {}
+    }
+
+    public fun license(): License {
+        License {}
+    }
+
+    // === TagDomain ===
+
     struct TagDomain has store {
-        // TODO: Use VecSet?
-        enumerations: VecMap<u64, String>
+        bag: Bag,
     }
 
-    public fun tags(domain: &TagDomain): &VecMap<u64, String> {
-        &domain.enumerations
+    struct Witness {}
+
+    public fun empty(ctx: &mut TxContext): TagDomain {
+        TagDomain { bag: bag::new(ctx) }
     }
 
-    public fun empty(): TagDomain {
-        TagDomain { enumerations: vec_map::empty() }
+    public fun has_tag<T: store>(domain: &TagDomain): bool {
+        utils::assert_same_module_as_witness<T, Witness>();
+        bag::contains_with_type<Marker<T>, T>(&domain.bag, utils::marker<T>())
     }
 
-    public fun from_vec_string(v: vector<String>): TagDomain {
-        let enumerations = vec_map::empty();
-
-        while (!vector::is_empty(&v)) {
-            let index = vec_map::size(&enumerations);
-            vec_map::insert(&mut enumerations, index, vector::pop_back(&mut v));
-        };
-
-        TagDomain { enumerations }
-    }
-
-    public fun from_byte_vec(v: vector<vector<u8>>): TagDomain {
-        from_vec_string(utils::to_string_vector(v))
+    // TODO: Protect with AttributionDomain
+    public fun add_tag<T: store>(
+        domain: &mut TagDomain,
+        tag: T,
+        _ctx: &mut TxContext,
+    ) {
+        // TODO: Assert is creator
+        utils::assert_same_module_as_witness<T, Witness>();
+        bag::add(&mut domain.bag, utils::marker<T>(), tag)
     }
 
     /// ====== Interoperability ===

@@ -55,13 +55,9 @@ module nft_protocol::suimarines {
             100, // royalty fee bps
         );
 
-        let tags: vector<vector<u8>> = vector::empty();
-        vector::push_back(&mut tags, b"Art");
-
-        tags::add_collection_tag_domain(
-            &mut collection,
-            tags::from_byte_vec(tags),
-        );
+        let tags = tags::empty(ctx);
+        tags::add_tag(&mut tags, tags::art(), ctx);
+        tags::add_collection_tag_domain(&mut collection, tags);
 
         let whitelist = vector::empty();
         vector::push_back(&mut whitelist, true);

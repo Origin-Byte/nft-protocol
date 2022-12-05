@@ -37,14 +37,10 @@ module nft_protocol::suitraders {
             string::utf8(b"SUITR")
         );
 
-        let tags: vector<vector<u8>> = vector::empty();
-        vector::push_back(&mut tags, b"Art");
-        vector::push_back(&mut tags, b"PFP");
-
-        tags::add_collection_tag_domain(
-            &mut collection,
-            tags::from_byte_vec(tags),
-        );
+        let tags = tags::empty(ctx);
+        tags::add_tag(&mut tags, tags::art(), ctx);
+        tags::add_tag(&mut tags, tags::pfp(), ctx);
+        tags::add_collection_tag_domain(&mut collection, tags);
 
         let collection_id = collection::share<SUITRADERS>(collection);
 
