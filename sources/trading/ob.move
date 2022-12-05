@@ -141,6 +141,7 @@ module nft_protocol::ob {
     }
 
     // === Events ===
+    // TODO: emit them
 
     struct AskCreated<phantom FT> has copy, drop {
         id: ID,
@@ -149,6 +150,7 @@ module nft_protocol::ob {
         price: u64,
     }
 
+    /// When de-listed, not when sold!
     struct AskClosed<phantom FT> has copy, drop {
         id: ID,
         nft: ID,
@@ -161,6 +163,7 @@ module nft_protocol::ob {
         buyer: address,
     }
 
+    /// When de-listed, not when bought!
     struct BidClosed<phantom FT> has copy, drop {
         id: ID,
         bid: ID,
