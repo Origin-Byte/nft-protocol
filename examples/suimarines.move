@@ -6,7 +6,6 @@ module nft_protocol::suimarines {
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::ext;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display;
     use nft_protocol::fixed_price;
@@ -14,6 +13,7 @@ module nft_protocol::suimarines {
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::royalty;
     use nft_protocol::sale::{Self, NftCertificate};
+    use nft_protocol::attribution;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -35,6 +35,11 @@ module nft_protocol::suimarines {
             ctx,
         );
 
+        collection::add_domain(
+            &mut collection,
+            attribution::from_address(@0x6c86ac4a796204ea09a87b6130db0c38263c1890)
+        );
+
         // Register custom domains
         display::add_collection_display_domain(
             &mut collection,
@@ -52,18 +57,12 @@ module nft_protocol::suimarines {
             string::utf8(b"SUIM")
         );
 
-        let royalty_domain = royalty::from_address(
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
-            ctx,
-        );
-
+        royalty::add_collection_royalty_domain(&mut collection, ctx);
         royalty::add_proportional_royalty(
-            &mut royalty_domain,
+            &mut collection,
             nft_protocol::royalty_strategy_bps::new(100),
             ctx,
         );
-
-        ext::add_collection_royalty_domain(&mut collection, royalty_domain);
 
         let collection_id = collection::share<SUIMARINES>(collection);
 
@@ -93,7 +92,7 @@ module nft_protocol::suimarines {
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
 
-        let domain = ext::collection_royalty_domain_mut(collection);
+        let domain = royalty::collection_royalty_domain_mut(collection);
         let trade_value = balance::value(b);
         royalty::transfer_royalties(domain, b, trade_value);
 

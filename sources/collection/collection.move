@@ -444,9 +444,8 @@ module nft_protocol::collection {
         add_domain(
             &mut collection,
             // Creates RoyaltyDomain with attribution for `creator`
-            nft_protocol::royalty::from_address(
-                creator,
-                test_scenario::ctx(scenario),
+            nft_protocol::attribution::from_address(
+                sui::tx_context::sender(test_scenario::ctx(scenario))
             ),
         );
 

@@ -7,6 +7,7 @@ module nft_protocol::suitraders {
     use nft_protocol::dutch_auction;
     use nft_protocol::collection;
     use nft_protocol::display;
+    use nft_protocol::attribution;
 
     struct SUITRADERS has drop {}
 
@@ -21,6 +22,11 @@ module nft_protocol::suitraders {
             true, // is mutable
             tx_context::sender(ctx), // mint authority
             ctx,
+        );
+
+        collection::add_domain(
+            &mut collection,
+            attribution::from_address(@0x6c86ac4a796204ea09a87b6130db0c38263c1890)
         );
 
         // Register custom domains

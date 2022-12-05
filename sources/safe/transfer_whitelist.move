@@ -21,7 +21,7 @@ module nft_protocol::transfer_whitelist {
 
     use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::royalty::{Self, RoyaltyDomain};
+    use nft_protocol::attribution::{Self, AttributionDomain};
 
     struct Whitelist has key, store {
         id: UID,
@@ -162,12 +162,12 @@ module nft_protocol::transfer_whitelist {
         ctx: &mut TxContext,
     ) {
         assert!(
-            collection::has_domain<T, RoyaltyDomain>(collection),
+            collection::has_domain<T, AttributionDomain>(collection),
             err::address_not_attributed(),
         );
 
-        royalty::assert_is_creator(
-            collection::borrow_domain<T, RoyaltyDomain>(collection),
+        attribution::assert_is_creator(
+            collection::borrow_domain<T, AttributionDomain>(collection),
             tx_context::sender(ctx),
         );
     }

@@ -30,39 +30,38 @@ module nft_protocol::attribution {
         creator.share_of_royalty_bps
     }
 
-    struct Attributions has store {
+    struct AttributionDomain has store {
         /// Address that receives the mint and trade royalties
         creators: vector<Creator>,
     }
 
-    // TODO: Discuss empty attributions
-    // /// Creates an empty `Attributions` object
-    // ///
-    // /// By not attributing any `Creators`, nobody will ever be able to claim
-    // /// royalties from this `Attributions` object.
-    // public fun empty(): Attributions {
-    //     Attributions { creators: vector::empty() }
-    // }
+    /// Creates an empty `Attributions` object
+    ///
+    /// By not attributing any `Creators`, nobody will ever be able to claim
+    /// royalties from this `Attributions` object or modify it's domains.
+    public fun empty(): AttributionDomain {
+        AttributionDomain { creators: vector::empty() }
+    }
 
-    public fun from_address(who: address): Attributions {
-        Attributions {
+    public fun from_address(who: address): AttributionDomain {
+        AttributionDomain {
             creators: vector::singleton(new_creator(who, BPS)),
         }
     }
 
-    public fun from_creators(creators: vector<Creator>): Attributions {
-        let attributions = Attributions { creators };
+    public fun from_creators(creators: vector<Creator>): AttributionDomain {
+        let attributions = AttributionDomain { creators };
         assert_total_shares(&attributions);
 
         attributions
     }
 
-    public fun is_empty(attributions: &Attributions): bool {
+    public fun is_empty(attributions: &AttributionDomain): bool {
         vector::is_empty(&attributions.creators)
     }
 
-    public fun index(
-        attributions: &Attributions,
+    public fun try_index(
+        attributions: &AttributionDomain,
         who: address,
     ): Option<u16> {
         let i = 0;
@@ -79,15 +78,27 @@ module nft_protocol::attribution {
         option::none()
     }
 
+    public fun index(
+        attributions: &AttributionDomain,
+        who: address,
+    ): u16 {
+        let tentative_index = try_index(attributions, who);
+        assert!(
+            option::is_some(&tentative_index),
+            err::address_not_attributed()
+        );
+        option::destroy_some(tentative_index)
+    }
+
     public fun get(
-        attributions: &Attributions,
+        attributions: &AttributionDomain,
         index: u16,
     ): &Creator {
         vector::borrow(&attributions.creators, (index as u64))
     }
 
     fun get_mut(
-        attributions: &mut Attributions,
+        attributions: &mut AttributionDomain,
         index: u16,
     ): &mut Creator {
         vector::borrow_mut(&mut attributions.creators, (index as u64))
@@ -100,11 +111,11 @@ module nft_protocol::attribution {
     /// This must be done by a `Creator` which already has an attribution who
     /// gives up an arithmetic share of their royalty share.
     public fun add_creator(
-        attributions: &mut Attributions,
+        attributions: &mut AttributionDomain,
         new_creator: Creator,
         ctx: &mut TxContext,
     ) {
-        let creator_index = assert_is_creator(attributions, tx_context::sender(ctx));
+        let creator_index = index(attributions, tx_context::sender(ctx));
         let creator = get_mut(attributions, creator_index);
 
         assert!(
@@ -135,14 +146,14 @@ module nft_protocol::attribution {
     // TODO: Create removal methods which split shares evenly and
     // proportionally.
     public fun remove_creator_transfer(
-        attributions: &mut Attributions,
+        attributions: &mut AttributionDomain,
         to: address,
         ctx: &mut TxContext,
     ) {
         let creator = remove_creator(attributions, ctx);
 
         // Get creator to which shares will be transfered
-        let beneficiary_index = assert_is_creator(attributions, to);
+        let beneficiary_index = index(attributions, to);
         let beneficiary = get_mut(attributions, beneficiary_index);
 
         beneficiary.share_of_royalty_bps =
@@ -150,10 +161,10 @@ module nft_protocol::attribution {
     }
 
     fun remove_creator(
-        attributions: &mut Attributions,
+        attributions: &mut AttributionDomain,
         ctx: &mut TxContext,
     ): Creator {
-        let index = assert_is_creator(attributions, tx_context::sender(ctx));
+        let index = index(attributions, tx_context::sender(ctx));
 
         vector::swap_remove(
             &mut attributions.creators,
@@ -163,7 +174,7 @@ module nft_protocol::attribution {
 
     /// === Utils ===
 
-    fun assert_total_shares(attributions: &Attributions) {
+    fun assert_total_shares(attributions: &AttributionDomain) {
         let bps_total = 0;
 
         let i = 0;
@@ -177,16 +188,9 @@ module nft_protocol::attribution {
     }
 
     public fun assert_is_creator(
-        attributions: &Attributions,
+        attributions: &AttributionDomain,
         who: address
-    ): u16 {
-        let tentative_index = index(attributions, who);
-
-        assert!(
-            option::is_some(&tentative_index),
-            err::address_not_attributed()
-        );
-
-        option::destroy_some(tentative_index)
+    ) {
+        index(attributions, who);
     }
 }
