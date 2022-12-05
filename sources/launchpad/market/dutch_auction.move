@@ -46,6 +46,7 @@ module nft_protocol::dutch_auction {
     // === Functions exposed to Witness Module ===
 
     public fun create_market(
+        launchpad: &Launchpad,
         slot: &mut Slot,
         tier: u64,
         is_whitelisted: bool,
@@ -72,8 +73,10 @@ module nft_protocol::dutch_auction {
         );
 
         launchpad::add_market(
+            launchpad,
             slot,
             market,
+            ctx,
         );
 
     }
@@ -224,7 +227,7 @@ module nft_protocol::dutch_auction {
             err::wrong_launchpad_admin()
         );
 
-        let launchpad_id = launchpad::id(slot);
+        let launchpad_id = launchpad::slot_id(slot);
 
         let receiver = launchpad::receiver(slot);
 

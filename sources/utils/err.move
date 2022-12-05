@@ -120,6 +120,14 @@ module nft_protocol::err {
         return Prefix + 210
     }
 
+    public fun launchpad_slot_mismatch(): u64 {
+        return Prefix + 210
+    }
+
+    public fun wrong_slot_admin(): u64 {
+        return Prefix + 211
+    }
+
     // Auction
 
     public fun order_does_not_exist(): u64 {

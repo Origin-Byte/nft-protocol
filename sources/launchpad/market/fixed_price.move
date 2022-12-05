@@ -22,6 +22,7 @@ module nft_protocol::fixed_price {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
+    use nft_protocol::proceeds;
     use nft_protocol::object_box;
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
     use nft_protocol::outlet::{Self, Outlet};
@@ -47,6 +48,7 @@ module nft_protocol::fixed_price {
     ///
     /// To be called by the Witness Module deployed by NFT creator.
     public fun create_market(
+        launchpad: &Launchpad,
         slot: &mut Slot,
         tier: u64,
         is_whitelisted: bool,
@@ -72,8 +74,10 @@ module nft_protocol::fixed_price {
         );
 
         launchpad::add_market(
+            launchpad,
             slot,
             market,
+            ctx,
         );
     }
 
@@ -96,7 +100,7 @@ module nft_protocol::fixed_price {
         // One can only buy NFT certificates if the slingshot is live
         assert!(launchpad::live(slot) == true, err::launchpad_not_live());
 
-        let launchpad_id = launchpad::id(slot);
+        let launchpad_id = launchpad::slot_id(slot);
 
         let receiver = launchpad::receiver(slot);
 
@@ -106,7 +110,7 @@ module nft_protocol::fixed_price {
             err::sale_is_not_whitelisted()
         );
 
-        pay(
+        launchpad::pay(
             launchpad,
             slot,
             funds,
@@ -144,7 +148,7 @@ module nft_protocol::fixed_price {
         // One can only buy NFT certificates if the slingshot is live
         assert!(launchpad::live(slot) == true, err::launchpad_not_live());
 
-        let launchpad_id = launchpad::id(slot);
+        let launchpad_id = launchpad::slot_id(slot);
 
         let receiver = launchpad::receiver(slot);
 
@@ -160,7 +164,7 @@ module nft_protocol::fixed_price {
             err::incorrect_whitelist_token()
         );
 
-        pay(
+        launchpad::pay(
             launchpad,
             slot,
             funds,
@@ -224,49 +228,6 @@ module nft_protocol::fixed_price {
         );
 
         market.price = new_price;
-    }
-
-    public fun pay<C: key + store>(
-        launchpad: &mut Launchpad,
-        slot: &mut Slot,
-        funds: Coin<C>,
-        price: u64,
-        ctx: &mut TxContext,
-    ) {
-        assert!(coin::value(&funds) > price, err::coin_amount_below_price());
-
-        let change = coin::split<C>(
-            &mut funds,
-            price,
-            ctx,
-        );
-
-        let balance = coin::into_balance(funds);
-
-        let proceeds = launchpad::proceeds_mut<C>(
-            launchpad,
-            launchpad::id(slot),
-        );
-
-        balance::join(proceeds, balance);
-
-        // let fee_amount = launchpad::fee(slot) * price;
-        // let net_price = price - fee_amount;
-
-        // let fee = coin::split<SUI>(
-        //     funds,
-        //     fee_amount,
-        //     ctx,
-        // );
-
-        // // Split coin into price and change, then transfer
-        // // the price and keep the change
-        // pay::split_and_transfer<SUI>(
-        //     funds,
-        //     net_price,
-        //     receiver,
-        //     ctx
-        // );
     }
 
     // // === Getter Functions ===
