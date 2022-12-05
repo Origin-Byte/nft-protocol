@@ -4,7 +4,6 @@ module nft_protocol::utils {
     use std::ascii;
     use std::string::{Self, String, sub_string};
     use std::type_name;
-    use std::vector;
 
     use nft_protocol::err;
 
@@ -17,20 +16,6 @@ module nft_protocol::utils {
 
     /// This key does not exist in the map
     const ValueDoesNotExist: u64 = 1;
-
-    public fun to_string_vector(
-        vec: vector<vector<u8>>
-    ): vector<String> {
-        let new_vec: vector<String> = vector::empty();
-
-        while (!vector::is_empty(&vec)) {
-            let e = string::utf8(vector::pop_back(&mut vec));
-            vector::push_back(&mut new_vec, e);
-        };
-
-        vector::reverse(&mut new_vec);
-        new_vec
-    }
 
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
