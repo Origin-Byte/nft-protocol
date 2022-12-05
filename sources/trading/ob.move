@@ -17,10 +17,7 @@ module nft_protocol::ob {
     // TODO: eviction of lowest bid/highest ask on OOM
 
     use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
-    use nft_protocol::err;
-    use nft_protocol::safe::{Self, Safe, TransferCap};
-    use nft_protocol::transfer_whitelist::Whitelist;
-    use nft_protocol::utils;
+
     use std::option::{Self, Option};
     use std::vector;
     use sui::balance::{Self, Balance};
@@ -28,6 +25,11 @@ module nft_protocol::ob {
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
+
+    use nft_protocol::err;
+    use nft_protocol::safe::{Self, Safe, TransferCap};
+    use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::utils;
     use nft_protocol::trading::{
         AskCommission,
         BidCommission,
@@ -137,6 +139,43 @@ module nft_protocol::ob {
         paid: Balance<FT>,
         commission: Option<AskCommission>,
     }
+
+    // === Events ===
+
+    struct AskCreated<phantom FT> has copy, drop {
+        id: ID,
+        nft: ID,
+        seller: address,
+        price: u64,
+    }
+
+    struct AskClosed<phantom FT> has copy, drop {
+        id: ID,
+        nft: ID,
+        seller: address,
+    }
+
+    struct BidCreated<phantom FT> has copy, drop {
+        id: ID,
+        price: u64,
+        buyer: address,
+    }
+
+    struct BidClosed<phantom FT> has copy, drop {
+        id: ID,
+        bid: ID,
+    }
+
+    struct TradeExecuted<phantom FT> has copy, drop {
+        id: ID,
+        nft: ID,
+        price: u64,
+        seller: address,
+        buyer: address,
+    }
+
+
+    // === Functions ===
 
     /// How many (`price`) fungible tokens should be taken from sender's wallet
     /// and put into the orderbook with the intention of exchanging them for
