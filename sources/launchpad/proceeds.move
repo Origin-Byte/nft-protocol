@@ -5,12 +5,14 @@ module nft_protocol::proceeds {
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer;
     use sui::tx_context::TxContext;
 
     /// `F`ungible `T`oken
     struct Proceeds<phantom FT> has key, store {
         id: UID,
+        sold: Sold,
+        total: u64,
         amount: Balance<FT>,
         /// The address where the amount should be transferred to.
         /// This could be either the payment for the seller or a marketplace's
@@ -18,14 +20,20 @@ module nft_protocol::proceeds {
         beneficiary: address,
     }
 
-    public fun create<FT>(
-        amount: Balance<FT>,
+    struct Sold has copy, drop, store {
+        unwrapped: u64,
+        total: u64,
+    }
+
+    public fun empty<FT>(
         beneficiary: address,
         ctx: &mut TxContext,
     ): Proceeds<FT> {
         Proceeds<FT> {
             id: object::new(ctx),
-            amount,
+            sold: Sold {unwrapped: 0, total: 0},
+            total: 0,
+            amount: balance::zero(),
             beneficiary,
         }
     }
@@ -34,45 +42,71 @@ module nft_protocol::proceeds {
         &payment.amount
     }
 
-    /// `W` is the launchpad's witness (not the one time witness!) which
-    /// helps us ensure that the right royalty collection logic is operating
-    /// on this receipt.
-    ///
-    /// Only the designated witness can access the balance.
-    ///
-    /// Typically, this would be a witness exported from the collection contract
-    /// and it would access the balance to calculate the royalty in its custom
-    /// implementation.
-    public fun balance_mut<FT>(
-        // _witness: W,
+    fun balance_mut<FT>(
         payment: &mut Proceeds<FT>,
     ): &mut Balance<FT> {
-        // utils::assert_same_module_as_witness<C, W>();
         &mut payment.amount
+    }
+
+    public fun destroy_zero<FT>(
+        proceeds: Proceeds<FT>,
+    ) {
+        let Proceeds {
+            id,
+            sold,
+            total,
+            amount: balance,
+            beneficiary: _,
+        } = proceeds;
+
+        balance::destroy_zero(balance)
     }
 
     public fun beneficiary<FT>(payment: &Proceeds<FT>): address {
         payment.beneficiary
     }
 
-    public fun transfer_remaining_to_beneficiary<C, W: drop, FT>(
-        _witness: W,
-        payment: &mut Proceeds<FT>,
+    public fun add<FT>(
+        proceeds: &mut Proceeds<FT>,
+        new_proceeds: Balance<FT>,
+        qty_sold: u64,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<C, W>();
+        proceeds.total = proceeds.total + balance::value(balance(proceeds));
+        proceeds.sold.total = proceeds.sold.total + qty_sold;
 
-        let amount = balance::value(&payment.amount);
-        if (amount > 0) {
-            transfer(
-                coin::take(
-                    &mut payment.amount,
-                    amount,
-                    ctx,
-                ),
-                payment.beneficiary
-            );
-        }
+        balance::join(balance_mut(proceeds), new_proceeds);
     }
 
+    public fun collect<FT>(
+        proceeds: &mut Proceeds<FT>,
+        fees: u64,
+        launchpad_receiver: address,
+        slot_receiver: address,
+        ctx: &mut TxContext,
+    ) {
+        let fee_balance = balance::split<FT>(
+            balance_mut(proceeds),
+            fees,
+        );
+
+        let fee = coin::from_balance(fee_balance, ctx);
+
+        transfer::transfer(
+            fee,
+            launchpad_receiver,
+        );
+
+        let proceeds_balance = balance::split<FT>(
+            balance_mut(proceeds),
+            balance::value(balance(proceeds)),
+        );
+
+        let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
+
+        transfer::transfer(
+            fee,
+            slot_receiver,
+        );
+    }
 }

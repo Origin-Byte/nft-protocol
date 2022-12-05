@@ -6,7 +6,6 @@ module nft_protocol::dutch_auction {
     use std::vector;
 
     use sui::pay;
-    use sui::sui::SUI;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self, TxContext};
@@ -21,23 +20,23 @@ module nft_protocol::dutch_auction {
     use nft_protocol::outlet::{Self, Outlet};
     use nft_protocol::whitelist::{Self, Whitelist};
 
-    struct DutchAuctionMarket has key, store {
+    struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
         /// The minimum price at which NFTs can be sold
         reserve_price: u64,
         /// A bid order stores amount of "T"okens the buyer is willing to
         /// purchase
-        bids: CBTree<vector<Bid>>,
+        bids: CBTree<vector<Bid<FT>>>,
         /// Whether the auction is currently live
         live: bool,
         outlet: Outlet,
     }
 
     /// A bid for one NFT
-    struct Bid has store {
+    struct Bid<phantom FT> has store {
         /// Amount is equal to the price that the bidder is ready to pay for
         /// one NFT.
-        amount: Balance<SUI>,
+        amount: Balance<FT>,
         /// The address of the user who created this bid and who will receive
         /// an NFT in exchange for their tokens.
         owner: address,
@@ -45,16 +44,14 @@ module nft_protocol::dutch_auction {
 
     // === Functions exposed to Witness Module ===
 
-    public fun create_market(
+    public fun create_market<FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
-        tier: u64,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext
     ) {
         let outlet = outlet::create(
-            tier,
             is_whitelisted,
             ctx,
         );
@@ -63,7 +60,7 @@ module nft_protocol::dutch_auction {
 
         object_box::add_object(
             &mut market,
-            DutchAuctionMarket {
+            DutchAuctionMarket<FT> {
                 id: object::new(ctx),
                 reserve_price,
                 bids: crit_bit::empty(),
@@ -84,10 +81,10 @@ module nft_protocol::dutch_auction {
     // === Entrypoints ===
 
     /// Creates a bid in a FIFO manner, previous bids are retained
-    public entry fun create_bid(
-        wallet: &mut Coin<SUI>,
+    public entry fun create_bid<FT>(
+        wallet: &mut Coin<FT>,
         slot: &mut Slot,
-        market: &mut DutchAuctionMarket,
+        market: &mut DutchAuctionMarket<FT>,
         price: u64,
         quantity: u64,
         ctx: &mut TxContext,
@@ -107,10 +104,10 @@ module nft_protocol::dutch_auction {
         );
     }
 
-    public entry fun create_bid_whitelisted(
-        wallet: &mut Coin<SUI>,
+    public entry fun create_bid_whitelisted<FT>(
+        wallet: &mut Coin<FT>,
         slot: &mut Slot,
-        market: &mut DutchAuctionMarket,
+        market: &mut DutchAuctionMarket<FT>,
         whitelist_token: Whitelist,
         price: u64,
         quantity: u64,
@@ -145,10 +142,10 @@ module nft_protocol::dutch_auction {
     //
     // TODO(https://github.com/Origin-Byte/nft-protocol/issues/76):
     // Cancel all bids endpoint
-    public entry fun cancel_bid(
-        wallet: &mut Coin<SUI>,
+    public entry fun cancel_bid<FT>(
+        wallet: &mut Coin<FT>,
         slot: &mut Slot,
-        market: &mut DutchAuctionMarket,
+        market: &mut DutchAuctionMarket<FT>,
         price: u64,
         ctx: &mut TxContext,
     ) {
@@ -196,9 +193,9 @@ module nft_protocol::dutch_auction {
     /// All bids will be cancelled and refunded.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_cancel(
+    public entry fun sale_cancel<FT>(
         slot: &mut Slot,
-        market: &mut DutchAuctionMarket,
+        market: &mut DutchAuctionMarket<FT>,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -216,10 +213,10 @@ module nft_protocol::dutch_auction {
     /// NFTs will be allocated to the winning biddeers.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_conclude(
+    public entry fun sale_conclude<FT>(
         launchpad: &mut Launchpad,
         slot: &mut Slot,
-        market: &mut DutchAuctionMarket,
+        market: &mut DutchAuctionMarket<FT>,
         ctx: &mut TxContext
     ) {
         assert!(
@@ -227,18 +224,12 @@ module nft_protocol::dutch_auction {
             err::wrong_launchpad_admin()
         );
 
-        let launchpad_id = launchpad::slot_id(slot);
-
-        let receiver = launchpad::receiver(slot);
-
         let nfts_to_sell = outlet::length(&market.outlet);
 
-        conclude_auction(
+        conclude_auction<FT>(
             launchpad,
             slot,
             market,
-            launchpad_id,
-            receiver,
             // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
             // Investigate whether this logic should be paginated
             nfts_to_sell,
@@ -250,9 +241,9 @@ module nft_protocol::dutch_auction {
 
     // === Private Functions ===
 
-    fun create_bid_(
-        auction: &mut DutchAuctionMarket,
-        wallet: &mut Coin<SUI>,
+    fun create_bid_<FT>(
+        auction: &mut DutchAuctionMarket<FT>,
+        wallet: &mut Coin<FT>,
         price: u64,
         quantity: u64,
         bidder: address,
@@ -284,9 +275,9 @@ module nft_protocol::dutch_auction {
     }
 
     /// Cancels a single order in a FIFO manner
-    fun cancel_bid_(
-        auction: &mut DutchAuctionMarket,
-        wallet: &mut Coin<SUI>,
+    fun cancel_bid_<FT>(
+        auction: &mut DutchAuctionMarket<FT>,
+        wallet: &mut Coin<FT>,
         price: u64,
         sender: address,
     ) {
@@ -317,7 +308,10 @@ module nft_protocol::dutch_auction {
     }
 
     // Cancels all bids present on the auction book
-    fun cancel_auction(book: &mut DutchAuctionMarket, ctx: &mut TxContext) {
+    fun cancel_auction<FT>(
+        book: &mut DutchAuctionMarket<FT>,
+        ctx: &mut TxContext
+    ) {
         let bids = &mut book.bids;
 
         while (!crit_bit::is_empty(bids)) {
@@ -339,19 +333,21 @@ module nft_protocol::dutch_auction {
         }
     }
 
-    fun refund_bid(bid: Bid, wallet: &mut Coin<SUI>, sender: &address) {
+    fun refund_bid<FT>(
+        bid: Bid<FT>,
+        wallet: &mut Coin<FT>,
+        sender: &address
+    ) {
         let Bid { amount, owner } = bid;
         assert!(sender == &owner, err::order_owner_must_be_sender());
 
         balance::join(coin::balance_mut(wallet), amount);
     }
 
-    fun conclude_auction(
+    fun conclude_auction<FT>(
         launchpad: &mut Launchpad,
         slot: &mut Slot,
-        auction: &mut DutchAuctionMarket,
-        launchpad_id: ID,
-        receiver: address,
+        auction: &mut DutchAuctionMarket<FT>,
         // Use to specify how many NFTs will be transfered to the winning bids
         // during the `conclude_auction`. This functionality is used to avoid
         // hitting computational costs during large auction sales.
@@ -362,6 +358,7 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext
     ) {
         let bids = &mut auction.bids;
+        let launchpad_id = launchpad::slot_id(slot);
 
         let fill_price = 0;
         let bids_to_fill = vector::empty();
@@ -386,21 +383,20 @@ module nft_protocol::dutch_auction {
             vector::push_back(&mut bids_to_fill, bid);
         };
 
+        let total_funds = balance::zero<FT>();
+
         while (!vector::is_empty(&bids_to_fill)) {
             let Bid {amount, owner} = vector::pop_back(&mut bids_to_fill);
-            let funds = coin::from_balance(amount, ctx);
 
-            pay::split_and_transfer<SUI>(
-                &mut funds,
-                // SAFE: Price levels will respect u64 bounds
-                (fill_price as u64),
-                receiver,
-                ctx
+            balance::join<FT>(
+                &mut total_funds,
+                amount
             );
 
             let certificate = outlet::issue_nft_certificate(
                 &mut auction.outlet,
                 launchpad_id,
+                launchpad::slot_id(slot),
                 ctx
             );
 
@@ -409,14 +405,16 @@ module nft_protocol::dutch_auction {
                 certificate,
                 owner,
             );
-
-            if (coin::value(&funds) == 0) {
-                coin::destroy_zero(funds);
-            } else {
-                // Transfer bidding coins back to bid owner
-                transfer::transfer(funds, owner);
-            }
         };
+
+        launchpad::pay<FT>(
+            launchpad,
+            slot,
+            coin::from_balance(total_funds, ctx),
+            (fill_price as u64),
+            1,
+            ctx,
+        );
 
         vector::destroy_empty(bids_to_fill);
     }

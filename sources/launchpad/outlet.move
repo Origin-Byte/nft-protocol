@@ -20,7 +20,6 @@ module nft_protocol::outlet {
 
     struct Outlet has key, store {
         id: UID,
-        tier_index: u64,
         whitelisted: bool,
         // Vector of all IDs owned by the slingshot
         nfts: vector<ID>,
@@ -35,11 +34,11 @@ module nft_protocol::outlet {
     struct NftCertificate has key, store {
         id: UID,
         launchpad_id: ID,
+        slot_id: ID,
         nft_id: ID,
     }
 
     public fun create(
-        tier_index: u64,
         whitelisted: bool,
         ctx: &mut TxContext,
     ): Outlet {
@@ -50,7 +49,6 @@ module nft_protocol::outlet {
 
         Outlet {
             id,
-            tier_index,
             whitelisted,
             nfts,
             queue,
@@ -72,7 +70,6 @@ module nft_protocol::outlet {
 
         let Outlet {
             id,
-            tier_index: _,
             whitelisted: _,
             nfts: _,
             queue: _,
@@ -85,14 +82,16 @@ module nft_protocol::outlet {
     public fun issue_nft_certificate(
         sale: &mut Outlet,
         launchpad_id: ID,
+        slot_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
         let nft_id = pop_nft(sale);
 
         let certificate = NftCertificate {
             id: object::new(ctx),
-            launchpad_id: launchpad_id,
-            nft_id: nft_id,
+            launchpad_id,
+            slot_id,
+            nft_id,
         };
 
         certificate
@@ -104,6 +103,7 @@ module nft_protocol::outlet {
         let NftCertificate {
             id,
             launchpad_id: _,
+            slot_id: _,
             nft_id: _,
         } = certificate;
 
@@ -153,12 +153,6 @@ module nft_protocol::outlet {
         sale: &Outlet,
     ): &ID {
         object::uid_as_inner(&sale.id)
-    }
-
-    public fun index(
-        sale: &Outlet,
-    ): u64 {
-        sale.tier_index
     }
 
     public fun whitelisted(

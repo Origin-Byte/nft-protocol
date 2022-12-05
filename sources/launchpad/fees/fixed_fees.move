@@ -5,10 +5,13 @@ module nft_protocol::fixed_fees {
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer;
     use sui::tx_context::TxContext;
 
+    use nft_protocol::err;
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
+    use nft_protocol::proceeds::{Self, Proceeds};
+    use nft_protocol::object_box::{Self, ObjectBox};
 
     struct FixedFee has key, store {
         id: UID,
@@ -27,75 +30,38 @@ module nft_protocol::fixed_fees {
         }
     }
 
-    public fun unwrap(
+    public fun collect_fee<FT>(
         launchpad: &mut Launchpad,
         slot: &mut Slot,
+        ctx: &mut TxContext,
     ) {
         launchpad::assert_slot(launchpad, slot);
 
         let slot_id = launchpad::slot_id(slot);
 
-        let fee_amount = launchpad::fee(slot) * price;
-        let net_price = price - fee_amount;
+        let proceeds = launchpad::proceeds_mut<FT>(
+            launchpad,
+            launchpad::slot_id(slot),
+        );
 
-        // let fee = coin::split<SUI>(
-        //     funds,
-        //     fee_amount,
-        //     ctx,
-        // );
+        let fee_policy = launchpad::fee_policy(launchpad, slot_id);
 
-        // // Split coin into price and change, then transfer
-        // // the price and keep the change
-        // pay::split_and_transfer<SUI>(
-        //     funds,
-        //     net_price,
-        //     receiver,
-        //     ctx
-        // );
+        assert!(
+            object_box::has_object<FixedFee>(fee_policy),
+            err::wrong_fee_policy_type(),
+        );
 
+        let policy = object_box::borrow_object<FixedFee>(fee_policy);
 
+        let fee = balance::value(proceeds::balance(proceeds)) * policy.rate;
 
-    }
-
-    /// `W` is the launchpad's witness (not the one time witness!) which
-    /// helps us ensure that the right royalty collection logic is operating
-    /// on this receipt.
-    ///
-    /// Only the designated witness can access the balance.
-    ///
-    /// Typically, this would be a witness exported from the collection contract
-    /// and it would access the balance to calculate the royalty in its custom
-    /// implementation.
-    public fun balance_mut<FT>(
-        // _witness: W,
-        payment: &mut Proceeds<FT>,
-    ): &mut Balance<FT> {
-        // utils::assert_same_module_as_witness<C, W>();
-        &mut payment.amount
-    }
-
-    public fun beneficiary<FT>(payment: &Proceeds<FT>): address {
-        payment.beneficiary
-    }
-
-    public fun transfer_remaining_to_beneficiary<C, W: drop, FT>(
-        _witness: W,
-        payment: &mut Proceeds<FT>,
-        ctx: &mut TxContext,
-    ) {
-        utils::assert_same_module_as_witness<C, W>();
-
-        let amount = balance::value(&payment.amount);
-        if (amount > 0) {
-            transfer(
-                coin::take(
-                    &mut payment.amount,
-                    amount,
-                    ctx,
-                ),
-                payment.beneficiary
-            );
-        }
+        proceeds::collect(
+            proceeds,
+            fee,
+            launchpad::launchpad_receiver(launchpad),
+            launchpad::slot_receiver(slot),
+            ctx,
+        );
     }
 
 }

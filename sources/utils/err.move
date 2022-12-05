@@ -128,6 +128,10 @@ module nft_protocol::err {
         return Prefix + 211
     }
 
+    public fun wrong_fee_policy_type(): u64 {
+        return Prefix + 212
+    }
+
     // Auction
 
     public fun order_does_not_exist(): u64 {

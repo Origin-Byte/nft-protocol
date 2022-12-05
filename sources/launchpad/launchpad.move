@@ -8,7 +8,6 @@
 //! many shapes, depending on the business level requirements.
 module nft_protocol::launchpad {
     use std::vector;
-    use std::type_name;
 
     use sui::transfer;
     use sui::coin::{Self, Coin};
@@ -30,7 +29,6 @@ module nft_protocol::launchpad {
         receiver: address,
         permissionless: bool,
         proceeds: Table<ID, Box>,
-        // TODO: Shouldn't this be ObjectTable??
         fee_policies: Table<ID, ObjectBox>,
         default_fee: u64,
     }
@@ -54,6 +52,8 @@ module nft_protocol::launchpad {
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
+        // proceeds: ObjectBox,
+        // fee: ObjectBox,
     }
 
     struct CreateSlotEvent has copy, drop {
@@ -135,8 +135,8 @@ module nft_protocol::launchpad {
             &mut launchpad.proceeds,
             id,
             box::new(
-                proceeds::create<C>(
-                    balance::zero<C>(), receiver, ctx
+                proceeds::empty<C>(
+                    receiver, ctx
                 ),
             ctx,
             ),
@@ -215,11 +215,12 @@ module nft_protocol::launchpad {
         );
     }
 
-    public fun pay<FT: key + store>(
+    public fun pay<FT>(
         launchpad: &mut Launchpad,
         slot: &mut Slot,
         funds: Coin<FT>,
         price: u64,
+        qty_sold: u64,
         ctx: &mut TxContext,
     ) {
         assert_slot(launchpad, slot);
@@ -239,8 +240,12 @@ module nft_protocol::launchpad {
             slot_id(slot),
         );
 
-        balance::join(proceeds::balance_mut(proceeds), balance);
-
+        proceeds::add(
+            proceeds,
+            balance,
+            qty_sold,
+            ctx,
+        );
     }
 
     public entry fun collect_fee<FT>(
@@ -256,19 +261,20 @@ module nft_protocol::launchpad {
             slot_id(slot),
         );
 
-        let fee_balance = balance::split<FT>(
-            proceeds::balance_mut(proceeds),
+        proceeds::collect(
+            proceeds,
             balance::value(proceeds::balance(proceeds)) * launchpad.default_fee,
-        );
-
-        let fee = coin::from_balance(fee_balance, ctx);
-
-        transfer::transfer(
-            fee,
             launchpad.receiver,
-        )
-
+            slot.receiver,
+            ctx
+        );
     }
+
+    // public fun redeem_nft(
+    //     slot: &Slot,
+    //     certificate: NftCertificate,
+
+    // ) {}
 
     // === Getter Functions ===object::uid_to_inner(&launchpad.id)
 
@@ -284,6 +290,13 @@ module nft_protocol::launchpad {
         launchpad: &Launchpad,
     ): &ID {
         object::uid_as_inner(&launchpad.id)
+    }
+
+    /// Get the Slot's `receiver` address
+    public fun launchpad_receiver(
+        launchpad: &Launchpad,
+    ): address {
+        launchpad.receiver
     }
 
     /// Get the Slot `id`
@@ -315,7 +328,7 @@ module nft_protocol::launchpad {
     }
 
     /// Get the Slot's `receiver` address
-    public fun receiver(
+    public fun slot_receiver(
         slot: &Slot,
     ): address {
         slot.receiver
@@ -358,6 +371,13 @@ module nft_protocol::launchpad {
         );
 
         box
+    }
+
+    public fun fee_policy(
+        launchpad: &Launchpad,
+        slot_id: ID,
+    ): &ObjectBox {
+        table::borrow<ID, ObjectBox>(&launchpad.fee_policies, slot_id)
     }
 
     // TODO: Only module from market can call this function

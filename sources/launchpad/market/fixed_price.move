@@ -15,7 +15,6 @@
 module nft_protocol::fixed_price {
     use sui::pay;
     use sui::balance;
-    use sui::sui::{SUI};
     use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, UID};
@@ -50,13 +49,11 @@ module nft_protocol::fixed_price {
     public fun create_market(
         launchpad: &Launchpad,
         slot: &mut Slot,
-        tier: u64,
         is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
         let outlet = outlet::create(
-            tier,
             is_whitelisted,
             ctx,
         );
@@ -94,15 +91,10 @@ module nft_protocol::fixed_price {
         slot: &mut Slot,
         funds: Coin<C>,
         market: &mut FixedPriceMarket,
-        tier_index: u64,
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
         assert!(launchpad::live(slot) == true, err::launchpad_not_live());
-
-        let launchpad_id = launchpad::slot_id(slot);
-
-        let receiver = launchpad::receiver(slot);
 
         // Infer that sales is NOT whitelisted
         assert!(
@@ -115,12 +107,14 @@ module nft_protocol::fixed_price {
             slot,
             funds,
             market.price,
+            1,
             ctx,
         );
 
         let certificate = outlet::issue_nft_certificate(
             &mut market.outlet,
-            launchpad_id,
+            launchpad::launchpad_id(launchpad),
+            launchpad::slot_id(slot),
             ctx
         );
 
@@ -141,7 +135,6 @@ module nft_protocol::fixed_price {
         slot: &mut Slot,
         funds: Coin<C>,
         market: &mut FixedPriceMarket,
-        tier_index: u64,
         whitelist_token: Whitelist,
         ctx: &mut TxContext,
     ) {
@@ -149,8 +142,6 @@ module nft_protocol::fixed_price {
         assert!(launchpad::live(slot) == true, err::launchpad_not_live());
 
         let launchpad_id = launchpad::slot_id(slot);
-
-        let receiver = launchpad::receiver(slot);
 
         // Infer that sales is whitelisted
         assert!(
@@ -169,6 +160,7 @@ module nft_protocol::fixed_price {
             slot,
             funds,
             market.price,
+            1,
             ctx,
         );
 
@@ -177,6 +169,7 @@ module nft_protocol::fixed_price {
         let certificate = outlet::issue_nft_certificate(
             &mut market.outlet,
             launchpad_id,
+            launchpad::slot_id(slot),
             ctx
         );
 
