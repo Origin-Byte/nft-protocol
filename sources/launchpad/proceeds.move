@@ -1,17 +1,21 @@
 module nft_protocol::proceeds {
 
+    use std::type_name::{Self, TypeName};
+
     use sui::coin;
     use sui::transfer;
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
     use sui::balance::{Self, Balance};
+    use sui::dynamic_field as df;
+
 
     /// `F`ungible `T`oken
     struct Proceeds<phantom FT> has key, store {
         id: UID,
         sold: Sold,
         total: u64,
-        amount: Balance<FT>,
+        // amount: Balance<FT>,
     }
 
     struct Sold has copy, drop, store {
@@ -26,32 +30,37 @@ module nft_protocol::proceeds {
             id: object::new(ctx),
             sold: Sold {unwrapped: 0, total: 0},
             total: 0,
-            amount: balance::zero(),
         }
     }
 
-    public fun balance<FT>(payment: &Proceeds<FT>): &Balance<FT> {
-        &payment.amount
+    public fun balance<FT>(proceeds: &Proceeds<FT>): &Balance<FT> {
+        df::borrow<TypeName, Balance<FT>>(
+            &proceeds.id,
+            type_name::get<Balance<FT>>(),
+        )
     }
 
     fun balance_mut<FT>(
-        payment: &mut Proceeds<FT>,
+        proceeds: &mut Proceeds<FT>,
     ): &mut Balance<FT> {
-        &mut payment.amount
+        df::borrow_mut<TypeName, Balance<FT>>(
+            &mut proceeds.id,
+            type_name::get<Balance<FT>>(),
+        )
     }
 
-    public fun destroy_zero<FT>(
-        proceeds: Proceeds<FT>,
-    ) {
-        let Proceeds {
-            id,
-            sold,
-            total,
-            amount: balance,
-        } = proceeds;
+    // public fun destroy_zero<FT>(
+    //     proceeds: Proceeds<FT>,
+    // ) {
+    //     let Proceeds {
+    //         id,
+    //         sold,
+    //         total,
+    //         amount: balance,
+    //     } = proceeds;
 
-        balance::destroy_zero(balance)
-    }
+    //     balance::destroy_zero(balance)
+    // }
 
     public fun add<FT>(
         proceeds: &mut Proceeds<FT>,
@@ -59,10 +68,18 @@ module nft_protocol::proceeds {
         qty_sold: u64,
         ctx: &mut TxContext,
     ) {
-        proceeds.total = proceeds.total + balance::value(balance(proceeds));
+        proceeds.total = proceeds.total + balance::value(&new_proceeds);
         proceeds.sold.total = proceeds.sold.total + qty_sold;
 
-        balance::join(balance_mut(proceeds), new_proceeds);
+        let balance = df::borrow_mut<TypeName, Balance<FT>>(
+            &mut proceeds.id,
+            type_name::get<Balance<FT>>(),
+        );
+
+        balance::join(
+            balance,
+            new_proceeds
+        );
     }
 
     public fun collect<FT>(
@@ -72,8 +89,13 @@ module nft_protocol::proceeds {
         slot_receiver: address,
         ctx: &mut TxContext,
     ) {
+        let balance = df::borrow_mut<TypeName, Balance<FT>>(
+            &mut proceeds.id,
+            type_name::get<Balance<FT>>(),
+        );
+
         let fee_balance = balance::split<FT>(
-            balance_mut(proceeds),
+            balance,
             fees,
         );
 
@@ -84,9 +106,10 @@ module nft_protocol::proceeds {
             launchpad_receiver,
         );
 
+        // Take the whole balance
         let proceeds_balance = balance::split<FT>(
-            balance_mut(proceeds),
-            balance::value(balance(proceeds)),
+            balance,
+            balance::value(balance),
         );
 
         let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
