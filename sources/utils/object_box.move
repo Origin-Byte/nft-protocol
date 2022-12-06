@@ -41,11 +41,11 @@ module nft_protocol::object_box {
         object_bag::contains_with_type<DomainKey, D>(&generic.object, domain_key<D>())
     }
 
-    public fun borrow_object<D: store + key>(generic: &ObjectBox): &D {
+    public fun borrow<D: store + key>(generic: &ObjectBox): &D {
         object_bag::borrow<DomainKey, D>(&generic.object, domain_key<D>())
     }
 
-    public fun borrow_object_mut<D: store + key, W: drop>(
+    public fun borrow_mut<D: store + key>(
         generic: &mut ObjectBox,
     ): &mut D {
         object_bag::borrow_mut<DomainKey, D>(&mut generic.object, domain_key<D>())
@@ -67,5 +67,9 @@ module nft_protocol::object_box {
     ): V {
         utils::assert_same_module_as_witness<W, V>();
         object_bag::remove(&mut generic.object, domain_key<V>())
+    }
+
+    public fun is_empty(generic: &ObjectBox): bool {
+        object_bag::is_empty(&generic.object)
     }
 }

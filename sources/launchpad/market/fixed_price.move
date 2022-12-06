@@ -13,19 +13,16 @@
 //! TODO: Remove code duplication between `buy_nft_certificate` and
 //! `buy_whitelisted_nft_certificate`
 module nft_protocol::fixed_price {
-    use sui::pay;
-    use sui::balance;
-    use sui::transfer::{Self};
     use sui::coin::{Self, Coin};
+    use sui::transfer::{Self};
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::proceeds;
     use nft_protocol::object_box;
-    use nft_protocol::launchpad::{Self, Launchpad, Slot};
     use nft_protocol::outlet::{Self, Outlet};
     use nft_protocol::whitelist::{Self, Whitelist};
+    use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct FixedPriceMarket has key, store {
         id: UID,
@@ -86,10 +83,10 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_nft_certificate<C: key + store>(
-        launchpad: &mut Launchpad,
+    public entry fun buy_nft_certificate<FT>(
+        launchpad: &Launchpad,
         slot: &mut Slot,
-        funds: Coin<C>,
+        funds: Coin<FT>,
         market: &mut FixedPriceMarket,
         ctx: &mut TxContext,
     ) {
@@ -102,11 +99,18 @@ module nft_protocol::fixed_price {
             err::sale_is_not_whitelisted()
         );
 
+        let change = coin::split<FT>(
+            &mut funds,
+            market.price,
+            ctx,
+        );
+
+        transfer::transfer(change, tx_context::sender(ctx));
+
         launchpad::pay(
             launchpad,
             slot,
             funds,
-            market.price,
             1,
             ctx,
         );
@@ -130,10 +134,10 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_whitelisted_nft_certificate<C: key + store>(
-        launchpad: &mut Launchpad,
+    public entry fun buy_whitelisted_nft_certificate<FT>(
+        launchpad: &Launchpad,
         slot: &mut Slot,
-        funds: Coin<C>,
+        funds: Coin<FT>,
         market: &mut FixedPriceMarket,
         whitelist_token: Whitelist,
         ctx: &mut TxContext,
@@ -155,11 +159,18 @@ module nft_protocol::fixed_price {
             err::incorrect_whitelist_token()
         );
 
+        let change = coin::split<FT>(
+            &mut funds,
+            market.price,
+            ctx,
+        );
+
+        transfer::transfer(change, tx_context::sender(ctx));
+
         launchpad::pay(
             launchpad,
             slot,
             funds,
-            market.price,
             1,
             ctx,
         );

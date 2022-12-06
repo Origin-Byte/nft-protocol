@@ -5,7 +5,7 @@ module nft_protocol::whitelist {
 
     use nft_protocol::err;
     use nft_protocol::outlet::{Self, Outlet};
-    use nft_protocol::launchpad::{Self, Launchpad, Slot};
+    use nft_protocol::launchpad::{Self, Slot};
 
     struct Whitelist has key {
         id: UID,

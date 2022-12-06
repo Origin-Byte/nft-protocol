@@ -1,12 +1,10 @@
 module nft_protocol::proceeds {
 
-    use nft_protocol::utils;
-    use std::option::{Self, Option};
-    use sui::balance::{Self, Balance};
     use sui::coin;
-    use sui::object::{Self, ID, UID};
     use sui::transfer;
     use sui::tx_context::TxContext;
+    use sui::object::{Self, UID};
+    use sui::balance::{Self, Balance};
 
     /// `F`ungible `T`oken
     struct Proceeds<phantom FT> has key, store {

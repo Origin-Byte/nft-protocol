@@ -9,17 +9,14 @@
 module nft_protocol::launchpad {
     use std::vector;
 
+    use sui::balance;
     use sui::transfer;
     use sui::coin::{Self, Coin};
-    use sui::table::{Self, Table};
     use sui::object::{Self, ID , UID};
-    use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::utils;
     use nft_protocol::proceeds::{Self, Proceeds};
-    use nft_protocol::box::{Self, Box};
     use nft_protocol::object_box::{Self, ObjectBox};
 
     struct Launchpad has key, store{
@@ -28,8 +25,8 @@ module nft_protocol::launchpad {
         admin: address,
         receiver: address,
         permissionless: bool,
-        proceeds: Table<ID, Box>,
-        fee_policies: Table<ID, ObjectBox>,
+        // proceeds: Table<ID, Box>,
+        // fee_policies: Table<ID, ObjectBox>,
         default_fee: u64,
     }
 
@@ -52,8 +49,9 @@ module nft_protocol::launchpad {
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
-        // proceeds: ObjectBox,
-        // fee: ObjectBox,
+        proceeds: ObjectBox,
+        default_fee: u64,
+        custom_fee: ObjectBox,
     }
 
     struct CreateSlotEvent has copy, drop {
@@ -78,24 +76,22 @@ module nft_protocol::launchpad {
     ) {
         let uid = object::new(ctx);
 
-        let id = object::uid_to_inner(&uid);
-
         let launchpad = Launchpad {
             id: uid,
             admin,
             receiver,
             permissionless,
-            proceeds: table::new<ID, Box>(ctx),
-            fee_policies: table::new<ID, ObjectBox>(ctx),
             default_fee,
         };
+
+        transfer::share_object(launchpad);
     }
 
     // === Slot Functions ===
 
     /// Initialises a `Slot` object and registers it in the `Launchpad` object
-    public fun init_slot<C: store + drop>(
-        launchpad: &mut Launchpad,
+    public fun init_slot<FT>(
+        launchpad: &Launchpad,
         slot_admin: address,
         collections: vector<ID>,
         receiver: address,
@@ -115,8 +111,6 @@ module nft_protocol::launchpad {
         };
 
         let uid = object::new(ctx);
-        let id = object::uid_to_inner(&uid);
-
         let markets = vector::empty();
 
         let slot = Slot {
@@ -129,18 +123,10 @@ module nft_protocol::launchpad {
             receiver,
             markets,
             is_embedded,
+            proceeds: object_box::new(proceeds::empty<FT>(receiver, ctx), ctx),
+            default_fee: launchpad.default_fee,
+            custom_fee: object_box::empty(ctx),
         };
-
-        table::add(
-            &mut launchpad.proceeds,
-            id,
-            box::new(
-                proceeds::empty<C>(
-                    receiver, ctx
-                ),
-            ctx,
-            ),
-        );
 
         transfer::share_object(slot);
     }
@@ -162,10 +148,7 @@ module nft_protocol::launchpad {
         slot: &mut Slot,
         ctx: &mut TxContext,
     ) {
-        assert!(
-            tx_context::sender(ctx) == slot.admin,
-            err::wrong_slot_admin()
-        );
+        assert_slot_admin(slot, ctx);
 
         slot.live = true
     }
@@ -198,47 +181,35 @@ module nft_protocol::launchpad {
 
     /// Adds a sale outlet `Outlet` to `sales` field
     public fun add_fee<FeeType: key + store>(
-        launchpad: &mut Launchpad,
-        slot_id: ID,
+        launchpad: &Launchpad,
+        slot: &mut Slot,
         fee: FeeType,
         ctx: &mut TxContext,
     ) {
         assert_launchpad_admin(launchpad, ctx);
 
-        table::add(
-            &mut launchpad.fee_policies,
-            slot_id,
-            object_box::new(
-                fee,
-            ctx,
+        assert!(
+            object_box::is_empty(
+                &slot.custom_fee
             ),
+            err::generic_box_full(),
         );
+
+        object_box::add_object<FeeType>(&mut slot.custom_fee, fee);
     }
 
     public fun pay<FT>(
-        launchpad: &mut Launchpad,
+        launchpad: &Launchpad,
         slot: &mut Slot,
         funds: Coin<FT>,
-        price: u64,
         qty_sold: u64,
         ctx: &mut TxContext,
     ) {
         assert_slot(launchpad, slot);
 
-        assert!(coin::value(&funds) > price, err::coin_amount_below_price());
-
-        let change = coin::split<FT>(
-            &mut funds,
-            price,
-            ctx,
-        );
-
         let balance = coin::into_balance(funds);
 
-        let proceeds = proceeds_mut<FT>(
-            launchpad,
-            slot_id(slot),
-        );
+        let proceeds = proceeds_mut<FT>(slot,);
 
         proceeds::add(
             proceeds,
@@ -249,17 +220,14 @@ module nft_protocol::launchpad {
     }
 
     public entry fun collect_fee<FT>(
-        launchpad: &mut Launchpad,
-        slot: &Slot,
+        launchpad: &Launchpad,
+        slot: &mut Slot,
         ctx: &mut TxContext,
     ) {
         assert_slot(launchpad, slot);
-        assert_default_fee(launchpad, slot);
+        assert_default_fee(slot);
 
-        let proceeds = proceeds_mut<FT>(
-            launchpad,
-            slot_id(slot),
-        );
+        let proceeds = proceeds_mut<FT>(slot);
 
         proceeds::collect(
             proceeds,
@@ -363,39 +331,27 @@ module nft_protocol::launchpad {
     }
 
     public fun proceeds<FT>(
-        launchpad: &Launchpad,
-        slot_id: ID,
+        slot: &Slot,
     ): &Proceeds<FT> {
-        let box = box::borrow_object<Proceeds<FT>>(
-            table::borrow<ID, Box>(&launchpad.proceeds, slot_id)
-        );
-
-        box
+        object_box::borrow(&slot.proceeds)
     }
 
-    public fun fee_policy(
-        launchpad: &Launchpad,
-        slot_id: ID,
+    public fun default_fee(
+        slot: &Slot,
+    ): u64 {
+        slot.default_fee
+    }
+
+    public fun custom_fee(
+        slot: &Slot,
     ): &ObjectBox {
-        table::borrow<ID, ObjectBox>(&launchpad.fee_policies, slot_id)
+        &slot.custom_fee
     }
 
-    // TODO: Only module from market can call this function
     public fun proceeds_mut<FT>(
-        launchpad: &mut Launchpad,
-        slot_id: ID,
+        slot: &mut Slot,
     ): &mut Proceeds<FT> {
-        // let (package_a, module_a, _) = utils::get_package_module_type<FeeType>();
-
-        // assert!(
-        //     module_a ==
-        // )
-
-        let box = box::borrow_object_mut<Proceeds<FT>>(
-            table::borrow_mut<ID, Box>(&mut launchpad.proceeds, slot_id)
-        );
-
-        box
+        object_box::borrow_mut(&mut slot.proceeds)
     }
 
     public fun assert_slot(
@@ -429,9 +385,27 @@ module nft_protocol::launchpad {
     }
 
     public fun assert_default_fee(
-        launchpad: &Launchpad,
         slot: &Slot,
     ) {
-        table::contains<ID, ObjectBox>(&launchpad.fee_policies, slot_id(slot));
+        assert!(
+            !object_box::is_empty(
+                &slot.custom_fee
+            ),
+            err::has_custom_fee_policy(),
+        );
+    }
+
+    public fun assert_launchpad_or_slot_admin(
+        launchpad: &Launchpad,
+        slot: &Slot,
+        ctx: &mut TxContext,
+    ) {
+        let is_launchpad_admin = tx_context::sender(ctx) == launchpad.admin;
+        let is_slot_admin = tx_context::sender(ctx) == slot.admin;
+
+        assert!(
+            is_launchpad_admin || is_slot_admin,
+            err::wrong_admin(),
+        );
     }
 }

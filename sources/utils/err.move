@@ -124,12 +124,20 @@ module nft_protocol::err {
         return Prefix + 210
     }
 
+    public fun wrong_admin(): u64 {
+        return Prefix + 212
+    }
+
     public fun wrong_slot_admin(): u64 {
-        return Prefix + 211
+        return Prefix + 212
     }
 
     public fun wrong_fee_policy_type(): u64 {
-        return Prefix + 212
+        return Prefix + 213
+    }
+
+    public fun has_custom_fee_policy(): u64 {
+        return Prefix + 214
     }
 
     // Auction
@@ -210,5 +218,10 @@ module nft_protocol::err {
     // === Generic ===
     public fun generic_bag_full(): u64 {
         return Prefix + 800
+    }
+
+    // === Generic ===
+    public fun generic_box_full(): u64 {
+        return Prefix + 801
     }
 }

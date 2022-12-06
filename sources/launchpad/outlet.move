@@ -13,8 +13,8 @@
 module nft_protocol::outlet {
     use std::vector;
 
-    use sui::object::{Self, ID , UID};
     use sui::tx_context::{TxContext};
+    use sui::object::{Self, ID , UID};
 
     use nft_protocol::err;
 

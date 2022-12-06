@@ -5,20 +5,19 @@ module nft_protocol::dutch_auction {
 
     use std::vector;
 
-    use sui::pay;
-    use sui::balance::{Self, Balance};
-    use sui::coin::{Self, Coin};
-    use sui::tx_context::{Self, TxContext};
     use sui::transfer;
-    use sui::object::{Self, UID, ID};
+    use sui::coin::{Self, Coin};
+    use sui::object::{Self, UID};
+    use sui::balance::{Self, Balance};
+    use sui::tx_context::{Self, TxContext};
 
     use movemate::crit_bit::{Self, CB as CBTree};
 
     use nft_protocol::err;
     use nft_protocol::object_box;
-    use nft_protocol::launchpad::{Self, Launchpad, Slot};
     use nft_protocol::outlet::{Self, Outlet};
     use nft_protocol::whitelist::{Self, Whitelist};
+    use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
@@ -214,7 +213,7 @@ module nft_protocol::dutch_auction {
     ///
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_conclude<FT>(
-        launchpad: &mut Launchpad,
+        launchpad: &Launchpad,
         slot: &mut Slot,
         market: &mut DutchAuctionMarket<FT>,
         ctx: &mut TxContext
@@ -345,7 +344,7 @@ module nft_protocol::dutch_auction {
     }
 
     fun conclude_auction<FT>(
-        launchpad: &mut Launchpad,
+        launchpad: &Launchpad,
         slot: &mut Slot,
         auction: &mut DutchAuctionMarket<FT>,
         // Use to specify how many NFTs will be transfered to the winning bids
@@ -411,7 +410,6 @@ module nft_protocol::dutch_auction {
             launchpad,
             slot,
             coin::from_balance(total_funds, ctx),
-            (fill_price as u64),
             1,
             ctx,
         );
