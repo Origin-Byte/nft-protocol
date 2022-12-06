@@ -6,7 +6,7 @@ module nft_protocol::flat_fee {
 
     use nft_protocol::err;
     use nft_protocol::proceeds;
-    use nft_protocol::object_box::{Self, ObjectBox};
+    use nft_protocol::object_box::{Self};
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct FlatFee has key, store {

@@ -33,10 +33,6 @@ module nft_protocol::launchpad {
         launchpad: ID,
         /// Signals if the Slot has been approved by the launchpad administrator.
         is_approved: bool,
-        // TODO: Perhaps we can get rid of this field, add a domain that
-        // tags all the collections that are sold in a given launchpad slot
-        /// The ID of the Collections object
-        collections: vector<ID>,
         /// Boolean indicating if the sale is live
         live: bool,
         /// The address of the slot administrator, that is, the Nft creator
@@ -45,11 +41,6 @@ module nft_protocol::launchpad {
         receiver: address,
         /// Vector of all markets outlets that, each outles holding IDs owned by the slot
         markets: vector<ObjectBox>,
-        /// Field determining if NFTs are embedded or looose.
-        /// Embedded NFTs will be directly owned by the Slot whilst
-        /// loose NFTs will be minted on the fly under the authorithy of the
-        /// launchpad.
-        is_embedded: bool,
         /// Proceeds object holds the balance of Fungible Tokens acquired from
         /// the sale of the Slot
         proceeds: Proceeds,
@@ -131,9 +122,7 @@ module nft_protocol::launchpad {
     public entry fun init_slot<FT>(
         launchpad: &Launchpad,
         slot_admin: address,
-        collections: vector<ID>,
         receiver: address,
-        is_embedded: bool,
         ctx: &mut TxContext,
     ) {
         let approval = false;
@@ -155,12 +144,10 @@ module nft_protocol::launchpad {
             id: uid,
             launchpad: launchpad_id(launchpad),
             is_approved: approval,
-            collections,
             live: false,
             admin: slot_admin,
             receiver,
             markets,
-            is_embedded,
             proceeds: proceeds::empty<FT>(ctx),
             custom_fee: object_box::empty(ctx),
         };
@@ -293,13 +280,6 @@ module nft_protocol::launchpad {
         object::uid_as_inner(&slot.id)
     }
 
-    /// Get the Slot's `collection_id`
-    public fun collections(
-        slot: &Slot,
-    ): &vector<ID> {
-        &slot.collections
-    }
-
     /// Get the Slot's `live`
     public fun live(
         slot: &Slot,
@@ -333,13 +313,6 @@ module nft_protocol::launchpad {
         slot: &mut Slot,
     ): &mut vector<ObjectBox> {
         &mut slot.markets
-    }
-
-    /// Get the Slot's `is_embedded` bool
-    public fun is_embedded(
-        slot: &Slot,
-    ): bool {
-        slot.is_embedded
     }
 
     public fun proceeds(
