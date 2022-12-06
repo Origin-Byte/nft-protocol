@@ -4,6 +4,7 @@
 //! strategy, that is the primary market sale. Primary market sales can take
 //! many shapes, depending on the business level requirements.
 module nft_protocol::launchpad {
+    // TODO: Function to delete a slot
     use std::vector;
 
     use sui::transfer;
@@ -15,9 +16,9 @@ module nft_protocol::launchpad {
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::object_box::{Self, ObjectBox};
 
-    struct Launchpad has key, store{
+    struct Launchpad has key, store {
         id: UID,
-        /// The address of the administrator
+        /// The address of the launchpad administrator
         admin: address,
         /// Receiver of launchpad fees
         receiver: address,

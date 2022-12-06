@@ -11,9 +11,8 @@ module nft_protocol::suimarines {
     use nft_protocol::outlet::{Self, NftCertificate};
     use nft_protocol::collection::{Self, Collection, MintAuthority};
     use nft_protocol::fixed_price;
-    use nft_protocol::generic;
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::launchpad::{Self, Launchpad, Trebuchet};
+    use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     use nft_protocol::display;
 
@@ -97,7 +96,7 @@ module nft_protocol::suimarines {
         mint_authority: &mut MintAuthority<SUIMARINES>,
         sale_index: u64,
         launchpad: &mut Launchpad,
-        trebuchet: &mut Trebuchet,
+        slot: &mut Slot,
         ctx: &mut TxContext,
     ) {
         unique_nft::mint_regulated_nft(
