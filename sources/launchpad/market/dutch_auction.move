@@ -143,7 +143,7 @@ module nft_protocol::dutch_auction {
     // Cancel all bids endpoint
     public entry fun cancel_bid<FT>(
         wallet: &mut Coin<FT>,
-        slot: &mut Slot,
+        _slot: &mut Slot,
         market: &mut DutchAuctionMarket<FT>,
         price: u64,
         ctx: &mut TxContext,
@@ -389,6 +389,7 @@ module nft_protocol::dutch_auction {
 
             balance::join<FT>(
                 &mut total_funds,
+                // TODO: IT should be the fill_price and not the total amount
                 amount
             );
 
@@ -411,7 +412,6 @@ module nft_protocol::dutch_auction {
             slot,
             coin::from_balance(total_funds, ctx),
             1,
-            ctx,
         );
 
         vector::destroy_empty(bids_to_fill);

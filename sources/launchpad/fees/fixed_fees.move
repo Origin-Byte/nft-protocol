@@ -32,7 +32,12 @@ module nft_protocol::flat_fee {
         launchpad::assert_slot(launchpad, slot);
         launchpad::assert_launchpad_or_slot_admin(launchpad, slot, ctx);
 
-        let proceeds = launchpad::proceeds_mut(slot);
+        let (proceeds_value, slot_receiver) = {
+            let proceeds = launchpad::proceeds(slot);
+            let slot_receiver = launchpad::slot_receiver(slot);
+            let proceeds_value = proceeds::balance<FT>(proceeds);
+            (proceeds_value, slot_receiver)
+        };
 
         let fee_policy: &ObjectBox;
 
@@ -49,13 +54,13 @@ module nft_protocol::flat_fee {
 
         let policy = object_box::borrow<FlatFee>(fee_policy);
 
-        let fee = balance::value(proceeds::balance<FT>(proceeds)) * policy.rate;
+        let fee = balance::value(proceeds_value) * policy.rate;
 
         proceeds::collect<FT>(
-            proceeds,
+            launchpad::proceeds_mut(slot),
             fee,
             launchpad::launchpad_receiver(launchpad),
-            launchpad::slot_receiver(slot),
+            slot_receiver,
             ctx,
         );
     }

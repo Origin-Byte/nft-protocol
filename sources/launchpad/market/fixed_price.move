@@ -112,7 +112,6 @@ module nft_protocol::fixed_price {
             slot,
             funds,
             1,
-            ctx,
         );
 
         let certificate = outlet::issue_nft_certificate(
@@ -172,7 +171,6 @@ module nft_protocol::fixed_price {
             slot,
             funds,
             1,
-            ctx,
         );
 
         whitelist::burn_whitelist_token(whitelist_token);

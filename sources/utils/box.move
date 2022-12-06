@@ -1,14 +1,11 @@
 module nft_protocol::box {
     use std::type_name::{Self, TypeName};
 
-    use nft_protocol::err;
-    use nft_protocol::domain::{domain_key, DomainKey};
-    use nft_protocol::utils;
-
     use sui::dynamic_field as df;
-    use sui::bag::{Self, Bag};
     use sui::object::{Self, UID};
     use sui::tx_context::{TxContext};
+
+    use nft_protocol::err;
 
     struct Box has store {
         id: UID,

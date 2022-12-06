@@ -63,7 +63,6 @@ module nft_protocol::proceeds {
         proceeds: &mut Proceeds,
         new_proceeds: Balance<FT>,
         qty_sold: u64,
-        ctx: &mut TxContext,
     ) {
         proceeds.total = proceeds.total + balance::value(&new_proceeds);
         proceeds.sold.total = proceeds.sold.total + qty_sold;
@@ -115,16 +114,18 @@ module nft_protocol::proceeds {
             launchpad_receiver,
         );
 
+        let balance_value = balance::value(balance);
+
         // Take the whole balance
         let proceeds_balance = balance::split<FT>(
             balance,
-            balance::value(balance),
+            balance_value,
         );
 
         let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
 
         transfer::transfer(
-            fee,
+            proceeds_coin,
             slot_receiver,
         );
     }

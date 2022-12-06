@@ -198,7 +198,6 @@ module nft_protocol::launchpad {
         slot: &mut Slot,
         funds: Coin<FT>,
         qty_sold: u64,
-        ctx: &mut TxContext,
     ) {
         assert_slot(launchpad, slot);
 
@@ -210,7 +209,6 @@ module nft_protocol::launchpad {
             proceeds,
             balance,
             qty_sold,
-            ctx,
         );
     }
 
