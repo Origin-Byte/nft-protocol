@@ -9,7 +9,7 @@ module nft_protocol::tags {
     // === Tags ===
 
     struct Art has store, drop {}
-    struct PFP has store, drop {}
+    struct ProfilePicture has store, drop {}
     struct Collectible has store, drop {}
     struct GameAsset has store, drop {}
     struct TokenisedAsset has store, drop {}
@@ -25,8 +25,8 @@ module nft_protocol::tags {
         Art {}
     }
 
-    public fun pfp(): PFP {
-        PFP {}
+    public fun profile_picture(): ProfilePicture {
+        ProfilePicture {}
     }
 
     public fun collectible(): Collectible {
