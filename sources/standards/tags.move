@@ -10,12 +10,17 @@ module nft_protocol::tags {
 
     struct Art has store, drop {}
     struct ProfilePicture has store, drop {}
+    // An example of a collectible would be digital Baseball cards
     struct Collectible has store, drop {}
     struct GameAsset has store, drop {}
+    // A tokenised asset is a real world asset represented on-chian,
+    // i.e. insurance policies, loan contracts, etc.
     struct TokenisedAsset has store, drop {}
+    // Tickers are what's called the abbreviation used to uniquely identify
+    // publicly traded assets, i.e. Tesla trades as $TSLA and Amazon as $AMZN.
+    // Crypto asset tickers themselves can be minted and sold as NFTs.
     struct Ticker has store, drop {}
     struct DomainName has store, drop {}
-    struct Gif has store, drop {}
     struct Music has store, drop {}
     struct Video has store, drop {}
     struct Ticket has store, drop {}
@@ -47,10 +52,6 @@ module nft_protocol::tags {
 
     public fun domain_name(): DomainName {
         DomainName {}
-    }
-
-    public fun gif(): Gif {
-        Gif {}
     }
 
     public fun music(): Music {
