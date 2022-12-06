@@ -387,10 +387,11 @@ module nft_protocol::dutch_auction {
         while (!vector::is_empty(&bids_to_fill)) {
             let Bid {amount, owner} = vector::pop_back(&mut bids_to_fill);
 
+            let filled_funds = balance::split(&mut amount, (fill_price as u64));
+
             balance::join<FT>(
                 &mut total_funds,
-                // TODO: IT should be the fill_price and not the total amount
-                amount
+                filled_funds
             );
 
             let certificate = outlet::issue_nft_certificate(
@@ -405,6 +406,13 @@ module nft_protocol::dutch_auction {
                 certificate,
                 owner,
             );
+
+            if (balance::value(&amount) == 0) {
+                balance::destroy_zero(amount);
+            } else {
+                // Transfer bidding coins back to bid owner
+                transfer::transfer(coin::from_balance(amount, ctx), owner);
+            };
         };
 
         launchpad::pay<FT>(
