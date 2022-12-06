@@ -27,8 +27,6 @@
 //! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that
 //! `is_mutable` refers to the NFTs and `frozen` refers to the collection
 module nft_protocol::collection {
-    use std::vector;
-
     use sui::event;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
@@ -36,7 +34,7 @@ module nft_protocol::collection {
     use sui::bag::{Self, Bag};
 
     use nft_protocol::err;
-    use nft_protocol::utils;
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
 
@@ -152,6 +150,7 @@ module nft_protocol::collection {
             id,
             is_mutable,
             mint_authority: object::id(&cap),
+            domains: bag::new(ctx),
         };
 
         (cap, col)

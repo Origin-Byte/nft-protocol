@@ -33,7 +33,7 @@ module nft_protocol::attribution {
         creator.share_of_royalty_bps
     }
 
-    struct AttributionDomain has store {
+    struct AttributionDomain has copy, drop, store {
         /// Address that receives the mint and trade royalties
         creators: VecMap<address, Creator>,
     }
@@ -63,15 +63,19 @@ module nft_protocol::attribution {
         vec_map::is_empty(&attributions.creators)
     }
 
+    public fun creators(attributions: &AttributionDomain): &VecMap<address, Creator> {
+        &attributions.creators
+    }
+
     public fun get(
         attributions: &AttributionDomain,
-        who: address,
+        who: &address,
     ): &Creator {
         assert!(
-            vec_map::contains(&attributions.creators, &who),
+            vec_map::contains(&attributions.creators, who),
             err::address_not_attributed()
         );
-        vec_map::get(&attributions.creators, &who)
+        vec_map::get(&attributions.creators, who)
     }
 
     fun get_mut(
@@ -107,7 +111,8 @@ module nft_protocol::attribution {
             creator.share_of_royalty_bps - new_creator.share_of_royalty_bps;
 
         if (creator.share_of_royalty_bps == 0) {
-            vec_map::remove(&mut attributions.creators, &creator.who);
+            let who = creator.who;
+            vec_map::remove(&mut attributions.creators, &who);
         };
 
         vec_map::insert(&mut attributions.creators, new_creator.who, new_creator);
@@ -196,6 +201,6 @@ module nft_protocol::attribution {
         attributions: &AttributionDomain,
         who: address
     ) {
-        get(attributions, who);
+        get(attributions, &who);
     }
 }

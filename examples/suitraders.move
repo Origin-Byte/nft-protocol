@@ -47,7 +47,6 @@ module nft_protocol::suitraders {
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art(), ctx);
-        tags::add_tag(&mut tags, tags::pfp(), ctx);
         tags::add_collection_tag_domain(&mut collection, tags);
 
         let collection_id = collection::share<SUITRADERS>(collection);

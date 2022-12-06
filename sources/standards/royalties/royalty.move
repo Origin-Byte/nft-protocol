@@ -6,7 +6,7 @@ module nft_protocol::royalty {
     use nft_protocol::collection::{Self, Collection};
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::attribution::{Self, AttributionDomain, Creator};
+    use nft_protocol::attribution::{Self, AttributionDomain};
     use nft_protocol::royalty_strategy_bps::BpsRoyaltyStrategy;
     use nft_protocol::royalty_strategy_constant::ConstantRoyaltyStrategy;
 
@@ -29,7 +29,6 @@ module nft_protocol::royalty {
 
     /// Creates a `RoyaltyDomain` object with provided creator attributions.
     public fun from_creators(
-        creators: vector<Creator>,
         ctx: &mut TxContext
     ): RoyaltyDomain {
         RoyaltyDomain {
@@ -177,19 +176,18 @@ module nft_protocol::royalty {
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let royalty = royalty_domain_mut(collection);
-        let attributions: &AttributionDomain =
-            collection::borrow_domain(collection);
+        let attributions = *collection::borrow_domain<C, AttributionDomain>(collection);
 
+        let royalty: &mut RoyaltyDomain = royalty_domain_mut(collection);
         let aggregate: &mut Balance<FT> = bag::borrow_mut(
             &mut royalty.aggregations,
             utils::marker<Balance<FT>>(),
         );
 
         attribution::distribute_royalties(
-            attributions,
+            &attributions,
             aggregate,
-            ctx
+            ctx,
         );
     }
 }

@@ -56,7 +56,7 @@ module nft_protocol::suimarines {
             string::utf8(b"SUIM")
         );
 
-        royalty::add_collection_royalty_domain(&mut collection, ctx);
+        royalty::add_royalty_domain(&mut collection, ctx);
         royalty::add_proportional_royalty(
             &mut collection,
             nft_protocol::royalty_strategy_bps::new(100),
@@ -95,7 +95,7 @@ module nft_protocol::suimarines {
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
 
-        let domain = royalty::collection_royalty_domain_mut(collection);
+        let domain = royalty::royalty_domain_mut(collection);
         let trade_value = balance::value(b);
         royalty::transfer_royalties(domain, b, trade_value);
 
