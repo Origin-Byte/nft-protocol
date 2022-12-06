@@ -276,7 +276,7 @@ module nft_protocol::ob {
 
     /// Offer given NFT to be traded for given (`requsted_tokens`) tokens. If
     /// there exists a bid with higher offer than `requsted_tokens`, then trade
-    /// is immeidately executed. Otherwise the NFT is transferred to a newly
+    /// is immediately executed. Otherwise the NFT is transferred to a newly
     /// created ask object and the object is inserted to the orderbook.
     public entry fun create_ask<C, FT>(
         book: &mut Orderbook<C, FT>,
