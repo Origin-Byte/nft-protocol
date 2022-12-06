@@ -10,7 +10,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::bidding;
     use nft_protocol::safe::{Self, Safe};
-    use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use sui::sui::SUI;
     use sui::coin;
     use std::vector;
@@ -46,7 +46,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     }
 
     fun create_collection_and_whitelist(scenario: &mut Scenario) {
-        let col = collection::dummy_collection<Foo>(CREATOR, scenario);
+        let (cap, col) = collection::dummy_collection<Foo>(&Foo {}, CREATOR, scenario);
         share_object(col);
         test_scenario::next_tx(scenario, CREATOR);
 
@@ -54,13 +54,18 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         nft_protocol::example_free_for_all::init_(ctx(scenario));
         test_scenario::next_tx(scenario, CREATOR);
 
-        let wl: Whitelist = test_scenario::take_shared(scenario);
-        nft_protocol::example_free_for_all::insert_collection(
-            &col,
-            &mut wl,
-            ctx(scenario),
+        let col_control_cap = transfer_whitelist::create_collection_cap<Foo, Witness>(
+            &Witness {}, ctx(scenario),
         );
 
+        let wl: Whitelist = test_scenario::take_shared(scenario);
+        nft_protocol::example_free_for_all::insert_collection(
+            &col_control_cap,
+            &mut wl,
+        );
+
+        transfer(cap, CREATOR);
+        transfer(col_control_cap, CREATOR);
         test_scenario::return_shared(col);
         test_scenario::return_shared(wl);
     }
