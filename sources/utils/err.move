@@ -217,6 +217,7 @@ module nft_protocol::err {
     }
 
     // === Generic ===
+
     public fun generic_bag_full(): u64 {
         return Prefix + 800
     }
