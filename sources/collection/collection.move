@@ -39,7 +39,6 @@ module nft_protocol::collection {
     use nft_protocol::utils;
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
-    use nft_protocol::domain::{domain_key, DomainKey};
 
     /// An NFT `Collection` object with a generic `M`etadata.
     ///
@@ -52,7 +51,6 @@ module nft_protocol::collection {
         /// owners however will still be able to push and pop tags to the
         /// `tags` field.
         is_mutable: bool,
-        creators: vector<Creator>,
         /// ID of `MintAuthority` object
         mint_authority: ID,
         /// Domain storage equivalent to NFT domains which allows collections
@@ -72,16 +70,6 @@ module nft_protocol::collection {
         // does not keep track of its current supply objects. This allows for the
         // minting process to be parallelized.
         supply_policy: SupplyPolicy,
-    }
-
-    /// Creator struct which holds the addresses of the creators of the NFT
-    /// Collection, as well their share of the royalties collected.
-    struct Creator has store, copy, drop {
-        creator_address: address,
-        /// The creator needs to sign a transaction in order to be verified.
-        /// Otherwise anyone could just spoof the creator's identity
-        verified: bool,
-        share_of_royalty: u8,
     }
 
     struct MintEvent has copy, drop {
@@ -163,9 +151,7 @@ module nft_protocol::collection {
         let col = Collection {
             id,
             is_mutable,
-            creators: vector::empty(),
             mint_authority: object::id(&cap),
-            domains: bag::new(ctx),
         };
 
         (cap, col)
@@ -185,62 +171,14 @@ module nft_protocol::collection {
         collection.is_mutable = false;
     }
 
-    // === Modifier Entry Functions ===
-
-    /// Add a `Creator` to `Collection`
-    public entry fun add_creator<T>(
-        collection: &mut Collection<T>,
-        creator_address: address,
-        share_of_royalty: u8,
-    ) {
-        // Only modify if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        // TODO: Need to make sure sum of all Creator's `share_of_royalty` is
-        // not above 100%
-        let creator = Creator {
-            creator_address: creator_address,
-            verified: true,
-            share_of_royalty: share_of_royalty,
-        };
-
-        if (
-            !contains_address(&collection.creators, creator_address)
-        ) {
-            vector::push_back(&mut collection.creators, creator);
-        }
-    }
-
-    /// Remove a `Creator` from `Collection`
-    public entry fun remove_creator<T>(
-        collection: &mut Collection<T>,
-        creator_address: address,
-    ) {
-        // Only modify if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        if (!vector::is_empty(&collection.creators)) {
-            remove_address(
-                &mut collection.creators,
-                creator_address,
-            )
-        }
-    }
-
     // === Domain Functions ===
 
     public fun has_domain<C, D: store>(nft: &Collection<C>): bool {
-        bag::contains_with_type<DomainKey, D>(&nft.domains, domain_key<D>())
+        bag::contains_with_type<Marker<D>, D>(&nft.domains, utils::marker<D>())
     }
 
     public fun borrow_domain<C, D: store>(nft: &Collection<C>): &D {
-        bag::borrow<DomainKey, D>(&nft.domains, domain_key<D>())
+        bag::borrow<Marker<D>, D>(&nft.domains, utils::marker<D>())
     }
 
     public fun borrow_domain_mut<C, D: store, W: drop>(
@@ -248,15 +186,14 @@ module nft_protocol::collection {
         nft: &mut Collection<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<DomainKey, D>(&mut nft.domains, domain_key<D>())
-
+        bag::borrow_mut<Marker<D>, D>(&mut nft.domains, utils::marker<D>())
     }
 
     public fun add_domain<C, V: store>(
         nft: &mut Collection<C>,
         v: V,
     ) {
-        bag::add(&mut nft.domains, domain_key<V>(), v);
+        bag::add(&mut nft.domains, utils::marker<V>(), v);
     }
 
     public fun remove_domain<C, W: drop, V: store>(
@@ -264,7 +201,7 @@ module nft_protocol::collection {
         nft: &mut Collection<C>,
     ): V {
         utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut nft.domains, domain_key<V>())
+        bag::remove(&mut nft.domains, utils::marker<V>())
     }
 
     // === Getter Functions ===
@@ -288,60 +225,6 @@ module nft_protocol::collection {
         collection: &Collection<T>,
     ): bool {
         collection.is_mutable
-    }
-
-    /// Get the Collection's `creators`
-    public fun creators<T>(
-        collection: &Collection<T>,
-    ): &vector<Creator> {
-        &collection.creators
-    }
-
-    // === Utility Function ===
-
-    public fun is_creator(
-        who: address,
-        creators: &vector<Creator>,
-    ): bool {
-        let i = 0;
-        while (i < vector::length(creators)) {
-            let creator = vector::borrow(creators, i);
-            if (creator.creator_address == who) {
-                return true
-            };
-            i = i + 1;
-        };
-
-        false
-    }
-
-    // === Private Functions ===
-
-    fun contains_address(
-        v: &vector<Creator>, c_address: address
-    ): bool {
-        let i = 0;
-        let len = vector::length(v);
-        while (i < len) {
-            let creator = vector::borrow(v, i);
-            if (creator.creator_address == c_address) return true;
-            i = i +1;
-        };
-        false
-    }
-
-    fun remove_address(
-        v: &mut vector<Creator>, c_address: address
-    ) {
-        let i = 0;
-        let len = vector::length(v);
-        while (i < len) {
-            let creator = vector::borrow(v, i);
-
-            if (creator.creator_address == c_address) {
-                vector::remove(v, i);
-            }
-        }
     }
 
     // === MintCap ===
@@ -482,10 +365,6 @@ module nft_protocol::collection {
         transfer::transfer(cap, creator);
         share(col);
         sui::test_scenario::next_tx(scenario, creator);
-        let col = sui::test_scenario::take_shared(scenario);
-
-        add_creator(&mut col, creator, 0);
-
-        col
+        sui::test_scenario::take_shared(scenario)
     }
 }

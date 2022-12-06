@@ -776,7 +776,7 @@ module nft_protocol::test_safe {
         );
 
         let wl = transfer_whitelist::create(Witness {}, ctx(scenario));
-        transfer_whitelist::insert_collection(
+        transfer_whitelist::insert_collection<Witness, Foo>(
             Witness {},
             &col_cap,
             &mut wl,

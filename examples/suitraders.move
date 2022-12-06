@@ -7,9 +7,9 @@ module nft_protocol::suitraders {
 
     use nft_protocol::dutch_auction;
     use nft_protocol::collection;
-
     use nft_protocol::display;
     use nft_protocol::tags;
+    use nft_protocol::attribution;
 
     struct SUITRADERS has drop {}
 
@@ -22,6 +22,11 @@ module nft_protocol::suitraders {
         );
 
         transfer(mint_cap, tx_context::sender(ctx));
+
+        collection::add_domain(
+            &mut collection,
+            attribution::from_address(@0x6c86ac4a796204ea09a87b6130db0c38263c1890)
+        );
 
         // Register custom domains
         display::add_collection_display_domain(

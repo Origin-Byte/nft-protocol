@@ -14,12 +14,18 @@ module nft_protocol::transfer_whitelist {
 
     use nft_protocol::utils;
     use nft_protocol::err;
+
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
+
     use sui::object;
     use sui::object::UID;
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
+
+    use nft_protocol::err;
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::attribution::{Self, AttributionDomain};
 
     struct Whitelist has key, store {
         id: UID,
