@@ -9,18 +9,14 @@ module nft_protocol::suitraders {
     use nft_protocol::collection;
 
     use nft_protocol::display;
+    use nft_protocol::tags;
 
     struct SUITRADERS has drop {}
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let tags: vector<vector<u8>> = vector::empty();
-        vector::push_back(&mut tags, b"Art");
-        vector::push_back(&mut tags, b"PFP");
-
         let (mint_cap, collection) = collection::create<SUITRADERS>(
             &witness,
             100, // max supply
-            tags,
             true, // is mutable
             ctx,
         );
@@ -43,6 +39,11 @@ module nft_protocol::suitraders {
             &mut collection,
             string::utf8(b"SUITR")
         );
+
+        let tags = tags::empty(ctx);
+        tags::add_tag(&mut tags, tags::art(), ctx);
+        tags::add_tag(&mut tags, tags::pfp(), ctx);
+        tags::add_collection_tag_domain(&mut collection, tags);
 
         let collection_id = collection::share<SUITRADERS>(collection);
 
