@@ -143,18 +143,6 @@ module nft_protocol::outlet {
         certificate.nft_id
     }
 
-    public fun id(
-        sale: &Outlet,
-    ): ID {
-        object::uid_to_inner(&sale.id)
-    }
-
-    public fun id_ref(
-        sale: &Outlet,
-    ): &ID {
-        object::uid_as_inner(&sale.id)
-    }
-
     public fun whitelisted(
         sale: &Outlet,
     ): bool {

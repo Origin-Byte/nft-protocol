@@ -309,20 +309,6 @@ module nft_protocol::collection {
 
     // === Getter Functions ===
 
-    /// Get the Collections's `id`
-    public fun id<T>(
-        collection: &Collection<T>,
-    ): ID {
-        object::uid_to_inner(&collection.id)
-    }
-
-    /// Get the Collections's `id` as reference
-    public fun id_ref<T>(
-        collection: &Collection<T>,
-    ): &ID {
-        object::uid_as_inner(&collection.id)
-    }
-
     /// Get the Collections's `tags`
     public fun tags<T>(
         collection: &Collection<T>,
