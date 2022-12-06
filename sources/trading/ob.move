@@ -97,7 +97,7 @@ module nft_protocol::ob {
         /// Points to `Safe` shared object into which to deposit NFT.
         safe: ID,
         /// If the NFT is offered via a marketplace or a wallet, the
-        /// faciliatator can optionally set how many tokens they want to claim
+        /// facilitator can optionally set how many tokens they want to claim
         /// on top of the offer.
         commission: Option<BidCommission<FT>>,
     }
