@@ -86,13 +86,13 @@ module nft_protocol::tags {
         bag::contains_with_type<Marker<T>, T>(&domain.bag, utils::marker<T>())
     }
 
-    // TODO: Protect with AttributionDomain
+    // TODO(https://github.com/Origin-Byte/nft-protocol/issues/125):
+    // Protect with AttributionDomain
     public fun add_tag<T: store>(
         domain: &mut TagDomain,
         tag: T,
         _ctx: &mut TxContext,
     ) {
-        // TODO: Assert is creator
         utils::assert_same_module_as_witness<T, Witness>();
         bag::add(&mut domain.bag, utils::marker<T>(), tag)
     }
