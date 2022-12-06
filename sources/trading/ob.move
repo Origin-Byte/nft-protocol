@@ -320,7 +320,7 @@ module nft_protocol::ob {
         );
         create_ask_<C, FT>(
             book,
-            requsted_tokens,
+            requested_tokens,
             option::some(commission),
             transfer_cap,
             safe,
