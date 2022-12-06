@@ -96,9 +96,10 @@ module nft_protocol::suimarines {
         let b = royalties::balance_mut(Witness {}, payment);
 
         let domain = royalty::royalty_domain_mut(collection);
-        let trade_value = balance::value(b);
-        royalty::transfer_royalties(domain, b, trade_value);
+        let royalty_owed =
+            royalty::calculate_proportional_royalty(domain, balance::value(b));
 
+        royalty::transfer_royalties(domain, b, royalty_owed);
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 

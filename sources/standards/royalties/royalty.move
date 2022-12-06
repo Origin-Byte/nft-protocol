@@ -7,8 +7,10 @@ module nft_protocol::royalty {
 
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::attribution::{Self, AttributionDomain};
-    use nft_protocol::royalty_strategy_bps::BpsRoyaltyStrategy;
-    use nft_protocol::royalty_strategy_constant::ConstantRoyaltyStrategy;
+    use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
+    use nft_protocol::royalty_strategy_constant::{
+        Self, ConstantRoyaltyStrategy
+    };
 
     struct RoyaltyDomain has store {
         /// Royalty strategies
@@ -57,7 +59,7 @@ module nft_protocol::royalty {
         bag::add(
             &mut domain.strategies,
             utils::marker<BpsRoyaltyStrategy>(),
-            strategy
+            strategy,
         );
     }
 
@@ -79,7 +81,7 @@ module nft_protocol::royalty {
         bag::add(
             &mut domain.strategies,
             utils::marker<ConstantRoyaltyStrategy>(),
-            strategy
+            strategy,
         );
     }
 
@@ -99,7 +101,7 @@ module nft_protocol::royalty {
 
         bag::remove<Marker<BpsRoyaltyStrategy>, BpsRoyaltyStrategy>(
             &mut domain.strategies,
-            utils::marker<BpsRoyaltyStrategy>()
+            utils::marker<BpsRoyaltyStrategy>(),
         );
     }
 
@@ -119,8 +121,51 @@ module nft_protocol::royalty {
 
         bag::remove<Marker<ConstantRoyaltyStrategy>, ConstantRoyaltyStrategy>(
             &mut domain.strategies,
-            utils::marker<ConstantRoyaltyStrategy>()
+            utils::marker<ConstantRoyaltyStrategy>(),
         );
+    }
+
+    /// Calculate how many tokens are due for the defined proportional royalty
+    /// strategy.
+    ///
+    /// Zero if strategy is undefined.
+    public fun calculate_proportional_royalty(
+        domain: &RoyaltyDomain,
+        amount: u64,
+    ): u64 {
+        if (!bag::contains_with_type<Marker<BpsRoyaltyStrategy>, BpsRoyaltyStrategy>(
+            &domain.strategies, utils::marker<BpsRoyaltyStrategy>()
+        )) {
+            return 0
+        };
+
+        let strategy: &BpsRoyaltyStrategy = bag::borrow(
+            &domain.strategies,
+            utils::marker<BpsRoyaltyStrategy>(),
+        );
+
+        royalty_strategy_bps::calculate(strategy, amount)
+    }
+
+    /// Calculate how many tokens are due for the defined constant royalty
+    /// strategy.
+    ///
+    /// Zero if strategy is undefined.
+    public fun calculate_constant_royalty(
+        domain: &RoyaltyDomain,
+    ): u64 {
+        if (!bag::contains_with_type<Marker<ConstantRoyaltyStrategy>, ConstantRoyaltyStrategy>(
+            &domain.strategies, utils::marker<ConstantRoyaltyStrategy>()
+        )) {
+            return 0
+        };
+
+        let strategy: &ConstantRoyaltyStrategy = bag::borrow(
+            &domain.strategies,
+            utils::marker<ConstantRoyaltyStrategy>(),
+        );
+
+        royalty_strategy_constant::calculate(strategy)
     }
 
     /// === Utils ===
@@ -132,9 +177,8 @@ module nft_protocol::royalty {
     ) {
         let b = balance::split(source, amount);
 
-        if (!bag::contains_with_type<utils::Marker<Balance<FT>>, Balance<FT>>(
-            &domain.aggregations,
-            utils::marker<Balance<FT>>()
+        if (!bag::contains_with_type<Marker<Balance<FT>>, Balance<FT>>(
+            &domain.aggregations, utils::marker<Balance<FT>>()
         )) {
             bag::add(
                 &mut domain.aggregations,
