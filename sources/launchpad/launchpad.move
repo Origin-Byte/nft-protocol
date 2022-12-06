@@ -123,7 +123,7 @@ module nft_protocol::launchpad {
             receiver,
             markets,
             is_embedded,
-            proceeds: object_box::new(proceeds::empty<FT>(receiver, ctx), ctx),
+            proceeds: object_box::new(proceeds::empty<FT>(ctx), ctx),
             default_fee: launchpad.default_fee,
             custom_fee: object_box::empty(ctx),
         };

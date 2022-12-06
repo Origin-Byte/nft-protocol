@@ -12,10 +12,6 @@ module nft_protocol::proceeds {
         sold: Sold,
         total: u64,
         amount: Balance<FT>,
-        /// The address where the amount should be transferred to.
-        /// This could be either the payment for the seller or a marketplace's
-        /// commision.
-        beneficiary: address,
     }
 
     struct Sold has copy, drop, store {
@@ -24,7 +20,6 @@ module nft_protocol::proceeds {
     }
 
     public fun empty<FT>(
-        beneficiary: address,
         ctx: &mut TxContext,
     ): Proceeds<FT> {
         Proceeds<FT> {
@@ -32,7 +27,6 @@ module nft_protocol::proceeds {
             sold: Sold {unwrapped: 0, total: 0},
             total: 0,
             amount: balance::zero(),
-            beneficiary,
         }
     }
 
@@ -54,14 +48,9 @@ module nft_protocol::proceeds {
             sold,
             total,
             amount: balance,
-            beneficiary: _,
         } = proceeds;
 
         balance::destroy_zero(balance)
-    }
-
-    public fun beneficiary<FT>(payment: &Proceeds<FT>): address {
-        payment.beneficiary
     }
 
     public fun add<FT>(
