@@ -15,8 +15,6 @@ module nft_protocol::fixed_fees {
     }
 
     public fun create(
-        launchpad: &mut Launchpad,
-        slot: &mut Slot,
         rate: u64,
         ctx: &mut TxContext,
     ): FixedFee {
@@ -33,8 +31,6 @@ module nft_protocol::fixed_fees {
     ) {
         launchpad::assert_slot(launchpad, slot);
         launchpad::assert_launchpad_or_slot_admin(launchpad, slot, ctx);
-
-        let slot_id = launchpad::slot_id(slot);
 
         let proceeds = launchpad::proceeds_mut<FT>(slot);
 
