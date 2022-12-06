@@ -1,10 +1,8 @@
 #[test_only]
 module nft_protocol::test_safe {
-    use nft_protocol::collection;
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
-    use std::vector;
     use sui::object;
     use sui::test_scenario::{Self, Scenario, ctx};
     use sui::transfer::transfer;
@@ -773,23 +771,17 @@ module nft_protocol::test_safe {
     }
 
     fun dummy_whitelist(scenario: &mut Scenario): Whitelist {
-        let col = collection::create<Foo>(
-            1,
-            vector::empty(),
-            true,
-            USER,
-            ctx(scenario),
+        let col_cap = transfer_whitelist::create_collection_cap<Foo, Witness>(
+            &Witness {}, ctx(scenario),
         );
-        collection::add_creator(&mut col, USER, 0);
 
         let wl = transfer_whitelist::create(Witness {}, ctx(scenario));
         transfer_whitelist::insert_collection(
             Witness {},
-            &col,
+            &col_cap,
             &mut wl,
-            ctx(scenario),
         );
-        collection::share(col);
+        transfer(col_cap, USER);
 
         wl
     }

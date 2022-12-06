@@ -70,9 +70,9 @@ module nft_protocol::collection {
         domains: Bag,
     }
 
-    /// The `MintAuthority` object gives power to the owner to mint objects.
-    /// There is only one `MintAuthority` per `Collection`.
-    struct MintAuthority<phantom T> has key, store {
+    /// The `MintCapability` object gives power to the owner to mint objects.
+    /// There is only one `MintCapability` per `Collection`.
+    struct MintCap<phantom T> has key, store {
         id: UID,
         collection_id: ID,
         // Defines supply policy which can be regulated or unregulated.
@@ -146,6 +146,7 @@ module nft_protocol::collection {
     /// parameter `max_supply` should be equal to the biggest integer number
     /// that can be stored in a u64, which is `18446744073709551615`.
     public fun create<T>(
+        _witness: &T,
         // Defines the maximum supply of the collection. To create an
         // unregulated supply set `max_supply=0`, otherwise any value above
         // zero will make the supply regulated.
@@ -154,9 +155,8 @@ module nft_protocol::collection {
         // https://github.com/MystenLabs/sui/pull/4627
         tags: vector<vector<u8>>,
         is_mutable: bool,
-        authority: address,
         ctx: &mut TxContext,
-    ): Collection<T> {
+    ): (MintCap<T>, Collection<T>) {
         let id = object::new(ctx);
 
         event::emit(
@@ -165,39 +165,22 @@ module nft_protocol::collection {
             }
         );
 
-        let mint_object_uid = object::new(ctx);
-        let mint_object_id = object::uid_to_inner(&mint_object_uid);
-
-        create_mint_authority<T>(
-            mint_object_uid,
+        let cap = create_mint_cap<T>(
             object::uid_to_inner(&id),
             max_supply,
-            authority,
+            ctx,
         );
 
-        Collection {
+        let col = Collection {
             id,
             tags: tags::from_vec_string(&mut utils::to_string_vector(&mut tags)),
             is_mutable,
             creators: vector::empty(),
-            mint_authority: mint_object_id,
+            mint_authority: object::id(&cap),
             domains: bag::new(ctx),
-        }
-    }
+        };
 
-    /// Shares the `MintAuthority` object of a given `Collection`. For NFT
-    /// collections that require users to be the ones to mint the data, one
-    /// requires the `MintAuthority` to be shared, such that they can access the
-    /// nft mint functions.
-    ///
-    /// An example of this could be a Domain Name Service protocol, which
-    /// relies on users calling the nft mint function themselses and therefore
-    /// minting their domain name.
-    public fun share_authority<T, M: store>(
-        authority: MintAuthority<T>,
-        _collection: &Collection<T>,
-    ) {
-        transfer::share_object(authority);
+        (cap, col)
     }
 
     /// Make Collections immutable
@@ -290,44 +273,6 @@ module nft_protocol::collection {
         }
     }
 
-    /// This function call ceils the supply of the Collection as long
-    /// as the Policy is regulated.
-    public entry fun ceil_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64
-    ) {
-        supply_policy::ceil_supply(
-            &mut mint.supply_policy,
-            value
-        )
-    }
-
-    /// Increases the `supply.max` by the `value` amount for
-    /// regulated collections. Invokes `supply_policy::increase_max_supply()`
-    public entry fun increase_max_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64,
-    ) {
-        supply_policy::increase_max_supply(
-            &mut mint.supply_policy,
-            value,
-        );
-    }
-
-    /// Decreases the `supply.max` by the `value` amount for
-    /// `Limited` collections. This function call fails if one attempts
-    /// to decrease the supply cap to a value below the current supply.
-    /// Invokes `supply_policy::decrease_max_supply()`
-    public entry fun decrease_max_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64
-    ) {
-        supply_policy::decrease_max_supply(
-            &mut mint.supply_policy,
-            value
-        )
-    }
-
     // === Domain Functions ===
 
     public fun has_domain<C, D: store>(nft: &Collection<C>): bool {
@@ -360,48 +305,6 @@ module nft_protocol::collection {
     ): V {
         utils::assert_same_module_as_witness<W, V>();
         bag::remove(&mut nft.domains, domain_key<V>())
-    }
-
-    // === Supply Functions ===
-
-    /// Increments current supply for regulated collections.
-    public fun increment_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64
-    ) {
-        supply_policy::increment_supply(
-            &mut mint.supply_policy,
-            value
-        )
-    }
-
-    /// Decrements current supply for regulated collections.
-    public fun decrease_supply<T>(
-        mint: &mut MintAuthority<T>,
-        value: u64
-    ) {
-        supply_policy::decrement_supply(
-            &mut mint.supply_policy,
-            value
-        )
-    }
-
-    /// Returns reference to supply object for regulated collections.
-    public fun supply<T>(mint: &mut MintAuthority<T>): &Supply {
-        supply_policy::supply(&mint.supply_policy)
-    }
-
-    /// Returns max supply for regulated collections.
-    public fun supply_max<T>(mint: &MintAuthority<T>): u64 {
-        supply::max(
-            supply_policy::supply(&mint.supply_policy)
-        )
-    }
-
-    public fun current_supply<T>(mint: &mut MintAuthority<T>): u64 {
-        supply::current(
-            supply_policy::supply(&mint.supply_policy)
-        )
     }
 
     // === Getter Functions ===
@@ -441,27 +344,6 @@ module nft_protocol::collection {
         &collection.creators
     }
 
-    /// Get an immutable reference to Collections's `cap`
-    public fun supply_policy<T>(
-        mint: &MintAuthority<T>,
-    ): &SupplyPolicy {
-        &mint.supply_policy
-    }
-
-    /// Get a mutable reference to Collections's `cap`
-    public fun cap_mut<T>(
-        mint: &mut MintAuthority<T>,
-    ): &mut SupplyPolicy {
-        &mut mint.supply_policy
-    }
-
-    public fun mint_collection_id<T>(
-        mint: &MintAuthority<T>,
-    ): ID {
-        mint.collection_id
-    }
-
-
     // === Utility Function ===
 
     public fun is_creator(
@@ -481,33 +363,6 @@ module nft_protocol::collection {
     }
 
     // === Private Functions ===
-
-    fun create_mint_authority<T>(
-        object_id: UID,
-        collection_id: ID,
-        max_supply: u64,
-        recipient: address,
-    ) {
-        if (max_supply == 0) {
-            let authority: MintAuthority<T> = MintAuthority {
-                id: object_id,
-                collection_id: collection_id,
-                supply_policy: supply_policy::create_unregulated(),
-            };
-
-            transfer::transfer(authority, recipient);
-        } else {
-            let authority: MintAuthority<T> = MintAuthority {
-                id: object_id,
-                collection_id: collection_id,
-                supply_policy: supply_policy::create_regulated(
-                    max_supply, false
-                ),
-            };
-
-            transfer::transfer(authority, recipient);
-        }
-    }
 
     fun contains_address(
         v: &vector<Creator>, c_address: address
@@ -536,21 +391,144 @@ module nft_protocol::collection {
         }
     }
 
+    // === MintCap ===
+
+    fun create_mint_cap<T>(
+        collection_id: ID,
+        max_supply: u64,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        MintCap {
+            id: object::new(ctx),
+            collection_id: collection_id,
+            supply_policy: if (max_supply == 0) {
+                supply_policy::create_unregulated()
+            } else {
+                supply_policy::create_regulated(
+                    max_supply, false
+                )
+            },
+        }
+    }
+
+    /// This function call ceils the supply of the Collection as long
+    /// as the Policy is regulated.
+    public entry fun ceil_supply<T>(
+        mint: &mut MintCap<T>,
+        value: u64
+    ) {
+        supply_policy::ceil_supply(
+            &mut mint.supply_policy,
+            value
+        )
+    }
+
+    /// Increases the `supply.max` by the `value` amount for
+    /// regulated collections. Invokes `supply_policy::increase_max_supply()`
+    public entry fun increase_max_supply<T>(
+        mint: &mut MintCap<T>,
+        value: u64,
+    ) {
+        supply_policy::increase_max_supply(
+            &mut mint.supply_policy,
+            value,
+        );
+    }
+
+    /// Decreases the `supply.max` by the `value` amount for
+    /// `Limited` collections. This function call fails if one attempts
+    /// to decrease the supply cap to a value below the current supply.
+    /// Invokes `supply_policy::decrease_max_supply()`
+    public entry fun decrease_max_supply<T>(
+        mint: &mut MintCap<T>,
+        value: u64
+    ) {
+        supply_policy::decrease_max_supply(
+            &mut mint.supply_policy,
+            value
+        )
+    }
+
+    /// Increments current supply for regulated collections.
+    public fun increment_supply<T>(
+        mint: &mut MintCap<T>,
+        value: u64
+    ) {
+        supply_policy::increment_supply(
+            &mut mint.supply_policy,
+            value
+        )
+    }
+
+    /// Decrements current supply for regulated collections.
+    public fun decrease_supply<T>(
+        mint: &mut MintCap<T>,
+        value: u64
+    ) {
+        supply_policy::decrement_supply(
+            &mut mint.supply_policy,
+            value
+        )
+    }
+
+    /// Returns reference to supply object for regulated collections.
+    public fun supply<T>(mint: &MintCap<T>): &Supply {
+        supply_policy::supply(&mint.supply_policy)
+    }
+
+    /// Returns max supply for regulated collections.
+    public fun supply_max<T>(mint: &MintCap<T>): u64 {
+        supply::max(
+            supply_policy::supply(&mint.supply_policy)
+        )
+    }
+
+    public fun current_supply<T>(mint: &MintCap<T>): u64 {
+        supply::current(
+            supply_policy::supply(&mint.supply_policy)
+        )
+    }
+
+    /// Get an immutable reference to Collections's `cap`
+    public fun supply_policy<T>(
+        mint: &MintCap<T>,
+    ): &SupplyPolicy {
+        &mint.supply_policy
+    }
+
+    /// Get a mutable reference to Collections's `cap`
+    public fun cap_mut<T>(
+        mint: &mut MintCap<T>,
+    ): &mut SupplyPolicy {
+        &mut mint.supply_policy
+    }
+
+    public fun mint_collection_id<T>(
+        mint: &MintCap<T>,
+    ): ID {
+        mint.collection_id
+    }
+
     // === Test only helpers ===
 
     #[test_only]
     public fun dummy_collection<T>(
+        witness: &T,
         creator: address,
         scenario: &mut sui::test_scenario::Scenario,
     ): Collection<T> {
         sui::test_scenario::next_tx(scenario, creator);
-        share(create<T>(
+
+        let (cap, col) = create<T>(
+            witness,
             1,
             vector::empty(),
             true,
-            creator,
             sui::test_scenario::ctx(scenario),
-        ));
+        );
+
+        transfer::transfer(cap, creator);
+        share(col);
         sui::test_scenario::next_tx(scenario, creator);
         let col = sui::test_scenario::take_shared(scenario);
 
