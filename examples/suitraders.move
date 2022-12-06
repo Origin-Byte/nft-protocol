@@ -3,6 +3,7 @@ module nft_protocol::suitraders {
     use std::string;
 
     use sui::tx_context::{Self, TxContext};
+    use sui::transfer::transfer;
 
     use nft_protocol::dutch_auction;
     use nft_protocol::collection;
@@ -16,16 +17,15 @@ module nft_protocol::suitraders {
         vector::push_back(&mut tags, b"Art");
         vector::push_back(&mut tags, b"PFP");
 
-        let collection = collection::create<SUITRADERS>(
-            b"SUITR", // symbol
+        let (mint_cap, collection) = collection::create<SUITRADERS>(
+            &witness,
             100, // max supply
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890, // royalty receiver
             tags,
-            100, // royalty fee bps
             true, // is mutable
-            tx_context::sender(ctx), // mint authority
             ctx,
         );
+
+        transfer(mint_cap, tx_context::sender(ctx));
 
         // Register custom domains
         display::add_collection_display_domain(
@@ -37,6 +37,11 @@ module nft_protocol::suitraders {
         display::add_collection_url_domain(
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        );
+
+        display::add_collection_symbol_domain(
+            &mut collection,
+            string::utf8(b"SUITR")
         );
 
         let collection_id = collection::share<SUITRADERS>(collection);
