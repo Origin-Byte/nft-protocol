@@ -25,8 +25,6 @@ module nft_protocol::launchpad {
         admin: address,
         receiver: address,
         permissionless: bool,
-        // proceeds: Table<ID, Box>,
-        // fee_policies: Table<ID, ObjectBox>,
         default_fee: u64,
     }
 
@@ -195,7 +193,7 @@ module nft_protocol::launchpad {
             err::generic_box_full(),
         );
 
-        object_box::add_object<FeeType>(&mut slot.custom_fee, fee);
+        object_box::add<FeeType>(&mut slot.custom_fee, fee);
     }
 
     public fun pay<FT>(
@@ -209,7 +207,7 @@ module nft_protocol::launchpad {
 
         let balance = coin::into_balance(funds);
 
-        let proceeds = proceeds_mut<FT>(slot,);
+        let proceeds = proceeds_mut(slot,);
 
         proceeds::add(
             proceeds,
@@ -227,11 +225,11 @@ module nft_protocol::launchpad {
         assert_slot(launchpad, slot);
         assert_default_fee(slot);
 
-        let proceeds = proceeds_mut<FT>(slot);
+        let proceeds = proceeds_mut(slot);
 
-        proceeds::collect(
+        proceeds::collect<FT>(
             proceeds,
-            balance::value(proceeds::balance(proceeds)) * launchpad.default_fee,
+            balance::value(proceeds::balance<FT>(proceeds)) * launchpad.default_fee,
             launchpad.receiver,
             slot.receiver,
             ctx
@@ -330,9 +328,9 @@ module nft_protocol::launchpad {
         slot.is_embedded
     }
 
-    public fun proceeds<FT>(
+    public fun proceeds(
         slot: &Slot,
-    ): &Proceeds<FT> {
+    ): &Proceeds {
         object_box::borrow(&slot.proceeds)
     }
 
@@ -348,9 +346,9 @@ module nft_protocol::launchpad {
         &slot.custom_fee
     }
 
-    public fun proceeds_mut<FT>(
+    public fun proceeds_mut(
         slot: &mut Slot,
-    ): &mut Proceeds<FT> {
+    ): &mut Proceeds {
         object_box::borrow_mut(&mut slot.proceeds)
     }
 

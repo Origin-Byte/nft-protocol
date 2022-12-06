@@ -1,21 +1,24 @@
 module nft_protocol::box {
+    use std::type_name::{Self, TypeName};
+
     use nft_protocol::err;
     use nft_protocol::domain::{domain_key, DomainKey};
     use nft_protocol::utils;
 
+    use sui::dynamic_field as df;
     use sui::bag::{Self, Bag};
     use sui::object::{Self, UID};
     use sui::tx_context::{TxContext};
 
     struct Box has store {
         id: UID,
-        object: Bag,
+        len: u64,
     }
 
     public fun empty(ctx: &mut TxContext): Box {
         Box {
             id: object::new(ctx),
-            object: bag::new(ctx),
+            len: 0
         }
     }
 
@@ -24,47 +27,55 @@ module nft_protocol::box {
         ctx: &mut TxContext,
     ): Box {
 
-        let ob = bag::new(ctx);
-
-        bag::add(&mut ob, domain_key<V>(), object);
-
-        Box {
+        let box = Box {
             id: object::new(ctx),
-            object: ob,
-        }
+            len: 0,
+        };
+
+        df::add<TypeName, V>(
+            &mut box.id,
+            type_name::get<V>(),
+            object,
+        );
+
+        box.len = 1;
+        box
     }
 
     // === Domain Functions ===
 
-    public fun has_object<D: store>(generic: &Box): bool {
-        bag::contains_with_type<DomainKey, D>(&generic.object, domain_key<D>())
+    public fun has_object<V: store>(ob: &Box): bool {
+        df::exists_with_type<TypeName, V>(&ob.id, type_name::get<V>())
     }
 
-    public fun borrow_object<D: store>(generic: &Box): &D {
-        bag::borrow<DomainKey, D>(&generic.object, domain_key<D>())
+    public fun borrow<V: store + key>(box: &Box): &V {
+        df::borrow<TypeName, V>(&box.id, type_name::get<V>())
     }
 
-    public fun borrow_object_mut<D: store>(
-        generic: &mut Box,
-    ): &mut D {
-        bag::borrow_mut<DomainKey, D>(&mut generic.object, domain_key<D>())
-
+    public fun borrow_mut<V: store + key>(box: &mut Box): &mut V {
+        df::borrow_mut<TypeName, V>(&mut box.id, type_name::get<V>())
     }
 
-    public fun add_object<V: store>(
-        generic: &mut Box,
+    public fun add<V: store + key>(
+        box: &mut Box,
         v: V,
     ) {
-        assert!(bag::length(&generic.object) == 0, err::generic_bag_full());
+        assert!(box.len == 0, err::generic_bag_full());
 
-        bag::add(&mut generic.object, domain_key<V>(), v);
+        df::add<TypeName, V>(
+            &mut box.id,
+            type_name::get<V>(),
+            v,
+        );
     }
 
-    public fun remove_object<W: drop, V: store>(
-        _witness: W,
-        generic: &mut Box,
+    public fun remove<V: store + key>(
+        box: &mut Box,
     ): V {
-        utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut generic.object, domain_key<V>())
+        df::remove<TypeName, V>(&mut box.id, type_name::get<V>())
+    }
+
+    public fun is_empty(box: &Box): bool {
+        box.len == 0
     }
 }

@@ -9,13 +9,10 @@ module nft_protocol::proceeds {
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
 
-
-    /// `F`ungible `T`oken
-    struct Proceeds<phantom FT> has key, store {
+    struct Proceeds has key, store {
         id: UID,
         sold: Sold,
         total: u64,
-        // amount: Balance<FT>,
     }
 
     struct Sold has copy, drop, store {
@@ -25,15 +22,15 @@ module nft_protocol::proceeds {
 
     public fun empty<FT>(
         ctx: &mut TxContext,
-    ): Proceeds<FT> {
-        Proceeds<FT> {
+    ): Proceeds {
+        Proceeds {
             id: object::new(ctx),
             sold: Sold {unwrapped: 0, total: 0},
             total: 0,
         }
     }
 
-    public fun balance<FT>(proceeds: &Proceeds<FT>): &Balance<FT> {
+    public fun balance<FT>(proceeds: &Proceeds): &Balance<FT> {
         df::borrow<TypeName, Balance<FT>>(
             &proceeds.id,
             type_name::get<Balance<FT>>(),
@@ -41,7 +38,7 @@ module nft_protocol::proceeds {
     }
 
     fun balance_mut<FT>(
-        proceeds: &mut Proceeds<FT>,
+        proceeds: &mut Proceeds,
     ): &mut Balance<FT> {
         df::borrow_mut<TypeName, Balance<FT>>(
             &mut proceeds.id,
@@ -63,7 +60,7 @@ module nft_protocol::proceeds {
     // }
 
     public fun add<FT>(
-        proceeds: &mut Proceeds<FT>,
+        proceeds: &mut Proceeds,
         new_proceeds: Balance<FT>,
         qty_sold: u64,
         ctx: &mut TxContext,
@@ -71,19 +68,31 @@ module nft_protocol::proceeds {
         proceeds.total = proceeds.total + balance::value(&new_proceeds);
         proceeds.sold.total = proceeds.sold.total + qty_sold;
 
-        let balance = df::borrow_mut<TypeName, Balance<FT>>(
-            &mut proceeds.id,
-            type_name::get<Balance<FT>>(),
+        let missing_df = !df::exists_with_type<TypeName, Balance<FT>>(
+            &proceeds.id, type_name::get<Balance<FT>>()
         );
 
-        balance::join(
-            balance,
-            new_proceeds
-        );
+        if (missing_df) {
+            df::add<TypeName, Balance<FT>>(
+                &mut proceeds.id,
+                type_name::get<Balance<FT>>(),
+                new_proceeds,
+            )
+        } else {
+            let balance = df::borrow_mut<TypeName, Balance<FT>>(
+                &mut proceeds.id,
+                type_name::get<Balance<FT>>(),
+            );
+
+            balance::join(
+                balance,
+                new_proceeds
+            );
+        }
     }
 
     public fun collect<FT>(
-        proceeds: &mut Proceeds<FT>,
+        proceeds: &mut Proceeds,
         fees: u64,
         launchpad_receiver: address,
         slot_receiver: address,

@@ -32,7 +32,7 @@ module nft_protocol::fixed_fees {
         launchpad::assert_slot(launchpad, slot);
         launchpad::assert_launchpad_or_slot_admin(launchpad, slot, ctx);
 
-        let proceeds = launchpad::proceeds_mut<FT>(slot);
+        let proceeds = launchpad::proceeds_mut(slot);
 
         let fee_policy = launchpad::custom_fee(slot);
 
@@ -43,9 +43,9 @@ module nft_protocol::fixed_fees {
 
         let policy = object_box::borrow<FixedFee>(fee_policy);
 
-        let fee = balance::value(proceeds::balance(proceeds)) * policy.rate;
+        let fee = balance::value(proceeds::balance<FT>(proceeds)) * policy.rate;
 
-        proceeds::collect(
+        proceeds::collect<FT>(
             proceeds,
             fee,
             launchpad::launchpad_receiver(launchpad),

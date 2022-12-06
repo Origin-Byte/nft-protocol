@@ -220,8 +220,11 @@ module nft_protocol::err {
         return Prefix + 800
     }
 
-    // === Generic ===
     public fun generic_box_full(): u64 {
         return Prefix + 801
+    }
+
+    public fun missing_dynamic_field(): u64 {
+        return Prefix + 802
     }
 }
