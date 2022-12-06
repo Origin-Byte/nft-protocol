@@ -401,7 +401,7 @@ module nft_protocol::launchpad {
 
         assert!(
             is_launchpad_admin || is_slot_admin,
-            err::wrong_admin(),
+            err::wrong_launchpad_or_slot_admin(),
         );
     }
 }

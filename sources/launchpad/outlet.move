@@ -61,11 +61,11 @@ module nft_protocol::outlet {
     ) {
         assert!(
             vector::length(&sale_box.nfts) == 0,
-            err::sale_outlet_still_has_nfts_to_sell()
+            err::nft_sale_incompleted()
         );
         assert!(
             vector::length(&sale_box.queue) == 0,
-            err::sale_outlet_still_has_nfts_to_redeem()
+            err::nft_redemption_incompleted()
         );
 
         let Outlet {
@@ -126,7 +126,7 @@ module nft_protocol::outlet {
         sale: &mut Outlet,
     ): ID {
         let nfts = &mut sale.nfts;
-        assert!(!vector::is_empty(nfts), err::sale_outlet_has_no_nfts_to_sell());
+        assert!(!vector::is_empty(nfts), err::no_nfts_left());
         vector::pop_back(nfts)
     }
 

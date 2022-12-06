@@ -88,11 +88,11 @@ module nft_protocol::err {
         return Prefix + 202
     }
 
-    public fun sale_outlet_still_has_nfts_to_sell(): u64 {
+    public fun nft_sale_incompleted(): u64 {
         return Prefix + 203
     }
 
-    public fun sale_outlet_still_has_nfts_to_redeem(): u64 {
+    public fun nft_redemption_incompleted(): u64 {
         return Prefix + 204
     }
 
@@ -108,24 +108,21 @@ module nft_protocol::err {
         return Prefix + 207
     }
 
-    public fun certificate_does_not_correspond_to_nft_given(): u64 {
+    // To be used by redeem function
+    public fun certificate_nft_id_mismatch(): u64 {
         return Prefix + 208
     }
 
-    public fun sale_outlet_has_no_nfts_to_sell(): u64 {
+    public fun no_nfts_left(): u64 {
         return Prefix + 209
-    }
-
-    public fun market_parameters_length_mismatch(): u64 {
-        return Prefix + 210
     }
 
     public fun launchpad_slot_mismatch(): u64 {
         return Prefix + 210
     }
 
-    public fun wrong_admin(): u64 {
-        return Prefix + 212
+    public fun wrong_launchpad_or_slot_admin(): u64 {
+        return Prefix + 211
     }
 
     public fun wrong_slot_admin(): u64 {
