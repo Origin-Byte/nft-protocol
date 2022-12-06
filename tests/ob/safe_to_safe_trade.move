@@ -10,7 +10,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe::{Self, Safe};
-    use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use sui::sui::SUI;
     use sui::coin;
     use std::vector;
@@ -45,9 +45,13 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     }
 
     fun create_collection_and_whitelist(scenario: &mut Scenario) {
-        let col = collection::dummy_collection<Foo>(CREATOR, scenario);
+        let (cap, col) = collection::dummy_collection<Foo>(&Foo {}, CREATOR, scenario);
         share_object(col);
         test_scenario::next_tx(scenario, CREATOR);
+
+        let col_control_cap = transfer_whitelist::create_collection_cap<Foo, Witness>(
+            &Witness {}, ctx(scenario),
+        );
 
         let col: Collection<Foo> = test_scenario::take_shared(scenario);
         nft_protocol::example_free_for_all::init_(ctx(scenario));
@@ -55,11 +59,12 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
         let wl: Whitelist = test_scenario::take_shared(scenario);
         nft_protocol::example_free_for_all::insert_collection(
-            &col,
+            &col_control_cap,
             &mut wl,
-            ctx(scenario),
         );
 
+        transfer(cap, CREATOR);
+        transfer(col_control_cap, CREATOR);
         test_scenario::return_shared(col);
         test_scenario::return_shared(wl);
     }
@@ -99,17 +104,14 @@ module nft_protocol::test_ob_safe_to_safe_trade {
         );
 
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
-        let wl: Whitelist = test_scenario::take_shared(scenario);
         ob::create_ask(
             &mut ob,
             OFFER_SUI,
             transfer_cap,
             &mut seller_safe,
-            &wl,
             ctx(scenario),
         );
 
-        test_scenario::return_shared(wl);
         test_scenario::return_shared(ob);
         test_scenario::return_shared(seller_safe);
         transfer(seller_owner_cap, SELLER);
@@ -126,10 +128,17 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
         let wallet = coin::mint_for_testing(OFFER_SUI, ctx(scenario));
 
+        test_scenario::next_tx(scenario, BUYER);
+
+        let buyer_safe: Safe = test_scenario::take_shared_by_id(
+            scenario,
+            safe::owner_cap_safe(&buyer_owner_cap),
+        );
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
 
         ob::create_bid(
             &mut ob,
+            &mut buyer_safe,
             OFFER_SUI,
             &mut wallet,
             ctx(scenario),
@@ -139,10 +148,6 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
         test_scenario::next_tx(scenario, BUYER);
 
-        let buyer_safe: Safe = test_scenario::take_shared_by_id(
-            scenario,
-            safe::owner_cap_safe(&buyer_owner_cap),
-        );
         let seller_safe_id = user_safe_id(scenario, SELLER);
         let seller_safe: Safe = test_scenario::take_shared_by_id(
             scenario,

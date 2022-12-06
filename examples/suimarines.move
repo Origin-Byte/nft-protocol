@@ -28,13 +28,15 @@ module nft_protocol::suimarines {
         let tags: vector<vector<u8>> = vector::empty();
         vector::push_back(&mut tags, b"Art");
 
-        let collection = collection::create<SUIMARINES>(
+        let (mint_cap, collection) = collection::create<SUIMARINES>(
+            &witness,
             100, // max supply
             tags,
             false, // is mutable
-            tx_context::sender(ctx), // mint authority
             ctx,
         );
+
+        transfer(mint_cap, tx_context::sender(ctx));
 
         // Register custom domains
         display::add_collection_display_domain(

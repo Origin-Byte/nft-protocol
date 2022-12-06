@@ -94,6 +94,8 @@ module nft_protocol::ob {
         /// The address of the user who created this bid and who will receive an
         /// NFT in exchange for their tokens.
         owner: address,
+        /// Points to `Safe` shared object into which to deposit NFT.
+        safe: ID,
         /// If the NFT is offered via a marketplace or a wallet, the
         /// faciliatator can optionally set how many tokens they want to claim
         /// on top of the offer.
@@ -126,7 +128,7 @@ module nft_protocol::ob {
     /// `Safe` object and finishing the trade, but rather keeping the NFT's
     /// `ExlusiveTransferCap`.
     ///
-    /// Therefore `TradeIntermediate` is made a share object and can be called
+    /// Therefore `TradeIntermediate` is made a shared object and can be called
     /// permissionlessly.
     struct TradeIntermediate<phantom C, phantom FT> has key {
         id: UID,
@@ -136,6 +138,7 @@ module nft_protocol::ob {
         /// https://github.com/MystenLabs/sui/issues/2083
         transfer_cap: Option<TransferCap>,
         buyer: address,
+        buyer_safe: ID,
         paid: Balance<FT>,
         commission: Option<AskCommission>,
     }
@@ -189,26 +192,29 @@ module nft_protocol::ob {
     /// orderbook's state.
     public entry fun create_bid<C, FT>(
         book: &mut Orderbook<C, FT>,
+        buyer_safe: &mut Safe,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_bid, err::action_not_public());
-        create_bid_<C, FT>(book, price, option::none(), wallet, ctx)
+        create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
     public fun create_bid_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
+        buyer_safe: &mut Safe,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
-        create_bid_<C, FT>(book, price, option::none(), wallet, ctx)
+        create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
     public entry fun create_bid_with_commission<C, FT>(
         book: &mut Orderbook<C, FT>,
+        buyer_safe: &mut Safe,
         price: u64,
         beneficiary: address,
         commission_ft: u64,
@@ -221,12 +227,13 @@ module nft_protocol::ob {
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
         create_bid_<C, FT>(
-            book, price, option::some(commission), wallet, ctx,
+            book, buyer_safe, price, option::some(commission), wallet, ctx,
         )
     }
     public fun create_bid_with_commission_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
+        buyer_safe: &mut Safe,
         price: u64,
         beneficiary: address,
         commission_ft: u64,
@@ -240,7 +247,7 @@ module nft_protocol::ob {
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
         create_bid_<C, FT>(
-            book, price, option::some(commission), wallet, ctx,
+            book, buyer_safe, price, option::some(commission), wallet, ctx,
         )
     }
 
@@ -276,12 +283,11 @@ module nft_protocol::ob {
         requsted_tokens: u64,
         transfer_cap: TransferCap,
         safe: &mut Safe,
-        whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, err::action_not_public());
         create_ask_<C, FT>(
-            book, requsted_tokens, option::none(), transfer_cap, safe, whitelist, ctx
+            book, requsted_tokens, option::none(), transfer_cap, safe, ctx
         )
     }
     public fun create_ask_protected<W: drop, C, FT>(
@@ -290,13 +296,12 @@ module nft_protocol::ob {
         requsted_tokens: u64,
         transfer_cap: TransferCap,
         safe: &mut Safe,
-        whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
         create_ask_<C, FT>(
-            book, requsted_tokens, option::none(), transfer_cap, safe, whitelist, ctx
+            book, requsted_tokens, option::none(), transfer_cap, safe, ctx
         )
     }
     public entry fun create_ask_with_commission<C, FT>(
@@ -306,7 +311,6 @@ module nft_protocol::ob {
         beneficiary: address,
         commission: u64,
         safe: &mut Safe,
-        whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, err::action_not_public());
@@ -320,7 +324,6 @@ module nft_protocol::ob {
             option::some(commission),
             transfer_cap,
             safe,
-            whitelist,
             ctx,
         )
     }
@@ -332,7 +335,6 @@ module nft_protocol::ob {
         beneficiary: address,
         commission: u64,
         safe: &mut Safe,
-        whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
@@ -347,7 +349,6 @@ module nft_protocol::ob {
             option::some(commission),
             transfer_cap,
             safe,
-            whitelist,
             ctx,
         )
     }
@@ -551,12 +552,14 @@ module nft_protocol::ob {
 
     fun create_bid_<C, FT>(
         book: &mut Orderbook<C, FT>,
+        buyer_safe: &mut Safe,
         price: u64,
         bid_commission: Option<BidCommission<FT>>,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         let buyer = tx_context::sender(ctx);
+        let buyer_safe_id = object::id(buyer_safe);
 
         // take the amount that the sender wants to create a bid with from their
         // wallet
@@ -597,6 +600,7 @@ module nft_protocol::ob {
                 transfer_cap: option::some(transfer_cap),
                 commission: ask_commission,
                 buyer,
+                buyer_safe: buyer_safe_id,
                 paid: bid_offer,
             });
 
@@ -606,6 +610,7 @@ module nft_protocol::ob {
             let order = Bid {
                 offer: bid_offer,
                 owner: buyer,
+                safe: buyer_safe_id,
                 commission: bid_commission,
             };
 
@@ -655,7 +660,7 @@ module nft_protocol::ob {
 
         assert!(index < bids_count, err::order_owner_must_be_sender());
 
-        let Bid { offer, owner: _owner, commission } =
+        let Bid { offer, owner: _owner, commission, safe: _safe } =
             vector::remove(price_level, index);
 
         balance::join(
@@ -680,7 +685,6 @@ module nft_protocol::ob {
         ask_commission: Option<AskCommission>,
         transfer_cap: TransferCap,
         safe: &mut Safe,
-        whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
         safe::assert_transfer_cap_of_safe(&transfer_cap, safe);
@@ -710,27 +714,22 @@ module nft_protocol::ob {
             let Bid {
                 owner: buyer,
                 offer: bid_offer,
+                safe: buyer_safe_id,
                 commission: bid_commission,
             } = bid;
 
-            pay_for_nft<C, FT>(
-                &mut bid_offer,
-                buyer,
-                &mut ask_commission,
-                ctx,
-            );
-            option::destroy_none(ask_commission);
-            balance::destroy_zero(bid_offer);
+            // we cannot transfer the NFT straight away because we don't know
+            // the buyers safe at the point of sending the tx
 
-            safe::transfer_nft_to_recipient<C, Witness>(
-                transfer_cap,
+            // see also `finish_trade` entry point
+            share_object(TradeIntermediate<C, FT> {
+                id: object::new(ctx),
+                transfer_cap: option::some(transfer_cap),
+                commission: ask_commission,
                 buyer,
-                Witness {},
-                whitelist,
-                safe,
-            );
-
-            // TODO: trade intermediate cuz we need other safe
+                buyer_safe: buyer_safe_id,
+                paid: bid_offer,
+            });
 
             transfer_bid_commission(&mut bid_commission, ctx);
             option::destroy_none(bid_commission);
@@ -844,6 +843,7 @@ module nft_protocol::ob {
             transfer_cap,
             paid,
             buyer,
+            buyer_safe: expected_buyer_safe_id,
             commission: maybe_commission,
         } = trade;
 
@@ -851,6 +851,10 @@ module nft_protocol::ob {
 
         safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
         safe::assert_transfer_cap_exlusive(&transfer_cap);
+        assert!(
+            *expected_buyer_safe_id == object::id(buyer_safe),
+            err::safe_id_mismatch(),
+        );
 
         pay_for_nft<C, FT>(
             paid,
