@@ -3,6 +3,7 @@ module nft_protocol::suitraders {
     use std::string;
 
     use sui::tx_context::{Self, TxContext};
+    use sui::transfer::transfer;
 
     use nft_protocol::dutch_auction;
     use nft_protocol::collection;
@@ -13,12 +14,14 @@ module nft_protocol::suitraders {
     struct SUITRADERS has drop {}
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let collection = collection::create<SUITRADERS>(
+        let (mint_cap, collection) = collection::create<SUITRADERS>(
+            &witness,
             100, // max supply
             true, // is mutable
-            tx_context::sender(ctx), // mint authority
             ctx,
         );
+
+        transfer(mint_cap, tx_context::sender(ctx));
 
         // Register custom domains
         display::add_collection_display_domain(

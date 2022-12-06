@@ -25,12 +25,14 @@ module nft_protocol::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let collection = collection::create<SUIMARINES>(
+        let (mint_cap, collection) = collection::create<SUIMARINES>(
+            &witness,
             100, // max supply
             false, // is mutable
-            tx_context::sender(ctx), // mint authority
             ctx,
         );
+
+        transfer(mint_cap, tx_context::sender(ctx));
 
         // Register custom domains
         display::add_collection_display_domain(
