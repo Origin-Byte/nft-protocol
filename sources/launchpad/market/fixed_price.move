@@ -91,7 +91,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot) == true, err::launchpad_not_live());
+        assert!(launchpad::live(slot) == true, err::slot_not_live());
 
         // Infer that sales is NOT whitelisted
         assert!(
@@ -142,7 +142,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot) == true, err::launchpad_not_live());
+        assert!(launchpad::live(slot) == true, err::slot_not_live());
 
         let launchpad_id = launchpad::slot_id(slot);
 
@@ -154,7 +154,7 @@ module nft_protocol::fixed_price {
 
         // Infer that whitelist token corresponds to correct sale outlet
         assert!(
-            whitelist::sale_id(&whitelist_token) == outlet::id(&market.outlet),
+            whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
             err::incorrect_whitelist_token()
         );
 

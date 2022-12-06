@@ -89,7 +89,7 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         // One can only place bids on NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot), err::launchpad_not_live());
+        assert!(launchpad::live(slot), err::slot_not_live());
 
         // Infer that sales is NOT whitelisted
         assert!(!outlet::whitelisted(&market.outlet), err::sale_is_not_whitelisted());
@@ -113,14 +113,14 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         // One can only place bids on NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot), err::launchpad_not_live());
+        assert!(launchpad::live(slot), err::slot_not_live());
 
         // Infer that sales is whitelisted
         assert!(outlet::whitelisted(&market.outlet), err::sale_is_whitelisted());
 
         // Infer that whitelist token corresponds to correct sale outlet
         assert!(
-            whitelist::sale_id(&whitelist_token) == outlet::id(&market.outlet),
+            whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
             err::incorrect_whitelist_token()
         );
 

@@ -84,7 +84,7 @@ module nft_protocol::err {
         return Prefix + 201
     }
 
-    public fun launchpad_not_live(): u64 {
+    public fun slot_not_live(): u64 {
         return Prefix + 202
     }
 

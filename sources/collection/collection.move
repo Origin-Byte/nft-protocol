@@ -106,7 +106,7 @@ module nft_protocol::collection {
     public fun share<C>(
         collection: Collection<C>,
     ): ID {
-        let collection_id = id(&collection);
+        let collection_id = object::id(&collection);
 
         event::emit(
             MintEvent { collection_id }
