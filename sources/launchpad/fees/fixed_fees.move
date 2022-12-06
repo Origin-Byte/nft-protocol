@@ -39,12 +39,10 @@ module nft_protocol::flat_fee {
             (proceeds_value, slot_receiver)
         };
 
-        let fee_policy: &ObjectBox;
-
-        if (launchpad::slot_has_custom_fee(slot)) {
-            fee_policy = launchpad::custom_fee(slot);
+        let fee_policy = if (launchpad::slot_has_custom_fee(slot)) {
+            launchpad::custom_fee(slot)
         } else {
-            fee_policy = launchpad::default_fee(launchpad);
+            launchpad::default_fee(launchpad)
         };
 
         assert!(
