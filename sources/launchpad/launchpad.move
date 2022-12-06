@@ -95,7 +95,7 @@ module nft_protocol::launchpad {
         slot.is_approved = true;
     }
 
-    /// Adds a sale outlet `Outlet` to `sales` field
+    /// Adds a fee object to the Slot's `custom_fee`
     public entry fun add_fee<FeeType: key + store>(
         launchpad: &Launchpad,
         slot: &mut Slot,
