@@ -1,10 +1,11 @@
 module nft_protocol::tags {
     use sui::bag::{Self, Bag};
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::attribution;
 
     // === Tags ===
 
@@ -76,26 +77,32 @@ module nft_protocol::tags {
         bag: Bag,
     }
 
-    struct Witness {}
+    struct Witness has drop {}
 
     public fun empty(ctx: &mut TxContext): TagDomain {
         TagDomain { bag: bag::new(ctx) }
     }
 
-    public fun has_tag<T: store>(domain: &TagDomain): bool {
+    public fun has_tag<T: store + drop>(domain: &TagDomain): bool {
         utils::assert_same_module_as_witness<T, Witness>();
         bag::contains_with_type<Marker<T>, T>(&domain.bag, utils::marker<T>())
     }
 
-    // TODO(https://github.com/Origin-Byte/nft-protocol/issues/125):
-    // Protect with AttributionDomain
-    public fun add_tag<T: store>(
+    /// Adds tag to `TagDomain`
+    public fun add_tag<T: store + drop>(
         domain: &mut TagDomain,
         tag: T,
-        _ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<T, Witness>();
         bag::add(&mut domain.bag, utils::marker<T>(), tag)
+    }
+
+    /// Removes tag from `TagDomain`
+    public fun remove_tag<T: store + drop>(
+        domain: &mut TagDomain,
+    ) {
+        utils::assert_same_module_as_witness<T, Witness>();
+        let _: T = bag::remove(&mut domain.bag, utils::marker<T>());
     }
 
     /// ====== Interoperability ===
@@ -107,9 +114,21 @@ module nft_protocol::tags {
     }
 
     public fun collection_tag_domain<C>(
-        nft: &Collection<C>,
+        collection: &Collection<C>,
     ): &TagDomain {
-        collection::borrow_domain(nft)
+        collection::borrow_domain(collection)
+    }
+
+    /// Requires that sender is a creator
+    public fun collection_tag_domain_mut<C>(
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ): &mut TagDomain {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        collection::borrow_domain_mut(Witness {}, collection)
     }
 
     public fun add_tag_domain<C>(
@@ -121,9 +140,9 @@ module nft_protocol::tags {
     }
 
     public fun add_collection_tag_domain<C>(
-        nft: &mut Collection<C>,
+        collection: &mut Collection<C>,
         tags: TagDomain,
     ) {
-        collection::add_domain(nft, tags);
+        collection::add_domain(collection, tags);
     }
 }
