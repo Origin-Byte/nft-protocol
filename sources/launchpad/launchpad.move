@@ -31,7 +31,7 @@ module nft_protocol::launchpad {
     struct Slot has key, store {
         id: UID,
         launchpad: ID,
-        /// Signals if the Slot has been by the launchpad administrator.
+        /// Signals if the Slot has been approved by the launchpad administrator.
         is_approved: bool,
         // TODO: Perhaps we can get rid of this field, add a domain that
         // tags all the collections that are sold in a given launchpad slot
