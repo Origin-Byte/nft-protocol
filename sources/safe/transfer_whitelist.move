@@ -39,7 +39,7 @@ module nft_protocol::transfer_whitelist {
 
     /// Gives the collection admin a capability to insert and remove their
     /// collection from a whitelist.
-    struct CollectionCap<phantom C> has key, store {
+    struct CollectionControlCap<phantom C> has key, store {
         id: UID,
     }
 
@@ -58,9 +58,9 @@ module nft_protocol::transfer_whitelist {
     public fun create_collection_cap<C, W>(
         _witness: &W,
         ctx: &mut TxContext,
-    ): CollectionCap<C> {
+    ): CollectionControlCap<C> {
         utils::assert_same_module_as_witness<C, W>();
-        CollectionCap {
+        CollectionControlCap {
             id: object::new(ctx),
         }
     }
@@ -74,7 +74,7 @@ module nft_protocol::transfer_whitelist {
     /// collection to give the whitelist owner a way to combat spam.
     public fun insert_collection<Admin: drop, C>(
         _whitelist_witness: Admin,
-        _authority: &CollectionCap<C>,
+        _authority: &CollectionControlCap<C>,
         list: &mut Whitelist,
     ) {
         assert_admin_witness<Admin>(list);
@@ -88,7 +88,7 @@ module nft_protocol::transfer_whitelist {
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
     public fun remove_itself<C>(
-        _authority: &CollectionCap<C>,
+        _authority: &CollectionControlCap<C>,
         list: &mut Whitelist,
     ) {
         vec_set::remove(&mut list.collections, &type_name::get<C>());

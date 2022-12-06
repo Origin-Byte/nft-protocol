@@ -16,6 +16,19 @@ module nft_protocol::test_transfer_whitelist {
     const CREATOR: address = @0xA1C05;
 
     #[test]
+    #[expected_failure(abort_code = 13370601)]
+    fun it_cannot_create_collection_control_cap_if_witness_mismatches() {
+        let scenario = test_scenario::begin(ADMIN);
+
+        let col_cap = transfer_whitelist::create_collection_cap<Foo, Witness2>(
+            &Witness2 {}, ctx(&mut scenario),
+        );
+
+        transfer(col_cap, CREATOR);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
     fun it_allows_collection_to_remove_itself() {
         let scenario = test_scenario::begin(ADMIN);
 

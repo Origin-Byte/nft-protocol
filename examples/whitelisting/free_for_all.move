@@ -23,7 +23,7 @@ module nft_protocol::example_free_for_all {
     ///
     /// However, any creator can insert their collection into simple whitelist.
     public entry fun insert_collection<T>(
-        col_cap: &transfer_whitelist::CollectionCap<T>,
+        col_cap: &transfer_whitelist::CollectionControlCap<T>,
         list: &mut Whitelist,
     ) {
         transfer_whitelist::insert_collection(
