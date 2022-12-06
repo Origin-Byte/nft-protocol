@@ -140,6 +140,10 @@ module nft_protocol::err {
         return Prefix + 214
     }
 
+    public fun slot_not_approved(): u64 {
+        return Prefix + 215
+    }
+
     // Auction
 
     public fun order_does_not_exist(): u64 {

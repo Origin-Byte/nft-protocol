@@ -1,8 +1,5 @@
 //! Module of a `Launchpad` type and its associated `Slot`s.
 //!
-//! It acts as a generic interface for Launchpads and it allows for
-//! the creation of arbitrary domain specific implementations.
-//!
 //! The slot acts as the object that configures the primary NFT release
 //! strategy, that is the primary market sale. Primary market sales can take
 //! many shapes, depending on the business level requirements.
@@ -22,15 +19,21 @@ module nft_protocol::launchpad {
         id: UID,
         /// The address of the administrator
         admin: address,
+        /// Receiver of launchpad fees
         receiver: address,
-        permissionless: bool,
+        /// Permissionless launchpads allow for anyone to create their
+        /// slots, therefore being immediately approved.
+        auto_approval: bool,
         default_fee: ObjectBox,
     }
 
     struct Slot has key, store {
         id: UID,
         launchpad: ID,
+        /// Signals if the Slot has been by the launchpad administrator.
         is_approved: bool,
+        // TODO: Perhaps we can get rid of this field, add a domain that
+        // tags all the collections that are sold in a given launchpad slot
         /// The ID of the Collections object
         collections: vector<ID>,
         /// Boolean indicating if the sale is live
@@ -46,7 +49,12 @@ module nft_protocol::launchpad {
         /// loose NFTs will be minted on the fly under the authorithy of the
         /// launchpad.
         is_embedded: bool,
-        proceeds: ObjectBox,
+        /// Proceeds object holds the balance of Fungible Tokens acquired from
+        /// the sale of the Slot
+        proceeds: Proceeds,
+        /// Field with Object Box holding a Custom Fee implementation if any.
+        /// In case this box is empty the calculation will applied on the
+        /// default fee object in the associated launchpad
         custom_fee: ObjectBox,
     }
 
@@ -60,13 +68,13 @@ module nft_protocol::launchpad {
         collection_id: ID,
     }
 
-    // === Launchpad Functions ===
+    // === Launchpad Admin Functions ===
 
-    /// Initialises a `Launchpad` object and adds it to the `Launchpad` object
-    public fun init_launchpad(
+    /// Initialises a `Launchpad` object and shares it
+    public entry fun init_launchpad(
         admin: address,
         receiver: address,
-        permissionless: bool,
+        auto_approval: bool,
         default_fee: ObjectBox,
         ctx: &mut TxContext,
     ) {
@@ -76,57 +84,15 @@ module nft_protocol::launchpad {
             id: uid,
             admin,
             receiver,
-            permissionless,
+            auto_approval,
             default_fee,
         };
 
         transfer::share_object(launchpad);
     }
 
-    // === Slot Functions ===
-
-    /// Initialises a `Slot` object and registers it in the `Launchpad` object
-    public fun init_slot<FT>(
-        launchpad: &Launchpad,
-        slot_admin: address,
-        collections: vector<ID>,
-        receiver: address,
-        is_embedded: bool,
-        ctx: &mut TxContext,
-    ) {
-        let approval = false;
-
-        let is_admin = tx_context::sender(ctx) == launchpad.admin;
-
-        // If the launchpad is permissionless then slots are automatically
-        // approved. If the launchpad is permissioned, then the slot is
-        // automatically approved only if the sender is the launchpad
-        // administrator.
-        if (launchpad.permissionless == true || is_admin) {
-            approval = true;
-        };
-
-        let uid = object::new(ctx);
-        let markets = vector::empty();
-
-        let slot = Slot {
-            id: uid,
-            launchpad: launchpad_id(launchpad),
-            is_approved: approval,
-            collections,
-            live: false,
-            admin: slot_admin,
-            receiver,
-            markets,
-            is_embedded,
-            proceeds: object_box::new(proceeds::empty<FT>(ctx), ctx),
-            custom_fee: object_box::empty(ctx),
-        };
-
-        transfer::share_object(slot);
-    }
-
-    public fun approve_slot<C: store + drop>(
+    // Approved a given Launchpad Slot
+    public entry fun approve_slot(
         launchpad: &Launchpad,
         slot: &mut Slot,
         ctx: &mut TxContext,
@@ -137,45 +103,8 @@ module nft_protocol::launchpad {
         slot.is_approved = true;
     }
 
-    /// Toggle the Slot's `live` to `true` therefore
-    /// making the NFT sale live.
-    public fun sale_on(
-        slot: &mut Slot,
-        ctx: &mut TxContext,
-    ) {
-        assert_slot_admin(slot, ctx);
-
-        slot.live = true
-    }
-
-    /// Toggle the Slot's `live` to `false` therefore
-    /// pausing or stopping the NFT sale.
-    public fun sale_off(
-        slot: &mut Slot,
-        ctx: &mut TxContext,
-    ) {
-        assert_slot_admin(slot, ctx);
-
-        slot.live = false
-    }
-
     /// Adds a sale outlet `Outlet` to `sales` field
-    public fun add_market(
-        launchpad: &Launchpad,
-        slot: &mut Slot,
-        market: ObjectBox,
-        ctx: &mut TxContext,
-    ) {
-        assert_slot(launchpad, slot);
-
-        if (launchpad.permissionless == false) {
-            assert_launchpad_admin(launchpad, ctx);
-        };
-        vector::push_back(&mut slot.markets, market);
-    }
-
-    /// Adds a sale outlet `Outlet` to `sales` field
-    public fun add_fee<FeeType: key + store>(
+    public entry fun add_fee<FeeType: key + store>(
         launchpad: &Launchpad,
         slot: &mut Slot,
         fee: FeeType,
@@ -192,6 +121,99 @@ module nft_protocol::launchpad {
 
         object_box::add<FeeType>(&mut slot.custom_fee, fee);
     }
+
+    // === Creator / Slot Admin Functions ===
+
+    /// Initialises a `Slot` object and registers it in the `Launchpad` object.
+    /// Depending if the Launchpad alllows for auto-approval, the launchpad
+    /// admin might have to call `approve_slot` in order to validate the slot.
+    public entry fun init_slot<FT>(
+        launchpad: &Launchpad,
+        slot_admin: address,
+        collections: vector<ID>,
+        receiver: address,
+        is_embedded: bool,
+        ctx: &mut TxContext,
+    ) {
+        let approval = false;
+
+        let is_admin = tx_context::sender(ctx) == launchpad.admin;
+
+        // If the launchpad is permissionless then slots are automatically
+        // approved. If the launchpad is permissioned, then the slot is
+        // automatically approved only if the sender is the launchpad
+        // administrator.
+        if (launchpad.auto_approval == true || is_admin) {
+            approval = true;
+        };
+
+        let uid = object::new(ctx);
+        let markets = vector::empty();
+
+        let slot = Slot {
+            id: uid,
+            launchpad: launchpad_id(launchpad),
+            is_approved: approval,
+            collections,
+            live: false,
+            admin: slot_admin,
+            receiver,
+            markets,
+            is_embedded,
+            proceeds: proceeds::empty<FT>(ctx),
+            custom_fee: object_box::empty(ctx),
+        };
+
+        transfer::share_object(slot);
+    }
+
+    /// Toggle the Slot's `live` to `true` therefore making the NFT sale live.
+    /// The Slot can only be live if has been approved.
+    public entry fun sale_on(
+        slot: &mut Slot,
+        ctx: &mut TxContext,
+    ) {
+        assert_slot_admin(slot, ctx);
+        assert_slot_approved(slot);
+
+        slot.live = true
+    }
+
+    /// Toggle the Slot's `live` to `false` therefore
+    /// pausing or stopping the NFT sale.
+    public entry fun sale_off(
+        slot: &mut Slot,
+        ctx: &mut TxContext,
+    ) {
+        assert_slot_admin(slot, ctx);
+
+        slot.live = false
+    }
+
+    // === Launchpad or Slot Admin Functions ===
+
+    /// Adds a sale outlet `Outlet` to `sales` field
+    public entry fun add_market(
+        launchpad: &Launchpad,
+        slot: &mut Slot,
+        market: ObjectBox,
+        ctx: &mut TxContext,
+    ) {
+        assert_slot(launchpad, slot);
+        assert_launchpad_or_slot_admin(launchpad, slot, ctx);
+
+        vector::push_back(&mut slot.markets, market);
+    }
+
+    // === NFT Buyer Functions ===
+
+    // public entry fun redeem_nft(
+    //     slot: &Slot,
+    //     certificate: NftCertificate,
+
+    // ) {}
+
+    // === Public Functions for Upstream modules ===
 
     public fun pay<FT>(
         launchpad: &Launchpad,
@@ -212,13 +234,7 @@ module nft_protocol::launchpad {
         );
     }
 
-    // public fun redeem_nft(
-    //     slot: &Slot,
-    //     certificate: NftCertificate,
-
-    // ) {}
-
-    // === Getter Functions ===object::uid_to_inner(&launchpad.id)
+    // === Launchpad Getters & Other Functions ===
 
     /// Get the Slot `id`
     public fun launchpad_id(
@@ -240,6 +256,27 @@ module nft_protocol::launchpad {
     ): address {
         launchpad.receiver
     }
+
+    /// Get the Slot's `admin` address
+    public fun launchpad_admin(
+        launchpad: &Launchpad,
+    ): address {
+        launchpad.admin
+    }
+
+    public fun default_fee(
+        launchpad: &Launchpad,
+    ): &ObjectBox {
+        &launchpad.default_fee
+    }
+
+    public fun is_auto_approved(
+        launchpad: &Launchpad,
+    ): bool {
+        launchpad.auto_approval
+    }
+
+    // === Slot Getters & Other Functions ===
 
     /// Get the Slot `id`
     public fun slot_id(
@@ -277,7 +314,7 @@ module nft_protocol::launchpad {
     }
 
     /// Get the Slot's `admin` address
-    public fun admin(
+    public fun slot_admin(
         slot: &Slot,
     ): address {
         slot.admin
@@ -307,7 +344,7 @@ module nft_protocol::launchpad {
     public fun proceeds(
         slot: &Slot,
     ): &Proceeds {
-        object_box::borrow(&slot.proceeds)
+        &slot.proceeds
     }
 
     public fun slot_has_custom_fee(
@@ -322,17 +359,13 @@ module nft_protocol::launchpad {
         &slot.custom_fee
     }
 
-    public fun default_fee(
-        launchpad: &Launchpad,
-    ): &ObjectBox {
-        &launchpad.default_fee
-    }
-
     public fun proceeds_mut(
         slot: &mut Slot,
     ): &mut Proceeds {
-        object_box::borrow_mut(&mut slot.proceeds)
+        &mut slot.proceeds
     }
+
+    // === Assertions ===
 
     public fun assert_slot(
         launchpad: &Launchpad,
@@ -341,6 +374,15 @@ module nft_protocol::launchpad {
         assert!(
             launchpad_id(launchpad) == slot.launchpad,
             err::launchpad_slot_mismatch()
+        );
+    }
+
+    public fun assert_slot_approved(
+        slot: &Slot,
+    ) {
+        assert!(
+            slot.is_approved,
+            err::slot_not_approved()
         );
     }
 

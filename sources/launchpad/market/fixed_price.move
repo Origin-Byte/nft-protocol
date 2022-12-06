@@ -197,7 +197,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::admin(slot) == tx_context::sender(ctx),
+            launchpad::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
         launchpad::sale_on(slot, ctx);
@@ -210,7 +210,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::admin(slot) == tx_context::sender(ctx),
+            launchpad::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
         launchpad::sale_off(slot, ctx);
@@ -225,7 +225,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         assert!(
-            launchpad::admin(slot) == tx_context::sender(ctx),
+            launchpad::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
 

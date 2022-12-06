@@ -19,7 +19,7 @@ module nft_protocol::whitelist {
         ctx: &mut TxContext,
     ) {
         assert!(
-            tx_context::sender(ctx) == launchpad::admin(slot),
+            tx_context::sender(ctx) == launchpad::slot_admin(slot),
             err::wrong_launchpad_admin()
         );
         let sale_id = outlet::id(sale);
