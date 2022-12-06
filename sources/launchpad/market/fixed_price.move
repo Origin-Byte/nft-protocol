@@ -57,7 +57,7 @@ module nft_protocol::fixed_price {
 
         let market = object_box::empty(ctx);
 
-        object_box::add_object(
+        object_box::add(
             &mut market,
             FixedPriceMarket {
                 id: object::new(ctx),

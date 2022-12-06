@@ -1,4 +1,4 @@
-module nft_protocol::fixed_fees {
+module nft_protocol::flat_fee {
 
     use sui::balance;
     use sui::object::{Self, UID};
@@ -6,10 +6,10 @@ module nft_protocol::fixed_fees {
 
     use nft_protocol::err;
     use nft_protocol::proceeds;
-    use nft_protocol::object_box;
+    use nft_protocol::object_box::{Self, ObjectBox};
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
-    struct FixedFee has key, store {
+    struct FlatFee has key, store {
         id: UID,
         rate: u64,
     }
@@ -17,8 +17,8 @@ module nft_protocol::fixed_fees {
     public fun create(
         rate: u64,
         ctx: &mut TxContext,
-    ): FixedFee {
-        FixedFee {
+    ): FlatFee {
+        FlatFee {
             id: object::new(ctx),
             rate,
         }
@@ -34,14 +34,20 @@ module nft_protocol::fixed_fees {
 
         let proceeds = launchpad::proceeds_mut(slot);
 
-        let fee_policy = launchpad::custom_fee(slot);
+        let fee_policy: &ObjectBox;
+
+        if (launchpad::slot_has_custom_fee(slot)) {
+            fee_policy = launchpad::custom_fee(slot);
+        } else {
+            fee_policy = launchpad::default_fee(launchpad);
+        };
 
         assert!(
-            object_box::has_object<FixedFee>(fee_policy),
+            object_box::has_object<FlatFee>(fee_policy),
             err::wrong_fee_policy_type(),
         );
 
-        let policy = object_box::borrow<FixedFee>(fee_policy);
+        let policy = object_box::borrow<FlatFee>(fee_policy);
 
         let fee = balance::value(proceeds::balance<FT>(proceeds)) * policy.rate;
 
@@ -53,5 +59,4 @@ module nft_protocol::fixed_fees {
             ctx,
         );
     }
-
 }

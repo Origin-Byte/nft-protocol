@@ -9,7 +9,6 @@
 module nft_protocol::launchpad {
     use std::vector;
 
-    use sui::balance;
     use sui::transfer;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID , UID};
@@ -25,7 +24,7 @@ module nft_protocol::launchpad {
         admin: address,
         receiver: address,
         permissionless: bool,
-        default_fee: u64,
+        default_fee: ObjectBox,
     }
 
     struct Slot has key, store {
@@ -48,7 +47,6 @@ module nft_protocol::launchpad {
         /// launchpad.
         is_embedded: bool,
         proceeds: ObjectBox,
-        default_fee: u64,
         custom_fee: ObjectBox,
     }
 
@@ -69,7 +67,7 @@ module nft_protocol::launchpad {
         admin: address,
         receiver: address,
         permissionless: bool,
-        default_fee: u64,
+        default_fee: ObjectBox,
         ctx: &mut TxContext,
     ) {
         let uid = object::new(ctx);
@@ -122,7 +120,6 @@ module nft_protocol::launchpad {
             markets,
             is_embedded,
             proceeds: object_box::new(proceeds::empty<FT>(ctx), ctx),
-            default_fee: launchpad.default_fee,
             custom_fee: object_box::empty(ctx),
         };
 
@@ -214,25 +211,6 @@ module nft_protocol::launchpad {
             balance,
             qty_sold,
             ctx,
-        );
-    }
-
-    public entry fun collect_fee<FT>(
-        launchpad: &Launchpad,
-        slot: &mut Slot,
-        ctx: &mut TxContext,
-    ) {
-        assert_slot(launchpad, slot);
-        assert_default_fee(slot);
-
-        let proceeds = proceeds_mut(slot);
-
-        proceeds::collect<FT>(
-            proceeds,
-            balance::value(proceeds::balance<FT>(proceeds)) * launchpad.default_fee,
-            launchpad.receiver,
-            slot.receiver,
-            ctx
         );
     }
 
@@ -334,16 +312,22 @@ module nft_protocol::launchpad {
         object_box::borrow(&slot.proceeds)
     }
 
-    public fun default_fee(
+    public fun slot_has_custom_fee(
         slot: &Slot,
-    ): u64 {
-        slot.default_fee
+    ): bool {
+        !object_box::is_empty(&slot.custom_fee)
     }
 
     public fun custom_fee(
         slot: &Slot,
     ): &ObjectBox {
         &slot.custom_fee
+    }
+
+    public fun default_fee(
+        launchpad: &Launchpad,
+    ): &ObjectBox {
+        &launchpad.default_fee
     }
 
     public fun proceeds_mut(

@@ -57,7 +57,7 @@ module nft_protocol::dutch_auction {
 
         let market = object_box::empty(ctx);
 
-        object_box::add_object(
+        object_box::add(
             &mut market,
             DutchAuctionMarket<FT> {
                 id: object::new(ctx),
