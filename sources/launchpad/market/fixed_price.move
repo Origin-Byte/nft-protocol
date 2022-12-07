@@ -20,14 +20,14 @@ module nft_protocol::fixed_price {
 
     use nft_protocol::err;
     use nft_protocol::object_box;
-    use nft_protocol::outlet::{Self, Outlet};
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::whitelist::{Self, Whitelist};
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct FixedPriceMarket has key, store {
         id: UID,
         live: bool,
-        outlet: Outlet,
+        outlet: Inventory,
         price: u64,
     }
 
@@ -50,7 +50,7 @@ module nft_protocol::fixed_price {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let outlet = outlet::create(
+        let outlet = inventory::create(
             is_whitelisted,
             ctx,
         );
@@ -95,7 +95,7 @@ module nft_protocol::fixed_price {
 
         // Infer that sales is NOT whitelisted
         assert!(
-            !outlet::whitelisted(&market.outlet),
+            !inventory::whitelisted(&market.outlet),
             err::sale_is_not_whitelisted()
         );
 
@@ -114,7 +114,7 @@ module nft_protocol::fixed_price {
             1,
         );
 
-        let certificate = outlet::issue_nft_certificate(
+        let certificate = inventory::issue_nft_certificate(
             &mut market.outlet,
             launchpad::launchpad_id(launchpad),
             launchpad::slot_id(slot),
@@ -148,7 +148,7 @@ module nft_protocol::fixed_price {
 
         // Infer that sales is whitelisted
         assert!(
-            outlet::whitelisted(&market.outlet),
+            inventory::whitelisted(&market.outlet),
             err::sale_is_whitelisted(),
         );
 
@@ -175,7 +175,7 @@ module nft_protocol::fixed_price {
 
         whitelist::burn_whitelist_token(whitelist_token);
 
-        let certificate = outlet::issue_nft_certificate(
+        let certificate = inventory::issue_nft_certificate(
             &mut market.outlet,
             launchpad_id,
             launchpad::slot_id(slot),

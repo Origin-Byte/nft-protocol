@@ -4,7 +4,7 @@ module nft_protocol::whitelist {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::outlet::Outlet;
+    use nft_protocol::inventory::Inventory;
     use nft_protocol::launchpad::{Self, Slot};
 
     struct Whitelist has key {
@@ -14,7 +14,7 @@ module nft_protocol::whitelist {
 
     public fun whitelist_address(
         slot: &Slot,
-        sale: &Outlet,
+        inventory: &Inventory,
         recipient: address,
         ctx: &mut TxContext,
     ) {
@@ -22,7 +22,7 @@ module nft_protocol::whitelist {
             tx_context::sender(ctx) == launchpad::slot_admin(slot),
             err::wrong_launchpad_admin()
         );
-        let sale_id = object::id(sale);
+        let sale_id = object::id(inventory);
 
         let whitelisting = Whitelist {
             id: object::new(ctx),

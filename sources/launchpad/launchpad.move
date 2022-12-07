@@ -180,7 +180,7 @@ module nft_protocol::launchpad {
 
     // === Launchpad or Slot Admin Functions ===
 
-    /// Adds a sale outlet `Outlet` to `sales` field
+    /// Adds a sale outlet `Inventory` to `sales` field
     public entry fun add_market(
         launchpad: &Launchpad,
         slot: &mut Slot,
@@ -301,7 +301,7 @@ module nft_protocol::launchpad {
         slot.admin
     }
 
-    /// Get the Slot's sale `Outlet` address
+    /// Get the Slot's sale `Inventory` address
     public fun sales(
         slot: &Slot,
     ): &vector<ObjectBox> {

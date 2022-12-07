@@ -1,4 +1,4 @@
-//! Module representing `Sale` Outlets of `Launchpad`s.
+//! Module representing the Nft bookeeping Inventories of `Launchpad`s.
 //!
 //! Launchpads can now have multiple sale outlets, repsented
 //! through `sales: vector<Sale>`, which meants that NFT creators can
@@ -10,7 +10,7 @@
 //! outsource this logic to generic `Market` object. This way developers can
 //! come up with their plug-and-play market primitives, of which some examples
 //! are Dutch Auctions, Sealed-Bid Auctions, etc.
-module nft_protocol::outlet {
+module nft_protocol::inventory {
     use std::vector;
 
     use sui::tx_context::{TxContext};
@@ -18,7 +18,7 @@ module nft_protocol::outlet {
 
     use nft_protocol::err;
 
-    struct Outlet has key, store {
+    struct Inventory has key, store {
         id: UID,
         whitelisted: bool,
         // Vector of all IDs owned by the slingshot
@@ -41,13 +41,13 @@ module nft_protocol::outlet {
     public fun create(
         whitelisted: bool,
         ctx: &mut TxContext,
-    ): Outlet {
+    ): Inventory {
         let id = object::new(ctx);
 
         let nfts = vector::empty();
         let queue = vector::empty();
 
-        Outlet {
+        Inventory {
             id,
             whitelisted,
             nfts,
@@ -55,37 +55,37 @@ module nft_protocol::outlet {
         }
     }
 
-    /// Burn the `Outlet` and return the `Market` object
+    /// Burn the `Inventory` and return the `Market` object
     public fun delete(
-        sale_box: Outlet,
+        inventory: Inventory,
     ) {
         assert!(
-            vector::length(&sale_box.nfts) == 0,
+            vector::length(&inventory.nfts) == 0,
             err::nft_sale_incompleted()
         );
         assert!(
-            vector::length(&sale_box.queue) == 0,
+            vector::length(&inventory.queue) == 0,
             err::nft_redemption_incompleted()
         );
 
-        let Outlet {
+        let Inventory {
             id,
             whitelisted: _,
             nfts: _,
             queue: _,
-        } = sale_box;
+        } = inventory;
 
         object::delete(id);
     }
 
     // TODO: need to add a function with nft_id as function parameter
     public fun issue_nft_certificate(
-        sale: &mut Outlet,
+        inventory: &mut Inventory,
         launchpad_id: ID,
         slot_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
-        let nft_id = pop_nft(sale);
+        let nft_id = pop_nft(inventory);
 
         let certificate = NftCertificate {
             id: object::new(ctx),
@@ -110,31 +110,31 @@ module nft_protocol::outlet {
         object::delete(id);
     }
 
-    /// Adds an NFT's ID to the `nfts` field in `Outlet` object
+    /// Adds an NFT's ID to the `nfts` field in `Inventory` object
     public fun add_nft(
-        sale: &mut Outlet,
+        inventory: &mut Inventory,
         id: ID,
     ) {
-        let nfts = &mut sale.nfts;
+        let nfts = &mut inventory.nfts;
         vector::push_back(nfts, id);
     }
 
-    /// Pops an NFT's ID from the `nfts` field in `Outlet` object
+    /// Pops an NFT's ID from the `nfts` field in `Inventory` object
     /// and returns respective `ID`
     /// TODO: Need to push the ID to the queue
     fun pop_nft(
-        sale: &mut Outlet,
+        inventory: &mut Inventory,
     ): ID {
-        let nfts = &mut sale.nfts;
+        let nfts = &mut inventory.nfts;
         assert!(!vector::is_empty(nfts), err::no_nfts_left());
         vector::pop_back(nfts)
     }
 
     /// Check how many `nfts` there are to sell
     public fun length(
-        sale: &Outlet,
+        inventory: &Inventory,
     ): u64 {
-        vector::length(&sale.nfts)
+        vector::length(&inventory.nfts)
     }
 
     public fun nft_id(
@@ -144,8 +144,8 @@ module nft_protocol::outlet {
     }
 
     public fun whitelisted(
-        sale: &Outlet,
+        inventory: &Inventory,
     ): bool {
-        sale.whitelisted
+        inventory.whitelisted
     }
 }

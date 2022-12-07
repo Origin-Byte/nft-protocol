@@ -9,7 +9,7 @@ module nft_protocol::suimarines {
     use nft_protocol::nft;
     use nft_protocol::display;
     use nft_protocol::fixed_price;
-    use nft_protocol::outlet::{Self, NftCertificate};
+    use nft_protocol::inventory::{Self, NftCertificate};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -129,7 +129,7 @@ module nft_protocol::suimarines {
     ) {
         // TODO: Check whether NftCertificate is issued for this collection
         // Pending on Launchpad refactor completion
-        outlet::burn_certificate(certificate);
+        inventory::burn_certificate(certificate);
 
         let nft = nft::new<SUIMARINES>(ctx);
 

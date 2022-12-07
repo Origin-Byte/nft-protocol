@@ -15,7 +15,7 @@ module nft_protocol::dutch_auction {
 
     use nft_protocol::err;
     use nft_protocol::object_box;
-    use nft_protocol::outlet::{Self, Outlet};
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::whitelist::{Self, Whitelist};
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
@@ -28,7 +28,7 @@ module nft_protocol::dutch_auction {
         bids: CBTree<vector<Bid<FT>>>,
         /// Whether the auction is currently live
         live: bool,
-        outlet: Outlet,
+        outlet: Inventory,
     }
 
     /// A bid for one NFT
@@ -50,7 +50,7 @@ module nft_protocol::dutch_auction {
         reserve_price: u64,
         ctx: &mut TxContext
     ) {
-        let outlet = outlet::create(
+        let outlet = inventory::create(
             is_whitelisted,
             ctx,
         );
@@ -92,7 +92,7 @@ module nft_protocol::dutch_auction {
         assert!(launchpad::live(slot), err::slot_not_live());
 
         // Infer that sales is NOT whitelisted
-        assert!(!outlet::whitelisted(&market.outlet), err::sale_is_not_whitelisted());
+        assert!(!inventory::whitelisted(&market.outlet), err::sale_is_not_whitelisted());
 
         create_bid_(
             market,
@@ -116,7 +116,7 @@ module nft_protocol::dutch_auction {
         assert!(launchpad::live(slot), err::slot_not_live());
 
         // Infer that sales is whitelisted
-        assert!(outlet::whitelisted(&market.outlet), err::sale_is_whitelisted());
+        assert!(inventory::whitelisted(&market.outlet), err::sale_is_whitelisted());
 
         // Infer that whitelist token corresponds to correct sale outlet
         assert!(
@@ -223,7 +223,7 @@ module nft_protocol::dutch_auction {
             err::wrong_launchpad_admin()
         );
 
-        let nfts_to_sell = outlet::length(&market.outlet);
+        let nfts_to_sell = inventory::length(&market.outlet);
 
         conclude_auction<FT>(
             launchpad,
@@ -394,7 +394,7 @@ module nft_protocol::dutch_auction {
                 filled_funds
             );
 
-            let certificate = outlet::issue_nft_certificate(
+            let certificate = inventory::issue_nft_certificate(
                 &mut auction.outlet,
                 launchpad_id,
                 launchpad::slot_id(slot),
