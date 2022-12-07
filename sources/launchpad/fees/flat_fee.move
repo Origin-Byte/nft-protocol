@@ -1,6 +1,8 @@
 module nft_protocol::flat_fee {
 
     use sui::balance;
+    use sui::tx_context;
+    use sui::transfer::transfer;
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
 
@@ -11,20 +13,18 @@ module nft_protocol::flat_fee {
 
     struct FlatFee has key, store {
         id: UID,
-        rate: u64,
+        rate_bps: u64,
     }
 
-    public fun create(
+    public entry fun create(
         rate: u64,
         ctx: &mut TxContext,
-    ): FlatFee {
-        FlatFee {
-            id: object::new(ctx),
-            rate,
-        }
+    ) {
+        let fee = create_(rate, ctx);
+        transfer(fee, tx_context::sender(ctx));
     }
 
-    public fun collect_fee<FT>(
+    public entry fun collect_fee<FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
         ctx: &mut TxContext,
@@ -52,7 +52,7 @@ module nft_protocol::flat_fee {
 
         let policy = object_box::borrow<FlatFee>(fee_policy);
 
-        let fee = balance::value(proceeds_value) * policy.rate;
+        let fee = balance::value(proceeds_value) * policy.rate_bps;
 
         proceeds::collect<FT>(
             launchpad::proceeds_mut(slot),
@@ -61,5 +61,15 @@ module nft_protocol::flat_fee {
             slot_receiver,
             ctx,
         );
+    }
+
+    public fun create_(
+        rate_bps: u64,
+        ctx: &mut TxContext,
+    ): FlatFee {
+        FlatFee {
+            id: object::new(ctx),
+            rate_bps,
+        }
     }
 }

@@ -31,7 +31,7 @@ module nft_protocol::fixed_price {
         price: u64,
     }
 
-    // === Functions exposed to Witness Module ===
+    // === Init functions ===
 
     /// Creates a fixed price `Launchpad` sale. A sale can be simple or tiered,
     /// that is, a tiered sale `Launchpad` has multiple `Sale` outlets in its
@@ -43,7 +43,7 @@ module nft_protocol::fixed_price {
     /// call privelleged endpoints.
     ///
     /// To be called by the Witness Module deployed by NFT creator.
-    public fun create_market(
+    public entry fun create_market(
         launchpad: &Launchpad,
         slot: &mut Slot,
         is_whitelisted: bool,

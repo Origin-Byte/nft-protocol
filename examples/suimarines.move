@@ -1,5 +1,4 @@
 module nft_protocol::suimarines {
-    use std::vector;
     use std::string;
 
     use sui::balance;
@@ -7,15 +6,13 @@ module nft_protocol::suimarines {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
-    use nft_protocol::display;
-    use nft_protocol::fixed_price;
-    use nft_protocol::inventory::{Self, NftCertificate};
-    use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::launchpad::{Self, Launchpad, Slot};
-    use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::royalty;
     use nft_protocol::tags;
+    use nft_protocol::royalty;
+    use nft_protocol::display;
     use nft_protocol::attribution;
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::royalties::{Self, TradePayment};
+    use nft_protocol::inventory::{Self, NftCertificate};
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -68,19 +65,7 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art(), ctx);
         tags::add_collection_tag_domain(&mut collection, tags);
 
-        let collection_id = collection::share<SUIMARINES>(collection);
-
-        let whitelist = vector::empty();
-        vector::push_back(&mut whitelist, true);
-        vector::push_back(&mut whitelist, false);
-
-        let prices = vector::empty();
-        vector::push_back(&mut prices, 1000);
-        vector::push_back(&mut prices, 2000);
-
-        let admin = @0x6c86ac4a796204ea09a87b6430db0c38263c1890;
-
-        let collections = vector::singleton(collection_id);
+        collection::share<SUIMARINES>(collection);
     }
 
     public entry fun collect_royalty<FT>(
@@ -98,30 +83,31 @@ module nft_protocol::suimarines {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_nft(
-        name: vector<u8>,
-        description: vector<u8>,
-        url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint_authority: &mut MintCap<SUIMARINES>,
-        sale_index: u64,
-        launchpad: &mut Launchpad,
-        slot: &mut Slot,
-        ctx: &mut TxContext,
-    ) {
-        unique_nft::mint_regulated_nft(
-            name,
-            description,
-            url,
-            attribute_keys,
-            attribute_values,
-            mint_authority,
-            sale_index,
-            launchpad,
-            ctx,
-        );
-    }
+    // TODO: Premint flow needs to be reconsidered
+    // public entry fun mint_nft(
+    //     name: vector<u8>,
+    //     description: vector<u8>,
+    //     url: vector<u8>,
+    //     attribute_keys: vector<vector<u8>>,
+    //     attribute_values: vector<vector<u8>>,
+    //     mint_authority: &mut MintCap<SUIMARINES>,
+    //     sale_index: u64,
+    //     launchpad: &mut Launchpad,
+    //     slot: &mut Slot,
+    //     ctx: &mut TxContext,
+    // ) {
+    //     unique_nft::mint_regulated_nft(
+    //         name,
+    //         description,
+    //         url,
+    //         attribute_keys,
+    //         attribute_values,
+    //         mint_authority,
+    //         sale_index,
+    //         launchpad,
+    //         ctx,
+    //     );
+    // }
 
     public entry fun redeem_certificate(
         certificate: NftCertificate,

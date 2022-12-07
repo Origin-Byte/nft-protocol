@@ -70,15 +70,13 @@ module nft_protocol::launchpad {
         default_fee: ObjectBox,
         ctx: &mut TxContext,
     ) {
-        let uid = object::new(ctx);
-
-        let launchpad = Launchpad {
-            id: uid,
+        let launchpad = init_launchpad_(
             admin,
             receiver,
             auto_approval,
             default_fee,
-        };
+            ctx,
+        );
 
         transfer::share_object(launchpad);
     }
@@ -114,9 +112,29 @@ module nft_protocol::launchpad {
         obox::add<FeeType>(&mut slot.custom_fee, fee);
     }
 
+    /// Initialises a `Launchpad` object and returns it
+    public fun init_launchpad_(
+        admin: address,
+        receiver: address,
+        auto_approval: bool,
+        default_fee: ObjectBox,
+        ctx: &mut TxContext,
+    ): Launchpad {
+        let uid = object::new(ctx);
+
+        Launchpad {
+            id: uid,
+            admin,
+            receiver,
+            auto_approval,
+            default_fee,
+        }
+    }
+
     // === Creator / Slot Admin Functions ===
 
-    /// Initialises a `Slot` object and registers it in the `Launchpad` object.
+    /// Initialises a `Slot` object and registers it in the `Launchpad` object
+    /// and shares it.
     /// Depending if the Launchpad alllows for auto-approval, the launchpad
     /// admin might have to call `approve_slot` in order to validate the slot.
     public entry fun init_slot<FT>(
@@ -125,32 +143,12 @@ module nft_protocol::launchpad {
         receiver: address,
         ctx: &mut TxContext,
     ) {
-        let approval = false;
-
-        let is_admin = tx_context::sender(ctx) == launchpad.admin;
-
-        // If the launchpad is permissionless then slots are automatically
-        // approved. If the launchpad is permissioned, then the slot is
-        // automatically approved only if the sender is the launchpad
-        // administrator.
-        if (launchpad.auto_approval == true || is_admin) {
-            approval = true;
-        };
-
-        let uid = object::new(ctx);
-        let markets = vector::empty();
-
-        let slot = Slot {
-            id: uid,
-            launchpad: launchpad_id(launchpad),
-            is_approved: approval,
-            live: false,
-            admin: slot_admin,
+        let slot = init_slot_<FT>(
+            launchpad,
+            slot_admin,
             receiver,
-            markets,
-            proceeds: proceeds::empty<FT>(ctx),
-            custom_fee: obox::empty(ctx),
-        };
+            ctx,
+        );
 
         transfer::share_object(slot);
     }
@@ -176,6 +174,44 @@ module nft_protocol::launchpad {
         assert_slot_admin(slot, ctx);
 
         slot.live = false
+    }
+
+    /// Initialises a `Slot` object and registers it in the `Launchpad` object
+    /// and returns it.
+    /// Depending if the Launchpad alllows for auto-approval, the launchpad
+    /// admin might have to call `approve_slot` in order to validate the slot.
+    public fun init_slot_<FT>(
+        launchpad: &Launchpad,
+        slot_admin: address,
+        receiver: address,
+        ctx: &mut TxContext,
+    ): Slot {
+        let approval = false;
+
+        let is_admin = tx_context::sender(ctx) == launchpad.admin;
+
+        // If the launchpad is permissionless then slots are automatically
+        // approved. If the launchpad is permissioned, then the slot is
+        // automatically approved only if the sender is the launchpad
+        // administrator.
+        if (launchpad.auto_approval == true || is_admin) {
+            approval = true;
+        };
+
+        let uid = object::new(ctx);
+        let markets = vector::empty();
+
+        Slot {
+            id: uid,
+            launchpad: launchpad_id(launchpad),
+            is_approved: approval,
+            live: false,
+            admin: slot_admin,
+            receiver,
+            markets,
+            proceeds: proceeds::empty<FT>(ctx),
+            custom_fee: obox::empty(ctx),
+        }
     }
 
     // === Launchpad or Slot Admin Functions ===
