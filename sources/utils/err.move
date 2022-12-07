@@ -192,10 +192,6 @@ module nft_protocol::err {
         return Prefix + 500
     }
 
-    public fun sender_not_collection_creator(): u64 {
-        return Prefix + 501
-    }
-
     public fun sender_not_whitelist_admin(): u64 {
         return Prefix + 502
     }
@@ -216,17 +212,32 @@ module nft_protocol::err {
         return Prefix + 700
     }
 
-    // === Generic ===
+    // === Royalties ===
 
-    public fun generic_bag_full(): u64 {
+    public fun address_not_attributed(): u64 {
         return Prefix + 800
     }
 
-    public fun generic_box_full(): u64 {
+    public fun address_does_not_have_enough_shares(): u64 {
         return Prefix + 801
     }
 
-    public fun missing_dynamic_field(): u64 {
+    public fun invalid_total_share_of_royalties(): u64 {
         return Prefix + 802
     }
+
+    // === Generic ===
+
+    public fun generic_bag_full(): u64 {
+        return Prefix + 900
+    }
+
+    public fun generic_box_full(): u64 {
+        return Prefix + 901
+    }
+
+    public fun missing_dynamic_field(): u64 {
+        return Prefix + 902
+    }
+
 }
