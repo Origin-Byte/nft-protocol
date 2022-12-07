@@ -171,10 +171,6 @@ module nft_protocol::err {
         return Prefix + 500
     }
 
-    public fun sender_not_collection_creator(): u64 {
-        return Prefix + 501
-    }
-
     public fun sender_not_whitelist_admin(): u64 {
         return Prefix + 502
     }
@@ -193,5 +189,19 @@ module nft_protocol::err {
 
     public fun sender_not_owner(): u64 {
         return Prefix + 700
+    }
+
+    // === Royalties ===
+
+    public fun address_not_attributed(): u64 {
+        return Prefix + 800
+    }
+
+    public fun address_does_not_have_enough_shares(): u64 {
+        return Prefix + 801
+    }
+
+    public fun invalid_total_share_of_royalties(): u64 {
+        return Prefix + 802
     }
 }

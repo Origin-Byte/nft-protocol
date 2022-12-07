@@ -9,11 +9,10 @@ module nft_protocol::flyweight {
     use sui::object::{Self, UID, ID};
 
     use nft_protocol::err;
-    use nft_protocol::utils;
     use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::collection::{Self, MintAuthority};
-    use nft_protocol::domain::{domain_key, DomainKey};
+    use nft_protocol::collection::{Self, MintCap};
 
     struct Pointer has key, store {
         id: UID,
@@ -39,7 +38,7 @@ module nft_protocol::flyweight {
     public fun create<C>(
         ctx: &mut TxContext,
         supply: u64,
-        mint: &mut MintAuthority<C>,
+        mint: &mut MintCap<C>,
     ) {
         let id = object::new(ctx);
 
@@ -52,7 +51,7 @@ module nft_protocol::flyweight {
         let state = State<C> {
             id,
             supply: supply::new(supply, false),
-            mint_authority: collection::mint_id(mint),
+            mint_authority: object::id(mint),
             bag: bag::new(ctx),
         };
 
@@ -66,7 +65,7 @@ module nft_protocol::flyweight {
         ctx: &mut TxContext,
         nft: &mut NFT<C>,
         state: &mut State<C>,
-        _mint: &MintAuthority<C>,
+        _mint: &MintCap<C>,
     ) {
         let id = object::new(ctx);
 
@@ -83,11 +82,11 @@ module nft_protocol::flyweight {
     // === Domain Functions ===
 
     public fun has_domain<C, D: store>(state: &State<C>): bool {
-        bag::contains_with_type<DomainKey, D>(&state.bag, domain_key<D>())
+        bag::contains_with_type<Marker<D>, D>(&state.bag, utils::marker<D>())
     }
 
     public fun borrow_domain<C, D: store>(state: &State<C>): &D {
-        bag::borrow<DomainKey, D>(&state.bag, domain_key<D>())
+        bag::borrow<Marker<D>, D>(&state.bag, utils::marker<D>())
     }
 
     public fun borrow_domain_mut<C, D: store, W: drop>(
@@ -95,20 +94,20 @@ module nft_protocol::flyweight {
         state: &mut State<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<DomainKey, D>(&mut state.bag, domain_key<D>())
+        bag::borrow_mut<Marker<D>, D>(&mut state.bag, utils::marker<D>())
     }
 
     public fun add_domain<C, V: store>(
         state: &mut State<C>,
-        mint: &MintAuthority<C>,
+        mint: &MintCap<C>,
         v: V,
     ) {
         assert!(
-            collection::mint_id(mint) == state.mint_authority,
+            object::id(mint) == state.mint_authority,
             err::mint_authority_mismatch()
         );
 
-        bag::add(&mut state.bag, domain_key<V>(), v);
+        bag::add(&mut state.bag, utils::marker<V>(), v);
     }
 
     public fun remove_domain<C, W: drop, V: store>(
@@ -116,6 +115,6 @@ module nft_protocol::flyweight {
         state: &mut State<C>,
     ): V {
         utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut state.bag, domain_key<V>())
+        bag::remove(&mut state.bag, utils::marker<V>())
     }
 }

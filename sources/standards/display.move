@@ -25,10 +25,7 @@ module nft_protocol::display {
         name: String,
         description: String
     ): DisplayDomain {
-        DisplayDomain {
-            name,
-            description,
-        }
+        DisplayDomain { name, description }
     }
 
     /// ====== Interoperability ===
@@ -73,9 +70,7 @@ module nft_protocol::display {
     }
 
     public fun new_url_domain(url: Url): UrlDomain {
-        UrlDomain {
-            url,
-        }
+        UrlDomain { url }
     }
 
     /// ====== Interoperability ===
@@ -109,5 +104,52 @@ module nft_protocol::display {
         url: Url
     ) {
         collection::add_domain(nft, new_url_domain(url));
+    }
+
+    /// === SymbolDomain ===
+
+    struct SymbolDomain has store {
+        symbol: String,
+    }
+
+    public fun symbol(domain: &SymbolDomain): &String {
+        &domain.symbol
+    }
+
+    public fun new_symbol_domain(symbol: String): SymbolDomain {
+        SymbolDomain { symbol }
+    }
+
+    /// ====== Interoperability ===
+
+    public fun display_symbol<C>(nft: &NFT<C>): Option<String> {
+        if (!nft::has_domain<C, SymbolDomain>(nft)) {
+            return option::none()
+        };
+
+        option::some(*symbol(nft::borrow_domain<C, SymbolDomain>(nft)))
+    }
+
+    public fun display_collection_symbol<C>(nft: &Collection<C>): Option<String> {
+        if (!collection::has_domain<C, SymbolDomain>(nft)) {
+            return option::none()
+        };
+
+        option::some(*symbol(collection::borrow_domain<C, SymbolDomain>(nft)))
+    }
+
+    public fun add_symbol_domain<C>(
+        nft: &mut NFT<C>,
+        symbol: String,
+        ctx: &mut TxContext
+    ) {
+        nft::add_domain(nft, new_symbol_domain(symbol), ctx);
+    }
+
+    public fun add_collection_symbol_domain<C>(
+        nft: &mut Collection<C>,
+        symbol: String
+    ) {
+        collection::add_domain(nft, new_symbol_domain(symbol));
     }
 }

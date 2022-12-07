@@ -1,9 +1,10 @@
 TODO:
+
 - Reinsert Launchpad entry functions
 - Reinsert removed events
 - Update Gutenberg and Type Exported contracts
 
-- Sui v0.16.0
+- Sui v0.17.0
 
 # Install
 
