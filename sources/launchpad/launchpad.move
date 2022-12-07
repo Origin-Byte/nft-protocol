@@ -14,7 +14,7 @@ module nft_protocol::launchpad {
 
     use nft_protocol::err;
     use nft_protocol::proceeds::{Self, Proceeds};
-    use nft_protocol::object_box::{Self, ObjectBox};
+    use nft_protocol::object_box::{Self as obox, ObjectBox};
 
     struct Launchpad has key, store {
         id: UID,
@@ -105,13 +105,13 @@ module nft_protocol::launchpad {
         assert_launchpad_admin(launchpad, ctx);
 
         assert!(
-            object_box::is_empty(
+            obox::is_empty(
                 &slot.custom_fee
             ),
             err::generic_box_full(),
         );
 
-        object_box::add<FeeType>(&mut slot.custom_fee, fee);
+        obox::add<FeeType>(&mut slot.custom_fee, fee);
     }
 
     // === Creator / Slot Admin Functions ===
@@ -149,7 +149,7 @@ module nft_protocol::launchpad {
             receiver,
             markets,
             proceeds: proceeds::empty<FT>(ctx),
-            custom_fee: object_box::empty(ctx),
+            custom_fee: obox::empty(ctx),
         };
 
         transfer::share_object(slot);
@@ -324,7 +324,7 @@ module nft_protocol::launchpad {
     public fun slot_has_custom_fee(
         slot: &Slot,
     ): bool {
-        !object_box::is_empty(&slot.custom_fee)
+        !obox::is_empty(&slot.custom_fee)
     }
 
     public fun custom_fee(
@@ -384,7 +384,7 @@ module nft_protocol::launchpad {
         slot: &Slot,
     ) {
         assert!(
-            !object_box::is_empty(
+            !obox::is_empty(
                 &slot.custom_fee
             ),
             err::has_custom_fee_policy(),

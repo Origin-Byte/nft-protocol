@@ -21,8 +21,8 @@ module nft_protocol::fixed_price {
     use nft_protocol::err;
     use nft_protocol::object_box;
     use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::whitelist::{Self, Whitelist};
-    use nft_protocol::launchpad::{Self, Launchpad, Slot};
+    use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
+    use nft_protocol::launchpad::{Self as lp, Launchpad, Slot};
 
     struct FixedPriceMarket has key, store {
         id: UID,
@@ -67,7 +67,7 @@ module nft_protocol::fixed_price {
             }
         );
 
-        launchpad::add_market(
+        lp::add_market(
             launchpad,
             slot,
             market,
@@ -91,7 +91,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot) == true, err::slot_not_live());
+        assert!(lp::live(slot) == true, err::slot_not_live());
 
         // Infer that sales is NOT whitelisted
         assert!(
@@ -107,7 +107,7 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        launchpad::pay(
+        lp::pay(
             launchpad,
             slot,
             funds,
@@ -116,8 +116,8 @@ module nft_protocol::fixed_price {
 
         let certificate = inventory::issue_nft_certificate(
             &mut market.outlet,
-            launchpad::launchpad_id(launchpad),
-            launchpad::slot_id(slot),
+            lp::launchpad_id(launchpad),
+            lp::slot_id(slot),
             ctx
         );
 
@@ -142,9 +142,9 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot) == true, err::slot_not_live());
+        assert!(lp::live(slot) == true, err::slot_not_live());
 
-        let launchpad_id = launchpad::slot_id(slot);
+        let launchpad_id = lp::slot_id(slot);
 
         // Infer that sales is whitelisted
         assert!(
@@ -154,7 +154,7 @@ module nft_protocol::fixed_price {
 
         // Infer that whitelist token corresponds to correct sale outlet
         assert!(
-            whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
+            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
             err::incorrect_whitelist_token()
         );
 
@@ -166,19 +166,19 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        launchpad::pay(
+        lp::pay(
             launchpad,
             slot,
             funds,
             1,
         );
 
-        whitelist::burn_whitelist_token(whitelist_token);
+        lp_whitelist::burn_whitelist_token(whitelist_token);
 
         let certificate = inventory::issue_nft_certificate(
             &mut market.outlet,
             launchpad_id,
-            launchpad::slot_id(slot),
+            lp::slot_id(slot),
             ctx
         );
 
@@ -197,10 +197,10 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::slot_admin(slot) == tx_context::sender(ctx),
+            lp::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
-        launchpad::sale_on(slot, ctx);
+        lp::sale_on(slot, ctx);
     }
 
     /// Toggle the Slingshot's `live` to `false` therefore
@@ -210,10 +210,10 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::slot_admin(slot) == tx_context::sender(ctx),
+            lp::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
-        launchpad::sale_off(slot, ctx);
+        lp::sale_off(slot, ctx);
     }
 
     /// Permissioned endpoint to be called by `admin` to edit the fixed price
@@ -225,7 +225,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         assert!(
-            launchpad::slot_admin(slot) == tx_context::sender(ctx),
+            lp::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
 

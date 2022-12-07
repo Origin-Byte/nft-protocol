@@ -1,11 +1,11 @@
-module nft_protocol::whitelist {
+module nft_protocol::launchpad_whitelist {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
     use nft_protocol::inventory::Inventory;
-    use nft_protocol::launchpad::{Self, Slot};
+    use nft_protocol::launchpad::{Self as lp, Slot};
 
     struct Whitelist has key {
         id: UID,
@@ -19,7 +19,7 @@ module nft_protocol::whitelist {
         ctx: &mut TxContext,
     ) {
         assert!(
-            tx_context::sender(ctx) == launchpad::slot_admin(slot),
+            tx_context::sender(ctx) == lp::slot_admin(slot),
             err::wrong_launchpad_admin()
         );
         let sale_id = object::id(inventory);

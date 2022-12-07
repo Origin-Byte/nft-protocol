@@ -16,7 +16,7 @@ module nft_protocol::dutch_auction {
     use nft_protocol::err;
     use nft_protocol::object_box;
     use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::whitelist::{Self, Whitelist};
+    use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct DutchAuctionMarket<phantom FT> has key, store {
@@ -120,7 +120,7 @@ module nft_protocol::dutch_auction {
 
         // Infer that whitelist token corresponds to correct sale outlet
         assert!(
-            whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
+            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
             err::incorrect_whitelist_token()
         );
 
@@ -132,7 +132,7 @@ module nft_protocol::dutch_auction {
             tx_context::sender(ctx)
         );
 
-        whitelist::burn_whitelist_token(whitelist_token);
+        lp_whitelist::burn_whitelist_token(whitelist_token);
     }
 
     /// Cancels a single bid at the given price level in a FIFO manner
