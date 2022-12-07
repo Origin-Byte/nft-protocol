@@ -1,5 +1,6 @@
 module nft_protocol::proceeds {
     // TODO: Function to destroy Proceeds object
+    // TODO: reconsider `Proceeds.total` to acocmodate for multiple FTs
     use std::type_name::{Self, TypeName};
 
     use sui::coin;
@@ -11,12 +12,23 @@ module nft_protocol::proceeds {
 
     struct Proceeds has key, store {
         id: UID,
-        sold: Sold,
+        // Quantity of NFTs sold
+        qt_sold: QtSold,
+        // Total FT-amount sold. The reason for storing this info is to allow
+        // for custom types of fees that rely on the total FT-amount sold.
+        // Marketplaces could then reduce the amount of fees charged based
+        // on the bulk-volume of the sale.
         total: u64,
     }
 
-    struct Sold has copy, drop, store {
-        unwrapped: u64,
+    // Quantity of NFTs Sold
+    struct QtSold has copy, drop, store {
+        // Bookeeping of all NFT sold whose proceeds have been withdrawn.
+        collected: u64,
+        // Total number of NFTs sold. The reason for storing this info is to
+        // allow for custom types of fees that rely on the total FT-amount sold.
+        // Marketplaces could then reduce the amount of fees charged based
+        // on the bulk-volume of the sale.
         total: u64,
     }
 
@@ -25,7 +37,7 @@ module nft_protocol::proceeds {
     ): Proceeds {
         Proceeds {
             id: object::new(ctx),
-            sold: Sold {unwrapped: 0, total: 0},
+            qt_sold: QtSold {collected: 0, total: 0},
             total: 0,
         }
     }
@@ -52,7 +64,7 @@ module nft_protocol::proceeds {
         qty_sold: u64,
     ) {
         proceeds.total = proceeds.total + balance::value(&new_proceeds);
-        proceeds.sold.total = proceeds.sold.total + qty_sold;
+        proceeds.qt_sold.total = proceeds.qt_sold.total + qty_sold;
 
         let missing_df = !df::exists_with_type<TypeName, Balance<FT>>(
             &proceeds.id, type_name::get<Balance<FT>>()
