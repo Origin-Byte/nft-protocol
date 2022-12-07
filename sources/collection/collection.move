@@ -84,7 +84,7 @@ module nft_protocol::collection {
     public fun share<C>(
         collection: Collection<C>,
     ): ID {
-        let collection_id = id(&collection);
+        let collection_id = object::id(&collection);
 
         event::emit(
             MintEvent { collection_id }
@@ -204,20 +204,6 @@ module nft_protocol::collection {
     }
 
     // === Getter Functions ===
-
-    /// Get the Collections's `id`
-    public fun id<T>(
-        collection: &Collection<T>,
-    ): ID {
-        object::uid_to_inner(&collection.id)
-    }
-
-    /// Get the Collections's `id` as reference
-    public fun id_ref<T>(
-        collection: &Collection<T>,
-    ): &ID {
-        object::uid_as_inner(&collection.id)
-    }
 
     /// Get the Collection's `is_mutable`
     public fun is_mutable<T>(

@@ -40,6 +40,10 @@ module nft_protocol::err {
         return Prefix + 09
     }
 
+    public fun mint_authority_mistmatch(): u64 {
+        return Prefix + 10
+    }
+
     // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {
@@ -80,15 +84,15 @@ module nft_protocol::err {
         return Prefix + 201
     }
 
-    public fun launchpad_not_live(): u64 {
+    public fun slot_not_live(): u64 {
         return Prefix + 202
     }
 
-    public fun sale_outlet_still_has_nfts_to_sell(): u64 {
+    public fun nft_sale_incompleted(): u64 {
         return Prefix + 203
     }
 
-    public fun sale_outlet_still_has_nfts_to_redeem(): u64 {
+    public fun nft_redemption_incompleted(): u64 {
         return Prefix + 204
     }
 
@@ -104,16 +108,37 @@ module nft_protocol::err {
         return Prefix + 207
     }
 
-    public fun certificate_does_not_correspond_to_nft_given(): u64 {
+    // To be used by redeem function
+    public fun certificate_nft_id_mismatch(): u64 {
         return Prefix + 208
     }
 
-    public fun sale_outlet_has_no_nfts_to_sell(): u64 {
+    public fun no_nfts_left(): u64 {
         return Prefix + 209
     }
 
-    public fun market_parameters_length_mismatch(): u64 {
+    public fun launchpad_slot_mismatch(): u64 {
         return Prefix + 210
+    }
+
+    public fun wrong_launchpad_or_slot_admin(): u64 {
+        return Prefix + 211
+    }
+
+    public fun wrong_slot_admin(): u64 {
+        return Prefix + 212
+    }
+
+    public fun wrong_fee_policy_type(): u64 {
+        return Prefix + 213
+    }
+
+    public fun has_custom_fee_policy(): u64 {
+        return Prefix + 214
+    }
+
+    public fun slot_not_approved(): u64 {
+        return Prefix + 215
     }
 
     // Auction
@@ -200,4 +225,19 @@ module nft_protocol::err {
     public fun invalid_total_share_of_royalties(): u64 {
         return Prefix + 802
     }
+
+    // === Generic ===
+
+    public fun generic_bag_full(): u64 {
+        return Prefix + 900
+    }
+
+    public fun generic_box_full(): u64 {
+        return Prefix + 901
+    }
+
+    public fun missing_dynamic_field(): u64 {
+        return Prefix + 902
+    }
+
 }
