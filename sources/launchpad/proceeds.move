@@ -1,5 +1,5 @@
 module nft_protocol::proceeds {
-
+    // TODO: Function to destroy Proceeds object
     use std::type_name::{Self, TypeName};
 
     use sui::coin;
@@ -45,19 +45,6 @@ module nft_protocol::proceeds {
             type_name::get<Balance<FT>>(),
         )
     }
-
-    // public fun destroy_zero<FT>(
-    //     proceeds: Proceeds<FT>,
-    // ) {
-    //     let Proceeds {
-    //         id,
-    //         sold,
-    //         total,
-    //         amount: balance,
-    //     } = proceeds;
-
-    //     balance::destroy_zero(balance)
-    // }
 
     public fun add<FT>(
         proceeds: &mut Proceeds,
