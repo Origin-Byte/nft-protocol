@@ -155,6 +155,8 @@ module nft_protocol::attribution {
             beneficiary.share_of_royalty_bps + creator.share_of_royalty_bps;
     }
 
+    /// Distributes content of `aggregate` balance among the creators defined
+    /// in the `AttributionDomain`
     public fun distribute_royalties<FT>(
         attributions: &AttributionDomain,
         aggregate: &mut Balance<FT>,
