@@ -32,7 +32,7 @@ module nft_protocol::proceeds {
         total: u64,
     }
 
-    public fun empty<FT>(
+    public fun empty(
         ctx: &mut TxContext,
     ): Proceeds {
         Proceeds {

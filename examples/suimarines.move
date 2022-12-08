@@ -35,7 +35,7 @@ module nft_protocol::suimarines {
 
         collection::add_domain(
             &mut collection,
-            attribution::from_address(@0x6c86ac4a796204ea09a87b6130db0c38263c1890)
+            attribution::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains

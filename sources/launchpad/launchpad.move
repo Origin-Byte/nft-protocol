@@ -141,13 +141,13 @@ module nft_protocol::launchpad {
     /// and shares it.
     /// Depending if the Launchpad alllows for auto-approval, the launchpad
     /// admin might have to call `approve_slot` in order to validate the slot.
-    public entry fun init_slot<FT>(
+    public entry fun init_slot(
         launchpad: &Launchpad,
         slot_admin: address,
         receiver: address,
         ctx: &mut TxContext,
     ) {
-        let slot = init_slot_<FT>(
+        let slot = init_slot_(
             launchpad,
             slot_admin,
             receiver,
@@ -184,7 +184,7 @@ module nft_protocol::launchpad {
     /// and returns it.
     /// Depending if the Launchpad alllows for auto-approval, the launchpad
     /// admin might have to call `approve_slot` in order to validate the slot.
-    public fun init_slot_<FT>(
+    public fun init_slot_(
         launchpad: &Launchpad,
         slot_admin: address,
         receiver: address,
@@ -215,7 +215,7 @@ module nft_protocol::launchpad {
             receiver,
             markets,
             inventories,
-            proceeds: proceeds::empty<FT>(ctx),
+            proceeds: proceeds::empty(ctx),
             custom_fee: obox::empty(ctx),
         }
     }
