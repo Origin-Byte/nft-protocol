@@ -2,29 +2,19 @@ module nft_protocol::safe {
     use nft_protocol::err;
     use nft_protocol::nft::{Self, NFT};
     use nft_protocol::transfer_whitelist::Whitelist;
-    use std::type_name::{Self, TypeName};
+
     use sui::event;
-    use sui::object;
-    use sui::object::{ID, UID};
+    use sui::object::{Self, ID, UID};
     use sui::transfer::{share_object, transfer};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
-    use sui::vec_set::{Self, VecSet};
     use sui::dynamic_object_field::{Self as dof};
 
-    struct Safe has key {
+    struct Safe has key, store {
         id: UID,
         /// Accounting for deposited NFTs. Each NFT in the object bag is
         /// represented in this map.
         refs: VecMap<ID, NftRef>,
-        /// If set to false, the owner can select which collections can be
-        /// deposited to the safe.
-        enable_any_deposit: bool,
-        /// If the flag `enable_any_deposit` is set to false, then we check
-        /// whether a collection is stored in this set.
-        ///
-        /// Enables more granular control over NFTs to combat spam.
-        collections_with_enabled_deposits: VecSet<TypeName>,
     }
 
     /// Keeps info about an NFT which enables us to issue transfer caps etc.
@@ -76,16 +66,36 @@ module nft_protocol::safe {
         nft: ID,
     }
 
+    public fun new(ctx: &mut TxContext): (Safe, OwnerCap) {
+        let safe = Safe {
+            id: object::new(ctx),
+            refs: vec_map::empty(),
+        };
+
+        let cap = OwnerCap {
+            id: object::new(ctx),
+            safe: object::id(&safe),
+        };
+
+        (safe, cap)
+    }
+
     /// Instantiates a new shared object `Safe` and transfer `OwnerCap` to the
     /// tx sender.
     public entry fun create_for_sender(ctx: &mut TxContext) {
-        transfer(create_safe_(ctx), tx_context::sender(ctx));
+        let (safe, cap) = new(ctx);
+        share_object(safe);
+
+        transfer(cap, tx_context::sender(ctx));
     }
 
     /// Creates a new `Safe` shared object and returns the authority capability
     /// that grants authority over this safe.
     public fun create_safe(ctx: &mut TxContext): OwnerCap {
-        create_safe_(ctx)
+        let (safe, cap) = new(ctx);
+        share_object(safe);
+
+        cap
     }
 
     /// Creates a `TransferCap` which must be claimed atomically.
@@ -147,75 +157,12 @@ module nft_protocol::safe {
         }
     }
 
-    /// Only owner or whitelisted collections can deposit.
-    public entry fun restrict_deposits(
-        owner_cap: &OwnerCap,
-        safe: &mut Safe,
-    ) {
-        assert_owner_cap(owner_cap, safe);
-
-        safe.enable_any_deposit = false;
-    }
-    /// No restriction on deposits.
-    public entry fun enable_any_deposit(
-        owner_cap: &OwnerCap,
-        safe: &mut Safe,
-    ) {
-        assert_owner_cap(owner_cap, safe);
-
-        safe.enable_any_deposit = true;
-    }
-
-    /// The owner can restrict deposits into the `Safe` from given collection.
-    ///
-    /// However, if the flag `Safe::enable_any_deposit` is set to true, then
-    /// it takes precedence.
-    public entry fun disable_deposits_of_collection<C>(
-        owner_cap: &OwnerCap,
-        safe: &mut Safe,
-    ) {
-        assert_owner_cap(owner_cap, safe);
-
-        let col_type = type_name::get<C>();
-        vec_set::remove(&mut safe.collections_with_enabled_deposits, &col_type);
-    }
-    /// The owner can enable deposits into the `Safe` from given collection.
-    ///
-    /// However, if the flag `Safe::enable_any_deposit` is set to true, then
-    /// it takes precedence anyway.
-    public entry fun enable_deposits_of_collection<C>(
-        owner_cap: &OwnerCap,
-        safe: &mut Safe,
-    ) {
-        assert_owner_cap(owner_cap, safe);
-
-        let col_type = type_name::get<C>();
-        vec_set::insert(&mut safe.collections_with_enabled_deposits, col_type);
-    }
-
     /// Transfer an NFT into the `Safe`.
-    ///
-    /// Requires that `enable_any_deposit` flag is set to true, or that the
-    /// `Safe` owner enabled NFTs of given collection to be inserted.
     public entry fun deposit_nft<T>(
         nft: NFT<T>,
         safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        assert_can_deposit<T>(safe);
-
-        deposit_nft_(nft, safe, ctx);
-    }
-
-    /// Transfer an NFT from owner to the `Safe`.
-    public entry fun deposit_nft_priviledged<T>(
-        nft: NFT<T>,
-        owner_cap: &OwnerCap,
-        safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        assert_owner_cap(owner_cap, safe);
-
         deposit_nft_(nft, safe, ctx);
     }
 
@@ -304,21 +251,7 @@ module nft_protocol::safe {
         ref.transfer_cap_counter = 0;
     }
 
-    fun create_safe_(ctx: &mut TxContext): OwnerCap {
-        let safe = Safe {
-            id: object::new(ctx),
-            refs: vec_map::empty(),
-            enable_any_deposit: true,
-            collections_with_enabled_deposits: vec_set::empty(),
-        };
-        let cap = OwnerCap {
-            id: object::new(ctx),
-            safe: object::id(&safe),
-        };
-
-        share_object(safe);
-        cap
-    }
+    // === Private functions ===
 
     /// Generates a unique ID.
     fun new_id(ctx: &mut TxContext): ID {
@@ -393,19 +326,18 @@ module nft_protocol::safe {
         cap.safe
     }
 
-    public fun are_all_deposits_enabled(safe: &Safe): bool {
-        safe.enable_any_deposit
-    }
-
     public fun transfer_cap_safe(cap: &TransferCap): ID {
         cap.safe
     }
+
     public fun transfer_cap_nft(cap: &TransferCap): ID {
         cap.nft
     }
+
     public fun transfer_cap_version(cap: &TransferCap): ID {
         cap.version
     }
+
     public fun transfer_cap_is_exclusive(cap: &TransferCap): bool {
         cap.is_exclusive
     }
@@ -436,15 +368,6 @@ module nft_protocol::safe {
 
     public fun assert_version_match(ref: &NftRef, cap: &TransferCap) {
         assert!(ref.version == cap.version, err::transfer_cap_expired());
-    }
-
-    public fun assert_can_deposit<T>(safe: &Safe) {
-        if (!safe.enable_any_deposit) {
-            assert!(
-                vec_set::contains(&safe.collections_with_enabled_deposits, &type_name::get<T>()),
-                err::safe_does_not_accept_deposits(),
-            );
-        }
     }
 
     public fun assert_id(safe: &Safe, id: ID) {
