@@ -27,14 +27,14 @@ module nft_protocol::fixed_price {
     struct FixedPriceMarket has key, store {
         id: UID,
         live: bool,
-        outlet: Inventory,
+        inventory: Inventory,
         price: u64,
     }
 
     // === Init functions ===
 
     /// Creates a fixed price `Launchpad` sale. A sale can be simple or tiered,
-    /// that is, a tiered sale `Launchpad` has multiple `Sale` outlets in its
+    /// that is, a tiered sale `Launchpad` has multiple `Sale` inventorys in its
     /// field `sales`. This funcitonality allows for the creation of tiered
     /// market sales by segregating NFTs by different sale segments
     /// (e.g. based on rarity, or preciousness).
@@ -50,7 +50,7 @@ module nft_protocol::fixed_price {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let outlet = inventory::create(
+        let inventory = inventory::create(
             is_whitelisted,
             ctx,
         );
@@ -62,7 +62,7 @@ module nft_protocol::fixed_price {
             FixedPriceMarket {
                 id: object::new(ctx),
                 live: false,
-                outlet,
+                inventory,
                 price,
             }
         );
@@ -95,7 +95,7 @@ module nft_protocol::fixed_price {
 
         // Infer that sales is NOT whitelisted
         assert!(
-            !inventory::whitelisted(&market.outlet),
+            !inventory::whitelisted(&market.inventory),
             err::sale_is_not_whitelisted()
         );
 
@@ -115,7 +115,7 @@ module nft_protocol::fixed_price {
         );
 
         let certificate = inventory::issue_nft_certificate(
-            &mut market.outlet,
+            &mut market.inventory,
             lp::launchpad_id(launchpad),
             lp::slot_id(slot),
             ctx
@@ -148,13 +148,13 @@ module nft_protocol::fixed_price {
 
         // Infer that sales is whitelisted
         assert!(
-            inventory::whitelisted(&market.outlet),
+            inventory::whitelisted(&market.inventory),
             err::sale_is_whitelisted(),
         );
 
-        // Infer that whitelist token corresponds to correct sale outlet
+        // Infer that whitelist token corresponds to correct sale inventory
         assert!(
-            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
+            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.inventory),
             err::incorrect_whitelist_token()
         );
 
@@ -176,7 +176,7 @@ module nft_protocol::fixed_price {
         lp_whitelist::burn_whitelist_token(whitelist_token);
 
         let certificate = inventory::issue_nft_certificate(
-            &mut market.outlet,
+            &mut market.inventory,
             launchpad_id,
             lp::slot_id(slot),
             ctx

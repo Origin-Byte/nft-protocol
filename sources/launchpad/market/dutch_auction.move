@@ -28,7 +28,7 @@ module nft_protocol::dutch_auction {
         bids: CBTree<vector<Bid<FT>>>,
         /// Whether the auction is currently live
         live: bool,
-        outlet: Inventory,
+        inventory: Inventory,
     }
 
     /// A bid for one NFT
@@ -50,7 +50,7 @@ module nft_protocol::dutch_auction {
         reserve_price: u64,
         ctx: &mut TxContext
     ) {
-        let outlet = inventory::create(
+        let inventory = inventory::create(
             is_whitelisted,
             ctx,
         );
@@ -64,7 +64,7 @@ module nft_protocol::dutch_auction {
                 reserve_price,
                 bids: crit_bit::empty(),
                 live: false,
-                outlet,
+                inventory,
             }
         );
 
@@ -92,7 +92,7 @@ module nft_protocol::dutch_auction {
         assert!(launchpad::live(slot), err::slot_not_live());
 
         // Infer that sales is NOT whitelisted
-        assert!(!inventory::whitelisted(&market.outlet), err::sale_is_not_whitelisted());
+        assert!(!inventory::whitelisted(&market.inventory), err::sale_is_not_whitelisted());
 
         create_bid_(
             market,
@@ -116,11 +116,11 @@ module nft_protocol::dutch_auction {
         assert!(launchpad::live(slot), err::slot_not_live());
 
         // Infer that sales is whitelisted
-        assert!(inventory::whitelisted(&market.outlet), err::sale_is_whitelisted());
+        assert!(inventory::whitelisted(&market.inventory), err::sale_is_whitelisted());
 
-        // Infer that whitelist token corresponds to correct sale outlet
+        // Infer that whitelist token corresponds to correct sale inventory
         assert!(
-            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.outlet),
+            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.inventory),
             err::incorrect_whitelist_token()
         );
 
@@ -223,7 +223,7 @@ module nft_protocol::dutch_auction {
             err::wrong_launchpad_admin()
         );
 
-        let nfts_to_sell = inventory::length(&market.outlet);
+        let nfts_to_sell = inventory::length(&market.inventory);
 
         conclude_auction<FT>(
             launchpad,
@@ -395,7 +395,7 @@ module nft_protocol::dutch_auction {
             );
 
             let certificate = inventory::issue_nft_certificate(
-                &mut auction.outlet,
+                &mut auction.inventory,
                 launchpad_id,
                 launchpad::slot_id(slot),
                 ctx
