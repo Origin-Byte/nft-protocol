@@ -92,7 +92,7 @@ module nft_protocol::dutch_auction {
         let inventory = lp::inventory(slot, object::id(market));
 
         // Infer that sales is NOT whitelisted
-        assert!(!inventory::whitelisted(inventory), err::sale_is_not_whitelisted());
+        lp::assert_is_not_whitelisted(inventory);
 
         create_bid_(
             market,
@@ -118,12 +118,12 @@ module nft_protocol::dutch_auction {
         let inventory = lp::inventory(slot, object::id(market));
 
         // Infer that sales is whitelisted
-        assert!(inventory::whitelisted(inventory), err::sale_is_whitelisted());
+        lp::assert_is_whitelisted(inventory);
 
         // Infer that whitelist token corresponds to correct sale inventory
-        assert!(
-            lp_whitelist::sale_id(&whitelist_token) == object::id(inventory),
-            err::incorrect_whitelist_token()
+        lp_whitelist::assert_whitelist_token_inventory(
+            inventory,
+            &whitelist_token
         );
 
         create_bid_(

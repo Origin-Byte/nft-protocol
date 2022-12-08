@@ -15,9 +15,9 @@ module nft_protocol::launchpad {
 
     use nft_protocol::err;
     use nft_protocol::nft::NFT;
-    use nft_protocol::inventory::{Self, Inventory, NftCertificate};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::object_box::{Self as obox, ObjectBox};
+    use nft_protocol::inventory::{Self, Inventory, NftCertificate};
 
     struct Launchpad has key, store {
         id: UID,
@@ -495,6 +495,48 @@ module nft_protocol::launchpad {
         assert!(
             is_launchpad_admin || is_slot_admin,
             err::wrong_launchpad_or_slot_admin(),
+        );
+    }
+
+    public fun assert_market_is_whitelisted(
+        slot: &Slot,
+        market_id: ID,
+    ) {
+        let inventory = inventory(slot, market_id);
+
+        assert!(
+            inventory::whitelisted(inventory),
+            err::sale_is_not_whitelisted()
+        );
+    }
+
+    public fun assert_market_is_not_whitelisted(
+        slot: &Slot,
+        market_id: ID,
+    ) {
+        let inventory = inventory(slot, market_id);
+
+        assert!(
+            !inventory::whitelisted(inventory),
+            err::sale_is_not_whitelisted()
+        );
+    }
+
+    public fun assert_is_whitelisted(
+        inventory: &Inventory,
+    ) {
+        assert!(
+            inventory::whitelisted(inventory),
+            err::sale_is_not_whitelisted()
+        );
+    }
+
+    public fun assert_is_not_whitelisted(
+        inventory: &Inventory,
+    ) {
+        assert!(
+            !inventory::whitelisted(inventory),
+            err::sale_is_not_whitelisted()
         );
     }
 }

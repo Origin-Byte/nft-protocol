@@ -95,15 +95,7 @@ module nft_protocol::fixed_price {
         let slot_id = object::id(slot);
         let launchpad_id = object::id(launchpad);
 
-        {
-            let inventory = lp::inventory(slot, object::id(market));
-
-            // Infer that sales is NOT whitelisted
-            assert!(
-                !inventory::whitelisted(inventory),
-                err::sale_is_not_whitelisted()
-            );
-        };
+        lp::assert_market_is_not_whitelisted(slot, object::id(market));
 
         let change = coin::split<FT>(
             &mut funds,
@@ -154,22 +146,14 @@ module nft_protocol::fixed_price {
 
         let launchpad_id = object::id(launchpad);
         let slot_id = object::id(slot);
+        let market_id = object::id(market);
 
-        {
-            let inventory = lp::inventory(slot, object::id(market));
-
-            // Infer that sales is whitelisted
-            assert!(
-                inventory::whitelisted(inventory),
-                err::sale_is_whitelisted(),
-            );
-
-            // Infer that whitelist token corresponds to correct sale inventory
-            assert!(
-                lp_whitelist::sale_id(&whitelist_token) == object::id(inventory),
-                err::incorrect_whitelist_token()
-            );
-        };
+        lp::assert_market_is_whitelisted(slot, market_id);
+        lp_whitelist::assert_whitelist_token_market(
+            slot,
+            market_id,
+            &whitelist_token
+        );
 
         let change = coin::split<FT>(
             &mut funds,
