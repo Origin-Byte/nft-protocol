@@ -28,7 +28,6 @@ module nft_protocol::dutch_auction {
         bids: CBTree<vector<Bid<FT>>>,
         /// Whether the auction is currently live
         live: bool,
-        // inventory: Inventory,
     }
 
     /// A bid for one NFT
