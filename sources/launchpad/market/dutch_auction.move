@@ -73,9 +73,6 @@ module nft_protocol::dutch_auction {
             inventory,
             ctx,
         );
-
-
-
     }
 
     // === Entrypoints ===
