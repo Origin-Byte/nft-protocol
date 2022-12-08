@@ -11,6 +11,7 @@ module nft_protocol::launchpad {
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
+    use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::err;
     use nft_protocol::nft::NFT;
@@ -43,7 +44,7 @@ module nft_protocol::launchpad {
         receiver: address,
         /// Vector of all markets outlets that, each outles holding IDs
         /// owned by the slot
-        markets: ObjectTable<ID, ObjectBox>,
+        markets: ObjectBag,
         inventories: ObjectTable<ID, Inventory>,
         /// Proceeds object holds the balance of Fungible Tokens acquired from
         /// the sale of the Slot
@@ -203,7 +204,7 @@ module nft_protocol::launchpad {
         };
 
         let uid = object::new(ctx);
-        let markets = object_table::new<ID, ObjectBox>(ctx);
+        let markets = object_bag::new(ctx);
         let inventories = object_table::new<ID, Inventory>(ctx);
 
         Slot {
@@ -223,10 +224,10 @@ module nft_protocol::launchpad {
     // === Launchpad or Slot Admin Functions ===
 
     /// Adds a new Market to `markets` and Inventory to `inventories` tables
-    public entry fun add_market(
+    public entry fun add_market<M: key + store>(
         launchpad: &Launchpad,
         slot: &mut Slot,
-        market: ObjectBox,
+        market: M,
         inventory: Inventory,
         ctx: &mut TxContext,
     ) {
@@ -235,7 +236,7 @@ module nft_protocol::launchpad {
 
         let market_id = object::id(&market);
 
-        object_table::add<ID, ObjectBox>(
+        object_bag::add<ID, M>(
             &mut slot.markets,
             market_id,
             market,
@@ -365,27 +366,27 @@ module nft_protocol::launchpad {
     /// Get the Slot's sale `market` table
     public fun markets(
         slot: &Slot,
-    ): &ObjectTable<ID, ObjectBox> {
+    ): &ObjectBag {
         &slot.markets
     }
 
     /// Get the Slot's `market`
-    public fun market(
+    public fun market<M: key + store>(
         slot: &Slot,
         market_id: ID,
-    ): &ObjectBox {
-        object_table::borrow<ID, ObjectBox>(&slot.markets, market_id)
+    ): &M {
+        object_bag::borrow<ID, M>(&slot.markets, market_id)
     }
 
     /// Get the Slot's `market` mutably
-    public fun market_mut(
+    public fun market_mut<M: key + store>(
         slot: &mut Slot,
         market_id: ID,
         ctx: &mut TxContext,
-    ): &mut ObjectBox {
+    ): &mut M {
         assert_slot_admin(slot, ctx);
 
-        object_table::borrow_mut<ID, ObjectBox>(&mut slot.markets, market_id)
+        object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
     }
 
     /// Get the Slot's `inventory`
