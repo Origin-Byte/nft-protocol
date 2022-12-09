@@ -4,44 +4,10 @@ module nft_protocol::err {
 
     const Prefix: u64 = 13370000;
 
-    public fun nft_not_embedded(): u64 {
-        return Prefix + 01
-    }
-
-    public fun nft_not_loose(): u64 {
-        return Prefix + 02
-    }
-
-    public fun collection_mismatch(): u64 {
-        return Prefix + 03
-    }
-
-    public fun collection_is_not_mutable(): u64 {
-        return Prefix + 04
-    }
-
-    public fun wrong_nft_data_provided(): u64 {
-        return Prefix + 05
-    }
-
-    public fun nft_data_mismatch(): u64 {
-        return Prefix + 06
-    }
-
-    public fun not_enough_nfts_to_mint_cnft(): u64 {
-        return Prefix + 07
-    }
-
-    public fun coin_amount_below_price(): u64 {
-        return Prefix + 08
-    }
+    // === NFT ===
 
     public fun not_nft_owner(): u64 {
-        return Prefix + 09
-    }
-
-    public fun mint_authority_mistmatch(): u64 {
-        return Prefix + 10
+        return Prefix + 000
     }
 
     // === Supply ===
@@ -78,7 +44,7 @@ module nft_protocol::err {
         return Prefix + 107
     }
 
-    // Launchpad
+    // === Launchpad ===
 
     public fun wrong_launchpad_admin(): u64 {
         return Prefix + 201
@@ -108,7 +74,7 @@ module nft_protocol::err {
         return Prefix + 207
     }
 
-    // To be used by redeem function
+    // TODO: To be used by redeem function
     public fun certificate_nft_id_mismatch(): u64 {
         return Prefix + 208
     }
@@ -141,7 +107,7 @@ module nft_protocol::err {
         return Prefix + 215
     }
 
-    // Auction
+    // === Auction ===
 
     public fun order_does_not_exist(): u64 {
         return Prefix + 301
@@ -212,7 +178,7 @@ module nft_protocol::err {
         return Prefix + 700
     }
 
-    // === Royalties ===
+    // === AttributionDomain ===
 
     public fun address_not_attributed(): u64 {
         return Prefix + 800
