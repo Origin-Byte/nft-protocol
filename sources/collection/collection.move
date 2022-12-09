@@ -21,8 +21,6 @@
 //! After this function call the `Supply` object will not yet be set to
 //! frozen, in order to give creators the ability to ammend it prior to
 //! the primary sale taking place.
-//!
-//! TODO: Consider adding a struct object Collection Proof
 module nft_protocol::collection {
     use sui::event;
     use sui::object::{Self, UID, ID};
@@ -30,6 +28,7 @@ module nft_protocol::collection {
     use sui::transfer;
     use sui::bag::{Self, Bag};
 
+    use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::supply_policy::{Self, SupplyPolicy};
@@ -40,8 +39,6 @@ module nft_protocol::collection {
     /// used to store additional information about the NFT.
     struct Collection<phantom T> has key, store {
         id: UID,
-        /// ID of `MintAuthority` object
-        mint_authority: ID,
         /// Domain storage equivalent to NFT domains which allows collections
         /// to implement custom metadata.
         domains: Bag,
@@ -136,7 +133,6 @@ module nft_protocol::collection {
 
         let col = Collection {
             id,
-            mint_authority: object::id(&cap),
             domains: bag::new(ctx),
         };
 
@@ -145,36 +141,41 @@ module nft_protocol::collection {
 
     // === Domain Functions ===
 
-    public fun has_domain<C, D: store>(nft: &Collection<C>): bool {
-        bag::contains_with_type<Marker<D>, D>(&nft.domains, utils::marker<D>())
+    public fun has_domain<C, D: store>(collection: &Collection<C>): bool {
+        bag::contains_with_type<Marker<D>, D>(
+            &collection.domains, utils::marker<D>()
+        )
     }
 
-    public fun borrow_domain<C, D: store>(nft: &Collection<C>): &D {
-        bag::borrow<Marker<D>, D>(&nft.domains, utils::marker<D>())
+    public fun borrow_domain<C, D: store>(collection: &Collection<C>): &D {
+        bag::borrow<Marker<D>, D>(&collection.domains, utils::marker<D>())
     }
 
     public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
-        nft: &mut Collection<C>,
+        collection: &mut Collection<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<Marker<D>, D>(&mut nft.domains, utils::marker<D>())
+        bag::borrow_mut<Marker<D>, D>(
+            &mut collection.domains, utils::marker<D>()
+        )
     }
 
-    // TODO: Protect endpoint, MintCap?
     public fun add_domain<C, V: store>(
-        nft: &mut Collection<C>,
+        collection: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         v: V,
     ) {
-        bag::add(&mut nft.domains, utils::marker<V>(), v);
+        assert_mint_cap(mint_cap, collection);
+        bag::add(&mut collection.domains, utils::marker<V>(), v);
     }
 
     public fun remove_domain<C, W: drop, V: store>(
         _witness: W,
-        nft: &mut Collection<C>,
+        collection: &mut Collection<C>,
     ): V {
         utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut nft.domains, utils::marker<V>())
+        bag::remove(&mut collection.domains, utils::marker<V>())
     }
 
     // === MintCap ===
@@ -293,6 +294,18 @@ module nft_protocol::collection {
         mint: &MintCap<T>,
     ): ID {
         mint.collection_id
+    }
+
+    // === Assertions ===
+
+    public fun assert_mint_cap<C>(
+        cap: &MintCap<C>,
+        collection: &Collection<C>
+    ) {
+        assert!(
+            cap.collection_id == object::id(collection),
+            err::mint_cap_mismatch()
+        );
     }
 
     // === Test only helpers ===

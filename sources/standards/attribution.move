@@ -8,7 +8,7 @@ module nft_protocol::attribution {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintCap};
 
     /// === Creator ===
 
@@ -36,6 +36,7 @@ module nft_protocol::attribution {
     const BPS: u16 = 10_000;
 
     struct AttributionDomain has copy, drop, store {
+        is_frozen: bool,
         /// Address that receives the mint and trade royalties
         creators: VecMap<address, Creator>,
     }
@@ -45,7 +46,7 @@ module nft_protocol::attribution {
     /// By not attributing any `Creators`, nobody will ever be able to claim
     /// royalties from this `Attributions` object or modify it's domains.
     public fun empty(): AttributionDomain {
-        AttributionDomain { creators: vec_map::empty() }
+        AttributionDomain { is_frozen: false, creators: vec_map::empty() }
     }
 
     public fun from_address(who: address): AttributionDomain {
@@ -57,7 +58,7 @@ module nft_protocol::attribution {
     public fun from_creators(
         creators: VecMap<address, Creator>
     ): AttributionDomain {
-        let attributions = AttributionDomain { creators };
+        let attributions = AttributionDomain { is_frozen: false, creators };
         assert_total_shares(&attributions);
 
         attributions
@@ -65,6 +66,10 @@ module nft_protocol::attribution {
 
     public fun is_empty(attributions: &AttributionDomain): bool {
         vec_map::is_empty(&attributions.creators)
+    }
+
+    public fun is_frozen(attributions: &AttributionDomain): bool {
+        attributions.is_frozen
     }
 
     public fun creators(
@@ -155,6 +160,17 @@ module nft_protocol::attribution {
             beneficiary.share_of_royalty_bps + creator.share_of_royalty_bps;
     }
 
+    /// Makes `Collection` domains immutable
+    ///
+    /// This is irreversible, use with caution.
+    ///
+    /// Will cause `assert_collection_has_creator` and `assert_is_creator` to
+    /// always fail, thus making all standard domains immutable.
+    public fun freeze_domains(attributions: &mut AttributionDomain,) {
+        // Only creators can obtain `&mut AttributionDomain`
+        attributions.is_frozen = true
+    }
+
     /// Distributes content of `aggregate` balance among the creators defined
     /// in the `AttributionDomain`
     public fun distribute_royalties<FT>(
@@ -235,14 +251,20 @@ module nft_protocol::attribution {
 
     public fun attribution_domain_mut<C>(
         collection: &mut Collection<C>,
+        ctx: &mut TxContext,
     ): &mut AttributionDomain {
+        assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
         collection::borrow_domain_mut(Witness {}, collection)
     }
 
     public fun add_attribution_domain<C>(
         collection: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         domain: AttributionDomain,
     ) {
-        collection::add_domain(collection, domain);
+        collection::add_domain(collection, mint_cap, domain);
     }
 }

@@ -4,7 +4,7 @@ module nft_protocol::tags {
 
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, NFT};
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::attribution;
 
     // === Tags ===
@@ -141,8 +141,9 @@ module nft_protocol::tags {
 
     public fun add_collection_tag_domain<C>(
         collection: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         tags: TagDomain,
     ) {
-        collection::add_domain(collection, tags);
+        collection::add_domain(collection, mint_cap, tags);
     }
 }
