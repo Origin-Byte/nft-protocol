@@ -14,9 +14,6 @@ module nft_protocol::utils {
         Marker<T> {}
     }
 
-    /// This key does not exist in the map
-    const ValueDoesNotExist: u64 = 1;
-
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
     ///
