@@ -10,6 +10,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe::{Self, Safe};
+    use nft_protocol::unprotected_safe::OwnerCap;
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use sui::sui::SUI;
     use sui::coin;
@@ -81,7 +82,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     fun create_seller_safe_and_make_an_offer_for_nft_id(
         scenario: &mut Scenario,
     ): ID {
-        let seller_owner_cap = safe::create_safe(ctx(scenario));
+        let seller_owner_cap = safe::create_safe(true, ctx(scenario));
         test_scenario::next_tx(scenario, SELLER);
 
         let seller_safe: Safe = test_scenario::take_shared_by_id(
@@ -122,7 +123,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     }
 
     fun buy_nft(scenario: &mut Scenario, nft_id: ID) {
-        let buyer_owner_cap = safe::create_safe(ctx(scenario));
+        let buyer_owner_cap = safe::create_safe(true, ctx(scenario));
 
         test_scenario::next_tx(scenario, BUYER);
 
@@ -181,9 +182,9 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
     fun user_safe_id(scenario: &Scenario, user: address): ID {
         let owner_cap_id = vector::pop_back(
-            &mut test_scenario::ids_for_address<safe::OwnerCap>(user)
+            &mut test_scenario::ids_for_address<OwnerCap>(user)
         );
-        let owner_cap: safe::OwnerCap =
+        let owner_cap: OwnerCap =
             test_scenario::take_from_address_by_id(scenario, user, owner_cap_id);
 
         let safe_id = safe::owner_cap_safe(&owner_cap);
