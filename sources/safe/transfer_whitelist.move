@@ -1,6 +1,16 @@
 module nft_protocol::transfer_whitelist {
     //! Whitelists NFT transfers.
     //!
+    //! This module is a set of functions for implementing and managing a
+    //! whitelist for NFT (non-fungible token) transfers.
+    //! The whitelist is used to authorize which contracts are allowed to
+    //! transfer NFTs of a particular collection.
+    //! The module includes functions for creating and managing the whitelist,
+    //! adding and removing collections from the whitelist, and checking whether
+    //! a contract is authorized to transfer a particular NFT.
+    //! The module uses generics and reflection to allow for flexibility in
+    //! implementing and managing the whitelist.
+    //!
     //! Three generics at play:
     //! 1. Admin (whitelist witness) enables any organization to start their own
     //!     whitelist and manage it according to their own rules;
@@ -39,6 +49,11 @@ module nft_protocol::transfer_whitelist {
 
     /// Gives the collection admin a capability to insert and remove their
     /// collection from a whitelist.
+    ///
+    /// To create this cap, the contract which defines the collection generic
+    /// must call `create_collection_cap` with a witness that belongs to the
+    /// same contract as the generic `C`.
+    /// Additionally, the witness type must be called `Witness`.
     struct CollectionControlCap<phantom C> has key, store {
         id: UID,
     }
@@ -55,6 +70,7 @@ module nft_protocol::transfer_whitelist {
         }
     }
 
+    /// See the docs for struct `CollectionControlCap`.
     public fun create_collection_cap<C, W>(
         _witness: &W,
         ctx: &mut TxContext,

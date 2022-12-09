@@ -21,15 +21,10 @@
 //! After this function call the `Supply` object will not yet be set to
 //! frozen, in order to give creators the ability to ammend it prior to
 //! the primary sale taking place.
-//!
-//! TODO: Consider adding a struct object Collection Proof
-//! TODO: Verify creator in function to add creator, and function to post verify
-//! TODO: Split field `is_mutable` to `is_mutable` and `frozen` such that
-//! `is_mutable` refers to the NFTs and `frozen` refers to the collection
 module nft_protocol::collection {
     use sui::event;
     use sui::object::{Self, UID, ID};
-    use sui::tx_context::{TxContext};
+    use sui::tx_context::TxContext;
     use sui::transfer;
     use sui::bag::{Self, Bag};
 
@@ -44,17 +39,8 @@ module nft_protocol::collection {
     /// used to store additional information about the NFT.
     struct Collection<phantom T> has key, store {
         id: UID,
-        /// Determines if the collection and its associated NFTs are
-        /// mutable. Once turned `false` it cannot be reversed. Collection
-        /// owners however will still be able to push and pop tags to the
-        /// `tags` field.
-        is_mutable: bool,
-        /// ID of `MintAuthority` object
-        mint_authority: ID,
         /// Domain storage equivalent to NFT domains which allows collections
         /// to implement custom metadata.
-        //
-        // TODO(https://github.com/Origin-Byte/nft-protocol/issues/102): Implement DisplayDomain for NFT and Collection
         domains: Bag,
     }
 
@@ -84,7 +70,7 @@ module nft_protocol::collection {
     public fun share<C>(
         collection: Collection<C>,
     ): ID {
-        let collection_id = id(&collection);
+        let collection_id = object::id(&collection);
 
         event::emit(
             MintEvent { collection_id }
@@ -129,7 +115,6 @@ module nft_protocol::collection {
         // unregulated supply set `max_supply=0`, otherwise any value above
         // zero will make the supply regulated.
         max_supply: u64,
-        is_mutable: bool,
         ctx: &mut TxContext,
     ): (MintCap<T>, Collection<T>) {
         let id = object::new(ctx);
@@ -148,82 +133,49 @@ module nft_protocol::collection {
 
         let col = Collection {
             id,
-            is_mutable,
-            mint_authority: object::id(&cap),
             domains: bag::new(ctx),
         };
 
         (cap, col)
     }
 
-    /// Make Collections immutable
-    /// WARNING: this is irreversible, use with care
-    public entry fun freeze_collection<T>(
-        collection: &mut Collection<T>,
-    ) {
-        // Only modify if collection is mutable
-        assert!(
-            collection.is_mutable == true,
-            err::collection_is_not_mutable()
-        );
-
-        collection.is_mutable = false;
-    }
-
     // === Domain Functions ===
 
-    public fun has_domain<C, D: store>(nft: &Collection<C>): bool {
-        bag::contains_with_type<Marker<D>, D>(&nft.domains, utils::marker<D>())
+    public fun has_domain<C, D: store>(collection: &Collection<C>): bool {
+        bag::contains_with_type<Marker<D>, D>(
+            &collection.domains, utils::marker<D>()
+        )
     }
 
-    public fun borrow_domain<C, D: store>(nft: &Collection<C>): &D {
-        bag::borrow<Marker<D>, D>(&nft.domains, utils::marker<D>())
+    public fun borrow_domain<C, D: store>(collection: &Collection<C>): &D {
+        bag::borrow<Marker<D>, D>(&collection.domains, utils::marker<D>())
     }
 
     public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
-        nft: &mut Collection<C>,
+        collection: &mut Collection<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<Marker<D>, D>(&mut nft.domains, utils::marker<D>())
+        bag::borrow_mut<Marker<D>, D>(
+            &mut collection.domains, utils::marker<D>()
+        )
     }
 
     public fun add_domain<C, V: store>(
-        nft: &mut Collection<C>,
+        collection: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         v: V,
     ) {
-        bag::add(&mut nft.domains, utils::marker<V>(), v);
+        assert_mint_cap(mint_cap, collection);
+        bag::add(&mut collection.domains, utils::marker<V>(), v);
     }
 
     public fun remove_domain<C, W: drop, V: store>(
         _witness: W,
-        nft: &mut Collection<C>,
+        collection: &mut Collection<C>,
     ): V {
         utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut nft.domains, utils::marker<V>())
-    }
-
-    // === Getter Functions ===
-
-    /// Get the Collections's `id`
-    public fun id<T>(
-        collection: &Collection<T>,
-    ): ID {
-        object::uid_to_inner(&collection.id)
-    }
-
-    /// Get the Collections's `id` as reference
-    public fun id_ref<T>(
-        collection: &Collection<T>,
-    ): &ID {
-        object::uid_as_inner(&collection.id)
-    }
-
-    /// Get the Collection's `is_mutable`
-    public fun is_mutable<T>(
-        collection: &Collection<T>,
-    ): bool {
-        collection.is_mutable
+        bag::remove(&mut collection.domains, utils::marker<V>())
     }
 
     // === MintCap ===
@@ -344,6 +296,18 @@ module nft_protocol::collection {
         mint.collection_id
     }
 
+    // === Assertions ===
+
+    public fun assert_mint_cap<C>(
+        cap: &MintCap<C>,
+        collection: &Collection<C>
+    ) {
+        assert!(
+            cap.collection_id == object::id(collection),
+            err::mint_cap_mismatch()
+        );
+    }
+
     // === Test only helpers ===
 
     #[test_only]
@@ -357,7 +321,6 @@ module nft_protocol::collection {
         let (cap, col) = create<T>(
             witness,
             1,
-            true,
             sui::test_scenario::ctx(scenario),
         );
 

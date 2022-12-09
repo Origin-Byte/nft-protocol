@@ -14,7 +14,7 @@ module nft_protocol::test_transfer_whitelist {
     const CREATOR: address = @0xA1C05;
 
     #[test]
-    #[expected_failure(abort_code = 13370601)]
+    #[expected_failure(abort_code = 13370601, location = nft_protocol::utils)]
     fun it_cannot_create_collection_control_cap_if_witness_mismatches() {
         let scenario = test_scenario::begin(ADMIN);
 
@@ -57,7 +57,7 @@ module nft_protocol::test_transfer_whitelist {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370502)]
+    #[expected_failure(abort_code = 13370502, location = nft_protocol::transfer_whitelist)]
     fun it_fails_to_insert_collection_if_witness_mismatches() {
         let scenario = test_scenario::begin(ADMIN);
 
@@ -81,7 +81,7 @@ module nft_protocol::test_transfer_whitelist {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370502)]
+    #[expected_failure(abort_code = 13370502, location = nft_protocol::transfer_whitelist)]
     fun it_fails_remove_collection_as_admin_if_witness_mismatches() {
         let scenario = test_scenario::begin(ADMIN);
 
@@ -227,7 +227,7 @@ module nft_protocol::test_transfer_whitelist {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370502)]
+    #[expected_failure(abort_code = 13370502, location = nft_protocol::transfer_whitelist)]
     fun it_fails_to_insert_authority_if_witness_mismatches() {
         let scenario = test_scenario::begin(ADMIN);
 
@@ -241,7 +241,7 @@ module nft_protocol::test_transfer_whitelist {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370502)]
+    #[expected_failure(abort_code = 13370502, location = nft_protocol::transfer_whitelist)]
     fun it_fails_to_remove_authority_if_witness_mismatches() {
         let scenario = test_scenario::begin(ADMIN);
 
@@ -256,7 +256,7 @@ module nft_protocol::test_transfer_whitelist {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370502)]
+    #[expected_failure(abort_code = 13370502, location = nft_protocol::transfer_whitelist)]
     fun it_fails_to_clear_collections_if_witness_mismatches() {
         let scenario = test_scenario::begin(ADMIN);
 

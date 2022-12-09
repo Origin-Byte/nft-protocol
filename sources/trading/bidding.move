@@ -1,8 +1,12 @@
 module nft_protocol::bidding {
     use nft_protocol::err;
-    use nft_protocol::safe::{Self, Safe, TransferCap};
+    use nft_protocol::royalties;
+    use nft_protocol::safe::{Self, Safe};
+    use nft_protocol::unprotected_safe::TransferCap;
     use nft_protocol::transfer_whitelist::Whitelist;
+
     use std::option::{Self, Option};
+
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event::emit;
