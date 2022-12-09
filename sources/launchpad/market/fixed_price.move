@@ -20,14 +20,13 @@ module nft_protocol::fixed_price {
 
     use nft_protocol::err;
     use nft_protocol::object_box;
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::inventory;
     use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
     use nft_protocol::launchpad::{Self as lp, Launchpad, Slot};
 
     struct FixedPriceMarket has key, store {
         id: UID,
         live: bool,
-        inventory: Inventory,
         price: u64,
     }
 
@@ -62,7 +61,6 @@ module nft_protocol::fixed_price {
             FixedPriceMarket {
                 id: object::new(ctx),
                 live: false,
-                inventory,
                 price,
             }
         );
@@ -71,6 +69,7 @@ module nft_protocol::fixed_price {
             launchpad,
             slot,
             market,
+            inventory,
             ctx,
         );
     }
@@ -93,11 +92,10 @@ module nft_protocol::fixed_price {
         // One can only buy NFT certificates if the slingshot is live
         assert!(lp::live(slot) == true, err::slot_not_live());
 
-        // Infer that sales is NOT whitelisted
-        assert!(
-            !inventory::whitelisted(&market.inventory),
-            err::sale_is_not_whitelisted()
-        );
+        let slot_id = object::id(slot);
+        let launchpad_id = object::id(launchpad);
+
+        lp::assert_market_is_not_whitelisted(slot, object::id(market));
 
         let change = coin::split<FT>(
             &mut funds,
@@ -114,10 +112,12 @@ module nft_protocol::fixed_price {
             1,
         );
 
+        let inventory = lp::inventory_mut(slot, object::id(market));
+
         let certificate = inventory::issue_nft_certificate(
-            &mut market.inventory,
-            lp::launchpad_id(launchpad),
-            lp::slot_id(slot),
+            inventory,
+            launchpad_id,
+            slot_id,
             ctx
         );
 
@@ -144,18 +144,15 @@ module nft_protocol::fixed_price {
         // One can only buy NFT certificates if the slingshot is live
         assert!(lp::live(slot) == true, err::slot_not_live());
 
-        let launchpad_id = lp::slot_id(slot);
+        let launchpad_id = object::id(launchpad);
+        let slot_id = object::id(slot);
+        let market_id = object::id(market);
 
-        // Infer that sales is whitelisted
-        assert!(
-            inventory::whitelisted(&market.inventory),
-            err::sale_is_whitelisted(),
-        );
-
-        // Infer that whitelist token corresponds to correct sale inventory
-        assert!(
-            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.inventory),
-            err::incorrect_whitelist_token()
+        lp::assert_market_is_whitelisted(slot, market_id);
+        lp_whitelist::assert_whitelist_token_market(
+            slot,
+            market_id,
+            &whitelist_token
         );
 
         let change = coin::split<FT>(
@@ -175,10 +172,13 @@ module nft_protocol::fixed_price {
 
         lp_whitelist::burn_whitelist_token(whitelist_token);
 
+        // TODO: Reconsider safety of inventory_mut
+        let inventory = lp::inventory_mut(slot, object::id(market));
+
         let certificate = inventory::issue_nft_certificate(
-            &mut market.inventory,
+            inventory,
             launchpad_id,
-            lp::slot_id(slot),
+            slot_id,
             ctx
         );
 

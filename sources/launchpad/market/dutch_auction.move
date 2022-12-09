@@ -15,9 +15,9 @@ module nft_protocol::dutch_auction {
 
     use nft_protocol::err;
     use nft_protocol::object_box;
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::inventory;
     use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
-    use nft_protocol::launchpad::{Self, Launchpad, Slot};
+    use nft_protocol::launchpad::{Self as lp, Launchpad, Slot};
 
     struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
@@ -28,7 +28,6 @@ module nft_protocol::dutch_auction {
         bids: CBTree<vector<Bid<FT>>>,
         /// Whether the auction is currently live
         live: bool,
-        inventory: Inventory,
     }
 
     /// A bid for one NFT
@@ -64,17 +63,16 @@ module nft_protocol::dutch_auction {
                 reserve_price,
                 bids: crit_bit::empty(),
                 live: false,
-                inventory,
             }
         );
 
-        launchpad::add_market(
+        lp::add_market(
             launchpad,
             slot,
             market,
+            inventory,
             ctx,
         );
-
     }
 
     // === Entrypoints ===
@@ -89,10 +87,12 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         // One can only place bids on NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot), err::slot_not_live());
+        assert!(lp::live(slot), err::slot_not_live());
+
+        let inventory = lp::inventory(slot, object::id(market));
 
         // Infer that sales is NOT whitelisted
-        assert!(!inventory::whitelisted(&market.inventory), err::sale_is_not_whitelisted());
+        lp::assert_is_not_whitelisted(inventory);
 
         create_bid_(
             market,
@@ -113,15 +113,17 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         // One can only place bids on NFT certificates if the slingshot is live
-        assert!(launchpad::live(slot), err::slot_not_live());
+        assert!(lp::live(slot), err::slot_not_live());
+
+        let inventory = lp::inventory(slot, object::id(market));
 
         // Infer that sales is whitelisted
-        assert!(inventory::whitelisted(&market.inventory), err::sale_is_whitelisted());
+        lp::assert_is_whitelisted(inventory);
 
         // Infer that whitelist token corresponds to correct sale inventory
-        assert!(
-            lp_whitelist::sale_id(&whitelist_token) == object::id(&market.inventory),
-            err::incorrect_whitelist_token()
+        lp_whitelist::assert_whitelist_token_inventory(
+            inventory,
+            &whitelist_token
         );
 
         create_bid_(
@@ -167,10 +169,10 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::slot_admin(slot) == tx_context::sender(ctx),
+            lp::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
-        launchpad::sale_on(slot, ctx);
+        lp::sale_on(slot, ctx);
     }
 
     /// Toggle the Slingshot's `live` to `false` therefore pausing the auction.
@@ -182,10 +184,10 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::slot_admin(slot) == tx_context::sender(ctx),
+            lp::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
-        launchpad::sale_off(slot, ctx);
+        lp::sale_off(slot, ctx);
     }
 
     /// Cancel the auction and toggle the Slingshot's `live` to `false`.
@@ -198,14 +200,14 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::slot_admin(slot) == tx_context::sender(ctx),
+            lp::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
 
         cancel_auction(market, ctx);
 
 
-        launchpad::sale_off(slot, ctx);
+        lp::sale_off(slot, ctx);
     }
 
     /// Conclude the auction and toggle the Slingshot's `live` to `false`.
@@ -219,11 +221,13 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext
     ) {
         assert!(
-            launchpad::slot_admin(slot) == tx_context::sender(ctx),
+            lp::slot_admin(slot) == tx_context::sender(ctx),
             err::wrong_launchpad_admin()
         );
 
-        let nfts_to_sell = inventory::length(&market.inventory);
+        let inventory = lp::inventory(slot, object::id(market));
+
+        let nfts_to_sell = inventory::length(inventory);
 
         conclude_auction<FT>(
             launchpad,
@@ -235,7 +239,7 @@ module nft_protocol::dutch_auction {
             ctx
         );
 
-        launchpad::sale_off(slot, ctx);
+        lp::sale_off(slot, ctx);
     }
 
     // === Private Functions ===
@@ -356,8 +360,12 @@ module nft_protocol::dutch_auction {
         nfts_to_sell: u64,
         ctx: &mut TxContext
     ) {
+        let launchpad_id = object::id(launchpad);
+        let slot_id = object::id(slot);
+
         let bids = &mut auction.bids;
-        let launchpad_id = launchpad::slot_id(slot);
+
+        let inventory = lp::inventory_mut(slot, slot_id);
 
         let fill_price = 0;
         let bids_to_fill = vector::empty();
@@ -395,9 +403,9 @@ module nft_protocol::dutch_auction {
             );
 
             let certificate = inventory::issue_nft_certificate(
-                &mut auction.inventory,
+                inventory,
                 launchpad_id,
-                launchpad::slot_id(slot),
+                slot_id,
                 ctx
             );
 
@@ -415,7 +423,7 @@ module nft_protocol::dutch_auction {
             };
         };
 
-        launchpad::pay<FT>(
+        lp::pay<FT>(
             launchpad,
             slot,
             coin::from_balance(total_funds, ctx),

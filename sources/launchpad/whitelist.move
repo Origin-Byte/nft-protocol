@@ -51,4 +51,29 @@ module nft_protocol::launchpad_whitelist {
     ): ID {
         whitelist_token.sale_id
     }
+
+    public fun assert_whitelist_token_market(
+        slot: &Slot,
+        market_id: ID,
+        whitelist_token: &Whitelist,
+    ) {
+        let inventory = lp::inventory(slot, market_id);
+
+        // Infer that whitelist token corresponds to correct sale inventory
+        assert!(
+            sale_id(whitelist_token) == object::id(inventory),
+            err::incorrect_whitelist_token()
+        );
+    }
+
+    public fun assert_whitelist_token_inventory(
+        inventory: &Inventory,
+        whitelist_token: &Whitelist,
+    ) {
+        // Infer that whitelist token corresponds to correct sale inventory
+        assert!(
+            sale_id(whitelist_token) == object::id(inventory),
+            err::incorrect_whitelist_token()
+        );
+    }
 }
