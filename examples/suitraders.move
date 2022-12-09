@@ -29,34 +29,37 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        transfer(mint_cap, tx_context::sender(ctx));
-
         collection::add_domain(
             &mut collection,
-            attribution::from_address(@0x6c86ac4a796204ea09a87b6130db0c38263c1890)
+            &mut mint_cap,
+            attribution::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
         display::add_collection_display_domain(
             &mut collection,
+            &mut mint_cap,
             string::utf8(b"Suitraders"),
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
         );
 
         display::add_collection_url_domain(
             &mut collection,
+            &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
+            &mut mint_cap,
             string::utf8(b"SUITR")
         );
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, tags);
+        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
+        transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUITRADERS>(collection);
     }
 

@@ -6,7 +6,7 @@ module nft_protocol::display {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft::{Self, NFT};
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::attribution;
 
     struct Witness has drop {}
@@ -95,10 +95,13 @@ module nft_protocol::display {
 
     public fun add_collection_display_domain<C>(
         nft: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         name: String,
         description: String
     ) {
-        collection::add_domain(nft, new_display_domain(name, description));
+        collection::add_domain(
+            nft, mint_cap, new_display_domain(name, description)
+        );
     }
 
     /// === UrlDomain ===
@@ -163,9 +166,10 @@ module nft_protocol::display {
 
     public fun add_collection_url_domain<C>(
         nft: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         url: Url
     ) {
-        collection::add_domain(nft, new_url_domain(url));
+        collection::add_domain(nft, mint_cap, new_url_domain(url));
     }
 
     /// === SymbolDomain ===
@@ -212,7 +216,9 @@ module nft_protocol::display {
         option::some(*symbol(nft::borrow_domain<C, SymbolDomain>(nft)))
     }
 
-    public fun display_collection_symbol<C>(nft: &Collection<C>): Option<String> {
+    public fun display_collection_symbol<C>(
+        nft: &Collection<C>
+    ): Option<String> {
         if (!collection::has_domain<C, SymbolDomain>(nft)) {
             return option::none()
         };
@@ -230,8 +236,9 @@ module nft_protocol::display {
 
     public fun add_collection_symbol_domain<C>(
         nft: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         symbol: String
     ) {
-        collection::add_domain(nft, new_symbol_domain(symbol));
+        collection::add_domain(nft, mint_cap, new_symbol_domain(symbol));
     }
 }

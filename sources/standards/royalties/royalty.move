@@ -3,7 +3,7 @@ module nft_protocol::royalty {
     use sui::tx_context::{Self, TxContext};
     use sui::bag::{Self, Bag};
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintCap};
 
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::attribution;
@@ -191,9 +191,10 @@ module nft_protocol::royalty {
     /// Registers `RoyaltyDomain` on the given `Collection`
     public fun add_royalty_domain<C>(
         collection: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         domain: RoyaltyDomain,
     ) {
-        collection::add_domain(collection, domain);
+        collection::add_domain(collection, mint_cap, domain);
     }
 
     /// Distribute aggregated royalties among creators

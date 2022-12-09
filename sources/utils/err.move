@@ -121,7 +121,6 @@ module nft_protocol::err {
         return Prefix + 303
     }
 
-
     // === Safe ===
 
     public fun safe_cap_mismatch(): u64 {
@@ -206,4 +205,9 @@ module nft_protocol::err {
         return Prefix + 902
     }
 
+    // === Collection ===
+
+    public fun mint_cap_mismatch(): u64 {
+        return Prefix + 1000
+    }
 }

@@ -30,27 +30,29 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        transfer(mint_cap, tx_context::sender(ctx));
-
         collection::add_domain(
             &mut collection,
+            &mut mint_cap,
             attribution::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
         display::add_collection_display_domain(
             &mut collection,
+            &mut mint_cap,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
         );
 
         display::add_collection_url_domain(
             &mut collection,
+            &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
+            &mut mint_cap,
             string::utf8(b"SUIM")
         );
 
@@ -59,12 +61,13 @@ module nft_protocol::suimarines {
             &mut royalty,
             nft_protocol::royalty_strategy_bps::new(100),
         );
-        royalty::add_royalty_domain(&mut collection, royalty);
+        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, tags);
+        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
+        transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUIMARINES>(collection);
     }
 
