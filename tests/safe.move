@@ -24,7 +24,7 @@ module nft_protocol::test_safe {
         test_scenario::next_tx(&mut scenario, USER);
 
         let safe: Safe = test_scenario::take_shared(&scenario);
-        assert!(owner_cap_safe_id == safe::id(&safe), 0);
+        assert!(owner_cap_safe_id == object::id(safe::inner(&safe)), 0);
         safe::assert_id(&safe, owner_cap_safe_id);
         safe::assert_owner_cap(&owner_cap, &safe);
 
@@ -93,6 +93,29 @@ module nft_protocol::test_safe {
 
     #[test]
     #[expected_failure(abort_code = 13370405, location = nft_protocol::safe)]
+    fun it_cannot_deposit_nft_by_default() {
+        let scenario = test_scenario::begin(USER);
+
+        let owner_cap = safe::create_safe(false, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, USER);
+
+        let safe: Safe = test_scenario::take_shared(&scenario);
+
+        let nft = nft::new<Foo>(ctx(&mut scenario));
+        safe::deposit_nft<Foo>(
+            nft,
+            &mut safe,
+            ctx(&mut scenario),
+        );
+
+        transfer(owner_cap, USER);
+        test_scenario::return_shared(safe);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 13370405, location = nft_protocol::safe)]
     fun it_cannot_deposit_nft_if_deposits_off() {
         let scenario = test_scenario::begin(USER);
 
@@ -119,12 +142,11 @@ module nft_protocol::test_safe {
     fun it_can_deposit_whitelisted_collection() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
+        let owner_cap = safe::create_safe(false, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
         let safe: Safe = test_scenario::take_shared(&scenario);
-        safe::restrict_deposits(&owner_cap, &mut safe);
         safe::enable_deposits_of_collection<Foo>(&owner_cap, &mut safe);
 
         let nft = nft::new<Foo>(ctx(&mut scenario));
@@ -146,12 +168,11 @@ module nft_protocol::test_safe {
     fun it_toggles_collection_whitelisting_for_deposits() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
+        let owner_cap = safe::create_safe(false, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
         let safe: Safe = test_scenario::take_shared(&scenario);
-        safe::restrict_deposits(&owner_cap, &mut safe);
         safe::enable_deposits_of_collection<Foo>(&owner_cap, &mut safe);
         safe::disable_deposits_of_collection<Foo>(&owner_cap, &mut safe);
 
@@ -467,12 +488,11 @@ module nft_protocol::test_safe {
     fun it_deposits_priviledged() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
+        let owner_cap = safe::create_safe(false, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
         let safe: Safe = test_scenario::take_shared(&scenario);
-        safe::enable_any_deposit(&owner_cap, &mut safe);
 
         let nft = nft::new<Foo>(ctx(&mut scenario));
         safe::deposit_nft_priviledged<Foo>(

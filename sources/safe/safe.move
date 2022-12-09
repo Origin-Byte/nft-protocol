@@ -229,8 +229,8 @@ module nft_protocol::safe {
 
     // === Getters ===
 
-    public fun id(safe: &Safe): ID {
-        object::id(&safe.inner)
+    public fun inner(safe: &Safe): &UnprotectedSafe {
+        &safe.inner
     }
 
     public fun has_nft<C>(nft: ID, safe: &Safe): bool {
