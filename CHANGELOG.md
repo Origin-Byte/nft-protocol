@@ -12,7 +12,6 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Updated Sui dep to `0.18.0`
 
-
 ## [0.11.0] - 2022-12-02
 
 ### Changed
