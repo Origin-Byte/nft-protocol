@@ -4,7 +4,7 @@ run-name: Testing Sui packages
 on:
   pull_request:
     types: [ opened, synchronize ]
-    branches: [ main, dev ]
+    branches: [ main, develop ]
 
   workflow_call:
 
