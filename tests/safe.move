@@ -33,7 +33,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370406)]
+    #[expected_failure(abort_code = 13370406, location = nft_protocol::safe)]
     fun it_fails_if_safe_id_mismatches() {
         let scenario = test_scenario::begin(USER);
 
@@ -91,7 +91,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370405)]
+    #[expected_failure(abort_code = 13370405, location = nft_protocol::safe)]
     fun it_cannot_deposit_nft_if_deposits_off() {
         let scenario = test_scenario::begin(USER);
 
@@ -141,7 +141,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370405)]
+    #[expected_failure(abort_code = 13370405, location = nft_protocol::safe)]
     fun it_toggles_collection_whitelisting_for_deposits() {
         let scenario = test_scenario::begin(USER);
 
@@ -203,7 +203,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370401)]
+    #[expected_failure(abort_code = 13370401, location = nft_protocol::safe)]
     fun it_cannot_create_transfer_cap_if_nft_not_present() {
         let scenario = test_scenario::begin(USER);
 
@@ -418,7 +418,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370404)]
+    #[expected_failure(abort_code = 13370404, location = nft_protocol::safe)]
     fun it_cannot_withdraw_nft_with_expired_transfer_cap() {
         let scenario = test_scenario::begin(USER);
 
@@ -529,7 +529,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370402)]
+    #[expected_failure(abort_code = 13370402, location = nft_protocol::safe)]
     fun it_cannot_create_transfer_cap_if_already_exclusively_listed() {
         let scenario = test_scenario::begin(USER);
 
@@ -568,7 +568,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370404)]
+    #[expected_failure(abort_code = 13370404, location = nft_protocol::safe)]
     fun it_invalidates_prev_transfer_cap_if_exclusively_listed() {
         let scenario = test_scenario::begin(USER);
 
@@ -614,7 +614,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400)]
+    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
     fun it_fails_create_transfer_cap_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
@@ -647,7 +647,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400)]
+    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
     fun it_fails_create_exclusive_transfer_cap_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
@@ -680,7 +680,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400)]
+    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
     fun it_fails_to_accepts_any_deposit_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
@@ -699,7 +699,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400)]
+    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
     fun it_fails_to_enable_deposits_of_collection_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
@@ -718,7 +718,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400)]
+    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
     fun it_fails_deposit_nft_priviledged_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
@@ -743,7 +743,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400)]
+    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
     fun it_fails_delist_nft_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
