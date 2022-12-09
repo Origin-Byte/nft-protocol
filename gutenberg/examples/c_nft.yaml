@@ -1,9 +1,9 @@
-NftType: "Unique"
+NftType: "CNft"
 
 Collection:
-  name: "SuiMonsters"
-  description: "A Unique NFT collection of SuiMonsters on Sui"
-  symbol: "SUIMO"
+  name: "Suricannes"
+  description: "A Unique NFT collection of Hurricanes on Sui"
+  symbol: "SURI"
   max_supply: 100
   receiver: "0x6c86ac4a796204ea09a87b6130db0c38263c1890"
   tags:
@@ -15,5 +15,5 @@ Collection:
 
 Launchpad:
   market_type: "fixed_price"
-  prices: [1000, 2000, 3000, 4000, 5000]
-  whitelists: [false, true, true, true]
+  prices: [1000]
+  whitelists: [false]

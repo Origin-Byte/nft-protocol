@@ -1,29 +1,49 @@
-pub mod err;
-pub mod prelude;
-pub mod schema;
-pub mod types;
+use gutenberg::prelude::*;
 
-use crate::err::*;
-use crate::prelude::*;
-use crate::schema::*;
+use gumdrop::Options;
 
-#[derive(Debug, StructOpt)]
+use std::fs;
+use std::path::PathBuf;
+
+#[derive(Debug, Options)]
 struct Opt {
-    /// Output file path, stdout if not present
-    #[structopt(parse(from_os_str))]
+    #[options(help = "print help message")]
+    help: bool,
+    #[options(free, help = "output file path, stdout if not present")]
     path: Option<PathBuf>,
+    #[options(help = "configuration file", default = "config.yaml")]
+    config: PathBuf,
 }
 
 fn main() -> Result<(), GutenError> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse_args_default_or_exit();
 
-    let f = std::fs::File::open("config.yaml")?;
+    let f = fs::File::open(opt.config)?;
 
-    let yaml: serde_yaml::Value = serde_yaml::from_reader(f)?;
+    let schema: Schema = match serde_yaml::from_reader(f) {
+        Ok(schema) => schema,
+        Err(err) => {
+            eprintln!("Gutenberg could not generate smart contract due to");
+            eprintln!("{}", err);
+            std::process::exit(2);
+        }
+    };
 
-    let schema = Schema::from_yaml(&yaml)?;
+    let output = opt.path.unwrap_or_else(|| {
+        PathBuf::from(&format!(
+            "../examples/{}.move",
+            &schema.module_name().to_string()
+        ))
+    });
 
-    schema.write_move(opt.path)?;
+    if let Some(p) = output.parent() {
+        fs::create_dir_all(p)?;
+    }
+
+    let mut f = fs::File::create(output)?;
+    if let Err(err) = schema.write_move(&mut f) {
+        eprintln!("{err}");
+    }
 
     Ok(())
 }

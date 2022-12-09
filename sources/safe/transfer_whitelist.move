@@ -1,6 +1,16 @@
 module nft_protocol::transfer_whitelist {
     //! Whitelists NFT transfers.
     //!
+    //! This module is a set of functions for implementing and managing a
+    //! whitelist for NFT (non-fungible token) transfers.
+    //! The whitelist is used to authorize which contracts are allowed to
+    //! transfer NFTs of a particular collection.
+    //! The module includes functions for creating and managing the whitelist,
+    //! adding and removing collections from the whitelist, and checking whether
+    //! a contract is authorized to transfer a particular NFT.
+    //! The module uses generics and reflection to allow for flexibility in
+    //! implementing and managing the whitelist.
+    //!
     //! Three generics at play:
     //! 1. Admin (whitelist witness) enables any organization to start their own
     //!     whitelist and manage it according to their own rules;
@@ -12,17 +22,20 @@ module nft_protocol::transfer_whitelist {
     //!     version of their witness type. The OB then uses this witness type
     //!     to authorize transfers.
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::utils;
     use nft_protocol::err;
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
     use sui::object;
     use sui::object::UID;
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
-    struct Whitelist<phantom Admin> has key, store {
+    struct Whitelist has key, store {
         id: UID,
+        /// We don't store it as generic because then it has to be propagated
+        /// around and it's very unergonomic.
+        admin_witness: TypeName,
         /// Which collections does this whitelist apply to?
         ///
         /// We use reflection to avoid generics.
@@ -34,14 +47,37 @@ module nft_protocol::transfer_whitelist {
         authorities: Option<VecSet<TypeName>>,
     }
 
+    /// Gives the collection admin a capability to insert and remove their
+    /// collection from a whitelist.
+    ///
+    /// To create this cap, the contract which defines the collection generic
+    /// must call `create_collection_cap` with a witness that belongs to the
+    /// same contract as the generic `C`.
+    /// Additionally, the witness type must be called `Witness`.
+    struct CollectionControlCap<phantom C> has key, store {
+        id: UID,
+    }
+
     public fun create<Admin: drop>(
         _witness: Admin,
-        ctx: &mut TxContext
-    ): Whitelist<Admin> {
+        ctx: &mut TxContext,
+    ): Whitelist {
         Whitelist {
             id: object::new(ctx),
+            admin_witness: type_name::get<Admin>(),
             collections: vec_set::empty(),
             authorities: option::none(),
+        }
+    }
+
+    /// See the docs for struct `CollectionControlCap`.
+    public fun create_collection_cap<C, W>(
+        _witness: &W,
+        ctx: &mut TxContext,
+    ): CollectionControlCap<C> {
+        utils::assert_same_module_as_witness<C, W>();
+        CollectionControlCap {
+            id: object::new(ctx),
         }
     }
 
@@ -52,15 +88,14 @@ module nft_protocol::transfer_whitelist {
     /// collection to the whitelist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the whitelist owner a way to combat spam.
-    public fun insert_collection<Admin: drop, T, M: store>(
+    public fun insert_collection<Admin: drop, C>(
         _whitelist_witness: Admin,
-        collection: &Collection<T, M>,
-        list: &mut Whitelist<Admin>,
-        ctx: &mut TxContext,
+        _authority: &CollectionControlCap<C>,
+        list: &mut Whitelist,
     ) {
-        assert_is_creator(collection, ctx);
+        assert_admin_witness<Admin>(list);
 
-        vec_set::insert(&mut list.collections, type_name::get<T>());
+        vec_set::insert(&mut list.collections, type_name::get<C>());
     }
 
     /// Any collection is allowed to remove itself from any whitelist at any
@@ -68,29 +103,28 @@ module nft_protocol::transfer_whitelist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public fun remove_itself<Admin, T, M: store>(
-        collection: &Collection<T, M>,
-        list: &mut Whitelist<Admin>,
-        ctx: &mut TxContext,
+    public fun remove_itself<C>(
+        _authority: &CollectionControlCap<C>,
+        list: &mut Whitelist,
     ) {
-        assert_is_creator(collection, ctx);
-
-        vec_set::remove(&mut list.collections, &type_name::get<T>());
+        vec_set::remove(&mut list.collections, &type_name::get<C>());
     }
 
     /// The whitelist owner can remove any collection at any point.
-    public fun remove_collection<Admin: drop, T>(
+    public fun remove_collection<Admin: drop, C>(
         _whitelist_witness: Admin,
-        list: &mut Whitelist<Admin>,
+        list: &mut Whitelist,
     ) {
-        vec_set::remove(&mut list.collections, &type_name::get<T>());
+        assert_admin_witness<Admin>(list);
+        vec_set::remove(&mut list.collections, &type_name::get<C>());
     }
 
     /// Removes all collections from this list.
     public fun clear_collections<Admin: drop>(
         _whitelist_witness: Admin,
-        list: &mut Whitelist<Admin>,
+        list: &mut Whitelist,
     ) {
+        assert_admin_witness<Admin>(list);
         list.collections = vec_set::empty();
     }
 
@@ -98,8 +132,10 @@ module nft_protocol::transfer_whitelist {
     /// whitelist authority (via witness.)
     public fun insert_authority<Admin: drop, Auth>(
         _whitelist_witness: Admin,
-        list: &mut Whitelist<Admin>,
+        list: &mut Whitelist,
     ) {
+        assert_admin_witness<Admin>(list);
+
         if (option::is_none(&list.authorities)) {
             list.authorities = option::some(
                 vec_set::singleton(type_name::get<Auth>())
@@ -116,8 +152,10 @@ module nft_protocol::transfer_whitelist {
     /// authority from their list.
     public fun remove_authority<Admin: drop, Auth>(
         _whitelist_witness: Admin,
-        list: &mut Whitelist<Admin>,
+        list: &mut Whitelist,
     ) {
+        assert_admin_witness<Admin>(list);
+
         vec_set::remove(
             option::borrow_mut(&mut list.authorities),
             &type_name::get<Auth>(),
@@ -125,31 +163,29 @@ module nft_protocol::transfer_whitelist {
     }
 
     /// Checks whether given authority witness is in the whitelist, and also
-    /// whether given collection witness (CW) is in the whitelist.
-    public fun can_be_transferred<Admin, CW, Auth: drop>(
+    /// whether given collection witness (C) is in the whitelist.
+    public fun can_be_transferred<C, Auth: drop>(
         _authority_witness: Auth,
-        whitelist: &Whitelist<Admin>,
+        whitelist: &Whitelist,
     ): bool {
+        let applies_to_collection =
+            vec_set::contains(&whitelist.collections, &type_name::get<C>());
+
         if (option::is_none(&whitelist.authorities)) {
-            return true
+            return applies_to_collection
         };
 
         let e = option::borrow(&whitelist.authorities);
 
-        vec_set::contains(e, &type_name::get<Auth>()) &&
-            vec_set::contains(&whitelist.collections, &type_name::get<CW>())
+        applies_to_collection && vec_set::contains(e, &type_name::get<Auth>())
     }
 
-    fun assert_is_creator<T, M: store>(
-        collection: &Collection<T, M>,
-        ctx: &mut TxContext,
+    fun assert_admin_witness<Admin>(
+        list: &Whitelist,
     ) {
         assert!(
-            collection::is_creator(
-                tx_context::sender(ctx),
-                collection::creators(collection),
-            ),
-            err::sender_not_collection_creator(),
+            type_name::get<Admin>() == list.admin_witness,
+            err::sender_not_whitelist_admin(),
         );
     }
 }

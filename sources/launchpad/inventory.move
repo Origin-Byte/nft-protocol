@@ -1,7 +1,7 @@
-//! Module representing `Sale` Outlets of `Launchpad`s.
+//! Module representing the Nft bookeeping Inventories of `Launchpad`s.
 //!
 //! Launchpads can now have multiple sale outlets, repsented
-//! through `sales: vector<Sale<T, M>>`, which meants that NFT creators can
+//! through `sales: vector<Sale>`, which meants that NFT creators can
 //! perform tiered sales. An example of this would be an Gaming NFT creator
 //! separating the sale based on NFT rarity and emit whitelist tokens to
 //! different users for different rarities depending on the user's game score.
@@ -10,22 +10,20 @@
 //! outsource this logic to generic `Market` object. This way developers can
 //! come up with their plug-and-play market primitives, of which some examples
 //! are Dutch Auctions, Sealed-Bid Auctions, etc.
-module nft_protocol::sale {
+module nft_protocol::inventory {
     use std::vector;
 
-    use sui::object::{Self, ID , UID};
     use sui::tx_context::{TxContext};
+    use sui::object::{Self, ID , UID};
 
     use nft_protocol::err;
 
-    struct Sale<phantom T, Market> has key, store{
+    struct Inventory has key, store {
         id: UID,
-        tier_index: u64,
         whitelisted: bool,
         // Vector of all IDs owned by the slingshot
         nfts: vector<ID>,
         queue: vector<ID>,
-        market: Market,
     }
 
     /// This object acts as an intermediate step between the payment
@@ -36,72 +34,64 @@ module nft_protocol::sale {
     struct NftCertificate has key, store {
         id: UID,
         launchpad_id: ID,
-        collection_id: ID,
+        slot_id: ID,
         nft_id: ID,
     }
 
-    public fun create<T: drop, Market: store>(
-        tier_index: u64,
+    public fun create(
         whitelisted: bool,
-        market: Market,
         ctx: &mut TxContext,
-    ): Sale<T, Market> {
+    ): Inventory {
         let id = object::new(ctx);
 
         let nfts = vector::empty();
         let queue = vector::empty();
 
-        Sale {
+        Inventory {
             id,
-            tier_index,
             whitelisted,
             nfts,
             queue,
-            market,
         }
     }
 
-    /// Burn the `Sale` and return the `Market` object
-    public fun delete<T: drop, Market: store>(
-        sale_box: Sale<T, Market>,
-    ): Market {
+    /// Burn the `Inventory` and return the `Market` object
+    public fun delete(
+        inventory: Inventory,
+    ) {
         assert!(
-            vector::length(&sale_box.nfts) == 0,
-            err::sale_outlet_still_has_nfts_to_sell()
+            vector::length(&inventory.nfts) == 0,
+            err::nft_sale_incompleted()
         );
         assert!(
-            vector::length(&sale_box.queue) == 0,
-            err::sale_outlet_still_has_nfts_to_redeem()
+            vector::length(&inventory.queue) == 0,
+            err::nft_redemption_incompleted()
         );
 
-        let Sale {
+        let Inventory {
             id,
-            tier_index: _,
             whitelisted: _,
             nfts: _,
             queue: _,
-            market,
-        } = sale_box;
+        } = inventory;
 
         object::delete(id);
-
-        market
     }
 
     // TODO: need to add a function with nft_id as function parameter
-    public fun issue_nft_certificate<T, M>(
-        sale: &mut Sale<T, M>,
+    public fun issue_nft_certificate(
+        inventory: &mut Inventory,
         launchpad_id: ID,
-        collection_id: ID,
+        slot_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
-        let nft_id = pop_nft(sale);
+        let nft_id = pop_nft(inventory);
 
         let certificate = NftCertificate {
             id: object::new(ctx),
             launchpad_id,
-            collection_id,
-            nft_id: nft_id,
+            slot_id,
+            nft_id,
         };
 
         certificate
@@ -113,42 +103,38 @@ module nft_protocol::sale {
         let NftCertificate {
             id,
             launchpad_id: _,
-            collection_id: _,
+            slot_id: _,
             nft_id: _,
         } = certificate;
 
         object::delete(id);
     }
 
-    /// Adds an NFT's ID to the `nfts` field in `Sale` object
-    public fun add_nft<T, Market>(
-        sale: &mut Sale<T, Market>,
+    /// Adds an NFT's ID to the `nfts` field in `Inventory` object
+    public fun add_nft(
+        inventory: &mut Inventory,
         id: ID,
     ) {
-        let nfts = &mut sale.nfts;
+        let nfts = &mut inventory.nfts;
         vector::push_back(nfts, id);
     }
 
-    /// Pops an NFT's ID from the `nfts` field in `Sale` object
+    /// Pops an NFT's ID from the `nfts` field in `Inventory` object
     /// and returns respective `ID`
     /// TODO: Need to push the ID to the queue
-    fun pop_nft<T, Market>(
-        sale: &mut Sale<T, Market>,
+    fun pop_nft(
+        inventory: &mut Inventory,
     ): ID {
-        let nfts = &mut sale.nfts;
+        let nfts = &mut inventory.nfts;
+        assert!(!vector::is_empty(nfts), err::no_nfts_left());
         vector::pop_back(nfts)
     }
 
-    public fun market<T, M>(
-        sale: &Sale<T, M>,
-    ): &M {
-        &sale.market
-    }
-
-    public fun market_mut<T, M>(
-        sale: &mut Sale<T, M>,
-    ): &mut M {
-        &mut sale.market
+    /// Check how many `nfts` there are to sell
+    public fun length(
+        inventory: &Inventory,
+    ): u64 {
+        vector::length(&inventory.nfts)
     }
 
     public fun nft_id(
@@ -157,33 +143,9 @@ module nft_protocol::sale {
         certificate.nft_id
     }
 
-    public fun id<T, M>(
-        sale: &Sale<T, M>,
-    ): ID {
-        object::uid_to_inner(&sale.id)
-    }
-
-    public fun id_ref<T, M>(
-        sale: &Sale<T, M>,
-    ): &ID {
-        object::uid_as_inner(&sale.id)
-    }
-
-    public fun index<T, M>(
-        sale: &Sale<T, M>,
-    ): u64 {
-        sale.tier_index
-    }
-
-    public fun whitelisted<T, M>(
-        sale: &Sale<T, M>,
+    public fun whitelisted(
+        inventory: &Inventory,
     ): bool {
-        sale.whitelisted
-    }
-
-    public fun collection_id(
-        certificate: &NftCertificate,
-    ): ID {
-        certificate.collection_id
+        inventory.whitelisted
     }
 }

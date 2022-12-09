@@ -6,13 +6,56 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2022-12-09
+
+### Changed
+
+- Updated Sui dep to `0.18.0`
+
+## [0.11.0] - 2022-12-02
+
+### Changed
+
+- Updated Sui dep to `0.17.0`
+
+## [0.10.0] - 2022-11-18
+
+### Changed
+
+- Updated Sui dep to `0.16.0`
+
+## [0.9.0] - 2022-11-17
+
+### Changed
+
+- Updated Sui dep to `0.15.2`
+
+### Added
+
+- Added `dutch_auction` market primitive to the launchpad
+
+## [0.8.0] - 2022-11-09
+
+### Changed
+
+- Updated Sui dep to `0.15.0`
+
+## [0.7.0] - 2022-11-03
+
+### Changed
+
+- Updated Sui dep to `0.14.0`
+- Since `transfer_to_object` was deprecated, we now use `dynamic_object_field`
+  with slingshot to associate embedded NFTs.
+
 ## [0.6.0] - 2022-10-26
 
-Added:
+### Added
+
 - Gutenberg: A rust templating engine to write Move NFT collection specific
   modules that top into our protocol.
 
-Changed:
+### Changed
 
 - Togling sale status permission via `fixed_price::sale_on` and`fized_price::sale_off` is now a permissioned action, that can only be done by the admin
 - Simplified `supply` module by removing changing field `max` from `Option<u64>` to `u64`
@@ -22,7 +65,7 @@ Changed:
 
 ## [0.5.0] - 2022-10-21
 
-Changed:
+### Changed
 
 - Updated `Sui` to version `0.12.1`
 - Moved the supply mint policy responsibility off the `Collection` object to a separate
@@ -32,12 +75,12 @@ Changed:
 - `Slingshot` module has entrypoints `claim_nft_embedded` and `claim_nt_loose`
 - `std_collection::mint_and_transfer` function now expected `u64` for field `max_supply` instead of `Option<u64>` to facilitate function call on the client side
 
-Added:
+### Added
 
 - `supply_policy` module with object `SupplyPolicy` to regulate NFT Collection supply
 - Error handling via `err` module
 
-Removed:
+### Removed
 
 - `cap` module with objects `Limited` and `Unlimited` that regulate the supply
   of NFT collections
