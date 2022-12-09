@@ -1,7 +1,8 @@
 #[test_only]
 module nft_protocol::test_safe {
     use nft_protocol::nft::{Self, NFT};
-    use nft_protocol::safe::{Self, Safe, OwnerCap};
+    use nft_protocol::safe::{Self, Safe};
+    use nft_protocol::unprotected_safe::OwnerCap;
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use sui::object;
     use sui::test_scenario::{Self, Scenario, ctx};
@@ -17,13 +18,13 @@ module nft_protocol::test_safe {
     fun it_creates_safe() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
         let owner_cap_safe_id = safe::owner_cap_safe(&owner_cap);
 
         test_scenario::next_tx(&mut scenario, USER);
 
         let safe: Safe = test_scenario::take_shared(&scenario);
-        assert!(owner_cap_safe_id == object::id(&safe), 0);
+        assert!(owner_cap_safe_id == safe::id(&safe), 0);
         safe::assert_id(&safe, owner_cap_safe_id);
         safe::assert_owner_cap(&owner_cap, &safe);
 
@@ -37,7 +38,7 @@ module nft_protocol::test_safe {
     fun it_fails_if_safe_id_mismatches() {
         let scenario = test_scenario::begin(USER);
 
-        safe::create_for_sender(ctx(&mut scenario));
+        safe::create_for_sender(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -54,7 +55,7 @@ module nft_protocol::test_safe {
     fun it_create_for_sender() {
         let scenario = test_scenario::begin(USER);
 
-        safe::create_for_sender(ctx(&mut scenario));
+        safe::create_for_sender(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -71,7 +72,7 @@ module nft_protocol::test_safe {
     fun it_deposits_nft() {
         let scenario = test_scenario::begin(USER);
 
-        safe::create_for_sender(ctx(&mut scenario));
+        safe::create_for_sender(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -95,7 +96,7 @@ module nft_protocol::test_safe {
     fun it_cannot_deposit_nft_if_deposits_off() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -118,7 +119,7 @@ module nft_protocol::test_safe {
     fun it_can_deposit_whitelisted_collection() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -145,7 +146,7 @@ module nft_protocol::test_safe {
     fun it_toggles_collection_whitelisting_for_deposits() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -170,7 +171,7 @@ module nft_protocol::test_safe {
     fun it_creates_and_burns_transfer_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -203,11 +204,14 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370401, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370401,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_cannot_create_transfer_cap_if_nft_not_present() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -230,7 +234,7 @@ module nft_protocol::test_safe {
     fun it_withdraws_nft_with_transfer_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -277,7 +281,7 @@ module nft_protocol::test_safe {
     fun it_creates_and_burns_exclusive_transfer_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -311,7 +315,7 @@ module nft_protocol::test_safe {
     fun it_withdraws_nft_with_exclusive_transfer_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -359,7 +363,7 @@ module nft_protocol::test_safe {
     fun it_delists_transfer_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -418,11 +422,14 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370404, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370404,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_cannot_withdraw_nft_with_expired_transfer_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -460,7 +467,7 @@ module nft_protocol::test_safe {
     fun it_deposits_priviledged() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -484,11 +491,11 @@ module nft_protocol::test_safe {
     fun it_transfers_nft_to_another_safe() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap1 = safe::create_safe(ctx(&mut scenario));
+        let owner_cap1 = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe1: Safe = test_scenario::take_shared(&scenario);
 
-        let owner_cap2 = safe::create_safe(ctx(&mut scenario));
+        let owner_cap2 = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe2: Safe = test_scenario::take_shared(&scenario);
 
@@ -529,11 +536,14 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370402, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370402,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_cannot_create_transfer_cap_if_already_exclusively_listed() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -568,11 +578,14 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370404, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370404,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_invalidates_prev_transfer_cap_if_exclusively_listed() {
         let scenario = test_scenario::begin(USER);
 
-        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        let owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -614,15 +627,18 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370400,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_fails_create_transfer_cap_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let right_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let right_owner_cap = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe: Safe = test_scenario::take_shared(&scenario);
 
-        let wrong_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let wrong_owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         let nft = nft::new<Foo>(ctx(&mut scenario));
         let nft_id = object::id(&nft);
@@ -647,15 +663,18 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370400,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_fails_create_exclusive_transfer_cap_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let right_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let right_owner_cap = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe: Safe = test_scenario::take_shared(&scenario);
 
-        let wrong_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let wrong_owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         let nft = nft::new<Foo>(ctx(&mut scenario));
         let nft_id = object::id(&nft);
@@ -680,15 +699,18 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370400,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_fails_to_accepts_any_deposit_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let right_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let right_owner_cap = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe: Safe = test_scenario::take_shared(&scenario);
 
-        let wrong_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let wrong_owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         safe::enable_any_deposit(&wrong_owner_cap, &mut safe);
 
@@ -699,15 +721,18 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370400,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_fails_to_enable_deposits_of_collection_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let right_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let right_owner_cap = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe: Safe = test_scenario::take_shared(&scenario);
 
-        let wrong_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let wrong_owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         safe::enable_deposits_of_collection<Foo>(&wrong_owner_cap, &mut safe);
 
@@ -718,15 +743,18 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370400,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_fails_deposit_nft_priviledged_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let right_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let right_owner_cap = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe: Safe = test_scenario::take_shared(&scenario);
 
-        let wrong_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let wrong_owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         let nft = nft::new<Foo>(ctx(&mut scenario));
         safe::deposit_nft_priviledged<Foo>(
@@ -743,15 +771,18 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370400, location = nft_protocol::safe)]
+    #[expected_failure(
+        abort_code = 13370400,
+        location = nft_protocol::unprotected_safe,
+    )]
     fun it_fails_delist_nft_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
 
-        let right_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let right_owner_cap = safe::create_safe(true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe: Safe = test_scenario::take_shared(&scenario);
 
-        let wrong_owner_cap = safe::create_safe(ctx(&mut scenario));
+        let wrong_owner_cap = safe::create_safe(true, ctx(&mut scenario));
 
         let nft = nft::new<Foo>(ctx(&mut scenario));
         let nft_id = object::id(&nft);
