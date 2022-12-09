@@ -27,15 +27,13 @@ module nft_protocol::launchpad {
         receiver: address,
         /// Permissionless launchpads allow for anyone to create their
         /// slots, therefore being immediately approved.
-        auto_approval: bool,
+        permissioned: bool,
         default_fee: ObjectBox,
     }
 
     struct Slot has key, store {
         id: UID,
         launchpad: ID,
-        /// Signals if the Slot has been approved by the launchpad administrator.
-        is_approved: bool,
         /// Boolean indicating if the sale is live
         live: bool,
         /// The address of the slot administrator, that is, the Nft creator
@@ -86,18 +84,6 @@ module nft_protocol::launchpad {
         transfer::share_object(launchpad);
     }
 
-    // Approved a given Launchpad Slot
-    public entry fun approve_slot(
-        launchpad: &Launchpad,
-        slot: &mut Slot,
-        ctx: &mut TxContext,
-    ) {
-        assert_slot(launchpad, slot);
-        assert_launchpad_admin(launchpad, ctx);
-
-        slot.is_approved = true;
-    }
-
     /// Adds a fee object to the Slot's `custom_fee`
     public entry fun add_fee<FeeType: key + store>(
         launchpad: &Launchpad,
@@ -121,7 +107,7 @@ module nft_protocol::launchpad {
     public fun init_launchpad_(
         admin: address,
         receiver: address,
-        auto_approval: bool,
+        permissioned: bool,
         default_fee: ObjectBox,
         ctx: &mut TxContext,
     ): Launchpad {
@@ -131,7 +117,7 @@ module nft_protocol::launchpad {
             id: uid,
             admin,
             receiver,
-            auto_approval,
+            permissioned,
             default_fee,
         }
     }
@@ -140,7 +126,7 @@ module nft_protocol::launchpad {
 
     /// Initialises a `Slot` object and registers it in the `Launchpad` object
     /// and shares it.
-    /// Depending if the Launchpad alllows for auto-approval, the launchpad
+    /// Depending if the Launchpad allows for auto-approval, the launchpad
     /// admin might have to call `approve_slot` in order to validate the slot.
     public entry fun init_slot(
         launchpad: &Launchpad,
@@ -165,7 +151,6 @@ module nft_protocol::launchpad {
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
-        assert_slot_approved(slot);
 
         slot.live = true
     }
@@ -191,16 +176,11 @@ module nft_protocol::launchpad {
         receiver: address,
         ctx: &mut TxContext,
     ): Slot {
-        let approval = false;
-
-        let is_admin = tx_context::sender(ctx) == launchpad.admin;
-
-        // If the launchpad is permissionless then slots are automatically
-        // approved. If the launchpad is permissioned, then the slot is
-        // automatically approved only if the sender is the launchpad
-        // administrator.
-        if (launchpad.auto_approval == true || is_admin) {
-            approval = true;
+        // If the launchpad is permissioned then slots can only be inserted
+        // by the administrator. If the launchpad is permissionless, then
+        // anyone can just add slots to it.
+        if (launchpad.permissioned == true) {
+            assert_launchpad_admin(launchpad, ctx);
         };
 
         let uid = object::new(ctx);
@@ -210,7 +190,6 @@ module nft_protocol::launchpad {
         Slot {
             id: uid,
             launchpad: object::id(launchpad),
-            is_approved: approval,
             live: false,
             admin: slot_admin,
             receiver,
@@ -334,10 +313,10 @@ module nft_protocol::launchpad {
         &launchpad.default_fee
     }
 
-    public fun is_auto_approved(
+    public fun is_permissioned(
         launchpad: &Launchpad,
     ): bool {
-        launchpad.auto_approval
+        launchpad.permissioned
     }
 
     // === Slot Getters & Other Functions ===
@@ -441,15 +420,6 @@ module nft_protocol::launchpad {
         assert!(
             object::id(launchpad) == slot.launchpad,
             err::launchpad_slot_mismatch()
-        );
-    }
-
-    public fun assert_slot_approved(
-        slot: &Slot,
-    ) {
-        assert!(
-            slot.is_approved,
-            err::slot_not_approved()
         );
     }
 
