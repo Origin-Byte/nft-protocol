@@ -26,7 +26,6 @@ module nft_protocol::suitraders {
         let (mint_cap, collection) = collection::create<SUITRADERS>(
             &witness,
             100, // max supply
-            true, // is mutable
             ctx,
         );
 
@@ -55,7 +54,7 @@ module nft_protocol::suitraders {
         );
 
         let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art(), ctx);
+        tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, tags);
 
         collection::share<SUITRADERS>(collection);

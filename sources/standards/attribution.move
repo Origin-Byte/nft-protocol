@@ -8,8 +8,9 @@ module nft_protocol::attribution {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
+    use nft_protocol::collection::{Self, Collection};
 
-    const BPS: u16 = 10_000;
+    /// === Creator ===
 
     /// Creator struct which holds the addresses of the creators of the NFT
     /// Collection, as well their share of the royalties collected.
@@ -19,10 +20,7 @@ module nft_protocol::attribution {
     }
 
     public fun new_creator(who: address, share_of_royalty_bps: u16): Creator {
-        Creator {
-            who,
-            share_of_royalty_bps,
-        }
+        Creator { who, share_of_royalty_bps }
     }
 
     public fun who(creator: &Creator): address {
@@ -32,6 +30,10 @@ module nft_protocol::attribution {
     public fun share_of_royalty_bps(creator: &Creator): u16 {
         creator.share_of_royalty_bps
     }
+
+    /// === AttributionDomain ===
+
+    const BPS: u16 = 10_000;
 
     struct AttributionDomain has copy, drop, store {
         /// Address that receives the mint and trade royalties
@@ -52,7 +54,9 @@ module nft_protocol::attribution {
         domain
     }
 
-    public fun from_creators(creators: VecMap<address, Creator>): AttributionDomain {
+    public fun from_creators(
+        creators: VecMap<address, Creator>
+    ): AttributionDomain {
         let attributions = AttributionDomain { creators };
         assert_total_shares(&attributions);
 
@@ -63,7 +67,9 @@ module nft_protocol::attribution {
         vec_map::is_empty(&attributions.creators)
     }
 
-    public fun creators(attributions: &AttributionDomain): &VecMap<address, Creator> {
+    public fun creators(
+        attributions: &AttributionDomain
+    ): &VecMap<address, Creator> {
         &attributions.creators
     }
 
@@ -100,6 +106,7 @@ module nft_protocol::attribution {
         new_creator: Creator,
         ctx: &mut TxContext,
     ) {
+        // Asserts that sender is a creator
         let creator = get_mut(attributions, tx_context::sender(ctx));
 
         assert!(
@@ -130,11 +137,12 @@ module nft_protocol::attribution {
     //
     // TODO: Create removal methods which split shares evenly and
     // proportionally.
-    public fun remove_creator_transfer(
+    public fun remove_creator_by_transfer(
         attributions: &mut AttributionDomain,
         to: address,
         ctx: &mut TxContext,
     ) {
+        // Asserts that sender is a creator
         let (_, creator) = vec_map::remove(
             &mut attributions.creators,
             &tx_context::sender(ctx)
@@ -160,7 +168,8 @@ module nft_protocol::attribution {
 
         let i = 0;
         while (i < vec_map::size(&attributions.creators)) {
-            let (_, creator) = vec_map::get_entry_by_idx(&attributions.creators, i);
+            let (_, creator) =
+                vec_map::get_entry_by_idx(&attributions.creators, i);
 
             // Truncates fractional part of the result thus ensuring that sum
             // of royalty shares is not greater than total balance.
@@ -189,7 +198,8 @@ module nft_protocol::attribution {
 
         let i = 0;
         while (i < vec_map::size(&attributions.creators)) {
-            let (_, creator) = vec_map::get_entry_by_idx(&attributions.creators, i);
+            let (_, creator) =
+                vec_map::get_entry_by_idx(&attributions.creators, i);
             bps_total = bps_total + creator.share_of_royalty_bps;
             i = i + 1;
         };
@@ -202,5 +212,35 @@ module nft_protocol::attribution {
         who: address
     ) {
         get(attributions, &who);
+    }
+
+    public fun assert_collection_has_creator<C>(
+        collection: &Collection<C>,
+        who: address
+    ) {
+        assert_is_creator(attribution_domain(collection), who);
+    }
+
+    /// ====== Interoperability ===
+
+    struct Witness has drop {}
+
+    public fun attribution_domain<C>(
+        collection: &Collection<C>,
+    ): &AttributionDomain {
+        collection::borrow_domain(collection)
+    }
+
+    public fun attribution_domain_mut<C>(
+        collection: &mut Collection<C>,
+    ): &mut AttributionDomain {
+        collection::borrow_domain_mut(Witness {}, collection)
+    }
+
+    public fun add_attribution_domain<C>(
+        collection: &mut Collection<C>,
+        domain: AttributionDomain,
+    ) {
+        collection::add_domain(collection, domain);
     }
 }

@@ -27,7 +27,6 @@ module nft_protocol::suimarines {
         let (mint_cap, collection) = collection::create<SUIMARINES>(
             &witness,
             100, // max supply
-            false, // is mutable
             ctx,
         );
 
@@ -63,7 +62,7 @@ module nft_protocol::suimarines {
         );
 
         let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art(), ctx);
+        tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, tags);
 
         collection::share<SUIMARINES>(collection);
