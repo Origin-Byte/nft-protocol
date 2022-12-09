@@ -6,6 +6,6 @@
 
 export $(cat .env | xargs)
 
-sui client publish --path . \
+sui client publish \
     --gas "${GAS}" \
-    --gas-budget 30000
+    --gas-budget 30000 .
