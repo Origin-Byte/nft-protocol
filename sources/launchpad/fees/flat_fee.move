@@ -21,7 +21,9 @@ module nft_protocol::flat_fee {
         ctx: &mut TxContext,
     ) {
         let fee = create_(rate, ctx);
-        transfer(fee, tx_context::sender(ctx));
+        let box = object_box::new(fee, ctx);
+
+        transfer(box, tx_context::sender(ctx));
     }
 
     public entry fun collect_fee<FT>(
