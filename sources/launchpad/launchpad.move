@@ -569,7 +569,7 @@ module nft_protocol::launchpad {
 
         assert!(
             !inventory::whitelisted(inventory),
-            err::sale_is_not_whitelisted()
+            err::sale_is_whitelisted()
         );
     }
 
@@ -587,7 +587,7 @@ module nft_protocol::launchpad {
     ) {
         assert!(
             !inventory::whitelisted(inventory),
-            err::sale_is_not_whitelisted()
+            err::sale_is_whitelisted()
         );
     }
 }
