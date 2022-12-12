@@ -78,11 +78,11 @@ module nft_protocol::launchpad {
     // === Launchpad Admin Functions ===
 
     /// Initialises a `Launchpad` object and shares it
-    public entry fun init_launchpad(
+    public entry fun init_launchpad<F: key + store>(
         admin: address,
         receiver: address,
         auto_approval: bool,
-        default_fee: ObjectBox,
+        default_fee: F,
         ctx: &mut TxContext,
     ) {
         let launchpad = init_launchpad_(
@@ -116,14 +116,15 @@ module nft_protocol::launchpad {
     }
 
     /// Initialises a `Launchpad` object and returns it
-    public fun init_launchpad_(
+    public fun init_launchpad_<F: key + store>(
         admin: address,
         receiver: address,
         permissioned: bool,
-        default_fee: ObjectBox,
+        default_fee: F,
         ctx: &mut TxContext,
     ): Launchpad {
         let uid = object::new(ctx);
+        let default_fee = obox::new(default_fee, ctx);
 
         Launchpad {
             id: uid,
@@ -393,6 +394,11 @@ module nft_protocol::launchpad {
         slot: &Slot,
         market_id: ID,
     ): &M {
+        assert!(
+            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
+            err::undefined_market(),
+        );
+
         object_bag::borrow<ID, M>(&slot.markets, market_id)
     }
 
@@ -403,6 +409,10 @@ module nft_protocol::launchpad {
         ctx: &mut TxContext,
     ): &mut M {
         assert_slot_admin(slot, ctx);
+        assert!(
+            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
+            err::undefined_market(),
+        );
 
         object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
     }
@@ -412,6 +422,11 @@ module nft_protocol::launchpad {
         slot: &Slot,
         market_id: ID,
     ): &Inventory {
+        assert!(
+            object_table::contains(&slot.inventories, market_id),
+            err::undefined_market(),
+        );
+
         object_table::borrow<ID, Inventory>(&slot.inventories, market_id)
     }
 
@@ -420,6 +435,11 @@ module nft_protocol::launchpad {
         slot: &mut Slot,
         market_id: ID,
     ): &mut Inventory {
+        assert!(
+            object_table::contains(&slot.inventories, market_id),
+            err::undefined_market(),
+        );
+
         object_table::borrow_mut<ID, Inventory>(
             &mut slot.inventories,
             market_id
