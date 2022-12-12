@@ -275,8 +275,12 @@ module nft_protocol::display {
 
     /// ====== Interoperability ===
 
-    public fun display_attribute<C>(nft: &Nft<C>): &VecMap<String, String> {
-        attributes(nft::borrow_domain<C, Attributes>(nft))
+    public fun display_attribute<C>(nft: &Nft<C>): &Attributes {
+        nft::borrow_domain<C, Attributes>(nft)
+    }
+
+    public fun display_attribute_mut<C>(nft: &mut Nft<C>): &mut Attributes {
+        nft::borrow_domain_mut<C, Attributes, Witness>(Witness {}, nft)
     }
 
     public fun add_attributes_domain<C>(
