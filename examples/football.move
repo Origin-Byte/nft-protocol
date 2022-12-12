@@ -98,9 +98,6 @@ module nft_protocol::football {
     public entry fun mint_nft_archetype(
         name: vector<u8>,
         description: vector<u8>,
-        // url: vector<u8>,
-        // attribute_keys: vector<vector<u8>>,
-        // attribute_values: vector<vector<u8>>,
         mint_cap: &mut MintCap<FOOTBALL>,
         supply: u64,
         slot: &mut Slot,
@@ -120,6 +117,7 @@ module nft_protocol::football {
             ctx,
         );
 
-        lp::add_nft(slot, market_id, nft);
+        // TODO: Define the NFT minting process
+        // lp::add_nft(slot, market_id, nft);
     }
 }

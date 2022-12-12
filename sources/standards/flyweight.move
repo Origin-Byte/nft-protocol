@@ -3,15 +3,11 @@
 // This should ideally be controlled solely by the NFT Creators..
 module nft_protocol::flyweight {
     use sui::event;
-    use sui::transfer;
-    use sui::bag::{Self, Bag};
-    use sui::tx_context::{TxContext};
     use sui::object::{Self, UID, ID};
+    use sui::tx_context::{TxContext};
     use sui::object_table::{Self, ObjectTable};
 
-    use nft_protocol::err;
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -81,7 +77,6 @@ module nft_protocol::flyweight {
 
     /// Create a `Pointer` object and adds it to NFT.
     public fun add_archetype<C>(
-        ctx: &mut TxContext,
         state: Archetype<C>,
         registry: &mut Registry<C>,
         _mint: &MintCap<C>,
