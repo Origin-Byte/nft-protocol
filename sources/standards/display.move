@@ -279,15 +279,27 @@ module nft_protocol::display {
         nft::borrow_domain<C, Attributes>(nft)
     }
 
-    public fun display_attribute_mut<C>(nft: &mut Nft<C>): &mut Attributes {
+    public fun display_attribute_mut<C>(
+        nft: &mut Nft<C>,
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ): &mut Attributes {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
         nft::borrow_domain_mut<C, Attributes, Witness>(Witness {}, nft)
     }
 
     public fun add_attributes_domain<C>(
         nft: &mut Nft<C>,
+        collection: &mut Collection<C>,
         map: VecMap<String, String>,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
         nft::add_domain(nft, new_attributes_domain(map), ctx);
     }
 }
