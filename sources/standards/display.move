@@ -241,4 +241,48 @@ module nft_protocol::display {
     ) {
         collection::add_domain(nft, mint_cap, new_symbol_domain(symbol));
     }
+
+    /// === AttributesDomain ===
+
+    struct Attributes has store {
+        keys: vector<String>,
+        values: vector<String>,
+    }
+
+    /// Gets Keys of `Attributes`
+    public fun keys(domain: &Attributes): &vector<String> {
+        &domain.keys
+    }
+
+    /// Gets Values of `Attributes`
+    public fun values(domain: &Attributes): &vector<String> {
+        &domain.values
+    }
+
+    /// Creates new `Attributes` with a keys and values
+    public fun new_attributes_domain(
+        keys: vector<String>,
+        values: vector<String>
+    ): Attributes {
+        Attributes { keys, values }
+    }
+
+    /// ====== Interoperability ===
+
+    public fun display_attribute_keys<C>(nft: &NFT<C>): &vector<String> {
+        keys(nft::borrow_domain<C, Attributes>(nft))
+    }
+
+    public fun display_attribute_values<C>(nft: &NFT<C>): &vector<String> {
+        values(nft::borrow_domain<C, Attributes>(nft))
+    }
+
+    public fun add_attributes_domain<C>(
+        nft: &mut NFT<C>,
+        keys: vector<String>,
+        values: vector<String>,
+        ctx: &mut TxContext
+    ) {
+        nft::add_domain(nft, new_attributes_domain(keys, values), ctx);
+    }
 }
