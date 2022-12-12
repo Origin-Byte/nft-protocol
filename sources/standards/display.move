@@ -4,6 +4,7 @@ module nft_protocol::display {
 
     use sui::url::Url;
     use sui::tx_context::{Self, TxContext};
+    use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -245,44 +246,44 @@ module nft_protocol::display {
     /// === AttributesDomain ===
 
     struct Attributes has store {
-        keys: vector<String>,
-        values: vector<String>,
+        map: VecMap<String, String>,
     }
 
     /// Gets Keys of `Attributes`
-    public fun keys(domain: &Attributes): &vector<String> {
-        &domain.keys
+    public fun attributes(domain: &Attributes): &VecMap<String, String> {
+        &domain.map
+    }
+
+    /// Gets Keys of `Attributes`
+    public fun keys(domain: &Attributes): vector<String> {
+        let (keys, _) = vec_map::into_keys_values(domain.map);
+        keys
     }
 
     /// Gets Values of `Attributes`
-    public fun values(domain: &Attributes): &vector<String> {
-        &domain.values
+    public fun values(domain: &Attributes): vector<String> {
+        let (_, values) = vec_map::into_keys_values(domain.map);
+        values
     }
 
     /// Creates new `Attributes` with a keys and values
     public fun new_attributes_domain(
-        keys: vector<String>,
-        values: vector<String>
+        map: VecMap<String, String>,
     ): Attributes {
-        Attributes { keys, values }
+        Attributes { map }
     }
 
     /// ====== Interoperability ===
 
-    public fun display_attribute_keys<C>(nft: &NFT<C>): &vector<String> {
-        keys(nft::borrow_domain<C, Attributes>(nft))
-    }
-
-    public fun display_attribute_values<C>(nft: &NFT<C>): &vector<String> {
-        values(nft::borrow_domain<C, Attributes>(nft))
+    public fun display_attribute<C>(nft: &Nft<C>): &VecMap<String, String> {
+        attributes(nft::borrow_domain<C, Attributes>(nft))
     }
 
     public fun add_attributes_domain<C>(
-        nft: &mut NFT<C>,
-        keys: vector<String>,
-        values: vector<String>,
+        nft: &mut Nft<C>,
+        map: VecMap<String, String>,
         ctx: &mut TxContext
     ) {
-        nft::add_domain(nft, new_attributes_domain(keys, values), ctx);
+        nft::add_domain(nft, new_attributes_domain(map), ctx);
     }
 }
