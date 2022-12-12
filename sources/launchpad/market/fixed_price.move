@@ -18,10 +18,10 @@ module nft_protocol::fixed_price {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::err;
     use nft_protocol::inventory;
+    use nft_protocol::slot::{Self, Slot};
     use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
-    use nft_protocol::launchpad::{Self as lp, Launchpad, Slot};
+    use nft_protocol::launchpad::Launchpad;
 
     struct FixedPriceMarket has key, store {
         id: UID,
@@ -59,7 +59,7 @@ module nft_protocol::fixed_price {
             price,
         };
 
-        lp::add_market(
+        slot::add_market(
             launchpad,
             slot,
             market,
@@ -84,10 +84,10 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
-        assert!(lp::live(slot) == true, err::slot_not_live());
-        lp::assert_market_is_not_whitelisted(slot, market_id);
+        slot::assert_is_live(slot);
+        slot::assert_market_is_not_whitelisted(slot, market_id);
 
-        let market: &FixedPriceMarket = lp::market(slot, market_id);
+        let market: &FixedPriceMarket = slot::market(slot, market_id);
         let change = coin::split<FT>(
             &mut funds,
             market.price,
@@ -96,14 +96,14 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        lp::pay(
+        slot::pay(
             launchpad,
             slot,
             funds,
             1,
         );
 
-        let certificate = lp::issue_nft_certificate(
+        let certificate = slot::issue_nft_certificate(
             launchpad,
             slot,
             market_id,
@@ -130,17 +130,15 @@ module nft_protocol::fixed_price {
         whitelist_token: Whitelist,
         ctx: &mut TxContext,
     ) {
-        // One can only buy NFT certificates if the slingshot is live
-        assert!(lp::live(slot) == true, err::slot_not_live());
-
-        lp::assert_market_is_whitelisted(slot, market_id);
+        slot::assert_is_live(slot);
+        slot::assert_market_is_whitelisted(slot, market_id);
         lp_whitelist::assert_whitelist_token_market(
             slot,
             market_id,
             &whitelist_token
         );
 
-        let market: &FixedPriceMarket = lp::market(slot, market_id);
+        let market: &FixedPriceMarket = slot::market(slot, market_id);
         let change = coin::split<FT>(
             &mut funds,
             market.price,
@@ -149,7 +147,7 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        lp::pay(
+        slot::pay(
             launchpad,
             slot,
             funds,
@@ -158,7 +156,7 @@ module nft_protocol::fixed_price {
 
         lp_whitelist::burn_whitelist_token(whitelist_token);
 
-        let certificate = lp::issue_nft_certificate(
+        let certificate = slot::issue_nft_certificate(
             launchpad,
             slot,
             market_id,
@@ -171,33 +169,7 @@ module nft_protocol::fixed_price {
         );
     }
 
-    // // === Modifier Functions ===
-
-    /// Toggle the Slingshot's `live` to `true` therefore
-    /// making the NFT sale live. Permissioned endpoint to be called by `admin`.
-    public entry fun sale_on(
-        slot: &mut Slot,
-        ctx: &mut TxContext
-    ) {
-        assert!(
-            lp::slot_admin(slot) == tx_context::sender(ctx),
-            err::wrong_launchpad_admin()
-        );
-        lp::sale_on(slot, ctx);
-    }
-
-    /// Toggle the Slingshot's `live` to `false` therefore
-    /// pausing or stopping the NFT sale. Permissioned endpoint to be called by `admin`.
-    public entry fun sale_off(
-        slot: &mut Slot,
-        ctx: &mut TxContext
-    ) {
-        assert!(
-            lp::slot_admin(slot) == tx_context::sender(ctx),
-            err::wrong_launchpad_admin()
-        );
-        lp::sale_off(slot, ctx);
-    }
+    // === Modifier Functions ===
 
     /// Permissioned endpoint to be called by `admin` to edit the fixed price
     /// of the launchpad configuration.
@@ -207,18 +179,18 @@ module nft_protocol::fixed_price {
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = lp::market_mut<FixedPriceMarket>(slot, market_id, ctx);
+        let market = slot::market_mut<FixedPriceMarket>(slot, market_id, ctx);
         market.price = new_price;
     }
 
-    // // === Getter Functions ===
+    // === Getter Functions ===
 
     /// Get the Slingshot Configs's `price`
     public fun price(
         slot: &Slot,
         market_id: ID,
     ): u64 {
-        let market: &FixedPriceMarket = lp::market(slot, market_id);
+        let market: &FixedPriceMarket = slot::market(slot, market_id);
         market.price
     }
 }
