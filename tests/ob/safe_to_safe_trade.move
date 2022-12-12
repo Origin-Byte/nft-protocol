@@ -9,7 +9,10 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
     use nft_protocol::test_ob_utils as test_ob;
 
+    const BUYER: address = @0xA1C06;
     const CREATOR: address = @0xA1C05;
+    const SELLER: address = @0xA1C04;
+
     const OFFER_SUI: u64 = 100;
 
     #[test]
@@ -18,14 +21,38 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
         test_ob::create_collection_and_whitelist(&mut scenario);
 
-        test_ob::create_ob(&mut scenario);
+        let ob_id = test_ob::create_ob(&mut scenario);
 
-        let _nft_id =
-            test_ob::create_seller_safe_and_make_an_offer_for_nft_id(
-                &mut scenario
-            );
+        let (seller_safe_id , seller_owner_cap_id) = test_ob::create_safe(
+            &mut scenario,
+            SELLER,
+        );
 
-        // test_ob::buy_nft(&mut scenario, nft_id);
+        let nft_id = test_ob::create_and_deposit_nft(
+            &mut scenario,
+            seller_safe_id,
+            seller_owner_cap_id,
+        );
+
+        test_ob::make_sell_offer_for_nft(
+            &mut scenario,
+            seller_safe_id,
+            seller_owner_cap_id,
+            nft_id,
+        );
+
+        let (buyer_safe_id , _buyer_owner_cap_id) = test_ob::create_safe(
+            &mut scenario,
+            BUYER,
+        );
+
+        test_ob::buy_nft(
+            &mut scenario,
+            buyer_safe_id,
+            seller_safe_id,
+            nft_id,
+            ob_id
+        );
 
         test_scenario::end(scenario);
     }
