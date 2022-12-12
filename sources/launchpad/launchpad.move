@@ -14,7 +14,7 @@ module nft_protocol::launchpad {
     use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::err;
-    use nft_protocol::nft::NFT;
+    use nft_protocol::nft::Nft;
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::object_box::{Self as obox, ObjectBox};
     use nft_protocol::inventory::{Self, Inventory};
@@ -303,7 +303,7 @@ module nft_protocol::launchpad {
     public fun add_nft<C>(
         slot: &mut Slot,
         market_id: ID,
-        nft: NFT<C>,
+        nft: Nft<C>,
     ) {
         let inventory = inventory_mut(slot, market_id);
 
@@ -322,7 +322,7 @@ module nft_protocol::launchpad {
         slot: &mut Slot,
         recipient: address,
     ) {
-        let nft = dof::remove<ID, NFT<C>>(
+        let nft = dof::remove<ID, Nft<C>>(
             &mut slot.id,
             certificate.nft_id,
         );

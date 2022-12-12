@@ -4,8 +4,9 @@ module nft_protocol::display {
 
     use sui::url::Url;
     use sui::tx_context::{Self, TxContext};
+    use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::attribution;
 
@@ -73,7 +74,7 @@ module nft_protocol::display {
     /// ====== Interoperability ===
 
     public fun display_domain<C>(
-        nft: &NFT<C>,
+        nft: &Nft<C>,
     ): &DisplayDomain {
         nft::borrow_domain(nft)
     }
@@ -85,7 +86,7 @@ module nft_protocol::display {
     }
 
     public fun add_display_domain<C>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         name: String,
         description: String,
         ctx: &mut TxContext,
@@ -140,7 +141,7 @@ module nft_protocol::display {
 
     /// ====== Interoperability ===
 
-    public fun display_url<C>(nft: &NFT<C>): Option<Url> {
+    public fun display_url<C>(nft: &Nft<C>): Option<Url> {
         if (!nft::has_domain<C, UrlDomain>(nft)) {
             return option::none()
         };
@@ -157,7 +158,7 @@ module nft_protocol::display {
     }
 
     public fun add_url_domain<C>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         url: Url,
         ctx: &mut TxContext
     ) {
@@ -208,7 +209,7 @@ module nft_protocol::display {
 
     /// ====== Interoperability ===
 
-    public fun display_symbol<C>(nft: &NFT<C>): Option<String> {
+    public fun display_symbol<C>(nft: &Nft<C>): Option<String> {
         if (!nft::has_domain<C, SymbolDomain>(nft)) {
             return option::none()
         };
@@ -227,7 +228,7 @@ module nft_protocol::display {
     }
 
     public fun add_symbol_domain<C>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         symbol: String,
         ctx: &mut TxContext
     ) {
@@ -240,5 +241,65 @@ module nft_protocol::display {
         symbol: String
     ) {
         collection::add_domain(nft, mint_cap, new_symbol_domain(symbol));
+    }
+
+    /// === AttributesDomain ===
+
+    struct Attributes has store {
+        map: VecMap<String, String>,
+    }
+
+    /// Gets Keys of `Attributes`
+    public fun attributes(domain: &Attributes): &VecMap<String, String> {
+        &domain.map
+    }
+
+    /// Gets Keys of `Attributes`
+    public fun keys(domain: &Attributes): vector<String> {
+        let (keys, _) = vec_map::into_keys_values(domain.map);
+        keys
+    }
+
+    /// Gets Values of `Attributes`
+    public fun values(domain: &Attributes): vector<String> {
+        let (_, values) = vec_map::into_keys_values(domain.map);
+        values
+    }
+
+    /// Creates new `Attributes` with a keys and values
+    public fun new_attributes_domain(
+        map: VecMap<String, String>,
+    ): Attributes {
+        Attributes { map }
+    }
+
+    /// ====== Interoperability ===
+
+    public fun display_attribute<C>(nft: &Nft<C>): &Attributes {
+        nft::borrow_domain<C, Attributes>(nft)
+    }
+
+    public fun display_attribute_mut<C>(
+        nft: &mut Nft<C>,
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ): &mut Attributes {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+        nft::borrow_domain_mut<C, Attributes, Witness>(Witness {}, nft)
+    }
+
+    public fun add_attributes_domain<C>(
+        nft: &mut Nft<C>,
+        collection: &mut Collection<C>,
+        map: VecMap<String, String>,
+        ctx: &mut TxContext,
+    ) {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        nft::add_domain(nft, new_attributes_domain(map), ctx);
     }
 }
