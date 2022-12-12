@@ -19,7 +19,7 @@ module nft_protocol::flyweight {
         data: ID,
     }
 
-    struct State<phantom C> has key, store {
+    struct Archetype<phantom C> has key, store {
         id: UID,
         bag: Bag,
         supply: Supply,
@@ -48,7 +48,7 @@ module nft_protocol::flyweight {
             }
         );
 
-        let state = State<C> {
+        let state = Archetype<C> {
             id,
             supply: supply::new(supply, false),
             mint_authority: object::id(mint),
@@ -64,7 +64,7 @@ module nft_protocol::flyweight {
     public fun mint_instance<C>(
         ctx: &mut TxContext,
         nft: &mut NFT<C>,
-        state: &mut State<C>,
+        state: &mut Archetype<C>,
         _mint: &MintCap<C>,
     ) {
         let id = object::new(ctx);
@@ -81,24 +81,24 @@ module nft_protocol::flyweight {
 
     // === Domain Functions ===
 
-    public fun has_domain<C, D: store>(state: &State<C>): bool {
+    public fun has_domain<C, D: store>(state: &Archetype<C>): bool {
         bag::contains_with_type<Marker<D>, D>(&state.bag, utils::marker<D>())
     }
 
-    public fun borrow_domain<C, D: store>(state: &State<C>): &D {
+    public fun borrow_domain<C, D: store>(state: &Archetype<C>): &D {
         bag::borrow<Marker<D>, D>(&state.bag, utils::marker<D>())
     }
 
     public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
-        state: &mut State<C>,
+        state: &mut Archetype<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
         bag::borrow_mut<Marker<D>, D>(&mut state.bag, utils::marker<D>())
     }
 
     public fun add_domain<C, V: store>(
-        state: &mut State<C>,
+        state: &mut Archetype<C>,
         mint: &MintCap<C>,
         v: V,
     ) {
@@ -112,7 +112,7 @@ module nft_protocol::flyweight {
 
     public fun remove_domain<C, W: drop, V: store>(
         _witness: W,
-        state: &mut State<C>,
+        state: &mut Archetype<C>,
     ): V {
         utils::assert_same_module_as_witness<W, V>();
         bag::remove(&mut state.bag, utils::marker<V>())
