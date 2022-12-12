@@ -254,7 +254,6 @@ module nft_protocol::slot {
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
-
         slot.live = true
     }
 
@@ -265,11 +264,10 @@ module nft_protocol::slot {
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
-
         slot.live = false
     }
 
-    // === Getters ===
+    // === Getter functions ===
 
     /// Get the Slot's `live`
     public fun live(
@@ -328,11 +326,7 @@ module nft_protocol::slot {
         slot: &Slot,
         market_id: ID,
     ): &M {
-        assert!(
-            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
-            err::undefined_market(),
-        );
-
+        assert_market<M>(slot, market_id);
         object_bag::borrow<ID, M>(&slot.markets, market_id)
     }
 
@@ -346,11 +340,7 @@ module nft_protocol::slot {
         ctx: &mut TxContext,
     ): &mut M {
         assert_slot_admin(slot, ctx);
-        assert!(
-            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
-            err::undefined_market(),
-        );
-
+        assert_market<M>(slot, market_id);
         object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
     }
 
@@ -364,59 +354,32 @@ module nft_protocol::slot {
         market_id: ID,
     ): &mut M {
         utils::assert_same_module_as_witness<W, M>();
-        assert!(
-            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
-            err::undefined_market(),
-        );
-
+        assert_market<M>(slot, market_id);
         object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
     }
 
     /// Get the Slot's `inventory`
-    public fun inventory(
-        slot: &Slot,
-        market_id: ID,
-    ): &Inventory {
-        assert!(
-            object_table::contains(&slot.inventories, market_id),
-            err::undefined_market(),
-        );
-
-        object_table::borrow<ID, Inventory>(&slot.inventories, market_id)
+    public fun inventory(slot: &Slot, market_id: ID): &Inventory {
+        assert_inventory(slot, market_id);
+        object_table::borrow(&slot.inventories, market_id)
     }
 
     /// Get the Slot's `market` mutably
-    fun inventory_mut(
-        slot: &mut Slot,
-        market_id: ID,
-    ): &mut Inventory {
-        assert!(
-            object_table::contains(&slot.inventories, market_id),
-            err::undefined_market(),
-        );
-
-        object_table::borrow_mut<ID, Inventory>(
-            &mut slot.inventories,
-            market_id
-        )
+    fun inventory_mut(slot: &mut Slot, market_id: ID): &mut Inventory {
+        assert_inventory(slot, market_id);
+        object_table::borrow_mut(&mut slot.inventories, market_id)
     }
 
     // === Assertions ===
 
-    public fun assert_slot(
-        launchpad: &Launchpad,
-        slot: &Slot,
-    ) {
+    public fun assert_slot(launchpad: &Launchpad, slot: &Slot) {
         assert!(
             object::id(launchpad) == slot.launchpad,
             err::launchpad_slot_mismatch()
         );
     }
 
-    public fun assert_slot_admin(
-        slot: &Slot,
-        ctx: &mut TxContext,
-    ) {
+    public fun assert_slot_admin(slot: &Slot, ctx: &mut TxContext) {
         assert!(
             tx_context::sender(ctx) == slot.admin,
             err::wrong_slot_admin()
@@ -428,7 +391,8 @@ module nft_protocol::slot {
         slot: &Slot,
         ctx: &mut TxContext,
     ) {
-        let is_launchpad_admin = tx_context::sender(ctx) == launchpad::admin(launchpad);
+        let is_launchpad_admin =
+            tx_context::sender(ctx) == launchpad::admin(launchpad);
         let is_slot_admin = tx_context::sender(ctx) == slot.admin;
 
         assert!(
@@ -448,10 +412,21 @@ module nft_protocol::slot {
         );
     }
 
-    public fun assert_market_is_whitelisted(
-        slot: &Slot,
-        market_id: ID,
-    ) {
+    public fun assert_inventory(slot: &Slot, market_id: ID) {
+        assert!(
+            object_table::contains(&slot.inventories, market_id),
+            err::undefined_market(),
+        );
+    }
+
+    public fun assert_market<M: key + store>(slot: &Slot, market_id: ID) {
+        assert!(
+            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
+            err::undefined_market(),
+        );
+    }
+
+    public fun assert_market_is_whitelisted(slot: &Slot, market_id: ID ) {
         let inventory = inventory(slot, market_id);
 
         assert!(
@@ -460,10 +435,7 @@ module nft_protocol::slot {
         );
     }
 
-    public fun assert_market_is_not_whitelisted(
-        slot: &Slot,
-        market_id: ID,
-    ) {
+    public fun assert_market_is_not_whitelisted(slot: &Slot, market_id: ID) {
         let inventory = inventory(slot, market_id);
 
         assert!(
