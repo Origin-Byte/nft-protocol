@@ -15,7 +15,7 @@
 module nft_protocol::fixed_price {
     use sui::coin::{Self, Coin};
     use sui::transfer::{Self};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -80,7 +80,7 @@ module nft_protocol::fixed_price {
         launchpad: &Launchpad,
         slot: &mut Slot,
         funds: Coin<FT>,
-        market: &mut FixedPriceMarket,
+        market: &FixedPriceMarket,
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
@@ -125,7 +125,7 @@ module nft_protocol::fixed_price {
         launchpad: &Launchpad,
         slot: &mut Slot,
         funds: Coin<FT>,
-        market: &mut FixedPriceMarket,
+        market: &FixedPriceMarket,
         whitelist_token: Whitelist,
         ctx: &mut TxContext,
     ) {
@@ -202,15 +202,11 @@ module nft_protocol::fixed_price {
     /// of the launchpad configuration.
     public entry fun new_price(
         slot: &mut Slot,
-        market: &mut FixedPriceMarket,
+        market_id: ID,
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        assert!(
-            lp::slot_admin(slot) == tx_context::sender(ctx),
-            err::wrong_launchpad_admin()
-        );
-
+        let market = lp::market_mut<FixedPriceMarket>(slot, market_id, ctx);
         market.price = new_price;
     }
 
