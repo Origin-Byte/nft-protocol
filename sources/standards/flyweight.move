@@ -75,7 +75,6 @@ module nft_protocol::flyweight {
         }
     }
 
-    /// Create a `Pointer` object and adds it to NFT.
     public fun add_archetype<C>(
         state: Archetype<C>,
         registry: &mut Registry<C>,

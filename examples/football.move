@@ -2,17 +2,14 @@ module nft_protocol::football {
     use std::string;
 
     use sui::balance;
-    use sui::object::ID;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft;
-    use nft_protocol::flyweight::{Self, Pointer, Archetype, Registry};
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::attribution;
-    use nft_protocol::launchpad::{Self as lp, Slot};
+    use nft_protocol::flyweight::{Self, Registry};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -99,9 +96,8 @@ module nft_protocol::football {
         name: vector<u8>,
         description: vector<u8>,
         mint_cap: &mut MintCap<FOOTBALL>,
+        registry: &mut Registry<FOOTBALL>,
         supply: u64,
-        slot: &mut Slot,
-        market_id: ID,
         ctx: &mut TxContext,
     ) {
         let archetype = flyweight::new<FOOTBALL>(supply, mint_cap, ctx);
@@ -116,6 +112,8 @@ module nft_protocol::football {
             string::utf8(description),
             ctx,
         );
+
+        flyweight::add_archetype(archetype, registry, mint_cap);
 
         // TODO: Define the NFT minting process
         // lp::add_nft(slot, market_id, nft);
