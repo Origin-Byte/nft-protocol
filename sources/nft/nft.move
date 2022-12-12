@@ -18,11 +18,11 @@ module nft_protocol::nft {
         logical_owner: address,
     }
 
-    public fun new<C>(ctx: &mut TxContext): Nft<C> {
+    public fun new<C>(owner: address, ctx: &mut TxContext): Nft<C> {
         Nft {
             id: object::new(ctx),
             bag: bag::new(ctx),
-            logical_owner: tx_context::sender(ctx),
+            logical_owner: owner,
         }
     }
 

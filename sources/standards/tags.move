@@ -141,7 +141,7 @@ module nft_protocol::tags {
 
     public fun add_collection_tag_domain<C>(
         collection: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         tags: TagDomain,
     ) {
         collection::add_domain(collection, mint_cap, tags);
