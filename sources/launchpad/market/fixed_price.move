@@ -19,7 +19,6 @@ module nft_protocol::fixed_price {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::object_box;
     use nft_protocol::inventory;
     use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
     use nft_protocol::launchpad::{Self as lp, Launchpad, Slot};
@@ -54,16 +53,11 @@ module nft_protocol::fixed_price {
             ctx,
         );
 
-        let market = object_box::empty(ctx);
-
-        object_box::add(
-            &mut market,
-            FixedPriceMarket {
-                id: object::new(ctx),
-                live: false,
-                price,
-            }
-        );
+        let market = FixedPriceMarket {
+            id: object::new(ctx),
+            live: false,
+            price,
+        };
 
         lp::add_market(
             launchpad,
