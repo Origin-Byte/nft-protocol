@@ -7,7 +7,7 @@ module nft_protocol::safe {
     use sui::transfer::{share_object, transfer};
 
     use nft_protocol::err;
-    use nft_protocol::nft::NFT;
+    use nft_protocol::nft::Nft;
     use nft_protocol::transfer_whitelist::Whitelist;
     use nft_protocol::unprotected_safe::{Self, UnprotectedSafe, TransferCap, OwnerCap};
 
@@ -142,7 +142,7 @@ module nft_protocol::safe {
     /// Requires that `enable_any_deposit` flag is set to true, or that the
     /// `Safe` owner enabled NFTs of given collection to be inserted.
     public entry fun deposit_nft<T>(
-        nft: NFT<T>,
+        nft: Nft<T>,
         safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
@@ -152,7 +152,7 @@ module nft_protocol::safe {
 
     /// Transfer an NFT from owner to the `Safe`.
     public entry fun deposit_nft_priviledged<T>(
-        nft: NFT<T>,
+        nft: Nft<T>,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
         ctx: &mut TxContext,
