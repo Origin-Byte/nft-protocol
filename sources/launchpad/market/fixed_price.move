@@ -15,7 +15,7 @@
 module nft_protocol::fixed_price {
     use sui::coin::{Self, Coin};
     use sui::transfer::{Self};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -79,14 +79,15 @@ module nft_protocol::fixed_price {
     public entry fun buy_nft_certificate<FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
+        market_id: ID,
         funds: Coin<FT>,
-        market: &mut FixedPriceMarket,
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
         assert!(lp::live(slot) == true, err::slot_not_live());
-        lp::assert_market_is_not_whitelisted(slot, object::id(market));
+        lp::assert_market_is_not_whitelisted(slot, market_id);
 
+        let market: &FixedPriceMarket = lp::market(slot, market_id);
         let change = coin::split<FT>(
             &mut funds,
             market.price,
@@ -105,7 +106,7 @@ module nft_protocol::fixed_price {
         let certificate = lp::issue_nft_certificate(
             launchpad,
             slot,
-            object::id(market),
+            market_id,
             ctx
         );
 
@@ -124,14 +125,13 @@ module nft_protocol::fixed_price {
     public entry fun buy_whitelisted_nft_certificate<FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
+        market_id: ID,
         funds: Coin<FT>,
-        market: &mut FixedPriceMarket,
         whitelist_token: Whitelist,
         ctx: &mut TxContext,
     ) {
         // One can only buy NFT certificates if the slingshot is live
         assert!(lp::live(slot) == true, err::slot_not_live());
-        let market_id = object::id(market);
 
         lp::assert_market_is_whitelisted(slot, market_id);
         lp_whitelist::assert_whitelist_token_market(
@@ -140,6 +140,7 @@ module nft_protocol::fixed_price {
             &whitelist_token
         );
 
+        let market: &FixedPriceMarket = lp::market(slot, market_id);
         let change = coin::split<FT>(
             &mut funds,
             market.price,
@@ -202,15 +203,11 @@ module nft_protocol::fixed_price {
     /// of the launchpad configuration.
     public entry fun new_price(
         slot: &mut Slot,
-        market: &mut FixedPriceMarket,
+        market_id: ID,
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        assert!(
-            lp::slot_admin(slot) == tx_context::sender(ctx),
-            err::wrong_launchpad_admin()
-        );
-
+        let market = lp::market_mut<FixedPriceMarket>(slot, market_id, ctx);
         market.price = new_price;
     }
 
@@ -218,8 +215,10 @@ module nft_protocol::fixed_price {
 
     /// Get the Slingshot Configs's `price`
     public fun price(
-        market: &FixedPriceMarket,
+        slot: &Slot,
+        market_id: ID,
     ): u64 {
+        let market: &FixedPriceMarket = lp::market(slot, market_id);
         market.price
     }
 }
