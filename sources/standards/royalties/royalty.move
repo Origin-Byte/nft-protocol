@@ -233,7 +233,7 @@ module nft_protocol::royalty {
     /// Registers `RoyaltyDomain` on the given `Collection`
     public fun add_royalty_domain<C>(
         collection: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         domain: RoyaltyDomain,
     ) {
         collection::add_domain(collection, mint_cap, domain);

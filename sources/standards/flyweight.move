@@ -7,12 +7,13 @@ module nft_protocol::flyweight {
     use sui::bag::{Self, Bag};
     use sui::tx_context::{TxContext};
     use sui::object::{Self, UID, ID};
+    use sui::object_table::{Self, ObjectTable};
 
     use nft_protocol::err;
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::collection::{Self, MintCap};
+    use nft_protocol::collection::{Self, Collection, MintCap};
 
     struct Pointer has key, store {
         id: UID,
@@ -21,9 +22,14 @@ module nft_protocol::flyweight {
 
     struct Archetype<phantom C> has key, store {
         id: UID,
-        bag: Bag,
+        nft: Nft<C>,
         supply: Supply,
         mint_authority: ID,
+    }
+
+    struct Registry<phantom C> has key, store {
+        id: UID,
+        table: ObjectTable<ID, Archetype<C>>,
     }
 
     struct MintEvent has copy, drop {
@@ -34,12 +40,12 @@ module nft_protocol::flyweight {
         id: ID,
     }
 
-    /// Create a `State` object and shares it.
-    public fun create<C>(
-        ctx: &mut TxContext,
+    /// Create a `Archetype` object and shares it.
+    public fun new<C>(
         supply: u64,
         mint: &mut MintCap<C>,
-    ) {
+        ctx: &mut TxContext,
+    ): Archetype<C> {
         let id = object::new(ctx);
 
         event::emit(
@@ -48,22 +54,49 @@ module nft_protocol::flyweight {
             }
         );
 
-        let state = Archetype<C> {
-            id,
-            supply: supply::new(supply, false),
-            mint_authority: object::id(mint),
-            bag: bag::new(ctx),
-        };
+        let owner = object::id_to_address(&object::id(mint));
+
+        let nft = nft::new<C>(owner, ctx);
 
         collection::increment_supply(mint, 1);
 
-        transfer::share_object(state);
+        Archetype<C> {
+            id,
+            nft,
+            supply: supply::new(supply, false),
+            mint_authority: object::id(mint),
+        }
+    }
+
+    /// Create a `Registry` object
+    public fun init_registry<C>(
+        ctx: &mut TxContext,
+        _mint: &MintCap<C>,
+    ): Registry<C> {
+        Registry<C> {
+            id: object::new(ctx),
+            table: object_table::new<ID, Archetype<C>>(ctx),
+        }
     }
 
     /// Create a `Pointer` object and adds it to NFT.
-    public fun mint_instance<C>(
+    public fun add_archetype<C>(
         ctx: &mut TxContext,
-        nft: &mut NFT<C>,
+        state: Archetype<C>,
+        registry: &mut Registry<C>,
+        _mint: &MintCap<C>,
+    ) {
+        object_table::add<ID, Archetype<C>>(
+            &mut registry.table,
+            object::id(&state),
+            state,
+        );
+    }
+
+    /// Create a `Pointer` object and adds it to NFT.
+    public fun set_archetype<C>(
+        ctx: &mut TxContext,
+        nft: &mut Nft<C>,
         state: &mut Archetype<C>,
         _mint: &MintCap<C>,
     ) {
@@ -79,42 +112,24 @@ module nft_protocol::flyweight {
         nft::add_domain(nft, pointer, ctx);
     }
 
+    public fun add_archetypes_domain<C>(
+        collection: &mut Collection<C>,
+        mint_cap: &MintCap<C>,
+        registry: Registry<C>,
+    ) {
+        collection::add_domain(collection, mint_cap, registry);
+    }
+
     // === Domain Functions ===
 
-    public fun has_domain<C, D: store>(state: &Archetype<C>): bool {
-        bag::contains_with_type<Marker<D>, D>(&state.bag, utils::marker<D>())
+    public fun borrow_nft<C>(state: &Archetype<C>): &Nft<C> {
+        &state.nft
     }
 
-    public fun borrow_domain<C, D: store>(state: &Archetype<C>): &D {
-        bag::borrow<Marker<D>, D>(&state.bag, utils::marker<D>())
-    }
-
-    public fun borrow_domain_mut<C, D: store, W: drop>(
-        _witness: W,
+    public fun borrow_nft_mut<C>(
         state: &mut Archetype<C>,
-    ): &mut D {
-        utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<Marker<D>, D>(&mut state.bag, utils::marker<D>())
-    }
-
-    public fun add_domain<C, V: store>(
-        state: &mut Archetype<C>,
-        mint: &MintCap<C>,
-        v: V,
-    ) {
-        assert!(
-            object::id(mint) == state.mint_authority,
-            err::mint_authority_mismatch()
-        );
-
-        bag::add(&mut state.bag, utils::marker<V>(), v);
-    }
-
-    public fun remove_domain<C, W: drop, V: store>(
-        _witness: W,
-        state: &mut Archetype<C>,
-    ): V {
-        utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut state.bag, utils::marker<V>())
+        _mint: &MintCap<C>,
+    ): &mut Nft<C> {
+        &mut state.nft
     }
 }

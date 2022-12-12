@@ -90,7 +90,7 @@ module nft_protocol::suitraders {
         market_id: ID,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUITRADERS>(ctx);
+        let nft = nft::new<SUITRADERS>(tx_context::sender(ctx), ctx);
 
         collection::increment_supply(mint_cap, 1);
 
