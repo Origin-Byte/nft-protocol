@@ -8,7 +8,7 @@ module nft_protocol::flat_fee {
 
     use nft_protocol::err;
     use nft_protocol::proceeds;
-    use nft_protocol::object_box::{Self};
+    use nft_protocol::object_box;
     use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct FlatFee has key, store {
@@ -20,10 +20,7 @@ module nft_protocol::flat_fee {
         rate: u64,
         ctx: &mut TxContext,
     ) {
-        let fee = create_(rate, ctx);
-        let box = object_box::new(fee, ctx);
-
-        transfer(box, tx_context::sender(ctx));
+        transfer(create_(rate, ctx), tx_context::sender(ctx));
     }
 
     public entry fun collect_fee<FT>(
