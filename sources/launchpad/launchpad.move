@@ -17,7 +17,7 @@ module nft_protocol::launchpad {
     use nft_protocol::nft::NFT;
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::object_box::{Self as obox, ObjectBox};
-    use nft_protocol::inventory::{Self, Inventory, NftCertificate};
+    use nft_protocol::inventory::{Self, Inventory};
 
     struct Launchpad has key, store {
         id: UID,
@@ -51,6 +51,18 @@ module nft_protocol::launchpad {
         /// In case this box is empty the calculation will applied on the
         /// default fee object in the associated launchpad
         custom_fee: ObjectBox,
+    }
+
+    /// This object acts as an intermediate step between the payment
+    /// and the transfer of the NFT. The user first has to call
+    /// `buy_nft_certificate` which mints and transfers the `NftCertificate` to
+    /// the user. This object will dictate which NFT the userwill receive by
+    /// calling the endpoint `claim_nft`
+    struct NftCertificate has key, store {
+        id: UID,
+        launchpad_id: ID,
+        slot_id: ID,
+        nft_id: ID,
     }
 
     struct CreateSlotEvent has copy, drop {
@@ -228,13 +240,42 @@ module nft_protocol::launchpad {
         );
     }
 
-    // === NFT Buyer Functions ===
+    // === NFT Certificate Functions ===
 
-    // public entry fun redeem_nft(
-    //     slot: &Slot,
-    //     certificate: NftCertificate,
+    // TODO: need to add a function with nft_id as function parameter
+    public fun issue_nft_certificate(
+        launchpad: &Launchpad,
+        slot: &mut Slot,
+        market_id: ID,
+        ctx: &mut TxContext,
+    ): NftCertificate {
+        assert_slot(launchpad, slot);
+        let inventory = inventory_mut(slot, market_id);
 
-    // ) {}
+        let nft_id = inventory::pop_nft(inventory);
+
+        let certificate = NftCertificate {
+            id: object::new(ctx),
+            launchpad_id: object::id(launchpad),
+            slot_id: object::id(slot),
+            nft_id,
+        };
+
+        certificate
+    }
+
+    public fun burn_certificate(
+        certificate: NftCertificate,
+    ) {
+        let NftCertificate {
+            id,
+            launchpad_id: _,
+            slot_id: _,
+            nft_id: _,
+        } = certificate;
+
+        object::delete(id);
+    }
 
     // === Public Functions for Upstream modules ===
 
@@ -275,20 +316,18 @@ module nft_protocol::launchpad {
     }
 
     /// Adds NFT as a dynamic child object with its ID as key.
-    public fun redeem_nft<C>(
+    public entry fun redeem_nft<C>(
         certificate: NftCertificate,
         slot: &mut Slot,
         recipient: address,
     ) {
-        let nft_id = inventory::nft_id(&certificate);
-
         let nft = dof::remove<ID, NFT<C>>(
             &mut slot.id,
-            nft_id,
+            certificate.nft_id,
         );
 
         transfer::transfer(nft, recipient);
-        inventory::burn_certificate(certificate);
+        burn_certificate(certificate);
     }
 
     // === Launchpad Getters & Other Functions ===
@@ -377,7 +416,7 @@ module nft_protocol::launchpad {
     }
 
     /// Get the Slot's `market` mutably
-    public fun inventory_mut(
+    fun inventory_mut(
         slot: &mut Slot,
         market_id: ID,
     ): &mut Inventory {
