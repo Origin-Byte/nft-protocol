@@ -14,7 +14,6 @@ module nft_protocol::dutch_auction {
     use movemate::crit_bit::{Self, CB as CBTree};
 
     use nft_protocol::err;
-    use nft_protocol::object_box;
     use nft_protocol::inventory;
     use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
     use nft_protocol::launchpad::{Self as lp, Launchpad, Slot};
@@ -54,17 +53,12 @@ module nft_protocol::dutch_auction {
             ctx,
         );
 
-        let market = object_box::empty(ctx);
-
-        object_box::add(
-            &mut market,
-            DutchAuctionMarket<FT> {
-                id: object::new(ctx),
-                reserve_price,
-                bids: crit_bit::empty(),
-                live: false,
-            }
-        );
+        let market = DutchAuctionMarket<FT> {
+            id: object::new(ctx),
+            reserve_price,
+            bids: crit_bit::empty(),
+            live: false,
+        };
 
         lp::add_market(
             launchpad,
