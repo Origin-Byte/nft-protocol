@@ -360,12 +360,7 @@ module nft_protocol::dutch_auction {
         nfts_to_sell: u64,
         ctx: &mut TxContext
     ) {
-        let launchpad_id = object::id(launchpad);
-        let slot_id = object::id(slot);
-
         let bids = &mut auction.bids;
-
-        let inventory = lp::inventory_mut(slot, slot_id);
 
         let fill_price = 0;
         let bids_to_fill = vector::empty();
@@ -402,10 +397,10 @@ module nft_protocol::dutch_auction {
                 filled_funds
             );
 
-            let certificate = inventory::issue_nft_certificate(
-                inventory,
-                launchpad_id,
-                slot_id,
+            let certificate = lp::issue_nft_certificate(
+                launchpad,
+                slot,
+                object::id(auction),
                 ctx
             );
 
