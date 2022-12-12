@@ -1,20 +1,19 @@
 module nft_protocol::suimarines {
-    use std::vector;
     use std::string;
 
     use sui::balance;
+    use sui::object::ID;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::display;
-    use nft_protocol::fixed_price;
     use nft_protocol::nft;
-    use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::royalty;
-    use nft_protocol::sale::{Self, NftCertificate};
     use nft_protocol::tags;
+    use nft_protocol::royalty;
+    use nft_protocol::display;
     use nft_protocol::attribution;
+    use nft_protocol::launchpad::{Self as lp, Slot};
+    use nft_protocol::royalties::{Self, TradePayment};
+    use nft_protocol::collection::{Self, Collection, MintCap};
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -28,64 +27,48 @@ module nft_protocol::suimarines {
         let (mint_cap, collection) = collection::create<SUIMARINES>(
             &witness,
             100, // max supply
-            false, // is mutable
             ctx,
         );
 
-        transfer(mint_cap, tx_context::sender(ctx));
-
         collection::add_domain(
             &mut collection,
-            attribution::from_address(@0x6c86ac4a796204ea09a87b6130db0c38263c1890)
+            &mut mint_cap,
+            attribution::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
         display::add_collection_display_domain(
             &mut collection,
+            &mut mint_cap,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
         );
 
         display::add_collection_url_domain(
             &mut collection,
+            &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
+            &mut mint_cap,
             string::utf8(b"SUIM")
         );
 
-        royalty::add_royalty_domain(&mut collection, ctx);
+        let royalty = royalty::new(ctx);
         royalty::add_proportional_royalty(
-            &mut collection,
+            &mut royalty,
             nft_protocol::royalty_strategy_bps::new(100),
-            ctx,
         );
+        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art(), ctx);
-        tags::add_collection_tag_domain(&mut collection, tags);
+        tags::add_tag(&mut tags, tags::art());
+        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        let collection_id = collection::share<SUIMARINES>(collection);
-
-        let whitelist = vector::empty();
-        vector::push_back(&mut whitelist, true);
-        vector::push_back(&mut whitelist, false);
-
-        let prices = vector::empty();
-        vector::push_back(&mut prices, 1000);
-        vector::push_back(&mut prices, 2000);
-
-        fixed_price::create_market(
-            witness,
-            tx_context::sender(ctx), // admin
-            collection_id,
-            @0x6c86ac4a796204ea09a87b6130db0c38263c1890,
-            true, // is_embedded
-            whitelist, prices,
-            ctx,
-        );
+        transfer(mint_cap, tx_context::sender(ctx));
+        collection::share<SUIMARINES>(collection);
     }
 
     public entry fun collect_royalty<FT>(
@@ -95,31 +78,36 @@ module nft_protocol::suimarines {
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
 
-        let domain = royalty::royalty_domain_mut(collection);
+        let domain = royalty::royalty_domain(collection);
         let royalty_owed =
             royalty::calculate_proportional_royalty(domain, balance::value(b));
 
-        royalty::transfer_royalties(domain, b, royalty_owed);
+        royalty::collect_royalty(collection, b, royalty_owed);
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun redeem_certificate(
-        certificate: NftCertificate,
-        ctx: &mut TxContext
+    public entry fun mint_nft(
+        name: vector<u8>,
+        description: vector<u8>,
+        // url: vector<u8>,
+        // attribute_keys: vector<vector<u8>>,
+        // attribute_values: vector<vector<u8>>,
+        mint_cap: &mut MintCap<SUIMARINES>,
+        slot: &mut Slot,
+        market_id: ID,
+        ctx: &mut TxContext,
     ) {
-        // TODO: Check whether NftCertificate is issued for this collection
-        // Pending on Launchpad refactor completion
-        sale::burn_certificate(certificate);
-
         let nft = nft::new<SUIMARINES>(ctx);
+
+        collection::increment_supply(mint_cap, 1);
 
         display::add_display_domain(
             &mut nft,
-            string::utf8(b"Suimarine"),
-            string::utf8(b"A Unique NFT collection of Suimarines on Sui"),
+            string::utf8(name),
+            string::utf8(description),
             ctx,
         );
 
-        transfer(nft, tx_context::sender(ctx));
+        lp::add_nft(slot, market_id, nft);
     }
 }

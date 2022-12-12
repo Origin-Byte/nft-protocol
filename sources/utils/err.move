@@ -4,40 +4,10 @@ module nft_protocol::err {
 
     const Prefix: u64 = 13370000;
 
-    public fun nft_not_embedded(): u64 {
-        return Prefix + 01
-    }
-
-    public fun nft_not_loose(): u64 {
-        return Prefix + 02
-    }
-
-    public fun collection_mismatch(): u64 {
-        return Prefix + 03
-    }
-
-    public fun collection_is_not_mutable(): u64 {
-        return Prefix + 04
-    }
-
-    public fun wrong_nft_data_provided(): u64 {
-        return Prefix + 05
-    }
-
-    public fun nft_data_mismatch(): u64 {
-        return Prefix + 06
-    }
-
-    public fun not_enough_nfts_to_mint_cnft(): u64 {
-        return Prefix + 07
-    }
-
-    public fun coin_amount_below_price(): u64 {
-        return Prefix + 08
-    }
+    // === NFT ===
 
     public fun not_nft_owner(): u64 {
-        return Prefix + 09
+        return Prefix + 000
     }
 
     public fun mint_authority_mismatch(): u64 {
@@ -78,21 +48,21 @@ module nft_protocol::err {
         return Prefix + 107
     }
 
-    // Launchpad
+    // === Launchpad ===
 
     public fun wrong_launchpad_admin(): u64 {
         return Prefix + 201
     }
 
-    public fun launchpad_not_live(): u64 {
+    public fun slot_not_live(): u64 {
         return Prefix + 202
     }
 
-    public fun sale_outlet_still_has_nfts_to_sell(): u64 {
+    public fun nft_sale_incompleted(): u64 {
         return Prefix + 203
     }
 
-    public fun sale_outlet_still_has_nfts_to_redeem(): u64 {
+    public fun nft_redemption_incompleted(): u64 {
         return Prefix + 204
     }
 
@@ -108,19 +78,44 @@ module nft_protocol::err {
         return Prefix + 207
     }
 
-    public fun certificate_does_not_correspond_to_nft_given(): u64 {
+    // TODO: To be used by redeem function
+    public fun certificate_nft_id_mismatch(): u64 {
         return Prefix + 208
     }
 
-    public fun sale_outlet_has_no_nfts_to_sell(): u64 {
+    public fun no_nfts_left(): u64 {
         return Prefix + 209
     }
 
-    public fun market_parameters_length_mismatch(): u64 {
+    public fun launchpad_slot_mismatch(): u64 {
         return Prefix + 210
     }
 
-    // Auction
+    public fun wrong_launchpad_or_slot_admin(): u64 {
+        return Prefix + 211
+    }
+
+    public fun wrong_slot_admin(): u64 {
+        return Prefix + 212
+    }
+
+    public fun wrong_fee_policy_type(): u64 {
+        return Prefix + 213
+    }
+
+    public fun has_custom_fee_policy(): u64 {
+        return Prefix + 214
+    }
+
+    public fun slot_not_approved(): u64 {
+        return Prefix + 215
+    }
+
+    public fun undefined_market(): u64 {
+        return Prefix + 216
+    }
+
+    // === Auction ===
 
     public fun order_does_not_exist(): u64 {
         return Prefix + 301
@@ -133,7 +128,6 @@ module nft_protocol::err {
     public fun order_price_below_reserve(): u64 {
         return Prefix + 303
     }
-
 
     // === Safe ===
 
@@ -191,7 +185,7 @@ module nft_protocol::err {
         return Prefix + 700
     }
 
-    // === Royalties ===
+    // === AttributionDomain ===
 
     public fun address_not_attributed(): u64 {
         return Prefix + 800
@@ -203,5 +197,25 @@ module nft_protocol::err {
 
     public fun invalid_total_share_of_royalties(): u64 {
         return Prefix + 802
+    }
+
+    // === Generic ===
+
+    public fun generic_bag_full(): u64 {
+        return Prefix + 900
+    }
+
+    public fun generic_box_full(): u64 {
+        return Prefix + 901
+    }
+
+    public fun missing_dynamic_field(): u64 {
+        return Prefix + 902
+    }
+
+    // === Collection ===
+
+    public fun mint_cap_mismatch(): u64 {
+        return Prefix + 1000
     }
 }

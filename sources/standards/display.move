@@ -3,29 +3,71 @@ module nft_protocol::display {
     use std::option::{Self, Option};
 
     use sui::url::Url;
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft::{Self, NFT};
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::attribution;
+
+    struct Witness has drop {}
 
     struct DisplayDomain has store {
         name: String,
         description: String,
     }
 
+    /// Gets name of `DisplayDomain`
     public fun name(domain: &DisplayDomain): &String {
         &domain.name
     }
 
+    /// Gets description of `DisplayDomain`
     public fun description(domain: &DisplayDomain): &String {
         &domain.description
     }
 
+    /// Creates a new `DisplayDomain` with name and description
     public fun new_display_domain(
         name: String,
         description: String
     ): DisplayDomain {
         DisplayDomain { name, description }
+    }
+
+    /// Sets name of `DisplayDomain`
+    ///
+    /// Requires that `AttributionDomain` is defined and sender is a creator
+    public fun set_name<C>(
+        collection: &mut Collection<C>,
+        name: String,
+        ctx: &mut TxContext,
+    ) {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        let domain: &mut DisplayDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
+
+        domain.name = name;
+    }
+
+    /// Sets description of `DisplayDomain`
+    ///
+    /// Requires that `AttributionDomain` is defined and sender is a creator
+    public fun set_description<C>(
+        collection: &mut Collection<C>,
+        description: String,
+        ctx: &mut TxContext,
+    ) {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        let domain: &mut DisplayDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
+
+        domain.description = description;
     }
 
     /// ====== Interoperability ===
@@ -53,10 +95,13 @@ module nft_protocol::display {
 
     public fun add_collection_display_domain<C>(
         nft: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         name: String,
         description: String
     ) {
-        collection::add_domain(nft, new_display_domain(name, description));
+        collection::add_domain(
+            nft, mint_cap, new_display_domain(name, description)
+        );
     }
 
     /// === UrlDomain ===
@@ -65,12 +110,32 @@ module nft_protocol::display {
         url: Url,
     }
 
+    /// Gets URL of `UrlDomain`
     public fun url(domain: &UrlDomain): &Url {
         &domain.url
     }
 
+    /// Creates new `UrlDomain` with a URL
     public fun new_url_domain(url: Url): UrlDomain {
         UrlDomain { url }
+    }
+
+    /// Sets name of `DisplayDomain`
+    ///
+    /// Requires that `AttributionDomain` is defined and sender is a creator
+    public fun set_url<C>(
+        collection: &mut Collection<C>,
+        url: Url,
+        ctx: &mut TxContext,
+    ) {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        let domain: &mut UrlDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
+
+        domain.url = url;
     }
 
     /// ====== Interoperability ===
@@ -101,9 +166,10 @@ module nft_protocol::display {
 
     public fun add_collection_url_domain<C>(
         nft: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         url: Url
     ) {
-        collection::add_domain(nft, new_url_domain(url));
+        collection::add_domain(nft, mint_cap, new_url_domain(url));
     }
 
     /// === SymbolDomain ===
@@ -112,12 +178,32 @@ module nft_protocol::display {
         symbol: String,
     }
 
+    /// Gets symbol of `SymbolDomain`
     public fun symbol(domain: &SymbolDomain): &String {
         &domain.symbol
     }
 
+    /// Creates new `SymbolDomain` with a symbol
     public fun new_symbol_domain(symbol: String): SymbolDomain {
         SymbolDomain { symbol }
+    }
+
+    /// Sets name of `DisplayDomain`
+    ///
+    /// Requires that `AttributionDomain` is defined and sender is a creator
+    public fun set_symbol<C>(
+        collection: &mut Collection<C>,
+        symbol: String,
+        ctx: &mut TxContext,
+    ) {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        let domain: &mut SymbolDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
+
+        domain.symbol = symbol;
     }
 
     /// ====== Interoperability ===
@@ -130,7 +216,9 @@ module nft_protocol::display {
         option::some(*symbol(nft::borrow_domain<C, SymbolDomain>(nft)))
     }
 
-    public fun display_collection_symbol<C>(nft: &Collection<C>): Option<String> {
+    public fun display_collection_symbol<C>(
+        nft: &Collection<C>
+    ): Option<String> {
         if (!collection::has_domain<C, SymbolDomain>(nft)) {
             return option::none()
         };
@@ -148,8 +236,9 @@ module nft_protocol::display {
 
     public fun add_collection_symbol_domain<C>(
         nft: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
         symbol: String
     ) {
-        collection::add_domain(nft, new_symbol_domain(symbol));
+        collection::add_domain(nft, mint_cap, new_symbol_domain(symbol));
     }
 }

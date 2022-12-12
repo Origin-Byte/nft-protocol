@@ -8,8 +8,9 @@ module nft_protocol::attribution {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
+    use nft_protocol::collection::{Self, Collection, MintCap};
 
-    const BPS: u16 = 10_000;
+    /// === Creator ===
 
     /// Creator struct which holds the addresses of the creators of the NFT
     /// Collection, as well their share of the royalties collected.
@@ -19,10 +20,7 @@ module nft_protocol::attribution {
     }
 
     public fun new_creator(who: address, share_of_royalty_bps: u16): Creator {
-        Creator {
-            who,
-            share_of_royalty_bps,
-        }
+        Creator { who, share_of_royalty_bps }
     }
 
     public fun who(creator: &Creator): address {
@@ -33,7 +31,12 @@ module nft_protocol::attribution {
         creator.share_of_royalty_bps
     }
 
+    /// === AttributionDomain ===
+
+    const BPS: u16 = 10_000;
+
     struct AttributionDomain has copy, drop, store {
+        is_frozen: bool,
         /// Address that receives the mint and trade royalties
         creators: VecMap<address, Creator>,
     }
@@ -43,7 +46,7 @@ module nft_protocol::attribution {
     /// By not attributing any `Creators`, nobody will ever be able to claim
     /// royalties from this `Attributions` object or modify it's domains.
     public fun empty(): AttributionDomain {
-        AttributionDomain { creators: vec_map::empty() }
+        AttributionDomain { is_frozen: false, creators: vec_map::empty() }
     }
 
     public fun from_address(who: address): AttributionDomain {
@@ -52,8 +55,10 @@ module nft_protocol::attribution {
         domain
     }
 
-    public fun from_creators(creators: VecMap<address, Creator>): AttributionDomain {
-        let attributions = AttributionDomain { creators };
+    public fun from_creators(
+        creators: VecMap<address, Creator>
+    ): AttributionDomain {
+        let attributions = AttributionDomain { is_frozen: false, creators };
         assert_total_shares(&attributions);
 
         attributions
@@ -63,7 +68,13 @@ module nft_protocol::attribution {
         vec_map::is_empty(&attributions.creators)
     }
 
-    public fun creators(attributions: &AttributionDomain): &VecMap<address, Creator> {
+    public fun is_frozen(attributions: &AttributionDomain): bool {
+        attributions.is_frozen
+    }
+
+    public fun creators(
+        attributions: &AttributionDomain
+    ): &VecMap<address, Creator> {
         &attributions.creators
     }
 
@@ -100,6 +111,7 @@ module nft_protocol::attribution {
         new_creator: Creator,
         ctx: &mut TxContext,
     ) {
+        // Asserts that sender is a creator
         let creator = get_mut(attributions, tx_context::sender(ctx));
 
         assert!(
@@ -130,11 +142,12 @@ module nft_protocol::attribution {
     //
     // TODO: Create removal methods which split shares evenly and
     // proportionally.
-    public fun remove_creator_transfer(
+    public fun remove_creator_by_transfer(
         attributions: &mut AttributionDomain,
         to: address,
         ctx: &mut TxContext,
     ) {
+        // Asserts that sender is a creator
         let (_, creator) = vec_map::remove(
             &mut attributions.creators,
             &tx_context::sender(ctx)
@@ -147,6 +160,19 @@ module nft_protocol::attribution {
             beneficiary.share_of_royalty_bps + creator.share_of_royalty_bps;
     }
 
+    /// Makes `Collection` domains immutable
+    ///
+    /// This is irreversible, use with caution.
+    ///
+    /// Will cause `assert_collection_has_creator` and `assert_is_creator` to
+    /// always fail, thus making all standard domains immutable.
+    public fun freeze_domains(attributions: &mut AttributionDomain,) {
+        // Only creators can obtain `&mut AttributionDomain`
+        attributions.is_frozen = true
+    }
+
+    /// Distributes content of `aggregate` balance among the creators defined
+    /// in the `AttributionDomain`
     public fun distribute_royalties<FT>(
         attributions: &AttributionDomain,
         aggregate: &mut Balance<FT>,
@@ -160,7 +186,8 @@ module nft_protocol::attribution {
 
         let i = 0;
         while (i < vec_map::size(&attributions.creators)) {
-            let (_, creator) = vec_map::get_entry_by_idx(&attributions.creators, i);
+            let (_, creator) =
+                vec_map::get_entry_by_idx(&attributions.creators, i);
 
             // Truncates fractional part of the result thus ensuring that sum
             // of royalty shares is not greater than total balance.
@@ -189,7 +216,8 @@ module nft_protocol::attribution {
 
         let i = 0;
         while (i < vec_map::size(&attributions.creators)) {
-            let (_, creator) = vec_map::get_entry_by_idx(&attributions.creators, i);
+            let (_, creator) =
+                vec_map::get_entry_by_idx(&attributions.creators, i);
             bps_total = bps_total + creator.share_of_royalty_bps;
             i = i + 1;
         };
@@ -202,5 +230,41 @@ module nft_protocol::attribution {
         who: address
     ) {
         get(attributions, &who);
+    }
+
+    public fun assert_collection_has_creator<C>(
+        collection: &Collection<C>,
+        who: address
+    ) {
+        assert_is_creator(attribution_domain(collection), who);
+    }
+
+    /// ====== Interoperability ===
+
+    struct Witness has drop {}
+
+    public fun attribution_domain<C>(
+        collection: &Collection<C>,
+    ): &AttributionDomain {
+        collection::borrow_domain(collection)
+    }
+
+    public fun attribution_domain_mut<C>(
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ): &mut AttributionDomain {
+        assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        collection::borrow_domain_mut(Witness {}, collection)
+    }
+
+    public fun add_attribution_domain<C>(
+        collection: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
+        domain: AttributionDomain,
+    ) {
+        collection::add_domain(collection, mint_cap, domain);
     }
 }

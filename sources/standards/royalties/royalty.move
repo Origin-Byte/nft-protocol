@@ -3,10 +3,10 @@ module nft_protocol::royalty {
     use sui::tx_context::{Self, TxContext};
     use sui::bag::{Self, Bag};
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection::{Self, Collection, MintCap};
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::attribution::{Self, AttributionDomain};
+    use nft_protocol::attribution;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty_strategy_constant::{
         Self, ConstantRoyaltyStrategy
@@ -18,8 +18,6 @@ module nft_protocol::royalty {
         /// Aggregates received royalties across different coins
         aggregations: Bag,
     }
-
-    struct Witness has drop {}
 
     /// Creates a `RoyaltyDomain` object with a single creator attribution.
     public fun new(ctx: &mut TxContext): RoyaltyDomain {
@@ -39,90 +37,83 @@ module nft_protocol::royalty {
         }
     }
 
-    /// === Royalties ===
+    // === Royalties ===
 
-    /// Add proportional royalty policy
-    ///
-    /// Requires that AttributionDomain is defined and sender is a creator
-    public fun add_proportional_royalty<C>(
-        nft: &mut Collection<C>,
-        strategy: BpsRoyaltyStrategy,
-        ctx: &mut TxContext,
+    /// Add a royalty strategy
+    public fun add_royalty_strategy<Strategy: store>(
+        domain: &mut RoyaltyDomain,
+        strategy: Strategy,
     ) {
-        attribution::assert_is_creator(
-            collection::borrow_domain<C, AttributionDomain>(nft),
-            tx_context::sender(ctx)
-        );
-
-        let domain = collection::borrow_domain_mut<C, RoyaltyDomain, Witness>(Witness {}, nft);
-
         bag::add(
             &mut domain.strategies,
-            utils::marker<BpsRoyaltyStrategy>(),
+            utils::marker<Strategy>(),
             strategy,
         );
+    }
+
+    /// Remove a royalty strategy
+    public fun remove_royalty_strategy<Strategy: store>(
+        domain: &mut RoyaltyDomain,
+    ): Strategy {
+        bag::remove(&mut domain.strategies, utils::marker<Strategy>())
+    }
+
+    /// Check whether a royalty strategy is defined
+    public fun contains_royalty_strategy<Strategy: store>(
+        domain: &RoyaltyDomain,
+    ): bool {
+        bag::contains_with_type<Marker<Strategy>, Strategy>(
+            &domain.strategies, utils::marker<Strategy>()
+        )
+    }
+
+    /// Borrow a royalty strategy
+    public fun borrow_royalty_strategy<Strategy: store>(
+        domain: &RoyaltyDomain,
+    ): &Strategy {
+        bag::borrow(
+            &domain.strategies,
+            utils::marker<Strategy>(),
+        )
+    }
+
+    /// Mutably borrow a royalty strategy
+    public fun borrow_royalty_strategy_mut<Strategy: store>(
+        domain: &mut RoyaltyDomain,
+    ): &Strategy {
+        bag::borrow_mut(&mut domain.strategies, utils::marker<Strategy>())
+    }
+
+    // === Standard royalty domains ===
+
+    /// Add proportional royalty policy
+    public fun add_proportional_royalty(
+        domain: &mut RoyaltyDomain,
+        strategy: BpsRoyaltyStrategy,
+    ) {
+        add_royalty_strategy(domain, strategy);
     }
 
     /// Add constant royalty policy
-    ///
-    /// Requires that AttributionDomain is defined and sender is a creator
-    public fun add_constant_royalty<C>(
-        nft: &mut Collection<C>,
+    public fun add_constant_royalty(
+        domain: &mut RoyaltyDomain,
         strategy: ConstantRoyaltyStrategy,
-        ctx: &mut TxContext,
     ) {
-        attribution::assert_is_creator(
-            collection::borrow_domain<C, AttributionDomain>(nft),
-            tx_context::sender(ctx)
-        );
-
-        let domain = collection::borrow_domain_mut<C, RoyaltyDomain, Witness>(Witness {}, nft);
-
-        bag::add(
-            &mut domain.strategies,
-            utils::marker<ConstantRoyaltyStrategy>(),
-            strategy,
-        );
+        add_royalty_strategy(domain, strategy);
     }
 
     /// Remove proportional royalty policy
-    ///
-    /// Requires that AttributionDomain is defined and sender is a creator
-    public fun remove_proportional_royalty<C>(
-        nft: &mut Collection<C>,
-        ctx: &mut TxContext,
-    ) {
-        attribution::assert_is_creator(
-            collection::borrow_domain<C, AttributionDomain>(nft),
-            tx_context::sender(ctx)
-        );
-
-        let domain = collection::borrow_domain_mut<C, RoyaltyDomain, Witness>(Witness {}, nft);
-
-        bag::remove<Marker<BpsRoyaltyStrategy>, BpsRoyaltyStrategy>(
-            &mut domain.strategies,
-            utils::marker<BpsRoyaltyStrategy>(),
-        );
+    public fun remove_proportional_royalty(
+        domain: &mut RoyaltyDomain,
+    ): BpsRoyaltyStrategy {
+        remove_royalty_strategy<BpsRoyaltyStrategy>(domain)
     }
 
     /// Remove constant royalty policy
-    ///
-    /// Requires that AttributionDomain is defined and sender is a creator
-    public fun remove_constant_royalty<C>(
-        nft: &mut Collection<C>,
-        ctx: &mut TxContext,
-    ) {
-        attribution::assert_is_creator(
-            collection::borrow_domain<C, AttributionDomain>(nft),
-            tx_context::sender(ctx)
-        );
-
-        let domain = collection::borrow_domain_mut<C, RoyaltyDomain, Witness>(Witness {}, nft);
-
-        bag::remove<Marker<ConstantRoyaltyStrategy>, ConstantRoyaltyStrategy>(
-            &mut domain.strategies,
-            utils::marker<ConstantRoyaltyStrategy>(),
-        );
+    public fun remove_constant_royalty(
+        domain: &mut RoyaltyDomain,
+    ): ConstantRoyaltyStrategy {
+        remove_royalty_strategy<ConstantRoyaltyStrategy>(domain)
     }
 
     /// Calculate how many tokens are due for the defined proportional royalty
@@ -133,17 +124,11 @@ module nft_protocol::royalty {
         domain: &RoyaltyDomain,
         amount: u64,
     ): u64 {
-        if (!bag::contains_with_type<Marker<BpsRoyaltyStrategy>, BpsRoyaltyStrategy>(
-            &domain.strategies, utils::marker<BpsRoyaltyStrategy>()
-        )) {
+        if (!contains_royalty_strategy<BpsRoyaltyStrategy>(domain)) {
             return 0
         };
 
-        let strategy: &BpsRoyaltyStrategy = bag::borrow(
-            &domain.strategies,
-            utils::marker<BpsRoyaltyStrategy>(),
-        );
-
+        let strategy = borrow_royalty_strategy<BpsRoyaltyStrategy>(domain);
         royalty_strategy_bps::calculate(strategy, amount)
     }
 
@@ -154,77 +139,64 @@ module nft_protocol::royalty {
     public fun calculate_constant_royalty(
         domain: &RoyaltyDomain,
     ): u64 {
-        if (!bag::contains_with_type<Marker<ConstantRoyaltyStrategy>, ConstantRoyaltyStrategy>(
-            &domain.strategies, utils::marker<ConstantRoyaltyStrategy>()
-        )) {
+        if (!contains_royalty_strategy<ConstantRoyaltyStrategy>(domain)) {
             return 0
         };
 
-        let strategy: &ConstantRoyaltyStrategy = bag::borrow(
-            &domain.strategies,
-            utils::marker<ConstantRoyaltyStrategy>(),
-        );
-
+        let strategy = borrow_royalty_strategy<ConstantRoyaltyStrategy>(domain);
         royalty_strategy_constant::calculate(strategy)
     }
 
     /// === Utils ===
 
-    public fun transfer_royalties<FT>(
-        domain: &mut RoyaltyDomain,
+    struct Witness has drop {}
+
+    /// Collects an `amount` of tokens from the provided balance into the
+    /// aggregate balance of the `RoyaltyDomain` registered on the `Collection`
+    ///
+    /// Requires that a `RoyaltyDomain` is registered on the collection
+    public fun collect_royalty<C, FT>(
+        collection: &mut Collection<C>,
         source: &mut Balance<FT>,
         amount: u64,
     ) {
+        // Bypass creator check as anyone should be able to transfer royalties
+        // to the collection.
+        let domain: &mut RoyaltyDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
+        let aggregations = &mut domain.aggregations;
+
         let b = balance::split(source, amount);
 
         if (!bag::contains_with_type<Marker<Balance<FT>>, Balance<FT>>(
-            &domain.aggregations, utils::marker<Balance<FT>>()
+            aggregations, utils::marker<Balance<FT>>()
         )) {
             bag::add(
-                &mut domain.aggregations,
+                aggregations,
                 utils::marker<Balance<FT>>(),
                 balance::zero<FT>(),
             );
         };
 
         let aggregate = bag::borrow_mut(
-            &mut domain.aggregations,
+            aggregations,
             utils::marker<Balance<FT>>()
         );
 
         balance::join(aggregate, b);
     }
 
-    /// === Interoperability ===
-
-    public fun royalty_domain<C>(
-        collection: &Collection<C>,
-    ): &RoyaltyDomain {
-        collection::borrow_domain(collection)
-    }
-
-    public fun royalty_domain_mut<C>(
-        collection: &mut Collection<C>,
-    ): &mut RoyaltyDomain {
-        collection::borrow_domain_mut(Witness {}, collection)
-    }
-
-    public fun add_royalty_domain<C>(
-        collection: &mut Collection<C>,
-        ctx: &mut TxContext,
-    ) {
-        collection::add_domain(collection, new(ctx));
-    }
-
+    /// Distribute aggregated royalties among creators
     public entry fun distribute_royalties<C, FT>(
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let attributions = *collection::borrow_domain<C, AttributionDomain>(collection);
+        let attributions = *attribution::attribution_domain(collection);
 
-        let royalty: &mut RoyaltyDomain = royalty_domain_mut(collection);
+        let domain: &mut RoyaltyDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
         let aggregate: &mut Balance<FT> = bag::borrow_mut(
-            &mut royalty.aggregations,
+            &mut domain.aggregations,
             utils::marker<Balance<FT>>(),
         );
 
@@ -233,5 +205,37 @@ module nft_protocol::royalty {
             aggregate,
             ctx,
         );
+    }
+
+    /// === Interoperability ===
+
+    /// Get reference to `RoyaltyDomain`
+    public fun royalty_domain<C>(
+        collection: &Collection<C>,
+    ): &RoyaltyDomain {
+        collection::borrow_domain(collection)
+    }
+
+    /// Get mutable reference to `RoyaltyDomain`
+    ///
+    /// Requires that `AttributionDomain` is defined and sender is a creator
+    public fun royalty_domain_mut<C>(
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ): &mut RoyaltyDomain {
+        attribution::assert_collection_has_creator(
+            collection, tx_context::sender(ctx)
+        );
+
+        collection::borrow_domain_mut(Witness {}, collection)
+    }
+
+    /// Registers `RoyaltyDomain` on the given `Collection`
+    public fun add_royalty_domain<C>(
+        collection: &mut Collection<C>,
+        mint_cap: &mut MintCap<C>,
+        domain: RoyaltyDomain,
+    ) {
+        collection::add_domain(collection, mint_cap, domain);
     }
 }
