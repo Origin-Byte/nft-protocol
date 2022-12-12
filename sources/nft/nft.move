@@ -1,4 +1,4 @@
-//! Module of a generic `NFT` type.
+//! Module of a generic `Nft` type.
 //!
 //! It acts as a generic interface for NFTs and it allows for
 //! the creation of arbitrary domain specific implementations.
@@ -12,14 +12,14 @@ module nft_protocol::nft {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    struct NFT<phantom C> has key, store {
+    struct Nft<phantom C> has key, store {
         id: UID,
         bag: Bag,
         logical_owner: address,
     }
 
-    public fun new<C>(ctx: &mut TxContext): NFT<C> {
-        NFT {
+    public fun new<C>(ctx: &mut TxContext): Nft<C> {
+        Nft {
             id: object::new(ctx),
             bag: bag::new(ctx),
             logical_owner: tx_context::sender(ctx),
@@ -28,24 +28,24 @@ module nft_protocol::nft {
 
     // === Domain Functions ===
 
-    public fun has_domain<C, D: store>(nft: &NFT<C>): bool {
+    public fun has_domain<C, D: store>(nft: &Nft<C>): bool {
         bag::contains_with_type<Marker<D>, D>(&nft.bag, utils::marker<D>())
     }
 
-    public fun borrow_domain<C, D: store>(nft: &NFT<C>): &D {
+    public fun borrow_domain<C, D: store>(nft: &Nft<C>): &D {
         bag::borrow<Marker<D>, D>(&nft.bag, utils::marker<D>())
     }
 
     public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
         bag::borrow_mut<Marker<D>, D>(&mut nft.bag, utils::marker<D>())
     }
 
     public fun add_domain<C, V: store>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         v: V,
         ctx: &mut TxContext,
     ) {
@@ -61,7 +61,7 @@ module nft_protocol::nft {
 
     public fun remove_domain<C, W: drop, V: store>(
         _witness: W,
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
     ): V {
         utils::assert_same_module_as_witness<W, V>();
         bag::remove(&mut nft.bag, utils::marker<V>())
@@ -72,7 +72,7 @@ module nft_protocol::nft {
     /// If the authority was whitelisted by the creator, we transfer
     /// the NFT to the recipient address.
     public fun transfer<C, Auth: drop>(
-        nft: NFT<C>,
+        nft: Nft<C>,
         recipient: address,
         authority: Auth,
         whitelist: &Whitelist,
@@ -83,7 +83,7 @@ module nft_protocol::nft {
 
     /// Whitelisted contracts (by creator) can change logical owner of an NFT.
     public fun change_logical_owner<C, Auth: drop>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         recipient: address,
         authority: Auth,
         whitelist: &Whitelist,
