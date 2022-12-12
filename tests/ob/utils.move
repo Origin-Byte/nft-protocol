@@ -188,6 +188,6 @@ module nft_protocol::test_ob_utils {
             ctx(scenario),
         );
         test_scenario::return_shared(ob);
-        test_scenario::return_to_sender(scenario ,wallet);
+        test_scenario::return_to_sender(scenario, wallet);
     }
 }
