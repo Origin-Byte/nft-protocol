@@ -14,6 +14,7 @@ module nft_protocol::launchpad {
     use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::err;
+    use nft_protocol::utils;
     use nft_protocol::nft::Nft;
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::object_box::{Self as obox, ObjectBox};
@@ -403,12 +404,33 @@ module nft_protocol::launchpad {
     }
 
     /// Get the Slot's `market` mutably
+    ///
+    /// This will require that sender is a `Slot` admin, for non admin mutable
+    /// access use `market_internal_mut`.
     public fun market_mut<M: key + store>(
         slot: &mut Slot,
         market_id: ID,
         ctx: &mut TxContext,
     ): &mut M {
         assert_slot_admin(slot, ctx);
+        assert!(
+            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
+            err::undefined_market(),
+        );
+
+        object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
+    }
+
+    /// Get the Slot's `market` mutably
+    ///
+    /// Does not require that sender is a `Slot` admin, limited for use only in
+    /// the module that defined the market type.
+    public fun market_internal_mut<M: key + store, W: drop>(
+        _witness: W,
+        slot: &mut Slot,
+        market_id: ID,
+    ): &mut M {
+        utils::assert_same_module_as_witness<W, M>();
         assert!(
             object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
             err::undefined_market(),
@@ -547,7 +569,7 @@ module nft_protocol::launchpad {
 
         assert!(
             !inventory::whitelisted(inventory),
-            err::sale_is_not_whitelisted()
+            err::sale_is_whitelisted()
         );
     }
 
@@ -565,7 +587,7 @@ module nft_protocol::launchpad {
     ) {
         assert!(
             !inventory::whitelisted(inventory),
-            err::sale_is_not_whitelisted()
+            err::sale_is_whitelisted()
         );
     }
 }
