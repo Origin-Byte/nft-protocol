@@ -96,7 +96,7 @@ module nft_protocol::display {
 
     public fun add_collection_display_domain<C>(
         nft: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         name: String,
         description: String
     ) {
@@ -167,7 +167,7 @@ module nft_protocol::display {
 
     public fun add_collection_url_domain<C>(
         nft: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         url: Url
     ) {
         collection::add_domain(nft, mint_cap, new_url_domain(url));
@@ -237,7 +237,7 @@ module nft_protocol::display {
 
     public fun add_collection_symbol_domain<C>(
         nft: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         symbol: String
     ) {
         collection::add_domain(nft, mint_cap, new_symbol_domain(symbol));
