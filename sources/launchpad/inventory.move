@@ -18,11 +18,16 @@ module nft_protocol::inventory {
 
     use nft_protocol::err;
 
+    // The `Inventory` of a sale performs the bookeeping of all the NFTs that
+    // are currently on sale as well as the NFTs whose certificates have been
+    // sold and currently waiting to be redeemed
     struct Inventory has key, store {
         id: UID,
         whitelisted: bool,
-        // Vector of all IDs owned by the slingshot
+        // NFTs that are currently on sale
         nfts: vector<ID>,
+        // NFTs whose certificates have been sold and currently waiting
+        // to be redeemed
         queue: vector<ID>,
     }
 
@@ -93,7 +98,7 @@ module nft_protocol::inventory {
         vector::length(&inventory.nfts)
     }
 
-    public fun whitelisted(
+    public fun is_whitelisted(
         inventory: &Inventory,
     ): bool {
         inventory.whitelisted
@@ -105,7 +110,7 @@ module nft_protocol::inventory {
         inventory: &Inventory,
     ) {
         assert!(
-            whitelisted(inventory),
+            is_whitelisted(inventory),
             err::sale_is_not_whitelisted()
         );
     }
@@ -114,7 +119,7 @@ module nft_protocol::inventory {
         inventory: &Inventory,
     ) {
         assert!(
-            !whitelisted(inventory),
+            !is_whitelisted(inventory),
             err::sale_is_whitelisted()
         );
     }

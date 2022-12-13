@@ -1,4 +1,6 @@
 module nft_protocol::slot {
+    // TODO: Consider adding a function redeem_certificate with `nft_id` as
+    // a parameter
     use sui::transfer;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID , UID};
@@ -20,7 +22,7 @@ module nft_protocol::slot {
     /// This object acts as an intermediate step between the payment
     /// and the transfer of the NFT. The user first has to call
     /// `buy_nft_certificate` which mints and transfers the `NftCertificate` to
-    /// the user. This object will dictate which NFT the userwill receive by
+    /// the user. This object will dictate which NFT will the user receive by
     /// calling the endpoint `claim_nft`
     struct NftCertificate has key, store {
         id: UID,
@@ -29,7 +31,6 @@ module nft_protocol::slot {
         nft_id: ID,
     }
 
-    // TODO: need to add a function with nft_id as function parameter
     public fun issue_nft_certificate(
         launchpad: &Launchpad,
         slot: &mut Slot,
@@ -430,7 +431,7 @@ module nft_protocol::slot {
         let inventory = inventory(slot, market_id);
 
         assert!(
-            inventory::whitelisted(inventory),
+            inventory::is_whitelisted(inventory),
             err::sale_is_not_whitelisted()
         );
     }
@@ -439,7 +440,7 @@ module nft_protocol::slot {
         let inventory = inventory(slot, market_id);
 
         assert!(
-            !inventory::whitelisted(inventory),
+            !inventory::is_whitelisted(inventory),
             err::sale_is_whitelisted()
         );
     }
