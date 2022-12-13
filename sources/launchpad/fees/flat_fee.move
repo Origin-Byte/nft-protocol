@@ -29,8 +29,8 @@ module nft_protocol::flat_fee {
         slot: &mut Slot,
         ctx: &mut TxContext,
     ) {
-        slot::assert_slot(launchpad, slot);
-        slot::assert_launchpad_or_slot_admin(launchpad, slot, ctx);
+        slot::assert_slot_launchpad_match(launchpad, slot);
+        slot::assert_correct_admin(launchpad, slot, ctx);
 
         let (proceeds_value, slot_receiver) = {
             let proceeds = slot::proceeds(slot);
