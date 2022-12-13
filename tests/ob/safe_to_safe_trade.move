@@ -32,13 +32,16 @@ module nft_protocol::test_ob_safe_to_safe_trade {
             &mut scenario,
             seller_safe_id,
             seller_owner_cap_id,
+            SELLER,
         );
 
-        test_ob::make_sell_offer_for_nft(
+        test_ob::create_ask(
             &mut scenario,
             seller_safe_id,
             seller_owner_cap_id,
             nft_id,
+            SELLER,
+            OFFER_SUI,
         );
 
         let (buyer_safe_id , _buyer_owner_cap_id) = test_ob::create_safe(
@@ -46,12 +49,14 @@ module nft_protocol::test_ob_safe_to_safe_trade {
             BUYER,
         );
 
-        test_ob::buy_nft(
+        test_ob::create_bid(
             &mut scenario,
             buyer_safe_id,
             seller_safe_id,
             nft_id,
-            ob_id
+            ob_id,
+            BUYER,
+            OFFER_SUI,
         );
 
         test_scenario::end(scenario);
