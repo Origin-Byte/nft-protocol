@@ -98,4 +98,24 @@ module nft_protocol::inventory {
     ): bool {
         inventory.whitelisted
     }
+
+    // === Assertions ===
+
+    public fun assert_is_whitelisted(
+        inventory: &Inventory,
+    ) {
+        assert!(
+            whitelisted(inventory),
+            err::sale_is_not_whitelisted()
+        );
+    }
+
+    public fun assert_is_not_whitelisted(
+        inventory: &Inventory,
+    ) {
+        assert!(
+            !whitelisted(inventory),
+            err::sale_is_whitelisted()
+        );
+    }
 }
