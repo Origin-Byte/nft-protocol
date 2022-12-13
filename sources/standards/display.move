@@ -1,14 +1,21 @@
+//! Module of NFT domains for displaying standard information
+//!
+//! Current display domains are:
+//!     - DisplayDomain (For NFTs and Collections)
+//!     - UrlDomain (For NFTs and Collections)
+//!     - SymbolDomain (For Collections)
+//!     - Attributes (For NFTs)
 module nft_protocol::display {
     use std::string::String;
     use std::option::{Self, Option};
 
     use sui::url::Url;
-    use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
+    use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::attribution;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::attribution;
 
     struct Witness has drop {}
 

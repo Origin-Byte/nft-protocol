@@ -2,19 +2,29 @@
 //!
 //! It acts as a generic interface for NFTs and it allows for
 //! the creation of arbitrary domain specific implementations.
+//!
+//! OriginByte's NFT protocol brings dynamism, composability and extendability
+//! to NFTs. The current design allows creators to create NFTs with custom
+//! domain-specific fields, with their own bespoke behaviour. One can find
+//! examples of NFT domains in the `standards` folder.
 module nft_protocol::nft {
-    use nft_protocol::err;
-    use nft_protocol::transfer_whitelist::{Self, Whitelist};
-    use nft_protocol::utils::{Self, Marker};
-
+    use sui::transfer;
     use sui::bag::{Self, Bag};
     use sui::object::{Self, UID};
-    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::err;
+    use nft_protocol::utils::{Self, Marker};
+    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+
+    /// NFT object from `C`ollection
     struct Nft<phantom C> has key, store {
         id: UID,
+        /// Holds all NFT domains
         bag: Bag,
+        /// Represents the `logical` owner of an NFT
+        /// It allows for the traceability of the owner of an NFT even
+        /// when such is intermediately owned by a shared object
         logical_owner: address,
     }
 
@@ -36,6 +46,9 @@ module nft_protocol::nft {
         bag::borrow<Marker<D>, D>(&nft.bag, utils::marker<D>())
     }
 
+    /// Witness protected. Guarantees that the domain `D` can only be mutated
+    /// via the module that has instantiated it. In other words,
+    /// Witness `W` must come from the same module as domain `D`.
     public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
         nft: &mut Nft<C>,
