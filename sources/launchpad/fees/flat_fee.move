@@ -9,8 +9,7 @@ module nft_protocol::flat_fee {
     use nft_protocol::err;
     use nft_protocol::proceeds;
     use nft_protocol::object_box;
-    use nft_protocol::slot::{Self, Slot};
-    use nft_protocol::launchpad::{Self, Launchpad};
+    use nft_protocol::launchpad::{Self, Launchpad, Slot};
 
     struct FlatFee has key, store {
         id: UID,
@@ -29,18 +28,18 @@ module nft_protocol::flat_fee {
         slot: &mut Slot,
         ctx: &mut TxContext,
     ) {
-        slot::assert_slot(launchpad, slot);
-        slot::assert_launchpad_or_slot_admin(launchpad, slot, ctx);
+        launchpad::assert_slot(launchpad, slot);
+        launchpad::assert_launchpad_or_slot_admin(launchpad, slot, ctx);
 
         let (proceeds_value, slot_receiver) = {
-            let proceeds = slot::proceeds(slot);
-            let slot_receiver = slot::receiver(slot);
+            let proceeds = launchpad::proceeds(slot);
+            let slot_receiver = launchpad::slot_receiver(slot);
             let proceeds_value = proceeds::balance<FT>(proceeds);
             (proceeds_value, slot_receiver)
         };
 
-        let fee_policy = if (slot::contains_custom_fee(slot)) {
-            slot::custom_fee(slot)
+        let fee_policy = if (launchpad::slot_has_custom_fee(slot)) {
+            launchpad::custom_fee(slot)
         } else {
             launchpad::default_fee(launchpad)
         };
@@ -55,9 +54,9 @@ module nft_protocol::flat_fee {
         let fee = balance::value(proceeds_value) * policy.rate_bps;
 
         proceeds::collect<FT>(
-            slot::proceeds_mut(slot),
+            launchpad::proceeds_mut(slot),
             fee,
-            launchpad::receiver(launchpad),
+            launchpad::launchpad_receiver(launchpad),
             slot_receiver,
             ctx,
         );
