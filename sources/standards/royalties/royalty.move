@@ -1,13 +1,19 @@
+//! Module of Collection `Royalty` domain.
+//!
+//! It allows Creators to define a royalty strategy for their collections.
+//! It exposes public functions to be used by the Type-exporting `C`ollection
+//! type module (e.g. Suimarines) in order to calculate the royalty given a
+//! amount. This module relies on the type-exporting module as an
+//! oracle for the execution price of the trade.
 module nft_protocol::royalty {
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
     use sui::bag::{Self, Bag};
 
-    use nft_protocol::collection::{Self, Collection, MintCap};
-
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::attribution;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
+    use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::royalty_strategy_constant::{
         Self, ConstantRoyaltyStrategy
     };
