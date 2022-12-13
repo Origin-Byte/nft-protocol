@@ -12,7 +12,7 @@ module nft_protocol::suimarines {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::attribution;
-    use nft_protocol::launchpad::{Self as lp, Slot};
+    use nft_protocol::slot::{Self, Slot};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -109,6 +109,6 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        lp::add_nft(slot, market_id, nft);
+        slot::add_nft(slot, market_id, nft);
     }
 }
