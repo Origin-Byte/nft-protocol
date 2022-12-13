@@ -1,3 +1,19 @@
+//! Module of `Safe` type.
+//!
+//! `Safe` is an abstraction meant to hold NFTs in it. A user that transfers
+//! its NFTs to its Safe is able to delegate the power of transferability.
+//! One typical issue with on-chain trading is that by sending one's assets to
+//! a shared object (the trading primitive), one looses the ability to see them
+//! in their wallet, even though one has still technical ownership of such
+//! assets, until a trade is efectively executed.
+//! To solve for this, we use `Safe` to hold the user's assets and then instead
+//! of transfering the assets to the shared object (trading primitive), the user
+//! transfers a `TransferCap`, which is an object that delegates the ability
+//! to transfer a given NFT out of the seller's `Safe`.
+//!
+//! The ownership model of the `Safe` relies on the object `OwnerCap` whose
+//! holder is the effective owner of the `Safe` and subsequently the owner of
+//! the assets whitin it.
 module nft_protocol::unprotected_safe {
     use nft_protocol::err;
     use nft_protocol::nft::{Self, Nft};

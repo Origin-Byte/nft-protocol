@@ -1,13 +1,13 @@
 //! Module representing the Nft bookeeping Inventories of `Launchpad`s.
 //!
-//! Launchpads can now have multiple sale outlets, repsented
-//! through `sales: vector<Sale>`, which meants that NFT creators can
-//! perform tiered sales. An example of this would be an Gaming NFT creator
-//! separating the sale based on NFT rarity and emit whitelist tokens to
-//! different users for different rarities depending on the user's game score.
+//! Release slots can have multiple concurrent markets, repsented
+//! through `markets: ObjectBag`, allowing NFT creators to perform tiered sales.
+//! An example of this would be an Gaming NFT creator separating the sale
+//! based on NFT rarity and emit whitelist tokens to different users for
+//! different rarities depending on the user's game score.
 //!
-//! The Sale object is agnostic to the Market mechanism and instead decides to
-//! outsource this logic to generic `Market` object. This way developers can
+//! The Slot object is agnostic to the Market mechanism and instead decides to
+//! outsource this logic to generic `Market` objects. This way developers can
 //! come up with their plug-and-play market primitives, of which some examples
 //! are Dutch Auctions, Sealed-Bid Auctions, etc.
 module nft_protocol::inventory {
