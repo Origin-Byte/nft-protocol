@@ -1,3 +1,9 @@
+//! Module of NFT release whitelist tokens.
+//!
+//! Whitin a release `Slot`, each market has its own whitelist policy.
+//! As an example, creators can create tiered sales based on the NFT rarity,
+//! and then whitelist only the rare NFT sale. They can then emit whitelist
+//! tokens and send them to users who have completed a set of defined actions.
 module nft_protocol::launchpad_whitelist {
     use sui::object::{Self, ID , UID};
     use sui::tx_context::TxContext;

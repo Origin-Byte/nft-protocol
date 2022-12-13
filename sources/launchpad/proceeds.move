@@ -1,3 +1,10 @@
+//! Module performing custody of the funds acquired from the sale proceeds of
+//! an NFT releaset `Slot`. In addition, `Proceeds` also performs the bookeeping
+//! of the sales, in quantities and <FT>-amount.
+//!
+//! The process of retrieving the funds from the  `Proceeds` object embedded in
+//! a `Slot` guarantees that fees are transferred to the `launchpad.receiver`
+//! and therefore the `Slot.receiver` receives the proceeds net of fees.
 module nft_protocol::proceeds {
     // TODO: Function to destroy Proceeds object
     // TODO: reconsider `Proceeds.total` to acocmodate for multiple FTs

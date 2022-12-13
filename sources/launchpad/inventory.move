@@ -1,4 +1,4 @@
-//! Module representing the Nft bookeeping Inventories of `Launchpad`s.
+//! Module representing the Nft bookeeping Inventories of `Slot`s.
 //!
 //! Release slots can have multiple concurrent markets, repsented
 //! through `markets: ObjectBag`, allowing NFT creators to perform tiered sales.
@@ -10,6 +10,10 @@
 //! outsource this logic to generic `Market` objects. This way developers can
 //! come up with their plug-and-play market primitives, of which some examples
 //! are Dutch Auctions, Sealed-Bid Auctions, etc.
+//!
+//! Each market has a dedicated inventory, which tracks which NFTs are on
+//! the shelves still to be sold, and which NFTs have been sold via Certificates
+//! but are still waiting to be redeemed.
 module nft_protocol::inventory {
     use std::vector;
 
@@ -24,10 +28,13 @@ module nft_protocol::inventory {
     struct Inventory has key, store {
         id: UID,
         whitelisted: bool,
-        // NFTs that are currently on sale
+        // NFTs that are currently on sale. When a `NftCertificate` is sold,
+        // its corresponding NFT ID will be flushed from `nfts` and will be
+        // added to `queue`.
         nfts: vector<ID>,
         // NFTs whose certificates have been sold and currently waiting
-        // to be redeemed
+        // to be redeemed. When a `NftCertificate` is redeemed, its respective
+        // NFT ID is flushed out of `queue`
         queue: vector<ID>,
     }
 

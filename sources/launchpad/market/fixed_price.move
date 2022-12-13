@@ -1,18 +1,19 @@
 //! Module of a Fixed Price Sale `Market` type.
 //!
-//! It implments a fixed price launchpad configuration.
+//! It implements a fixed price sale configuration, where all NFTs in the sale
+//! inventory get sold at a fixed price.
 //!
 //! NFT creators can decide if they want to create a simple primary market sale
-//! via `create_single_market` or if they want to create a tiered market sale
-//! by segregating NFTs by different sale segments (e.g. based on rarity).
+//! or if they want to create a tiered market sale by segregating NFTs by
+//! different sale segments (e.g. based on rarity).
 //!
+//! To create a market sale the administrator can simply call `create_market`.
 //! Each sale segment can have a whitelisting process, each with their own
 //! whitelist tokens.
-//!
-//! TODO: Consider if we want to be able to delete the launchpad object
-//! TODO: Remove code duplication between `buy_nft_certificate` and
-//! `buy_whitelisted_nft_certificate`
 module nft_protocol::fixed_price {
+    // TODO: Consider if we want to be able to delete the launchpad object
+    // TODO: Remove code duplication between `buy_nft_certificate` and
+    // `buy_whitelisted_nft_certificate`
     use sui::coin::{Self, Coin};
     use sui::transfer::{Self};
     use sui::object::{Self, ID, UID};
