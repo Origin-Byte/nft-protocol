@@ -1,4 +1,6 @@
 module nft_protocol::slot {
+    // TODO: Consider adding a function redeem_certificate with `nft_id` as
+    // a parameter
     use sui::transfer;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID , UID};
@@ -10,7 +12,7 @@ module nft_protocol::slot {
     use nft_protocol::err;
     use nft_protocol::utils;
     use nft_protocol::nft::Nft;
-    use nft_protocol::launchpad::{Self, Launchpad};
+    use nft_protocol::launchpad::{Self as lp, Launchpad};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::object_box::{Self as obox, ObjectBox};
     use nft_protocol::inventory::{Self, Inventory};
@@ -20,7 +22,7 @@ module nft_protocol::slot {
     /// This object acts as an intermediate step between the payment
     /// and the transfer of the NFT. The user first has to call
     /// `buy_nft_certificate` which mints and transfers the `NftCertificate` to
-    /// the user. This object will dictate which NFT the userwill receive by
+    /// the user. This object will dictate which NFT will the user receive by
     /// calling the endpoint `claim_nft`
     struct NftCertificate has key, store {
         id: UID,
@@ -29,14 +31,13 @@ module nft_protocol::slot {
         nft_id: ID,
     }
 
-    // TODO: need to add a function with nft_id as function parameter
     public fun issue_nft_certificate(
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
-        assert_slot(launchpad, slot);
+        assert_slot_launchpad_match(launchpad, slot);
         let inventory = inventory_mut(slot, market_id);
 
         let nft_id = inventory::pop_nft(inventory);
@@ -111,8 +112,8 @@ module nft_protocol::slot {
         // If the launchpad is permissioned then slots can only be inserted
         // by the administrator. If the launchpad is permissionless, then
         // anyone can just add slots to it.
-        if (launchpad::is_permissioned(launchpad)) {
-            launchpad::assert_launchpad_admin(launchpad, ctx);
+        if (lp::is_permissioned(launchpad)) {
+            lp::assert_launchpad_admin(launchpad, ctx);
         };
 
         let uid = object::new(ctx);
@@ -160,7 +161,7 @@ module nft_protocol::slot {
         funds: Coin<FT>,
         qty_sold: u64,
     ) {
-        assert_slot(launchpad, slot);
+        assert_slot_launchpad_match(launchpad, slot);
 
         let balance = coin::into_balance(funds);
 
@@ -228,8 +229,8 @@ module nft_protocol::slot {
         inventory: Inventory,
         ctx: &mut TxContext,
     ) {
-        assert_slot(launchpad, slot);
-        assert_launchpad_or_slot_admin(launchpad, slot, ctx);
+        assert_slot_launchpad_match(launchpad, slot);
+        assert_correct_admin(launchpad, slot, ctx);
 
         let market_id = object::id(&market);
 
@@ -372,7 +373,7 @@ module nft_protocol::slot {
 
     // === Assertions ===
 
-    public fun assert_slot(launchpad: &Launchpad, slot: &Slot) {
+    public fun assert_slot_launchpad_match(launchpad: &Launchpad, slot: &Slot) {
         assert!(
             object::id(launchpad) == slot.launchpad,
             err::launchpad_slot_mismatch()
@@ -386,19 +387,16 @@ module nft_protocol::slot {
         );
     }
 
-    public fun assert_launchpad_or_slot_admin(
+    public fun assert_correct_admin(
         launchpad: &Launchpad,
         slot: &Slot,
         ctx: &mut TxContext,
     ) {
-        let is_launchpad_admin =
-            tx_context::sender(ctx) == launchpad::admin(launchpad);
-        let is_slot_admin = tx_context::sender(ctx) == slot.admin;
-
-        assert!(
-            is_launchpad_admin || is_slot_admin,
-            err::wrong_launchpad_or_slot_admin(),
-        );
+        if (lp::is_permissioned(launchpad) == true) {
+            lp::assert_launchpad_admin(launchpad, ctx);
+        } else {
+            assert_slot_admin(slot, ctx);
+        }
     }
 
     public fun assert_is_live(slot: &Slot) {
@@ -430,7 +428,7 @@ module nft_protocol::slot {
         let inventory = inventory(slot, market_id);
 
         assert!(
-            inventory::whitelisted(inventory),
+            inventory::is_whitelisted(inventory),
             err::sale_is_not_whitelisted()
         );
     }
@@ -439,7 +437,7 @@ module nft_protocol::slot {
         let inventory = inventory(slot, market_id);
 
         assert!(
-            !inventory::whitelisted(inventory),
+            !inventory::is_whitelisted(inventory),
             err::sale_is_whitelisted()
         );
     }
