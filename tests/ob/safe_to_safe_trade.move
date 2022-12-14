@@ -89,7 +89,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
             safe::owner_cap_safe(&seller_owner_cap),
         );
 
-        let nft = nft::new<Foo>(ctx(scenario));
+        let nft = nft::new<Foo>(SELLER, ctx(scenario));
         let nft_id = object::id(&nft);
         safe::deposit_nft<Foo>(
             nft,

@@ -27,8 +27,7 @@ module nft_protocol::ob {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::safe::{Self, Safe};
-    use nft_protocol::unprotected_safe::{TransferCap};
+    use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_whitelist::Whitelist;
     use nft_protocol::utils;
     use nft_protocol::trading::{
