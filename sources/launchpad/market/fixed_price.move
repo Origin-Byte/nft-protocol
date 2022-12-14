@@ -96,12 +96,7 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        slot::pay(
-            launchpad,
-            slot,
-            funds,
-            1,
-        );
+        slot::pay(slot, funds, 1);
 
         let certificate = slot::issue_nft_certificate(
             launchpad,
@@ -147,12 +142,7 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        slot::pay(
-            launchpad,
-            slot,
-            funds,
-            1,
-        );
+        slot::pay(slot, funds, 1);
 
         lp_whitelist::burn_whitelist_token(whitelist_token);
 

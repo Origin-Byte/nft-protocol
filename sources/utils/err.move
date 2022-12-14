@@ -78,7 +78,6 @@ module nft_protocol::err {
         return Prefix + 207
     }
 
-    // TODO: To be used by redeem function
     public fun certificate_nft_id_mismatch(): u64 {
         return Prefix + 208
     }
