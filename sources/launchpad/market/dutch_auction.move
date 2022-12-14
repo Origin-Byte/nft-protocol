@@ -1,5 +1,17 @@
-// TODO(https://github.com/Origin-Byte/nft-protocol/issues/80): Market slot is toggled globally
+//! Module of a Dutch Auction Sale `Market` type.
+//!
+//! It implements a dutch auction sale configuration, where all NFTs in the sale
+//! inventory get sold to the winners of the auction.
+//!
+//! NFT creators can decide if they want to create a simple primary market sale
+//! or if they want to create a tiered market sale by segregating NFTs by
+//! different sale segments (e.g. based on rarity).
+//!
+//! To create a market sale the administrator can simply call `create_market`.
+//! Each sale segment can have a whitelisting process, each with their own
+//! whitelist tokens.
 module nft_protocol::dutch_auction {
+    // TODO(https://github.com/Origin-Byte/nft-protocol/issues/80): Market slot is toggled globally
     //! Auction where bids are fungible tokens.
     //! Winning bids are awarded NFTs.
 
