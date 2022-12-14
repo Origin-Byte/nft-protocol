@@ -56,6 +56,8 @@ module nft_protocol::test_ob_cancel_position {
         // This call should supposedly send the transfer cap back to sender
         test_ob::cancel_ask(&mut scenario, nft_id, SELLER, OFFER_SUI);
 
+        test_scenario::next_tx(&mut scenario, sender);
+
         let transfer_cap = test_scenario::take_from_address_by_id<TransferCap>(
             &mut scenario,
             sender,
