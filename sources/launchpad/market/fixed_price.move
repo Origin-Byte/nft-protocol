@@ -42,7 +42,6 @@ module nft_protocol::fixed_price {
     ///
     /// To be called by the Witness Module deployed by NFT creator.
     public entry fun create_market(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         is_whitelisted: bool,
         price: u64,
@@ -59,13 +58,7 @@ module nft_protocol::fixed_price {
             price,
         };
 
-        slot::add_market(
-            launchpad,
-            slot,
-            market,
-            inventory,
-            ctx,
-        );
+        slot::add_market(slot, market, inventory, ctx);
     }
 
     // === Entrypoints ===
@@ -96,12 +89,7 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        slot::pay(
-            launchpad,
-            slot,
-            funds,
-            1,
-        );
+        slot::pay(slot, funds, 1);
 
         let certificate = slot::issue_nft_certificate(
             launchpad,
@@ -147,12 +135,7 @@ module nft_protocol::fixed_price {
 
         transfer::transfer(change, tx_context::sender(ctx));
 
-        slot::pay(
-            launchpad,
-            slot,
-            funds,
-            1,
-        );
+        slot::pay(slot, funds, 1);
 
         lp_whitelist::burn_whitelist_token(whitelist_token);
 
