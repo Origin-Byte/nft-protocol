@@ -201,6 +201,7 @@ module nft_protocol::ob {
         assert!(!book.protected_actions.create_bid, err::action_not_public());
         create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
+    
     public fun create_bid_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
