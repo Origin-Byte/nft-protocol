@@ -568,12 +568,10 @@ module nft_protocol::ob {
 
         let asks = &mut book.asks;
 
-        let can_be_filled = !crit_bit::is_empty(asks) &&
-            crit_bit::min_key(asks) <= price;
+        let lowest_ask_price = crit_bit::min_key(asks);
+        let can_be_filled = lowest_ask_price <= price && !crit_bit::is_empty(asks);
 
         if (can_be_filled) {
-            // OPTIMIZE: this is being recomputed
-            let lowest_ask_price = crit_bit::min_key(asks);
             let price_level = crit_bit::borrow_mut(asks, lowest_ask_price);
 
             let ask = vector::remove(
