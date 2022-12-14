@@ -43,7 +43,10 @@ module nft_protocol::mint_and_sell {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx(&mut scenario)))
+            creators::from_address(
+                tx_context::sender(ctx(&mut scenario)),
+                ctx(&mut scenario)
+            )
         );
 
         // Register custom domains
@@ -52,18 +55,21 @@ module nft_protocol::mint_and_sell {
             &mut mint_cap,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+            ctx(&mut scenario),
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx(&mut scenario),
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUIM")
+            string::utf8(b"SUIM"),
+            ctx(&mut scenario),
         );
 
         let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));

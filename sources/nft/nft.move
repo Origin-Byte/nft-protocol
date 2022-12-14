@@ -11,9 +11,9 @@ module nft_protocol::nft {
     use std::type_name::{Self, TypeName};
 
     use sui::event;
-    use sui::transfer;
-    use sui::bag::{Self, Bag};
+    use sui::dynamic_object_field as dof;
     use sui::object::{Self, ID, UID};
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -36,8 +36,6 @@ module nft_protocol::nft {
     struct Nft<phantom C> has key, store {
         /// `Nft` ID
         id: UID,
-        /// Main storage object for NFT domains
-        bag: Bag,
         /// Represents the logical owner of an NFT
         ///
         /// It allows for the traceability of the owner of an NFT even when the
@@ -88,7 +86,6 @@ module nft_protocol::nft {
 
         Nft {
             id,
-            bag: bag::new(ctx),
             logical_owner: owner,
         }
     }
@@ -96,8 +93,8 @@ module nft_protocol::nft {
     // === Domain Functions ===
 
     /// Check whether `Nft` has a domain of type `D`
-    public fun has_domain<C, D: store>(nft: &Nft<C>): bool {
-        bag::contains_with_type<Marker<D>, D>(&nft.bag, utils::marker<D>())
+    public fun has_domain<C, D: key + store>(nft: &Nft<C>): bool {
+        dof::exists_with_type<Marker<D>, D>(&nft.id, utils::marker<D>())
     }
 
     /// Borrow domain of type `D` from `Nft`
@@ -105,9 +102,9 @@ module nft_protocol::nft {
     /// ##### Panics
     ///
     /// Panics if domain of type `D` is not present on the `Nft`
-    public fun borrow_domain<C, D: store>(nft: &Nft<C>): &D {
+    public fun borrow_domain<C, D: key + store>(nft: &Nft<C>): &D {
         assert_domain<C, D>(nft);
-        bag::borrow<Marker<D>, D>(&nft.bag, utils::marker<D>())
+        dof::borrow(&nft.id, utils::marker<D>())
     }
 
     /// Mutably borrow domain of type `D` from `Nft`
@@ -159,14 +156,14 @@ module nft_protocol::nft {
     ///     }
     /// }
     /// ```
-    public fun borrow_domain_mut<C, D: store, W: drop>(
+    public fun borrow_domain_mut<C, D: key + store, W: drop>(
         _witness: W,
         nft: &mut Nft<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<D, W>();
         assert_domain<C, D>(nft);
 
-        bag::borrow_mut<Marker<D>, D>(&mut nft.bag, utils::marker<D>())
+        dof::borrow_mut(&mut nft.id, utils::marker<D>())
     }
 
     /// Adds domain of type `D` to `Nft`
@@ -182,7 +179,7 @@ module nft_protocol::nft {
     /// let display_domain = display::new_display_domain(name, description);
     /// nft::add_domain(&mut nft, display_domain, ctx);
     /// ```
-    public fun add_domain<C, D: store>(
+    public fun add_domain<C, D: key + store>(
         nft: &mut Nft<C>,
         domain: D,
         ctx: &mut TxContext,
@@ -195,7 +192,7 @@ module nft_protocol::nft {
         );
         assert_no_domain<C, D>(nft);
 
-        bag::add(&mut nft.bag, utils::marker<D>(), domain);
+        dof::add(&mut nft.id, utils::marker<D>(), domain);
     }
 
     /// Removes domain of type `D` from `Nft`
@@ -211,14 +208,14 @@ module nft_protocol::nft {
     /// ```
     /// let display_domain: DisplayDomain = nft::remove_domain(Witness {}, &mut nft);
     /// ```
-    public fun remove_domain<C, W: drop, D: store>(
+    public fun remove_domain<C, W: drop, D: key + store>(
         _witness: W,
         nft: &mut Nft<C>,
     ): D {
         utils::assert_same_module_as_witness<W, D>();
         assert_domain<C, D>(nft);
 
-        bag::remove(&mut nft.bag, utils::marker<D>())
+        dof::remove(&mut nft.id, utils::marker<D>())
     }
 
     // === Ownership Functions ===
@@ -277,7 +274,7 @@ module nft_protocol::nft {
     /// ##### Panics
     ///
     /// Panics if domain, `D`, does not exist on `Nft`.
-    public fun assert_domain<C, D: store>(nft: &Nft<C>) {
+    public fun assert_domain<C, D: key + store>(nft: &Nft<C>) {
         assert!(has_domain<C, D>(nft), err::undefined_domain());
     }
 
@@ -286,7 +283,7 @@ module nft_protocol::nft {
     /// ##### Panics
     ///
     /// Panics if domain, `D`, exists on `Nft`.
-    public fun assert_no_domain<C, D: store>(nft: &Nft<C>) {
+    public fun assert_no_domain<C, D: key + store>(nft: &Nft<C>) {
         assert!(!has_domain<C, D>(nft), err::domain_already_defined());
     }
 }
