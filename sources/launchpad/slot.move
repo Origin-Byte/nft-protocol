@@ -26,7 +26,9 @@ module nft_protocol::slot {
     /// calling the endpoint `claim_nft`
     struct NftCertificate has key, store {
         id: UID,
-        /// `Launchpad` ID intended for discoverability
+        /// `Launchpad` ID to which the `Slot` this certificate is assigned
+        ///
+        /// Intended for discoverability
         launchpad_id: ID,
         /// `Slot` from which this certificate can withdraw an `Nft`
         slot_id: ID,
