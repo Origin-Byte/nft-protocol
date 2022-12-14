@@ -45,7 +45,6 @@ module nft_protocol::dutch_auction {
     // === Functions exposed to Witness Module ===
 
     public fun create_market<FT>(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         is_whitelisted: bool,
         reserve_price: u64,
@@ -63,13 +62,7 @@ module nft_protocol::dutch_auction {
             live: false,
         };
 
-        slot::add_market(
-            launchpad,
-            slot,
-            market,
-            inventory,
-            ctx,
-        );
+        slot::add_market(slot, market, inventory, ctx);
     }
 
     // === Entrypoints ===
@@ -154,6 +147,7 @@ module nft_protocol::dutch_auction {
     ///
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_cancel<FT>(
+        launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
         ctx: &mut TxContext,
@@ -165,7 +159,7 @@ module nft_protocol::dutch_auction {
             ctx,
         );
 
-        slot::sale_off(slot, ctx);
+        slot::sale_off(launchpad, slot, ctx);
     }
 
     /// Conclude the auction and toggle the Slingshot's `live` to `false`.
@@ -222,7 +216,6 @@ module nft_protocol::dutch_auction {
         };
 
         slot::pay<FT>(
-            launchpad,
             slot,
             coin::from_balance(total_funds, ctx),
             1,
@@ -230,7 +223,7 @@ module nft_protocol::dutch_auction {
 
         vector::destroy_empty(bids_to_fill);
 
-        slot::sale_off(slot, ctx);
+        slot::sale_off(launchpad, slot, ctx);
     }
 
     // === Private Functions ===

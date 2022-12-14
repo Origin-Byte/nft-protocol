@@ -26,8 +26,13 @@ module nft_protocol::slot {
     /// calling the endpoint `claim_nft`
     struct NftCertificate has key, store {
         id: UID,
+        /// `Launchpad` ID to which the `Slot` this certificate is assigned
+        ///
+        /// Intended for discoverability
         launchpad_id: ID,
+        /// `Slot` from which this certificate can withdraw an `Nft`
         slot_id: ID,
+        /// ID of the `Nft` which can be withdrawn using this certificate
         nft_id: ID,
     }
 
@@ -69,7 +74,7 @@ module nft_protocol::slot {
 
     struct Slot has key, store {
         id: UID,
-        launchpad: ID,
+        launchpad_id: ID,
         /// Boolean indicating if the sale is live
         live: bool,
         /// The address of the slot administrator, that is, the Nft creator
@@ -122,7 +127,7 @@ module nft_protocol::slot {
 
         Slot {
             id: uid,
-            launchpad: object::id(launchpad),
+            launchpad_id: object::id(launchpad),
             live: false,
             admin: slot_admin,
             receiver,
@@ -156,63 +161,54 @@ module nft_protocol::slot {
     /// === Public functions ===
 
     public fun pay<FT>(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         funds: Coin<FT>,
         qty_sold: u64,
     ) {
-        assert_slot_launchpad_match(launchpad, slot);
-
         let balance = coin::into_balance(funds);
+        let proceeds = proceeds_mut(slot);
 
-        let proceeds = proceeds_mut(slot,);
-
-        proceeds::add(
-            proceeds,
-            balance,
-            qty_sold,
-        );
+        proceeds::add(proceeds, balance, qty_sold);
     }
 
-    /// Adds NFT as a dynamic child object with its ID as key.
-    public fun add_nft<C>(
-        slot: &mut Slot,
-        market_id: ID,
-        nft: Nft<C>,
-    ) {
-        let inventory = inventory_mut(slot, market_id);
-
-        inventory::add_nft(inventory, object::id(&nft));
-
-        dof::add(
-            &mut slot.id,
-            object::id(&nft),
-            nft,
-        );
-    }
-
-    /// Adds NFT as a dynamic child object with its ID as key.
-    public entry fun redeem_nft<C>(
+    /// Adds NFT as a dynamic child object with its ID as key
+    public fun redeem_nft<C>(
         certificate: NftCertificate,
         slot: &mut Slot,
-        recipient: address,
-    ) {
+    ): Nft<C> {
+        assert_contains_nft<C>(slot, certificate.nft_id);
+
         let nft = dof::remove<ID, Nft<C>>(
             &mut slot.id,
             certificate.nft_id,
         );
 
-        transfer::transfer(nft, recipient);
         burn_certificate(certificate);
+        nft
+    }
+
+    public entry fun transfer_nft<C>(
+        certificate: NftCertificate,
+        slot: &mut Slot,
+        recipient: address,
+    ) {
+        let nft = redeem_nft<C>(certificate, slot);
+        transfer::transfer(nft, recipient);
     }
 
     /// === Admin functions ===
 
     /// Adds a fee object to the Slot's `custom_fee`
+    ///
+    /// Can only be called by the `Launchpad` admin
     public entry fun add_fee<FeeType: key + store>(
+        launchpad: &Launchpad,
         slot: &mut Slot,
         fee: FeeType,
+        ctx: &mut TxContext,
     ) {
+        assert_slot_launchpad_match(launchpad, slot);
+        lp::assert_launchpad_admin(launchpad, ctx);
         assert!(
             obox::is_empty(&slot.custom_fee),
             err::generic_box_full(),
@@ -223,14 +219,12 @@ module nft_protocol::slot {
 
     /// Adds a new Market to `markets` and Inventory to `inventories` tables
     public entry fun add_market<M: key + store>(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         market: M,
         inventory: Inventory,
         ctx: &mut TxContext,
     ) {
-        assert_slot_launchpad_match(launchpad, slot);
-        assert_correct_admin(launchpad, slot, ctx);
+        assert_slot_admin(slot, ctx);
 
         let market_id = object::id(&market);
 
@@ -247,9 +241,24 @@ module nft_protocol::slot {
         );
     }
 
+    /// Adds NFT as a dynamic child object with its ID as key
+    public entry fun add_nft<C>(
+        slot: &mut Slot,
+        market_id: ID,
+        nft: Nft<C>,
+        ctx: &mut TxContext,
+    ) {
+        assert_slot_admin(slot, ctx);
 
-    /// Toggle the Slot's `live` to `true` therefore making the NFT sale live.
-    /// The Slot can only be live if has been approved.
+        let nft_id = object::id(&nft);
+
+        let inventory = inventory_mut(slot, market_id);
+        inventory::add_nft(inventory, nft_id);
+
+        dof::add(&mut slot.id, nft_id, nft);
+    }
+
+    /// Toggle the Slot's `live` to `true` therefore making the NFT sale live
     public entry fun sale_on(
         slot: &mut Slot,
         ctx: &mut TxContext,
@@ -258,67 +267,55 @@ module nft_protocol::slot {
         slot.live = true
     }
 
-    /// Toggle the Slot's `live` to `false` therefore
-    /// pausing or stopping the NFT sale.
+    /// Toggle the Slot's `live` to `false` therefore pausing or stopping the
+    /// NFT sale
+    ///
+    /// Can also be turned off by the Launchpad admin
     public entry fun sale_off(
+        launchpad: &Launchpad,
         slot: &mut Slot,
         ctx: &mut TxContext,
     ) {
-        assert_slot_admin(slot, ctx);
+        assert_slot_launchpad_match(launchpad, slot);
+        assert_correct_admin(launchpad, slot, ctx);
         slot.live = false
     }
 
     // === Getter functions ===
 
     /// Get the Slot's `live`
-    public fun live(
-        slot: &Slot,
-    ): bool {
+    public fun live(slot: &Slot): bool {
         slot.live
     }
 
     /// Get the Slot's `receiver` address
-    public fun receiver(
-        slot: &Slot,
-    ): address {
+    public fun receiver(slot: &Slot): address {
         slot.receiver
     }
 
     /// Get the Slot's `admin` address
-    public fun admin(
-        slot: &Slot,
-    ): address {
+    public fun admin(slot: &Slot): address {
         slot.admin
     }
 
-    public fun contains_custom_fee(
-        slot: &Slot,
-    ): bool {
+    public fun contains_custom_fee(slot: &Slot): bool {
         !obox::is_empty(&slot.custom_fee)
     }
 
-    public fun custom_fee(
-        slot: &Slot,
-    ): &ObjectBox {
+    public fun custom_fee(slot: &Slot): &ObjectBox {
         &slot.custom_fee
     }
 
-    public fun proceeds(
-        slot: &Slot,
-    ): &Proceeds {
+    public fun proceeds(slot: &Slot): &Proceeds {
         &slot.proceeds
     }
 
-    public fun proceeds_mut(
-        slot: &mut Slot,
-    ): &mut Proceeds {
+    public fun proceeds_mut(slot: &mut Slot): &mut Proceeds {
         &mut slot.proceeds
     }
 
     /// Get the Slot's sale `market` table
-    public fun markets(
-        slot: &Slot,
-    ): &ObjectBag {
+    public fun markets(slot: &Slot): &ObjectBag {
         &slot.markets
     }
 
@@ -359,13 +356,13 @@ module nft_protocol::slot {
         object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
     }
 
-    /// Get the Slot's `inventory`
+    /// Get the Slot's `Inventory`
     public fun inventory(slot: &Slot, market_id: ID): &Inventory {
         assert_inventory(slot, market_id);
         object_table::borrow(&slot.inventories, market_id)
     }
 
-    /// Get the Slot's `market` mutably
+    /// Get the Slot's `Inventory` mutably
     fun inventory_mut(slot: &mut Slot, market_id: ID): &mut Inventory {
         assert_inventory(slot, market_id);
         object_table::borrow_mut(&mut slot.inventories, market_id)
@@ -375,7 +372,7 @@ module nft_protocol::slot {
 
     public fun assert_slot_launchpad_match(launchpad: &Launchpad, slot: &Slot) {
         assert!(
-            object::id(launchpad) == slot.launchpad,
+            object::id(launchpad) == slot.launchpad_id,
             err::launchpad_slot_mismatch()
         );
     }
@@ -392,7 +389,7 @@ module nft_protocol::slot {
         slot: &Slot,
         ctx: &mut TxContext,
     ) {
-        if (lp::is_permissioned(launchpad) == true) {
+        if (lp::is_permissioned(launchpad)) {
             lp::assert_launchpad_admin(launchpad, ctx);
         } else {
             assert_slot_admin(slot, ctx);
@@ -439,6 +436,13 @@ module nft_protocol::slot {
         assert!(
             !inventory::is_whitelisted(inventory),
             err::sale_is_whitelisted()
+        );
+    }
+
+    public fun assert_contains_nft<C>(slot: &Slot, nft_id: ID) {
+        assert!(
+            dof::exists_with_type<ID, Nft<C>>(&slot.id, nft_id),
+            err::certificate_nft_id_mismatch()
         );
     }
 }

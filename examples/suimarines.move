@@ -109,6 +109,6 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        slot::add_nft(slot, market_id, nft);
+        slot::add_nft(slot, market_id, nft, ctx);
     }
 }
