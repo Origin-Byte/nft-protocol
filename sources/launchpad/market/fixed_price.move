@@ -19,8 +19,7 @@ module nft_protocol::fixed_price {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::inventory;
-    use nft_protocol::slot::{Self, Slot};
-    use nft_protocol::launchpad_whitelist::{Self as lp_whitelist, Whitelist};
+    use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
     use nft_protocol::launchpad::Launchpad;
 
     struct FixedPriceMarket has key, store {
@@ -28,6 +27,8 @@ module nft_protocol::fixed_price {
         live: bool,
         price: u64,
     }
+
+    struct Witness has drop {}
 
     // === Init functions ===
 
@@ -91,7 +92,10 @@ module nft_protocol::fixed_price {
 
         slot::pay(slot, funds, 1);
 
-        let certificate = slot::issue_nft_certificate(
+        let certificate = slot::issue_nft_certificate_internal<
+            FixedPriceMarket, Witness
+        >(
+            Witness {},
             launchpad,
             slot,
             market_id,
@@ -115,16 +119,12 @@ module nft_protocol::fixed_price {
         slot: &mut Slot,
         market_id: ID,
         funds: Coin<FT>,
-        whitelist_token: Whitelist,
+        whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
         slot::assert_is_live(slot);
         slot::assert_market_is_whitelisted(slot, market_id);
-        lp_whitelist::assert_whitelist_token_market(
-            slot,
-            market_id,
-            &whitelist_token
-        );
+        slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
         let market: &FixedPriceMarket = slot::market(slot, market_id);
         let change = coin::split<FT>(
@@ -137,9 +137,12 @@ module nft_protocol::fixed_price {
 
         slot::pay(slot, funds, 1);
 
-        lp_whitelist::burn_whitelist_token(whitelist_token);
+        slot::burn_whitelist_certificate(whitelist_token);
 
-        let certificate = slot::issue_nft_certificate(
+        let certificate = slot::issue_nft_certificate_internal<
+            FixedPriceMarket, Witness
+        >(
+            Witness {},
             launchpad,
             slot,
             market_id,
