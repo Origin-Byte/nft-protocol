@@ -1,7 +1,7 @@
 //! Module of a Dutch Auction Sale `Market` type.
 //!
 //! It implements a dutch auction sale configuration, where all NFTs in the sale
-//! inventory get sold to the winners of the auction.
+//! inventory get sold to the winners of the auction. The number of winners
 //!
 //! NFT creators can decide if they want to create a simple primary market sale
 //! or if they want to create a tiered market sale by segregating NFTs by
