@@ -5,6 +5,7 @@ module nft_protocol::attribution {
     use sui::transfer;
     use sui::vec_map::{Self, VecMap};
     use sui::balance::{Self, Balance};
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -35,7 +36,8 @@ module nft_protocol::attribution {
 
     const BPS: u16 = 10_000;
 
-    struct AttributionDomain has copy, drop, store {
+    struct AttributionDomain has key, store {
+        id: UID,
         is_frozen: bool,
         /// Address that receives the mint and trade royalties
         creators: VecMap<address, Creator>,
@@ -45,20 +47,29 @@ module nft_protocol::attribution {
     ///
     /// By not attributing any `Creators`, nobody will ever be able to claim
     /// royalties from this `Attributions` object or modify it's domains.
-    public fun empty(): AttributionDomain {
-        AttributionDomain { is_frozen: false, creators: vec_map::empty() }
+    public fun empty(ctx: &mut TxContext): AttributionDomain {
+        AttributionDomain {
+            id: object::new(ctx),
+            is_frozen: false,
+            creators: vec_map::empty(),
+        }
     }
 
-    public fun from_address(who: address): AttributionDomain {
-        let domain = empty();
+    public fun from_address(
+        who: address,
+        ctx: &mut TxContext,
+    ): AttributionDomain {
+        let domain = empty(ctx);
         vec_map::insert(&mut domain.creators, who, new_creator(who, BPS));
         domain
     }
 
     public fun from_creators(
-        creators: VecMap<address, Creator>
+        creators: VecMap<address, Creator>,
+        ctx: &mut TxContext,
     ): AttributionDomain {
-        let attributions = AttributionDomain { is_frozen: false, creators };
+        let attributions = empty(ctx);
+        attributions.creators = creators;
         assert_total_shares(&attributions);
 
         attributions
@@ -174,7 +185,7 @@ module nft_protocol::attribution {
     /// Distributes content of `aggregate` balance among the creators defined
     /// in the `AttributionDomain`
     public fun distribute_royalties<FT>(
-        attributions: &AttributionDomain,
+        creators: &VecMap<address, Creator>,
         aggregate: &mut Balance<FT>,
         ctx: &mut TxContext,
     ) {
@@ -185,9 +196,9 @@ module nft_protocol::attribution {
         );
 
         let i = 0;
-        while (i < vec_map::size(&attributions.creators)) {
+        while (i < vec_map::size(creators)) {
             let (_, creator) =
-                vec_map::get_entry_by_idx(&attributions.creators, i);
+                vec_map::get_entry_by_idx(creators, i);
 
             // Truncates fractional part of the result thus ensuring that sum
             // of royalty shares is not greater than total balance.

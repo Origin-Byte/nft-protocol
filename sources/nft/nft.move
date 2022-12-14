@@ -7,46 +7,44 @@ module nft_protocol::nft {
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
     use nft_protocol::utils::{Self, Marker};
 
-    use sui::bag::{Self, Bag};
+    use sui::dynamic_object_field as dof;
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     struct Nft<phantom C> has key, store {
         id: UID,
-        bag: Bag,
         logical_owner: address,
     }
 
-    public fun new<C>(owner: address, ctx: &mut TxContext): Nft<C> {
+    public fun new<C>(logical_owner: address, ctx: &mut TxContext): Nft<C> {
         Nft {
             id: object::new(ctx),
-            bag: bag::new(ctx),
-            logical_owner: owner,
+            logical_owner,
         }
     }
 
     // === Domain Functions ===
 
-    public fun has_domain<C, D: store>(nft: &Nft<C>): bool {
-        bag::contains_with_type<Marker<D>, D>(&nft.bag, utils::marker<D>())
+    public fun has_domain<C, D: key + store>(nft: &Nft<C>): bool {
+        dof::exists_with_type<Marker<D>, D>(&nft.id, utils::marker<D>())
     }
 
-    public fun borrow_domain<C, D: store>(nft: &Nft<C>): &D {
-        bag::borrow<Marker<D>, D>(&nft.bag, utils::marker<D>())
+    public fun borrow_domain<C, D: key + store>(nft: &Nft<C>): &D {
+        dof::borrow(&nft.id, utils::marker<D>())
     }
 
-    public fun borrow_domain_mut<C, D: store, W: drop>(
+    public fun borrow_domain_mut<C, W: drop, D: key + store>(
         _witness: W,
         nft: &mut Nft<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<Marker<D>, D>(&mut nft.bag, utils::marker<D>())
+        dof::borrow_mut(&mut nft.id, utils::marker<D>())
     }
 
-    public fun add_domain<C, V: store>(
+    public fun add_domain<C, D: key + store>(
         nft: &mut Nft<C>,
-        v: V,
+        domain: D,
         ctx: &mut TxContext,
     ) {
         // If NFT was a shared objects then malicious actors could freely add
@@ -55,16 +53,15 @@ module nft_protocol::nft {
             tx_context::sender(ctx) == nft.logical_owner,
             err::not_nft_owner()
         );
-
-        bag::add(&mut nft.bag, utils::marker<V>(), v);
+        dof::add(&mut nft.id, utils::marker<D>(), domain)
     }
 
-    public fun remove_domain<C, W: drop, V: store>(
+    public fun remove_domain<C, W: drop, D: key + store>(
         _witness: W,
         nft: &mut Nft<C>,
-    ): V {
-        utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut nft.bag, utils::marker<V>())
+    ): D {
+        utils::assert_same_module_as_witness<W, D>();
+        dof::remove(&mut nft.id, utils::marker<D>())
     }
 
     // === Transfer Functions ===

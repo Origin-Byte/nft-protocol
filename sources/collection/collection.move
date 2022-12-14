@@ -26,7 +26,7 @@ module nft_protocol::collection {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
     use sui::transfer;
-    use sui::bag::{Self, Bag};
+    use sui::dynamic_object_field as dof;
 
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
@@ -39,9 +39,6 @@ module nft_protocol::collection {
     /// used to store additional information about the NFT.
     struct Collection<phantom T> has key, store {
         id: UID,
-        /// Domain storage equivalent to NFT domains which allows collections
-        /// to implement custom metadata.
-        domains: Bag,
     }
 
     /// The `MintCapability` object gives power to the owner to mint objects.
@@ -131,51 +128,46 @@ module nft_protocol::collection {
             ctx,
         );
 
-        let col = Collection {
-            id,
-            domains: bag::new(ctx),
-        };
-
-        (cap, col)
+        (cap, Collection { id })
     }
 
     // === Domain Functions ===
 
-    public fun has_domain<C, D: store>(collection: &Collection<C>): bool {
-        bag::contains_with_type<Marker<D>, D>(
-            &collection.domains, utils::marker<D>()
-        )
+    public fun has_domain<C, D: key + store>(
+        collection: &Collection<C>,
+    ): bool {
+        dof::exists_with_type<Marker<D>, D>(&collection.id, utils::marker<D>())
     }
 
-    public fun borrow_domain<C, D: store>(collection: &Collection<C>): &D {
-        bag::borrow<Marker<D>, D>(&collection.domains, utils::marker<D>())
+    public fun borrow_domain<C, D: key + store>(
+        collection: &Collection<C>
+    ): &D {
+        dof::borrow(&collection.id, utils::marker<D>())
     }
 
-    public fun borrow_domain_mut<C, D: store, W: drop>(
+    public fun borrow_domain_mut<C, D: key + store, W: drop>(
         _witness: W,
         collection: &mut Collection<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<W, D>();
-        bag::borrow_mut<Marker<D>, D>(
-            &mut collection.domains, utils::marker<D>()
-        )
+        dof::borrow_mut(&mut collection.id, utils::marker<D>())
     }
 
-    public fun add_domain<C, V: store>(
+    public fun add_domain<C, D: key + store>(
         collection: &mut Collection<C>,
         mint_cap: &MintCap<C>,
-        v: V,
+        domain: D,
     ) {
         assert_mint_cap(mint_cap, collection);
-        bag::add(&mut collection.domains, utils::marker<V>(), v);
+        dof::add(&mut collection.id, utils::marker<D>(), domain)
     }
 
-    public fun remove_domain<C, W: drop, V: store>(
+    public fun remove_domain<C, W: drop, D: key + store>(
         _witness: W,
         collection: &mut Collection<C>,
-    ): V {
-        utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut collection.domains, utils::marker<V>())
+    ): D {
+        utils::assert_same_module_as_witness<W, D>();
+        dof::remove(&mut collection.id, utils::marker<D>())
     }
 
     // === MintCap ===
