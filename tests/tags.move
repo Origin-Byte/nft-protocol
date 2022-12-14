@@ -1,8 +1,9 @@
 #[test_only]
-module nft_protocol::test_display {
+module nft_protocol::test_tags {
     use std::string;
 
     use sui::transfer::transfer;
+    // use sui::object;
     use sui::url;
     use sui::vec_map;
     use sui::test_scenario::{Self, ctx};
