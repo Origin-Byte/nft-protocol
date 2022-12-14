@@ -389,7 +389,7 @@ module nft_protocol::slot {
         slot: &Slot,
         ctx: &mut TxContext,
     ) {
-        if (lp::is_permissioned(launchpad) == true) {
+        if (lp::is_permissioned(launchpad)) {
             lp::assert_launchpad_admin(launchpad, ctx);
         } else {
             assert_slot_admin(slot, ctx);

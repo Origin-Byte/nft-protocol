@@ -45,7 +45,6 @@ module nft_protocol::dutch_auction {
     // === Functions exposed to Witness Module ===
 
     public fun create_market<FT>(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         is_whitelisted: bool,
         reserve_price: u64,
@@ -63,13 +62,7 @@ module nft_protocol::dutch_auction {
             live: false,
         };
 
-        slot::add_market(
-            launchpad,
-            slot,
-            market,
-            inventory,
-            ctx,
-        );
+        slot::add_market(slot, market, inventory, ctx);
     }
 
     // === Entrypoints ===

@@ -101,6 +101,6 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        slot::add_nft(slot, market_id, nft);
+        slot::add_nft(slot, market_id, nft, ctx);
     }
 }
