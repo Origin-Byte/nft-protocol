@@ -96,4 +96,13 @@ module nft_protocol::nft {
 
         nft.logical_owner = recipient;
     }
+
+    // === Test only helpers ===
+
+    #[test_only]
+    public fun logical_owner<C>(
+        nft: &Nft<C>,
+    ): address {
+        nft.logical_owner
+    }
 }
