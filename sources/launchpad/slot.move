@@ -36,6 +36,9 @@ module nft_protocol::slot {
         nft_id: ID,
     }
 
+    /// Issue `NftCertificate`
+    ///
+    /// Requires that sender is the `Slot` admin
     public fun issue_nft_certificate(
         launchpad: &Launchpad,
         slot: &mut Slot,
@@ -43,21 +46,66 @@ module nft_protocol::slot {
         ctx: &mut TxContext,
     ): NftCertificate {
         assert_slot_launchpad_match(launchpad, slot);
-        let inventory = inventory_mut(slot, market_id);
+        assert_slot_admin(slot, ctx);
 
+        let inventory = inventory_mut(slot, market_id);
         let nft_id = inventory::pop_nft(inventory);
 
-        let certificate = NftCertificate {
+        NftCertificate {
             id: object::new(ctx),
             launchpad_id: object::id(launchpad),
             slot_id: object::id(slot),
             nft_id,
-        };
-
-        certificate
+        }
     }
 
-    public fun burn_certificate(
+    /// Issue `NftCertificate`
+    ///
+    /// Does not require that sender is the `Slot` admin allowing markets to
+    /// issue certificates.
+    public fun issue_nft_certificate_internal<
+        Market: key + store,
+        Witness: drop
+    >(
+        _witness: Witness,
+        launchpad: &Launchpad,
+        slot: &mut Slot,
+        market_id: ID,
+        ctx: &mut TxContext,
+    ): NftCertificate {
+        assert_slot_launchpad_match(launchpad, slot);
+
+        utils::assert_same_module_as_witness<Witness, Market>();
+        assert_market<Market>(slot, market_id);
+
+        let inventory = inventory_mut(slot, market_id);
+        let nft_id = inventory::pop_nft(inventory);
+
+        NftCertificate {
+            id: object::new(ctx),
+            launchpad_id: object::id(launchpad),
+            slot_id: object::id(slot),
+            nft_id,
+        }
+    }
+
+    public entry fun transfer_nft_certificate(
+        launchpad: &Launchpad,
+        slot: &mut Slot,
+        market_id: ID,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        let certificate = issue_nft_certificate(
+            launchpad,
+            slot,
+            market_id,
+            ctx,
+        );
+        transfer::transfer(certificate, recipient);
+    }
+
+    public fun burn_nft_certificate(
         certificate: NftCertificate,
     ) {
         let NftCertificate {
@@ -65,6 +113,66 @@ module nft_protocol::slot {
             launchpad_id: _,
             slot_id: _,
             nft_id: _,
+        } = certificate;
+
+        object::delete(id);
+    }
+
+    // === WhitelistCertificate ===
+
+    struct WhitelistCertificate has key, store {
+        id: UID,
+        /// `Launchpad` ID intended for discoverability
+        launchpad_id: ID,
+        /// `Slot` from which this certificate can withdraw an `Nft`
+        slot_id: ID,
+        /// `Inventory` from which this certificate can withdraw an `Nft`
+        market_id: ID,
+    }
+
+    public fun issue_whitelist_certificate(
+        launchpad: &Launchpad,
+        slot: &mut Slot,
+        market_id: ID,
+        ctx: &mut TxContext,
+    ): WhitelistCertificate {
+        assert_slot_launchpad_match(launchpad, slot);
+        assert_slot_admin(slot, ctx);
+
+        let certificate = WhitelistCertificate {
+            id: object::new(ctx),
+            launchpad_id: object::id(launchpad),
+            slot_id: object::id(slot),
+            market_id,
+        };
+
+        certificate
+    }
+
+    public entry fun transfer_whitelist_certificate(
+        launchpad: &Launchpad,
+        slot: &mut Slot,
+        market_id: ID,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        let certificate = issue_whitelist_certificate(
+            launchpad,
+            slot,
+            market_id,
+            ctx,
+        );
+        transfer::transfer(certificate, recipient);
+    }
+
+    public fun burn_whitelist_certificate(
+        certificate: WhitelistCertificate,
+    ) {
+        let WhitelistCertificate {
+            id,
+            launchpad_id: _,
+            slot_id: _,
+            market_id: _,
         } = certificate;
 
         object::delete(id);
@@ -183,7 +291,7 @@ module nft_protocol::slot {
             certificate.nft_id,
         );
 
-        burn_certificate(certificate);
+        burn_nft_certificate(certificate);
         nft
     }
 
@@ -218,9 +326,9 @@ module nft_protocol::slot {
     }
 
     /// Adds a new Market to `markets` and Inventory to `inventories` tables
-    public entry fun add_market<M: key + store>(
+    public entry fun add_market<Market: key + store>(
         slot: &mut Slot,
-        market: M,
+        market: Market,
         inventory: Inventory,
         ctx: &mut TxContext,
     ) {
@@ -228,7 +336,7 @@ module nft_protocol::slot {
 
         let market_id = object::id(&market);
 
-        object_bag::add<ID, M>(
+        object_bag::add<ID, Market>(
             &mut slot.markets,
             market_id,
             market,
@@ -320,40 +428,40 @@ module nft_protocol::slot {
     }
 
     /// Get the Slot's `market`
-    public fun market<M: key + store>(
+    public fun market<Market: key + store>(
         slot: &Slot,
         market_id: ID,
-    ): &M {
-        assert_market<M>(slot, market_id);
-        object_bag::borrow<ID, M>(&slot.markets, market_id)
+    ): &Market {
+        assert_market<Market>(slot, market_id);
+        object_bag::borrow<ID, Market>(&slot.markets, market_id)
     }
 
     /// Get the Slot's `market` mutably
     ///
     /// This will require that sender is a `Slot` admin, for non admin mutable
     /// access use `market_internal_mut`.
-    public fun market_mut<M: key + store>(
+    public fun market_mut<Market: key + store>(
         slot: &mut Slot,
         market_id: ID,
         ctx: &mut TxContext,
-    ): &mut M {
+    ): &mut Market {
         assert_slot_admin(slot, ctx);
-        assert_market<M>(slot, market_id);
-        object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
+        assert_market<Market>(slot, market_id);
+        object_bag::borrow_mut<ID, Market>(&mut slot.markets, market_id)
     }
 
     /// Get the Slot's `market` mutably
     ///
     /// Does not require that sender is a `Slot` admin, limited for use only in
     /// the module that defined the market type.
-    public fun market_internal_mut<M: key + store, W: drop>(
-        _witness: W,
+    public fun market_internal_mut<Market: key + store, Witness: drop>(
+        _witness: Witness,
         slot: &mut Slot,
         market_id: ID,
-    ): &mut M {
-        utils::assert_same_module_as_witness<W, M>();
-        assert_market<M>(slot, market_id);
-        object_bag::borrow_mut<ID, M>(&mut slot.markets, market_id)
+    ): &mut Market {
+        utils::assert_same_module_as_witness<Witness, Market>();
+        assert_market<Market>(slot, market_id);
+        object_bag::borrow_mut<ID, Market>(&mut slot.markets, market_id)
     }
 
     /// Get the Slot's `Inventory`
@@ -443,6 +551,17 @@ module nft_protocol::slot {
         assert!(
             dof::exists_with_type<ID, Nft<C>>(&slot.id, nft_id),
             err::certificate_nft_id_mismatch()
+        );
+    }
+
+    public fun assert_whitelist_certificate_market(
+        market_id: ID,
+        certificate: &WhitelistCertificate,
+    ) {
+        // Infer that whitelist token corresponds to correct sale inventory
+        assert!(
+            certificate.market_id == market_id,
+            err::incorrect_whitelist_token()
         );
     }
 }
