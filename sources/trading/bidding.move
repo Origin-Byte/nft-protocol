@@ -1,8 +1,6 @@
 module nft_protocol::bidding {
     use nft_protocol::err;
-    use nft_protocol::royalties;
-    use nft_protocol::safe::{Self, Safe};
-    use nft_protocol::unprotected_safe::TransferCap;
+    use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_whitelist::Whitelist;
 
     use std::option::{Self, Option};
@@ -13,6 +11,15 @@ module nft_protocol::bidding {
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
+    use nft_protocol::trading::{
+        AskCommission,
+        BidCommission,
+        destroy_bid_commission,
+        new_ask_commission,
+        new_bid_commission,
+        pay_for_nft,
+        transfer_bid_commission,
+    };
 
     struct Witness has drop {}
 
@@ -23,30 +30,6 @@ module nft_protocol::bidding {
         safe: ID,
         offer: Balance<FT>,
         commission: Option<BidCommission<FT>>,
-    }
-
-    /// Enables collection of wallet/marketplace collection for buying NFTs.
-    /// 1. user bids via wallet to buy NFT for `p`, wallet wants fee `f`
-    /// 2. when executed, `p` goes to seller and `f` goes to wallet.
-    ///
-    ///
-    /// TODO: deduplicate with OB
-    struct BidCommission<phantom FT> has store {
-        /// This is given to the facilitator of the trade.
-        cut: Balance<FT>,
-        /// A new `Coin` object is created and sent to this address.
-        beneficiary: address,
-    }
-
-    /// TODO: deduplicate with OB
-    struct AskCommission has store, drop {
-        /// How many tokens of the transferred amount should go to the party
-        /// which holds the private key of `beneficiary` address.
-        ///
-        /// Always less than ask price.
-        cut: u64,
-        /// A new `Coin` object is created and sent to this address.
-        beneficiary: address,
     }
 
     struct BidCreated<phantom FT> has copy, drop {
@@ -79,10 +62,10 @@ module nft_protocol::bidding {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let commission = BidCommission {
+        let commission = new_bid_commission(
             beneficiary,
-            cut: balance::split(coin::balance_mut(wallet), commission_ft),
-        };
+            balance::split(coin::balance_mut(wallet), commission_ft),
+        );
         create_bid_(nft, buyers_safe, price, option::some(commission), wallet, ctx);
     }
 
@@ -114,10 +97,10 @@ module nft_protocol::bidding {
         whitelist: &Whitelist,
         ctx: &mut TxContext,
     ) {
-        let commission = AskCommission {
-            cut: commission_ft,
+        let commission = new_ask_commission(
             beneficiary,
-        };
+            commission_ft,
+        );
         sell_nft_<C, FT>(
             bid,
             transfer_cap,
@@ -209,71 +192,12 @@ module nft_protocol::bidding {
         let offer = coin::take(&mut bid.offer, total, ctx);
 
         if (option::is_some(&bid.commission)) {
-            let BidCommission { beneficiary: _, cut } =
-                option::extract(&mut bid.commission);
+            let commission = option::extract(&mut bid.commission);
+            let (cut, _beneficiary) = destroy_bid_commission(commission);
 
             balance::join(coin::balance_mut(&mut offer), cut);
         };
 
         transfer(offer, sender);
-    }
-
-    /// TODO: deduplicate with OB
-    fun pay_for_nft<C, FT>(
-        paid: &mut Balance<FT>,
-        buyer: address,
-        maybe_commission: &mut Option<AskCommission>,
-        ctx: &mut TxContext,
-    ) {
-        let amount = balance::value(paid);
-
-        if (option::is_some(maybe_commission)) {
-            // the `p`aid amount for the NFT and the commission `c`ut
-
-            let AskCommission {
-                cut, beneficiary,
-            } = option::extract(maybe_commission);
-
-            // associates both payments with each other
-            let trade = object::new(ctx);
-
-            // `p` - `c` goes to seller
-            royalties::create_with_trade<C, FT>(
-                balance::split(paid, amount - cut),
-                buyer,
-                object::uid_to_inner(&trade),
-                ctx,
-            );
-            // `c` goes to the marketplace
-            royalties::create_with_trade<C, FT>(
-                balance::split(paid, cut),
-                beneficiary,
-                object::uid_to_inner(&trade),
-                ctx,
-            );
-
-            object::delete(trade);
-        } else {
-            // no commission, all `p` goes to seller
-
-            royalties::create<C, FT>(
-                balance::split(paid, amount),
-                buyer,
-                ctx,
-            );
-        };
-    }
-
-    /// TODO: deduplicate with OB
-    fun transfer_bid_commission<FT>(
-        commission: &mut Option<BidCommission<FT>>,
-        ctx: &mut TxContext,
-    ) {
-        if (option::is_some(commission)) {
-            let BidCommission { beneficiary, cut } =
-                option::extract(commission);
-
-            transfer(coin::from_balance(cut, ctx), beneficiary);
-        };
     }
 }

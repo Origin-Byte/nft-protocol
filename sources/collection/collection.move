@@ -315,7 +315,7 @@ module nft_protocol::collection {
         witness: &T,
         creator: address,
         scenario: &mut sui::test_scenario::Scenario,
-    ): Collection<T> {
+    ): (MintCap<T>, Collection<T>) {
         sui::test_scenario::next_tx(scenario, creator);
 
         let (cap, col) = create<T>(
@@ -324,9 +324,6 @@ module nft_protocol::collection {
             sui::test_scenario::ctx(scenario),
         );
 
-        transfer::transfer(cap, creator);
-        share(col);
-        sui::test_scenario::next_tx(scenario, creator);
-        sui::test_scenario::take_shared(scenario)
+        (cap, col)
     }
 }
