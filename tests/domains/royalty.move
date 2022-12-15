@@ -10,10 +10,7 @@ module nft_protocol::test_royalty {
     use nft_protocol::test_utils_2::create_collection_and_whitelist;
 
     struct Witness has drop {}
-
     struct Foo has drop {}
-
-    struct DomainA has store {}
 
     const OWNER: address = @0xA1C05;
     const CREATOR: address = @0xA1C04;

@@ -9,10 +9,7 @@ module nft_protocol::test_tags {
     use nft_protocol::test_utils_2::create_collection_and_whitelist;
 
     struct Witness has drop {}
-
     struct Foo has drop {}
-
-    struct DomainA has store {}
 
     const OWNER: address = @0xA1C05;
     const FAKE_OWNER: address = @0xA1C11;

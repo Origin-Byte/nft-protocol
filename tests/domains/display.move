@@ -13,10 +13,7 @@ module nft_protocol::test_display {
     use nft_protocol::display;
 
     struct Witness has drop {}
-
     struct Foo has drop {}
-
-    struct DomainA has store {}
 
     const OWNER: address = @0xA1C05;
     const FAKE_OWNER: address = @0xA1C11;
