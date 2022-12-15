@@ -31,7 +31,7 @@ module nft_protocol::inventory {
         queue: vector<ID>,
     }
 
-    public fun create(
+    public fun new(
         whitelisted: bool,
         ctx: &mut TxContext,
     ): Inventory {

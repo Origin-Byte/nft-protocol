@@ -18,11 +18,11 @@ module nft_protocol::fixed_price {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::inventory;
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
     use nft_protocol::launchpad::Launchpad;
 
-    struct FixedPriceMarket has key, store {
+    struct FixedPriceMarket<phantom FT> has key, store {
         id: UID,
         live: bool,
         price: u64,
@@ -32,33 +32,44 @@ module nft_protocol::fixed_price {
 
     // === Init functions ===
 
-    /// Creates a fixed price `Launchpad` sale. A sale can be simple or tiered,
-    /// that is, a tiered sale `Launchpad` has multiple `Sale` inventorys in its
-    /// field `sales`. This funcitonality allows for the creation of tiered
-    /// market sales by segregating NFTs by different sale segments
-    /// (e.g. based on rarity, or preciousness).
-    ///
-    /// Lauchpad is set as a shared object with an `admin` that can
-    /// call privelleged endpoints.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    public entry fun create_market(
+    public fun new<FT>(
+        price: u64,
+        ctx: &mut TxContext,
+    ): FixedPriceMarket<FT> {
+        FixedPriceMarket {
+            id: object::new(ctx),
+            live: false,
+            price,
+        }
+    }
+
+    /// Creates a fixed price `Slot` market
+    public entry fun init_market<FT>(
         slot: &mut Slot,
         is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let inventory = inventory::create(
+        let inventory = inventory::new(
             is_whitelisted,
             ctx,
         );
 
-        let market = FixedPriceMarket {
-            id: object::new(ctx),
-            live: false,
-            price,
-        };
+       init_market_with_inventory<FT>(slot, inventory, price, ctx);
+    }
 
+    /// Creates a fixed price `Slot` market with a prepared `Inventory`
+    ///
+    /// Useful for pre-minting NFTs to an `Inventory`
+    //
+    // TODO: Make public once Inventory contains NFT
+    entry fun init_market_with_inventory<FT>(
+        slot: &mut Slot,
+        inventory: Inventory,
+        price: u64,
+        ctx: &mut TxContext,
+    ) {
+        let market = new<FT>(price, ctx);
         slot::add_market(slot, market, inventory, ctx);
     }
 
@@ -81,7 +92,7 @@ module nft_protocol::fixed_price {
         slot::assert_is_live(slot);
         slot::assert_market_is_not_whitelisted(slot, market_id);
 
-        let market: &FixedPriceMarket = slot::market(slot, market_id);
+        let market: &FixedPriceMarket<FT> = slot::market(slot, market_id);
         let change = coin::split<FT>(
             &mut funds,
             market.price,
@@ -93,7 +104,7 @@ module nft_protocol::fixed_price {
         slot::pay(slot, funds, 1);
 
         let certificate = slot::issue_nft_certificate_internal<
-            FixedPriceMarket, Witness
+            FixedPriceMarket<FT>, Witness
         >(
             Witness {},
             launchpad,
@@ -126,7 +137,7 @@ module nft_protocol::fixed_price {
         slot::assert_market_is_whitelisted(slot, market_id);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
-        let market: &FixedPriceMarket = slot::market(slot, market_id);
+        let market: &FixedPriceMarket<FT> = slot::market(slot, market_id);
         let change = coin::split<FT>(
             &mut funds,
             market.price,
@@ -140,7 +151,7 @@ module nft_protocol::fixed_price {
         slot::burn_whitelist_certificate(whitelist_token);
 
         let certificate = slot::issue_nft_certificate_internal<
-            FixedPriceMarket, Witness
+            FixedPriceMarket<FT>, Witness
         >(
             Witness {},
             launchpad,
@@ -159,24 +170,27 @@ module nft_protocol::fixed_price {
 
     /// Permissioned endpoint to be called by `admin` to edit the fixed price
     /// of the launchpad configuration.
-    public entry fun new_price(
+    public entry fun set_price<FT>(
         slot: &mut Slot,
         market_id: ID,
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = slot::market_mut<FixedPriceMarket>(slot, market_id, ctx);
+        slot::assert_slot_admin(slot, ctx);
+
+        let market =
+            slot::market_mut<FixedPriceMarket<FT>>(slot, market_id, ctx);
         market.price = new_price;
     }
 
     // === Getter Functions ===
 
     /// Get the Slingshot Configs's `price`
-    public fun price(
+    public fun price<FT>(
         slot: &Slot,
         market_id: ID,
     ): u64 {
-        let market: &FixedPriceMarket = slot::market(slot, market_id);
+        let market: &FixedPriceMarket<FT> = slot::market(slot, market_id);
         market.price
     }
 }

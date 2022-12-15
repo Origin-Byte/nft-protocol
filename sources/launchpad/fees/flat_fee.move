@@ -17,11 +17,18 @@ module nft_protocol::flat_fee {
         rate_bps: u64,
     }
 
-    public entry fun create(
+    public fun new(rate_bps: u64, ctx: &mut TxContext): FlatFee {
+        FlatFee {
+            id: object::new(ctx),
+            rate_bps,
+        }
+    }
+
+    public entry fun init_fee(
         rate: u64,
         ctx: &mut TxContext,
     ) {
-        transfer(create_(rate, ctx), tx_context::sender(ctx));
+        transfer(new(rate, ctx), tx_context::sender(ctx));
     }
 
     public entry fun collect_fee<FT>(
@@ -61,15 +68,5 @@ module nft_protocol::flat_fee {
             slot_receiver,
             ctx,
         );
-    }
-
-    public fun create_(
-        rate_bps: u64,
-        ctx: &mut TxContext,
-    ): FlatFee {
-        FlatFee {
-            id: object::new(ctx),
-            rate_bps,
-        }
     }
 }
