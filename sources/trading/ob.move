@@ -97,7 +97,7 @@ module nft_protocol::ob {
         /// Points to `Safe` shared object into which to deposit NFT.
         safe: ID,
         /// If the NFT is offered via a marketplace or a wallet, the
-        /// faciliatator can optionally set how many tokens they want to claim
+        /// facilitator can optionally set how many tokens they want to claim
         /// on top of the offer.
         commission: Option<BidCommission<FT>>,
     }
@@ -200,6 +200,7 @@ module nft_protocol::ob {
         assert!(!book.protected_actions.create_bid, err::action_not_public());
         create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
+    
     public fun create_bid_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -274,26 +275,26 @@ module nft_protocol::ob {
         cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
     }
 
-    /// Offer given NFT to be traded for given (`requsted_tokens`) tokens. If
-    /// there exists a bid with higher offer than `requsted_tokens`, then trade
-    /// is immeidately executed. Otherwise the NFT is transferred to a newly
+    /// Offer given NFT to be traded for given (`requested_tokens`) tokens. If
+    /// there exists a bid with higher offer than `requested_tokens`, then trade
+    /// is immediately executed. Otherwise the NFT is transferred to a newly
     /// created ask object and the object is inserted to the orderbook.
     public entry fun create_ask<C, FT>(
         book: &mut Orderbook<C, FT>,
-        requsted_tokens: u64,
+        requested_tokens: u64,
         transfer_cap: TransferCap,
         safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, err::action_not_public());
         create_ask_<C, FT>(
-            book, requsted_tokens, option::none(), transfer_cap, safe, ctx
+            book, requested_tokens, option::none(), transfer_cap, safe, ctx
         )
     }
     public fun create_ask_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
-        requsted_tokens: u64,
+        requested_tokens: u64,
         transfer_cap: TransferCap,
         safe: &mut Safe,
         ctx: &mut TxContext,
@@ -301,12 +302,12 @@ module nft_protocol::ob {
         utils::assert_same_module_as_witness<C, W>();
 
         create_ask_<C, FT>(
-            book, requsted_tokens, option::none(), transfer_cap, safe, ctx
+            book, requested_tokens, option::none(), transfer_cap, safe, ctx
         )
     }
     public entry fun create_ask_with_commission<C, FT>(
         book: &mut Orderbook<C, FT>,
-        requsted_tokens: u64,
+        requested_tokens: u64,
         transfer_cap: TransferCap,
         beneficiary: address,
         commission: u64,
@@ -320,7 +321,7 @@ module nft_protocol::ob {
         );
         create_ask_<C, FT>(
             book,
-            requsted_tokens,
+            requested_tokens,
             option::some(commission),
             transfer_cap,
             safe,
@@ -330,7 +331,7 @@ module nft_protocol::ob {
     public fun create_ask_with_commission_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
-        requsted_tokens: u64,
+        requested_tokens: u64,
         transfer_cap: TransferCap,
         beneficiary: address,
         commission: u64,
@@ -345,7 +346,7 @@ module nft_protocol::ob {
         );
         create_ask_<C, FT>(
             book,
-            requsted_tokens,
+            requested_tokens,
             option::some(commission),
             transfer_cap,
             safe,
@@ -567,12 +568,10 @@ module nft_protocol::ob {
 
         let asks = &mut book.asks;
 
-        let can_be_filled = !crit_bit::is_empty(asks) &&
-            crit_bit::min_key(asks) <= price;
+        let lowest_ask_price = crit_bit::min_key(asks);
+        let can_be_filled = lowest_ask_price <= price && !crit_bit::is_empty(asks);
 
         if (can_be_filled) {
-            // OPTIMIZE: this is being recomputed
-            let lowest_ask_price = crit_bit::min_key(asks);
             let price_level = crit_bit::borrow_mut(asks, lowest_ask_price);
 
             let ask = vector::remove(
