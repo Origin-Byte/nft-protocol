@@ -60,7 +60,6 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-
         let nft = nft::new<Foo>(OWNER, ctx);
 
         nft::add_domain(&mut nft, DomainA {}, ctx);
