@@ -248,11 +248,8 @@ module nft_protocol::test_ob_utils {
     public fun cancel_ask(
         scenario: &mut Scenario,
         nft_id: ID,
-        seller: address,
         price: u64,
     ) {
-        test_scenario::next_tx(scenario, seller);
-
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
 
         ob::cancel_ask(
@@ -262,7 +259,6 @@ module nft_protocol::test_ob_utils {
             ctx(scenario),
         );
         test_scenario::return_shared(ob);
-        test_scenario::next_tx(scenario, seller);
     }
 
     public fun cancel_bid(
