@@ -16,6 +16,7 @@ module nft_protocol::ob {
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
     // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
+    // TODO: do we allow anyone to create an OB for any collection?
 
     use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
@@ -460,11 +461,24 @@ module nft_protocol::ob {
     /// To implement specific logic in your smart contract, you can toggle the
     /// protection on specific actions. That will make them only accessible via
     /// witness protected methods.
+    public fun new<C, FT>(
+        protected_actions: WitnessProtectedActions,
+        ctx: &mut TxContext,
+    ): Orderbook<C, FT> {
+        let id = object::new(ctx);
+
+        Orderbook<C, FT> {
+            id,
+            protected_actions,
+            asks: crit_bit::empty(),
+            bids: crit_bit::empty(),
+        }
+    }
+
     public entry fun create<C, FT>(
         ctx: &mut TxContext,
     ) {
         let ob = new<C, FT>(no_protection(), ctx);
-        // TBD: must be signed by a collection creator?
         share_object(ob);
     }
 
@@ -479,6 +493,26 @@ module nft_protocol::ob {
 
     public fun share<C, FT>(ob: Orderbook<C, FT>) {
         share_object(ob);
+    }
+
+    public fun no_protection(): WitnessProtectedActions {
+        custom_protection(false, false, false, false, false)
+    }
+
+    public fun custom_protection(
+        buy_nft: bool,
+        cancel_ask: bool,
+        cancel_bid: bool,
+        create_ask: bool,
+        create_bid: bool,
+    ): WitnessProtectedActions {
+        WitnessProtectedActions {
+            buy_nft,
+            cancel_ask,
+            cancel_bid,
+            create_ask,
+            create_bid,
+        }
     }
 
     // === Toggling protection ===
@@ -568,20 +602,6 @@ module nft_protocol::ob {
     }
 
     // === Priv fns ===
-
-    fun new<C, FT>(
-        protected_actions: WitnessProtectedActions,
-        ctx: &mut TxContext,
-    ): Orderbook<C, FT> {
-        let id = object::new(ctx);
-
-        Orderbook<C, FT> {
-            id,
-            protected_actions,
-            asks: crit_bit::empty(),
-            bids: crit_bit::empty(),
-        }
-    }
 
     fun create_bid_<C, FT>(
         book: &mut Orderbook<C, FT>,
@@ -930,15 +950,5 @@ module nft_protocol::ob {
         assert!(index < asks_count, err::order_does_not_exist());
 
         vector::remove(price_level, index)
-    }
-
-    fun no_protection(): WitnessProtectedActions {
-        WitnessProtectedActions {
-            buy_nft: false,
-            cancel_ask: false,
-            cancel_bid: false,
-            create_ask: false,
-            create_bid: false,
-        }
     }
 }
