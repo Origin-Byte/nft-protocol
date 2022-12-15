@@ -40,7 +40,7 @@ module nft_protocol::nft {
         _witness: W,
         nft: &mut Nft<C>,
     ): &mut D {
-        utils::assert_same_module_as_witness<W, D>();
+        utils::assert_same_module_as_witness<D, W>();
         bag::borrow_mut<Marker<D>, D>(&mut nft.bag, utils::marker<D>())
     }
 
@@ -97,9 +97,8 @@ module nft_protocol::nft {
         nft.logical_owner = recipient;
     }
 
-    // === Test only helpers ===
+    // === Getter Functions ===
 
-    #[test_only]
     public fun logical_owner<C>(
         nft: &Nft<C>,
     ): address {
