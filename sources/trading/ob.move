@@ -15,6 +15,8 @@ module nft_protocol::ob {
 
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
+    // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
+    // TODO: do we allow anyone to create an OB for any collection?
 
     use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
@@ -144,7 +146,6 @@ module nft_protocol::ob {
     }
 
     // === Events ===
-    // TODO: emit them
 
     struct AskCreated<phantom FT> has copy, drop {
         id: ID,
@@ -181,7 +182,7 @@ module nft_protocol::ob {
     }
 
 
-    // === Functions ===
+    // === Create bid ===
 
     /// How many (`price`) fungible tokens should be taken from sender's wallet
     /// and put into the orderbook with the intention of exchanging them for
@@ -200,7 +201,7 @@ module nft_protocol::ob {
         assert!(!book.protected_actions.create_bid, err::action_not_public());
         create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
-    
+
     public fun create_bid_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -213,6 +214,7 @@ module nft_protocol::ob {
 
         create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
+
     public entry fun create_bid_with_commission<C, FT>(
         book: &mut Orderbook<C, FT>,
         buyer_safe: &mut Safe,
@@ -231,6 +233,7 @@ module nft_protocol::ob {
             book, buyer_safe, price, option::some(commission), wallet, ctx,
         )
     }
+
     public fun create_bid_with_commission_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -252,6 +255,8 @@ module nft_protocol::ob {
         )
     }
 
+    // === Cancel bid ===
+
     /// Cancel a bid owned by the sender at given price. If there are two bids
     /// with the same price, the one created later is cancelled.
     public entry fun cancel_bid<C, FT>(
@@ -263,6 +268,7 @@ module nft_protocol::ob {
         assert!(!book.protected_actions.cancel_bid, err::action_not_public());
         cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
     }
+
     public fun cancel_bid_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -274,6 +280,8 @@ module nft_protocol::ob {
 
         cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
     }
+
+    // === Create ask ===
 
     /// Offer given NFT to be traded for given (`requested_tokens`) tokens. If
     /// there exists a bid with higher offer than `requested_tokens`, then trade
@@ -291,6 +299,7 @@ module nft_protocol::ob {
             book, requested_tokens, option::none(), transfer_cap, safe, ctx
         )
     }
+
     public fun create_ask_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -305,6 +314,7 @@ module nft_protocol::ob {
             book, requested_tokens, option::none(), transfer_cap, safe, ctx
         )
     }
+
     public entry fun create_ask_with_commission<C, FT>(
         book: &mut Orderbook<C, FT>,
         requested_tokens: u64,
@@ -328,6 +338,7 @@ module nft_protocol::ob {
             ctx,
         )
     }
+
     public fun create_ask_with_commission_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -354,6 +365,8 @@ module nft_protocol::ob {
         )
     }
 
+    // === Cancel ask ===
+
     /// We could remove the NFT requested price from the argument, but then the
     /// search for the ask would be O(n) instead of O(log n).
     ///
@@ -368,6 +381,7 @@ module nft_protocol::ob {
         assert!(!book.protected_actions.cancel_ask, err::action_not_public());
         cancel_ask_(book, nft_price, nft_id, ctx)
     }
+
     public entry fun cancel_ask_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -379,6 +393,8 @@ module nft_protocol::ob {
 
         cancel_ask_(book, nft_price, nft_id, ctx)
     }
+
+    // === Buy NFT ===
 
     /// Buys a specific NFT from the orderbook. This is an atypical OB API as
     /// with fungible tokens, you just want to get the cheapest ask.
@@ -398,6 +414,7 @@ module nft_protocol::ob {
             book, nft_id, price, wallet, seller_safe, buyer_safe, whitelist, ctx
         )
     }
+
     public entry fun buy_nft_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -416,6 +433,8 @@ module nft_protocol::ob {
         )
     }
 
+    // === Finish trade ===
+
     /// When a bid is created and there's an ask with a lower price, then the
     /// trade cannot be resolved immiedately.
     /// That's because we don't know the `Safe` ID up front in OB.
@@ -431,6 +450,8 @@ module nft_protocol::ob {
         finish_trade_<C, FT>(trade, seller_safe, buyer_safe, whitelist, ctx)
     }
 
+    // === Create orderbook ===
+
     /// `C`ollection kind of NFTs to be traded, and `F`ungible `T`oken to be
     /// quoted for an NFT in such a collection.
     ///
@@ -440,24 +461,61 @@ module nft_protocol::ob {
     /// To implement specific logic in your smart contract, you can toggle the
     /// protection on specific actions. That will make them only accessible via
     /// witness protected methods.
+    public fun new<C, FT>(
+        protected_actions: WitnessProtectedActions,
+        ctx: &mut TxContext,
+    ): Orderbook<C, FT> {
+        let id = object::new(ctx);
+
+        Orderbook<C, FT> {
+            id,
+            protected_actions,
+            asks: crit_bit::empty(),
+            bids: crit_bit::empty(),
+        }
+    }
+
     public entry fun create<C, FT>(
         ctx: &mut TxContext,
     ) {
-        let ob = create_<C, FT>(no_protection(), ctx);
-        // TBD: must be signed by a collection creator?
+        let ob = new<C, FT>(no_protection(), ctx);
         share_object(ob);
     }
-    public fun create_protected<W: drop, C, FT>(
+
+    public fun new_protected<W: drop, C, FT>(
         _witness: W,
         ctx: &mut TxContext,
     ): Orderbook<C, FT> {
         utils::assert_same_module_as_witness<C, W>();
 
-        create_<C, FT>(no_protection(), ctx)
+        new<C, FT>(no_protection(), ctx)
     }
+
     public fun share<C, FT>(ob: Orderbook<C, FT>) {
         share_object(ob);
     }
+
+    public fun no_protection(): WitnessProtectedActions {
+        custom_protection(false, false, false, false, false)
+    }
+
+    public fun custom_protection(
+        buy_nft: bool,
+        cancel_ask: bool,
+        cancel_bid: bool,
+        create_ask: bool,
+        create_bid: bool,
+    ): WitnessProtectedActions {
+        WitnessProtectedActions {
+            buy_nft,
+            cancel_ask,
+            cancel_bid,
+            create_ask,
+            create_bid,
+        }
+    }
+
+    // === Toggling protection ===
 
     public fun toggle_protection_on_buy_nft<W: drop, C, FT>(
         _witness: W,
@@ -468,6 +526,7 @@ module nft_protocol::ob {
         book.protected_actions.buy_nft =
             !book.protected_actions.buy_nft;
     }
+
     public fun toggle_protection_on_cancel_ask<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -477,6 +536,7 @@ module nft_protocol::ob {
         book.protected_actions.cancel_ask =
             !book.protected_actions.cancel_ask;
     }
+
     public fun toggle_protection_on_cancel_bid<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -486,6 +546,7 @@ module nft_protocol::ob {
         book.protected_actions.cancel_bid =
             !book.protected_actions.cancel_bid;
     }
+
     public fun toggle_protection_on_create_ask<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -495,6 +556,7 @@ module nft_protocol::ob {
         book.protected_actions.create_ask =
             !book.protected_actions.create_ask;
     }
+
     public fun toggle_protection_on_create_bid<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -504,6 +566,8 @@ module nft_protocol::ob {
         book.protected_actions.create_bid =
             !book.protected_actions.create_bid;
     }
+
+    // === Getters ===
 
     public fun borrow_bids<C, FT>(
         book: &Orderbook<C, FT>,
@@ -537,19 +601,7 @@ module nft_protocol::ob {
         ask.owner
     }
 
-    fun create_<C, FT>(
-        protected_actions: WitnessProtectedActions,
-        ctx: &mut TxContext,
-    ): Orderbook<C, FT> {
-        let id = object::new(ctx);
-
-        Orderbook<C, FT> {
-            id,
-            protected_actions,
-            asks: crit_bit::empty(),
-            bids: crit_bit::empty(),
-        }
-    }
+    // === Priv fns ===
 
     fun create_bid_<C, FT>(
         book: &mut Orderbook<C, FT>,
@@ -898,15 +950,5 @@ module nft_protocol::ob {
         assert!(index < asks_count, err::order_does_not_exist());
 
         vector::remove(price_level, index)
-    }
-
-    fun no_protection(): WitnessProtectedActions {
-        WitnessProtectedActions {
-            buy_nft: false,
-            cancel_ask: false,
-            cancel_bid: false,
-            create_ask: false,
-            create_bid: false,
-        }
     }
 }

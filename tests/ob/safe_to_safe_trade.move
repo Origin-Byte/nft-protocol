@@ -70,7 +70,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     }
 
     fun create_ob(scenario: &mut Scenario) {
-        let ob = ob::create_protected<Witness, Foo, SUI>(
+        let ob = ob::new_protected<Witness, Foo, SUI>(
             Witness {}, ctx(scenario)
         );
         ob::share(ob);
