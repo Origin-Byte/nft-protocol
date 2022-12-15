@@ -1,6 +1,6 @@
 module nft_protocol::unprotected_safe {
     use nft_protocol::err;
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_whitelist::Whitelist;
 
     use sui::event;
@@ -159,7 +159,7 @@ module nft_protocol::unprotected_safe {
 
     /// Transfer an NFT into the `Safe`.
     public entry fun deposit_nft<T>(
-        nft: NFT<T>,
+        nft: Nft<T>,
         safe: &mut UnprotectedSafe,
         ctx: &mut TxContext,
     ) {
@@ -262,7 +262,7 @@ module nft_protocol::unprotected_safe {
     }
 
     fun deposit_nft_<T>(
-        nft: NFT<T>,
+        nft: Nft<T>,
         safe: &mut UnprotectedSafe,
         ctx: &mut TxContext,
     ) {
@@ -287,7 +287,7 @@ module nft_protocol::unprotected_safe {
     fun get_nft_for_transfer_<T>(
         transfer_cap: TransferCap,
         safe: &mut UnprotectedSafe,
-    ): NFT<T> {
+    ): Nft<T> {
         let nft_id = transfer_cap.nft;
 
         event::emit(
@@ -313,13 +313,13 @@ module nft_protocol::unprotected_safe {
         } = transfer_cap;
         object::delete(id);
 
-        dof::remove<ID, NFT<T>>(&mut safe.id, nft_id)
+        dof::remove<ID, Nft<T>>(&mut safe.id, nft_id)
     }
 
     // === Getters ===
 
     public fun has_nft<C>(nft: ID, safe: &UnprotectedSafe): bool {
-        dof::exists_with_type<ID, NFT<C>>(&safe.id, nft)
+        dof::exists_with_type<ID, Nft<C>>(&safe.id, nft)
     }
 
     public fun owner_cap_safe(cap: &OwnerCap): ID {

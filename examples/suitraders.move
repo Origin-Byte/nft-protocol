@@ -11,7 +11,7 @@ module nft_protocol::suitraders {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::attribution;
-    use nft_protocol::launchpad::{Self as lp, Slot};
+    use nft_protocol::slot::{Self, Slot};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -90,7 +90,7 @@ module nft_protocol::suitraders {
         market_id: ID,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUITRADERS>(ctx);
+        let nft = nft::new<SUITRADERS>(tx_context::sender(ctx), ctx);
 
         collection::increment_supply(mint_cap, 1);
 
@@ -101,6 +101,6 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        lp::add_nft(slot, market_id, nft);
+        slot::add_nft(slot, market_id, nft, ctx);
     }
 }

@@ -18,24 +18,17 @@ module nft_protocol::inventory {
 
     use nft_protocol::err;
 
+    // The `Inventory` of a sale performs the bookeeping of all the NFTs that
+    // are currently on sale as well as the NFTs whose certificates have been
+    // sold and currently waiting to be redeemed
     struct Inventory has key, store {
         id: UID,
         whitelisted: bool,
-        // Vector of all IDs owned by the slingshot
+        // NFTs that are currently on sale
         nfts: vector<ID>,
+        // NFTs whose certificates have been sold and currently waiting
+        // to be redeemed
         queue: vector<ID>,
-    }
-
-    /// This object acts as an intermediate step between the payment
-    /// and the transfer of the NFT. The user first has to call
-    /// `buy_nft_certificate` which mints and transfers the `NftCertificate` to
-    /// the user. This object will dictate which NFT the userwill receive by
-    /// calling the endpoint `claim_nft`
-    struct NftCertificate has key, store {
-        id: UID,
-        launchpad_id: ID,
-        slot_id: ID,
-        nft_id: ID,
     }
 
     public fun create(
@@ -78,38 +71,6 @@ module nft_protocol::inventory {
         object::delete(id);
     }
 
-    // TODO: need to add a function with nft_id as function parameter
-    public fun issue_nft_certificate(
-        inventory: &mut Inventory,
-        launchpad_id: ID,
-        slot_id: ID,
-        ctx: &mut TxContext,
-    ): NftCertificate {
-        let nft_id = pop_nft(inventory);
-
-        let certificate = NftCertificate {
-            id: object::new(ctx),
-            launchpad_id,
-            slot_id,
-            nft_id,
-        };
-
-        certificate
-    }
-
-    public fun burn_certificate(
-        certificate: NftCertificate,
-    ) {
-        let NftCertificate {
-            id,
-            launchpad_id: _,
-            slot_id: _,
-            nft_id: _,
-        } = certificate;
-
-        object::delete(id);
-    }
-
     /// Adds an NFT's ID to the `nfts` field in `Inventory` object
     public fun add_nft(
         inventory: &mut Inventory,
@@ -122,7 +83,7 @@ module nft_protocol::inventory {
     /// Pops an NFT's ID from the `nfts` field in `Inventory` object
     /// and returns respective `ID`
     /// TODO: Need to push the ID to the queue
-    fun pop_nft(
+    public fun pop_nft(
         inventory: &mut Inventory,
     ): ID {
         let nfts = &mut inventory.nfts;
@@ -137,15 +98,29 @@ module nft_protocol::inventory {
         vector::length(&inventory.nfts)
     }
 
-    public fun nft_id(
-        certificate: &NftCertificate,
-    ): ID {
-        certificate.nft_id
-    }
-
-    public fun whitelisted(
+    public fun is_whitelisted(
         inventory: &Inventory,
     ): bool {
         inventory.whitelisted
+    }
+
+    // === Assertions ===
+
+    public fun assert_is_whitelisted(
+        inventory: &Inventory,
+    ) {
+        assert!(
+            is_whitelisted(inventory),
+            err::sale_is_not_whitelisted()
+        );
+    }
+
+    public fun assert_is_not_whitelisted(
+        inventory: &Inventory,
+    ) {
+        assert!(
+            !is_whitelisted(inventory),
+            err::sale_is_whitelisted()
+        );
     }
 }

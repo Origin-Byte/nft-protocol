@@ -10,6 +10,10 @@ module nft_protocol::err {
         return Prefix + 000
     }
 
+    public fun mint_authority_mismatch(): u64 {
+        return Prefix + 10
+    }
+
     // === Supply ===
 
     public fun supply_policy_mismatch(): u64 {
@@ -74,7 +78,6 @@ module nft_protocol::err {
         return Prefix + 207
     }
 
-    // TODO: To be used by redeem function
     public fun certificate_nft_id_mismatch(): u64 {
         return Prefix + 208
     }
@@ -105,6 +108,10 @@ module nft_protocol::err {
 
     public fun slot_not_approved(): u64 {
         return Prefix + 215
+    }
+
+    public fun undefined_market(): u64 {
+        return Prefix + 216
     }
 
     // === Auction ===

@@ -3,7 +3,7 @@ module nft_protocol::tags {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::nft::{Self, NFT};
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::attribution;
 
@@ -108,7 +108,7 @@ module nft_protocol::tags {
     /// ====== Interoperability ===
 
     public fun tag_domain<C>(
-        nft: &NFT<C>,
+        nft: &Nft<C>,
     ): &TagDomain {
         nft::borrow_domain(nft)
     }
@@ -132,7 +132,7 @@ module nft_protocol::tags {
     }
 
     public fun add_tag_domain<C>(
-        nft: &mut NFT<C>,
+        nft: &mut Nft<C>,
         tags: TagDomain,
         ctx: &mut TxContext,
     ) {
@@ -141,7 +141,7 @@ module nft_protocol::tags {
 
     public fun add_collection_tag_domain<C>(
         collection: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         tags: TagDomain,
     ) {
         collection::add_domain(collection, mint_cap, tags);

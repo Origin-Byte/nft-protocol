@@ -163,7 +163,7 @@ module nft_protocol::collection {
 
     public fun add_domain<C, V: store>(
         collection: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         v: V,
     ) {
         assert_mint_cap(mint_cap, collection);

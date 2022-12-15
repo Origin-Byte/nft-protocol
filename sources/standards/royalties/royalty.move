@@ -37,18 +37,61 @@ module nft_protocol::royalty {
         }
     }
 
-    /// === Royalties ===
+    // === Royalties ===
+
+    /// Add a royalty strategy
+    public fun add_royalty_strategy<Strategy: store>(
+        domain: &mut RoyaltyDomain,
+        strategy: Strategy,
+    ) {
+        bag::add(
+            &mut domain.strategies,
+            utils::marker<Strategy>(),
+            strategy,
+        );
+    }
+
+    /// Remove a royalty strategy
+    public fun remove_royalty_strategy<Strategy: store>(
+        domain: &mut RoyaltyDomain,
+    ): Strategy {
+        bag::remove(&mut domain.strategies, utils::marker<Strategy>())
+    }
+
+    /// Check whether a royalty strategy is defined
+    public fun contains_royalty_strategy<Strategy: store>(
+        domain: &RoyaltyDomain,
+    ): bool {
+        bag::contains_with_type<Marker<Strategy>, Strategy>(
+            &domain.strategies, utils::marker<Strategy>()
+        )
+    }
+
+    /// Borrow a royalty strategy
+    public fun borrow_royalty_strategy<Strategy: store>(
+        domain: &RoyaltyDomain,
+    ): &Strategy {
+        bag::borrow(
+            &domain.strategies,
+            utils::marker<Strategy>(),
+        )
+    }
+
+    /// Mutably borrow a royalty strategy
+    public fun borrow_royalty_strategy_mut<Strategy: store>(
+        domain: &mut RoyaltyDomain,
+    ): &Strategy {
+        bag::borrow_mut(&mut domain.strategies, utils::marker<Strategy>())
+    }
+
+    // === Standard royalty domains ===
 
     /// Add proportional royalty policy
     public fun add_proportional_royalty(
         domain: &mut RoyaltyDomain,
         strategy: BpsRoyaltyStrategy,
     ) {
-        bag::add(
-            &mut domain.strategies,
-            utils::marker<BpsRoyaltyStrategy>(),
-            strategy,
-        );
+        add_royalty_strategy(domain, strategy);
     }
 
     /// Add constant royalty policy
@@ -56,31 +99,21 @@ module nft_protocol::royalty {
         domain: &mut RoyaltyDomain,
         strategy: ConstantRoyaltyStrategy,
     ) {
-        bag::add(
-            &mut domain.strategies,
-            utils::marker<ConstantRoyaltyStrategy>(),
-            strategy,
-        );
+        add_royalty_strategy(domain, strategy);
     }
 
     /// Remove proportional royalty policy
     public fun remove_proportional_royalty(
         domain: &mut RoyaltyDomain,
-    ) {
-        let _: BpsRoyaltyStrategy = bag::remove(
-            &mut domain.strategies,
-            utils::marker<BpsRoyaltyStrategy>(),
-        );
+    ): BpsRoyaltyStrategy {
+        remove_royalty_strategy<BpsRoyaltyStrategy>(domain)
     }
 
     /// Remove constant royalty policy
     public fun remove_constant_royalty(
         domain: &mut RoyaltyDomain,
-    ) {
-        let _: ConstantRoyaltyStrategy = bag::remove(
-            &mut domain.strategies,
-            utils::marker<ConstantRoyaltyStrategy>(),
-        );
+    ): ConstantRoyaltyStrategy {
+        remove_royalty_strategy<ConstantRoyaltyStrategy>(domain)
     }
 
     /// Calculate how many tokens are due for the defined proportional royalty
@@ -91,17 +124,11 @@ module nft_protocol::royalty {
         domain: &RoyaltyDomain,
         amount: u64,
     ): u64 {
-        if (!bag::contains_with_type<Marker<BpsRoyaltyStrategy>, BpsRoyaltyStrategy>(
-            &domain.strategies, utils::marker<BpsRoyaltyStrategy>()
-        )) {
+        if (!contains_royalty_strategy<BpsRoyaltyStrategy>(domain)) {
             return 0
         };
 
-        let strategy: &BpsRoyaltyStrategy = bag::borrow(
-            &domain.strategies,
-            utils::marker<BpsRoyaltyStrategy>(),
-        );
-
+        let strategy = borrow_royalty_strategy<BpsRoyaltyStrategy>(domain);
         royalty_strategy_bps::calculate(strategy, amount)
     }
 
@@ -112,17 +139,11 @@ module nft_protocol::royalty {
     public fun calculate_constant_royalty(
         domain: &RoyaltyDomain,
     ): u64 {
-        if (!bag::contains_with_type<Marker<ConstantRoyaltyStrategy>, ConstantRoyaltyStrategy>(
-            &domain.strategies, utils::marker<ConstantRoyaltyStrategy>()
-        )) {
+        if (!contains_royalty_strategy<ConstantRoyaltyStrategy>(domain)) {
             return 0
         };
 
-        let strategy: &ConstantRoyaltyStrategy = bag::borrow(
-            &domain.strategies,
-            utils::marker<ConstantRoyaltyStrategy>(),
-        );
-
+        let strategy = borrow_royalty_strategy<ConstantRoyaltyStrategy>(domain);
         royalty_strategy_constant::calculate(strategy)
     }
 
@@ -165,6 +186,27 @@ module nft_protocol::royalty {
         balance::join(aggregate, b);
     }
 
+    /// Distribute aggregated royalties among creators
+    public entry fun distribute_royalties<C, FT>(
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ) {
+        let attributions = *attribution::attribution_domain(collection);
+
+        let domain: &mut RoyaltyDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
+        let aggregate: &mut Balance<FT> = bag::borrow_mut(
+            &mut domain.aggregations,
+            utils::marker<Balance<FT>>(),
+        );
+
+        attribution::distribute_royalties(
+            &attributions,
+            aggregate,
+            ctx,
+        );
+    }
+
     /// === Interoperability ===
 
     /// Get reference to `RoyaltyDomain`
@@ -191,30 +233,9 @@ module nft_protocol::royalty {
     /// Registers `RoyaltyDomain` on the given `Collection`
     public fun add_royalty_domain<C>(
         collection: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
+        mint_cap: &MintCap<C>,
         domain: RoyaltyDomain,
     ) {
         collection::add_domain(collection, mint_cap, domain);
-    }
-
-    /// Distribute aggregated royalties among creators
-    public entry fun distribute_royalties<C, FT>(
-        collection: &mut Collection<C>,
-        ctx: &mut TxContext,
-    ) {
-        let attributions = *attribution::attribution_domain(collection);
-
-        let domain: &mut RoyaltyDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
-        let aggregate: &mut Balance<FT> = bag::borrow_mut(
-            &mut domain.aggregations,
-            utils::marker<Balance<FT>>(),
-        );
-
-        attribution::distribute_royalties(
-            &attributions,
-            aggregate,
-            ctx,
-        );
     }
 }
