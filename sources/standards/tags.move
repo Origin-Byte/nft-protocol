@@ -1,5 +1,6 @@
 module nft_protocol::tags {
     use sui::bag::{Self, Bag};
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::utils::{Self, Marker};
@@ -73,14 +74,15 @@ module nft_protocol::tags {
 
     // === TagDomain ===
 
-    struct TagDomain has store {
+    struct TagDomain has key, store {
+        id: UID,
         bag: Bag,
     }
 
     struct Witness has drop {}
 
     public fun empty(ctx: &mut TxContext): TagDomain {
-        TagDomain { bag: bag::new(ctx) }
+        TagDomain { id: object::new(ctx), bag: bag::new(ctx) }
     }
 
     public fun has_tag<T: store + drop>(domain: &TagDomain): bool {

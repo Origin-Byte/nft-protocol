@@ -32,7 +32,7 @@ module nft_protocol::suitraders {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            attribution::from_address(tx_context::sender(ctx), ctx)
         );
 
         // Register custom domains
@@ -41,18 +41,21 @@ module nft_protocol::suitraders {
             &mut mint_cap,
             string::utf8(b"Suitraders"),
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
+            ctx,
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx,
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUITR")
+            string::utf8(b"SUITR"),
+            ctx,
         );
 
         let tags = tags::empty(ctx);

@@ -1,7 +1,8 @@
 module nft_protocol::royalty {
-    use sui::balance::{Self, Balance};
-    use sui::tx_context::{Self, TxContext};
     use sui::bag::{Self, Bag};
+    use sui::balance::{Self, Balance};
+    use sui::object::{Self, UID};
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -12,7 +13,8 @@ module nft_protocol::royalty {
         Self, ConstantRoyaltyStrategy
     };
 
-    struct RoyaltyDomain has store {
+    struct RoyaltyDomain has key, store {
+        id: UID,
         /// Royalty strategies
         strategies: Bag,
         /// Aggregates received royalties across different coins
@@ -22,16 +24,7 @@ module nft_protocol::royalty {
     /// Creates a `RoyaltyDomain` object with a single creator attribution.
     public fun new(ctx: &mut TxContext): RoyaltyDomain {
         RoyaltyDomain {
-            strategies: bag::new(ctx),
-            aggregations: bag::new(ctx),
-        }
-    }
-
-    /// Creates a `RoyaltyDomain` object with provided creator attributions.
-    public fun from_creators(
-        ctx: &mut TxContext
-    ): RoyaltyDomain {
-        RoyaltyDomain {
+            id: object::new(ctx),
             strategies: bag::new(ctx),
             aggregations: bag::new(ctx),
         }
@@ -191,7 +184,9 @@ module nft_protocol::royalty {
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let attributions = *attribution::attribution_domain(collection);
+        let creators = *attribution::creators(
+            attribution::attribution_domain(collection)
+        );
 
         let domain: &mut RoyaltyDomain =
             collection::borrow_domain_mut(Witness {}, collection);
@@ -201,7 +196,7 @@ module nft_protocol::royalty {
         );
 
         attribution::distribute_royalties(
-            &attributions,
+            &creators,
             aggregate,
             ctx,
         );

@@ -34,7 +34,7 @@ module nft_protocol::suimarines {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            attribution::from_address(tx_context::sender(ctx), ctx)
         );
 
         // Register custom domains
@@ -43,18 +43,21 @@ module nft_protocol::suimarines {
             &mut mint_cap,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+            ctx,
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx,
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUIM")
+            string::utf8(b"SUIM"),
+            ctx,
         );
 
         let royalty = royalty::new(ctx);
