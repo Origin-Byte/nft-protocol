@@ -4,8 +4,6 @@ module nft_protocol::test_transfer_whitelist {
     use sui::transfer::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    // TODO: don't enable creating capability if witness mismatches
-
     struct Witness has drop {}
     struct Witness2 has drop {}
 

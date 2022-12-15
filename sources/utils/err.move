@@ -128,6 +128,10 @@ module nft_protocol::err {
         return Prefix + 303
     }
 
+    public fun action_not_public(): u64 {
+        return Prefix + 304
+    }
+
     // === Safe ===
 
     public fun safe_cap_mismatch(): u64 {
@@ -154,8 +158,12 @@ module nft_protocol::err {
         return Prefix + 405
     }
 
-    public fun safe_id_mismatch(): u64 {
+    public fun nft_not_exlusively_listed(): u64 {
         return Prefix + 406
+    }
+
+    public fun safe_id_mismatch(): u64 {
+        return Prefix + 407
     }
 
     // === Whitelist ===

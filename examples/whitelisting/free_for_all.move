@@ -15,7 +15,7 @@ module nft_protocol::example_free_for_all {
     fun init(ctx: &mut TxContext) {
         init_(ctx)
     }
-    fun init_(ctx: &mut TxContext) {
+    public fun init_(ctx: &mut TxContext) {
         share_object(transfer_whitelist::create(Witness {}, ctx));
     }
 
