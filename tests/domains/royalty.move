@@ -3,10 +3,10 @@ module nft_protocol::test_royalty {
 
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::royalty;
+    use nft_protocol::royalty::{Self, RoyaltyDomain};
     use nft_protocol::royalty_strategy_bps as royalty_bps;
     use nft_protocol::royalty_strategy_constant as royalty_const;
-    use nft_protocol::collection::{Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils_2::create_collection_and_whitelist;
 
     struct Witness has drop {}
@@ -50,6 +50,9 @@ module nft_protocol::test_royalty {
         royalty::add_royalty_domain(
             &mut collection, &mut mint_cap, royalty
         );
+
+        // If domain does not exist this function call will fail
+        collection::borrow_domain<Foo, RoyaltyDomain>(&collection);
 
         test_scenario::return_shared(collection);
         test_scenario::return_to_address(CREATOR, mint_cap);

@@ -8,9 +8,11 @@ module nft_protocol::test_display {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::collection::{Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils_2::create_collection_and_whitelist;
-    use nft_protocol::display;
+    use nft_protocol::display::{
+        Self, DisplayDomain, UrlDomain, SymbolDomain, AttributesDomain
+    };
 
     struct Witness has drop {}
     struct Foo has drop {}
@@ -32,6 +34,9 @@ module nft_protocol::test_display {
             string::utf8(b"Collection of Suimarines"),
             ctx
         );
+
+        // If domain does not exist this function call will fail
+        nft::borrow_domain<Foo, DisplayDomain>(&nft);
 
         transfer(nft, OWNER);
 
@@ -65,6 +70,9 @@ module nft_protocol::test_display {
             string::utf8(b"Collection of Suimarines"),
         );
 
+        // If domain does not exist this function call will fail
+        collection::borrow_domain<Foo, DisplayDomain>(&collection);
+
         test_scenario::return_shared(collection);
         test_scenario::return_to_address(CREATOR, mint_cap);
 
@@ -83,6 +91,9 @@ module nft_protocol::test_display {
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
             ctx
         );
+
+        // If domain does not exist this function call will fail
+        nft::borrow_domain<Foo, UrlDomain>(&nft);
 
         transfer(nft, OWNER);
 
@@ -115,6 +126,9 @@ module nft_protocol::test_display {
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
+        // If domain does not exist this function call will fail
+        collection::borrow_domain<Foo, UrlDomain>(&collection);
+
         test_scenario::return_shared(collection);
         test_scenario::return_to_address(CREATOR, mint_cap);
 
@@ -133,6 +147,9 @@ module nft_protocol::test_display {
             string::utf8(b"SUIM-234"),
             ctx
         );
+
+        // If domain does not exist this function call will fail
+        nft::borrow_domain<Foo, SymbolDomain>(&nft);
 
         transfer(nft, OWNER);
 
@@ -165,6 +182,9 @@ module nft_protocol::test_display {
             string::utf8(b"SUIM"),
         );
 
+        // If domain does not exist this function call will fail
+        collection::borrow_domain<Foo, SymbolDomain>(&collection);
+
         test_scenario::return_shared(collection);
         test_scenario::return_to_address(CREATOR, mint_cap);
 
@@ -189,6 +209,9 @@ module nft_protocol::test_display {
             attributes,
             ctx
         );
+
+        // If domain does not exist this function call will fail
+        nft::borrow_domain<Foo, AttributesDomain>(&nft);
 
         transfer(nft, OWNER);
 

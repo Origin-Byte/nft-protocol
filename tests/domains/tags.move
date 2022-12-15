@@ -4,8 +4,8 @@ module nft_protocol::test_tags {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::tags;
-    use nft_protocol::collection::{Collection, MintCap};
+    use nft_protocol::tags::{Self, TagDomain};
+    use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils_2::create_collection_and_whitelist;
 
     struct Witness has drop {}
@@ -31,6 +31,9 @@ module nft_protocol::test_tags {
             tags,
             ctx
         );
+
+        // If domain does not exist this function call will fail
+        nft::borrow_domain<Foo, TagDomain>(&nft);
 
         transfer(nft, OWNER);
 
@@ -69,6 +72,9 @@ module nft_protocol::test_tags {
             &mint_cap,
             tags,
         );
+
+        // If domain does not exist this function call will fail
+        collection::borrow_domain<Foo, TagDomain>(&collection);
 
         test_scenario::return_shared(collection);
         test_scenario::return_to_address(CREATOR, mint_cap);

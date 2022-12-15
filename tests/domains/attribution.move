@@ -3,8 +3,8 @@ module nft_protocol::test_attribution {
 
     use sui::test_scenario;
 
-    use nft_protocol::attribution;
-    use nft_protocol::collection::{Collection, MintCap};
+    use nft_protocol::attribution::{Self, AttributionDomain};
+    use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils_2::create_collection_and_whitelist;
 
     struct Witness has drop {}
@@ -38,6 +38,9 @@ module nft_protocol::test_attribution {
         attribution::add_attribution_domain(
             &mut collection, &mut mint_cap, attribution
         );
+
+        // If domain does not exist this function call will fail
+        collection::borrow_domain<Foo, AttributionDomain>(&collection);
 
         test_scenario::return_shared(collection);
         test_scenario::return_to_address(CREATOR, mint_cap);
