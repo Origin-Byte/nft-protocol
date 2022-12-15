@@ -24,7 +24,7 @@ module nft_protocol::test_safe {
         test_scenario::next_tx(&mut scenario, USER);
 
         let safe: Safe = test_scenario::take_shared(&scenario);
-        assert!(owner_cap_safe_id == object::id(safe::inner(&safe)), 0);
+        assert!(owner_cap_safe_id == object::id(&safe), 0);
         safe::assert_id(&safe, owner_cap_safe_id);
         safe::assert_owner_cap(&owner_cap, &safe);
 
@@ -34,7 +34,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370406, location = nft_protocol::safe)]
+    #[expected_failure(abort_code = 13370407, location = nft_protocol::safe)]
     fun it_fails_if_safe_id_mismatches() {
         let scenario = test_scenario::begin(USER);
 

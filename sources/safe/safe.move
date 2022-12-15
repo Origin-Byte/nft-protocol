@@ -24,12 +24,14 @@ module nft_protocol::safe {
     /// `Safe` shared object with the corresponding id.
     struct OwnerCap has key, store {
         id: UID,
+        safe: ID,
         inner: unprotected_safe::OwnerCap,
     }
 
     /// Enables the owner to transfer given NFT out of the `Safe`.
     struct TransferCap has key, store {
         id: UID,
+        safe: ID,
         inner: unprotected_safe::TransferCap,
     }
 
@@ -48,6 +50,7 @@ module nft_protocol::safe {
         };
         let cap = OwnerCap {
             id: object::new(ctx),
+            safe: object::id(&safe),
             inner: cap,
         };
 
@@ -93,6 +96,7 @@ module nft_protocol::safe {
     ): TransferCap {
         TransferCap {
             id: object::new(ctx),
+            safe: object::id(safe),
             inner: unprotected_safe::create_transfer_cap(
                 nft, &owner_cap.inner, &mut safe.inner, ctx
             ),
@@ -110,6 +114,7 @@ module nft_protocol::safe {
     ): TransferCap {
         TransferCap {
             id: object::new(ctx),
+            safe: object::id(safe),
             inner: unprotected_safe::create_exclusive_transfer_cap(
                 nft, &owner_cap.inner, &mut safe.inner, ctx
             )
@@ -201,7 +206,7 @@ module nft_protocol::safe {
         safe: &mut Safe,
     ) {
         let TransferCap {
-            id, inner,
+            id, inner, safe: _,
         } = transfer_cap;
         object::delete(id);
 
@@ -231,7 +236,7 @@ module nft_protocol::safe {
         ctx: &mut TxContext,
     ) {
         let TransferCap {
-            id, inner,
+            id, inner, safe: _,
         } = transfer_cap;
         object::delete(id);
 
@@ -253,7 +258,7 @@ module nft_protocol::safe {
         safe: &mut Safe,
     ) {
         let TransferCap {
-            id, inner,
+            id, inner, safe: _,
         } = transfer_cap;
         object::delete(id);
 
@@ -284,11 +289,11 @@ module nft_protocol::safe {
     }
 
     public fun owner_cap_safe(cap: &OwnerCap): ID {
-        unprotected_safe::owner_cap_safe(&cap.inner)
+        cap.safe
     }
 
     public fun transfer_cap_safe(cap: &TransferCap): ID {
-        unprotected_safe::transfer_cap_safe(&cap.inner)
+        cap.safe
     }
 
     public fun transfer_cap_nft(cap: &TransferCap): ID {
@@ -352,6 +357,6 @@ module nft_protocol::safe {
     }
 
     public fun assert_id(safe: &Safe, id: ID) {
-        assert!(object::id(&safe.inner) == id, err::safe_id_mismatch());
+        assert!(object::id(safe) == id, err::safe_id_mismatch());
     }
 }
