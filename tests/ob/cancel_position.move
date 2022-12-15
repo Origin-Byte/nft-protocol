@@ -5,9 +5,11 @@ module nft_protocol::test_ob_cancel_position {
 
     use nft_protocol::safe::{TransferCap};
     use nft_protocol::test_ob_utils as test_ob;
+    // use sui::coin::{Self, Coin};
     use sui::coin;
     use sui::test_scenario;
     use sui::transfer::transfer;
+    // use sui::sui::SUI;
 
     const BUYER: address = @0xA1C06;
     const CREATOR: address = @0xA1C05;
@@ -49,8 +51,7 @@ module nft_protocol::test_ob_cancel_position {
         );
 
         test_scenario::return_to_sender(&scenario, transfer_cap);
-
-        // TODO: Assert balance in coins
+        test_scenario::next_tx(&mut scenario, SELLER);
 
         test_scenario::end(scenario);
     }

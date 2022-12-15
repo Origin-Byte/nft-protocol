@@ -86,18 +86,7 @@ module nft_protocol::test_ob_utils {
         user: address,
     ): ID {
         test_scenario::next_tx(scenario, user);
-
-        let owner_cap: OwnerCap = test_scenario::take_from_address_by_id(
-            scenario,
-            user,
-            user_owner_cap_id(user),
-        );
-        test_scenario::next_tx(scenario, user);
-
-        let safe: Safe = test_scenario::take_shared_by_id(
-            scenario,
-            safe::owner_cap_safe(&owner_cap),
-        );
+        let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
 
         let nft = nft::new<Foo>(user, ctx(scenario));
         let nft_id = object::id(&nft);
@@ -121,17 +110,7 @@ module nft_protocol::test_ob_utils {
         seller: address,
         price: u64,
     ): ID {
-        let owner_cap = test_scenario::take_from_address_by_id<OwnerCap>(
-            scenario,
-            seller,
-            user_owner_cap_id(seller),
-        );
-        test_scenario::next_tx(scenario, seller);
-
-        let seller_safe: Safe = test_scenario::take_shared_by_id(
-            scenario,
-            safe::owner_cap_safe(&owner_cap),
-        );
+        let (owner_cap, seller_safe) = owner_cap_and_safe(scenario, seller);
 
         let transfer_cap = safe::create_exclusive_transfer_cap(
             nft_id,
@@ -161,50 +140,18 @@ module nft_protocol::test_ob_utils {
         transfer_cap_id
     }
 
-    public fun buy_nft(
+    public fun finish_trade(
         scenario: &mut Scenario,
         nft_id: ID,
-        ob_id: ID,
         buyer: address,
         seller: address,
-        price: u64,
     ) {
-        test_scenario::next_tx(scenario, buyer);
-        let buyer_safe_id = user_safe_id(scenario, buyer);
-        let buyer_safe: Safe = test_scenario::take_shared_by_id(
-            scenario,
-            buyer_safe_id,
-        );
-
-        let wallet = coin::mint_for_testing<SUI>(price, ctx(scenario));
-
-        test_scenario::next_tx(scenario, buyer);
-
-        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared_by_id(
-            scenario,
-            ob_id,
-        );
-
-        ob::create_bid(
-            &mut ob,
-            &mut buyer_safe,
-            price,
-            &mut wallet,
-            ctx(scenario),
-        );
-        test_scenario::return_shared(ob);
-        coin::destroy_zero(wallet);
-
-        test_scenario::next_tx(scenario, buyer);
-
-        let seller_safe_id = user_safe_id(scenario, seller);
-        let seller_safe: Safe = test_scenario::take_shared_by_id(
-            scenario,
-            seller_safe_id,
-        );
         let ti: ob::TradeIntermediate<Foo, SUI> =
             test_scenario::take_shared(scenario);
         let wl: Whitelist = test_scenario::take_shared(scenario);
+
+        let seller_safe = user_safe(scenario, seller);
+        let buyer_safe = user_safe(scenario, buyer);
 
         assert!(!safe::has_nft<Foo>(nft_id, &buyer_safe), 0);
         assert!(safe::has_nft<Foo>(nft_id, &seller_safe), 0);
@@ -220,10 +167,12 @@ module nft_protocol::test_ob_utils {
         assert!(safe::has_nft<Foo>(nft_id, &buyer_safe), 0);
         assert!(!safe::has_nft<Foo>(nft_id, &seller_safe), 0);
 
-        test_scenario::return_shared(ti);
         test_scenario::return_shared(buyer_safe);
         test_scenario::return_shared(seller_safe);
         test_scenario::return_shared(wl);
+        test_scenario::return_shared(ti);
+
+        test_scenario::next_tx(scenario, buyer);
     }
 
     public fun create_bid(
@@ -232,11 +181,7 @@ module nft_protocol::test_ob_utils {
     ) {
         let buyer = tx_context::sender(ctx(scenario));
 
-        let buyer_safe_id = user_safe_id(scenario, buyer);
-        let buyer_safe: Safe = test_scenario::take_shared_by_id(
-            scenario,
-            buyer_safe_id,
-        );
+        let buyer_safe = user_safe(scenario, buyer);
 
         test_scenario::next_tx(scenario, buyer);
 
@@ -256,9 +201,9 @@ module nft_protocol::test_ob_utils {
         test_scenario::return_shared(ob);
         coin::destroy_zero(wallet);
 
-        test_scenario::next_tx(scenario, buyer);
-
         test_scenario::return_shared(buyer_safe);
+
+        test_scenario::next_tx(scenario, buyer);
     }
 
     public fun user_safe_id(scenario: &Scenario, user: address): ID {
@@ -271,6 +216,27 @@ module nft_protocol::test_ob_utils {
         test_scenario::return_to_address(user, owner_cap);
 
         safe_id
+    }
+
+    public fun user_safe(scenario: &Scenario, user: address): Safe {
+        let safe_id = user_safe_id(scenario, user);
+        test_scenario::take_shared_by_id(scenario, safe_id)
+    }
+
+    public fun owner_cap_safe(scenario: &Scenario, owner_cap: &OwnerCap): Safe {
+        let safe_id = safe::owner_cap_safe(owner_cap);
+        test_scenario::take_shared_by_id(scenario, safe_id)
+    }
+
+    public fun owner_cap_and_safe(scenario: &Scenario, user: address): (OwnerCap, Safe) {
+        let owner_cap: OwnerCap = test_scenario::take_from_address_by_id(
+            scenario,
+            user,
+            user_owner_cap_id(user),
+        );
+        let safe = owner_cap_safe(scenario, &owner_cap);
+
+        (owner_cap, safe)
     }
 
     public fun user_owner_cap_id(user: address): ID {
