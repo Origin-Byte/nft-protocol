@@ -31,7 +31,6 @@ module nft_protocol::test_ob_safe_to_safe_trade {
         test_ob::create_ask(
             &mut scenario,
             nft_id,
-            SELLER,
             OFFER_SUI,
         );
 

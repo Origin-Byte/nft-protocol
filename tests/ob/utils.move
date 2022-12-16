@@ -107,9 +107,9 @@ module nft_protocol::test_ob_utils {
     public fun create_ask(
         scenario: &mut Scenario,
         nft_id: ID,
-        seller: address,
         price: u64,
     ): ID {
+        let seller = tx_context::sender(ctx(scenario));
         let (owner_cap, seller_safe) = owner_cap_and_safe(scenario, seller);
 
         let transfer_cap = safe::create_exclusive_transfer_cap(
@@ -127,6 +127,46 @@ module nft_protocol::test_ob_utils {
             &mut ob,
             price,
             transfer_cap,
+            &mut seller_safe,
+            ctx(scenario),
+        );
+
+        test_scenario::return_shared(ob);
+        test_scenario::return_shared(seller_safe);
+        transfer(owner_cap, seller);
+
+        test_scenario::next_tx(scenario, seller);
+
+        transfer_cap_id
+    }
+
+    public fun create_ask_with_commission(
+        scenario: &mut Scenario,
+        nft_id: ID,
+        price: u64,
+        beneficiary: address,
+        commission_ft: u64,
+    ): ID {
+        let seller = tx_context::sender(ctx(scenario));
+        let (owner_cap, seller_safe) = owner_cap_and_safe(scenario, seller);
+
+        let transfer_cap = safe::create_exclusive_transfer_cap(
+            nft_id,
+            &owner_cap,
+            &mut seller_safe,
+            ctx(scenario)
+        );
+
+        let transfer_cap_id = object::id(&transfer_cap);
+
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
+
+        ob::create_ask_with_commission(
+            &mut ob,
+            price,
+            transfer_cap,
+            beneficiary,
+            commission_ft,
             &mut seller_safe,
             ctx(scenario),
         );
@@ -180,21 +220,44 @@ module nft_protocol::test_ob_utils {
         price: u64,
     ) {
         let buyer = tx_context::sender(ctx(scenario));
-
         let buyer_safe = user_safe(scenario, buyer);
-
-        test_scenario::next_tx(scenario, buyer);
-
         let wallet = coin::mint_for_testing<SUI>(price, ctx(scenario));
-
-        test_scenario::next_tx(scenario, buyer);
-
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
+        test_scenario::next_tx(scenario, buyer);
 
         ob::create_bid(
             &mut ob,
             &mut buyer_safe,
             price,
+            &mut wallet,
+            ctx(scenario),
+        );
+        test_scenario::return_shared(ob);
+        coin::destroy_zero(wallet);
+
+        test_scenario::return_shared(buyer_safe);
+
+        test_scenario::next_tx(scenario, buyer);
+    }
+
+    public fun create_bid_with_commission(
+        scenario: &mut Scenario,
+        price: u64,
+        beneficiary: address,
+        commission_ft: u64,
+    ) {
+        let buyer = tx_context::sender(ctx(scenario));
+        let buyer_safe = user_safe(scenario, buyer);
+        let wallet = coin::mint_for_testing<SUI>(price + commission_ft, ctx(scenario));
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
+        test_scenario::next_tx(scenario, buyer);
+
+        ob::create_bid_with_commission(
+            &mut ob,
+            &mut buyer_safe,
+            price,
+            beneficiary,
+            commission_ft,
             &mut wallet,
             ctx(scenario),
         );
