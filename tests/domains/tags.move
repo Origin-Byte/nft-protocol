@@ -47,6 +47,7 @@ module nft_protocol::test_tags {
         let (col_id, cap_id, _wl_id) = create_collection_and_whitelist(
             Foo {},
             Witness {},
+            CREATOR,
             &mut scenario,
         );
 
