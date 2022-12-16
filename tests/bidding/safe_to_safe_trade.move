@@ -16,7 +16,6 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use sui::sui::SUI;
     use sui::coin;
     use sui::balance;
-    use std::debug;
     use std::vector;
     use sui::tx_context::TxContext;
     use sui::object::ID;
@@ -47,22 +46,21 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
-        let (seller_safe_id, seller_owner_cap_id) = test_ob::create_safe(&mut scenario, SELLER);
+        let (seller_safe_id, seller_owner_cap_id) = test_ob::create_safe(
+            &mut scenario, SELLER
+        );
 
         let nft_id = test_ob::create_and_deposit_nft(
             &mut scenario,
             SELLER,
         );
 
+        test_scenario::next_tx(&mut scenario, SELLER);
+
         let seller_safe = test_scenario::take_shared_by_id<Safe>(
             &mut scenario,
             seller_safe_id,
         );
-
-        debug::print(&b"MINE");
-        debug::print(&nft_id);
-        debug::print(&seller_safe_id);
-        debug::print(&seller_owner_cap_id);
 
         assert!(safe::has_nft<Foo>(nft_id, &seller_safe), 2);
 

@@ -5,6 +5,7 @@ module nft_protocol::test_ob_utils {
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use std::debug;
     use std::vector;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID};
@@ -97,6 +98,10 @@ module nft_protocol::test_ob_utils {
         );
 
         test_scenario::next_tx(scenario, user);
+
+        debug::print(&nft_id);
+        // debug::print(&seller_safe_id);
+        // debug::print(&seller_owner_cap_id);
 
         assert!(safe::has_nft<Foo>(nft_id, &safe), 0);
 
