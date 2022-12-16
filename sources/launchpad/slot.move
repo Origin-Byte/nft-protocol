@@ -284,6 +284,7 @@ module nft_protocol::slot {
         certificate: NftCertificate,
         slot: &mut Slot,
     ): Nft<C> {
+        assert_nft_certificate_slot(object::id(slot), &certificate);
         assert_contains_nft<C>(slot, certificate.nft_id);
 
         let nft = dof::remove<ID, Nft<C>>(
@@ -550,8 +551,18 @@ module nft_protocol::slot {
     public fun assert_contains_nft<C>(slot: &Slot, nft_id: ID) {
         assert!(
             dof::exists_with_type<ID, Nft<C>>(&slot.id, nft_id),
-            err::certificate_nft_id_mismatch()
+            err::undefined_nft_id()
         );
+    }
+
+    public fun assert_nft_certificate_slot(
+        slot_id: ID,
+        certificate: &NftCertificate,
+    ) {
+        assert!(
+            certificate.slot_id == slot_id,
+            err::incorrect_nft_certificate()
+        )
     }
 
     public fun assert_whitelist_certificate_market(
@@ -561,7 +572,7 @@ module nft_protocol::slot {
         // Infer that whitelist token corresponds to correct sale inventory
         assert!(
             certificate.market_id == market_id,
-            err::incorrect_whitelist_token()
+            err::incorrect_whitelist_certificate()
         );
     }
 }

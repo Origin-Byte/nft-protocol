@@ -25,8 +25,6 @@ module nft_protocol::dutch_auction {
         /// A bid order stores amount of "T"okens the buyer is willing to
         /// purchase
         bids: CBTree<vector<Bid<FT>>>,
-        /// Whether the auction is currently live
-        live: bool,
     }
 
     /// A bid for one NFT
@@ -51,7 +49,6 @@ module nft_protocol::dutch_auction {
             id: object::new(ctx),
             reserve_price,
             bids: crit_bit::empty(),
-            live: false,
         }
     }
 

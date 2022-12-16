@@ -24,7 +24,6 @@ module nft_protocol::fixed_price {
 
     struct FixedPriceMarket<phantom FT> has key, store {
         id: UID,
-        live: bool,
         price: u64,
     }
 
@@ -38,7 +37,6 @@ module nft_protocol::fixed_price {
     ): FixedPriceMarket<FT> {
         FixedPriceMarket {
             id: object::new(ctx),
-            live: false,
             price,
         }
     }
