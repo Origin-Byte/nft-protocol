@@ -21,8 +21,6 @@ module nft_protocol::fixed_price {
     struct FixedPriceMarket<phantom FT> has key, store {
         id: UID,
         price: u64,
-        /// Whether the auction is currently live
-        live: bool,
     }
 
     struct Witness has drop {}
@@ -36,7 +34,6 @@ module nft_protocol::fixed_price {
         FixedPriceMarket {
             id: object::new(ctx),
             price,
-            live: false,
         }
     }
 
