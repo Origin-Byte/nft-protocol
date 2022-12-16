@@ -27,16 +27,6 @@ module nft_protocol::royalty {
         }
     }
 
-    /// Creates a `RoyaltyDomain` object with provided creator attributions.
-    public fun from_creators(
-        ctx: &mut TxContext
-    ): RoyaltyDomain {
-        RoyaltyDomain {
-            strategies: bag::new(ctx),
-            aggregations: bag::new(ctx),
-        }
-    }
-
     // === Royalties ===
 
     /// Add a royalty strategy

@@ -1,6 +1,7 @@
 // TODO: Where does it make sense to control supply?
 // TODO: Where does it make sense to control ownership of the shared data object?
 // This should ideally be controlled solely by the NFT Creators..
+// TODO: Tests
 module nft_protocol::flyweight {
     use sui::event;
     use sui::object::{Self, UID, ID};
