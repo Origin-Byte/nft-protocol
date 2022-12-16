@@ -75,7 +75,7 @@ module nft_protocol::slot {
     ): NftCertificate {
         assert_slot_launchpad_match(launchpad, slot);
 
-        utils::assert_same_module_as_witness<Witness, Market>();
+        utils::assert_same_module_as_witness<Market, Witness>();
         assert_market<Market>(slot, market_id);
 
         let inventory = inventory_mut(slot, market_id);
@@ -132,7 +132,7 @@ module nft_protocol::slot {
 
     public fun issue_whitelist_certificate(
         launchpad: &Launchpad,
-        slot: &mut Slot,
+        slot: &Slot,
         market_id: ID,
         ctx: &mut TxContext,
     ): WhitelistCertificate {
@@ -151,7 +151,7 @@ module nft_protocol::slot {
 
     public entry fun transfer_whitelist_certificate(
         launchpad: &Launchpad,
-        slot: &mut Slot,
+        slot: &Slot,
         market_id: ID,
         recipient: address,
         ctx: &mut TxContext,
@@ -183,9 +183,9 @@ module nft_protocol::slot {
     struct Slot has key, store {
         id: UID,
         launchpad_id: ID,
-        /// Boolean indicating if the sale is live
+        /// Boolean indicating if the `Slot` is live
         live: bool,
-        /// The address of the slot administrator, that is, the Nft creator
+        /// The address of the `Slot` administrator
         admin: address,
         /// The address of the receiver of funds
         receiver: address,

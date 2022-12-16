@@ -8,10 +8,6 @@
 //!
 //! Each sale segment can have a whitelisting process, each with their own
 //! whitelist tokens.
-//!
-//! TODO: Consider if we want to be able to delete the launchpad object
-//! TODO: Remove code duplication between `buy_nft_certificate` and
-//! `buy_whitelisted_nft_certificate`
 module nft_protocol::fixed_price {
     use sui::coin::{Self, Coin};
     use sui::transfer::{Self};
@@ -25,6 +21,8 @@ module nft_protocol::fixed_price {
     struct FixedPriceMarket<phantom FT> has key, store {
         id: UID,
         price: u64,
+        /// Whether the auction is currently live
+        live: bool,
     }
 
     struct Witness has drop {}
@@ -38,6 +36,7 @@ module nft_protocol::fixed_price {
         FixedPriceMarket {
             id: object::new(ctx),
             price,
+            live: false,
         }
     }
 
@@ -86,35 +85,15 @@ module nft_protocol::fixed_price {
         funds: Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        // One can only buy NFT certificates if the slingshot is live
-        slot::assert_is_live(slot);
         slot::assert_market_is_not_whitelisted(slot, market_id);
 
-        let market: &FixedPriceMarket<FT> = slot::market(slot, market_id);
-        let change = coin::split<FT>(
-            &mut funds,
-            market.price,
-            ctx,
-        );
-
-        transfer::transfer(change, tx_context::sender(ctx));
-
-        slot::pay(slot, funds, 1);
-
-        let certificate = slot::issue_nft_certificate_internal<
-            FixedPriceMarket<FT>, Witness
-        >(
-            Witness {},
+        buy_nft_certificate_(
             launchpad,
             slot,
             market_id,
-            ctx
-        );
-
-        transfer::transfer(
-            certificate,
-            tx_context::sender(ctx),
-        );
+            funds,
+            ctx,
+        )
     }
 
     /// Permissioned endpoint to buy NFT certificates for whitelisted sales.
@@ -131,9 +110,29 @@ module nft_protocol::fixed_price {
         whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
-        slot::assert_is_live(slot);
         slot::assert_market_is_whitelisted(slot, market_id);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
+        
+        slot::burn_whitelist_certificate(whitelist_token);
+
+        buy_nft_certificate_(
+            launchpad,
+            slot,
+            market_id,
+            funds,
+            ctx,
+        )
+    }
+
+    fun buy_nft_certificate_<FT>(
+        launchpad: &Launchpad,
+        slot: &mut Slot,
+        market_id: ID,
+        funds: Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        slot::assert_market<FixedPriceMarket<FT>>(slot, market_id);
+        slot::assert_is_live(slot);
 
         let market: &FixedPriceMarket<FT> = slot::market(slot, market_id);
         let change = coin::split<FT>(
@@ -145,8 +144,6 @@ module nft_protocol::fixed_price {
         transfer::transfer(change, tx_context::sender(ctx));
 
         slot::pay(slot, funds, 1);
-
-        slot::burn_whitelist_certificate(whitelist_token);
 
         let certificate = slot::issue_nft_certificate_internal<
             FixedPriceMarket<FT>, Witness
@@ -175,6 +172,7 @@ module nft_protocol::fixed_price {
         ctx: &mut TxContext,
     ) {
         slot::assert_slot_admin(slot, ctx);
+        slot::assert_market<FixedPriceMarket<FT>>(slot, market_id);
 
         let market =
             slot::market_mut<FixedPriceMarket<FT>>(slot, market_id, ctx);
@@ -188,6 +186,8 @@ module nft_protocol::fixed_price {
         slot: &Slot,
         market_id: ID,
     ): u64 {
+        slot::assert_market<FixedPriceMarket<FT>>(slot, market_id);
+
         let market: &FixedPriceMarket<FT> = slot::market(slot, market_id);
         market.price
     }

@@ -89,6 +89,7 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
         slot::assert_is_live(slot);
         slot::assert_market_is_not_whitelisted(slot, market_id);
 
@@ -110,6 +111,7 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
         slot::assert_is_live(slot);
         slot::assert_market_is_whitelisted(slot, market_id);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
@@ -159,6 +161,7 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         slot::assert_slot_admin(slot, ctx);
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
 
         cancel_auction<FT>(
             slot::market_internal_mut(Witness {}, slot, market_id),
@@ -179,6 +182,7 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         slot::assert_slot_admin(slot, ctx);
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
 
         let inventory = slot::inventory(slot, market_id);
         let nfts_to_sell = inventory::length(inventory);
