@@ -342,7 +342,7 @@ module nft_protocol::test_ob_utils {
             ctx(scenario),
         );
         test_scenario::return_shared(ob);
-        test_scenario::next_tx(scenario, buyer);
+        // test_scenario::next_tx(scenario, buyer);
 
         wallet
     }

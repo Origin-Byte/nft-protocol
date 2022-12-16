@@ -2,9 +2,12 @@
 module nft_protocol::test_ob_cancel_position {
     use nft_protocol::safe::{TransferCap};
     use nft_protocol::test_ob_utils as test_ob;
+    use sui::sui::SUI;
+    use nft_protocol::ob::{Self, Orderbook};
     use sui::coin;
     use sui::test_scenario;
     use sui::transfer::transfer;
+    use movemate::crit_bit_u64 as crit_bit;
 
     const BUYER: address = @0xA1C06;
     const CREATOR: address = @0xA1C05;
@@ -13,10 +16,6 @@ module nft_protocol::test_ob_cancel_position {
 
     const OFFER_SUI: u64 = 100;
     const COMMISSION_SUI: u64 = 10;
-
-    struct Foo has drop {} // collection
-    struct Witness has drop {} // collection witness, must be named witness
-    struct WhitelistWitness has drop {}
 
     #[test]
     #[expected_failure(abort_code = 13370301, location = nft_protocol::ob)]
@@ -92,6 +91,62 @@ module nft_protocol::test_ob_cancel_position {
     }
 
     #[test]
+    fun it_cancels_only_one_ask() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_whitelist(&mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        test_ob::create_safe(&mut scenario, SELLER);
+
+        let nft1_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        let transfer_cap1_id = test_ob::create_ask(
+            &mut scenario,
+            nft1_id,
+            OFFER_SUI,
+        );
+
+        let nft2_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        test_ob::create_ask(
+            &mut scenario,
+            nft2_id,
+            OFFER_SUI,
+        );
+
+        let nft3_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        test_ob::create_ask(
+            &mut scenario,
+            nft3_id,
+            OFFER_SUI,
+        );
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+        let ob: Orderbook<test_ob::Foo, SUI> = test_scenario::take_shared(&scenario);
+        assert!(crit_bit::length(ob::borrow_asks(&ob)) == 1, 0);
+        test_scenario::return_shared(ob);
+
+        test_scenario::next_tx(&mut scenario, SELLER);
+        test_ob::cancel_ask(&mut scenario, nft1_id, OFFER_SUI);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        let transfer_cap1 = test_scenario::take_from_address_by_id<TransferCap>(
+            &mut scenario,
+            SELLER,
+            transfer_cap1_id,
+        );
+        test_scenario::return_to_sender(&scenario, transfer_cap1);
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+        let ob: Orderbook<test_ob::Foo, SUI> = test_scenario::take_shared(&scenario);
+        assert!(crit_bit::length(ob::borrow_asks(&ob)) == 1, 0);
+        test_scenario::return_shared(ob);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
     fun it_cancels_ask_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -142,6 +197,28 @@ module nft_protocol::test_ob_cancel_position {
         assert!(coin::value(&wallet) == OFFER_SUI, 0);
 
         transfer(wallet, BUYER);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_cancels_only_one_bid() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_whitelist(&mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
+        test_ob::create_safe(&mut scenario, BUYER);
+
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
+        let wallet = test_ob::cancel_bid(&mut scenario, BUYER, OFFER_SUI);
+        assert!(coin::value(&wallet) == OFFER_SUI, 0);
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+        let ob: Orderbook<test_ob::Foo, SUI> = test_scenario::take_shared(&scenario);
+        assert!(crit_bit::length(ob::borrow_bids(&ob)) == 1, 0);
+
+        transfer(wallet, BUYER);
+        test_scenario::return_shared(ob);
         test_scenario::end(scenario);
     }
 
