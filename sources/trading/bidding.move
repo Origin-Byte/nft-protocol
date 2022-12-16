@@ -53,6 +53,7 @@ module nft_protocol::bidding {
     ) {
         create_bid_(nft, buyers_safe, price, option::none(), wallet, ctx);
     }
+
     public entry fun create_bid_with_commission<FT>(
         nft: ID,
         buyers_safe: ID,
@@ -87,6 +88,7 @@ module nft_protocol::bidding {
             ctx,
         );
     }
+
     public entry fun sell_nft_with_commission<C, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
