@@ -46,7 +46,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     }
 
     fun create_collection_and_whitelist(scenario: &mut Scenario) {
-        let (cap, col) = collection::dummy_collection<Foo>(&Foo {}, CREATOR, scenario);
+        let (cap, col) =
+            collection::dummy_collection<Foo>(&Foo {}, CREATOR, scenario);
         share_object(col);
         test_scenario::next_tx(scenario, CREATOR);
 

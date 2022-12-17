@@ -475,20 +475,15 @@ module nft_protocol::ob {
         }
     }
 
+    public fun new_unprotected<C, FT>(ctx: &mut TxContext): Orderbook<C, FT> {
+        new<C, FT>(no_protection(), ctx)
+    }
+
     public entry fun create<C, FT>(
         ctx: &mut TxContext,
     ) {
         let ob = new<C, FT>(no_protection(), ctx);
         share_object(ob);
-    }
-
-    public fun new_protected<W: drop, C, FT>(
-        _witness: W,
-        ctx: &mut TxContext,
-    ): Orderbook<C, FT> {
-        utils::assert_same_module_as_witness<C, W>();
-
-        new<C, FT>(no_protection(), ctx)
     }
 
     public fun share<C, FT>(ob: Orderbook<C, FT>) {
