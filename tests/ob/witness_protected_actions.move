@@ -75,40 +75,15 @@ module nft_protocol::test_ob_witness_protected_actions {
     #[test]
     #[expected_failure(abort_code = 13370600, location = nft_protocol::utils)]
     fun it_cannot_call_buy_nft_protected_with_wrong_witness() {
-        let scenario = test_scenario::begin(CREATOR);
-        let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
-        protect_buy_nft(&mut scenario);
-
-        test_scenario::next_tx(&mut scenario, BUYER);
-        let buyer_safe = test_ob::user_safe(&scenario, BUYER);
-        let seller_safe = test_ob::user_safe(&scenario, SELLER);
-        let wallet = coin::mint_for_testing<SUI>(OFFER_SUI, ctx(&mut scenario));
-        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(&scenario);
-        let wl: Whitelist = test_scenario::take_shared(&scenario);
-
-        ob::buy_nft_protected(
-            WrongWitness {},
-            &mut ob,
-            nft_id,
-            OFFER_SUI,
-            &mut wallet,
-            &mut seller_safe,
-            &mut buyer_safe,
-            &wl,
-            ctx(&mut scenario),
-        );
-
-        test_scenario::return_shared(ob);
-        test_scenario::return_shared(wl);
-        test_scenario::return_shared(buyer_safe);
-        test_scenario::return_shared(seller_safe);
-        coin::destroy_zero(wallet);
-
-        test_scenario::end(scenario);
+        buy_nft_protected(WrongWitness {})
     }
 
     #[test]
     fun it_buys_nft_protected() {
+        buy_nft_protected(test_ob::witness())
+    }
+
+    fun buy_nft_protected<W: drop>(witness: W) {
         let scenario = test_scenario::begin(CREATOR);
         let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
         protect_buy_nft(&mut scenario);
@@ -127,7 +102,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         let wl: Whitelist = test_scenario::take_shared(&scenario);
 
         ob::buy_nft_protected(
-            test_ob::witness(),
+            witness,
             &mut ob,
             nft_id,
             OFFER_SUI,
@@ -181,40 +156,15 @@ module nft_protocol::test_ob_witness_protected_actions {
     #[test]
     #[expected_failure(abort_code = 13370600, location = nft_protocol::utils)]
     fun it_cannot_call_create_ask_protected_with_wrong_witness() {
-        let scenario = test_scenario::begin(CREATOR);
-        let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
-        protect_create_ask(&mut scenario);
-
-        test_scenario::next_tx(&mut scenario, SELLER);
-        let (owner_cap, seller_safe) = test_ob::owner_cap_and_safe(&scenario, SELLER);
-        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(&scenario);
-        let wl: Whitelist = test_scenario::take_shared(&scenario);
-        let transfer_cap = safe::create_exclusive_transfer_cap(
-            nft_id,
-            &owner_cap,
-            &mut seller_safe,
-            ctx(&mut scenario)
-        );
-
-        ob::create_ask_protected(
-            WrongWitness {},
-            &mut ob,
-            OFFER_SUI,
-            transfer_cap,
-            &mut seller_safe,
-            ctx(&mut scenario),
-        );
-
-        test_scenario::return_shared(ob);
-        test_scenario::return_shared(wl);
-        test_scenario::return_shared(seller_safe);
-        transfer(owner_cap, SELLER);
-
-        test_scenario::end(scenario);
+        create_ask_protected(WrongWitness {})
     }
 
     #[test]
     fun it_creates_ask_protected() {
+        create_ask_protected(test_ob::witness())
+    }
+
+    fun create_ask_protected<W: drop>(witness: W) {
         let scenario = test_scenario::begin(CREATOR);
         let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
         protect_create_ask(&mut scenario);
@@ -231,7 +181,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         );
 
         ob::create_ask_protected(
-            test_ob::witness(),
+            witness,
             &mut ob,
             OFFER_SUI,
             transfer_cap,
@@ -277,34 +227,15 @@ module nft_protocol::test_ob_witness_protected_actions {
     #[test]
     #[expected_failure(abort_code = 13370600, location = nft_protocol::utils)]
     fun it_cannot_call_create_bid_protected_with_wrong_witness() {
-        let scenario = test_scenario::begin(CREATOR);
-        create_col_wl_ob_nft_safes(&mut scenario);
-        protect_create_bid(&mut scenario);
-
-        test_scenario::next_tx(&mut scenario, BUYER);
-        let buyer_safe = test_ob::user_safe(&scenario, BUYER);
-        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(&scenario);
-        let wallet = coin::mint_for_testing<SUI>(OFFER_SUI, ctx(&mut scenario));
-        test_scenario::next_tx(&mut scenario, BUYER);
-
-        ob::create_bid_protected(
-            WrongWitness {},
-            &mut ob,
-            &mut buyer_safe,
-            OFFER_SUI,
-            &mut wallet,
-            ctx(&mut scenario),
-        );
-
-        test_scenario::return_shared(ob);
-        test_scenario::return_shared(buyer_safe);
-        coin::destroy_zero(wallet);
-
-        test_scenario::end(scenario);
+        create_bid_protected(WrongWitness {})
     }
 
     #[test]
     fun it_creates_bid_protected() {
+        create_bid_protected(test_ob::witness())
+    }
+
+    fun create_bid_protected<W: drop>(witness: W) {
         let scenario = test_scenario::begin(CREATOR);
         create_col_wl_ob_nft_safes(&mut scenario);
         protect_create_bid(&mut scenario);
@@ -316,7 +247,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         ob::create_bid_protected(
-            test_ob::witness(),
+            witness,
             &mut ob,
             &mut buyer_safe,
             OFFER_SUI,
