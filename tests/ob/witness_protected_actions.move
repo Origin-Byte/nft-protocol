@@ -148,16 +148,6 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    fun it_protects_cancel_ask() {
-        //
-    }
-
-    #[test]
-    fun it_protects_cancel_bid() {
-        //
-    }
-
-    #[test]
     #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
     fun it_protects_create_ask() {
         let scenario = test_scenario::begin(CREATOR);
@@ -257,9 +247,97 @@ module nft_protocol::test_ob_witness_protected_actions {
         test_scenario::end(scenario);
     }
 
+    #[test]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    fun it_protects_create_bid() {
+        let scenario = test_scenario::begin(CREATOR);
+        create_col_wl_ob_nft_safes(&mut scenario);
+        protect_create_bid(&mut scenario);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
+
+        test_scenario::end(scenario);
+    }
 
     #[test]
-    fun it_protects_create_bid() {
+    #[expected_failure(abort_code = 13370600, location = nft_protocol::utils)]
+    fun it_cannot_toggle_protection_on_create_bid_with_wrong_witness() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        create_col_wl_ob_nft_safes(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(&scenario);
+        ob::toggle_protection_on_create_bid(WrongWitness {}, &mut ob);
+
+        test_scenario::return_shared(ob);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 13370600, location = nft_protocol::utils)]
+    fun it_cannot_call_create_bid_protected_with_wrong_witness() {
+        let scenario = test_scenario::begin(CREATOR);
+        create_col_wl_ob_nft_safes(&mut scenario);
+        protect_create_bid(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, BUYER);
+        let buyer_safe = test_ob::user_safe(&scenario, BUYER);
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(&scenario);
+        let wallet = coin::mint_for_testing<SUI>(OFFER_SUI, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        ob::create_bid_protected(
+            WrongWitness {},
+            &mut ob,
+            &mut buyer_safe,
+            OFFER_SUI,
+            &mut wallet,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::return_shared(ob);
+        test_scenario::return_shared(buyer_safe);
+        coin::destroy_zero(wallet);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_creates_bid_protected() {
+        let scenario = test_scenario::begin(CREATOR);
+        create_col_wl_ob_nft_safes(&mut scenario);
+        protect_create_bid(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, BUYER);
+        let buyer_safe = test_ob::user_safe(&scenario, BUYER);
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(&scenario);
+        let wallet = coin::mint_for_testing<SUI>(OFFER_SUI, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        ob::create_bid_protected(
+            test_ob::witness(),
+            &mut ob,
+            &mut buyer_safe,
+            OFFER_SUI,
+            &mut wallet,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::return_shared(ob);
+        test_scenario::return_shared(buyer_safe);
+        coin::destroy_zero(wallet);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_protects_cancel_ask() {
+        //
+    }
+
+    #[test]
+    fun it_protects_cancel_bid() {
         //
     }
 
@@ -274,6 +352,13 @@ module nft_protocol::test_ob_witness_protected_actions {
         test_scenario::next_tx(scenario, CREATOR);
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
         ob::toggle_protection_on_create_ask(test_ob::witness(), &mut ob);
+        test_scenario::return_shared(ob);
+    }
+
+    fun protect_create_bid(scenario: &mut Scenario) {
+        test_scenario::next_tx(scenario, CREATOR);
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
+        ob::toggle_protection_on_create_bid(test_ob::witness(), &mut ob);
         test_scenario::return_shared(ob);
     }
 }
