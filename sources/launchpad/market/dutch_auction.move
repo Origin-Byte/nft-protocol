@@ -228,15 +228,46 @@ module nft_protocol::dutch_auction {
             };
         };
 
-        slot::pay<FT>(
-            slot,
-            coin::from_balance(total_funds, ctx),
-            1,
-        );
+        slot::pay<FT>(slot, total_funds, nfts_to_sell);
 
         vector::destroy_empty(bids_to_fill);
 
-        slot::sale_off(launchpad, slot, ctx);
+        // Cancel all remaining orders if there are no NFTs left to sell
+        if (inventory::is_empty(slot::inventory(slot, market_id))) {
+            sale_cancel<FT>(launchpad, slot, market_id, ctx);
+        }
+    }
+
+    // === Getter Functions ===
+
+    /// Get the auction's reserve price
+    public fun reserve_price<FT>(
+        slot: &Slot,
+        market_id: ID,
+    ): u64 {
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
+
+        let market: &DutchAuctionMarket<FT> = slot::market(slot, market_id);
+        market.reserve_price
+    }
+
+    /// Get the auction's bids
+    public fun bids<FT>(
+        slot: &Slot,
+        market_id: ID,
+    ): &CBTree<vector<Bid<FT>>> {
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
+
+        let market: &DutchAuctionMarket<FT> = slot::market(slot, market_id);
+        &market.bids
+    }
+
+    public fun bid_owner<FT>(bid: &Bid<FT>): address {
+        bid.owner
+    }
+
+    public fun bid_amount<FT>(bid: &Bid<FT>): &Balance<FT> {
+        &bid.amount
     }
 
     // === Private Functions ===
@@ -305,6 +336,11 @@ module nft_protocol::dutch_auction {
 
         let bid = vector::remove(price_level, bid_index);
         refund_bid(bid, wallet, &sender);
+
+        if (vector::is_empty(price_level)) {
+            let price_level = crit_bit::pop(bids, price);
+            vector::destroy_empty(price_level);
+        }
     }
 
     // Cancels all bids present on the auction book
@@ -344,6 +380,7 @@ module nft_protocol::dutch_auction {
         balance::join(coin::balance_mut(wallet), amount);
     }
 
+    /// Returns the fill_price and bids that must be filled
     fun conclude_auction<FT>(
         auction: &mut DutchAuctionMarket<FT>,
         // Use to specify how many NFTs will be transfered to the winning bids

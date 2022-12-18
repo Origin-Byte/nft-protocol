@@ -9,6 +9,7 @@
 //! Each sale segment can have a whitelisting process, each with their own
 //! whitelist tokens.
 module nft_protocol::fixed_price {
+    use sui::balance;
     use sui::coin::{Self, Coin};
     use sui::transfer::{Self};
     use sui::object::{Self, ID, UID};
@@ -79,7 +80,7 @@ module nft_protocol::fixed_price {
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
-        funds: Coin<FT>,
+        wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         slot::assert_market_is_not_whitelisted(slot, market_id);
@@ -88,7 +89,7 @@ module nft_protocol::fixed_price {
             launchpad,
             slot,
             market_id,
-            funds,
+            wallet,
             ctx,
         )
     }
@@ -103,7 +104,7 @@ module nft_protocol::fixed_price {
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
-        funds: Coin<FT>,
+        wallet: &mut Coin<FT>,
         whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
@@ -116,7 +117,7 @@ module nft_protocol::fixed_price {
             launchpad,
             slot,
             market_id,
-            funds,
+            wallet,
             ctx,
         )
     }
@@ -125,21 +126,15 @@ module nft_protocol::fixed_price {
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
-        funds: Coin<FT>,
+        wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         slot::assert_market<FixedPriceMarket<FT>>(slot, market_id);
         slot::assert_is_live(slot);
 
         let market: &FixedPriceMarket<FT> = slot::market(slot, market_id);
-        let change = coin::split<FT>(
-            &mut funds,
-            market.price,
-            ctx,
-        );
 
-        transfer::transfer(change, tx_context::sender(ctx));
-
+        let funds = balance::split(coin::balance_mut(wallet), market.price);
         slot::pay(slot, funds, 1);
 
         let certificate = slot::issue_nft_certificate_internal<
