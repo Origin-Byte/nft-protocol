@@ -14,7 +14,7 @@ module nft_protocol::dutch_auction {
     use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use nft_protocol::err;
-    use nft_protocol::inventory;
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
     use nft_protocol::launchpad::Launchpad;
 
@@ -25,8 +25,6 @@ module nft_protocol::dutch_auction {
         /// A bid order stores amount of "T"okens the buyer is willing to
         /// purchase
         bids: CBTree<vector<Bid<FT>>>,
-        /// Whether the auction is currently live
-        live: bool,
     }
 
     /// A bid for one NFT
@@ -43,24 +41,40 @@ module nft_protocol::dutch_auction {
 
     // === Functions exposed to Witness Module ===
 
-    public fun create_market<FT>(
+    public fun new<FT>(
+        reserve_price: u64,
+        ctx: &mut TxContext,
+    ): DutchAuctionMarket<FT> {
+        DutchAuctionMarket {
+            id: object::new(ctx),
+            reserve_price,
+            bids: crit_bit::empty(),
+        }
+    }
+
+    /// Creates an empty dutch auction `Slot` market
+    public entry fun init_market<FT>(
         slot: &mut Slot,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
-        let inventory = inventory::create(
-            is_whitelisted,
-            ctx,
-        );
+        let inventory = inventory::new(is_whitelisted, ctx);
+        init_market_with_inventory<FT>(slot, inventory, reserve_price, ctx);
+    }
 
-        let market = DutchAuctionMarket<FT> {
-            id: object::new(ctx),
-            reserve_price,
-            bids: crit_bit::empty(),
-            live: false,
-        };
-
+    /// Creates a dutch auction `Slot` market with a prepared `Inventory`
+    ///
+    /// Useful for pre-minting NFTs to an `Inventory`
+    //
+    // TODO: Make public once Inventory contains NFT
+    entry fun init_market_with_inventory<FT>(
+        slot: &mut Slot,
+        inventory: Inventory,
+        reserve_price: u64,
+        ctx: &mut TxContext,
+    ) {
+        let market = new<FT>(reserve_price, ctx);
         slot::add_market(slot, market, inventory, ctx);
     }
 
@@ -75,6 +89,7 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
         slot::assert_is_live(slot);
         slot::assert_market_is_not_whitelisted(slot, market_id);
 
@@ -96,6 +111,7 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
         slot::assert_is_live(slot);
         slot::assert_market_is_whitelisted(slot, market_id);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
@@ -145,6 +161,7 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         slot::assert_slot_admin(slot, ctx);
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
 
         cancel_auction<FT>(
             slot::market_internal_mut(Witness {}, slot, market_id),
@@ -165,6 +182,7 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         slot::assert_slot_admin(slot, ctx);
+        slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
 
         let inventory = slot::inventory(slot, market_id);
         let nfts_to_sell = inventory::length(inventory);

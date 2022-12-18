@@ -40,6 +40,7 @@ module nft_protocol::test_assert_same_module_as_witness {
     }
 }
 
+#[test_only]
 module nft_protocol::test_foo {
     struct Witness has drop {}
     struct Witness2 has drop {}
