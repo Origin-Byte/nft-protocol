@@ -5,6 +5,7 @@ module nft_protocol::test_ob_utils {
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use std::option;
     use std::vector;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID};
@@ -80,6 +81,11 @@ module nft_protocol::test_ob_utils {
         test_scenario::next_tx(scenario, owner);
 
         (seller_safe_id, owner_cap_id)
+    }
+
+    public fun create_and_deposit_nft_sender(scenario: &mut Scenario): ID {
+        let sender = tx_context::sender(ctx(scenario));
+        create_and_deposit_nft(scenario, sender)
     }
 
     public fun create_and_deposit_nft(
@@ -187,8 +193,27 @@ module nft_protocol::test_ob_utils {
         buyer: address,
         seller: address,
     ) {
+        let id =
+            test_scenario::most_recent_id_shared<ob::TradeIntermediate<Foo, SUI>>();
+
+        finish_trade_id(
+            scenario,
+            option::destroy_some(id),
+            nft_id,
+            buyer,
+            seller,
+        )
+    }
+
+    public fun finish_trade_id(
+        scenario: &mut Scenario,
+        ti_id: ID,
+        nft_id: ID,
+        buyer: address,
+        seller: address,
+    ) {
         let ti: ob::TradeIntermediate<Foo, SUI> =
-            test_scenario::take_shared(scenario);
+            test_scenario::take_shared_by_id(scenario, ti_id);
         let wl: Whitelist = test_scenario::take_shared(scenario);
 
         let seller_safe = user_safe(scenario, seller);
