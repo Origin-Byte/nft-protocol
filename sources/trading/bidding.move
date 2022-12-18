@@ -163,9 +163,13 @@ module nft_protocol::bidding {
 
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
 
+        // TODO: This function name is confusing, since the
+        // caller of the function is the seller and not the buyer.
+        // Shall we rename it to receive_funds?
         pay_for_nft<C, FT>(
             &mut bid.offer,
-            bid.buyer,
+            tx_context::sender(ctx),
+            // bid.buyer,
             &mut ask_commission,
             ctx,
         );

@@ -6,9 +6,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     //! We simulate a trade between two Safes, end to end, including royalty
     //! collection.
 
-    use std::debug;
+    // use std::debug;
     use sui::coin;
-    use sui::balance;
     use std::vector;
     use sui::sui::SUI;
     use sui::object::ID;
@@ -24,6 +23,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use nft_protocol::royalty_strategy_bps as royalty_bps;
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils_2::{Self as utils_2, create_collection_and_whitelist};
+
+    use nft_protocol::royalty_strategy_bps::{BpsRoyaltyStrategy};
 
     const BUYER: address = @0xA1C06;
     const CREATOR: address = @0xA1C05;
@@ -201,7 +202,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         let trade_payment = test_scenario::take_shared<TradePayment<Foo, SUI>>(
             &mut scenario
         );
-        debug::print(&royalties::amount_u64(&trade_payment));
+
+        assert!(royalties::amount_u64(&trade_payment) == 100, 0);
 
         collect_proportional_royalty<Foo, SUI>(
             &mut trade_payment,
@@ -211,13 +213,22 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        // TODO: Add some assertion here..
-        debug::print(&royalties::amount_u64(&trade_payment));
+
+        assert!(royalties::amount_u64(&trade_payment) == 0, 0);
+
+        // TODO: Add Assertion to test that roylaty amount is 1% of the
+        // trade price.. Waiting for decimal module to be written
+        // let seller_coins = test_scenario::take_from_address<Coin<SUI>>(
+        //     &mut scenario, SELLER,
+        // );
+
+        // debug::print(&seller_coins);
 
         test_scenario::return_shared(collection);
         test_scenario::return_shared(trade_payment);
         test_scenario::return_to_address(CREATOR, mint_cap);
         test_scenario::return_to_address(SELLER, seller_owner_cap);
+        // test_scenario::return_to_address(SELLER, seller_coins);
 
         test_scenario::end(scenario);
     }
@@ -225,16 +236,23 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     public entry fun collect_proportional_royalty<C, FT>(
         payment: &mut TradePayment<C, FT>,
         collection: &mut Collection<C>,
-        _ctx: &mut TxContext,
+        ctx: &mut TxContext,
     ) {
+        let domain = royalty::royalty_domain(collection);
+
+        assert!(
+            royalty::contains_royalty_strategy<BpsRoyaltyStrategy>(domain), 0
+        );
+
+        let royalty_owed =
+            royalty::calculate_proportional_royalty(
+                domain, royalties::amount_u64(payment)
+        );
+
         let b = royalties::balance_mut(Witness {}, payment);
 
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
         royalty::collect_royalty(collection, b, royalty_owed);
-        // royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
+        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
     fun bid_for_nft(

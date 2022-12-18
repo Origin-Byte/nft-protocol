@@ -11,7 +11,9 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     public fun calculate(domain: &BpsRoyaltyStrategy, amount: u64): u64  {
-        amount / BPS * royalty_fee_bps(domain)
+        // TODO: Need to implement Decimals module for calculation
+        // with floats
+        amount * royalty_fee_bps(domain) / BPS
     }
 
     public fun new(royalty_fee_bps: u64): BpsRoyaltyStrategy {
