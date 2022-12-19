@@ -4,7 +4,7 @@ TODO:
 - Reinsert removed events
 - Update Gutenberg and Type Exported contracts
 
-- Sui v0.18.0
+- Sui v0.19.0
 
 # Install
 
