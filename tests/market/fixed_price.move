@@ -7,7 +7,6 @@ module nft_protocol::test_fixed_price {
     use sui::test_scenario::{Self, Scenario, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::inventory;
     use nft_protocol::slot::{Self, Slot, NftCertificate, WhitelistCertificate};
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
 
@@ -21,7 +20,6 @@ module nft_protocol::test_fixed_price {
     fun init_market(
         slot: &mut Slot,
         price: u64,
-        is_whitelisted: bool,
         scenario: &mut Scenario,
     ): ID {
         let market = fixed_price::new<SUI>(price, ctx(scenario));
@@ -30,7 +28,6 @@ module nft_protocol::test_fixed_price {
         slot::add_market(
             slot,
             market,
-            inventory::new(is_whitelisted, ctx(scenario)),
             ctx(scenario)
         );
 
@@ -40,9 +37,9 @@ module nft_protocol::test_fixed_price {
     #[test]
     fun create_market() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
         let _market: &FixedPriceMarket<SUI> = slot::market(&slot, market_id);
 
         assert!(fixed_price::price<SUI>(&slot, market_id) == 10, 0);
@@ -56,9 +53,9 @@ module nft_protocol::test_fixed_price {
     #[expected_failure(abort_code = 13370202, location = nft_protocol::slot)]
     fun try_buy_not_live() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
         
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_nft_certificate(
@@ -79,9 +76,9 @@ module nft_protocol::test_fixed_price {
     #[expected_failure(abort_code = 13370209, location = nft_protocol::inventory)]
     fun try_buy_no_supply() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
         
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
@@ -102,13 +99,12 @@ module nft_protocol::test_fixed_price {
     #[test]
     fun buy_nft() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
         
         slot::add_nft(
             &mut slot,
-            market_id,
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
@@ -146,9 +142,9 @@ module nft_protocol::test_fixed_price {
     #[expected_failure(abort_code = 13370206, location = nft_protocol::slot)]
     fun try_buy_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, true, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, true, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
         
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -181,13 +177,12 @@ module nft_protocol::test_fixed_price {
     #[test]
     fun buy_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, true, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, true, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
         
         slot::add_nft(
             &mut slot,
-            market_id,
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
@@ -232,9 +227,9 @@ module nft_protocol::test_fixed_price {
     #[expected_failure(abort_code = 13370212, location = nft_protocol::slot)]
     fun try_change_price() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, true, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, true, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -250,9 +245,9 @@ module nft_protocol::test_fixed_price {
     #[test]
     fun change_price() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, true, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, true, &mut scenario);
+        let market_id = init_market(&mut slot, 10, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 

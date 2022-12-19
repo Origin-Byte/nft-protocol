@@ -15,7 +15,6 @@ module nft_protocol::fixed_price {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
     use nft_protocol::launchpad::Launchpad;
 
@@ -45,27 +44,8 @@ module nft_protocol::fixed_price {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let inventory = inventory::new(
-            is_whitelisted,
-            ctx,
-        );
-
-       init_market_with_inventory<FT>(slot, inventory, price, ctx);
-    }
-
-    /// Creates a fixed price `Slot` market with a prepared `Inventory`
-    ///
-    /// Useful for pre-minting NFTs to an `Inventory`
-    //
-    // TODO: Make public once Inventory contains NFT
-    entry fun init_market_with_inventory<FT>(
-        slot: &mut Slot,
-        inventory: Inventory,
-        price: u64,
-        ctx: &mut TxContext,
-    ) {
         let market = new<FT>(price, ctx);
-        slot::add_market(slot, market, inventory, ctx);
+        slot::add_market(slot, market, ctx);
     }
 
     // === Entrypoints ===

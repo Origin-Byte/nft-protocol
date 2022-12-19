@@ -8,6 +8,7 @@ module nft_protocol::test_slot {
 
     public fun init_slot(
         creator: address,
+        is_whitelisted: bool,
         scenario: &mut Scenario,
     ): (Launchpad, Slot) {
         test_scenario::next_tx(scenario, creator);
@@ -27,6 +28,7 @@ module nft_protocol::test_slot {
             &launchpad,
             creator,
             creator,
+            is_whitelisted,
             ctx(scenario),
         );
 

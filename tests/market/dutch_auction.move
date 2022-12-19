@@ -13,7 +13,6 @@ module nft_protocol::test_dutch_auction {
 
     use nft_protocol::nft;
     use nft_protocol::proceeds;
-    use nft_protocol::inventory;
     use nft_protocol::slot::{Self, NftCertificate, WhitelistCertificate, Slot};
     use nft_protocol::dutch_auction::{Self, DutchAuctionMarket};
 
@@ -24,31 +23,21 @@ module nft_protocol::test_dutch_auction {
     const CREATOR: address = @0xA1C05;
     const BUYER: address = @0xA1C06;
 
-    fun init_market(
+    fun init_market<FT>(
         slot: &mut Slot,
         reserve_price: u64,
-        is_whitelisted: bool,
         scenario: &mut Scenario,
     ): ID {
-        let market = dutch_auction::new<SUI>(reserve_price, ctx(scenario));
-        let market_id = object::id(&market);
-
-        slot::add_market(
-            slot,
-            market,
-            inventory::new(is_whitelisted, ctx(scenario)),
-            ctx(scenario)
-        );
-
-        market_id
+        dutch_auction::init_market<FT>(slot, reserve_price, ctx(scenario));
+        *vector::borrow(slot::market_ids(slot), 0)
     }
 
     #[test]
     fun create_market() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         let _market: &DutchAuctionMarket<SUI> = slot::market(&slot, market_id);
 
         assert!(dutch_auction::reserve_price<SUI>(&slot, market_id) == 10, 0);
@@ -62,9 +51,9 @@ module nft_protocol::test_dutch_auction {
     #[expected_failure(abort_code = 13370202, location = nft_protocol::slot)]
     fun try_bid_not_live() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -88,9 +77,9 @@ module nft_protocol::test_dutch_auction {
     #[expected_failure(abort_code = 13370303, location = nft_protocol::dutch_auction)]
     fun try_bid_lower_than_reserve() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -114,9 +103,9 @@ module nft_protocol::test_dutch_auction {
     #[test]
     fun bid_nft() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -184,9 +173,9 @@ module nft_protocol::test_dutch_auction {
     #[expected_failure(abort_code = 13370206, location = nft_protocol::slot)]
     fun try_bid_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, true, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, true, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -210,9 +199,9 @@ module nft_protocol::test_dutch_auction {
     #[test]
     fun bid_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, true, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, true, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         slot::transfer_whitelist_certificate(
@@ -248,9 +237,9 @@ module nft_protocol::test_dutch_auction {
     #[expected_failure(abort_code = 13370302, location = nft_protocol::dutch_auction)]
     fun cancel_bid_does_not_exist() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -287,9 +276,9 @@ module nft_protocol::test_dutch_auction {
     #[test]
     fun cancel_bid() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -394,9 +383,9 @@ module nft_protocol::test_dutch_auction {
     #[test]
     fun cancel_while_not_live() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
@@ -434,9 +423,9 @@ module nft_protocol::test_dutch_auction {
     #[expected_failure(abort_code = 13370212, location = nft_protocol::slot)]
     fun try_cancel_auction() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -455,9 +444,9 @@ module nft_protocol::test_dutch_auction {
     #[test]
     fun cancel_auction() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
@@ -527,9 +516,9 @@ module nft_protocol::test_dutch_auction {
     #[expected_failure(abort_code = 13370212, location = nft_protocol::slot)]
     fun try_conclude_auction() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -548,20 +537,18 @@ module nft_protocol::test_dutch_auction {
     #[test]
     fun conclude_auction() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         
         slot::add_nft(
             &mut slot,
-            market_id,
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
         slot::add_nft(
             &mut slot,
-            market_id,
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
@@ -661,20 +648,18 @@ module nft_protocol::test_dutch_auction {
     #[test]
     fun conclude_auction_not_all_sold() {
         let scenario = test_scenario::begin(CREATOR);
-        let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
+        let (launchpad, slot) = init_slot(CREATOR, false, &mut scenario);
 
-        let market_id = init_market(&mut slot, 10, false, &mut scenario);
+        let market_id = init_market<SUI>(&mut slot, 10, &mut scenario);
         
         slot::add_nft(
             &mut slot,
-            market_id,
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
         slot::add_nft(
             &mut slot,
-            market_id,
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );

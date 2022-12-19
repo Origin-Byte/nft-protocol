@@ -14,7 +14,7 @@ module nft_protocol::dutch_auction {
     use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use nft_protocol::err;
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::inventory;
     use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
     use nft_protocol::launchpad::Launchpad;
 
@@ -55,27 +55,11 @@ module nft_protocol::dutch_auction {
     /// Creates an empty dutch auction `Slot` market
     public entry fun init_market<FT>(
         slot: &mut Slot,
-        is_whitelisted: bool,
-        reserve_price: u64,
-        ctx: &mut TxContext,
-    ) {
-        let inventory = inventory::new(is_whitelisted, ctx);
-        init_market_with_inventory<FT>(slot, inventory, reserve_price, ctx);
-    }
-
-    /// Creates a dutch auction `Slot` market with a prepared `Inventory`
-    ///
-    /// Useful for pre-minting NFTs to an `Inventory`
-    //
-    // TODO: Make public once Inventory contains NFT
-    entry fun init_market_with_inventory<FT>(
-        slot: &mut Slot,
-        inventory: Inventory,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(reserve_price, ctx);
-        slot::add_market(slot, market, inventory, ctx);
+        slot::add_market(slot, market, ctx);
     }
 
     // === Entrypoints ===
@@ -184,8 +168,7 @@ module nft_protocol::dutch_auction {
         slot::assert_slot_admin(slot, ctx);
         slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
 
-        let inventory = slot::inventory(slot, market_id);
-        let nfts_to_sell = inventory::length(inventory);
+        let nfts_to_sell = inventory::length(slot::inventory(slot));
         let (fill_price, bids_to_fill) = conclude_auction<FT>(
             slot::market_internal_mut(Witness {}, slot, market_id),
             // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
@@ -233,7 +216,7 @@ module nft_protocol::dutch_auction {
         vector::destroy_empty(bids_to_fill);
 
         // Cancel all remaining orders if there are no NFTs left to sell
-        if (inventory::is_empty(slot::inventory(slot, market_id))) {
+        if (inventory::is_empty(slot::inventory(slot))) {
             sale_cancel<FT>(launchpad, slot, market_id, ctx);
         }
     }

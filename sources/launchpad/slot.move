@@ -1,12 +1,13 @@
 module nft_protocol::slot {
     // TODO: Consider adding a function redeem_certificate with `nft_id` as
     // a parameter
+    use std::vector;
+
     use sui::transfer;
     use sui::balance::Balance;
     use sui::object::{Self, ID , UID};
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
-    use sui::object_table::{Self, ObjectTable};
     use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::err;
@@ -42,14 +43,12 @@ module nft_protocol::slot {
     public fun issue_nft_certificate(
         launchpad: &Launchpad,
         slot: &mut Slot,
-        market_id: ID,
         ctx: &mut TxContext,
     ): NftCertificate {
         assert_slot_launchpad_match(launchpad, slot);
         assert_slot_admin(slot, ctx);
 
-        let inventory = inventory_mut(slot, market_id);
-        let nft_id = inventory::pop_nft(inventory);
+        let nft_id = inventory::pop_nft(inventory_mut(slot));
 
         NftCertificate {
             id: object::new(ctx),
@@ -78,8 +77,7 @@ module nft_protocol::slot {
         utils::assert_same_module_as_witness<Market, Witness>();
         assert_market<Market>(slot, market_id);
 
-        let inventory = inventory_mut(slot, market_id);
-        let nft_id = inventory::pop_nft(inventory);
+        let nft_id = inventory::pop_nft(inventory_mut(slot));
 
         NftCertificate {
             id: object::new(ctx),
@@ -92,14 +90,12 @@ module nft_protocol::slot {
     public entry fun transfer_nft_certificate(
         launchpad: &Launchpad,
         slot: &mut Slot,
-        market_id: ID,
         recipient: address,
         ctx: &mut TxContext,
     ) {
         let certificate = issue_nft_certificate(
             launchpad,
             slot,
-            market_id,
             ctx,
         );
         transfer::transfer(certificate, recipient);
@@ -192,7 +188,9 @@ module nft_protocol::slot {
         /// Vector of all markets outlets that, each outles holding IDs
         /// owned by the slot
         markets: ObjectBag,
-        inventories: ObjectTable<ID, Inventory>,
+        /// Vector of all registered market IDs
+        market_ids: vector<ID>,
+        inventory: Inventory,
         /// Proceeds object holds the balance of Fungible Tokens acquired from
         /// the sale of the Slot
         proceeds: Proceeds,
@@ -220,6 +218,22 @@ module nft_protocol::slot {
         launchpad: &Launchpad,
         slot_admin: address,
         receiver: address,
+        is_whitelisted: bool,
+        ctx: &mut TxContext,
+    ): Slot {
+        let inventory = inventory::new(is_whitelisted, ctx);
+        new_with_inventory(launchpad, slot_admin, receiver, inventory, ctx)
+    }
+
+    /// Initialises a `Slot` object and registers it in the `Launchpad` object
+    /// and returns it.
+    /// Depending if the Launchpad alllows for auto-approval, the launchpad
+    /// admin might have to call `approve_slot` in order to validate the slot.
+    public fun new_with_inventory(
+        launchpad: &Launchpad,
+        slot_admin: address,
+        receiver: address,
+        inventory: Inventory,
         ctx: &mut TxContext,
     ): Slot {
         // If the launchpad is permissioned then slots can only be inserted
@@ -231,7 +245,6 @@ module nft_protocol::slot {
 
         let uid = object::new(ctx);
         let markets = object_bag::new(ctx);
-        let inventories = object_table::new<ID, Inventory>(ctx);
 
         Slot {
             id: uid,
@@ -240,7 +253,8 @@ module nft_protocol::slot {
             admin: slot_admin,
             receiver,
             markets,
-            inventories,
+            market_ids: vector::empty(),
+            inventory,
             proceeds: proceeds::empty(ctx),
             custom_fee: obox::empty(ctx),
         }
@@ -254,12 +268,14 @@ module nft_protocol::slot {
         launchpad: &Launchpad,
         slot_admin: address,
         receiver: address,
+        is_whitelisted: bool,
         ctx: &mut TxContext,
     ) {
         let slot = new(
             launchpad,
             slot_admin,
             receiver,
+            is_whitelisted,
             ctx,
         );
 
@@ -328,7 +344,6 @@ module nft_protocol::slot {
     public entry fun add_market<Market: key + store>(
         slot: &mut Slot,
         market: Market,
-        inventory: Inventory,
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
@@ -341,27 +356,22 @@ module nft_protocol::slot {
             market,
         );
 
-        object_table::add<ID, Inventory>(
-            &mut slot.inventories,
+        vector::push_back(
+            &mut slot.market_ids,
             market_id,
-            inventory,
         );
     }
 
     /// Adds NFT as a dynamic child object with its ID as key
     public entry fun add_nft<C>(
         slot: &mut Slot,
-        market_id: ID,
         nft: Nft<C>,
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
 
         let nft_id = object::id(&nft);
-
-        let inventory = inventory_mut(slot, market_id);
-        inventory::add_nft(inventory, nft_id);
-
+        inventory::add_nft(inventory_mut(slot), nft_id);
         dof::add(&mut slot.id, nft_id, nft);
     }
 
@@ -421,6 +431,10 @@ module nft_protocol::slot {
         &mut slot.proceeds
     }
 
+    public fun market_ids(slot: &Slot): &vector<ID> {
+        &slot.market_ids
+    }
+
     /// Get the Slot's sale `market` table
     public fun markets(slot: &Slot): &ObjectBag {
         &slot.markets
@@ -464,15 +478,13 @@ module nft_protocol::slot {
     }
 
     /// Get the Slot's `Inventory`
-    public fun inventory(slot: &Slot, market_id: ID): &Inventory {
-        assert_inventory(slot, market_id);
-        object_table::borrow(&slot.inventories, market_id)
+    public fun inventory(slot: &Slot): &Inventory {
+        &slot.inventory
     }
 
     /// Get the Slot's `Inventory` mutably
-    fun inventory_mut(slot: &mut Slot, market_id: ID): &mut Inventory {
-        assert_inventory(slot, market_id);
-        object_table::borrow_mut(&mut slot.inventories, market_id)
+    fun inventory_mut(slot: &mut Slot): &mut Inventory {
+        &mut slot.inventory
     }
 
     // === Assertions ===
@@ -514,13 +526,6 @@ module nft_protocol::slot {
         );
     }
 
-    public fun assert_inventory(slot: &Slot, market_id: ID) {
-        assert!(
-            object_table::contains(&slot.inventories, market_id),
-            err::undefined_market(),
-        );
-    }
-
     public fun assert_market<M: key + store>(slot: &Slot, market_id: ID) {
         assert!(
             object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
@@ -529,19 +534,15 @@ module nft_protocol::slot {
     }
 
     public fun assert_market_is_whitelisted(slot: &Slot, market_id: ID ) {
-        let inventory = inventory(slot, market_id);
-
         assert!(
-            inventory::is_whitelisted(inventory),
+            inventory::is_whitelisted(inventory(slot)),
             err::sale_is_not_whitelisted()
         );
     }
 
     public fun assert_market_is_not_whitelisted(slot: &Slot, market_id: ID) {
-        let inventory = inventory(slot, market_id);
-
         assert!(
-            !inventory::is_whitelisted(inventory),
+            !inventory::is_whitelisted(inventory(slot)),
             err::sale_is_whitelisted()
         );
     }
