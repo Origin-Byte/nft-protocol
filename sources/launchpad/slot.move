@@ -2,7 +2,7 @@ module nft_protocol::slot {
     // TODO: Consider adding a function redeem_certificate with `nft_id` as
     // a parameter
     use sui::transfer;
-    use sui::coin::{Self, Coin};
+    use sui::balance::Balance;
     use sui::object::{Self, ID , UID};
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
@@ -75,7 +75,7 @@ module nft_protocol::slot {
     ): NftCertificate {
         assert_slot_launchpad_match(launchpad, slot);
 
-        utils::assert_same_module_as_witness<Witness, Market>();
+        utils::assert_same_module_as_witness<Market, Witness>();
         assert_market<Market>(slot, market_id);
 
         let inventory = inventory_mut(slot, market_id);
@@ -132,7 +132,7 @@ module nft_protocol::slot {
 
     public fun issue_whitelist_certificate(
         launchpad: &Launchpad,
-        slot: &mut Slot,
+        slot: &Slot,
         market_id: ID,
         ctx: &mut TxContext,
     ): WhitelistCertificate {
@@ -151,7 +151,7 @@ module nft_protocol::slot {
 
     public entry fun transfer_whitelist_certificate(
         launchpad: &Launchpad,
-        slot: &mut Slot,
+        slot: &Slot,
         market_id: ID,
         recipient: address,
         ctx: &mut TxContext,
@@ -183,9 +183,9 @@ module nft_protocol::slot {
     struct Slot has key, store {
         id: UID,
         launchpad_id: ID,
-        /// Boolean indicating if the sale is live
+        /// Boolean indicating if the `Slot` is live
         live: bool,
-        /// The address of the slot administrator, that is, the Nft creator
+        /// The address of the `Slot` administrator
         admin: address,
         /// The address of the receiver of funds
         receiver: address,
@@ -270,12 +270,10 @@ module nft_protocol::slot {
 
     public fun pay<FT>(
         slot: &mut Slot,
-        funds: Coin<FT>,
+        balance: Balance<FT>,
         qty_sold: u64,
     ) {
-        let balance = coin::into_balance(funds);
         let proceeds = proceeds_mut(slot);
-
         proceeds::add(proceeds, balance, qty_sold);
     }
 
@@ -284,6 +282,7 @@ module nft_protocol::slot {
         certificate: NftCertificate,
         slot: &mut Slot,
     ): Nft<C> {
+        assert_nft_certificate_slot(object::id(slot), &certificate);
         assert_contains_nft<C>(slot, certificate.nft_id);
 
         let nft = dof::remove<ID, Nft<C>>(
@@ -392,7 +391,7 @@ module nft_protocol::slot {
     // === Getter functions ===
 
     /// Get the Slot's `live`
-    public fun live(slot: &Slot): bool {
+    public fun is_live(slot: &Slot): bool {
         slot.live
     }
 
@@ -459,7 +458,7 @@ module nft_protocol::slot {
         slot: &mut Slot,
         market_id: ID,
     ): &mut Market {
-        utils::assert_same_module_as_witness<Witness, Market>();
+        utils::assert_same_module_as_witness<Market, Witness>();
         assert_market<Market>(slot, market_id);
         object_bag::borrow_mut<ID, Market>(&mut slot.markets, market_id)
     }
@@ -550,8 +549,18 @@ module nft_protocol::slot {
     public fun assert_contains_nft<C>(slot: &Slot, nft_id: ID) {
         assert!(
             dof::exists_with_type<ID, Nft<C>>(&slot.id, nft_id),
-            err::certificate_nft_id_mismatch()
+            err::undefined_nft_id()
         );
+    }
+
+    public fun assert_nft_certificate_slot(
+        slot_id: ID,
+        certificate: &NftCertificate,
+    ) {
+        assert!(
+            certificate.slot_id == slot_id,
+            err::incorrect_nft_certificate()
+        )
     }
 
     public fun assert_whitelist_certificate_market(
@@ -561,7 +570,7 @@ module nft_protocol::slot {
         // Infer that whitelist token corresponds to correct sale inventory
         assert!(
             certificate.market_id == market_id,
-            err::incorrect_whitelist_token()
+            err::incorrect_whitelist_certificate()
         );
     }
 }

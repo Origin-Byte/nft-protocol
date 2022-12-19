@@ -74,11 +74,11 @@ module nft_protocol::err {
         return Prefix + 206
     }
 
-    public fun incorrect_whitelist_token(): u64 {
+    public fun incorrect_whitelist_certificate(): u64 {
         return Prefix + 207
     }
 
-    public fun certificate_nft_id_mismatch(): u64 {
+    public fun undefined_nft_id(): u64 {
         return Prefix + 208
     }
 
@@ -112,6 +112,10 @@ module nft_protocol::err {
 
     public fun undefined_market(): u64 {
         return Prefix + 216
+    }
+
+    public fun incorrect_nft_certificate(): u64 {
+        return Prefix + 217
     }
 
     // === Auction ===
