@@ -65,10 +65,8 @@ module nft_protocol::trading {
         };
     }
 
-    public fun pay_for_nft<C, FT>(
+    public fun settle_funds<C, FT>(
         paid: &mut Balance<FT>,
-        // TODO: This should not be the buyer
-        // buyer: address,
         recipient: address,
         maybe_commission: &mut Option<AskCommission>,
         ctx: &mut TxContext,
@@ -89,7 +87,6 @@ module nft_protocol::trading {
             royalties::create_with_trade<C, FT>(
                 balance::split(paid, amount - cut),
                 recipient,
-                // buyer,
                 object::uid_to_inner(&trade),
                 ctx,
             );
@@ -108,7 +105,6 @@ module nft_protocol::trading {
             royalties::create<C, FT>(
                 balance::split(paid, amount),
                 recipient,
-                // buyer,
                 ctx,
             );
         };

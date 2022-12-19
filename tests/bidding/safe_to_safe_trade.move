@@ -9,6 +9,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     // use std::debug;
     use sui::coin;
     use std::vector;
+    use sui::balance;
     use sui::sui::SUI;
     use sui::object::ID;
     use sui::tx_context::TxContext;
@@ -203,7 +204,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
             &mut scenario
         );
 
-        assert!(royalties::amount_u64(&trade_payment) == 100, 0);
+        assert!(balance::value(royalties::amount(&trade_payment)) == 100, 0);
 
         collect_proportional_royalty<Foo, SUI>(
             &mut trade_payment,
@@ -214,7 +215,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
 
-        assert!(royalties::amount_u64(&trade_payment) == 0, 0);
+        assert!(balance::value(royalties::amount(&trade_payment)) == 0, 0);
 
         // TODO: Add Assertion to test that roylaty amount is 1% of the
         // trade price.. Waiting for decimal module to be written
@@ -246,7 +247,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
         let royalty_owed =
             royalty::calculate_proportional_royalty(
-                domain, royalties::amount_u64(payment)
+                domain, balance::value(royalties::amount(payment))
         );
 
         let b = royalties::balance_mut(Witness {}, payment);
