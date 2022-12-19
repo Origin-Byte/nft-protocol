@@ -20,10 +20,9 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_whitelist::{Whitelist};
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::test_ob_utils::{Self as test_ob};
+    use nft_protocol::test_utils::{Self as utils};
     use nft_protocol::royalty_strategy_bps as royalty_bps;
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::test_utils_2::{Self as utils_2, create_collection_and_whitelist};
 
     use nft_protocol::royalty_strategy_bps::{BpsRoyaltyStrategy};
 
@@ -41,7 +40,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
 
-        create_collection_and_whitelist(
+        utils::create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,
@@ -50,11 +49,11 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
-        let (seller_safe_id, seller_owner_cap_id) = test_ob::create_safe(
+        let (seller_safe_id, seller_owner_cap_id) = utils::create_safe(
             &mut scenario, SELLER
         );
 
-        let nft_id = utils_2::mint_and_deposit_nft<Foo>(
+        let nft_id = utils::mint_and_deposit_nft<Foo>(
             &mut scenario,
             SELLER,
         );
@@ -86,7 +85,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         test_scenario::return_shared(seller_safe);
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        let (buyer_safe_id, _buyer_owner_cap_id) = test_ob::create_safe(&mut scenario, BUYER);
+        let (buyer_safe_id, _buyer_owner_cap_id) = utils::create_safe(&mut scenario, BUYER);
 
         bid_for_nft(
             &mut scenario,
@@ -111,7 +110,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     fun it_works_with_royalties() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, mint_cap_id, _) = create_collection_and_whitelist(
+        let (col_id, mint_cap_id, _) = utils::create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,
@@ -147,11 +146,11 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
-        let (seller_safe_id, seller_owner_cap_id) = test_ob::create_safe(
+        let (seller_safe_id, seller_owner_cap_id) = utils::create_safe(
             &mut scenario, SELLER
         );
 
-        let nft_id = utils_2::mint_and_deposit_nft<Foo>(
+        let nft_id = utils::mint_and_deposit_nft<Foo>(
             &mut scenario,
             SELLER,
         );
@@ -181,7 +180,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         test_scenario::return_shared(seller_safe);
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        let (buyer_safe_id, _) = test_ob::create_safe(&mut scenario, BUYER);
+        let (buyer_safe_id, _) = utils::create_safe(&mut scenario, BUYER);
 
         bid_for_nft(
             &mut scenario,

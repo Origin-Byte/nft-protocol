@@ -5,7 +5,7 @@ module nft_protocol::test_attribution {
 
     use nft_protocol::attribution::{Self, AttributionDomain};
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::test_utils_2::create_collection_and_whitelist;
+    use nft_protocol::test_utils::create_collection_and_whitelist_with_type;
 
     struct Witness has drop {}
     struct Foo has drop {}
@@ -17,7 +17,7 @@ module nft_protocol::test_attribution {
     fun add_attribution() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist(
+        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,

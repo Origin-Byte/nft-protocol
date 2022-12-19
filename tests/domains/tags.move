@@ -6,7 +6,7 @@ module nft_protocol::test_tags {
     use nft_protocol::nft;
     use nft_protocol::tags::{Self, TagDomain};
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::test_utils_2::create_collection_and_whitelist;
+    use nft_protocol::test_utils::create_collection_and_whitelist_with_type;
 
     struct Witness has drop {}
     struct Foo has drop {}
@@ -44,7 +44,7 @@ module nft_protocol::test_tags {
     fun add_collection_tags() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist(
+        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,

@@ -9,7 +9,7 @@ module nft_protocol::test_display {
 
     use nft_protocol::nft;
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::test_utils_2::create_collection_and_whitelist;
+    use nft_protocol::test_utils::create_collection_and_whitelist_with_type;
     use nft_protocol::display::{
         Self, DisplayDomain, UrlDomain, SymbolDomain, AttributesDomain
     };
@@ -47,7 +47,7 @@ module nft_protocol::test_display {
     fun add_collection_display() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist(
+        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,
@@ -105,7 +105,7 @@ module nft_protocol::test_display {
     fun add_collection_url() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist(
+        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,
@@ -162,7 +162,7 @@ module nft_protocol::test_display {
     fun add_collection_symbol() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist(
+        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,

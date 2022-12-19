@@ -7,7 +7,7 @@ module nft_protocol::test_royalty {
     use nft_protocol::royalty_strategy_bps as royalty_bps;
     use nft_protocol::royalty_strategy_constant as royalty_const;
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::test_utils_2::create_collection_and_whitelist;
+    use nft_protocol::test_utils::create_collection_and_whitelist_with_type;
 
     struct Witness has drop {}
     struct Foo has drop {}
@@ -19,7 +19,7 @@ module nft_protocol::test_royalty {
     fun add_royalty() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist(
+        let (col_id, cap_id, _wl_id) = create_collection_and_whitelist_with_type(
             Foo {},
             Witness {},
             CREATOR,

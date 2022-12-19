@@ -1,7 +1,7 @@
 #[test_only]
 module nft_protocol::test_ob_cancel_position {
     use nft_protocol::safe::{TransferCap};
-    use nft_protocol::test_ob_utils as test_ob;
+    use nft_protocol::test_utils as test_ob;
     use sui::sui::SUI;
     use nft_protocol::ob::{Self, Orderbook};
     use sui::coin;
