@@ -14,7 +14,7 @@ This codebase requires installation of the [Sui CLI](https://docs.sui.io/build/i
 
 To deploy an NFT collection you will need to create a SUI [Move](https://docs.sui.io/build/move) contract, which plugs into our protocol.
 
-We provide an example on how to build such collection in the examples folder. Additionally above follows an example of an NFT Collection, the SUIMARINES!
+We provide an example on how to build such collection in the examples folder. Additionally below follows an example of an NFT Collection, the SUIMARINES!
 
 ```
 #[test_only]
