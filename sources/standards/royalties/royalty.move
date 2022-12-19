@@ -33,16 +33,6 @@ module nft_protocol::royalty {
         }
     }
 
-    /// Creates a `RoyaltyDomain` object with provided creator attributions.
-    public fun from_creators(
-        ctx: &mut TxContext
-    ): RoyaltyDomain {
-        RoyaltyDomain {
-            strategies: bag::new(ctx),
-            aggregations: bag::new(ctx),
-        }
-    }
-
     // === Royalties ===
 
     /// Add a royalty strategy
@@ -131,6 +121,8 @@ module nft_protocol::royalty {
         amount: u64,
     ): u64 {
         if (!contains_royalty_strategy<BpsRoyaltyStrategy>(domain)) {
+            // TODO: This is dangerous because it can lead to
+            // Silent Failures
             return 0
         };
 
@@ -170,6 +162,7 @@ module nft_protocol::royalty {
         // to the collection.
         let domain: &mut RoyaltyDomain =
             collection::borrow_domain_mut(Witness {}, collection);
+
         let aggregations = &mut domain.aggregations;
 
         let b = balance::split(source, amount);

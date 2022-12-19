@@ -1,18 +1,18 @@
 [package]
 name = "NftProtocol"
-version = "0.12.0"
+version = "1.0.0"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework"
-# devnet-0.18.0
-rev = "21fcff72bef3b12f600da861b7708ca5f30d9512"
+# devnet-0.19.0
+rev = "a8af20d94e951ecfb6d0cd47c23cf6393013d8a8"
 
 [dependencies.Movemate]
 git = "https://github.com/Origin-Byte/movemate.git"
 subdir = "sui"
-# devnet-0.18.0
-rev = "603ccd8f7f81e0a9e0fa5ed423318178722d8927"
+# devnet-0.19.0
+rev = "115d56bd59cd9c0f59ac3a39b4c83872efa78608"
 
 [addresses]
 nft_protocol = "0x0"

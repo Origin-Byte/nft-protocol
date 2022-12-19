@@ -74,12 +74,11 @@ module nft_protocol::err {
         return Prefix + 206
     }
 
-    public fun incorrect_whitelist_token(): u64 {
+    public fun incorrect_whitelist_certificate(): u64 {
         return Prefix + 207
     }
 
-    // TODO: To be used by redeem function
-    public fun certificate_nft_id_mismatch(): u64 {
+    public fun undefined_nft_id(): u64 {
         return Prefix + 208
     }
 
@@ -115,6 +114,10 @@ module nft_protocol::err {
         return Prefix + 216
     }
 
+    public fun incorrect_nft_certificate(): u64 {
+        return Prefix + 217
+    }
+
     // === Auction ===
 
     public fun order_does_not_exist(): u64 {
@@ -127,6 +130,10 @@ module nft_protocol::err {
 
     public fun order_price_below_reserve(): u64 {
         return Prefix + 303
+    }
+
+    public fun action_not_public(): u64 {
+        return Prefix + 304
     }
 
     // === Safe ===
@@ -155,8 +162,12 @@ module nft_protocol::err {
         return Prefix + 405
     }
 
-    public fun safe_id_mismatch(): u64 {
+    public fun nft_not_exlusively_listed(): u64 {
         return Prefix + 406
+    }
+
+    public fun safe_id_mismatch(): u64 {
+        return Prefix + 407
     }
 
     // === Whitelist ===

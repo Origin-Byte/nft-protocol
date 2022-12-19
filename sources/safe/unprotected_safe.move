@@ -393,4 +393,8 @@ module nft_protocol::unprotected_safe {
     fun assert_not_exclusively_listed_internal(ref: &NftRef) {
         assert!(!ref.is_exclusively_listed, err::nft_exclusively_listed());
     }
+
+    public fun assert_transfer_cap_exlusive(cap: &TransferCap) {
+        assert!(cap.is_exclusive, err::nft_not_exlusively_listed());
+    }
 }

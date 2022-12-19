@@ -4,6 +4,9 @@ module nft_protocol::utils {
     use std::ascii;
     use std::string::{Self, String, sub_string};
     use std::type_name;
+    use std::vector;
+
+    use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::err;
 
@@ -58,5 +61,29 @@ module nft_protocol::utils {
         let type_name = sub_string(&tail, module_delimiter_index + 2, string::length(&tail));
 
         (package_addr, module_name, type_name)
+    }
+
+    public fun from_vec_to_map<K: copy + drop, V: drop>(
+        keys: vector<K>,
+        values: vector<V>,
+    ): VecMap<K, V> {
+        let i = 0;
+        let n = vector::length(&keys);
+        let map = vec_map::empty<K, V>();
+
+        while (i < n) {
+            let key = vector::pop_back(&mut keys);
+            let value = vector::pop_back(&mut values);
+
+            vec_map::insert(
+                &mut map,
+                key,
+                value,
+            );
+
+            i = i + 1;
+        };
+
+        map
     }
 }

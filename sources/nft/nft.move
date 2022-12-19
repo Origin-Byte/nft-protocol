@@ -53,7 +53,7 @@ module nft_protocol::nft {
         _witness: W,
         nft: &mut Nft<C>,
     ): &mut D {
-        utils::assert_same_module_as_witness<W, D>();
+        utils::assert_same_module_as_witness<D, W>();
         bag::borrow_mut<Marker<D>, D>(&mut nft.bag, utils::marker<D>())
     }
 
@@ -108,5 +108,13 @@ module nft_protocol::nft {
         assert!(is_ok, err::authority_not_whitelisted());
 
         nft.logical_owner = recipient;
+    }
+
+    // === Getter Functions ===
+
+    public fun logical_owner<C>(
+        nft: &Nft<C>,
+    ): address {
+        nft.logical_owner
     }
 }

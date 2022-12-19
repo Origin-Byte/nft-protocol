@@ -6,6 +6,34 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.0.0] - 2022-12-19
+
+### Changed
+
+- New version of the protocol
+- The core `Nft` type now has the fields `bag` and `logical_owner` where bag is used to add any domain to the NFT
+- Changed Launchpad design to fit the business model of Marketplaces, where marketplaces and dApps can now deploy a Launchpad and NFT creators can launch their collections on such Launchpads by creating a Launchpad Slot.
+- Launchpad Admin can define the `default_fee` on a launchpad sale
+- If `launchpad.is_permissioned == true`, then only `launchpad.admin` can add `slots`, otherwise anyone can add `slots`
+- Launchpad admins can attach custom fee policies to each Slot
+- Proceeds coming from launchpad sales are collected in the struct `Proceeds`, and to unwrap the funds off this struct we guarantee fee collection enforcement.
+
+### Added
+
+- Domain standards for NFT Collections to use, such as `display`, `attribution`, `tags`, `royalties` and `flyweight`
+- `Safe` module that holds NFTs on behalf of the owner and can delegate transferability via `TransferCap` and `ExclusiveTransferCap`
+- Trading primitives modules such as `bidding` contract and `orderbook` contract
+
+### Removed
+- Removed `unique_nft`, `collectible` and `c_nft` modules as configurability now occurs on the type-exporting NFT collection module
+
+## [0.13.0] - 2022-12-19
+
+### Changed
+
+- Updated Sui dep to `0.19.0`
+
 ## [0.12.0] - 2022-12-09
 
 ### Changed

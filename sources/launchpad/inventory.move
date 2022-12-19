@@ -38,7 +38,7 @@ module nft_protocol::inventory {
         queue: vector<ID>,
     }
 
-    public fun create(
+    public fun new(
         whitelisted: bool,
         ctx: &mut TxContext,
     ): Inventory {
@@ -103,6 +103,12 @@ module nft_protocol::inventory {
         inventory: &Inventory,
     ): u64 {
         vector::length(&inventory.nfts)
+    }
+
+    public fun is_empty(
+        inventory: &Inventory,
+    ): bool {
+        vector::is_empty(&inventory.nfts)
     }
 
     public fun is_whitelisted(

@@ -8,8 +8,6 @@
 module nft_protocol::proceeds {
     // TODO: Function to destroy Proceeds object
     // TODO: reconsider `Proceeds.total` to acocmodate for multiple FTs
-    use std::type_name::{Self, TypeName};
-
     use sui::coin;
     use sui::transfer;
     use sui::tx_context::TxContext;
@@ -17,15 +15,12 @@ module nft_protocol::proceeds {
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
 
+    use nft_protocol::utils::{Self, Marker};
+
     struct Proceeds has key, store {
         id: UID,
         // Quantity of NFTs sold
         qt_sold: QtSold,
-        // Total FT-amount sold. The reason for storing this info is to allow
-        // for custom types of fees that rely on the total FT-amount sold.
-        // Marketplaces could then reduce the amount of fees charged based
-        // on the bulk-volume of the sale.
-        total: u64,
     }
 
     // Quantity of NFTs Sold
@@ -45,24 +40,7 @@ module nft_protocol::proceeds {
         Proceeds {
             id: object::new(ctx),
             qt_sold: QtSold {collected: 0, total: 0},
-            total: 0,
         }
-    }
-
-    public fun balance<FT>(proceeds: &Proceeds): &Balance<FT> {
-        df::borrow<TypeName, Balance<FT>>(
-            &proceeds.id,
-            type_name::get<Balance<FT>>(),
-        )
-    }
-
-    fun balance_mut<FT>(
-        proceeds: &mut Proceeds,
-    ): &mut Balance<FT> {
-        df::borrow_mut<TypeName, Balance<FT>>(
-            &mut proceeds.id,
-            type_name::get<Balance<FT>>(),
-        )
     }
 
     public fun add<FT>(
@@ -70,23 +48,23 @@ module nft_protocol::proceeds {
         new_proceeds: Balance<FT>,
         qty_sold: u64,
     ) {
-        proceeds.total = proceeds.total + balance::value(&new_proceeds);
         proceeds.qt_sold.total = proceeds.qt_sold.total + qty_sold;
 
-        let missing_df = !df::exists_with_type<TypeName, Balance<FT>>(
-            &proceeds.id, type_name::get<Balance<FT>>()
+        let marker = utils::marker<FT>();
+        let missing_df = !df::exists_with_type<Marker<FT>, Balance<FT>>(
+            &proceeds.id, marker
         );
 
         if (missing_df) {
-            df::add<TypeName, Balance<FT>>(
+            df::add<Marker<FT>, Balance<FT>>(
                 &mut proceeds.id,
-                type_name::get<Balance<FT>>(),
+                marker,
                 new_proceeds,
             )
         } else {
-            let balance = df::borrow_mut<TypeName, Balance<FT>>(
+            let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
                 &mut proceeds.id,
-                type_name::get<Balance<FT>>(),
+                marker,
             );
 
             balance::join(
@@ -103,9 +81,9 @@ module nft_protocol::proceeds {
         slot_receiver: address,
         ctx: &mut TxContext,
     ) {
-        let balance = df::borrow_mut<TypeName, Balance<FT>>(
+        let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
-            type_name::get<Balance<FT>>(),
+            utils::marker<FT>(),
         );
 
         let fee_balance = balance::split<FT>(
@@ -134,5 +112,31 @@ module nft_protocol::proceeds {
             proceeds_coin,
             slot_receiver,
         );
+    }
+
+    // === Getter Functions ===
+
+    public fun collected(proceeds: &Proceeds): u64 {
+        proceeds.qt_sold.collected
+    }
+
+    public fun total(proceeds: &Proceeds): u64 {
+        proceeds.qt_sold.total
+    }
+
+    public fun balance<FT>(proceeds: &Proceeds): &Balance<FT> {
+        df::borrow<Marker<FT>, Balance<FT>>(
+            &proceeds.id,
+            utils::marker<FT>(),
+        )
+    }
+
+    fun balance_mut<FT>(
+        proceeds: &mut Proceeds,
+    ): &mut Balance<FT> {
+        df::borrow_mut<Marker<FT>, Balance<FT>>(
+            &mut proceeds.id,
+            utils::marker<FT>(),
+        )
     }
 }

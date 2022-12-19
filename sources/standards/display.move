@@ -16,6 +16,8 @@ module nft_protocol::display {
     use nft_protocol::attribution;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::attribution;
+    use nft_protocol::utils;
 
     struct Witness has drop {}
 
@@ -102,13 +104,13 @@ module nft_protocol::display {
     }
 
     public fun add_collection_display_domain<C>(
-        nft: &mut Collection<C>,
+        col: &mut Collection<C>,
         mint_cap: &MintCap<C>,
         name: String,
         description: String
     ) {
         collection::add_domain(
-            nft, mint_cap, new_display_domain(name, description)
+            col, mint_cap, new_display_domain(name, description)
         );
     }
 
@@ -128,7 +130,7 @@ module nft_protocol::display {
         UrlDomain { url }
     }
 
-    /// Sets name of `DisplayDomain`
+    /// Sets name of `UrlDomain`
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
     public fun set_url<C>(
@@ -252,23 +254,23 @@ module nft_protocol::display {
 
     /// === AttributesDomain ===
 
-    struct Attributes has store {
+    struct AttributesDomain has store {
         map: VecMap<String, String>,
     }
 
     /// Gets Keys of `Attributes`
-    public fun attributes(domain: &Attributes): &VecMap<String, String> {
+    public fun attributes(domain: &AttributesDomain): &VecMap<String, String> {
         &domain.map
     }
 
     /// Gets Keys of `Attributes`
-    public fun keys(domain: &Attributes): vector<String> {
+    public fun keys(domain: &AttributesDomain): vector<String> {
         let (keys, _) = vec_map::into_keys_values(domain.map);
         keys
     }
 
     /// Gets Values of `Attributes`
-    public fun values(domain: &Attributes): vector<String> {
+    public fun values(domain: &AttributesDomain): vector<String> {
         let (_, values) = vec_map::into_keys_values(domain.map);
         values
     }
@@ -276,36 +278,42 @@ module nft_protocol::display {
     /// Creates new `Attributes` with a keys and values
     public fun new_attributes_domain(
         map: VecMap<String, String>,
-    ): Attributes {
-        Attributes { map }
+    ): AttributesDomain {
+        AttributesDomain { map }
     }
 
     /// ====== Interoperability ===
 
-    public fun display_attribute<C>(nft: &Nft<C>): &Attributes {
-        nft::borrow_domain<C, Attributes>(nft)
+    public fun display_attribute<C>(nft: &Nft<C>): &AttributesDomain {
+        nft::borrow_domain<C, AttributesDomain>(nft)
     }
 
     public fun display_attribute_mut<C>(
         nft: &mut Nft<C>,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
-    ): &mut Attributes {
+    ): &mut AttributesDomain {
         attribution::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
-        nft::borrow_domain_mut<C, Attributes, Witness>(Witness {}, nft)
+        nft::borrow_domain_mut<C, AttributesDomain, Witness>(Witness {}, nft)
     }
 
     public fun add_attributes_domain<C>(
         nft: &mut Nft<C>,
-        collection: &mut Collection<C>,
         map: VecMap<String, String>,
         ctx: &mut TxContext,
     ) {
-        attribution::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
-        );
+        nft::add_domain(nft, new_attributes_domain(map), ctx);
+    }
+
+    public fun add_attributes_domain_from_vec<C>(
+        nft: &mut Nft<C>,
+        keys: vector<String>,
+        values: vector<String>,
+        ctx: &mut TxContext,
+    ) {
+        let map =  utils::from_vec_to_map<String, String>(keys, values);
 
         nft::add_domain(nft, new_attributes_domain(map), ctx);
     }

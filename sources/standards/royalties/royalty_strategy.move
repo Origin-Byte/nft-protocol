@@ -1,4 +1,6 @@
 module nft_protocol::royalty_strategy_bps {
+    use std::fixed_point32;
+
     const BPS: u64 = 10_000;
 
     struct BpsRoyaltyStrategy has drop, store {
@@ -11,7 +13,17 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     public fun calculate(domain: &BpsRoyaltyStrategy, amount: u64): u64  {
-        amount / BPS * royalty_fee_bps(domain)
+        // TODO: Need to consider implementing Decimals module for increased
+        // precision, or wait for native support
+        let royalty_rate = fixed_point32::create_from_rational(
+            royalty_fee_bps(domain),
+            (BPS as u64)
+        );
+
+        fixed_point32::multiply_u64(
+            amount,
+            royalty_rate,
+        )
     }
 
     public fun new(royalty_fee_bps: u64): BpsRoyaltyStrategy {
