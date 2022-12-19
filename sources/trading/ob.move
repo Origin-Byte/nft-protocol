@@ -475,20 +475,15 @@ module nft_protocol::ob {
         }
     }
 
+    public fun new_unprotected<C, FT>(ctx: &mut TxContext): Orderbook<C, FT> {
+        new<C, FT>(no_protection(), ctx)
+    }
+
     public entry fun create<C, FT>(
         ctx: &mut TxContext,
     ) {
         let ob = new<C, FT>(no_protection(), ctx);
         share_object(ob);
-    }
-
-    public fun new_protected<W: drop, C, FT>(
-        _witness: W,
-        ctx: &mut TxContext,
-    ): Orderbook<C, FT> {
-        utils::assert_same_module_as_witness<C, W>();
-
-        new<C, FT>(no_protection(), ctx)
     }
 
     public fun share<C, FT>(ob: Orderbook<C, FT>) {
@@ -620,8 +615,14 @@ module nft_protocol::ob {
 
         let asks = &mut book.asks;
 
-        let lowest_ask_price = crit_bit::min_key(asks);
-        let can_be_filled = lowest_ask_price <= price && !crit_bit::is_empty(asks);
+        // if map empty, then lowest ask price is 0
+        let (can_be_filled, lowest_ask_price) = if (crit_bit::is_empty(asks)) {
+            (false, 0)
+        } else {
+            let lowest_ask_price = crit_bit::min_key(asks);
+
+            (lowest_ask_price <= price, lowest_ask_price)
+        };
 
         if (can_be_filled) {
             let price_level = crit_bit::borrow_mut(asks, lowest_ask_price);
@@ -745,11 +746,16 @@ module nft_protocol::ob {
 
         let bids = &mut book.bids;
 
-        let can_be_filled = !crit_bit::is_empty(bids) &&
-            crit_bit::max_key(bids) >= price;
+        // if map empty, then higherst bid ask price is 0
+        let (can_be_filled, highest_bid_price) = if (crit_bit::is_empty(bids)) {
+            (false, 0)
+        } else {
+            let highest_bid_price = crit_bit::max_key(bids);
+
+            (highest_bid_price >= price, highest_bid_price)
+        };
 
         if (can_be_filled) {
-            let highest_bid_price = crit_bit::max_key(bids);
             let price_level = crit_bit::borrow_mut(bids, highest_bid_price);
 
             let bid = vector::remove(
@@ -829,7 +835,7 @@ module nft_protocol::ob {
             nft_id,
         );
 
-        assert!(owner != sender, err::order_owner_must_be_sender());
+        assert!(owner == sender, err::order_owner_must_be_sender());
 
         object::delete(id);
         transfer(transfer_cap, sender);
