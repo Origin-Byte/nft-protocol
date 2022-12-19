@@ -227,6 +227,67 @@ module nft_protocol::test_ob_trade {
         test_scenario::end(scenario);
     }
 
+    #[test]
+    fun it_buys_nfts() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        create_col_wl_safes(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, SELLER1);
+        let nft1_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+        let nft2_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, SELLER2);
+        let nft3_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+        let nft4_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, SELLER1);
+        test_ob::create_ask(&mut scenario, nft1_id, 90);
+
+        test_scenario::next_tx(&mut scenario, SELLER1);
+        test_ob::create_ask(&mut scenario, nft2_id, 90);
+
+        test_scenario::next_tx(&mut scenario, SELLER2);
+        test_ob::create_ask(&mut scenario, nft3_id, 90);
+
+        test_scenario::next_tx(&mut scenario, SELLER2);
+        test_ob::create_ask(&mut scenario, nft4_id, 100);
+
+        test_scenario::next_tx(&mut scenario, BUYER1);
+        test_ob::buy_nft(
+            &mut scenario,
+            nft2_id,
+            SELLER1,
+            90,
+        );
+
+        test_scenario::next_tx(&mut scenario, BUYER1);
+        test_ob::buy_nft(
+            &mut scenario,
+            nft4_id,
+            SELLER2,
+            100,
+        );
+
+        test_scenario::next_tx(&mut scenario, BUYER1);
+        test_ob::buy_nft(
+            &mut scenario,
+            nft3_id,
+            SELLER2,
+            90,
+        );
+
+        test_scenario::next_tx(&mut scenario, BUYER1);
+        let buyer1_safe = test_ob::user_safe(&scenario, BUYER1);
+        assert!(safe::has_nft<test_ob::Foo>(nft3_id, &buyer1_safe), 0);
+        assert!(safe::has_nft<test_ob::Foo>(nft2_id, &buyer1_safe), 0);
+        assert!(safe::has_nft<test_ob::Foo>(nft4_id, &buyer1_safe), 0);
+
+        test_scenario::return_shared(buyer1_safe);
+        test_scenario::end(scenario);
+    }
+
+
     fun most_recent_trade_intermediate_id(): ID {
         let id =
             test_scenario::most_recent_id_shared<ob::TradeIntermediate<test_ob::Foo, SUI>>();
