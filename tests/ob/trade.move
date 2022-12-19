@@ -125,6 +125,102 @@ module nft_protocol::test_ob_trade {
         test_scenario::end(scenario);
     }
 
+    #[test]
+    fun it_inserts_asks_and_fills_best_one() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        create_col_wl_safes(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, SELLER1);
+        let nft1_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+        let nft2_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, SELLER2);
+        let nft3_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+        let nft4_id = test_ob::create_and_deposit_nft_sender(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, SELLER1);
+        test_ob::create_ask(&mut scenario, nft1_id, 90);
+
+        test_scenario::next_tx(&mut scenario, SELLER1);
+        test_ob::create_ask(&mut scenario, nft2_id, 90);
+
+        test_scenario::next_tx(&mut scenario, SELLER2);
+        test_ob::create_ask(&mut scenario, nft3_id, 120);
+
+        test_scenario::next_tx(&mut scenario, SELLER2);
+        test_ob::create_ask(&mut scenario, nft4_id, 100);
+
+        let ob: Orderbook<test_ob::Foo, SUI> = test_scenario::take_shared(&scenario);
+        assert!(crit_bit::length(ob::borrow_asks(&ob)) == 3, 0); // 2x90, 1x100 1x120
+        test_scenario::return_shared(ob);
+
+        test_scenario::next_tx(&mut scenario, BUYER1);
+        test_ob::create_bid(&mut scenario, 100);
+        let ti1_id = most_recent_trade_intermediate_id();
+
+        test_ob::create_bid(&mut scenario, 80);
+
+        test_ob::create_bid(&mut scenario, 90);
+        let ti2_id = most_recent_trade_intermediate_id();
+
+        test_ob::create_bid(&mut scenario, 91);
+        let ti3_id = most_recent_trade_intermediate_id();
+
+        test_scenario::next_tx(&mut scenario, BUYER2);
+        test_ob::create_bid(&mut scenario, 80);
+        test_ob::create_bid(&mut scenario, 150);
+        let ti4_id = most_recent_trade_intermediate_id();
+
+        let ob: Orderbook<test_ob::Foo, SUI> = test_scenario::take_shared(&scenario);
+        assert!(crit_bit::length(ob::borrow_asks(&ob)) == 0, 0);
+        assert!(crit_bit::length(ob::borrow_bids(&ob)) == 1, 0); // 2x80
+        test_scenario::return_shared(ob);
+
+        test_scenario::next_tx(&mut scenario, BUYER2);
+        test_ob::finish_trade_id(
+            &mut scenario,
+            ti1_id,
+            nft1_id,
+            BUYER2,
+            SELLER1,
+        );
+        test_ob::finish_trade_id(
+            &mut scenario,
+            ti2_id,
+            nft2_id,
+            BUYER1,
+            SELLER1,
+        );
+        test_ob::finish_trade_id(
+            &mut scenario,
+            ti3_id,
+            nft4_id,
+            BUYER2,
+            SELLER2,
+        );
+        test_ob::finish_trade_id(
+            &mut scenario,
+            ti4_id,
+            nft4_id,
+            BUYER2,
+            SELLER2,
+        );
+
+        let buyer1_safe = test_ob::user_safe(&scenario, BUYER1);
+        // assert!(safe::has_nft<test_ob::Foo>(nft2_id, &buyer1_safe), 0);
+        let buyer2_safe = test_ob::user_safe(&scenario, BUYER2);
+        // assert!(safe::has_nft<test_ob::Foo>(nft1_id, &buyer2_safe), 0);
+        // assert!(safe::has_nft<test_ob::Foo>(nft4_id, &buyer2_safe), 0);
+        let seller2_safe = test_ob::user_safe(&scenario, SELLER2);
+        // assert!(safe::has_nft<test_ob::Foo>(nft3_id, &seller2_safe), 0);
+
+        test_scenario::return_shared(buyer1_safe);
+        test_scenario::return_shared(buyer2_safe);
+        test_scenario::return_shared(seller2_safe);
+        test_scenario::end(scenario);
+    }
+
     fun most_recent_trade_intermediate_id(): ID {
         let id =
             test_scenario::most_recent_id_shared<ob::TradeIntermediate<test_ob::Foo, SUI>>();

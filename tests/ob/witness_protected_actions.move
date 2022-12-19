@@ -411,6 +411,52 @@ module nft_protocol::test_ob_witness_protected_actions {
         test_scenario::end(scenario);
     }
 
+    #[test]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    fun it_protects_create_bid_with_commission() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_whitelist(&mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
+        test_ob::create_safe(&mut scenario, BUYER);
+        protect_create_bid(&mut scenario);
+
+        test_scenario::next_tx(&mut scenario, BUYER);
+        test_ob::create_bid_with_commission(
+            &mut scenario, OFFER_SUI, BUYER, COMMISSION_SUI,
+        );
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    fun it_protects_create_ask_with_commission() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_whitelist(&mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        test_ob::create_safe(&mut scenario, SELLER);
+
+        protect_create_ask(&mut scenario);
+
+        // Creates transfer cap and sends it to orderbook
+        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+
+        test_scenario::next_tx(&mut scenario, SELLER);
+
+        test_ob::create_ask_with_commission(
+            &mut scenario,
+            nft_id,
+            OFFER_SUI,
+            CREATOR,
+            COMMISSION_SUI,
+        );
+
+        test_scenario::end(scenario);
+    }
+
     fun protect_buy_nft(scenario: &mut Scenario) {
         test_scenario::next_tx(scenario, CREATOR);
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
