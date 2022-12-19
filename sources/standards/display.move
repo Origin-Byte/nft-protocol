@@ -13,11 +13,10 @@ module nft_protocol::display {
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::utils;
     use nft_protocol::attribution;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::attribution;
-    use nft_protocol::utils;
 
     struct Witness has drop {}
 

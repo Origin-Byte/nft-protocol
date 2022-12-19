@@ -130,6 +130,10 @@ module nft_protocol::slot {
 
     // === WhitelistCertificate ===
 
+    /// Whitin a release `Slot`, each market has its own whitelist policy.
+    /// As an example, creators can create tiered sales based on the NFT rarity,
+    /// and then whitelist only the rare NFT sale. They can then emit whitelist
+    /// tokens and send them to users who have completed a set of defined actions.
     struct WhitelistCertificate has key, store {
         id: UID,
         /// `Launchpad` ID intended for discoverability
