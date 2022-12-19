@@ -1,6 +1,7 @@
 module nft_protocol::football {
-    use std::string;
+    use std::string::{Self, String};
 
+    use sui::url;
     use sui::balance;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
@@ -93,8 +94,11 @@ module nft_protocol::football {
     }
 
     public entry fun mint_nft_archetype(
-        name: vector<u8>,
-        description: vector<u8>,
+        name: String,
+        description: String,
+        url: vector<u8>,
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,
         mint_cap: &mut MintCap<FOOTBALL>,
         registry: &mut Registry<FOOTBALL>,
         supply: u64,
@@ -108,8 +112,21 @@ module nft_protocol::football {
 
         display::add_display_domain(
             nft,
-            string::utf8(name),
-            string::utf8(description),
+            name,
+            description,
+            ctx,
+        );
+
+        display::add_url_domain(
+            nft,
+            url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+
+        display::add_attributes_domain_from_vec(
+            nft,
+            attribute_keys,
+            attribute_values,
             ctx,
         );
 

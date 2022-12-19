@@ -1,7 +1,8 @@
 #[test_only]
 module nft_protocol::suimarines {
-    use std::string;
+    use std::string::{Self, String};
 
+    use sui::url;
     use sui::balance;
     use sui::object::ID;
     use sui::transfer::transfer;
@@ -88,11 +89,11 @@ module nft_protocol::suimarines {
     }
 
     public entry fun mint_nft(
-        name: vector<u8>,
-        description: vector<u8>,
-        // url: vector<u8>,
-        // attribute_keys: vector<vector<u8>>,
-        // attribute_values: vector<vector<u8>>,
+        name: String,
+        description: String,
+        url: vector<u8>,
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,
         mint_cap: &mut MintCap<SUIMARINES>,
         slot: &mut Slot,
         market_id: ID,
@@ -104,8 +105,21 @@ module nft_protocol::suimarines {
 
         display::add_display_domain(
             &mut nft,
-            string::utf8(name),
-            string::utf8(description),
+            name,
+            description,
+            ctx,
+        );
+
+        display::add_url_domain(
+            &mut nft,
+            url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+
+        display::add_attributes_domain_from_vec(
+            &mut nft,
+            attribute_keys,
+            attribute_values,
             ctx,
         );
 

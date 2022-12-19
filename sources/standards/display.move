@@ -9,6 +9,7 @@ module nft_protocol::display {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::attribution;
+    use nft_protocol::utils;
 
     struct Witness has drop {}
 
@@ -295,6 +296,17 @@ module nft_protocol::display {
         map: VecMap<String, String>,
         ctx: &mut TxContext,
     ) {
+        nft::add_domain(nft, new_attributes_domain(map), ctx);
+    }
+
+    public fun add_attributes_domain_from_vec<C>(
+        nft: &mut Nft<C>,
+        keys: vector<String>,
+        values: vector<String>,
+        ctx: &mut TxContext,
+    ) {
+        let map =  utils::from_vec_to_map<String, String>(keys, values);
+
         nft::add_domain(nft, new_attributes_domain(map), ctx);
     }
 }
