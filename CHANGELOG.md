@@ -6,6 +6,22 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2022-12-19
+
+### Added
+
+- Creating an ask with commission in the orderbook returns an error if the
+  commission is gtq to the ask price.
+
+### Changed
+
+- Renamed some arguments in the orderbook to be more descriptive.
+
+### Removed
+
+- Some protected actions were entry methods. This did not make sense because
+  witness shouldn't have the `key` ability and therefore cannot be an entry
+  function argument.
 
 ## [1.0.0] - 2022-12-19
 
@@ -26,6 +42,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Trading primitives modules such as `bidding` contract and `orderbook` contract
 
 ### Removed
+
 - Removed `unique_nft`, `collectible` and `c_nft` modules as configurability now occurs on the type-exporting NFT collection module
 
 ## [0.13.0] - 2022-12-19
