@@ -1,20 +1,19 @@
+//! To enable custom royalty functionality with current Move design, we need
+//! to create a system in which collection's own implementation can use
+//! priviledge to access the NFT payments, yet anyone can call the royalty
+//! logic to finish their trade.
+//!
+//! An instance of collection's struct `W` (not the one-time-witness!)
+//! enables it to extract funds from `TradePayment`. After it calculates the
+//! royalty from the NFT payment, it then transfers the rest to the
+//! beneficiary address, be it the NFT seller or a marketplace/wallet.
+//!
+//! The trading contracts can design their commission schemes such that the
+//! marketplaces and/or wallets are incentivized to resolve the settlements.
+//! That avoids extra txs sent by the user, because the client
+//! implementation will be such that they include everything in one batched
+//! tx if possible, or have automation.
 module nft_protocol::royalties {
-    //! To enable custom royalty functionality with current Move design, we need
-    //! to create a system in which collection's own implementation can use
-    //! priviledge to access the NFT payments, yet anyone can call the royalty
-    //! logic to finish their trade.
-    //!
-    //! An instance of collection's struct `W` (not the one-time-witness!)
-    //! enables it to extract funds from `TradePayment`. After it calculates the
-    //! royalty from the NFT payment, it then transfers the rest to the
-    //! beneficiary address, be it the NFT seller or a marketplace/wallet.
-    //!
-    //! The trading contracts can design their commission schemes such that the
-    //! marketplaces and/or wallets are incentivized to resolve the settlements.
-    //! That avoids extra txs sent by the user, because the client
-    //! implementation will be such that they include everything in one batched
-    //! tx if possible, or have automation.
-
     use std::option::{Self, Option};
 
     use sui::balance::{Self, Balance};

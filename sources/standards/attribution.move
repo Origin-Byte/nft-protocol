@@ -1,3 +1,7 @@
+//! Module of Collection `Attribution` domain.
+//!
+//! Attribution domain gathers all collection creators, their respective
+//! addresses as well as the share of royalty.
 module nft_protocol::attribution {
     use std::fixed_point32;
 

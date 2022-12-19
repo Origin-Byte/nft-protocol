@@ -1,27 +1,26 @@
+//! Whitelists NFT transfers.
+//!
+//! This module is a set of functions for implementing and managing a
+//! whitelist for NFT (non-fungible token) transfers.
+//! The whitelist is used to authorize which contracts are allowed to
+//! transfer NFTs of a particular collection.
+//! The module includes functions for creating and managing the whitelist,
+//! adding and removing collections from the whitelist, and checking whether
+//! a contract is authorized to transfer a particular NFT.
+//! The module uses generics and reflection to allow for flexibility in
+//! implementing and managing the whitelist.
+//!
+//! Three generics at play:
+//! 1. Admin (whitelist witness) enables any organization to start their own
+//!     whitelist and manage it according to their own rules;
+//! 2. CW (collection witness) enpowers creators to add or remove their
+//!     collections to whitelists;
+//! 3. Auth (3rd party witness) is used to authorize contracts via their
+//!     witness types. If e.g. an orderbook trading contract wants to be
+//!     included in a whitelist, the whitelist admin adds the stringified
+//!     version of their witness type. The OB then uses this witness type
+//!     to authorize transfers.
 module nft_protocol::transfer_whitelist {
-    //! Whitelists NFT transfers.
-    //!
-    //! This module is a set of functions for implementing and managing a
-    //! whitelist for NFT (non-fungible token) transfers.
-    //! The whitelist is used to authorize which contracts are allowed to
-    //! transfer NFTs of a particular collection.
-    //! The module includes functions for creating and managing the whitelist,
-    //! adding and removing collections from the whitelist, and checking whether
-    //! a contract is authorized to transfer a particular NFT.
-    //! The module uses generics and reflection to allow for flexibility in
-    //! implementing and managing the whitelist.
-    //!
-    //! Three generics at play:
-    //! 1. Admin (whitelist witness) enables any organization to start their own
-    //!     whitelist and manage it according to their own rules;
-    //! 2. CW (collection witness) enpowers creators to add or remove their
-    //!     collections to whitelists;
-    //! 3. Auth (3rd party witness) is used to authorize contracts via their
-    //!     witness types. If e.g. an orderbook trading contract wants to be
-    //!     included in a whitelist, the whitelist admin adds the stringified
-    //!     version of their witness type. The OB then uses this witness type
-    //!     to authorize transfers.
-
     use nft_protocol::utils;
     use nft_protocol::err;
     use std::option::{Self, Option};

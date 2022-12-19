@@ -1,4 +1,11 @@
+//! Module of NFT and Collection `Tags` domain
+//!
+//! This domain allows wallets to organize the NFT display based on categories,
+//! such as Art, Profile Picture, Collectibles, etc.
 module nft_protocol::tags {
+    // TODO: Consider if we should add a wrapper domain Tags {bag} such that
+    // wallet can always query this domain instead of having to query all domains
+    // and figure out which ones are tags or not.
     use sui::bag::{Self, Bag};
     use sui::tx_context::{Self, TxContext};
 

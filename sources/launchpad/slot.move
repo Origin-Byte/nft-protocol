@@ -1,3 +1,13 @@
+//! Module for an NFT release `Slot`
+//!
+//! After the creation of the `Launchpad` a `Slot` for the NFT release needs
+//! to be created. Whilst the `Launchpad` stipulates a default fee policy,
+//! the launchpad admin can decide to create a custom fee policy for each
+//! release `Slot`.
+//!
+//! The slot acts as the object that configures the primary NFT release
+//! strategy, that is the primary market sale. Primary market sales can take
+//! many shapes, depending on the business level requirements.
 module nft_protocol::slot {
     // TODO: Consider adding a function redeem_certificate with `nft_id` as
     // a parameter
@@ -120,6 +130,10 @@ module nft_protocol::slot {
 
     // === WhitelistCertificate ===
 
+    /// Whitin a release `Slot`, each market has its own whitelist policy.
+    /// As an example, creators can create tiered sales based on the NFT rarity,
+    /// and then whitelist only the rare NFT sale. They can then emit whitelist
+    /// tokens and send them to users who have completed a set of defined actions.
     struct WhitelistCertificate has key, store {
         id: UID,
         /// `Launchpad` ID intended for discoverability

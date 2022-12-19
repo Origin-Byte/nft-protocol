@@ -1,16 +1,19 @@
+//! Bidding module that allows users to bid for any given NFT in a safe,
+//! giving NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
+    // TODO: Consider allowing for NFT owners to create their own Asks
+    use std::option::{Self, Option};
+
+    use sui::event::emit;
+    use sui::coin::{Self, Coin};
+    use sui::object::{Self, ID, UID};
+    use sui::balance::{Self, Balance};
+    use sui::tx_context::{Self, TxContext};
+    use sui::transfer::{transfer, share_object};
+
     use nft_protocol::err;
     use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_whitelist::Whitelist;
-
-    use std::option::{Self, Option};
-
-    use sui::balance::{Self, Balance};
-    use sui::coin::{Self, Coin};
-    use sui::event::emit;
-    use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
-    use sui::tx_context::{Self, TxContext};
     use nft_protocol::trading::{
         AskCommission,
         BidCommission,
@@ -44,6 +47,11 @@ module nft_protocol::bidding {
         sold: bool,
     }
 
+    /// Payable entry function to create a bid for an NFT.
+    ///
+    /// It performs the following:
+    /// - Sends funds Balance<FT> from `wallet` to the `bid`
+    /// - Creates object `bid` and shares it.
     public entry fun create_bid<FT>(
         nft: ID,
         buyers_safe: ID,
@@ -54,6 +62,14 @@ module nft_protocol::bidding {
         create_bid_(nft, buyers_safe, price, option::none(), wallet, ctx);
     }
 
+    /// Payable entry function to create a bid for an NFT.
+    ///
+    /// It performs the following:
+    /// - Sends funds Balance<FT> from `wallet` to the `bid`
+    /// - Creates object `bid` with `commission` and shares it.
+    ///
+    /// To be called by a intermediate application, for the purpose
+    /// of securing a commission for intermediating the process.
     public entry fun create_bid_with_commission<FT>(
         nft: ID,
         buyers_safe: ID,
@@ -70,6 +86,15 @@ module nft_protocol::bidding {
         create_bid_(nft, buyers_safe, price, option::some(commission), wallet, ctx);
     }
 
+    /// Entry function to sell an NFT with an open `bid`.
+    ///
+    /// It performs the following:
+    /// - Splits funds from `Bid<FT>` by:
+    ///     - (1) Creating TradePayment<C, FT> for the trade amount
+    /// - Transfers NFT from `sellers_safe` to `buyers_safe` and
+    /// burns `TransferCap`
+    /// - Transfers bid commission funds to the address
+    /// `bid.commission.beneficiary`
     public entry fun sell_nft<C, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
@@ -89,6 +114,19 @@ module nft_protocol::bidding {
         );
     }
 
+    /// Entry function to sell an NFT with an open `bid`.
+    ///
+    /// It performs the following:
+    /// - Splits funds from `Bid<FT>` by:
+    ///     - (1) Creating TradePayment<C, FT> for the Ask commision
+    ///     - (2) Creating TradePayment<C, FT> for the net trade amount
+    /// - Transfers NFT from `sellers_safe` to `buyers_safe` and
+    /// burns `TransferCap`
+    /// - Transfers bid commission funds to the address
+    /// `bid.commission.beneficiary`
+    ///
+    /// To be called by a intermediate application, for the purpose of
+    /// securing a commission for intermediating the process.
     public entry fun sell_nft_with_commission<C, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
@@ -119,6 +157,8 @@ module nft_protocol::bidding {
         close_bid_(bid, ctx);
     }
 
+    /// Sends funds Balance<FT> from `wallet` to the `bid` and
+    /// shares object `bid.`
     fun create_bid_<FT>(
         nft: ID,
         buyers_safe: ID,
@@ -148,6 +188,13 @@ module nft_protocol::bidding {
         });
     }
 
+    /// Entry function to sell an NFT with an open `bid`.
+    ///
+    /// It splits funds from `Bid<FT>` by creating TradePayment<C, FT>
+    /// for the Ask commision if any, and creating TradePayment<C, FT> for the
+    /// next trade amount. It transfers the NFT from `sellers_safe` to
+    /// `buyers_safe` and burns `TransferCap`. It then transfers bid
+    /// commission funds to address `bid.commission.beneficiary`.
     fun sell_nft_<C, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
