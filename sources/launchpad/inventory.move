@@ -98,6 +98,12 @@ module nft_protocol::inventory {
         vector::length(&inventory.nfts)
     }
 
+    public fun is_empty(
+        inventory: &Inventory,
+    ): bool {
+        vector::is_empty(&inventory.nfts)
+    }
+
     public fun is_whitelisted(
         inventory: &Inventory,
     ): bool {

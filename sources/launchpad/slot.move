@@ -2,7 +2,7 @@ module nft_protocol::slot {
     // TODO: Consider adding a function redeem_certificate with `nft_id` as
     // a parameter
     use sui::transfer;
-    use sui::coin::{Self, Coin};
+    use sui::balance::Balance;
     use sui::object::{Self, ID , UID};
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
@@ -270,12 +270,10 @@ module nft_protocol::slot {
 
     public fun pay<FT>(
         slot: &mut Slot,
-        funds: Coin<FT>,
+        balance: Balance<FT>,
         qty_sold: u64,
     ) {
-        let balance = coin::into_balance(funds);
         let proceeds = proceeds_mut(slot);
-
         proceeds::add(proceeds, balance, qty_sold);
     }
 
@@ -393,7 +391,7 @@ module nft_protocol::slot {
     // === Getter functions ===
 
     /// Get the Slot's `live`
-    public fun live(slot: &Slot): bool {
+    public fun is_live(slot: &Slot): bool {
         slot.live
     }
 
@@ -460,7 +458,7 @@ module nft_protocol::slot {
         slot: &mut Slot,
         market_id: ID,
     ): &mut Market {
-        utils::assert_same_module_as_witness<Witness, Market>();
+        utils::assert_same_module_as_witness<Market, Witness>();
         assert_market<Market>(slot, market_id);
         object_bag::borrow_mut<ID, Market>(&mut slot.markets, market_id)
     }
