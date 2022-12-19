@@ -10,7 +10,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 
-- Updated Sui dep to `0.18.0`
+- Updated Sui dep to `0.19.0`
 
 ## [0.12.0] - 2022-12-09
 
