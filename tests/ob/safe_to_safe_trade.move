@@ -7,7 +7,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     //! collection.
     use sui::test_scenario;
 
-    use nft_protocol::test_ob_utils as test_ob;
+    use nft_protocol::test_utils as test_ob;
 
     const BUYER: address = @0xA1C06;
     const CREATOR: address = @0xA1C05;

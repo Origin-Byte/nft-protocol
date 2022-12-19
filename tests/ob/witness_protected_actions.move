@@ -2,7 +2,7 @@
 module nft_protocol::test_ob_witness_protected_actions {
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe;
-    use nft_protocol::test_ob_utils::{Self as test_ob, Foo};
+    use nft_protocol::test_utils::{Self as test_ob, Foo};
     use nft_protocol::transfer_whitelist::Whitelist;
     use sui::coin;
     use sui::object::ID;

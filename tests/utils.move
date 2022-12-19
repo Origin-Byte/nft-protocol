@@ -1,5 +1,5 @@
 #[test_only]
-module nft_protocol::test_ob_utils {
+module nft_protocol::test_utils {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::nft;
     use nft_protocol::ob::{Self, Orderbook};
@@ -50,6 +50,47 @@ module nft_protocol::test_ob_utils {
         test_scenario::return_shared(wl);
     }
 
+    public fun create_collection_and_whitelist_with_type<C: drop, Witness: drop>(
+        coll_type: C,
+        transfer_witness: Witness,
+        creator: address,
+        scenario: &mut Scenario,
+        ): (ID, ID, ID) {
+        let (cap, col) = collection::dummy_collection<C>(
+            &coll_type, creator, scenario
+            );
+
+        let col_id = object::id(&col);
+        let cap_id = object::id(&cap);
+
+        share_object(col);
+        test_scenario::next_tx(scenario, creator);
+
+        let col_control_cap = transfer_whitelist::create_collection_cap<C, Witness>(
+            &transfer_witness, ctx(scenario),
+        );
+
+        let col: Collection<C> = test_scenario::take_shared(scenario);
+
+        nft_protocol::example_free_for_all::init_(ctx(scenario));
+        test_scenario::next_tx(scenario, creator);
+
+        let wl: Whitelist = test_scenario::take_shared(scenario);
+        let wl_id = object::id(&wl);
+
+        nft_protocol::example_free_for_all::insert_collection(
+            &col_control_cap,
+            &mut wl,
+        );
+
+        transfer(cap, creator);
+        transfer(col_control_cap, creator);
+        test_scenario::return_shared(col);
+        test_scenario::return_shared(wl);
+
+        (col_id, cap_id, wl_id,)
+    }
+
     public fun create_ob(scenario: &mut Scenario): ID {
         let ob = ob::new_unprotected<Foo, SUI>(ctx(scenario));
         let ob_id = object::id(&ob);
@@ -72,7 +113,7 @@ module nft_protocol::test_ob_utils {
 
         let safe: Safe = test_scenario::take_shared(scenario);
 
-        let seller_safe_id = object::id(&safe);
+        let safe_id = object::id(&safe);
         let owner_cap_id = object::id(&owner_cap);
 
         test_scenario::return_shared(safe);
@@ -80,7 +121,7 @@ module nft_protocol::test_ob_utils {
 
         test_scenario::next_tx(scenario, owner);
 
-        (seller_safe_id, owner_cap_id)
+        (safe_id, owner_cap_id)
     }
 
     public fun create_and_deposit_nft_sender(scenario: &mut Scenario): ID {
@@ -102,6 +143,34 @@ module nft_protocol::test_ob_utils {
             &mut safe,
             ctx(scenario),
         );
+
+        test_scenario::return_shared(safe);
+        transfer(owner_cap, user);
+
+        test_scenario::next_tx(scenario, user);
+
+        nft_id
+    }
+
+    // To be used if Collection type struct is in test module
+    public fun mint_and_deposit_nft<C>(
+        scenario: &mut Scenario,
+        user: address,
+    ): ID {
+        test_scenario::next_tx(scenario, user);
+        let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
+
+        let nft = nft::new<C>(user, ctx(scenario));
+        let nft_id = object::id(&nft);
+        safe::deposit_nft<C>(
+            nft,
+            &mut safe,
+            ctx(scenario),
+        );
+
+        test_scenario::next_tx(scenario, user);
+
+        assert!(safe::has_nft<C>(nft_id, &safe), 0);
 
         test_scenario::return_shared(safe);
         transfer(owner_cap, user);

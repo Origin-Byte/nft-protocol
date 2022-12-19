@@ -120,4 +120,12 @@ module nft_protocol::royalties {
             trade,
         });
     }
+
+    // === Getters ===
+
+    public fun amount<C, FT>(
+        trade_payment: &TradePayment<C, FT>,
+    ): &Balance<FT> {
+        &trade_payment.amount
+    }
 }

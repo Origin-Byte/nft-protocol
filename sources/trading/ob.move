@@ -38,7 +38,7 @@ module nft_protocol::ob {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        pay_for_nft,
+        settle_funds,
         transfer_bid_commission,
     };
 
@@ -868,7 +868,7 @@ module nft_protocol::ob {
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
 
-        pay_for_nft<C, FT>(
+        settle_funds<C, FT>(
             &mut bid_offer,
             buyer,
             &mut maybe_commission,
@@ -913,7 +913,7 @@ module nft_protocol::ob {
             err::safe_id_mismatch(),
         );
 
-        pay_for_nft<C, FT>(
+        settle_funds<C, FT>(
             paid,
             *buyer,
             maybe_commission,

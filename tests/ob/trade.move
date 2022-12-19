@@ -3,7 +3,7 @@ module nft_protocol::test_ob_trade {
     use movemate::crit_bit_u64 as crit_bit;
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe;
-    use nft_protocol::test_ob_utils::{Self as test_ob};
+    use nft_protocol::test_utils::{Self as test_ob};
     use std::option;
     use sui::object::ID;
     use sui::sui::SUI;

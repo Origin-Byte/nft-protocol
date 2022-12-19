@@ -155,7 +155,7 @@ module nft_protocol::collection {
         _witness: W,
         collection: &mut Collection<C>,
     ): &mut D {
-        utils::assert_same_module_as_witness<W, D>();
+        utils::assert_same_module_as_witness<D, W>();
         bag::borrow_mut<Marker<D>, D>(
             &mut collection.domains, utils::marker<D>()
         )
