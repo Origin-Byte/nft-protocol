@@ -533,14 +533,14 @@ module nft_protocol::slot {
         );
     }
 
-    public fun assert_market_is_whitelisted(slot: &Slot, market_id: ID ) {
+    public fun assert_market_is_whitelisted(slot: &Slot) {
         assert!(
             inventory::is_whitelisted(inventory(slot)),
             err::sale_is_not_whitelisted()
         );
     }
 
-    public fun assert_market_is_not_whitelisted(slot: &Slot, market_id: ID) {
+    public fun assert_market_is_not_whitelisted(slot: &Slot) {
         assert!(
             !inventory::is_whitelisted(inventory(slot)),
             err::sale_is_whitelisted()

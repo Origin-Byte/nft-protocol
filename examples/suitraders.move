@@ -2,7 +2,6 @@ module nft_protocol::suitraders {
     use std::string;
 
     use sui::balance;
-    use sui::object::ID;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -87,7 +86,6 @@ module nft_protocol::suitraders {
         // attribute_values: vector<vector<u8>>,
         mint_cap: &mut MintCap<SUITRADERS>,
         slot: &mut Slot,
-        market_id: ID,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUITRADERS>(tx_context::sender(ctx), ctx);
@@ -101,6 +99,6 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        slot::add_nft(slot, market_id, nft, ctx);
+        slot::add_nft(slot, nft, ctx);
     }
 }
