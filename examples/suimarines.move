@@ -1,4 +1,3 @@
-#[test_only]
 module nft_protocol::suimarines {
     use std::string::{Self, String};
 

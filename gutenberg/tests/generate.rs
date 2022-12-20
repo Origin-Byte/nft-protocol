@@ -4,41 +4,41 @@ use gutenberg::schema::Schema;
 use std::fs::{self, File};
 
 /// Check that all examples have correct schema
-#[test]
-fn example_schema() {
-    fs::read_dir("./examples")
-        .unwrap()
-        .map(Result::unwrap)
-        .map(|dir| {
-            let config = File::open(dir.path()).unwrap();
-            assert_schema(config);
-        })
-        .collect::<()>()
-}
+// #[test]
+// fn example_schema() {
+//     fs::read_dir("./examples")
+//         .unwrap()
+//         .map(Result::unwrap)
+//         .map(|dir| {
+//             let config = File::open(dir.path()).unwrap();
+//             assert_schema(config);
+//         })
+//         .collect::<()>()
+// }
 
 #[test]
-fn simple() {
-    let config = File::open("./examples/simple.yaml").unwrap();
+fn classic() {
+    let config = File::open("./examples/suimarines.yaml").unwrap();
     let expected = fs::read_to_string("../examples/suimarines.move").unwrap();
 
     assert_equal(config, expected);
 }
 
-#[test]
-fn collectible() {
-    let config = File::open("./examples/collectibles.yaml").unwrap();
-    let expected = fs::read_to_string("../examples/collectibles.move").unwrap();
+// #[test]
+// fn collectible() {
+//     let config = File::open("./examples/collectibles.yaml").unwrap();
+//     let expected = fs::read_to_string("../examples/collectibles.move").unwrap();
 
-    assert_equal(config, expected);
-}
+//     assert_equal(config, expected);
+// }
 
-#[test]
-fn auction() {
-    let config = File::open("./examples/auction.yaml").unwrap();
-    let expected = fs::read_to_string("../examples/suitraders.move").unwrap();
+// #[test]
+// fn auction() {
+//     let config = File::open("./examples/auction.yaml").unwrap();
+//     let expected = fs::read_to_string("../examples/suitraders.move").unwrap();
 
-    assert_equal(config, expected);
-}
+//     assert_equal(config, expected);
+// }
 
 /// Asserts that the config file has correct schema
 fn assert_schema(config: File) -> Schema {
