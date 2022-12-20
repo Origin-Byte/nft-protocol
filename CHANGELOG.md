@@ -12,6 +12,10 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Creating an ask with commission in the orderbook returns an error if the
   commission is greater equal to the ask price.
+- `Safe` can now be used to transfer NFTs to a `Safe` which are not wrapped in
+  the `nft_protocol::nft::Nft` type.
+  These NFTs have lower guarantees when it comes to transfers.
+  Enables us to integrate other standards.
 
 ### Changed
 
