@@ -19,7 +19,7 @@ use std::fs;
 pub struct Schema {
     pub collection: Collection,
     pub nft_type: NftType,
-    pub launchpad: Launchpad,
+    // pub launchpad: Launchpad,
 }
 
 /// Contains the metadata fields of the collection
@@ -162,59 +162,59 @@ impl Schema {
         out.into_boxed_str()
     }
 
-    /// Associated function that generates Move code to declare and push market
-    /// specific data.
-    pub fn write_define_market_arguments(&self) -> Box<str> {
-        let mut out = String::new();
+    // /// Associated function that generates Move code to declare and push market
+    // /// specific data.
+    // pub fn write_define_market_arguments(&self) -> Box<str> {
+    //     let mut out = String::new();
 
-        match &self.launchpad.market_type {
-            MarketType::FixedPrice { whitelists, .. }
-            | MarketType::Auction { whitelists, .. } => {
-                out.write_str("let whitelist = vector::empty();\n").unwrap();
-                for w in whitelists {
-                    out.write_fmt(format_args!(
-                        "        vector::push_back(&mut whitelist, {w});\n"
-                    ))
-                    .unwrap();
-                }
-            }
-        }
+    //     match &self.launchpad.market_type {
+    //         MarketType::FixedPrice { whitelists, .. }
+    //         | MarketType::Auction { whitelists, .. } => {
+    //             out.write_str("let whitelist = vector::empty();\n").unwrap();
+    //             for w in whitelists {
+    //                 out.write_fmt(format_args!(
+    //                     "        vector::push_back(&mut whitelist, {w});\n"
+    //                 ))
+    //                 .unwrap();
+    //             }
+    //         }
+    //     }
 
-        match &self.launchpad.market_type {
-            MarketType::FixedPrice { prices, .. } => {
-                out.write_str("\n        let prices = vector::empty();\n")
-                    .unwrap();
-                for p in prices {
-                    out.write_fmt(format_args!(
-                        "        vector::push_back(&mut prices, {p});\n"
-                    ))
-                    .unwrap();
-                }
-            }
-            MarketType::Auction { reserve_prices, .. } => {
-                out.write_str(
-                    "\n        let reserve_prices = vector::empty();\n",
-                )
-                .unwrap();
-                for p in reserve_prices {
-                    out.write_fmt(format_args!(
-                        "        vector::push_back(&mut reserve_prices, {p});\n"
-                    ))
-                    .unwrap();
-                }
-            }
-        };
+    //     match &self.launchpad.market_type {
+    //         MarketType::FixedPrice { prices, .. } => {
+    //             out.write_str("\n        let prices = vector::empty();\n")
+    //                 .unwrap();
+    //             for p in prices {
+    //                 out.write_fmt(format_args!(
+    //                     "        vector::push_back(&mut prices, {p});\n"
+    //                 ))
+    //                 .unwrap();
+    //             }
+    //         }
+    //         MarketType::Auction { reserve_prices, .. } => {
+    //             out.write_str(
+    //                 "\n        let reserve_prices = vector::empty();\n",
+    //             )
+    //             .unwrap();
+    //             for p in reserve_prices {
+    //                 out.write_fmt(format_args!(
+    //                     "        vector::push_back(&mut reserve_prices, {p});\n"
+    //                 ))
+    //                 .unwrap();
+    //             }
+    //         }
+    //     };
 
-        out.into_boxed_str()
-    }
+    //     out.into_boxed_str()
+    // }
 
-    /// Associated function that generates Move code to declare pass market
-    /// specific arguments to the `create_market` function.
-    pub fn write_market_arguments(&self) -> Box<str> {
-        match self.launchpad.market_type {
-            MarketType::FixedPrice { .. } => "whitelist, prices,",
-            MarketType::Auction { .. } => "whitelist, reserve_prices,",
-        }
-        .into()
-    }
+    // /// Associated function that generates Move code to declare pass market
+    // /// specific arguments to the `create_market` function.
+    // pub fn write_market_arguments(&self) -> Box<str> {
+    //     match self.launchpad.market_type {
+    //         MarketType::FixedPrice { .. } => "whitelist, prices,",
+    //         MarketType::Auction { .. } => "whitelist, reserve_prices,",
+    //     }
+    //     .into()
+    // }
 }
