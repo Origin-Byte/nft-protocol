@@ -73,9 +73,12 @@ See the [documentation](#intermediary-state) for the intermediary state above.
 The commission is paid to the beneficiary only after the intermediary state
 have been resolved.
 
-To receive a commission on an instant NFT buy (when buying a specific NFT)
-the client can use a batched tx to get their commission.
-Hence, we don't export a `buy_with_commission` endpoint.
+If a marketplace or a wallet want to receive a commission on a trade they
+facilitate when buying a specific NFT with `buy_nft` endpoint, the client can
+use a batched tx to get their commission.
+In the batched tx they include both `buy_nft` and then a `Coin` transfer to
+their address.
+Hence, we _don't_ export a `buy_nft_with_commission` endpoint.
 
 If there are two different marketplaces facilitating a single trade, both can
 claim a commission.
