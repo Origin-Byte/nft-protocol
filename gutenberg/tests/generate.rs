@@ -4,17 +4,17 @@ use gutenberg::schema::Schema;
 use std::fs::{self, File};
 
 /// Check that all examples have correct schema
-// #[test]
-// fn example_schema() {
-//     fs::read_dir("./examples")
-//         .unwrap()
-//         .map(Result::unwrap)
-//         .map(|dir| {
-//             let config = File::open(dir.path()).unwrap();
-//             assert_schema(config);
-//         })
-//         .collect::<()>()
-// }
+#[test]
+fn example_schema() {
+    fs::read_dir("./examples")
+        .unwrap()
+        .map(Result::unwrap)
+        .map(|dir| {
+            let config = File::open(dir.path()).unwrap();
+            assert_schema(config);
+        })
+        .collect::<()>()
+}
 
 #[test]
 fn classic() {
