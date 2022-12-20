@@ -86,13 +86,13 @@ module nft_protocol::suimarines {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_nft_privately(
+    public entry fun mint_nft(
         name: String,
         description: String,
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        mint_cap: &MintCap<SUIMARINES>,
+        _mint_cap: &MintCap<SUIMARINES>,
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
@@ -118,44 +118,6 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        slot::add_nft(slot, market_id, nft, ctx);
+        inventory::add_nft(inventory, nft);
     }
-
-    // public entry fun mint_nft(
-    //     name: String,
-    //     description: String,
-    //     url: vector<u8>,
-    //     attribute_keys: vector<String>,
-    //     attribute_values: vector<String>,
-    //     mint_cap: &mut MintCap<SUIMARINES>,
-    //     slot: &mut Slot,
-    //     market_id: ID,
-    //     ctx: &mut TxContext,
-    // ) {
-    //     let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
-
-    //     collection::increment_supply(mint_cap, 1);
-
-    //     display::add_display_domain(
-    //         &mut nft,
-    //         name,
-    //         description,
-    //         ctx,
-    //     );
-
-    //     display::add_url_domain(
-    //         &mut nft,
-    //         url::new_unsafe_from_bytes(url),
-    //         ctx,
-    //     );
-
-    //     display::add_attributes_domain_from_vec(
-    //         &mut nft,
-    //         attribute_keys,
-    //         attribute_values,
-    //         ctx,
-    //     );
-
-    //     slot::add_nft(slot, market_id, nft, ctx);
-    // }
 }
