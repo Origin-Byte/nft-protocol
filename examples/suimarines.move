@@ -4,7 +4,6 @@ module nft_protocol::suimarines {
 
     use sui::url;
     use sui::balance;
-    use sui::object::ID;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -13,7 +12,7 @@ module nft_protocol::suimarines {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::attribution;
-    use nft_protocol::slot::{Self, Slot};
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -28,7 +27,6 @@ module nft_protocol::suimarines {
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create<SUIMARINES>(
             &witness,
-            100, // max supply
             ctx,
         );
 
@@ -88,20 +86,17 @@ module nft_protocol::suimarines {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_nft(
+    public entry fun mint_nft_privately(
         name: String,
         description: String,
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        mint_cap: &mut MintCap<SUIMARINES>,
-        slot: &mut Slot,
-        market_id: ID,
+        mint_cap: &MintCap<SUIMARINES>,
+        inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
-
-        collection::increment_supply(mint_cap, 1);
 
         display::add_display_domain(
             &mut nft,
@@ -125,4 +120,42 @@ module nft_protocol::suimarines {
 
         slot::add_nft(slot, market_id, nft, ctx);
     }
+
+    // public entry fun mint_nft(
+    //     name: String,
+    //     description: String,
+    //     url: vector<u8>,
+    //     attribute_keys: vector<String>,
+    //     attribute_values: vector<String>,
+    //     mint_cap: &mut MintCap<SUIMARINES>,
+    //     slot: &mut Slot,
+    //     market_id: ID,
+    //     ctx: &mut TxContext,
+    // ) {
+    //     let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
+
+    //     collection::increment_supply(mint_cap, 1);
+
+    //     display::add_display_domain(
+    //         &mut nft,
+    //         name,
+    //         description,
+    //         ctx,
+    //     );
+
+    //     display::add_url_domain(
+    //         &mut nft,
+    //         url::new_unsafe_from_bytes(url),
+    //         ctx,
+    //     );
+
+    //     display::add_attributes_domain_from_vec(
+    //         &mut nft,
+    //         attribute_keys,
+    //         attribute_values,
+    //         ctx,
+    //     );
+
+    //     slot::add_nft(slot, market_id, nft, ctx);
+    // }
 }

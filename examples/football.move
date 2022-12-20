@@ -25,7 +25,6 @@ module nft_protocol::football {
     fun init(witness: FOOTBALL, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create<FOOTBALL>(
             &witness,
-            100, // max supply
             ctx,
         );
 
@@ -99,7 +98,7 @@ module nft_protocol::football {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        mint_cap: &mut MintCap<FOOTBALL>,
+        mint_cap: &MintCap<FOOTBALL>,
         registry: &mut Registry<FOOTBALL>,
         supply: u64,
         ctx: &mut TxContext,
@@ -107,8 +106,6 @@ module nft_protocol::football {
         let archetype = flyweight::new<FOOTBALL>(supply, mint_cap, ctx);
 
         let nft = flyweight::borrow_nft_mut(&mut archetype, mint_cap);
-
-        collection::increment_supply(mint_cap, 1);
 
         display::add_display_domain(
             nft,

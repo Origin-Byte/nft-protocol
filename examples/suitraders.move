@@ -26,7 +26,6 @@ module nft_protocol::suitraders {
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create<SUITRADERS>(
             &witness,
-            100, // max supply
             ctx,
         );
 
@@ -86,14 +85,12 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        mint_cap: &mut MintCap<SUITRADERS>,
+        mint_cap: &MintCap<SUITRADERS>,
         slot: &mut Slot,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUITRADERS>(tx_context::sender(ctx), ctx);
-
-        collection::increment_supply(mint_cap, 1);
 
         display::add_display_domain(
             &mut nft,
