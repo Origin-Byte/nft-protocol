@@ -199,7 +199,7 @@ module nft_protocol::safe {
     }
 
     /// Transfer an NFT from owner to the `Safe`.
-    public entry fun deposit_nft_priviledged<T>(
+    public entry fun deposit_nft_privileged<T>(
         nft: Nft<T>,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
