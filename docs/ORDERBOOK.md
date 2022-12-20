@@ -21,12 +21,19 @@ One can:
 
 # Intermediary state
 
-By working with `Safe`, clients must know _up front_ which exact `Safe`
-instance to provide into the entry methods for transferring an NFT.
+The orderbook is designed such that NFTs always remain in `Safe` objects.
+That is, and NFT is never transferred directly between two parties.
+Rather, it is transferred between the `Safe` objects owned by the seller and
+the buyer.
+This grants certain royalty enforcement properties.
+
+Hence, clients must know _up front_ which exact `Safe` instance to provide into
+the entry methods which transfer an NFT.
 However, OB concept supports frequent trades with `create_ask` and `create_bid`
 endpoints.
-In frequent trades, the NFT changes fast and therefore the `Safe` instance
-cannot reliably be known in advance.
+In such trading the `Safe` instance cannot reliably be known in advance.
+Therefore, we cannot accept buyers's or seller's `Safe` respectively in these
+endpoints.
 The problem can be summarized as follows:
 
 1. The client has to fetch the OB state to know what's the lowest ask, because

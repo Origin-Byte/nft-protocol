@@ -11,7 +11,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Added
 
 - Creating an ask with commission in the orderbook returns an error if the
-  commission is gtq to the ask price.
+  commission is greater equal to the ask price.
 
 ### Changed
 
