@@ -125,12 +125,7 @@ module nft_protocol::ob {
         commission: Option<AskCommission>,
     }
 
-    /// We cannot just give the `TransferCap` to the buyer. They could
-    /// decide to burn the NFT with their funds by never going to the
-    /// `Safe` object and finishing the trade, but rather keeping the NFT's
-    /// `ExlusiveTransferCap`.
-    ///
-    /// Therefore `TradeIntermediate` is made a shared object and can be called
+    /// TradeIntermediate` is made a shared object and can be called
     /// permissionlessly.
     struct TradeIntermediate<phantom C, phantom FT> has key {
         id: UID,
@@ -261,24 +256,24 @@ module nft_protocol::ob {
     /// with the same price, the one created later is cancelled.
     public entry fun cancel_bid<C, FT>(
         book: &mut Orderbook<C, FT>,
-        requested_bid_offer_to_cancel: u64,
+        bid_price_level: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.cancel_bid, err::action_not_public());
-        cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
+        cancel_bid_(book, bid_price_level, wallet, ctx)
     }
 
     public fun cancel_bid_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
-        requested_bid_offer_to_cancel: u64,
+        bid_price_level: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
-        cancel_bid_(book, requested_bid_offer_to_cancel, wallet, ctx)
+        cancel_bid_(book, bid_price_level, wallet, ctx)
     }
 
     // === Create ask ===
@@ -291,12 +286,12 @@ module nft_protocol::ob {
         book: &mut Orderbook<C, FT>,
         requested_tokens: u64,
         transfer_cap: TransferCap,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, err::action_not_public());
         create_ask_<C, FT>(
-            book, requested_tokens, option::none(), transfer_cap, safe, ctx
+            book, requested_tokens, option::none(), transfer_cap, seller_safe, ctx
         )
     }
 
@@ -305,13 +300,13 @@ module nft_protocol::ob {
         book: &mut Orderbook<C, FT>,
         requested_tokens: u64,
         transfer_cap: TransferCap,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
         create_ask_<C, FT>(
-            book, requested_tokens, option::none(), transfer_cap, safe, ctx
+            book, requested_tokens, option::none(), transfer_cap, seller_safe, ctx
         )
     }
 
@@ -321,10 +316,12 @@ module nft_protocol::ob {
         transfer_cap: TransferCap,
         beneficiary: address,
         commission: u64,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, err::action_not_public());
+        assert!(commission < requested_tokens, err::commission_too_high());
+
         let commission = new_ask_commission(
             beneficiary,
             commission,
@@ -334,7 +331,7 @@ module nft_protocol::ob {
             requested_tokens,
             option::some(commission),
             transfer_cap,
-            safe,
+            seller_safe,
             ctx,
         )
     }
@@ -346,10 +343,11 @@ module nft_protocol::ob {
         transfer_cap: TransferCap,
         beneficiary: address,
         commission: u64,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
+        assert!(commission < requested_tokens, err::commission_too_high());
 
         let commission = new_ask_commission(
             beneficiary,
@@ -360,7 +358,7 @@ module nft_protocol::ob {
             requested_tokens,
             option::some(commission),
             transfer_cap,
-            safe,
+            seller_safe,
             ctx,
         )
     }
@@ -374,24 +372,24 @@ module nft_protocol::ob {
     /// structure for the orderbook.
     public entry fun cancel_ask<C, FT>(
         book: &mut Orderbook<C, FT>,
-        nft_price: u64,
+        nft_price_level: u64,
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.cancel_ask, err::action_not_public());
-        cancel_ask_(book, nft_price, nft_id, ctx)
+        cancel_ask_(book, nft_price_level, nft_id, ctx)
     }
 
-    public entry fun cancel_ask_protected<W: drop, C, FT>(
+    public fun cancel_ask_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
-        nft_price: u64,
+        nft_price_level: u64,
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
-        cancel_ask_(book, nft_price, nft_id, ctx)
+        cancel_ask_(book, nft_price_level, nft_id, ctx)
     }
 
     // === Buy NFT ===
@@ -415,7 +413,7 @@ module nft_protocol::ob {
         )
     }
 
-    public entry fun buy_nft_protected<W: drop, C, FT>(
+    public fun buy_nft_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
         nft_id: ID,
@@ -436,7 +434,7 @@ module nft_protocol::ob {
     // === Finish trade ===
 
     /// When a bid is created and there's an ask with a lower price, then the
-    /// trade cannot be resolved immiedately.
+    /// trade cannot be resolved immediately.
     /// That's because we don't know the `Safe` ID up front in OB.
     /// Therefore, the tx creates `TradeIntermediate` which then has to be
     /// permission-lessly resolved via this endpoint.
@@ -479,9 +477,7 @@ module nft_protocol::ob {
         new<C, FT>(no_protection(), ctx)
     }
 
-    public entry fun create<C, FT>(
-        ctx: &mut TxContext,
-    ) {
+    public entry fun create<C, FT>(ctx: &mut TxContext) {
         let ob = new<C, FT>(no_protection(), ctx);
         share_object(ob);
     }
@@ -683,7 +679,7 @@ module nft_protocol::ob {
 
     fun cancel_bid_<C, FT>(
         book: &mut Orderbook<C, FT>,
-        requested_bid_offer_to_cancel: u64,
+        bid_price_level: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
@@ -692,11 +688,11 @@ module nft_protocol::ob {
         let bids = &mut book.bids;
 
         assert!(
-            crit_bit::has_key(bids, requested_bid_offer_to_cancel),
+            crit_bit::has_key(bids, bid_price_level),
             err::order_does_not_exist()
         );
 
-        let price_level = crit_bit::borrow_mut(bids, requested_bid_offer_to_cancel);
+        let price_level = crit_bit::borrow_mut(bids, bid_price_level);
 
         let index = 0;
         let bids_count = vector::length(price_level);
@@ -736,10 +732,10 @@ module nft_protocol::ob {
         price: u64,
         ask_commission: Option<AskCommission>,
         transfer_cap: TransferCap,
-        safe: &mut Safe,
+        seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        safe::assert_transfer_cap_of_safe(&transfer_cap, safe);
+        safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
         safe::assert_transfer_cap_exlusive(&transfer_cap);
 
         let seller = tx_context::sender(ctx);
@@ -817,7 +813,7 @@ module nft_protocol::ob {
 
     fun cancel_ask_<C, FT>(
         book: &mut Orderbook<C, FT>,
-        nft_price: u64,
+        nft_price_level: u64,
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
@@ -831,7 +827,7 @@ module nft_protocol::ob {
             commission: _,
         } = remove_ask(
             &mut book.asks,
-            nft_price,
+            nft_price_level,
             nft_id,
         );
 

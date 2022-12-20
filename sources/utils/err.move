@@ -196,6 +196,10 @@ module nft_protocol::err {
         return Prefix + 700
     }
 
+    public fun commission_too_high(): u64 {
+        return Prefix + 701
+    }
+
     // === AttributionDomain ===
 
     public fun address_not_attributed(): u64 {

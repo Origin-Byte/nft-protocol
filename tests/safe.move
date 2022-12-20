@@ -499,7 +499,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    fun it_deposits_priviledged() {
+    fun it_deposits_privileged() {
         let scenario = test_scenario::begin(USER);
         let sender = tx_context::sender(ctx(&mut scenario));
 
@@ -511,7 +511,7 @@ module nft_protocol::test_safe {
         safe::restrict_deposits(&owner_cap, &mut safe);
 
         let nft = nft::new<Foo>(sender, ctx(&mut scenario));
-        safe::deposit_nft_priviledged<Foo>(
+        safe::deposit_nft_privileged<Foo>(
             nft,
             &owner_cap,
             &mut safe,
@@ -788,7 +788,7 @@ module nft_protocol::test_safe {
         abort_code = 13370400,
         location = nft_protocol::unprotected_safe,
     )]
-    fun it_fails_deposit_nft_priviledged_on_wrong_owner_cap() {
+    fun it_fails_deposit_nft_privileged_on_wrong_owner_cap() {
         let scenario = test_scenario::begin(USER);
         let sender = tx_context::sender(ctx(&mut scenario));
 
@@ -799,7 +799,7 @@ module nft_protocol::test_safe {
         let wrong_owner_cap = safe::create_safe(ctx(&mut scenario));
 
         let nft = nft::new<Foo>(sender, ctx(&mut scenario));
-        safe::deposit_nft_priviledged<Foo>(
+        safe::deposit_nft_privileged<Foo>(
             nft,
             &wrong_owner_cap,
             &mut safe,
@@ -829,7 +829,7 @@ module nft_protocol::test_safe {
 
         let nft = nft::new<Foo>(sender, ctx(&mut scenario));
         let nft_id = object::id(&nft);
-        safe::deposit_nft_priviledged<Foo>(
+        safe::deposit_nft_privileged<Foo>(
             nft,
             &right_owner_cap,
             &mut safe,
