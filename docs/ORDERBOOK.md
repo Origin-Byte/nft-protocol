@@ -164,7 +164,7 @@ create_bid_with_commission<C, FT>(
 To cancel an existing bid, the client gives the price they sent as an input in
 the previous endpoint.
 If there are multiple bids the tx sender has created with the same price, then
-only one is cancelled.
+only the first order is cancelled.
 
 ```move
 cancel_bid<C, FT>(
