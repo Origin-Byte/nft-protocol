@@ -1,18 +1,15 @@
-NftType:
+NftType: "Classic"
 
 Collection:
-  name:
-  description:
-  symbol:
-  max_supply:
-  receiver:
+  name: "SUIMONGER"
+  description: "XYZ"
+  symbol: "SUIMO"
   tags:
-    -
-  royalty_fee_bps:
-  is_mutable:
-  data:
+    - "Art"
+  royalty_fee_bps: "200"
+  url: "https://originbyte.io/"
 
 Launchpad:
   market_type: "fixed_price"
-  prices: []
-  whitelists: []
+  prices: [100]
+  whitelists: [false]

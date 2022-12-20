@@ -1,31 +1,31 @@
-module nft_protocol::{module_name} {{
-    use std::string::{{Self, String}};
+module nft_protocol::suimonger {
+    use std::string::{Self, String};
 
     use sui::url;
     use sui::balance;
     use sui::object::ID;
     use sui::transfer::transfer;
-    use sui::tx_context::{{Self, TxContext}};
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::attribution;
-    use nft_protocol::slot::{{Self, Slot}};
-    use nft_protocol::royalties::{{Self, TradePayment}};
-    use nft_protocol::collection::{{Self, Collection, MintCap}};
+    use nft_protocol::slot::{Self, Slot};
+    use nft_protocol::royalties::{Self, TradePayment};
+    use nft_protocol::collection::{Self, Collection, MintCap};
 
     /// One time witness is only instantiated in the init method
-    struct {witness} has drop {{}}
+    struct SUIMONGER has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
-    struct Witness has drop {{}}
+    struct Witness has drop {}
 
-    fun init(witness: {witness}, ctx: &mut TxContext) {{
-        let (mint_cap, collection) = collection::create<{witness}>(
+    fun init(witness: SUIMONGER, ctx: &mut TxContext) {
+        let (mint_cap, collection) = collection::create<SUIMONGER>(
             &witness,
             100, // max supply
             ctx,
@@ -41,49 +41,51 @@ module nft_protocol::{module_name} {{
         display::add_collection_display_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"{name}"),
-            string::utf8(b"{description}"),
+            string::utf8(b"SUIMONGER"),
+            string::utf8(b"XYZ"),
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
-            sui::url::new_unsafe_from_bytes(b"{url}"),
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"{symbol}")
+            string::utf8(b"SUIMO")
         );
 
         let royalty = royalty::new(ctx);
         royalty::add_proportional_royalty(
             &mut royalty,
-            nft_protocol::royalty_strategy_bps::new({royalty_fee_bps}),
+            nft_protocol::royalty_strategy_bps::new(200),
         );
         royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
-        {tags}
+        let tags = tags::empty(ctx);
+        tags::add_tag(&mut tags, tags::art());
+        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
         transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<{witness}>(collection);
-    }}
+        collection::share<SUIMONGER>(collection);
+    }
 
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<{witness}, FT>,
-        collection: &mut Collection<{witness}>,
+        payment: &mut TradePayment<SUIMONGER, FT>,
+        collection: &mut Collection<SUIMONGER>,
         ctx: &mut TxContext,
-    ) {{
-        let b = royalties::balance_mut(Witness {{}}, payment);
+    ) {
+        let b = royalties::balance_mut(Witness {}, payment);
 
         let domain = royalty::royalty_domain(collection);
         let royalty_owed =
             royalty::calculate_proportional_royalty(domain, balance::value(b));
 
         royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {{}}, payment, ctx);
-    }}
+        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
+    }
 
     public entry fun mint_nft(
         name: String,
@@ -91,12 +93,12 @@ module nft_protocol::{module_name} {{
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        mint_cap: &mut MintCap<{witness}>,
+        mint_cap: &mut MintCap<SUIMONGER>,
         slot: &mut Slot,
         market_id: ID,
         ctx: &mut TxContext,
-    ) {{
-        let nft = nft::new<{witness}>(tx_context::sender(ctx), ctx);
+    ) {
+        let nft = nft::new<SUIMONGER>(tx_context::sender(ctx), ctx);
 
         collection::increment_supply(mint_cap, 1);
 
@@ -121,5 +123,5 @@ module nft_protocol::{module_name} {{
         );
 
         slot::add_nft(slot, market_id, nft, ctx);
-    }}
-}}
+    }
+}

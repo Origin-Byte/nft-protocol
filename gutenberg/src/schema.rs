@@ -3,7 +3,7 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::types::{MarketType, NftType};
+use crate::types::{MarketType, NftType, Tag};
 
 use serde::Deserialize;
 use strfmt::strfmt;
@@ -31,18 +31,12 @@ pub struct Collection {
     pub description: Box<str>,
     /// The symbol/ticker of the collection
     pub symbol: Box<str>,
-    /// The total supply of the collection
-    pub max_supply: u64,
-    /// Address that receives the sale and royalty proceeds
-    pub receiver: Box<str>,
     /// A set of strings that categorize the domain in which the NFT operates
-    pub tags: Vec<String>,
+    pub tags: Vec<Tag>,
     /// The royalty fees creators accumulate on the sale of NFTs
     pub royalty_fee_bps: Box<str>,
-    /// A configuration field that dictates whether NFTs are mutable
-    pub is_mutable: Box<str>,
     /// Field for extra data
-    pub data: Box<str>,
+    pub url: Box<str>,
 }
 
 /// Contains the market configurations of the launchpad
@@ -76,11 +70,11 @@ impl Schema {
         let fmt = fs::read_to_string(file_path)
             .expect("Should have been able to read the file");
 
-        let nft_type = self.nft_type.nft_type().into_boxed_str();
-        let market_type = self.launchpad.market_type.market_type();
-        let is_embedded = self.nft_type.is_embedded();
-        let is_embedded_str = is_embedded.to_string().into_boxed_str();
-        let market_module = &self.launchpad.market_type.market_module();
+        // let nft_type = self.nft_type.nft_type().into_boxed_str();
+        // let market_type = self.launchpad.market_type.market_type();
+        // let is_embedded = self.nft_type.is_embedded();
+        // let is_embedded_str = is_embedded.to_string().into_boxed_str();
+        // let market_module = &self.launchpad.market_type.market_module();
         let module_name = self.module_name();
 
         let witness = self
@@ -92,47 +86,44 @@ impl Schema {
 
         let tags = self.write_tags();
 
-        let define_market_arguments = self.write_define_market_arguments();
-        let market_arguments = self.write_market_arguments();
+        // let define_market_arguments = self.write_define_market_arguments();
+        // let market_arguments = self.write_market_arguments();
 
-        let market_module_imports =
-            format!("::{{Self, {}}}", market_type).into_boxed_str();
+        // let market_module_imports =
+        //     format!("::{{Self, {}}}", market_type).into_boxed_str();
 
-        let slingshot_import = if is_embedded {
-            "    use nft_protocol::slingshot::Slingshot;"
-        } else {
-            ""
-        }
-        .to_string()
-        .into_boxed_str();
+        // let slingshot_import = if is_embedded {
+        //     "    use nft_protocol::slingshot::Slingshot;"
+        // } else {
+        //     ""
+        // }
+        // .to_string()
+        // .into_boxed_str();
 
-        let mint_func = self.nft_type.mint_func(&witness, &market_type);
-
-        let max_supply =
-            format!("{}", self.collection.max_supply).into_boxed_str();
+        // let mint_func = self.nft_type.mint_func(&witness);
 
         let mut vars = HashMap::new();
 
-        vars.insert("name", &self.collection.name);
-        vars.insert("nft_type", &nft_type);
-        vars.insert("description", &self.collection.description);
-        vars.insert("max_supply", &max_supply);
-        vars.insert("symbol", &self.collection.symbol);
-        vars.insert("receiver", &self.collection.receiver);
-        vars.insert("royalty_fee_bps", &self.collection.royalty_fee_bps);
-        vars.insert("extra_data", &self.collection.data);
-        vars.insert("is_mutable", &self.collection.is_mutable);
         vars.insert("module_name", &module_name);
         vars.insert("witness", &witness);
+        vars.insert("name", &self.collection.name);
+        vars.insert("description", &self.collection.description);
+        vars.insert("url", &self.collection.url);
+        vars.insert("symbol", &self.collection.symbol);
+        vars.insert("royalty_fee_bps", &self.collection.royalty_fee_bps);
         vars.insert("tags", &tags);
-        vars.insert("market_type", &market_type);
-        vars.insert("market_module", market_module);
-        vars.insert("market_module_imports", &market_module_imports);
-        vars.insert("slingshot_import", &slingshot_import);
-        vars.insert("is_embedded", &is_embedded_str);
-        vars.insert("mint_function", &mint_func);
-        vars.insert("define_market_arguments", &define_market_arguments);
-        vars.insert("market_arguments", &market_arguments);
+
+        // TODO: This is commented out but may be added back in future
+        // iterations
+
+        // vars.insert("mint_function", &mint_func);
+        // vars.insert("market_type", &market_type);
+        // vars.insert("market_module", market_module);
+        // vars.insert("market_module_imports", &market_module_imports);
+        // vars.insert("slingshot_import", &slingshot_import);
+        // vars.insert("is_embedded", &is_embedded_str);
+        // vars.insert("define_market_arguments", &define_market_arguments);
+        // vars.insert("market_arguments", &market_arguments);
 
         let vars: HashMap<String, String> = vars
             .into_iter()
@@ -154,15 +145,19 @@ impl Schema {
 
     /// Generates Move code to push tags to a Move `vector` structure
     pub fn write_tags(&self) -> Box<str> {
-        let mut out =
-            String::from("let tags: vector<vector<u8>> = vector::empty();\n");
+        let mut out = String::from("let tags = tags::empty(ctx);\n");
+
         for tag in self.collection.tags.iter() {
             out.write_fmt(format_args!(
-                "        vector::push_back(&mut tags, b\"{}\");\n",
-                tag
+                "        tags::add_tag(&mut tags, tags::{}());\n",
+                tag.to_string()
             ))
             .unwrap();
         }
+
+        out.push_str(
+            "        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);"
+        );
 
         out.into_boxed_str()
     }
