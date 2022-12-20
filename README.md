@@ -16,8 +16,7 @@ To deploy an NFT collection you will need to create a SUI [Move](https://docs.su
 
 We provide an example on how to build such collection in the examples folder. Additionally below follows an example of an NFT Collection, the SUIMARINES!
 
-```
-#[test_only]
+```move
 module nft_protocol::suimarines {
     use std::string;
 
@@ -131,4 +130,13 @@ module nft_protocol::suimarines {
         slot::add_nft(slot, market_id, nft, ctx);
     }
 }
+```
+
+and in your `Move.toml`, define the following dependency:
+
+```toml
+[dependencies.NftProtocol]
+git = "https://github.com/Origin-Byte/nft-protocol.git"
+# v1.0.0
+rev = "c37e1bd800a52e450421e9c881e6e676da3e98ed"
 ```
