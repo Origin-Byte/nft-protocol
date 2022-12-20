@@ -75,7 +75,7 @@ module nft_protocol::dutch_auction {
     ) {
         slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
         slot::assert_is_live(slot);
-        slot::assert_market_is_not_whitelisted(slot, market_id);
+        slot::assert_market_is_not_whitelisted(slot);
 
         create_bid_(
             slot::market_internal_mut(Witness {}, slot, market_id),
@@ -97,7 +97,7 @@ module nft_protocol::dutch_auction {
     ) {
         slot::assert_market<DutchAuctionMarket<FT>>(slot, market_id);
         slot::assert_is_live(slot);
-        slot::assert_market_is_whitelisted(slot, market_id);
+        slot::assert_market_is_whitelisted(slot);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
         create_bid_(

@@ -40,7 +40,6 @@ module nft_protocol::fixed_price {
     /// Creates a fixed price `Slot` market
     public entry fun init_market<FT>(
         slot: &mut Slot,
-        is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
@@ -63,7 +62,7 @@ module nft_protocol::fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        slot::assert_market_is_not_whitelisted(slot, market_id);
+        slot::assert_market_is_not_whitelisted(slot);
 
         buy_nft_certificate_(
             launchpad,
@@ -88,7 +87,7 @@ module nft_protocol::fixed_price {
         whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
-        slot::assert_market_is_whitelisted(slot, market_id);
+        slot::assert_market_is_whitelisted(slot);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
         
         slot::burn_whitelist_certificate(whitelist_token);
