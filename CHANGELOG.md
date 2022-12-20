@@ -24,7 +24,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   witness shouldn't have the `key` ability and therefore cannot be an entry
   function argument.
 
-## [1.0.0] - 2022-12-19
+## [0.14.0] - 2022-12-20
 
 ### Changed
 
