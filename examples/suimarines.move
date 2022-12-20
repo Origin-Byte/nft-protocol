@@ -3,7 +3,6 @@ module nft_protocol::suimarines {
 
     use sui::url;
     use sui::balance;
-    use sui::object::ID;
     use sui::transfer::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -12,7 +11,7 @@ module nft_protocol::suimarines {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::attribution;
-    use nft_protocol::slot::{Self, Slot};
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -27,7 +26,6 @@ module nft_protocol::suimarines {
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create<SUIMARINES>(
             &witness,
-            100, // max supply
             ctx,
         );
 
@@ -93,14 +91,11 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        mint_cap: &mut MintCap<SUIMARINES>,
-        slot: &mut Slot,
-        market_id: ID,
+        _mint_cap: &MintCap<SUIMARINES>,
+        inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
-
-        collection::increment_supply(mint_cap, 1);
 
         display::add_display_domain(
             &mut nft,
@@ -122,6 +117,6 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        slot::add_nft(slot, market_id, nft, ctx);
+        inventory::add_nft(inventory, nft);
     }
 }
