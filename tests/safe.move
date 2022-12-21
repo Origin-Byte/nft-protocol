@@ -152,7 +152,9 @@ module nft_protocol::test_safe {
         test_scenario::next_tx(&mut scenario, USER);
 
         let safe: Safe = test_scenario::take_shared(&scenario);
+        assert!(safe::are_all_deposits_enabled(&safe), 0);
         safe::restrict_deposits(&owner_cap, &mut safe);
+        assert!(!safe::are_all_deposits_enabled(&safe), 0);
         safe::enable_deposits_of_collection<Foo>(&owner_cap, &mut safe);
 
         let nft = nft::new<Foo>(sender, ctx(&mut scenario));
@@ -221,6 +223,7 @@ module nft_protocol::test_safe {
             &mut safe,
             ctx(&mut scenario)
         );
+        assert!(safe::transfer_cap_safe(&transfer_cap) == object::id(&safe), 0);
         safe::assert_transfer_cap_of_safe(&transfer_cap, &safe);
         safe::assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
         assert!(!safe::transfer_cap_is_exclusive(&transfer_cap), 0);
@@ -841,6 +844,168 @@ module nft_protocol::test_safe {
         transfer(right_owner_cap, USER);
         transfer(wrong_owner_cap, USER);
         test_scenario::return_shared(safe);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(
+        abort_code = 13370408,
+        location = nft_protocol::unprotected_safe,
+    )]
+    fun it_cannot_transfer_protocol_nft_as_generic_nft() {
+        let scenario = test_scenario::begin(USER);
+
+        let wl = dummy_whitelist(&mut scenario);
+        let owner_cap = safe::create_safe(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+        let safe: Safe = test_scenario::take_shared(&scenario);
+
+        let nft = nft::new<Foo>(USER, ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        safe::deposit_generic_nft<Nft<Foo>>(
+            nft,
+            &mut safe,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, USER);
+        let transfer_cap = safe::create_transfer_cap(
+            nft_id,
+            &owner_cap,
+            &mut safe,
+            ctx(&mut scenario)
+        );
+
+        test_scenario::next_tx(&mut scenario, USER);
+        safe::transfer_generic_nft_to_recipient<Nft<Foo>>(
+            transfer_cap, USER, &mut safe,
+        );
+
+        transfer(wl, USER);
+        transfer(owner_cap, USER);
+        test_scenario::return_shared(safe);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(
+        abort_code = 13370408,
+        location = nft_protocol::unprotected_safe,
+    )]
+    fun it_cannot_transfer_protocol_nft_as_generic_nft_from_safe_to_safe() {
+        let scenario = test_scenario::begin(USER);
+
+        let owner_cap1 = safe::create_safe(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+        let safe1: Safe = test_scenario::take_shared(&scenario);
+
+        let owner_cap2 = safe::create_safe(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+        let safe2: Safe = test_scenario::take_shared(&scenario);
+
+        let nft = nft::new<Foo>(USER, ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        safe::deposit_generic_nft<Nft<Foo>>(
+            nft,
+            &mut safe1,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, USER);
+        let transfer_cap = safe::create_transfer_cap(
+            nft_id,
+            &owner_cap1,
+            &mut safe1,
+            ctx(&mut scenario)
+        );
+
+        test_scenario::next_tx(&mut scenario, USER);
+        safe::transfer_generic_nft_to_safe<Nft<Foo>>(
+            transfer_cap,
+            &mut safe1,
+            &mut safe2,
+            ctx(&mut scenario),
+        );
+
+        transfer(owner_cap1, USER);
+        transfer(owner_cap2, USER);
+        test_scenario::return_shared(safe1);
+        test_scenario::return_shared(safe2);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_deposits_and_transfers_generic_nft() {
+        let scenario = test_scenario::begin(USER);
+
+        safe::create_for_sender(ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, USER);
+
+        let safe: Safe = test_scenario::take_shared(&scenario);
+
+        movemate::box::box(USER, true, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+        let nft: movemate::box::Box<bool> =
+            test_scenario::take_from_sender(&scenario);
+        let nft_id = object::id(&nft);
+        safe::deposit_generic_nft(
+            nft,
+            &mut safe,
+            ctx(&mut scenario),
+        );
+        assert!(!safe::has_nft<movemate::box::Box<bool>>(nft_id, &safe), 0);
+        assert!(safe::has_generic_nft<movemate::box::Box<bool>>(nft_id, &safe), 0);
+        safe::assert_has_nft(&nft_id, &safe);
+
+        test_scenario::return_shared(safe);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_transfers_generic_nft_from_safe_to_safe() {
+        let scenario = test_scenario::begin(USER);
+
+        let owner_cap1 = safe::create_safe(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+        let safe1: Safe = test_scenario::take_shared(&scenario);
+
+        let owner_cap2 = safe::create_safe(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+        let safe2: Safe = test_scenario::take_shared(&scenario);
+
+        movemate::box::box(USER, true, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+        let nft: movemate::box::Box<bool> =
+            test_scenario::take_from_sender(&scenario);
+        let nft_id = object::id(&nft);
+        safe::deposit_generic_nft(
+            nft,
+            &mut safe1,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, USER);
+        let transfer_cap = safe::create_transfer_cap(
+            nft_id,
+            &owner_cap1,
+            &mut safe1,
+            ctx(&mut scenario)
+        );
+
+        test_scenario::next_tx(&mut scenario, USER);
+        safe::transfer_generic_nft_to_safe<movemate::box::Box<bool>>(
+            transfer_cap,
+            &mut safe1,
+            &mut safe2,
+            ctx(&mut scenario),
+        );
+        safe::assert_has_nft(&nft_id, &safe2);
+
+        transfer(owner_cap1, USER);
+        transfer(owner_cap2, USER);
+        test_scenario::return_shared(safe1);
+        test_scenario::return_shared(safe2);
         test_scenario::end(scenario);
     }
 

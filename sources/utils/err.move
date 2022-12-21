@@ -170,6 +170,10 @@ module nft_protocol::err {
         return Prefix + 407
     }
 
+    public fun generic_nft_must_not_be_protocol_type(): u64 {
+        return Prefix + 408
+    }
+
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {

@@ -12,11 +12,14 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Creating an ask with commission in the orderbook returns an error if the
   commission is greater equal to the ask price.
+- `Safe` can now be used to transfer NFTs to a `Safe` which are not wrapped in
+  the `nft_protocol::nft::Nft` type.
+  These NFTs have lower guarantees when it comes to transfers.
+  Enables us to integrate other standards.
 
 ### Changed
 
 - Renamed some arguments in the orderbook to be more descriptive.
-- Name of the `deposit_nft_priviledged` was changed to `deposit_nft_privileged`.
 
 ### Removed
 
@@ -24,7 +27,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   witness shouldn't have the `key` ability and therefore cannot be an entry
   function argument.
 
-## [1.0.0] - 2022-12-19
+## [0.14.0] - 2022-12-20
 
 ### Changed
 
@@ -35,6 +38,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - If `launchpad.is_permissioned == true`, then only `launchpad.admin` can add `slots`, otherwise anyone can add `slots`
 - Launchpad admins can attach custom fee policies to each Slot
 - Proceeds coming from launchpad sales are collected in the struct `Proceeds`, and to unwrap the funds off this struct we guarantee fee collection enforcement.
+- Name of the `deposit_nft_priviledged` was changed to `deposit_nft_privileged`.
 
 ### Added
 

@@ -128,9 +128,9 @@ module nft_protocol::suimarines {
     public entry fun mint_nft(
         name: vector<u8>,
         description: vector<u8>,
-        // url: vector<u8>,
-        // attribute_keys: vector<vector<u8>>,
-        // attribute_values: vector<vector<u8>>,
+        url: vector<u8>,
+        attribute_keys: vector<vector<u8>>,
+        attribute_values: vector<vector<u8>>,
         mint_cap: &mut MintCap<SUIMARINES>,
         slot: &mut Slot,
         market_id: ID,
