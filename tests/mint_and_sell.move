@@ -107,7 +107,7 @@ module nft_protocol::mint_and_sell {
 
         // 3. Create inventory and mint NFT to it
         test_scenario::next_tx(&mut scenario, CREATOR);
-        inventory::create_and_transfer(false, ctx(&mut scenario));
+        inventory::create_for_sender(false, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         let inventory = test_scenario::take_from_address<Inventory>(

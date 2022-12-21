@@ -46,7 +46,7 @@ module nft_protocol::inventory {
         queue: vector<ID>,
     }
 
-    public entry fun create_and_transfer(
+    public entry fun create_for_sender(
         whitelisted: bool,
         ctx: &mut TxContext,
     ) {
