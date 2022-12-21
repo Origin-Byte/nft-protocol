@@ -1,5 +1,25 @@
 - Sui v0.19.0
 
+# OriginByte
+
+A new approach to NFTs.
+
+Origin-Byte is an ecosystem of tools, standards and smart contracts designed to
+make life easier for Web3 Game Developers and NFT creators. From simple artwork
+to complex gaming assets, we want to help you reach the public, and provide
+on-chain market infrastructure.
+
+The ecosystem is partitioned into three critical components:
+
+- The NFT standard, encompassing the core `Nft`, `Collection`, and `Safe` types, 
+controlling the lifecycle and properties of each NFT.
+- Primary markets, encompassing `Launchpad`, `Slot`, and numerous markets which
+control the initial minting of NFTs. If you are interested in setting up an NFT
+mint or want to purchase NFTs read the docs under:
+[docs/PRIMARY_MARKETS](./docs/PRIMARY_MARKETS.md).
+- Secondary markets, encompassing principally the `Orderbook` which allows you
+to trade existing NFTs.
+
 # Install
 
 This codebase requires installation of the [Sui CLI](https://docs.sui.io/build/install).
