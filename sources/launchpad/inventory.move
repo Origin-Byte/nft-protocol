@@ -106,7 +106,6 @@ module nft_protocol::inventory {
         inventory: &mut Inventory,
         nft: Nft<C>,
     ) {
-
         let nft_id = object::id(&nft);
         vector::push_back(&mut inventory.nfts_on_sale, nft_id);
 
