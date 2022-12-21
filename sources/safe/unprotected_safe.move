@@ -138,7 +138,7 @@ module nft_protocol::unprotected_safe {
         ctx: &mut TxContext,
     ): TransferCap {
         assert_owner_cap(owner_cap, safe);
-        assert_contains_nft(&nft, safe);
+        assert_has_nft(&nft, safe);
 
         let safe_id = object::id(safe);
         let ref = vec_map::get_mut(&mut safe.refs, &nft);
@@ -167,7 +167,7 @@ module nft_protocol::unprotected_safe {
         ctx: &mut TxContext,
     ): TransferCap {
         assert_owner_cap(owner_cap, safe);
-        assert_contains_nft(&nft, safe);
+        assert_has_nft(&nft, safe);
 
         let safe_id = object::id(safe);
         let ref = vec_map::get_mut(&mut safe.refs, &nft);
@@ -308,7 +308,7 @@ module nft_protocol::unprotected_safe {
         ctx: &mut TxContext,
     ) {
         assert_owner_cap(owner_cap, safe);
-        assert_contains_nft(&nft, safe);
+        assert_has_nft(&nft, safe);
 
         let ref = vec_map::get_mut(&mut safe.refs, &nft);
         assert_not_exclusively_listed_internal(ref);
@@ -380,7 +380,7 @@ module nft_protocol::unprotected_safe {
 
         assert_transfer_cap_of_safe(&transfer_cap, safe);
         assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
-        assert_contains_nft(&nft_id, safe);
+        assert_has_nft(&nft_id, safe);
 
         let (_, ref) = vec_map::remove(&mut safe.refs, &nft_id);
         assert_version_match(&ref, &transfer_cap);
@@ -441,7 +441,7 @@ module nft_protocol::unprotected_safe {
         assert!(&cap.nft == nft, err::transfer_cap_nft_mismatch());
     }
 
-    public fun assert_contains_nft(nft: &ID, safe: &UnprotectedSafe) {
+    public fun assert_has_nft(nft: &ID, safe: &UnprotectedSafe) {
         assert!(
             vec_map::contains(&safe.refs, nft), err::safe_does_not_contain_nft()
         );

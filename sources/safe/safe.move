@@ -402,8 +402,8 @@ module nft_protocol::safe {
         unprotected_safe::assert_nft_of_transfer_cap(nft, &cap.inner)
     }
 
-    public fun assert_contains_nft(nft: &ID, safe: &Safe) {
-        unprotected_safe::assert_contains_nft(nft, &safe.inner)
+    public fun assert_has_nft(nft: &ID, safe: &Safe) {
+        unprotected_safe::assert_has_nft(nft, &safe.inner)
     }
 
     public fun assert_not_exclusively_listed(cap: &TransferCap) {

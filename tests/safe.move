@@ -956,7 +956,7 @@ module nft_protocol::test_safe {
         );
         assert!(!safe::has_nft<movemate::box::Box<bool>>(nft_id, &safe), 0);
         assert!(safe::has_generic_nft<movemate::box::Box<bool>>(nft_id, &safe), 0);
-        safe::assert_contains_nft(&nft_id, &safe);
+        safe::assert_has_nft(&nft_id, &safe);
 
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
@@ -1000,7 +1000,7 @@ module nft_protocol::test_safe {
             &mut safe2,
             ctx(&mut scenario),
         );
-        safe::assert_contains_nft(&nft_id, &safe2);
+        safe::assert_has_nft(&nft_id, &safe2);
 
         transfer(owner_cap1, USER);
         transfer(owner_cap2, USER);
