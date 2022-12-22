@@ -124,7 +124,7 @@ module nft_protocol::ob {
         commission: Option<AskCommission>,
     }
 
-    /// TradeIntermediate` is made a shared object and can be called
+    /// `TradeIntermediate` is made a shared object and can be called
     /// permissionlessly.
     struct TradeIntermediate<phantom C, phantom FT> has key {
         id: UID,
