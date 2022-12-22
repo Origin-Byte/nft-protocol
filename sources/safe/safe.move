@@ -25,6 +25,8 @@ module nft_protocol::safe {
 
     /// Whoever owns this object can perform some admin actions against the
     /// `Safe` shared object with the corresponding id.
+    ///
+    /// TODO: what if someone transfers this cap to someone else?
     struct OwnerCap has key, store {
         id: UID,
         safe: ID,
