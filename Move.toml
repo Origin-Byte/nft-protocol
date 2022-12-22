@@ -15,4 +15,4 @@ subdir = "sui"
 rev = "115d56bd59cd9c0f59ac3a39b4c83872efa78608"
 
 [addresses]
-nft_protocol = "0xff3974022a901c5e06b5721488bde00313b11ae5"
+nft_protocol = "0xf7c24c7e1722f4d9acc596d65feb13f61b2cd7ae"
