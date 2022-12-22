@@ -1,9 +1,9 @@
+#[test_only]
 /// A whitelist which permits any collection to add itself and any authority
 /// to use it to transfer.
 ///
 /// Basically any collection which adds itself to this whitelist is saying:
 /// we're ok with anyone transferring NFTs.
-#[test_only]
 module nft_protocol::example_free_for_all {
 
     use nft_protocol::transfer_whitelist::{Self, Whitelist};

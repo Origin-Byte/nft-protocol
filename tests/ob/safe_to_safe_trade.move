@@ -1,9 +1,9 @@
+#[test_only]
 /// This test focuses on integration between OB, Safe, a whitelist and
 /// royalty collection.
 ///
 /// We simulate a trade between two Safes, end to end, including royalty
 /// collection.
-#[test_only]
 module nft_protocol::test_ob_safe_to_safe_trade {
     use sui::test_scenario;
 
