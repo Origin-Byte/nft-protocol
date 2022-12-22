@@ -61,9 +61,7 @@ module nft_protocol::fixed_price {
     /// Creates a fixed price `Slot` market with a prepared `Inventory`
     ///
     /// Useful for pre-minting NFTs to an `Inventory`
-    //
-    // TODO: Make public once Inventory contains NFT
-    entry fun init_market_with_inventory<FT>(
+    public entry fun init_market_with_inventory<FT>(
         slot: &mut Slot,
         inventory: Inventory,
         price: u64,

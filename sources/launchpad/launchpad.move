@@ -69,14 +69,14 @@ module nft_protocol::launchpad {
     public entry fun init_launchpad<F: key + store>(
         admin: address,
         receiver: address,
-        auto_approval: bool,
+        is_permissioned: bool,
         default_fee: F,
         ctx: &mut TxContext,
     ) {
         let launchpad = new(
             admin,
             receiver,
-            auto_approval,
+            is_permissioned,
             default_fee,
             ctx,
         );

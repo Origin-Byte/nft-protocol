@@ -16,6 +16,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   the `nft_protocol::nft::Nft` type.
   These NFTs have lower guarantees when it comes to transfers.
   Enables us to integrate other standards.
+- NFT minting can now be done privately to an `Inventory` object and only
+  after transfered to a launchpad `Slot`
 
 ### Changed
 
