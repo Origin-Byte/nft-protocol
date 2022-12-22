@@ -51,37 +51,10 @@ impl Tag {
 }
 
 impl NftType {
-    // pub fn nft_module(&self) -> String {
-    //     let nft_module = match self {
-    //         NftType::Classic => "unique_nft",
-    //         NftType::Collectible => "collectible",
-    //         NftType::CNft => "c_nft",
-    //     };
-    //     nft_module.to_string()
-    // }
-
-    // pub fn nft_type(&self) -> String {
-    //     let nft_type = match self {
-    //         NftType::Unique => "unique_nft",
-    //         NftType::Collectible => "collectible",
-    //         NftType::CNft => "c_nft",
-    //     };
-    //     nft_type.to_string()
-    // }
-
-    pub fn is_embedded(&self) -> bool {
-        match self {
-            NftType::Classic => true,
-            // NftType::Collectible => false,
-            // NftType::CNft => false,
-        }
-    }
-
     /// Writes Move code for an entry function meant to be called by
     /// the Creators to mint NFTs. Depending on the NFTtype the function
     /// parameters change, therefore pattern match the NFT type.
     pub fn mint_func(&self, witness: &str) -> Box<str> {
-        // TODO: Need to add support for unregulated collections
         let func = match self {
             NftType::Classic => format!(
                 "public entry fun mint_nft(\n        \
@@ -123,64 +96,6 @@ impl NftType {
                 }}",
                 witness = witness,
             ),
-            // NftType::Collectible => format!(
-            //     "public entry fun prepare_mint(\n        \
-            //         name: vector<u8>,\n        \
-            //         description: vector<u8>,\n        \
-            //         url: vector<u8>,\n        \
-            //         attribute_keys: vector<vector<u8>>,\n        \
-            //         attribute_values: vector<vector<u8>>,\n        \
-            //         max_supply: u64,\n        \
-            //         mint: &mut MintAuthority<{witness}>,\n        \
-            //         sale_outlet: u64,\n        \
-            //         launchpad: &mut Slingshot<{witness}, {market_type}>,\n        \
-            //         ctx: &mut TxContext,\n    \
-            //     ) {{\n        \
-            //         collectible::prepare_launchpad_mint<{witness}, {market_type}>(\n            \
-            //             name,\n            \
-            //             description,\n            \
-            //             url,\n            \
-            //             attribute_keys,\n            \
-            //             attribute_values,\n            \
-            //             max_supply,\n            \
-            //             mint,\n            \
-            //             sale_outlet,\n            \
-            //             launchpad,\n            \
-            //             ctx,\n        \
-            //         );\n    \
-            //     }}",
-            //     witness = witness,
-            //     market_type = market_type,
-            // ),
-            // NftType::CNft => format!(
-            //     "public entry fun prepare_mint(\n        \
-            //         name: vector<u8>,\n        \
-            //         description: vector<u8>,\n        \
-            //         url: vector<u8>,\n        \
-            //         attribute_keys: vector<vector<u8>>,\n        \
-            //         attribute_values: vector<vector<u8>>,\n        \
-            //         max_supply: u64,\n        \
-            //         mint: &mut MintAuthority<{witness}>,\n        \
-            //         sale_outlet: u64,\n        \
-            //         launchpad: &mut Slingshot<{witness}, {market_type}>,\n        \
-            //         ctx: &mut TxContext,\n    \
-            //     ) {{\n        \
-            //         c_nft::prepare_launchpad_mint<{witness}, {market_type}, c_nft::Data>(\n            \
-            //             name,\n            \
-            //             description,\n            \
-            //             url,\n            \
-            //             attribute_keys,\n            \
-            //             attribute_values,\n            \
-            //             max_supply,\n            \
-            //             mint,\n            \
-            //             sale_outlet,\n            \
-            //             launchpad,\n            \
-            //             ctx,\n        \
-            //         );\n    \
-            //     }}",
-            //     witness = witness,
-            //     market_type = market_type,
-            // ),
         };
         func.into_boxed_str()
     }
@@ -192,16 +107,15 @@ pub enum SalesType {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Markets {
+    markets: Vec<MarketType>,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(tag = "market_type", rename_all = "snake_case")]
 pub enum MarketType {
-    FixedPrice {
-        prices: Vec<u64>,
-        whitelists: Vec<bool>,
-    },
-    Auction {
-        reserve_prices: Vec<u64>,
-        whitelists: Vec<bool>,
-    },
+    FixedPrice { price: u64, whitelist: bool },
+    Auction { reserve_price: u64, whitelist: bool },
 }
 
 impl MarketType {
@@ -217,6 +131,37 @@ impl MarketType {
         match self {
             MarketType::FixedPrice { .. } => "fixed_price",
             MarketType::Auction { .. } => "dutch_auction",
+        }
+        .into()
+    }
+
+    pub fn init_market(&self) -> Box<str> {
+        match self {
+            MarketType::FixedPrice { price, whitelist } => format!(
+                "fixed_price::init_market<SUI>(
+                        &mut slot,
+                        {whitelist},
+                        {price},
+                        ctx,
+                    );",
+                whitelist = whitelist,
+                price = price,
+            )
+            .into_boxed_str(),
+            MarketType::Auction {
+                reserve_price,
+                whitelist,
+            } => format!(
+                "dutch_auction::init_market<SUI>(
+                        &mut slot,
+                        {whitelist},
+                        {reserve_price},
+                        ctx,
+                    );",
+                whitelist = whitelist,
+                reserve_price = reserve_price,
+            )
+            .into_boxed_str(),
         }
         .into()
     }

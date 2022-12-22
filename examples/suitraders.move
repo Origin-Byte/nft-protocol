@@ -3,7 +3,7 @@ module nft_protocol::suitraders {
 
     use sui::url;
     use sui::balance;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
@@ -14,6 +14,13 @@ module nft_protocol::suitraders {
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
+
+    use sui::sui::SUI;
+    use nft_protocol::slot;
+    use nft_protocol::launchpad;
+    use nft_protocol::flat_fee;
+    use nft_protocol::fixed_price;
+    use nft_protocol::dutch_auction;
 
     struct SUITRADERS has drop {}
 
@@ -58,7 +65,39 @@ module nft_protocol::suitraders {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        transfer(mint_cap, tx_context::sender(ctx));
+        let launchpad = launchpad::new(
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            false,
+            flat_fee::new(0, ctx),
+            ctx,
+        );
+
+        let slot = slot::new(
+            &launchpad,
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            ctx,
+        );
+
+        fixed_price::init_market<SUI>(
+            &mut slot,
+            false,
+            100,
+            ctx,
+        );
+
+        dutch_auction::init_market<SUI>(
+            &mut slot,
+            true,
+            500,
+            ctx,
+        );
+
+        transfer::share_object(launchpad);
+        transfer::share_object(slot);
+
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUITRADERS>(collection);
     }
 

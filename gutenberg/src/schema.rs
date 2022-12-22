@@ -3,7 +3,7 @@
 //! the associated Move module and dump into a default or custom folder defined
 //! by the caller.
 use crate::err::GutenError;
-use crate::types::{MarketType, NftType, Tag};
+use crate::types::{MarketType, Markets, NftType, Tag};
 
 use serde::Deserialize;
 use strfmt::strfmt;
@@ -19,7 +19,7 @@ use std::fs;
 pub struct Schema {
     pub collection: Collection,
     pub nft_type: NftType,
-    // pub launchpad: Launchpad,
+    pub launchpad: Launchpad,
 }
 
 /// Contains the metadata fields of the collection
@@ -42,10 +42,12 @@ pub struct Collection {
 /// Contains the market configurations of the launchpad
 #[derive(Debug, Deserialize)]
 pub struct Launchpad {
+    pub admin: Box<str>,
+    pub receiver: Box<str>,
     /// Enum field containing the MarketType and its corresponding
     /// config parameters such as price and whitelisting
     #[serde(flatten)]
-    pub market_type: MarketType,
+    pub markets: Markets,
 }
 
 impl Schema {
@@ -86,21 +88,7 @@ impl Schema {
 
         let tags = self.write_tags();
 
-        // let define_market_arguments = self.write_define_market_arguments();
-        // let market_arguments = self.write_market_arguments();
-
-        // let market_module_imports =
-        //     format!("::{{Self, {}}}", market_type).into_boxed_str();
-
-        // let slingshot_import = if is_embedded {
-        //     "    use nft_protocol::slingshot::Slingshot;"
-        // } else {
-        //     ""
-        // }
-        // .to_string()
-        // .into_boxed_str();
-
-        // let mint_func = self.nft_type.mint_func(&witness);
+        let init_launchpad = self.init_launchpad();
 
         let mut vars = HashMap::new();
 
@@ -112,18 +100,8 @@ impl Schema {
         vars.insert("symbol", &self.collection.symbol);
         vars.insert("royalty_fee_bps", &self.collection.royalty_fee_bps);
         vars.insert("tags", &tags);
-
-        // TODO: This is commented out but may be added back in future
-        // iterations
-
-        // vars.insert("mint_function", &mint_func);
-        // vars.insert("market_type", &market_type);
-        // vars.insert("market_module", market_module);
-        // vars.insert("market_module_imports", &market_module_imports);
-        // vars.insert("slingshot_import", &slingshot_import);
-        // vars.insert("is_embedded", &is_embedded_str);
-        // vars.insert("define_market_arguments", &define_market_arguments);
-        // vars.insert("market_arguments", &market_arguments);
+        vars.insert("launchpad_modules", &launchpad_modules);
+        vars.insert("launchpad", &launchpad);
 
         let vars: HashMap<String, String> = vars
             .into_iter()
@@ -162,10 +140,36 @@ impl Schema {
         out.into_boxed_str()
     }
 
+    pub fn init_launchpad(&self) -> Box<str> {
+        format!(
+            "let launchpad = launchpad::new(
+                {admin},
+                {receiver},
+                false,
+                flat_fee::new(0, ctx),
+                ctx,
+            );
+
+            let slot = slot::new(
+                &launchpad,
+                {admin},
+                {receiver},
+                ctx,
+            );",
+            admin = self.launchpad.admin,
+            receiver = self.launchpad.receiver,
+        )
+        .into_boxed_str()
+    }
+
     // /// Associated function that generates Move code to declare and push market
     // /// specific data.
     // pub fn write_define_market_arguments(&self) -> Box<str> {
     //     let mut out = String::new();
+
+    //     match &self.launchpad.market_type {
+    //         MarketType::FixedPrice {}
+    //     }
 
     //     match &self.launchpad.market_type {
     //         MarketType::FixedPrice { whitelists, .. }

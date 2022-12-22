@@ -3,7 +3,7 @@ module nft_protocol::{module_name} {{
 
     use sui::url;
     use sui::balance;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{{Self, TxContext}};
 
     use nft_protocol::nft;
@@ -14,6 +14,8 @@ module nft_protocol::{module_name} {{
     use nft_protocol::inventory::{{Self, Inventory}};
     use nft_protocol::royalties::{{Self, TradePayment}};
     use nft_protocol::collection::{{Self, Collection, MintCap}};
+
+    {launchpad_modules}
 
     /// One time witness is only instantiated in the init method
     struct {witness} has drop {{}}
@@ -64,7 +66,12 @@ module nft_protocol::{module_name} {{
 
         {tags}
 
-        transfer(mint_cap, tx_context::sender(ctx));
+        {launchpad}
+
+        transfer::share_object(launchpad);
+        transfer::share_object(slot);
+
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
         collection::share<{witness}>(collection);
     }}
 
