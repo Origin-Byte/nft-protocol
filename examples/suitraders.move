@@ -15,13 +15,7 @@ module nft_protocol::suitraders {
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
-    use sui::sui::SUI;
-    use nft_protocol::slot;
-    use nft_protocol::launchpad;
-    use nft_protocol::flat_fee;
-    use nft_protocol::fixed_price;
-    use nft_protocol::dutch_auction;
-
+    /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
@@ -61,41 +55,49 @@ module nft_protocol::suitraders {
             string::utf8(b"SUITR")
         );
 
+        let royalty = royalty::new(ctx);
+        royalty::add_proportional_royalty(
+            &mut royalty,
+            nft_protocol::royalty_strategy_bps::new(100),
+        );
+        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
+
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        let launchpad = launchpad::new(
+        let launchpad = nft_protocol::launchpad::new(
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
             false,
-            flat_fee::new(0, ctx),
+            nft_protocol::flat_fee::new(0, ctx),
             ctx,
         );
 
-        let slot = slot::new(
+        let slot = nft_protocol::slot::new(
             &launchpad,
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
             ctx,
         );
 
-        fixed_price::init_market<SUI>(
+        nft_protocol::fixed_price::init_market<sui::sui::SUI>(
             &mut slot,
             false,
-            100,
-            ctx,
-        );
-
-        dutch_auction::init_market<SUI>(
-            &mut slot,
-            true,
             500,
             ctx,
         );
 
-        transfer::share_object(launchpad);
+        nft_protocol::dutch_auction::init_market<sui::sui::SUI>(
+            &mut slot,
+            true,
+            100,
+            ctx,
+        );
+
         transfer::share_object(slot);
+
+        transfer::share_object(launchpad);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUITRADERS>(collection);

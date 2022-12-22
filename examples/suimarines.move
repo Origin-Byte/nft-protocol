@@ -3,7 +3,7 @@ module nft_protocol::suimarines {
 
     use sui::url;
     use sui::balance;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
@@ -66,10 +66,11 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        transfer(mint_cap, tx_context::sender(ctx));
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUIMARINES>(collection);
     }
 
+    /// Calculates and transfers royalties to the `RoyaltyDomain`
     public entry fun collect_royalty<FT>(
         payment: &mut TradePayment<SUIMARINES, FT>,
         collection: &mut Collection<SUIMARINES>,
