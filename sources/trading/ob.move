@@ -1,18 +1,17 @@
+/// Orderbook where bids are fungible tokens and asks are NFTs.
+/// A bid is a request to buy one NFT from a specific collection.
+/// An ask is one NFT with a min price condition.
+///
+/// One can
+/// - create a new orderbook between a given collection and a bid token;
+/// - set publicly accessible actions to be witness protected;
+/// - open a new bid;
+/// - cancel an existing bid they own;
+/// - offer an NFT if collection matches OB collection;
+/// - cancel an existing NFT offer;
+/// - instantly buy a specific NFT;
+/// - open bids and asks with a commission on behalf of a user.
 module nft_protocol::ob {
-    //! Orderbook where bids are fungible tokens and asks are NFTs.
-    //! A bid is a request to buy one NFT from a specific collection.
-    //! An ask is one NFT with a min price condition.
-    //!
-    //! One can
-    //! - create a new orderbook between a given collection and a bid token;
-    //! - set publicly accessible actions to be witness protected;
-    //! - open a new bid;
-    //! - cancel an existing bid they own;
-    //! - offer an NFT if collection matches OB collection;
-    //! - cancel an existing NFT offer;
-    //! - instantly buy a specific NFT;
-    //! - open bids and asks with a commission on behalf of a user.
-
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
     // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
@@ -125,7 +124,7 @@ module nft_protocol::ob {
         commission: Option<AskCommission>,
     }
 
-    /// TradeIntermediate` is made a shared object and can be called
+    /// `TradeIntermediate` is made a shared object and can be called
     /// permissionlessly.
     struct TradeIntermediate<phantom C, phantom FT> has key {
         id: UID,

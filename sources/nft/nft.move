@@ -1,12 +1,12 @@
-//! Module of a generic `Nft` type.
-//!
-//! It acts as a generic interface for NFTs and it allows for
-//! the creation of arbitrary domain specific implementations.
-//!
-//! OriginByte's NFT protocol brings dynamism, composability and extendability
-//! to NFTs. The current design allows creators to create NFTs with custom
-//! domain-specific fields, with their own bespoke behaviour. One can find
-//! examples of NFT domains in the `standards` folder.
+/// Module of a generic `Nft` type.
+///
+/// It acts as a generic interface for NFTs and it allows for
+/// the creation of arbitrary domain specific implementations.
+///
+/// OriginByte's NFT protocol brings dynamism, composability and extendability
+/// to NFTs. The current design allows creators to create NFTs with custom
+/// domain-specific fields, with their own bespoke behaviour. One can find
+/// examples of NFT domains in the `standards` folder.
 module nft_protocol::nft {
     use sui::transfer;
     use sui::bag::{Self, Bag};

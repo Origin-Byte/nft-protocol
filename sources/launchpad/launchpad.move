@@ -1,28 +1,28 @@
-//! Module of a `Launchpad` type.
-//!
-//! Launchpads are platforms that facilitate the release of NFT collections
-//! to the public, via primary market. Whilst NFT creators can emit NFTs
-//! directly and thus bypass the `Launchpad`, the `Launchpad` offers a myriad
-//! of bespoke emission strategies.
-//!
-//! Launchapds can either be Permissioned or Permissionless. Marketplaces and
-//! dApps that want to offer a launchpad service can create a Permissioned
-//! Launchpad. In a permissioned model, the Marketplace or dApp is responsible
-//! for making and signing all the RPC calls to configure and implement the
-//! release strategy. If the launchpad is permissionless, then the creators
-//! are the ones responsible for configuring and implementing it themselves.
-//! In other words, permissioned launchpads allow for the creation of
-//! fully manager services, whilst permissionless launchpads always require
-//! the creator's signature.
-//!
-//! After the creation of the `Launchpad` a `Slot` for the NFT release needs
-//! to be created. Whilst the `Launchpad` stipulates a default fee policy,
-//! the launchpad admin can decide to create a custom fee policy for each
-//! release `Slot`.
-//!
-//! The slot acts as the object that configures the primary NFT release
-//! strategy, that is the primary market sale. Primary market sales can take
-//! many shapes, depending on the business level requirements.
+/// Module of a `Launchpad` type.
+///
+/// Launchpads are platforms that facilitate the release of NFT collections
+/// to the public, via primary market. Whilst NFT creators can emit NFTs
+/// directly and thus bypass the `Launchpad`, the `Launchpad` offers a myriad
+/// of bespoke emission strategies.
+///
+/// Launchapds can either be Permissioned or Permissionless. Marketplaces and
+/// dApps that want to offer a launchpad service can create a Permissioned
+/// Launchpad. In a permissioned model, the Marketplace or dApp is responsible
+/// for making and signing all the RPC calls to configure and implement the
+/// release strategy. If the launchpad is permissionless, then the creators
+/// are the ones responsible for configuring and implementing it themselves.
+/// In other words, permissioned launchpads allow for the creation of
+/// fully manager services, whilst permissionless launchpads always require
+/// the creator's signature.
+///
+/// After the creation of the `Launchpad` a `Slot` for the NFT release needs
+/// to be created. Whilst the `Launchpad` stipulates a default fee policy,
+/// the launchpad admin can decide to create a custom fee policy for each
+/// release `Slot`.
+///
+/// The slot acts as the object that configures the primary NFT release
+/// strategy, that is the primary market sale. Primary market sales can take
+/// many shapes, depending on the business level requirements.
 module nft_protocol::launchpad {
     // TODO: Function to delete a slot
     // TODO: Reconsider permissioning model between launchpad and slots

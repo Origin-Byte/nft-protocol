@@ -1,26 +1,26 @@
-//! Module of a generic `Collection` type and a `MintAuthority` type.
-//!
-//! It acts as a generic interface for NFT Collections and it allows for
-//! the creation of arbitrary domain specific implementations.
-//!
-//! The `MintAuthority` object gives power to the owner to mint objects.
-//! There is only one `MintAuthority` per `Collection`.
-//! The Mint Authority object contains a `SupplyPolicy` which
-//! can be regulated or unregulated.
-//! A Collection with unregulated Supply policy is a collection that
-//! does not keep track of its current supply objects. This allows for the
-//! minting process to be parallelized.
-//!
-//! A Collection with regulated Supply policy is a collection that
-//! keeps track of its current supply objects. This means that whilst the
-//! minting can be parallelized on the client side, on the blockchain side
-//! nodes will have to lock the `MintAuthority` object in order to mutate
-//! it sequentially. Regulated Supply allows for collections to have limited
-//! or unlimited supply. The `MintAuthority` owner can modify the
-//! `max_supply` a posteriori, as long as the `Supply` is not frozen.
-//! After this function call the `Supply` object will not yet be set to
-//! frozen, in order to give creators the ability to ammend it prior to
-//! the primary sale taking place.
+/// Module of a generic `Collection` type and a `MintAuthority` type.
+///
+/// It acts as a generic interface for NFT Collections and it allows for
+/// the creation of arbitrary domain specific implementations.
+///
+/// The `MintAuthority` object gives power to the owner to mint objects.
+/// There is only one `MintAuthority` per `Collection`.
+/// The Mint Authority object contains a `SupplyPolicy` which
+/// can be regulated or unregulated.
+/// A Collection with unregulated Supply policy is a collection that
+/// does not keep track of its current supply objects. This allows for the
+/// minting process to be parallelized.
+///
+/// A Collection with regulated Supply policy is a collection that
+/// keeps track of its current supply objects. This means that whilst the
+/// minting can be parallelized on the client side, on the blockchain side
+/// nodes will have to lock the `MintAuthority` object in order to mutate
+/// it sequentially. Regulated Supply allows for collections to have limited
+/// or unlimited supply. The `MintAuthority` owner can modify the
+/// `max_supply` a posteriori, as long as the `Supply` is not frozen.
+/// After this function call the `Supply` object will not yet be set to
+/// frozen, in order to give creators the ability to ammend it prior to
+/// the primary sale taking place.
 module nft_protocol::collection {
     use sui::event;
     use sui::object::{Self, UID, ID};

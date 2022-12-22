@@ -1,7 +1,6 @@
+/// This module extends the functionality of the `UnprotectedSafe` with
+/// an additional feature of restricting deposits into it.
 module nft_protocol::safe {
-    //! This module extends the functionality of the `UnprotectedSafe` with
-    //! an additional feature of restricting deposits into it.
-
     use std::type_name::{Self, TypeName};
 
     use sui::object::{Self, ID, UID};
