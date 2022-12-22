@@ -1,12 +1,10 @@
+/// This test focuses on integration between bidding contract, Safe,
+/// a whitelist and royalty collection.
+///
+/// We simulate a trade between two Safes, end to end, including royalty
+/// collection.
 #[test_only]
 module nft_protocol::test_bidding_safe_to_safe_trade {
-    //! This test focuses on integration between bidding contract, Safe,
-    //! a whitelist and royalty collection.
-    //!
-    //! We simulate a trade between two Safes, end to end, including royalty
-    //! collection.
-
-    // use std::debug;
     use sui::coin;
     use std::vector;
     use sui::balance;

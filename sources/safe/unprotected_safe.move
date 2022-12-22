@@ -1,32 +1,31 @@
+/// Module of `UnprotectedSafe` type.
+///
+/// `UnprotectedSafe` is an abstraction meant to hold NFTs in it.
+/// A user that transfers its NFTs to its Safe is able to delegate the power
+/// of transferability.
+/// One typical issue with on-chain trading is that by sending one's assets
+/// to a shared object (the trading primitive), one looses the ability to
+/// see them in their wallet, even though one has still technical ownership
+/// of such assets, until a trade is effectively executed.
+/// To solve for this, we use `UnprotectedSafe` to hold the user's assets
+/// and then instead of transferring the assets to the shared object
+/// (trading primitive), the user transfers a `TransferCap`
+/// `TransferCap` is an object that delegates the ability to transfer a
+/// given NFT out of the seller's `Safe`.
+///
+/// The ownership model of the `Safe` relies on the object `OwnerCap` whose
+/// holder is the effective owner of the `Safe` and subsequently the owner of
+/// the assets within it.
+///
+/// # Two NFT kinds
+/// We support two kinds of NFTs in this safe implementation.
+/// 1. Our protocol `nft_protocol::nft::Nft` which is guarded with whitelist.
+/// This enables creators to have certain guarantees around royalty
+/// enforcement.
+/// 2. Arbitrary type of NFTs.
+/// Those are not guarded with whitelist.
+/// They can be freely transferred between users and safes.
 module nft_protocol::unprotected_safe {
-    //! Module of `UnprotectedSafe` type.
-    //!
-    //! `UnprotectedSafe` is an abstraction meant to hold NFTs in it.
-    //! A user that transfers its NFTs to its Safe is able to delegate the power
-    //! of transferability.
-    //! One typical issue with on-chain trading is that by sending one's assets
-    //! to a shared object (the trading primitive), one looses the ability to
-    //! see them in their wallet, even though one has still technical ownership
-    //! of such assets, until a trade is effectively executed.
-    //! To solve for this, we use `UnprotectedSafe` to hold the user's assets
-    //! and then instead of transferring the assets to the shared object
-    //! (trading primitive), the user transfers a `TransferCap`
-    //! `TransferCap` is an object that delegates the ability to transfer a
-    //! given NFT out of the seller's `Safe`.
-    //!
-    //! The ownership model of the `Safe` relies on the object `OwnerCap` whose
-    //! holder is the effective owner of the `Safe` and subsequently the owner of
-    //! the assets within it.
-    //!
-    //! # Two NFT kinds
-    //! We support two kinds of NFTs in this safe implementation.
-    //! 1. Our protocol `nft_protocol::nft::Nft` which is guarded with whitelist.
-    //! This enables creators to have certain guarantees around royalty
-    //! enforcement.
-    //! 2. Arbitrary type of NFTs.
-    //! Those are not guarded with whitelist.
-    //! They can be freely transferred between users and safes.
-
     use nft_protocol::err;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_whitelist::Whitelist;

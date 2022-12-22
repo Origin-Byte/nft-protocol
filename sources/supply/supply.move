@@ -1,11 +1,11 @@
-//! Module contaning `Supply` type.
-//!
-//! `Supply` object are meant to control the supply of a given object type,
-//! or a given accumualtion of actions of a given type. It tracks the current
-//! supply and guarantees that it cannot surpass the maximum supply defined.
-//!
-//! `Supply` can be frozen, therefore making it impossible to change the
-//! maximum supply.
+/// Module contaning `Supply` type.
+///
+/// `Supply` object are meant to control the supply of a given object type,
+/// or a given accumualtion of actions of a given type. It tracks the current
+/// supply and guarantees that it cannot surpass the maximum supply defined.
+///
+/// `Supply` can be frozen, therefore making it impossible to change the
+/// maximum supply.
 module nft_protocol::supply {
     use nft_protocol::err;
 

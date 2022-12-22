@@ -1,6 +1,5 @@
+/// Reusable trading primitives.
 module nft_protocol::trading {
-    //! Reusable trading primitives.
-
     use nft_protocol::royalties;
     use std::option::{Self, Option};
     use sui::balance::{Self, Balance};

@@ -1,19 +1,19 @@
-//! Module representing the Nft bookeeping Inventories of `Slot`s.
-//!
-//! Release slots can have multiple concurrent markets, repsented
-//! through `markets: ObjectBag`, allowing NFT creators to perform tiered sales.
-//! An example of this would be an Gaming NFT creator separating the sale
-//! based on NFT rarity and emit whitelist tokens to different users for
-//! different rarities depending on the user's game score.
-//!
-//! The Slot object is agnostic to the Market mechanism and instead decides to
-//! outsource this logic to generic `Market` objects. This way developers can
-//! come up with their plug-and-play market primitives, of which some examples
-//! are Dutch Auctions, Sealed-Bid Auctions, etc.
-//!
-//! Each market has a dedicated inventory, which tracks which NFTs are on
-//! the shelves still to be sold, and which NFTs have been sold via Certificates
-//! but are still waiting to be redeemed.
+/// Module representing the Nft bookeeping Inventories of `Slot`s.
+///
+/// Release slots can have multiple concurrent markets, repsented
+/// through `markets: ObjectBag`, allowing NFT creators to perform tiered sales.
+/// An example of this would be an Gaming NFT creator separating the sale
+/// based on NFT rarity and emit whitelist tokens to different users for
+/// different rarities depending on the user's game score.
+///
+/// The Slot object is agnostic to the Market mechanism and instead decides to
+/// outsource this logic to generic `Market` objects. This way developers can
+/// come up with their plug-and-play market primitives, of which some examples
+/// are Dutch Auctions, Sealed-Bid Auctions, etc.
+///
+/// Each market has a dedicated inventory, which tracks which NFTs are on
+/// the shelves still to be sold, and which NFTs have been sold via Certificates
+/// but are still waiting to be redeemed.
 module nft_protocol::inventory {
     use std::vector;
 

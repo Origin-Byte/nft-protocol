@@ -1,26 +1,26 @@
-//! Module of Nft Flyweight domain.
-//!
-//! The flyweight domain is responsible for the implementation of the
-//! loose NFT pattern. Where NFT data live in the `Archetype` object and
-//! `Nft`s have a `Pointer` to it.
-//!
-//! The loose NFT pattern is based on the flyweight pattern, which is a design
-//! pattern that achieves storage and memory efficiency by sharing common parts
-//! of state between multiple objects instead of keeping all of the data
-//! in each object.
-//!
-//! For more on the design pattern:
-//! https://refactoring.guru/design-patterns/flyweight
-//!
-//! Embedded NFTs, contrary to loose NFTs, hold their own data, and therefore
-//! the minting of data and the NFT itself can happen in one single step. With
-//! Loose NFTs however, the data Archetype is first minted and only then the
-//! NFT(s) associated to that object is(are) minted.
-//!
-//! Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships
-//! between the NFT object and the data. In contrast, loose NFTs can
-//! represent 1-to-many relationships. Essentially this allows us to build
-//! NFTs which effectively have a supply.
+/// Module of Nft Flyweight domain.
+///
+/// The flyweight domain is responsible for the implementation of the
+/// loose NFT pattern. Where NFT data live in the `Archetype` object and
+/// `Nft`s have a `Pointer` to it.
+///
+/// The loose NFT pattern is based on the flyweight pattern, which is a design
+/// pattern that achieves storage and memory efficiency by sharing common parts
+/// of state between multiple objects instead of keeping all of the data
+/// in each object.
+///
+/// For more on the design pattern:
+/// https://refactoring.guru/design-patterns/flyweight
+///
+/// Embedded NFTs, contrary to loose NFTs, hold their own data, and therefore
+/// the minting of data and the NFT itself can happen in one single step. With
+/// Loose NFTs however, the data Archetype is first minted and only then the
+/// NFT(s) associated to that object is(are) minted.
+///
+/// Embedded NFTs are nevertheless only useful to represent 1-to-1 relationships
+/// between the NFT object and the data. In contrast, loose NFTs can
+/// represent 1-to-many relationships. Essentially this allows us to build
+/// NFTs which effectively have a supply.
 module nft_protocol::flyweight {
     // TODO: Where does it make sense to control supply?
     // TODO: Where does it make sense to control ownership of the shared data object?

@@ -1,13 +1,13 @@
-//! Module for an NFT release `Slot`
-//!
-//! After the creation of the `Launchpad` a `Slot` for the NFT release needs
-//! to be created. Whilst the `Launchpad` stipulates a default fee policy,
-//! the launchpad admin can decide to create a custom fee policy for each
-//! release `Slot`.
-//!
-//! The slot acts as the object that configures the primary NFT release
-//! strategy, that is the primary market sale. Primary market sales can take
-//! many shapes, depending on the business level requirements.
+/// Module for an NFT release `Slot`
+///
+/// After the creation of the `Launchpad` a `Slot` for the NFT release needs
+/// to be created. Whilst the `Launchpad` stipulates a default fee policy,
+/// the launchpad admin can decide to create a custom fee policy for each
+/// release `Slot`.
+///
+/// The slot acts as the object that configures the primary NFT release
+/// strategy, that is the primary market sale. Primary market sales can take
+/// many shapes, depending on the business level requirements.
 module nft_protocol::slot {
     // TODO: Consider adding a function redeem_certificate with `nft_id` as
     // a parameter

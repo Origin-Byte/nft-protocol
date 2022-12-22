@@ -1,5 +1,5 @@
-//! Bidding module that allows users to bid for any given NFT in a safe,
-//! giving NFT owners a platform to sell their NFTs to any available bid.
+/// Bidding module that allows users to bid for any given NFT in a safe,
+/// giving NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
     // TODO: Consider allowing for NFT owners to create their own Asks
     use std::option::{Self, Option};

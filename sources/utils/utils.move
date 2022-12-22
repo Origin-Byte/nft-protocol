@@ -1,5 +1,4 @@
-//! @title utils
-//! @notice Utility functions in Move.
+/// Utility functions
 module nft_protocol::utils {
     use std::ascii;
     use std::string::{Self, String, sub_string};

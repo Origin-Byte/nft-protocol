@@ -1,9 +1,9 @@
-//! Module contaning `SupplyPolicy` type.
-//!
-//! A `SupplyPolicy` can be regulated or unregulated. Regulated policies
-//! can have a ceiling on the maximum supply and keep track
-//! of the current supply, whilst unregulated policies have no supply
-//! constraints nor they keep track of the number of minted objects.
+/// Module contaning `SupplyPolicy` type.
+///
+/// A `SupplyPolicy` can be regulated or unregulated. Regulated policies
+/// can have a ceiling on the maximum supply and keep track
+/// of the current supply, whilst unregulated policies have no supply
+/// constraints nor they keep track of the number of minted objects.
 module nft_protocol::supply_policy {
     use std::option::{Self, Option};
     use nft_protocol::supply::{Self, Supply};
