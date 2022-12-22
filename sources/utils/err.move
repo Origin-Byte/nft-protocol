@@ -1,5 +1,5 @@
-//! Exports error functions. All errors in this smart contract have a prefix
-//! which distinguishes them from errors in other packages.
+/// Exports error functions. All errors in this smart contract have a prefix
+/// which distinguishes them from errors in other packages.
 module nft_protocol::err {
 
     const Prefix: u64 = 13370000;
@@ -170,6 +170,10 @@ module nft_protocol::err {
         return Prefix + 407
     }
 
+    public fun generic_nft_must_not_be_protocol_type(): u64 {
+        return Prefix + 408
+    }
+
     // === Whitelist ===
 
     public fun authority_not_whitelisted(): u64 {
@@ -194,6 +198,10 @@ module nft_protocol::err {
 
     public fun sender_not_owner(): u64 {
         return Prefix + 700
+    }
+
+    public fun commission_too_high(): u64 {
+        return Prefix + 701
     }
 
     // === AttributionDomain ===

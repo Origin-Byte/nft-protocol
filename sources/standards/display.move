@@ -1,10 +1,10 @@
-//! Module of NFT domains for displaying standard information
-//!
-//! Current display domains are:
-//!     - DisplayDomain (For NFTs and Collections)
-//!     - UrlDomain (For NFTs and Collections)
-//!     - SymbolDomain (For Collections)
-//!     - Attributes (For NFTs)
+/// Module of NFT domains for displaying standard information
+///
+/// Current display domains are:
+///     - DisplayDomain (For NFTs and Collections)
+///     - UrlDomain (For NFTs and Collections)
+///     - SymbolDomain (For Collections)
+///     - Attributes (For NFTs)
 module nft_protocol::display {
     use std::string::String;
     use std::option::{Self, Option};

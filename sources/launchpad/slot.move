@@ -1,13 +1,13 @@
-//! Module for an NFT release `Slot`
-//!
-//! After the creation of the `Launchpad` a `Slot` for the NFT release needs
-//! to be created. Whilst the `Launchpad` stipulates a default fee policy,
-//! the launchpad admin can decide to create a custom fee policy for each
-//! release `Slot`.
-//!
-//! The slot acts as the object that configures the primary NFT release
-//! strategy, that is the primary market sale. Primary market sales can take
-//! many shapes, depending on the business level requirements.
+/// Module for an NFT release `Slot`
+///
+/// After the creation of the `Launchpad` a `Slot` for the NFT release needs
+/// to be created. Whilst the `Launchpad` stipulates a default fee policy,
+/// the launchpad admin can decide to create a custom fee policy for each
+/// release `Slot`.
+///
+/// The slot acts as the object that configures the primary NFT release
+/// strategy, that is the primary market sale. Primary market sales can take
+/// many shapes, depending on the business level requirements.
 module nft_protocol::slot {
     // TODO: Consider adding a function redeem_certificate with `nft_id` as
     // a parameter
@@ -40,8 +40,12 @@ module nft_protocol::slot {
         ///
         /// Intended for discoverability
         launchpad_id: ID,
-        /// `Slot` from which this certificate can withdraw an `Nft`
+        /// `Slot` ID to which the `Market` this certificate is assigned
+        ///
+        /// Intended for discoverability
         slot_id: ID,
+        /// `Market` from which this certificate can withdraw an `Nft`
+        market_id: ID,
         /// ID of the `Nft` which can be withdrawn using this certificate
         nft_id: ID,
     }
@@ -59,12 +63,13 @@ module nft_protocol::slot {
         assert_slot_admin(slot, ctx);
 
         let inventory = inventory_mut(slot, market_id);
-        let nft_id = inventory::pop_nft(inventory);
+        let nft_id = inventory::pop_nft_from_sale(inventory);
 
         NftCertificate {
             id: object::new(ctx),
             launchpad_id: object::id(launchpad),
             slot_id: object::id(slot),
+            market_id,
             nft_id,
         }
     }
@@ -89,12 +94,13 @@ module nft_protocol::slot {
         assert_market<Market>(slot, market_id);
 
         let inventory = inventory_mut(slot, market_id);
-        let nft_id = inventory::pop_nft(inventory);
+        let nft_id = inventory::pop_nft_from_sale(inventory);
 
         NftCertificate {
             id: object::new(ctx),
             launchpad_id: object::id(launchpad),
             slot_id: object::id(slot),
+            market_id,
             nft_id,
         }
     }
@@ -122,6 +128,7 @@ module nft_protocol::slot {
             id,
             launchpad_id: _,
             slot_id: _,
+            market_id: _,
             nft_id: _,
         } = certificate;
 
@@ -299,12 +306,12 @@ module nft_protocol::slot {
         assert_nft_certificate_slot(object::id(slot), &certificate);
         assert_contains_nft<C>(slot, certificate.nft_id);
 
-        let nft = dof::remove<ID, Nft<C>>(
-            &mut slot.id,
-            certificate.nft_id,
-        );
+        let inventory = inventory_mut(slot, certificate.market_id);
+
+        let nft = inventory::redeem_nft(inventory, certificate.nft_id);
 
         burn_nft_certificate(certificate);
+
         nft
     }
 
@@ -374,7 +381,7 @@ module nft_protocol::slot {
         let nft_id = object::id(&nft);
 
         let inventory = inventory_mut(slot, market_id);
-        inventory::add_nft(inventory, nft_id);
+        inventory::register_nft_for_sale(inventory, nft_id);
 
         dof::add(&mut slot.id, nft_id, nft);
     }
