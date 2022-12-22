@@ -229,6 +229,16 @@ module nft_protocol::safe {
         unprotected_safe::deposit_nft(nft, &mut safe.inner, ctx);
     }
 
+    public entry fun deposit_generic_nft_privileged<T: key + store>(
+        nft: T,
+        owner_cap: &OwnerCap,
+        safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        assert_owner_cap(owner_cap, safe);
+        unprotected_safe::deposit_generic_nft(nft, &mut safe.inner, ctx);
+    }
+
     /// Use a transfer cap to get an NFT out of the `Safe`.
     ///
     /// If the NFT is not exclusively listed, it can happen that the transfer

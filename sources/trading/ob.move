@@ -91,7 +91,7 @@ module nft_protocol::ob {
 
     /// An offer for a single NFT in a collection.
     struct Bid<phantom FT> has store {
-        /// How many "T"okens are being offered by the order issuer for one NFT.
+        /// How many tokens are being offered by the order issuer for one NFT.
         offer: Balance<FT>,
         /// The address of the user who created this bid and who will receive an
         /// NFT in exchange for their tokens.
