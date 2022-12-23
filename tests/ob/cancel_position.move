@@ -7,7 +7,7 @@ module nft_protocol::test_ob_cancel_position {
     use sui::coin;
     use sui::test_scenario;
     use sui::transfer::transfer;
-    use movemate::crit_bit_u64 as crit_bit;
+    use originmate::crit_bit_u64 as crit_bit;
 
     const BUYER: address = @0xA1C06;
     const CREATOR: address = @0xA1C05;
