@@ -3,7 +3,7 @@ module nft_protocol::suitraders {
 
     use sui::url;
     use sui::balance;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
@@ -15,6 +15,7 @@ module nft_protocol::suitraders {
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
+    /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
@@ -54,11 +55,51 @@ module nft_protocol::suitraders {
             string::utf8(b"SUITR")
         );
 
+        let royalty = royalty::new(ctx);
+        royalty::add_proportional_royalty(
+            &mut royalty,
+            nft_protocol::royalty_strategy_bps::new(100),
+        );
+        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
+
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        transfer(mint_cap, tx_context::sender(ctx));
+        let launchpad = nft_protocol::launchpad::new(
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            false,
+            nft_protocol::flat_fee::new(0, ctx),
+            ctx,
+        );
+
+        let slot = nft_protocol::slot::new(
+            &launchpad,
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            ctx,
+        );
+
+        nft_protocol::fixed_price::init_market<sui::sui::SUI>(
+            &mut slot,
+            false,
+            500,
+            ctx,
+        );
+
+        nft_protocol::dutch_auction::init_market<sui::sui::SUI>(
+            &mut slot,
+            true,
+            100,
+            ctx,
+        );
+
+        transfer::share_object(slot);
+
+        transfer::share_object(launchpad);
+
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUITRADERS>(collection);
     }
 
