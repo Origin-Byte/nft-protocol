@@ -9,7 +9,7 @@ module nft_protocol::test_dutch_auction {
     use sui::object::{Self, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use movemate::crit_bit_u64 as crit_bit;
+    use originmate::crit_bit_u64 as crit_bit;
 
     use nft_protocol::nft;
     use nft_protocol::proceeds;
