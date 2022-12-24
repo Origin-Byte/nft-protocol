@@ -17,7 +17,7 @@ module nft_protocol::ob {
     // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
     // TODO: do we allow anyone to create an OB for any collection?
 
-    use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+    use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use std::option::{Self, Option};
     use std::vector;

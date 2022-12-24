@@ -21,7 +21,7 @@ module nft_protocol::dutch_auction {
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
 
-    use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+    use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use nft_protocol::err;
     use nft_protocol::inventory::{Self, Inventory};
