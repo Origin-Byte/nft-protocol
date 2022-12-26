@@ -185,7 +185,7 @@ module nft_protocol::dutch_auction {
     /// NFTs will be allocated to the winning biddeers.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_conclude<FT>(
+    public entry fun sale_conclude<C, FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
@@ -214,19 +214,10 @@ module nft_protocol::dutch_auction {
                 filled_funds
             );
 
-            let certificate = slot::issue_nft_certificate_internal<
-                DutchAuctionMarket<FT>, Witness
-            >(
+            slot::redeem_nft_and_transfer<C, DutchAuctionMarket<FT>, Witness>(
                 Witness {},
-                launchpad,
                 slot,
                 market_id,
-                ctx
-            );
-
-            // Transfer certificate to winning bid
-            transfer::transfer(
-                certificate,
                 owner,
             );
 
