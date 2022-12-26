@@ -16,13 +16,11 @@ module nft_protocol::fixed_price {
     // `buy_whitelisted_nft_certificate`
     use sui::balance;
     use sui::coin::{Self, Coin};
-    use sui::transfer::{Self};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
-    use nft_protocol::launchpad::Launchpad;
 
     struct FixedPriceMarket<phantom FT> has key, store {
         id: UID,
@@ -80,7 +78,6 @@ module nft_protocol::fixed_price {
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
     public entry fun buy_nft_certificate<C, FT>(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
         wallet: &mut Coin<FT>,
@@ -89,7 +86,6 @@ module nft_protocol::fixed_price {
         slot::assert_market_is_not_whitelisted(slot, market_id);
 
         buy_nft_<C, FT>(
-            launchpad,
             slot,
             market_id,
             wallet,
@@ -104,7 +100,6 @@ module nft_protocol::fixed_price {
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
     public entry fun buy_whitelisted_nft<C, FT>(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
         wallet: &mut Coin<FT>,
@@ -117,7 +112,6 @@ module nft_protocol::fixed_price {
         slot::burn_whitelist_certificate(whitelist_token);
 
         buy_nft_<C, FT>(
-            launchpad,
             slot,
             market_id,
             wallet,
@@ -126,7 +120,6 @@ module nft_protocol::fixed_price {
     }
 
     fun buy_nft_<C, FT>(
-        launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
         wallet: &mut Coin<FT>,
