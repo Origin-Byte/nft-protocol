@@ -79,7 +79,7 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_nft_certificate<FT>(
+    public entry fun buy_nft_certificate<C, FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
@@ -88,7 +88,7 @@ module nft_protocol::fixed_price {
     ) {
         slot::assert_market_is_not_whitelisted(slot, market_id);
 
-        buy_nft_certificate_(
+        buy_nft_<C, FT>(
             launchpad,
             slot,
             market_id,
@@ -103,7 +103,7 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_whitelisted_nft_certificate<FT>(
+    public entry fun buy_whitelisted_nft<C, FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
@@ -116,7 +116,7 @@ module nft_protocol::fixed_price {
 
         slot::burn_whitelist_certificate(whitelist_token);
 
-        buy_nft_certificate_(
+        buy_nft_<C, FT>(
             launchpad,
             slot,
             market_id,
@@ -125,7 +125,7 @@ module nft_protocol::fixed_price {
         )
     }
 
-    fun buy_nft_certificate_<FT>(
+    fun buy_nft_<C, FT>(
         launchpad: &Launchpad,
         slot: &mut Slot,
         market_id: ID,
@@ -140,18 +140,10 @@ module nft_protocol::fixed_price {
         let funds = balance::split(coin::balance_mut(wallet), market.price);
         slot::pay(slot, funds, 1);
 
-        let certificate = slot::issue_nft_certificate_internal<
-            FixedPriceMarket<FT>, Witness
-        >(
+        slot::redeem_nft_and_transfer<C, FixedPriceMarket<FT>, Witness>(
             Witness {},
-            launchpad,
             slot,
             market_id,
-            ctx
-        );
-
-        transfer::transfer(
-            certificate,
             tx_context::sender(ctx),
         );
     }

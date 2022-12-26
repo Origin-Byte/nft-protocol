@@ -275,29 +275,62 @@ module nft_protocol::slot {
         proceeds::add(proceeds, balance, qty_sold);
     }
 
+    // /// Adds NFT as a dynamic child object with its ID as key
+    // public fun redeem_nft<C>(
+    //     certificate: NftCertificate,
+    //     slot: &mut Slot,
+    // ): Nft<C> {
+    //     assert_nft_certificate_slot(object::id(slot), &certificate);
+    //     assert_contains_nft<C>(slot, certificate.nft_id);
+
+    //     let inventory = inventory_mut(slot, certificate.market_id);
+
+    //     let nft = inventory::redeem_nft(inventory, certificate.nft_id);
+
+    //     burn_nft_certificate(certificate);
+
+    //     nft
+    // }
+
     /// Adds NFT as a dynamic child object with its ID as key
-    public fun redeem_nft<C>(
-        certificate: NftCertificate,
+    public fun redeem_nft_internal<
+        C,
+        Market: key + store,
+        Witness: drop
+    >(
+        _witness: Witness,
         slot: &mut Slot,
+        market_id: ID,
     ): Nft<C> {
-        assert_nft_certificate_slot(object::id(slot), &certificate);
-        assert_contains_nft<C>(slot, certificate.nft_id);
+        utils::assert_same_module_as_witness<Market, Witness>();
+        assert_market<Market>(slot, market_id);
 
-        let inventory = inventory_mut(slot, certificate.market_id);
-
-        let nft = inventory::redeem_nft(inventory, certificate.nft_id);
-
-        burn_nft_certificate(certificate);
+        let inventory = inventory_mut(slot, market_id);
+        let nft = inventory::redeem_nft<C>(inventory);
 
         nft
     }
 
-    public entry fun transfer_nft<C>(
-        certificate: NftCertificate,
+    /// Adds NFT as a dynamic child object with its ID as key
+    public fun redeem_nft_and_transfer<
+        C,
+        Market: key + store,
+        Witness: drop
+    >(
+        _witness: Witness,
         slot: &mut Slot,
+        market_id: ID,
         recipient: address,
     ) {
-        let nft = redeem_nft<C>(certificate, slot);
+        utils::assert_same_module_as_witness<Market, Witness>();
+        assert_market<Market>(slot, market_id);
+
+        let nft = redeem_nft_internal<C, Market, Witness>(
+            _witness,
+            slot,
+            market_id,
+        );
+
         transfer::transfer(nft, recipient);
     }
 
@@ -549,16 +582,6 @@ module nft_protocol::slot {
             dof::exists_with_type<ID, Nft<C>>(&slot.id, nft_id),
             err::undefined_nft_id()
         );
-    }
-
-    public fun assert_nft_certificate_slot(
-        slot_id: ID,
-        certificate: &NftCertificate,
-    ) {
-        assert!(
-            certificate.slot_id == slot_id,
-            err::incorrect_nft_certificate()
-        )
     }
 
     public fun assert_whitelist_certificate_market(

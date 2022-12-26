@@ -115,8 +115,11 @@ module nft_protocol::inventory {
     /// Adds NFT as a dynamic child object with its ID as key
     public(friend) fun redeem_nft<C>(
         inventory: &mut Inventory,
-        nft_id: ID,
     ): Nft<C> {
+        let nfts = &mut inventory.nfts_on_sale;
+        assert!(!vector::is_empty(nfts), err::no_nfts_left());
+        let nft_id = vector::pop_back(nfts);
+
         let nft = dof::remove<ID, Nft<C>>(
             &mut inventory.id,
             nft_id,
@@ -137,16 +140,16 @@ module nft_protocol::inventory {
         vector::push_back(nfts, id);
     }
 
-    /// Pops an NFT's ID from the `nfts` field in `Inventory` object
-    /// and returns respective `ID`
-    /// TODO: Need to push the ID to the queue
-    public fun pop_nft_from_sale(
-        inventory: &mut Inventory,
-    ): ID {
-        let nfts = &mut inventory.nfts_on_sale;
-        assert!(!vector::is_empty(nfts), err::no_nfts_left());
-        vector::pop_back(nfts)
-    }
+    // /// Pops an NFT's ID from the `nfts` field in `Inventory` object
+    // /// and returns respective `ID`
+    // /// TODO: Need to push the ID to the queue
+    // public fun pop_nft_from_sale(
+    //     inventory: &mut Inventory,
+    // ): ID {
+    //     let nfts = &mut inventory.nfts_on_sale;
+    //     assert!(!vector::is_empty(nfts), err::no_nfts_left());
+    //     vector::pop_back(nfts)
+    // }
 
     /// Check how many `nfts` there are to sell
     public fun length(
