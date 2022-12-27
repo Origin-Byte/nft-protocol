@@ -77,7 +77,7 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_nft_certificate<C, FT>(
+    public entry fun buy_nft<C, FT>(
         slot: &mut Slot,
         market_id: ID,
         wallet: &mut Coin<FT>,

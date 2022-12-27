@@ -388,12 +388,8 @@ module nft_protocol::slot {
     ) {
         assert_slot_admin(slot, ctx);
 
-        let nft_id = object::id(&nft);
-
         let inventory = inventory_mut(slot, market_id);
-        inventory::register_nft_for_sale(inventory, nft_id);
-
-        dof::add(&mut slot.id, nft_id, nft);
+        inventory::deposit_nft(inventory, nft);
     }
 
     /// Toggle the Slot's `live` to `true` therefore making the NFT sale live

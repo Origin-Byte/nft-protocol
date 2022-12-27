@@ -118,6 +118,6 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        inventory::add_nft(inventory, nft);
+        inventory::deposit_nft(inventory, nft);
     }
 }

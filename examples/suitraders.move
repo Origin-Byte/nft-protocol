@@ -151,6 +151,6 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        inventory::add_nft(inventory, nft);
+        inventory::deposit_nft(inventory, nft);
     }
 }

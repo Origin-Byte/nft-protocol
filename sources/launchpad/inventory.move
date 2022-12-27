@@ -37,13 +37,6 @@ module nft_protocol::inventory {
         // its corresponding NFT ID will be flushed from `nfts` and will be
         // added to `queue`.
         nfts_on_sale: vector<ID>,
-        // NFTs whose certificates have been sold and currently waiting
-        // to be redeemed. When a `NftCertificate` is redeemed, its respective
-        // NFT ID is flushed out of `queue`
-        // TODO: We can most likely deprecate this queue in favour of simply
-        // having the NFTs in dynamic fields - that itself is already performing the
-        // accounting
-        queue: vector<ID>,
     }
 
     public entry fun create_for_sender(
@@ -62,13 +55,11 @@ module nft_protocol::inventory {
         let id = object::new(ctx);
 
         let nfts_on_sale = vector::empty();
-        let queue = vector::empty();
 
         Inventory {
             id,
             whitelisted,
             nfts_on_sale,
-            queue,
         }
     }
 
@@ -80,16 +71,11 @@ module nft_protocol::inventory {
             vector::length(&inventory.nfts_on_sale) == 0,
             err::nft_sale_incompleted()
         );
-        assert!(
-            vector::length(&inventory.queue) == 0,
-            err::nft_redemption_incompleted()
-        );
 
         let Inventory {
             id,
             whitelisted: _,
             nfts_on_sale: _,
-            queue: _,
         } = inventory;
 
         object::delete(id);
@@ -102,7 +88,7 @@ module nft_protocol::inventory {
     /// owned by the Slot. The function call will fail otherwise, because
     /// one would have to refer to the Slot, the parent shared object, in order
     /// for the bytecode verifier not to fail.
-    public entry fun add_nft<C>(
+    public entry fun deposit_nft<C>(
         inventory: &mut Inventory,
         nft: Nft<C>,
     ) {
@@ -112,7 +98,7 @@ module nft_protocol::inventory {
         dof::add(&mut inventory.id, nft_id, nft);
     }
 
-    /// Adds NFT as a dynamic child object with its ID as key
+    /// Removes NFT from dynamic field with its ID as key
     public(friend) fun redeem_nft<C>(
         inventory: &mut Inventory,
     ): Nft<C> {
@@ -125,19 +111,7 @@ module nft_protocol::inventory {
             nft_id,
         );
 
-        assert!(!vector::is_empty(&inventory.queue), err::no_nfts_left());
-        vector::pop_back(&mut inventory.queue);
-
         nft
-    }
-
-    /// Adds an NFT's ID to the `nfts` field in `Inventory` object
-    public fun register_nft_for_sale(
-        inventory: &mut Inventory,
-        id: ID,
-    ) {
-        let nfts = &mut inventory.nfts_on_sale;
-        vector::push_back(nfts, id);
     }
 
     // /// Pops an NFT's ID from the `nfts` field in `Inventory` object
