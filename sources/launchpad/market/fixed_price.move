@@ -87,7 +87,6 @@ module nft_protocol::fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        slot::assert_is_live(slot);
         slot::assert_inventory_is_not_whitelisted(slot, inventory_id);
 
         buy_nft_<C, FT>(
@@ -113,7 +112,6 @@ module nft_protocol::fixed_price {
         whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
-        slot::assert_is_live(slot);
         slot::assert_inventory_is_whitelisted(slot, inventory_id);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
@@ -135,6 +133,8 @@ module nft_protocol::fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
+        slot::assert_is_live(slot, market_id);
+        
         let market =
             slot::market<FixedPriceMarket<FT>>(slot, inventory_id, market_id);
 

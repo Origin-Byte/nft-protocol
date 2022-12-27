@@ -98,7 +98,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -126,7 +126,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -201,7 +201,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, true, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -229,7 +229,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, true, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         slot::transfer_whitelist_certificate(
             &launchpad, &slot, market_id, BUYER, ctx(&mut scenario)
@@ -269,7 +269,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -287,7 +287,7 @@ module nft_protocol::test_dutch_auction {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        slot::sale_off(&launchpad, &mut slot, ctx(&mut scenario));
+        slot::sale_off(&launchpad, &mut slot, market_id, ctx(&mut scenario));
 
         dutch_auction::cancel_bid(
             &mut wallet,
@@ -311,7 +311,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -432,7 +432,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
 
@@ -447,7 +447,7 @@ module nft_protocol::test_dutch_auction {
         );
 
         // Bids should be cancellable even if slot is turned off
-        slot::sale_off(&launchpad, &mut slot, ctx(&mut scenario));
+        slot::sale_off(&launchpad, &mut slot, market_id, ctx(&mut scenario));
 
         dutch_auction::cancel_bid(
             &mut wallet,
@@ -499,7 +499,7 @@ module nft_protocol::test_dutch_auction {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
 
@@ -538,7 +538,7 @@ module nft_protocol::test_dutch_auction {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         // Slot should be automatically turned off after cancelling the auction
-        assert!(!slot::is_live(&slot), 0);
+        slot::assert_is_not_live(&slot, market_id);
 
         // Check wallet balances
         assert!(coin::value(&wallet) == 22, 0);
@@ -614,7 +614,7 @@ module nft_protocol::test_dutch_auction {
             ctx(&mut scenario)
         );
 
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(35, ctx(&mut scenario));
 
@@ -659,7 +659,7 @@ module nft_protocol::test_dutch_auction {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         // Slot should be automatically turned off after concluding the auction
-        assert!(!slot::is_live(&slot), 0);
+        slot::assert_is_not_live(&slot, market_id);
 
         // Check wallet balances
         assert!(coin::value(&wallet) == 2, 0);
@@ -718,7 +718,7 @@ module nft_protocol::test_dutch_auction {
             ctx(&mut scenario)
         );
 
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(35, ctx(&mut scenario));
 
@@ -743,7 +743,7 @@ module nft_protocol::test_dutch_auction {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         // Slot should not be turned off as all inventory has not been sold
-        assert!(slot::is_live(&slot), 0);
+        slot::assert_is_live(&slot, market_id);
 
         // Check bid state
         let market = slot::market(&slot, inventory_id, market_id);

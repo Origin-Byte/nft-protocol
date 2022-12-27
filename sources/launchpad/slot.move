@@ -95,8 +95,6 @@ module nft_protocol::slot {
     struct Slot has key, store {
         id: UID,
         launchpad_id: ID,
-        /// Boolean indicating if the `Slot` is live
-        live: bool,
         /// The address of the `Slot` administrator
         admin: address,
         /// The address of the receiver of funds
@@ -144,7 +142,6 @@ module nft_protocol::slot {
         Slot {
             id: uid,
             launchpad_id: object::id(launchpad),
-            live: false,
             admin: slot_admin,
             receiver,
             inventories,
@@ -187,7 +184,7 @@ module nft_protocol::slot {
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ): ID {
-        let inventory = inventory::new(is_whitelisted, ctx);
+        let inventory = inventory::new(ctx);
         let inventory_id = object::id(&inventory);
 
         add_inventory(slot, inventory, ctx);
@@ -299,34 +296,39 @@ module nft_protocol::slot {
         inventory::deposit_nft(inventory, nft);
     }
 
-    /// Toggle the Slot's `live` to `true` therefore making the NFT sale live
+    /// Set market's live status to `true` therefore making the NFT sale live
     public entry fun sale_on(
         slot: &mut Slot,
+        market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
-        slot.live = true
+
+        // *vec_map::get_mut(&mut slot.live, &market_id) = true;
     }
 
-    /// Toggle the Slot's `live` to `false` therefore pausing or stopping the
+    /// Set market's live status to `false` therefore pausing or stopping the
     /// NFT sale
     ///
     /// Can also be turned off by the Launchpad admin
     public entry fun sale_off(
         launchpad: &Launchpad,
         slot: &mut Slot,
+        market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_slot_launchpad_match(launchpad, slot);
         assert_correct_admin(launchpad, slot, ctx);
-        slot.live = false
+
+        // *vec_map::get_mut(&mut slot.live, &market_id) = false;
     }
 
     // === Getter functions ===
 
     /// Get the Slot's `live`
-    public fun is_live(slot: &Slot): bool {
-        slot.live
+    public fun is_live(slot: &Slot, market_id: ID): bool {
+        // *vec_map::get(&slot.live, &market_id)
+        true
     }
 
     /// Get the Slot's `receiver` address
@@ -437,8 +439,12 @@ module nft_protocol::slot {
         }
     }
 
-    public fun assert_is_live(slot: &Slot) {
-        assert!(slot.live, err::slot_not_live());
+    public fun assert_is_live(slot: &Slot, market_id: ID) {
+        assert!(is_live(slot, market_id), err::slot_not_live());
+    }
+
+    public fun assert_is_not_live(slot: &Slot, market_id: ID) {
+        assert!(!is_live(slot, market_id), err::slot_not_live());
     }
 
     public fun assert_default_fee(slot: &Slot) {
@@ -466,18 +472,18 @@ module nft_protocol::slot {
 
     public fun assert_inventory_is_whitelisted(slot: &Slot, inventory_id: ID) {
         let inventory = inventory(slot, inventory_id);
-        assert!(
-            inventory::is_whitelisted(inventory),
-            err::sale_is_not_whitelisted()
-        );
+        // assert!(
+        //     inventory::is_whitelisted(inventory),
+        //     err::sale_is_not_whitelisted()
+        // );
     }
 
     public fun assert_inventory_is_not_whitelisted(slot: &Slot, inventory_id: ID) {
         let inventory = inventory(slot, inventory_id);
-        assert!(
-            !inventory::is_whitelisted(inventory),
-            err::sale_is_whitelisted()
-        );
+        // assert!(
+        //     !inventory::is_whitelisted(inventory),
+        //     err::sale_is_whitelisted()
+        // );
     }
 
     public fun assert_contains_nft<C>(slot: &Slot, nft_id: ID) {

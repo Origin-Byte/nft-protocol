@@ -20,6 +20,7 @@ module nft_protocol::inventory {
     use sui::transfer;
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
+    use sui::vec_map::{Self, VecMap};
     use sui::object::{Self, ID , UID};
     use sui::object_bag::{Self, ObjectBag};
 
@@ -33,7 +34,8 @@ module nft_protocol::inventory {
     // sold and currently waiting to be redeemed
     struct Inventory has key, store {
         id: UID,
-        whitelisted: bool,
+        /// Track which markets are live
+        live: VecMap<ID, bool>,
         /// Vector of all markets outlets that, each outles holding IDs
         /// owned by the slot
         markets: ObjectBag,
@@ -44,12 +46,11 @@ module nft_protocol::inventory {
     }
 
     public fun new(
-        whitelisted: bool,
         ctx: &mut TxContext,
     ): Inventory {
         Inventory {
             id: object::new(ctx),
-            whitelisted,
+            live: vec_map::empty(),
             markets: object_bag::new(ctx),
             nfts_on_sale: vector::empty(),
         }
@@ -60,7 +61,7 @@ module nft_protocol::inventory {
         whitelisted: bool,
         ctx: &mut TxContext,
     ) {
-        let inventory = new(whitelisted, ctx);
+        let inventory = new(ctx);
         transfer::transfer(inventory, tx_context::sender(ctx));
     }
 
@@ -74,6 +75,8 @@ module nft_protocol::inventory {
         market: Market,
     ) {
         let market_id = object::id(&market);
+
+        vec_map::insert(&mut inventory.live, market_id, false);
 
         object_bag::add<ID, Market>(
             &mut inventory.markets,
@@ -116,6 +119,8 @@ module nft_protocol::inventory {
         nft
     }
 
+    // === Getter Functions ===
+
     /// Check how many `nfts` there are to sell
     public fun length(inventory: &Inventory): u64 {
         vector::length(&inventory.nfts_on_sale)
@@ -125,8 +130,8 @@ module nft_protocol::inventory {
         vector::is_empty(&inventory.nfts_on_sale)
     }
 
-    public fun is_whitelisted(inventory: &Inventory): bool {
-        inventory.whitelisted
+    public fun is_whitelisted(inventory: &Inventory, market_id: ID): bool {
+        *vec_map::get(&inventory.live, &market_id)
     }
 
     /// Get the `Inventory` markets
@@ -158,17 +163,17 @@ module nft_protocol::inventory {
     // === Assertions ===
 
     public fun assert_is_whitelisted(inventory: &Inventory) {
-        assert!(
-            is_whitelisted(inventory),
-            err::sale_is_not_whitelisted()
-        );
+        // assert!(
+        //     is_whitelisted(inventory),
+        //     err::sale_is_not_whitelisted()
+        // );
     }
 
     public fun assert_is_not_whitelisted(inventory: &Inventory) {
-        assert!(
-            !is_whitelisted(inventory),
-            err::sale_is_whitelisted()
-        );
+        // assert!(
+        //     !is_whitelisted(inventory),
+        //     err::sale_is_whitelisted()
+        // );
     }
 
     public fun assert_market<M: key + store>(

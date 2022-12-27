@@ -104,7 +104,7 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        slot::assert_is_live(slot);
+        slot::assert_is_live(slot, market_id);
         slot::assert_inventory_is_not_whitelisted(slot, inventory_id);
 
         create_bid_(
@@ -126,7 +126,7 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        slot::assert_is_live(slot);
+        slot::assert_is_live(slot, market_id);
         slot::assert_inventory_is_whitelisted(slot, inventory_id);
         slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
@@ -183,7 +183,7 @@ module nft_protocol::dutch_auction {
             ctx,
         );
 
-        slot::sale_off(launchpad, slot, ctx);
+        slot::sale_off(launchpad, slot, market_id, ctx);
     }
 
     /// Conclude the auction and toggle the Slingshot's `live` to `false`.
