@@ -141,7 +141,7 @@ module nft_protocol::mint_and_sell {
             ctx(&mut scenario),
         );
 
-        inventory::add_nft(&mut inventory, nft);
+        inventory::deposit_nft(&mut inventory, nft);
 
         // 4. Init Market in Launchpad Slot
         fixed_price::init_market_with_inventory<SUI>(

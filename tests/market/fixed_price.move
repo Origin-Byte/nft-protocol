@@ -8,7 +8,7 @@ module nft_protocol::test_fixed_price {
 
     use nft_protocol::nft;
     use nft_protocol::inventory;
-    use nft_protocol::slot::{Self, Slot, NftCertificate, WhitelistCertificate};
+    use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
     use nft_protocol::fixed_price::{Self, FixedPriceMarket};
 
     use nft_protocol::test_slot::init_slot;
@@ -59,10 +59,9 @@ module nft_protocol::test_fixed_price {
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
 
         let market_id = init_market(&mut slot, 10, false, &mut scenario);
-        
+
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        fixed_price::buy_nft_certificate(
-            &launchpad,
+        fixed_price::buy_nft<COLLECTION, SUI>(
             &mut slot,
             market_id,
             &mut wallet,
@@ -83,10 +82,9 @@ module nft_protocol::test_fixed_price {
 
         let market_id = init_market(&mut slot, 10, false, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
-        
+
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        fixed_price::buy_nft_certificate(
-            &launchpad,
+        fixed_price::buy_nft<COLLECTION, SUI>(
             &mut slot,
             market_id,
             &mut wallet,
@@ -105,7 +103,7 @@ module nft_protocol::test_fixed_price {
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
 
         let market_id = init_market(&mut slot, 10, false, &mut scenario);
-        
+
         slot::add_nft(
             &mut slot,
             market_id,
@@ -118,8 +116,7 @@ module nft_protocol::test_fixed_price {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(15, ctx(&mut scenario));
-        fixed_price::buy_nft_certificate(
-            &launchpad,
+        fixed_price::buy_nft<COLLECTION, SUI>(
             &mut slot,
             market_id,
             &mut wallet,
@@ -130,12 +127,6 @@ module nft_protocol::test_fixed_price {
 
         transfer::transfer(wallet, BUYER);
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let certificate = test_scenario::take_from_address<NftCertificate>(
-            &mut scenario, BUYER
-        );
-        slot::assert_nft_certificate_slot(object::id(&slot), &certificate);
-        test_scenario::return_to_address(BUYER, certificate);
 
         test_scenario::return_shared(slot);
         test_scenario::return_shared(launchpad);
@@ -150,12 +141,11 @@ module nft_protocol::test_fixed_price {
 
         let market_id = init_market(&mut slot, 10, true, &mut scenario);
         slot::sale_on(&mut slot, ctx(&mut scenario));
-        
+
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        fixed_price::buy_nft_certificate(
-            &launchpad,
+        fixed_price::buy_nft<COLLECTION, SUI>(
             &mut slot,
             market_id,
             &mut wallet,
@@ -166,12 +156,6 @@ module nft_protocol::test_fixed_price {
 
         transfer::transfer(wallet, BUYER);
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let certificate = test_scenario::take_from_address<NftCertificate>(
-            &mut scenario, BUYER
-        );
-        slot::assert_nft_certificate_slot(object::id(&slot), &certificate);
-        test_scenario::return_to_address(BUYER, certificate);
 
         test_scenario::return_shared(slot);
         test_scenario::return_shared(launchpad);
@@ -184,14 +168,14 @@ module nft_protocol::test_fixed_price {
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
 
         let market_id = init_market(&mut slot, 10, true, &mut scenario);
-        
+
         slot::add_nft(
             &mut slot,
             market_id,
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
-        
+
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         slot::transfer_whitelist_certificate(
@@ -205,8 +189,7 @@ module nft_protocol::test_fixed_price {
         >(&scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        fixed_price::buy_whitelisted_nft_certificate(
-            &launchpad,
+        fixed_price::buy_whitelisted_nft<COLLECTION, SUI>(
             &mut slot,
             market_id,
             &mut wallet,
@@ -216,12 +199,6 @@ module nft_protocol::test_fixed_price {
 
         transfer::transfer(wallet, BUYER);
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let certificate = test_scenario::take_from_address<NftCertificate>(
-            &mut scenario, BUYER
-        );
-        slot::assert_nft_certificate_slot(object::id(&slot), &certificate);
-        test_scenario::return_to_address(BUYER, certificate);
 
         test_scenario::return_shared(slot);
         test_scenario::return_shared(launchpad);

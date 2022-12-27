@@ -1,6 +1,7 @@
 sui.log.*
 .env
 build
+target
 output.bpl
 .coverage_*
 .trace

@@ -16,13 +16,11 @@ module nft_protocol::fixed_price {
     // `buy_whitelisted_nft_certificate`
     use sui::balance;
     use sui::coin::{Self, Coin};
-    use sui::transfer::{Self};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
-    use nft_protocol::launchpad::Launchpad;
 
     struct FixedPriceMarket<phantom FT> has key, store {
         id: UID,
@@ -79,8 +77,7 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_nft_certificate<FT>(
-        launchpad: &Launchpad,
+    public entry fun buy_nft<C, FT>(
         slot: &mut Slot,
         market_id: ID,
         wallet: &mut Coin<FT>,
@@ -88,8 +85,7 @@ module nft_protocol::fixed_price {
     ) {
         slot::assert_market_is_not_whitelisted(slot, market_id);
 
-        buy_nft_certificate_(
-            launchpad,
+        buy_nft_<C, FT>(
             slot,
             market_id,
             wallet,
@@ -103,8 +99,7 @@ module nft_protocol::fixed_price {
     /// A `NftCertificate` object will be minted and transfered to the sender
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
-    public entry fun buy_whitelisted_nft_certificate<FT>(
-        launchpad: &Launchpad,
+    public entry fun buy_whitelisted_nft<C, FT>(
         slot: &mut Slot,
         market_id: ID,
         wallet: &mut Coin<FT>,
@@ -116,8 +111,7 @@ module nft_protocol::fixed_price {
 
         slot::burn_whitelist_certificate(whitelist_token);
 
-        buy_nft_certificate_(
-            launchpad,
+        buy_nft_<C, FT>(
             slot,
             market_id,
             wallet,
@@ -125,8 +119,7 @@ module nft_protocol::fixed_price {
         )
     }
 
-    fun buy_nft_certificate_<FT>(
-        launchpad: &Launchpad,
+    fun buy_nft_<C, FT>(
         slot: &mut Slot,
         market_id: ID,
         wallet: &mut Coin<FT>,
@@ -140,18 +133,10 @@ module nft_protocol::fixed_price {
         let funds = balance::split(coin::balance_mut(wallet), market.price);
         slot::pay(slot, funds, 1);
 
-        let certificate = slot::issue_nft_certificate_internal<
-            FixedPriceMarket<FT>, Witness
-        >(
+        slot::redeem_nft_and_transfer<C, FixedPriceMarket<FT>, Witness>(
             Witness {},
-            launchpad,
             slot,
             market_id,
-            ctx
-        );
-
-        transfer::transfer(
-            certificate,
             tx_context::sender(ctx),
         );
     }
