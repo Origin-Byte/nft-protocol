@@ -81,16 +81,22 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        nft_protocol::fixed_price::init_market<sui::sui::SUI>(
+        let inventory_id =
+            nft_protocol::slot::create_inventory(&mut slot, false, ctx);
+
+        nft_protocol::fixed_price::create_market_on_slot<sui::sui::SUI>(
             &mut slot,
-            false,
+            inventory_id,
             500,
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_market<sui::sui::SUI>(
+        let inventory_id =
+            nft_protocol::slot::create_inventory(&mut slot, false, ctx);
+
+        nft_protocol::dutch_auction::create_market_on_slot<sui::sui::SUI>(
             &mut slot,
-            true,
+            inventory_id,
             100,
             ctx,
         );

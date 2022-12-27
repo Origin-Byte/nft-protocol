@@ -21,6 +21,7 @@ module nft_protocol::inventory {
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
+    use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::nft::Nft;
     use nft_protocol::err;
@@ -33,52 +34,52 @@ module nft_protocol::inventory {
     struct Inventory has key, store {
         id: UID,
         whitelisted: bool,
+        /// Vector of all markets outlets that, each outles holding IDs
+        /// owned by the slot
+        markets: ObjectBag,
         // NFTs that are currently on sale. When a `NftCertificate` is sold,
         // its corresponding NFT ID will be flushed from `nfts` and will be
         // added to `queue`.
         nfts_on_sale: vector<ID>,
     }
 
-    public entry fun create_for_sender(
-        whitelisted: bool,
-        ctx: &mut TxContext,
-    ) {
-        let inventory = new(whitelisted, ctx);
-
-        transfer::transfer(inventory, tx_context::sender(ctx));
-    }
-
     public fun new(
         whitelisted: bool,
         ctx: &mut TxContext,
     ): Inventory {
-        let id = object::new(ctx);
-
-        let nfts_on_sale = vector::empty();
-
         Inventory {
-            id,
+            id: object::new(ctx),
             whitelisted,
-            nfts_on_sale,
+            markets: object_bag::new(ctx),
+            nfts_on_sale: vector::empty(),
         }
     }
 
-    /// Burn the `Inventory` and return the `Market` object
-    public fun delete(
-        inventory: Inventory,
+    /// Creates a `Inventory` and transfers to transaction sender
+    public entry fun init_inventory(
+        whitelisted: bool,
+        ctx: &mut TxContext,
     ) {
-        assert!(
-            vector::length(&inventory.nfts_on_sale) == 0,
-            err::nft_sale_incompleted()
+        let inventory = new(whitelisted, ctx);
+        transfer::transfer(inventory, tx_context::sender(ctx));
+    }
+
+    /// Adds a new market to `Inventory` allowing NFTs deposited to the 
+    /// inventory to be sold.
+    /// 
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    public entry fun add_market<Market: key + store>(
+        inventory: &mut Inventory,
+        market: Market,
+    ) {
+        let market_id = object::id(&market);
+
+        object_bag::add<ID, Market>(
+            &mut inventory.markets,
+            market_id,
+            market,
         );
-
-        let Inventory {
-            id,
-            whitelisted: _,
-            nfts_on_sale: _,
-        } = inventory;
-
-        object::delete(id);
     }
 
     /// Adds NFT as a dynamic child object with its ID as key and
@@ -88,6 +89,9 @@ module nft_protocol::inventory {
     /// owned by the Slot. The function call will fail otherwise, because
     /// one would have to refer to the Slot, the parent shared object, in order
     /// for the bytecode verifier not to fail.
+    /// 
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
     public entry fun deposit_nft<C>(
         inventory: &mut Inventory,
         nft: Nft<C>,
@@ -99,9 +103,7 @@ module nft_protocol::inventory {
     }
 
     /// Removes NFT from dynamic field with its ID as key
-    public(friend) fun redeem_nft<C>(
-        inventory: &mut Inventory,
-    ): Nft<C> {
+    public(friend) fun redeem_nft<C>(inventory: &mut Inventory): Nft<C> {
         let nfts = &mut inventory.nfts_on_sale;
         assert!(!vector::is_empty(nfts), err::no_nfts_left());
         let nft_id = vector::pop_back(nfts);
@@ -115,41 +117,69 @@ module nft_protocol::inventory {
     }
 
     /// Check how many `nfts` there are to sell
-    public fun length(
-        inventory: &Inventory,
-    ): u64 {
+    public fun length(inventory: &Inventory): u64 {
         vector::length(&inventory.nfts_on_sale)
     }
 
-    public fun is_empty(
-        inventory: &Inventory,
-    ): bool {
+    public fun is_empty(inventory: &Inventory): bool {
         vector::is_empty(&inventory.nfts_on_sale)
     }
 
-    public fun is_whitelisted(
-        inventory: &Inventory,
-    ): bool {
+    public fun is_whitelisted(inventory: &Inventory): bool {
         inventory.whitelisted
+    }
+
+    /// Get the `Inventory` markets
+    public fun markets(inventory: &Inventory): &ObjectBag {
+        &inventory.markets
+    }
+
+    /// Get specific `Inventory` market
+    public fun market<Market: key + store>(
+        inventory: &Inventory,
+        market_id: ID,
+    ): &Market {
+        assert_market<Market>(inventory, market_id);
+        object_bag::borrow<ID, Market>(&inventory.markets, market_id)
+    }
+
+    /// Get specific `Inventory` market mutably
+    /// 
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    public fun market_mut<Market: key + store>(
+        inventory: &mut Inventory,
+        market_id: ID,
+    ): &mut Market {
+        assert_market<Market>(inventory, market_id);
+        object_bag::borrow_mut<ID, Market>(&mut inventory.markets, market_id)
     }
 
     // === Assertions ===
 
-    public fun assert_is_whitelisted(
-        inventory: &Inventory,
-    ) {
+    public fun assert_is_whitelisted(inventory: &Inventory) {
         assert!(
             is_whitelisted(inventory),
             err::sale_is_not_whitelisted()
         );
     }
 
-    public fun assert_is_not_whitelisted(
-        inventory: &Inventory,
-    ) {
+    public fun assert_is_not_whitelisted(inventory: &Inventory) {
         assert!(
             !is_whitelisted(inventory),
             err::sale_is_whitelisted()
+        );
+    }
+
+    public fun assert_market<M: key + store>(
+        inventory: &Inventory,
+        market_id: ID,
+    ) {
+        assert!(
+            object_bag::contains_with_type<ID, M>(
+                &inventory.markets, market_id
+            ),
+            err::undefined_market(),
         );
     }
 }
