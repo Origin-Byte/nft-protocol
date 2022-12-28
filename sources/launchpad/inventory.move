@@ -36,6 +36,8 @@ module nft_protocol::inventory {
         id: UID,
         /// Track which markets are live
         live: VecMap<ID, bool>,
+        /// Track which markets are whitelisted
+        whitelisted: VecMap<ID, bool>,
         /// Vector of all markets outlets that, each outles holding IDs
         /// owned by the slot
         markets: ObjectBag,
@@ -51,16 +53,14 @@ module nft_protocol::inventory {
         Inventory {
             id: object::new(ctx),
             live: vec_map::empty(),
+            whitelisted: vec_map::empty(),
             markets: object_bag::new(ctx),
             nfts_on_sale: vector::empty(),
         }
     }
 
     /// Creates a `Inventory` and transfers to transaction sender
-    public entry fun init_inventory(
-        whitelisted: bool,
-        ctx: &mut TxContext,
-    ) {
+    public entry fun init_inventory(ctx: &mut TxContext) {
         let inventory = new(ctx);
         transfer::transfer(inventory, tx_context::sender(ctx));
     }
@@ -72,11 +72,13 @@ module nft_protocol::inventory {
     /// reference to `Inventory`.
     public entry fun add_market<Market: key + store>(
         inventory: &mut Inventory,
+        is_whitelisted: bool,
         market: Market,
     ) {
         let market_id = object::id(&market);
 
         vec_map::insert(&mut inventory.live, market_id, false);
+        vec_map::insert(&mut inventory.whitelisted, market_id, is_whitelisted);
 
         object_bag::add<ID, Market>(
             &mut inventory.markets,
@@ -105,18 +107,39 @@ module nft_protocol::inventory {
         dof::add(&mut inventory.id, nft_id, nft);
     }
 
-    /// Removes NFT from dynamic field with its ID as key
-    public(friend) fun redeem_nft<C>(inventory: &mut Inventory): Nft<C> {
+    /// Redeems NFT from `Inventory`
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    public fun redeem_nft<C>(
+        inventory: &mut Inventory,
+    ): Nft<C> {
         let nfts = &mut inventory.nfts_on_sale;
         assert!(!vector::is_empty(nfts), err::no_nfts_left());
-        let nft_id = vector::pop_back(nfts);
 
-        let nft = dof::remove<ID, Nft<C>>(
-            &mut inventory.id,
-            nft_id,
-        );
+        dof::remove(&mut inventory.id, vector::pop_back(nfts))
+    }
 
-        nft
+    /// Set market's live status to `true` therefore making the NFT sale live
+    public entry fun set_live(
+        inventory: &mut Inventory,
+        market_id: ID,
+        is_live: bool,
+    ) {
+        *vec_map::get_mut(&mut inventory.live, &market_id) = is_live;
+    }
+
+    /// Set market's live status to `false` therefore pausing or stopping the
+    /// NFT sale
+    ///
+    /// Can also be turned off by the Launchpad admin
+    public entry fun set_whitelisted(
+        inventory: &mut Inventory,
+        market_id: ID,
+        is_whitelisted: bool,
+    ) {
+        *vec_map::get_mut(&mut inventory.whitelisted, &market_id) =
+            is_whitelisted;
     }
 
     // === Getter Functions ===
@@ -126,12 +149,18 @@ module nft_protocol::inventory {
         vector::length(&inventory.nfts_on_sale)
     }
 
+    /// Get the market's `live` status
+    public fun is_live(inventory: &Inventory, market_id: &ID): bool {
+        *vec_map::get(&inventory.live, market_id)
+    }
+
+
     public fun is_empty(inventory: &Inventory): bool {
         vector::is_empty(&inventory.nfts_on_sale)
     }
 
-    public fun is_whitelisted(inventory: &Inventory, market_id: ID): bool {
-        *vec_map::get(&inventory.live, &market_id)
+    public fun is_whitelisted(inventory: &Inventory, market_id: &ID): bool {
+        *vec_map::get(&inventory.whitelisted, market_id)
     }
 
     /// Get the `Inventory` markets
@@ -162,26 +191,30 @@ module nft_protocol::inventory {
 
     // === Assertions ===
 
-    public fun assert_is_whitelisted(inventory: &Inventory) {
-        // assert!(
-        //     is_whitelisted(inventory),
-        //     err::sale_is_not_whitelisted()
-        // );
+    public fun assert_is_live(inventory: &Inventory, market_id: &ID) {
+        assert!(is_live(inventory, market_id), err::slot_not_live());
     }
 
-    public fun assert_is_not_whitelisted(inventory: &Inventory) {
-        // assert!(
-        //     !is_whitelisted(inventory),
-        //     err::sale_is_whitelisted()
-        // );
+    public fun assert_is_whitelisted(inventory: &Inventory, market_id: &ID) {
+        assert!(
+            is_whitelisted(inventory, market_id),
+            err::sale_is_not_whitelisted()
+        );
     }
 
-    public fun assert_market<M: key + store>(
+    public fun assert_is_not_whitelisted(inventory: &Inventory, market_id: &ID) {
+        assert!(
+            !is_whitelisted(inventory, market_id),
+            err::sale_is_whitelisted()
+        );
+    }
+
+    public fun assert_market<Market: key + store>(
         inventory: &Inventory,
         market_id: ID,
     ) {
         assert!(
-            object_bag::contains_with_type<ID, M>(
+            object_bag::contains_with_type<ID, Market>(
                 &inventory.markets, market_id
             ),
             err::undefined_market(),

@@ -173,15 +173,13 @@ module nft_protocol::slot {
     /// Initializes an empty `Inventory` on `Slot`
     public entry fun init_inventory(
         slot: &mut Slot,
-        is_whitelisted: bool,
         ctx: &mut TxContext,
     ) {
-        create_inventory(slot, is_whitelisted, ctx);
+        create_inventory(slot, ctx);
     }
 
     public fun create_inventory(
         slot: &mut Slot,
-        is_whitelisted: bool,
         ctx: &mut TxContext,
     ): ID {
         let inventory = inventory::new(ctx);
@@ -192,8 +190,6 @@ module nft_protocol::slot {
         inventory_id
     }
 
-    // === Public functions ===
-
     public fun pay<FT>(
         slot: &mut Slot,
         balance: Balance<FT>,
@@ -201,38 +197,6 @@ module nft_protocol::slot {
     ) {
         let proceeds = proceeds_mut(slot);
         proceeds::add(proceeds, balance, qty_sold);
-    }
-
-    /// Adds NFT as a dynamic child object with its ID as key
-    public fun redeem_nft_internal<
-        C,
-        Market: key + store,
-        Witness: drop
-    >(
-        _witness: Witness,
-        slot: &mut Slot,
-        inventory_id: ID,
-    ): Nft<C> {
-        inventory::redeem_nft<C>(inventory_mut(slot, inventory_id))
-    }
-
-    /// Adds NFT as a dynamic child object with its ID as key
-    public fun redeem_nft_internal_and_transfer<
-        C,
-        Market: key + store,
-        Witness: drop
-    >(
-        _witness: Witness,
-        slot: &mut Slot,
-        inventory_id: ID,
-        recipient: address,
-    ) {
-        let nft = redeem_nft_internal<C, Market, Witness>(
-            _witness,
-            slot,
-            inventory_id,
-        );
-        transfer::transfer(nft, recipient);
     }
 
     // === Admin functions ===
@@ -274,13 +238,14 @@ module nft_protocol::slot {
     public entry fun add_market<Market: key + store>(
         slot: &mut Slot,
         inventory_id: ID,
+        is_whitelisted: bool,
         market: Market,
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
 
         let inventory = inventory_mut(slot, inventory_id);
-        inventory::add_market(inventory, market);
+        inventory::add_market(inventory, is_whitelisted, market);
     }
 
     /// Adds NFT as a dynamic child object with its ID as key
@@ -299,12 +264,17 @@ module nft_protocol::slot {
     /// Set market's live status to `true` therefore making the NFT sale live
     public entry fun sale_on(
         slot: &mut Slot,
+        inventory_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
 
-        // *vec_map::get_mut(&mut slot.live, &market_id) = true;
+        inventory::set_live(
+            inventory_mut(slot, inventory_id),
+            market_id,
+            true,
+        );
     }
 
     /// Set market's live status to `false` therefore pausing or stopping the
@@ -314,22 +284,21 @@ module nft_protocol::slot {
     public entry fun sale_off(
         launchpad: &Launchpad,
         slot: &mut Slot,
+        inventory_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_slot_launchpad_match(launchpad, slot);
         assert_correct_admin(launchpad, slot, ctx);
 
-        // *vec_map::get_mut(&mut slot.live, &market_id) = false;
+        inventory::set_live(
+            inventory_mut(slot, inventory_id),
+            market_id,
+            false,
+        );
     }
 
     // === Getter functions ===
-
-    /// Get the Slot's `live`
-    public fun is_live(slot: &Slot, market_id: ID): bool {
-        // *vec_map::get(&slot.live, &market_id)
-        true
-    }
 
     /// Get the Slot's `receiver` address
     public fun receiver(slot: &Slot): address {
@@ -357,58 +326,33 @@ module nft_protocol::slot {
         &mut slot.proceeds
     }
 
-    /// Get specific `Slot` market
-    public fun market<Market: key + store>(
-        slot: &Slot,
-        inventory_id: ID,
-        market_id: ID,
-    ): &Market {
-        let inventory = inventory(slot, inventory_id);
-        inventory::market<Market>(inventory, market_id)
-    }
-    
-    /// Get the specific `Slot` market
-    ///
-    /// This will require that sender is a `Slot` admin, for non admin mutable
-    /// access use `market_internal_mut`.
-    public fun market_mut<Market: key + store>(
-        slot: &mut Slot,
-        inventory_id: ID,
-        market_id: ID,
-        ctx: &mut TxContext,
-    ): &mut Market {
-        assert_slot_admin(slot, ctx);
-        
-        let inventory = inventory_mut(slot, inventory_id);
-        inventory::market_mut<Market>(inventory, market_id)
-    }
-
-    /// Get the Slot's `market` mutably
-    ///
-    /// Does not require that sender is a `Slot` admin, limited for use only in
-    /// the module that defined the market type.
-    public fun market_internal_mut<Market: key + store, Witness: drop>(
-        _witness: Witness,
-        slot: &mut Slot,
-        inventory_id: ID,
-        market_id: ID,
-    ): &mut Market {
-        utils::assert_same_module_as_witness<Market, Witness>();
-
-        let inventory = inventory_mut(slot, inventory_id);
-        inventory::market_mut<Market>(inventory, market_id)
-    }
-
     /// Get the Slot's `Inventory`
     public fun inventory(slot: &Slot, inventory_id: ID): &Inventory {
         assert_inventory(slot, inventory_id);
         object_table::borrow(&slot.inventories, inventory_id)
     }
 
-    /// Get the Slot's `Inventory` mutably
     fun inventory_mut(slot: &mut Slot, inventory_id: ID): &mut Inventory {
         assert_inventory(slot, inventory_id);
         object_table::borrow_mut(&mut slot.inventories, inventory_id)
+    }
+
+    /// Get the Slot's `Inventory` mutably
+    /// 
+    /// `Inventory` is unprotected therefore only market modules registered
+    /// on an inventory can gain mutable access to the inventory.
+    public fun inventory_internal_mut<Market: key + store, Witness: drop>(
+        _witness: Witness,
+        slot: &mut Slot,
+        inventory_id: ID,
+        market_id: ID,
+    ): &mut Inventory {
+        utils::assert_same_module_as_witness<Market, Witness>();
+
+        let inventory = inventory_mut(slot, inventory_id);
+        inventory::assert_market<Market>(inventory, market_id);
+
+        inventory
     }
 
     // === Assertions ===
@@ -439,14 +383,6 @@ module nft_protocol::slot {
         }
     }
 
-    public fun assert_is_live(slot: &Slot, market_id: ID) {
-        assert!(is_live(slot, market_id), err::slot_not_live());
-    }
-
-    public fun assert_is_not_live(slot: &Slot, market_id: ID) {
-        assert!(!is_live(slot, market_id), err::slot_not_live());
-    }
-
     public fun assert_default_fee(slot: &Slot) {
         assert!(
             !obox::is_empty(&slot.custom_fee),
@@ -459,31 +395,6 @@ module nft_protocol::slot {
             object_table::contains(&slot.inventories, inventory_id),
             err::undefined_inventory(),
         );
-    }
-
-    public fun assert_market<M: key + store>(
-        slot: &Slot,
-        inventory_id: ID,
-        market_id: ID,
-    ) {
-        let inventory = inventory(slot, inventory_id);
-        inventory::assert_market<M>(inventory, market_id);
-    }
-
-    public fun assert_inventory_is_whitelisted(slot: &Slot, inventory_id: ID) {
-        let inventory = inventory(slot, inventory_id);
-        // assert!(
-        //     inventory::is_whitelisted(inventory),
-        //     err::sale_is_not_whitelisted()
-        // );
-    }
-
-    public fun assert_inventory_is_not_whitelisted(slot: &Slot, inventory_id: ID) {
-        let inventory = inventory(slot, inventory_id);
-        // assert!(
-        //     !inventory::is_whitelisted(inventory),
-        //     err::sale_is_whitelisted()
-        // );
     }
 
     public fun assert_contains_nft<C>(slot: &Slot, nft_id: ID) {
