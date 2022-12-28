@@ -19,7 +19,7 @@ module nft_protocol::mint_and_sell {
     use nft_protocol::attribution;
     use nft_protocol::slot::{Self, Slot};
     use nft_protocol::launchpad::{Self, Launchpad};
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::inventory;
 
     struct Witness has drop {}
 
@@ -107,12 +107,7 @@ module nft_protocol::mint_and_sell {
 
         // 3. Create inventory and mint NFT to it
         test_scenario::next_tx(&mut scenario, CREATOR);
-        inventory::create_for_sender(false, ctx(&mut scenario));
-
-        test_scenario::next_tx(&mut scenario, CREATOR);
-        let inventory = test_scenario::take_from_address<Inventory>(
-            &scenario, CREATOR
-        );
+        let inventory = inventory::new(false, ctx(&mut scenario));
 
         let nft = nft::new<Foo>(
             tx_context::sender(ctx(&mut scenario)), ctx(&mut scenario)
@@ -144,12 +139,13 @@ module nft_protocol::mint_and_sell {
         inventory::deposit_nft(&mut inventory, nft);
 
         // 4. Init Market in Launchpad Slot
-        fixed_price::init_market_with_inventory<SUI>(
-            &mut slot,
-            inventory,
+        fixed_price::create_market_on_inventory<SUI>(
+            &mut inventory,
             100,
             ctx(&mut scenario),
         );
+
+        slot::add_inventory(&mut slot, inventory, ctx(&mut scenario));
 
         // Return objects and end test
         test_scenario::return_shared(launchpad);

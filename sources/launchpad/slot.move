@@ -17,7 +17,6 @@ module nft_protocol::slot {
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
-    use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::err;
     use nft_protocol::utils;
@@ -102,9 +101,6 @@ module nft_protocol::slot {
         admin: address,
         /// The address of the receiver of funds
         receiver: address,
-        /// Vector of all markets outlets that, each outles holding IDs
-        /// owned by the slot
-        markets: ObjectBag,
         inventories: ObjectTable<ID, Inventory>,
         /// Proceeds object holds the balance of Fungible Tokens acquired from
         /// the sale of the Slot
@@ -143,7 +139,6 @@ module nft_protocol::slot {
         };
 
         let uid = object::new(ctx);
-        let markets = object_bag::new(ctx);
         let inventories = object_table::new<ID, Inventory>(ctx);
 
         Slot {
@@ -152,7 +147,6 @@ module nft_protocol::slot {
             live: false,
             admin: slot_admin,
             receiver,
-            markets,
             inventories,
             proceeds: proceeds::empty(ctx),
             custom_fee: obox::empty(ctx),
@@ -179,7 +173,29 @@ module nft_protocol::slot {
         transfer::share_object(slot);
     }
 
-    /// === Public functions ===
+    /// Initializes an empty `Inventory` on `Slot`
+    public entry fun init_inventory(
+        slot: &mut Slot,
+        is_whitelisted: bool,
+        ctx: &mut TxContext,
+    ) {
+        create_inventory(slot, is_whitelisted, ctx);
+    }
+
+    public fun create_inventory(
+        slot: &mut Slot,
+        is_whitelisted: bool,
+        ctx: &mut TxContext,
+    ): ID {
+        let inventory = inventory::new(is_whitelisted, ctx);
+        let inventory_id = object::id(&inventory);
+
+        add_inventory(slot, inventory, ctx);
+        
+        inventory_id
+    }
+
+    // === Public functions ===
 
     public fun pay<FT>(
         slot: &mut Slot,
@@ -198,41 +214,31 @@ module nft_protocol::slot {
     >(
         _witness: Witness,
         slot: &mut Slot,
-        market_id: ID,
+        inventory_id: ID,
     ): Nft<C> {
-        utils::assert_same_module_as_witness<Market, Witness>();
-        assert_market<Market>(slot, market_id);
-
-        let inventory = inventory_mut(slot, market_id);
-        let nft = inventory::redeem_nft<C>(inventory);
-
-        nft
+        inventory::redeem_nft<C>(inventory_mut(slot, inventory_id))
     }
 
     /// Adds NFT as a dynamic child object with its ID as key
-    public fun redeem_nft_and_transfer<
+    public fun redeem_nft_internal_and_transfer<
         C,
         Market: key + store,
         Witness: drop
     >(
         _witness: Witness,
         slot: &mut Slot,
-        market_id: ID,
+        inventory_id: ID,
         recipient: address,
     ) {
-        utils::assert_same_module_as_witness<Market, Witness>();
-        assert_market<Market>(slot, market_id);
-
         let nft = redeem_nft_internal<C, Market, Witness>(
             _witness,
             slot,
-            market_id,
+            inventory_id,
         );
-
         transfer::transfer(nft, recipient);
     }
 
-    /// === Admin functions ===
+    // === Admin functions ===
 
     /// Adds a fee object to the Slot's `custom_fee`
     ///
@@ -253,40 +259,43 @@ module nft_protocol::slot {
         obox::add<FeeType>(&mut slot.custom_fee, fee);
     }
 
-    /// Adds a new Market to `markets` and Inventory to `inventories` tables
-    public entry fun add_market<Market: key + store>(
+    public entry fun add_inventory(
         slot: &mut Slot,
-        market: Market,
         inventory: Inventory,
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
 
-        let market_id = object::id(&market);
-
-        object_bag::add<ID, Market>(
-            &mut slot.markets,
-            market_id,
-            market,
-        );
-
         object_table::add<ID, Inventory>(
             &mut slot.inventories,
-            market_id,
+            object::id(&inventory),
             inventory,
         );
+    }
+
+    /// Adds a new Market to `markets` and Inventory to `inventories` tables
+    public entry fun add_market<Market: key + store>(
+        slot: &mut Slot,
+        inventory_id: ID,
+        market: Market,
+        ctx: &mut TxContext,
+    ) {
+        assert_slot_admin(slot, ctx);
+
+        let inventory = inventory_mut(slot, inventory_id);
+        inventory::add_market(inventory, market);
     }
 
     /// Adds NFT as a dynamic child object with its ID as key
     public entry fun add_nft<C>(
         slot: &mut Slot,
-        market_id: ID,
+        inventory_id: ID,
         nft: Nft<C>,
         ctx: &mut TxContext,
     ) {
         assert_slot_admin(slot, ctx);
 
-        let inventory = inventory_mut(slot, market_id);
+        let inventory = inventory_mut(slot, inventory_id);
         inventory::deposit_nft(inventory, nft);
     }
 
@@ -346,32 +355,30 @@ module nft_protocol::slot {
         &mut slot.proceeds
     }
 
-    /// Get the Slot's sale `market` table
-    public fun markets(slot: &Slot): &ObjectBag {
-        &slot.markets
-    }
-
-    /// Get the Slot's `market`
+    /// Get specific `Slot` market
     public fun market<Market: key + store>(
         slot: &Slot,
+        inventory_id: ID,
         market_id: ID,
     ): &Market {
-        assert_market<Market>(slot, market_id);
-        object_bag::borrow<ID, Market>(&slot.markets, market_id)
+        let inventory = inventory(slot, inventory_id);
+        inventory::market<Market>(inventory, market_id)
     }
-
-    /// Get the Slot's `market` mutably
+    
+    /// Get the specific `Slot` market
     ///
     /// This will require that sender is a `Slot` admin, for non admin mutable
     /// access use `market_internal_mut`.
     public fun market_mut<Market: key + store>(
         slot: &mut Slot,
+        inventory_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ): &mut Market {
         assert_slot_admin(slot, ctx);
-        assert_market<Market>(slot, market_id);
-        object_bag::borrow_mut<ID, Market>(&mut slot.markets, market_id)
+        
+        let inventory = inventory_mut(slot, inventory_id);
+        inventory::market_mut<Market>(inventory, market_id)
     }
 
     /// Get the Slot's `market` mutably
@@ -381,23 +388,25 @@ module nft_protocol::slot {
     public fun market_internal_mut<Market: key + store, Witness: drop>(
         _witness: Witness,
         slot: &mut Slot,
+        inventory_id: ID,
         market_id: ID,
     ): &mut Market {
         utils::assert_same_module_as_witness<Market, Witness>();
-        assert_market<Market>(slot, market_id);
-        object_bag::borrow_mut<ID, Market>(&mut slot.markets, market_id)
+
+        let inventory = inventory_mut(slot, inventory_id);
+        inventory::market_mut<Market>(inventory, market_id)
     }
 
     /// Get the Slot's `Inventory`
-    public fun inventory(slot: &Slot, market_id: ID): &Inventory {
-        assert_inventory(slot, market_id);
-        object_table::borrow(&slot.inventories, market_id)
+    public fun inventory(slot: &Slot, inventory_id: ID): &Inventory {
+        assert_inventory(slot, inventory_id);
+        object_table::borrow(&slot.inventories, inventory_id)
     }
 
     /// Get the Slot's `Inventory` mutably
-    fun inventory_mut(slot: &mut Slot, market_id: ID): &mut Inventory {
-        assert_inventory(slot, market_id);
-        object_table::borrow_mut(&mut slot.inventories, market_id)
+    fun inventory_mut(slot: &mut Slot, inventory_id: ID): &mut Inventory {
+        assert_inventory(slot, inventory_id);
+        object_table::borrow_mut(&mut slot.inventories, inventory_id)
     }
 
     // === Assertions ===
@@ -439,32 +448,32 @@ module nft_protocol::slot {
         );
     }
 
-    public fun assert_inventory(slot: &Slot, market_id: ID) {
+    public fun assert_inventory(slot: &Slot, inventory_id: ID) {
         assert!(
-            object_table::contains(&slot.inventories, market_id),
-            err::undefined_market(),
+            object_table::contains(&slot.inventories, inventory_id),
+            err::undefined_inventory(),
         );
     }
 
-    public fun assert_market<M: key + store>(slot: &Slot, market_id: ID) {
-        assert!(
-            object_bag::contains_with_type<ID, M>(&slot.markets, market_id),
-            err::undefined_market(),
-        );
+    public fun assert_market<M: key + store>(
+        slot: &Slot,
+        inventory_id: ID,
+        market_id: ID,
+    ) {
+        let inventory = inventory(slot, inventory_id);
+        inventory::assert_market<M>(inventory, market_id);
     }
 
-    public fun assert_market_is_whitelisted(slot: &Slot, market_id: ID ) {
-        let inventory = inventory(slot, market_id);
-
+    public fun assert_inventory_is_whitelisted(slot: &Slot, inventory_id: ID) {
+        let inventory = inventory(slot, inventory_id);
         assert!(
             inventory::is_whitelisted(inventory),
             err::sale_is_not_whitelisted()
         );
     }
 
-    public fun assert_market_is_not_whitelisted(slot: &Slot, market_id: ID) {
-        let inventory = inventory(slot, market_id);
-
+    public fun assert_inventory_is_not_whitelisted(slot: &Slot, inventory_id: ID) {
+        let inventory = inventory(slot, inventory_id);
         assert!(
             !inventory::is_whitelisted(inventory),
             err::sale_is_whitelisted()
