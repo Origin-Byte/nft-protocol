@@ -81,8 +81,10 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::slot::create_inventory(&mut slot, false, ctx);
+        let is_whitelisted = false;
+        let inventory_id = nft_protocol::slot::create_inventory(
+            &mut slot, is_whitelisted, ctx
+        );
 
         nft_protocol::fixed_price::create_market_on_slot<sui::sui::SUI>(
             &mut slot,
@@ -91,8 +93,10 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::slot::create_inventory(&mut slot, false, ctx);
+        let is_whitelisted = false;
+        let inventory_id = nft_protocol::slot::create_inventory(
+            &mut slot, is_whitelisted, ctx
+        );
 
         nft_protocol::dutch_auction::create_market_on_slot<sui::sui::SUI>(
             &mut slot,

@@ -11,6 +11,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Changed
 
 - We maintain our own version of `movemate` dependency called `originmate`.
+- Markets (`FixedPriceMarket`, `DutchAuctionMarket`) are now registered on `Inventory` rather than the `Slot`.
 
 ## [0.15.0] - 2022-12-22
 
