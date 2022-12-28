@@ -29,7 +29,7 @@ module nft_protocol::ob {
 
     use nft_protocol::err;
     use nft_protocol::safe::{Self, Safe, TransferCap};
-    use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils;
     use nft_protocol::trading::{
         AskCommission,
@@ -403,12 +403,12 @@ module nft_protocol::ob {
         wallet: &mut Coin<FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.buy_nft, err::action_not_public());
         buy_nft_<C, FT>(
-            book, nft_id, price, wallet, seller_safe, buyer_safe, whitelist, ctx
+            book, nft_id, price, wallet, seller_safe, buyer_safe, allowlist, ctx
         )
     }
 
@@ -420,13 +420,13 @@ module nft_protocol::ob {
         wallet: &mut Coin<FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
         buy_nft_<C, FT>(
-            book, nft_id, price, wallet, seller_safe, buyer_safe, whitelist, ctx
+            book, nft_id, price, wallet, seller_safe, buyer_safe, allowlist, ctx
         )
     }
 
@@ -441,10 +441,10 @@ module nft_protocol::ob {
         trade: &mut TradeIntermediate<C, FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        finish_trade_<C, FT>(trade, seller_safe, buyer_safe, whitelist, ctx)
+        finish_trade_<C, FT>(trade, seller_safe, buyer_safe, allowlist, ctx)
     }
 
     // === Create orderbook ===
@@ -843,7 +843,7 @@ module nft_protocol::ob {
         wallet: &mut Coin<FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let buyer = tx_context::sender(ctx);
@@ -876,7 +876,7 @@ module nft_protocol::ob {
             transfer_cap,
             buyer,
             Witness {},
-            whitelist,
+            allowlist,
             seller_safe,
             buyer_safe,
             ctx,
@@ -887,7 +887,7 @@ module nft_protocol::ob {
         trade: &mut TradeIntermediate<C, FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let TradeIntermediate {
@@ -919,7 +919,7 @@ module nft_protocol::ob {
             transfer_cap,
             *buyer,
             Witness {},
-            whitelist,
+            allowlist,
             seller_safe,
             buyer_safe,
             ctx,

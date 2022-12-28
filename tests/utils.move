@@ -4,7 +4,7 @@ module nft_protocol::test_utils {
     use nft_protocol::nft;
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
-    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use std::option;
     use std::vector;
     use sui::coin::{Self, Coin};
@@ -18,19 +18,19 @@ module nft_protocol::test_utils {
 
     struct Foo has drop {} // collection
     struct Witness has drop {} // collection witness, must be named witness
-    struct WhitelistWitness has drop {}
+    struct AllowlistWitness has drop {}
 
     public fun witness(): Witness {
         Witness {}
     }
 
-    public fun create_collection_and_whitelist(scenario: &mut Scenario) {
+    public fun create_collection_and_allowlist(scenario: &mut Scenario) {
         let (cap, col) =
             collection::dummy_collection<Foo>(&Foo {}, CREATOR, scenario);
         share_object(col);
         test_scenario::next_tx(scenario, CREATOR);
 
-        let col_control_cap = transfer_whitelist::create_collection_cap<Foo, Witness>(
+        let col_control_cap = transfer_allowlist::create_collection_cap<Foo, Witness>(
             &Witness {}, ctx(scenario),
         );
 
@@ -38,7 +38,7 @@ module nft_protocol::test_utils {
         nft_protocol::example_free_for_all::init_(ctx(scenario));
         test_scenario::next_tx(scenario, CREATOR);
 
-        let wl: Whitelist = test_scenario::take_shared(scenario);
+        let wl: Allowlist = test_scenario::take_shared(scenario);
         nft_protocol::example_free_for_all::insert_collection(
             &col_control_cap,
             &mut wl,
@@ -50,7 +50,7 @@ module nft_protocol::test_utils {
         test_scenario::return_shared(wl);
     }
 
-    public fun create_collection_and_whitelist_with_type<C: drop, Witness: drop>(
+    public fun create_collection_and_allowlist_with_type<C: drop, Witness: drop>(
         coll_type: C,
         transfer_witness: Witness,
         creator: address,
@@ -66,7 +66,7 @@ module nft_protocol::test_utils {
         share_object(col);
         test_scenario::next_tx(scenario, creator);
 
-        let col_control_cap = transfer_whitelist::create_collection_cap<C, Witness>(
+        let col_control_cap = transfer_allowlist::create_collection_cap<C, Witness>(
             &transfer_witness, ctx(scenario),
         );
 
@@ -75,7 +75,7 @@ module nft_protocol::test_utils {
         nft_protocol::example_free_for_all::init_(ctx(scenario));
         test_scenario::next_tx(scenario, creator);
 
-        let wl: Whitelist = test_scenario::take_shared(scenario);
+        let wl: Allowlist = test_scenario::take_shared(scenario);
         let wl_id = object::id(&wl);
 
         nft_protocol::example_free_for_all::insert_collection(
@@ -283,7 +283,7 @@ module nft_protocol::test_utils {
     ) {
         let ti: ob::TradeIntermediate<Foo, SUI> =
             test_scenario::take_shared_by_id(scenario, ti_id);
-        let wl: Whitelist = test_scenario::take_shared(scenario);
+        let wl: Allowlist = test_scenario::take_shared(scenario);
 
         let seller_safe = user_safe(scenario, seller);
         let buyer_safe = user_safe(scenario, buyer);
@@ -321,7 +321,7 @@ module nft_protocol::test_utils {
         let seller_safe = user_safe(scenario, seller);
         let wallet = coin::mint_for_testing<SUI>(price, ctx(scenario));
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
-        let wl: Whitelist = test_scenario::take_shared(scenario);
+        let wl: Allowlist = test_scenario::take_shared(scenario);
         test_scenario::next_tx(scenario, buyer);
 
         ob::buy_nft(

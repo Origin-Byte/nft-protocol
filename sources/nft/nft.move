@@ -15,7 +15,7 @@ module nft_protocol::nft {
 
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
     /// NFT object from `C`ollection
     struct Nft<phantom C> has key, store {
@@ -82,30 +82,30 @@ module nft_protocol::nft {
 
     // === Transfer Functions ===
 
-    /// If the authority was whitelisted by the creator, we transfer
+    /// If the authority was allowlisted by the creator, we transfer
     /// the NFT to the recipient address.
     public fun transfer<C, Auth: drop>(
         nft: Nft<C>,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
     ) {
-        change_logical_owner(&mut nft, recipient, authority, whitelist);
+        change_logical_owner(&mut nft, recipient, authority, allowlist);
         transfer::transfer(nft, recipient);
     }
 
-    /// Whitelisted contracts (by creator) can change logical owner of an NFT.
+    /// Allowlisted contracts (by creator) can change logical owner of an NFT.
     public fun change_logical_owner<C, Auth: drop>(
         nft: &mut Nft<C>,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
     ) {
-        let is_ok = transfer_whitelist::can_be_transferred<C, Auth>(
+        let is_ok = transfer_allowlist::can_be_transferred<C, Auth>(
             authority,
-            whitelist,
+            allowlist,
         );
-        assert!(is_ok, err::authority_not_whitelisted());
+        assert!(is_ok, err::authority_not_allowlisted());
 
         nft.logical_owner = recipient;
     }
