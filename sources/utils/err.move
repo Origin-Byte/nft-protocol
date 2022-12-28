@@ -174,13 +174,13 @@ module nft_protocol::err {
         return Prefix + 408
     }
 
-    // === Whitelist ===
+    // === Allowlist ===
 
-    public fun authority_not_whitelisted(): u64 {
+    public fun authority_not_allowlisted(): u64 {
         return Prefix + 500
     }
 
-    public fun sender_not_whitelist_admin(): u64 {
+    public fun sender_not_allowlist_admin(): u64 {
         return Prefix + 502
     }
 

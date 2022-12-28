@@ -10,6 +10,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 
+- Renaming `whitelist` to `allowlist` in relation to transferring NFTs.
 - We maintain our own version of `movemate` dependency called `originmate`.
 
 ## [0.15.0] - 2022-12-22

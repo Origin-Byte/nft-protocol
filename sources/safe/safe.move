@@ -10,7 +10,7 @@ module nft_protocol::safe {
 
     use nft_protocol::err;
     use nft_protocol::nft::Nft;
-    use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::unprotected_safe::{Self, UnprotectedSafe};
 
     struct Safe has key, store {
@@ -143,7 +143,7 @@ module nft_protocol::safe {
         transfer(cap, tx_context::sender(ctx));
     }
 
-    /// Only owner or whitelisted collections can deposit.
+    /// Only owner or allowlisted collections can deposit.
     public entry fun restrict_deposits(
         owner_cap: &OwnerCap,
         safe: &mut Safe,
@@ -237,7 +237,7 @@ module nft_protocol::safe {
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         safe: &mut Safe,
     ) {
         let TransferCap {
@@ -249,7 +249,7 @@ module nft_protocol::safe {
             inner,
             recipient,
             authority,
-            whitelist,
+            allowlist,
             &mut safe.inner
         )
     }
@@ -282,7 +282,7 @@ module nft_protocol::safe {
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         source: &mut Safe,
         target: &mut Safe,
         ctx: &mut TxContext,
@@ -296,7 +296,7 @@ module nft_protocol::safe {
             inner,
             recipient,
             authority,
-            whitelist,
+            allowlist,
             &mut source.inner,
             &mut target.inner,
             ctx,
