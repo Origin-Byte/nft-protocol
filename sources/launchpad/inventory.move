@@ -120,7 +120,7 @@ module nft_protocol::inventory {
         dof::remove(&mut inventory.id, vector::pop_back(nfts))
     }
 
-    /// Set market's live status to `true` therefore making the NFT sale live
+    /// Set market's live status
     public entry fun set_live(
         inventory: &mut Inventory,
         market_id: ID,
@@ -129,10 +129,7 @@ module nft_protocol::inventory {
         *vec_map::get_mut(&mut inventory.live, &market_id) = is_live;
     }
 
-    /// Set market's live status to `false` therefore pausing or stopping the
-    /// NFT sale
-    ///
-    /// Can also be turned off by the Launchpad admin
+    /// Set market's whitelist status
     public entry fun set_whitelisted(
         inventory: &mut Inventory,
         market_id: ID,
@@ -153,7 +150,6 @@ module nft_protocol::inventory {
     public fun is_live(inventory: &Inventory, market_id: &ID): bool {
         *vec_map::get(&inventory.live, market_id)
     }
-
 
     public fun is_empty(inventory: &Inventory): bool {
         vector::is_empty(&inventory.nfts_on_sale)

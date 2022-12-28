@@ -14,7 +14,6 @@ module nft_protocol::slot {
     use sui::transfer;
     use sui::balance::Balance;
     use sui::object::{Self, ID , UID};
-    use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
 
@@ -332,6 +331,7 @@ module nft_protocol::slot {
         object_table::borrow(&slot.inventories, inventory_id)
     }
 
+    /// Get the Slot's `Inventory` mutably
     fun inventory_mut(slot: &mut Slot, inventory_id: ID): &mut Inventory {
         assert_inventory(slot, inventory_id);
         object_table::borrow_mut(&mut slot.inventories, inventory_id)
@@ -340,7 +340,7 @@ module nft_protocol::slot {
     /// Get the Slot's `Inventory` mutably
     /// 
     /// `Inventory` is unprotected therefore only market modules registered
-    /// on an inventory can gain mutable access to the inventory.
+    /// on an `Inventory` can gain mutable access to it.
     public fun inventory_internal_mut<Market: key + store, Witness: drop>(
         _witness: Witness,
         slot: &mut Slot,
@@ -394,13 +394,6 @@ module nft_protocol::slot {
         assert!(
             object_table::contains(&slot.inventories, inventory_id),
             err::undefined_inventory(),
-        );
-    }
-
-    public fun assert_contains_nft<C>(slot: &Slot, nft_id: ID) {
-        assert!(
-            dof::exists_with_type<ID, Nft<C>>(&slot.id, nft_id),
-            err::undefined_nft_id()
         );
     }
 
