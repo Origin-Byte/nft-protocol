@@ -26,7 +26,7 @@ module nft_protocol::inventory {
     use nft_protocol::nft::Nft;
     use nft_protocol::err;
 
-    friend nft_protocol::slot;
+    friend nft_protocol::listing;
 
     // The `Inventory` of a sale performs the bookeeping of all the NFTs that
     // are currently on sale as well as the NFTs whose certificates have been
@@ -64,9 +64,9 @@ module nft_protocol::inventory {
         transfer::transfer(inventory, tx_context::sender(ctx));
     }
 
-    /// Adds a new market to `Inventory` allowing NFTs deposited to the 
+    /// Adds a new market to `Inventory` allowing NFTs deposited to the
     /// inventory to be sold.
-    /// 
+    ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     public entry fun add_market<Market: key + store>(
@@ -89,7 +89,7 @@ module nft_protocol::inventory {
     /// owned by the Slot. The function call will fail otherwise, because
     /// one would have to refer to the Slot, the parent shared object, in order
     /// for the bytecode verifier not to fail.
-    /// 
+    ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     public entry fun deposit_nft<C>(
@@ -144,7 +144,7 @@ module nft_protocol::inventory {
     }
 
     /// Get specific `Inventory` market mutably
-    /// 
+    ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     public fun market_mut<Market: key + store>(

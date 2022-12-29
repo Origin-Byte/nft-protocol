@@ -66,27 +66,18 @@ module nft_protocol::suitraders {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        let launchpad = nft_protocol::launchpad::new(
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            false,
-            nft_protocol::flat_fee::new(0, ctx),
-            ctx,
-        );
-
-        let slot = nft_protocol::slot::new(
-            &launchpad,
+        let slot = nft_protocol::listing::new(
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
             ctx,
         );
 
         let is_whitelisted = false;
-        let inventory_id = nft_protocol::slot::create_inventory(
+        let inventory_id = nft_protocol::listing::create_inventory(
             &mut slot, is_whitelisted, ctx
         );
 
-        nft_protocol::fixed_price::create_market_on_slot<sui::sui::SUI>(
+        nft_protocol::fixed_price::create_market_on_listing<sui::sui::SUI>(
             &mut slot,
             inventory_id,
             500,
@@ -94,11 +85,11 @@ module nft_protocol::suitraders {
         );
 
         let is_whitelisted = false;
-        let inventory_id = nft_protocol::slot::create_inventory(
+        let inventory_id = nft_protocol::listing::create_inventory(
             &mut slot, is_whitelisted, ctx
         );
 
-        nft_protocol::dutch_auction::create_market_on_slot<sui::sui::SUI>(
+        nft_protocol::dutch_auction::create_market_on_listing<sui::sui::SUI>(
             &mut slot,
             inventory_id,
             100,
@@ -106,8 +97,6 @@ module nft_protocol::suitraders {
         );
 
         transfer::share_object(slot);
-
-        transfer::share_object(launchpad);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUITRADERS>(collection);

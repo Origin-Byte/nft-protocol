@@ -21,7 +21,7 @@ module nft_protocol::fixed_price {
     use sui::transfer;
 
     use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
+    use nft_protocol::listing::{Self, Listing, WhitelistCertificate};
 
     struct FixedPriceMarket<phantom FT> has key, store {
         id: UID,
@@ -61,15 +61,15 @@ module nft_protocol::fixed_price {
         inventory::add_market(inventory, market);
     }
 
-    /// Creates a `FixedPriceMarket<FT>` on `Slot`
-    public entry fun create_market_on_slot<FT>(
-        slot: &mut Slot,
+    /// Creates a `FixedPriceMarket<FT>` on `Listing`
+    public entry fun create_market_on_listing<FT>(
+        listing: &mut Listing,
         inventory_id: ID,
         price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(price, ctx);
-        slot::add_market(slot, inventory_id, market, ctx);
+        listing::add_market(listing, inventory_id, market, ctx);
     }
 
     // === Entrypoints ===
@@ -81,17 +81,17 @@ module nft_protocol::fixed_price {
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
     public entry fun buy_nft<C, FT>(
-        slot: &mut Slot,
+        listing: &mut Listing,
         inventory_id: ID,
         market_id: ID,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        slot::assert_is_live(slot);
-        slot::assert_inventory_is_not_whitelisted(slot, inventory_id);
+        listing::assert_is_live(listing);
+        listing::assert_inventory_is_not_whitelisted(listing, inventory_id);
 
         buy_nft_<C, FT>(
-            slot,
+            listing,
             inventory_id,
             market_id,
             wallet,
@@ -106,21 +106,21 @@ module nft_protocol::fixed_price {
     /// of transaction. The sender can then use this certificate to call
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
     public entry fun buy_whitelisted_nft<C, FT>(
-        slot: &mut Slot,
+        listing: &mut Listing,
         inventory_id: ID,
         market_id: ID,
         wallet: &mut Coin<FT>,
         whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
-        slot::assert_is_live(slot);
-        slot::assert_inventory_is_whitelisted(slot, inventory_id);
-        slot::assert_whitelist_certificate_market(market_id, &whitelist_token);
+        listing::assert_is_live(listing);
+        listing::assert_inventory_is_whitelisted(listing, inventory_id);
+        listing::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
-        slot::burn_whitelist_certificate(whitelist_token);
+        listing::burn_whitelist_certificate(whitelist_token);
 
         buy_nft_<C, FT>(
-            slot,
+            listing,
             inventory_id,
             market_id,
             wallet,
@@ -129,23 +129,23 @@ module nft_protocol::fixed_price {
     }
 
     fun buy_nft_<C, FT>(
-        slot: &mut Slot,
+        listing: &mut Listing,
         inventory_id: ID,
         market_id: ID,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         let market =
-            slot::market<FixedPriceMarket<FT>>(slot, inventory_id, market_id);
+            listing::market<FixedPriceMarket<FT>>(listing, inventory_id, market_id);
 
         let funds = balance::split(coin::balance_mut(wallet), market.price);
-        slot::pay(slot, funds, 1);
+        listing::pay(listing, funds, 1);
 
-        slot::redeem_nft_internal_and_transfer<
+        listing::redeem_nft_internal_and_transfer<
             C, FixedPriceMarket<FT>, Witness
         >(
             Witness {},
-            slot,
+            listing,
             inventory_id,
             tx_context::sender(ctx)
         );
@@ -156,14 +156,14 @@ module nft_protocol::fixed_price {
     /// Permissioned endpoint to be called by `admin` to edit the fixed price
     /// of the launchpad configuration.
     public entry fun set_price<FT>(
-        slot: &mut Slot,
+        listing: &mut Listing,
         inventory_id: ID,
         market_id: ID,
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = slot::market_mut<FixedPriceMarket<FT>>(
-            slot, inventory_id, market_id, ctx
+        let market = listing::market_mut<FixedPriceMarket<FT>>(
+            listing, inventory_id, market_id, ctx
         );
         market.price = new_price;
     }

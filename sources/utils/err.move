@@ -50,7 +50,7 @@ module nft_protocol::err {
 
     // === Launchpad ===
 
-    public fun wrong_launchpad_admin(): u64 {
+    public fun wrong_marketplace_admin(): u64 {
         return Prefix + 201
     }
 
@@ -86,11 +86,11 @@ module nft_protocol::err {
         return Prefix + 209
     }
 
-    public fun launchpad_slot_mismatch(): u64 {
+    public fun marketplace_listing_mismatch(): u64 {
         return Prefix + 210
     }
 
-    public fun wrong_launchpad_or_slot_admin(): u64 {
+    public fun wrong_marketplace_or_listing_admin(): u64 {
         return Prefix + 211
     }
 
@@ -120,6 +120,10 @@ module nft_protocol::err {
 
     public fun incorrect_nft_certificate(): u64 {
         return Prefix + 218
+    }
+
+    public fun listing_already_attached_to_marketplace(): u64 {
+        return Prefix + 219
     }
 
     // === Auction ===

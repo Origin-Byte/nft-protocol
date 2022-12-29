@@ -23,7 +23,7 @@
 /// The slot acts as the object that configures the primary NFT release
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
-module nft_protocol::launchpad {
+module nft_protocol::marketplace {
     // TODO: Function to delete a slot
     // TODO: Reconsider permissioning model between launchpad and slots
     use sui::transfer;
@@ -33,86 +33,76 @@ module nft_protocol::launchpad {
     use nft_protocol::err;
     use nft_protocol::object_box::{Self as obox, ObjectBox};
 
-    struct Launchpad has key, store {
+    struct Marketplace has key, store {
         id: UID,
-        /// The address of the launchpad administrator
+        /// The address of the marketplace administrator
         admin: address,
-        /// Receiver of launchpad fees
+        /// Receiver of marketplace fees
         receiver: address,
-        /// Permissionless launchpads allow for anyone to create their
-        /// slots, therefore being immediately approved.
-        is_permissioned: bool,
         default_fee: ObjectBox,
     }
 
-    /// Initialises a `Launchpad` object and returns it
+    /// Initialises a `Marketplace` object and returns it
     public fun new<F: key + store>(
         admin: address,
         receiver: address,
-        is_permissioned: bool,
         default_fee: F,
         ctx: &mut TxContext,
-    ): Launchpad {
+    ): Marketplace {
         let uid = object::new(ctx);
         let default_fee = obox::new(default_fee, ctx);
 
-        Launchpad {
+        Marketplace {
             id: uid,
             admin,
             receiver,
-            is_permissioned,
             default_fee,
         }
     }
 
-    /// Initialises a `Launchpad` object and shares it
-    public entry fun init_launchpad<F: key + store>(
+    /// Initialises a `Marketplace` object and shares it
+    public entry fun init_marketplace<F: key + store>(
         admin: address,
         receiver: address,
-        is_permissioned: bool,
         default_fee: F,
         ctx: &mut TxContext,
     ) {
-        let launchpad = new(
+        let marketplace = new(
             admin,
             receiver,
-            is_permissioned,
             default_fee,
             ctx,
         );
 
-        transfer::share_object(launchpad);
+        transfer::share_object(marketplace);
     }
 
     // === Getters ===
 
-    /// Get the Slot's `receiver` address
-    public fun receiver(launchpad: &Launchpad): address {
-        launchpad.receiver
+    /// Get the Marketplace's `receiver` address
+    public fun receiver(marketplace: &Marketplace): address {
+        marketplace.receiver
     }
 
-    /// Get the Slot's `admin` address
-    public fun admin(launchpad: &Launchpad): address {
-        launchpad.admin
+    /// Get the Marketplace's `admin` address
+    public fun admin(marketplace: &Marketplace): address {
+        marketplace.admin
     }
 
-    public fun default_fee(launchpad: &Launchpad): &ObjectBox {
-        &launchpad.default_fee
-    }
-
-    public fun is_permissioned(launchpad: &Launchpad): bool {
-        launchpad.is_permissioned
+    /// Get the Marketplace's `default_fee`
+    public fun default_fee(marketplace: &Marketplace): &ObjectBox {
+        &marketplace.default_fee
     }
 
     // === Assertions ===
 
-    public fun assert_launchpad_admin(
-        launchpad: &Launchpad,
+    public fun assert_marketplace_admin(
+        marketplace: &Marketplace,
         ctx: &mut TxContext,
     ) {
         assert!(
-            tx_context::sender(ctx) == launchpad.admin,
-            err::wrong_launchpad_admin()
+            tx_context::sender(ctx) == marketplace.admin,
+            err::wrong_marketplace_admin()
         );
     }
 }
