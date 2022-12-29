@@ -5,14 +5,15 @@
 module nft_protocol::attribution {
     use std::fixed_point32;
 
+    use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::transfer;
-    use sui::vec_map::{Self, VecMap};
-    use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
+    use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::err;
+    use nft_protocol::utils;
 
     /// === Creator ===
 
@@ -37,9 +38,12 @@ module nft_protocol::attribution {
 
     /// === AttributionDomain ===
 
-    const BPS: u16 = 10_000;
-
     struct AttributionDomain has copy, drop, store {
+        /// Increments every time we mutate the creators map.
+        ///
+        /// Enables multisig to invalidate itself if the attribution domain
+        /// changed.
+        version: u64,
         is_frozen: bool,
         /// Address that receives the mint and trade royalties
         creators: VecMap<address, Creator>,
@@ -50,19 +54,27 @@ module nft_protocol::attribution {
     /// By not attributing any `Creators`, nobody will ever be able to claim
     /// royalties from this `Attributions` object or modify it's domains.
     public fun empty(): AttributionDomain {
-        AttributionDomain { is_frozen: false, creators: vec_map::empty() }
+        AttributionDomain {
+            version: 0,
+            is_frozen: false,
+            creators: vec_map::empty(),
+        }
     }
 
     public fun from_address(who: address): AttributionDomain {
         let domain = empty();
-        vec_map::insert(&mut domain.creators, who, new_creator(who, BPS));
+        vec_map::insert(&mut domain.creators, who, new_creator(who, utils::bps()));
         domain
     }
 
     public fun from_creators(
         creators: VecMap<address, Creator>
     ): AttributionDomain {
-        let attributions = AttributionDomain { is_frozen: false, creators };
+        let attributions = AttributionDomain {
+            version: 0,
+            is_frozen: false,
+            creators,
+        };
         assert_total_shares(&attributions);
 
         attributions
@@ -74,6 +86,10 @@ module nft_protocol::attribution {
 
     public fun is_frozen(attributions: &AttributionDomain): bool {
         attributions.is_frozen
+    }
+
+    public fun version(attributions: &AttributionDomain): u64 {
+        attributions.version
     }
 
     public fun creators(
@@ -110,6 +126,7 @@ module nft_protocol::attribution {
     ///
     /// This must be done by a `Creator` which already has an attribution who
     /// gives up an arithmetic share of their royalty share.
+    // TODO: assert not frozen?
     public fun add_creator(
         attributions: &mut AttributionDomain,
         new_creator: Creator,
@@ -132,6 +149,8 @@ module nft_protocol::attribution {
         };
 
         vec_map::insert(&mut attributions.creators, new_creator.who, new_creator);
+
+        attributions.version = attributions.version + 1;
     }
 
     /// Remove a `Creator` from attributions
@@ -146,6 +165,7 @@ module nft_protocol::attribution {
     //
     // TODO: Create removal methods which split shares evenly and
     // proportionally.
+    // TODO: assert not frozen?
     public fun remove_creator_by_transfer(
         attributions: &mut AttributionDomain,
         to: address,
@@ -162,6 +182,8 @@ module nft_protocol::attribution {
 
         beneficiary.share_of_royalty_bps =
             beneficiary.share_of_royalty_bps + creator.share_of_royalty_bps;
+
+        attributions.version = attributions.version + 1;
     }
 
     /// Makes `Collection` domains immutable
@@ -170,7 +192,7 @@ module nft_protocol::attribution {
     ///
     /// Will cause `assert_collection_has_creator` and `assert_is_creator` to
     /// always fail, thus making all standard domains immutable.
-    public fun freeze_domains(attributions: &mut AttributionDomain,) {
+    public fun freeze_domains(attributions: &mut AttributionDomain) {
         // Only creators can obtain `&mut AttributionDomain`
         attributions.is_frozen = true
     }
@@ -185,7 +207,7 @@ module nft_protocol::attribution {
         // balance * share_of_royalty_bps / BPS
         let total = fixed_point32::create_from_rational(
             balance::value(aggregate),
-            (BPS as u64)
+            (utils::bps() as u64)
         );
 
         let i = 0;
@@ -226,7 +248,7 @@ module nft_protocol::attribution {
             i = i + 1;
         };
 
-        assert!(bps_total == BPS, err::invalid_total_share_of_royalties());
+        assert!(bps_total == utils::bps(), err::invalid_total_share_of_royalties());
     }
 
     public fun assert_is_creator(
