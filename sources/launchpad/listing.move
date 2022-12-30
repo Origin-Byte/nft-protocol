@@ -139,7 +139,7 @@ module nft_protocol::listing {
         let inventories = object_table::new<ID, Inventory>(ctx);
 
         event::emit(CreateListingEvent {
-            object_id: *object::uid_as_inner(&id)
+            object_id: object::uid_to_inner(&id)
         });
 
         Listing {

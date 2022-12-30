@@ -25,7 +25,6 @@ module nft_protocol::collection {
     use sui::event;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
-    use sui::transfer;
     use sui::bag::{Self, Bag};
 
     use nft_protocol::err;
@@ -50,23 +49,9 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    struct MintEvent has copy, drop {
+    /// Event signalling that an `Collection` was minted
+    struct CollectionMintEvent has copy, drop {
         collection_id: ID,
-    }
-
-    struct BurnEvent has copy, drop {
-        collection_id: ID,
-    }
-
-    /// Shares `Collection`.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    public fun share<C>(
-        collection: Collection<C>,
-    ): ID {
-        let collection_id = object::id(&collection);
-        transfer::share_object(collection);
-        collection_id
     }
 
     /// Initialises a `MintAuthority` and transfers it to `authority` and
@@ -103,22 +88,12 @@ module nft_protocol::collection {
     ): (MintCap<T>, Collection<T>) {
         let id = object::new(ctx);
 
-        event::emit(
-            MintEvent {
-                collection_id: object::uid_to_inner(&id),
-            }
-        );
+        event::emit(CollectionMintEvent {
+            collection_id: object::uid_to_inner(&id),
+        });
 
-        let cap = create_mint_cap<T>(
-            object::uid_to_inner(&id),
-            ctx,
-        );
-
-        let col = Collection {
-            id,
-            domains: bag::new(ctx),
-        };
-
+        let cap = create_mint_cap<T>(object::uid_to_inner(&id), ctx);
+        let col = Collection { id, domains: bag::new(ctx) };
         (cap, col)
     }
 

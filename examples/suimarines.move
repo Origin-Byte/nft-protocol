@@ -67,7 +67,7 @@ module nft_protocol::suimarines {
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<SUIMARINES>(collection);
+        transfer::share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`

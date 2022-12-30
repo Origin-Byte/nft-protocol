@@ -97,7 +97,7 @@ module nft_protocol::suitraders {
         transfer::share_object(listing);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<SUITRADERS>(collection);
+        transfer::share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
