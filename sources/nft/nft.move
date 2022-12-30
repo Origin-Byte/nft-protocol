@@ -49,10 +49,6 @@ module nft_protocol::nft {
     /// 
     /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
     ///     let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
-    ///
-    ///     display::add_display_domain(
-    ///         &mut nft, name, description, ctx,
-    ///     );
     /// }
     /// ```
     public fun new<C>(owner: address, ctx: &mut TxContext): Nft<C> {
