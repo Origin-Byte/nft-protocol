@@ -49,7 +49,7 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    /// Event signalling that an `Collection` was minted
+    /// Event signalling that a `Collection` was minted
     struct CollectionMintEvent has copy, drop {
         collection_id: ID,
     }
