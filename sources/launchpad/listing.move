@@ -1,22 +1,26 @@
-/// Module for an NFT release `Listing`
+/// Module for an NFT `Listing`
 ///
-/// After the creation of the `Launchpad` a `Listing` for the NFT release needs
-/// to be created. Whilst the `Launchpad` stipulates a default fee policy,
-/// the launchpad admin can decide to create a custom fee policy for each
-/// release `Listing`.
+/// A `Listing` allows creators to sell their NFTs to the primary market using
+/// bespoke market primitives, such as Fixed Price Sales and Dutch Auctions.
+/// `Listings` can be standalone or be attached to Marketplace, in which case
+/// they will pay fees to it.
+///
+/// Whilst the associated `Marketplace` object stipulates a default fee policy,
+/// the marketplace admin can decide to create a custom fee policy for each
+/// `Listing`.
 ///
 /// The listing acts as the object that configures the primary NFT release
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
 module nft_protocol::listing {
-    // TODO: Consider adding a function redeem_certificate with `nft_id` as
-    // a parameter
     use std::option::{Self, Option};
+    use std::type_name::{Self, TypeName};
 
     use sui::transfer;
-    use sui::typed_id::{Self, TypedID};
     use sui::balance::Balance;
     use sui::object::{Self, ID , UID};
+    use sui::typed_id::{Self, TypedID};
+    use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
 
@@ -104,6 +108,13 @@ module nft_protocol::listing {
         custom_fee: ObjectBox,
     }
 
+    // An ephemeral object representing the intention of a `Listing` admin
+    // to join a given Marketplace.
+    struct RequestToJoin has key, store {
+        id: UID,
+        marketplace_id: TypedID<Marketplace>,
+    }
+
     struct CreateListingEvent has copy, drop {
         object_id: ID,
         collection_id: ID,
@@ -156,23 +167,6 @@ module nft_protocol::listing {
         transfer::share_object(listing);
     }
 
-    public entry fun attach_listing(
-        marketplace: &Marketplace,
-        listing: &mut Listing,
-        ctx: &mut TxContext,
-    ) {
-        assert_listing_admin(listing, ctx);
-
-        assert!(
-            option::is_none(&listing.marketplace_id),
-            err::listing_already_attached_to_marketplace(),
-        );
-
-        let marketplace_id = typed_id::new(marketplace);
-
-        option::fill(&mut listing.marketplace_id, marketplace_id);
-    }
-
     /// Initializes an empty `Inventory` on `Listing`
     public entry fun init_inventory(
         listing: &mut Listing,
@@ -203,6 +197,71 @@ module nft_protocol::listing {
     }
 
     // === Admin functions ===
+
+    /// To be called by the `Listing` administrator, to declare the intention
+    /// of joining a Marketplace. This is the first step to join a marketplace.
+    /// Joining a `Marketplace` is a two step process in which both the
+    /// `Listing` admin and the `Marketplace` admin need to declare their
+    /// intention to partner up.
+    public entry fun request_to_join_marketplace(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        ctx: &mut TxContext,
+    ) {
+        assert_listing_admin(listing, ctx);
+
+        assert!(
+            option::is_none(&listing.marketplace_id),
+            err::listing_already_attached_to_marketplace(),
+        );
+
+        let marketplace_id = typed_id::new(marketplace);
+
+        let request = RequestToJoin {
+            id: object::new(ctx),
+            marketplace_id,
+        };
+
+        dof::add(
+            &mut listing.id, type_name::get<RequestToJoin>(), request
+        );
+    }
+
+    /// To be called by the `Marketpalce` administrator, to accept the `Listing`
+    /// request to join. This is the second step to join a marketplace.
+    /// Joining a `Marketplace` is a two step process in which both the
+    /// `Listing` admin and the `Marketplace` admin need to declare their
+    /// intention to partner up.
+    public entry fun accept_listing_request(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        ctx: &mut TxContext,
+    ) {
+        mkt::assert_marketplace_admin(marketplace, ctx);
+
+        assert!(
+            option::is_none(&listing.marketplace_id),
+            err::listing_already_attached_to_marketplace(),
+        );
+
+        let marketplace_id = typed_id::new(marketplace);
+
+        let request = dof::remove<TypeName, RequestToJoin>(
+            &mut listing.id, type_name::get<RequestToJoin>()
+        );
+
+        assert!(
+            marketplace_id == request.marketplace_id,
+            err::listing_has_not_applied_to_this_marketplace()
+        );
+
+        let RequestToJoin {
+            id, marketplace_id: _,
+        } = request;
+        object::delete(id);
+
+        option::fill(&mut listing.marketplace_id, marketplace_id);
+    }
 
     /// Adds a fee object to the Listing's `custom_fee`
     ///
@@ -267,6 +326,27 @@ module nft_protocol::listing {
 
         let inventory = inventory_mut(listing, inventory_id);
         inventory::deposit_nft(inventory, nft);
+    }
+
+    /// To be called by `Listing` admins for standalone `Listings`.
+    /// Standalone Listings do not envolve marketplace fees, and therefore
+    /// the listing admin can freely call this entrypoint.
+    public entry fun collect_proceeds<FT>(
+        listing: &mut Listing,
+        ctx: &mut TxContext,
+    ) {
+        assert!(
+            option::is_none(&listing.marketplace_id),
+            err::action_exclusive_to_standalone_listings(),
+        );
+
+        let receiver = listing.receiver;
+
+        proceeds::collect_without_fees<FT>(
+            proceeds_mut(listing),
+            receiver,
+            ctx,
+        );
     }
 
     // === Getter functions ===

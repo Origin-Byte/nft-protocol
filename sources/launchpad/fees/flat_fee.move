@@ -31,7 +31,7 @@ module nft_protocol::flat_fee {
         transfer(new(rate, ctx), tx_context::sender(ctx));
     }
 
-    public entry fun collect_fee<FT>(
+    public entry fun collect_proceeds_and_fees<FT>(
         marketplace: &Marketplace,
         listing: &mut Listing,
         ctx: &mut TxContext,
@@ -61,7 +61,7 @@ module nft_protocol::flat_fee {
 
         let fee = balance::value(proceeds_value) * policy.rate_bps;
 
-        proceeds::collect<FT>(
+        proceeds::collect_with_fees<FT>(
             listing::proceeds_mut(listing),
             fee,
             mkt::receiver(marketplace),

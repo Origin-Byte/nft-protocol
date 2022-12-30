@@ -1,31 +1,27 @@
-/// Module of a `Launchpad` type.
+/// Module of a `Marketplace` type.
 ///
-/// Launchpads are platforms that facilitate the release of NFT collections
-/// to the public, via primary market. Whilst NFT creators can emit NFTs
-/// directly and thus bypass the `Launchpad`, the `Launchpad` offers a myriad
-/// of bespoke emission strategies.
+/// Marketplaces are platforms that facilitate the release of NFT collections
+/// to the public, by facilitating a primary market UI. NFT Creators can create
+/// Listings to sell their NFTs to the public and can decide to partner with
+/// a Marketplace such that these are sold through the Marketplace UI. In order
+/// for the Marketplace to be remunerated, the `Listing` must be attached to
+/// a `Marketplace`.
 ///
-/// Launchapds can either be Permissioned or Permissionless. Marketplaces and
-/// dApps that want to offer a launchpad service can create a Permissioned
-/// Launchpad. In a permissioned model, the Marketplace or dApp is responsible
-/// for making and signing all the RPC calls to configure and implement the
-/// release strategy. If the launchpad is permissionless, then the creators
-/// are the ones responsible for configuring and implementing it themselves.
-/// In other words, permissioned launchpads allow for the creation of
-/// fully manager services, whilst permissionless launchpads always require
-/// the creator's signature.
+/// Marketplaces and dApps that want to offer a launchpad service should create
+/// a `Marketplace` object.
 ///
-/// After the creation of the `Launchpad` a `Slot` for the NFT release needs
-/// to be created. Whilst the `Launchpad` stipulates a default fee policy,
-/// the launchpad admin can decide to create a custom fee policy for each
-/// release `Slot`.
+/// After the creation of the `Marketplace` a `Listing` for the NFT release needs
+/// to be created by the creator of the NFT Collection. Then, the `Listing` admin
+/// should request to join the marketplace launchpad, pending acceptance.
 ///
-/// The slot acts as the object that configures the primary NFT release
+/// Whilst the `Marketplace` stipulates a default fee policy, the marketplace
+/// admin can decide to create a custom fee policy for each `Listing`.
+///
+/// The `Listing` acts as the object that configures the primary NFT release
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
 module nft_protocol::marketplace {
-    // TODO: Function to delete a slot
-    // TODO: Reconsider permissioning model between launchpad and slots
+    // TODO: Function to delete a listing
     use sui::transfer;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};

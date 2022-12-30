@@ -126,6 +126,14 @@ module nft_protocol::err {
         return Prefix + 219
     }
 
+    public fun listing_has_not_applied_to_this_marketplace(): u64 {
+        return Prefix + 219
+    }
+
+    public fun action_exclusive_to_standalone_listings(): u64 {
+        return Prefix + 219
+    }
+
     // === Auction ===
 
     public fun order_does_not_exist(): u64 {
