@@ -107,7 +107,7 @@ module nft_protocol::mint_and_sell {
 
         // 3. Create inventory and mint NFT to it
         test_scenario::next_tx(&mut scenario, CREATOR);
-        let inventory = inventory::new(false, ctx(&mut scenario));
+        let inventory = inventory::new(ctx(&mut scenario));
 
         let nft = nft::new<Foo>(
             tx_context::sender(ctx(&mut scenario)), ctx(&mut scenario)
@@ -141,6 +141,7 @@ module nft_protocol::mint_and_sell {
         // 4. Init Market in Launchpad Slot
         fixed_price::create_market_on_inventory<SUI>(
             &mut inventory,
+            false,
             100,
             ctx(&mut scenario),
         );

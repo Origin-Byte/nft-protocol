@@ -13,6 +13,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Renaming `whitelist` to `allowlist` in relation to transferring NFTs.
 - We maintain our own version of `movemate` dependency called `originmate`.
 - Markets (`FixedPriceMarket`, `DutchAuctionMarket`) are now registered on `Inventory` rather than the `Slot`.
+- Live and whitelisted status of markets is now tracked on `Inventory`.
+- Market access permissions rearranged to use more direct `inventory_internal_mut`.
 
 ## [0.15.0] - 2022-12-22
 
