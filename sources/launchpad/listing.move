@@ -13,6 +13,9 @@
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
 module nft_protocol::listing {
+    // TODO: Currently, to issue whitelist token one has to call a function
+    // times the number of whitelist addresses. Let us consider more gas efficient
+    // ways of mass emiting whitelist tokens.
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
@@ -130,7 +133,6 @@ module nft_protocol::listing {
     /// Depending if the Launchpad alllows for auto-approval, the launchpad
     /// admin might have to call `approve_slot` in order to validate the listing.
     public fun new(
-        // TODO: Should we add marketplace_id: Option<ID> as a param?
         listing_admin: address,
         receiver: address,
         ctx: &mut TxContext,
@@ -326,6 +328,78 @@ module nft_protocol::listing {
 
         let inventory = inventory_mut(listing, inventory_id);
         inventory::deposit_nft(inventory, nft);
+    }
+
+    /// Set market's live status to `true` therefore making the NFT sale live.
+    /// To be called by the `Listing` admin.
+    public entry fun sale_on(
+        listing: &mut Listing,
+        inventory_id: ID,
+        market_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_listing_admin(listing, ctx);
+
+        inventory::set_live(
+            inventory_mut(listing, inventory_id),
+            market_id,
+            true,
+        );
+    }
+
+    /// Set market's live status to `false` therefore pausing or stopping the
+    /// NFT sale. To be called by the `Listing` admin.
+    public entry fun sale_off(
+        listing: &mut Listing,
+        inventory_id: ID,
+        market_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_listing_admin(listing, ctx);
+
+        inventory::set_live(
+            inventory_mut(listing, inventory_id),
+            market_id,
+            false,
+        );
+    }
+
+    /// Set market's live status to `true` therefore making the NFT sale live.
+    /// To be called by the `Marketplace` admin.
+    public entry fun sale_on_delegated(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        inventory_id: ID,
+        market_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_marketplace_admin(marketplace, ctx);
+
+        inventory::set_live(
+            inventory_mut(listing, inventory_id),
+            market_id,
+            true,
+        );
+    }
+
+    /// Set market's live status to `false` therefore pausing or stopping the
+    /// NFT sale. To be called by the `Marketplace` admin.
+    public entry fun sale_off_delegated(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        inventory_id: ID,
+        market_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_marketplace_admin(marketplace, ctx);
+
+        inventory::set_live(
+            inventory_mut(listing, inventory_id),
+            market_id,
+            false,
+        );
     }
 
     /// To be called by `Listing` admins for standalone `Listings`.
