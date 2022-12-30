@@ -65,13 +65,7 @@ module nft_protocol::collection {
         collection: Collection<C>,
     ): ID {
         let collection_id = object::id(&collection);
-
-        event::emit(
-            MintEvent { collection_id }
-        );
-
         transfer::share_object(collection);
-
         collection_id
     }
 
