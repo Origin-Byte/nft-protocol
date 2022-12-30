@@ -1,8 +1,5 @@
 /// Module defining the OriginByte `NFT` object
 ///
-/// It acts as a generic interface for NFTs and it allows for
-/// the creation of arbitrary domain specific implementations.
-///
 /// OriginByte's NFT protocol brings dynamism, composability and extendability
 /// to NFTs. The current design allows creators to create NFTs with custom
 /// domain-specific fields, with their own bespoke behaviour. 
