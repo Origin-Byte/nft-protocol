@@ -22,13 +22,14 @@ module nft_protocol::nft {
 
     /// `Nft` object
     /// 
-    /// `Nft` is generically associated with it's `Collection` witness type.
+    /// `Nft` is generically associated with it's collection's witness type 
+    /// `C`.
     /// 
     /// An `Nft` exclusively owns domains of different types, which can be 
     /// dynamically acquired and lost over its lifetime. OriginByte NFTs are 
     /// modelled after [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See [borrow_domain](#borrow_domain_mut).
-    struct Nft<phantom Collection> has key, store {
+    struct Nft<phantom C> has key, store {
         id: UID,
         /// Main storage object for NFT domains
         bag: Bag,
