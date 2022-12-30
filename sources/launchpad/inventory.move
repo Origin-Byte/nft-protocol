@@ -1,6 +1,6 @@
 /// Module representing the Nft bookeeping Inventories of `Slot`s.
 ///
-/// Release slots can have multiple concurrent markets, repsented
+/// Listings can have multiple concurrent markets, repsented
 /// through `markets: ObjectBag`, allowing NFT creators to perform tiered sales.
 /// An example of this would be an Gaming NFT creator separating the sale
 /// based on NFT rarity and emit whitelist tokens to different users for
@@ -39,7 +39,7 @@ module nft_protocol::inventory {
         /// Track which markets are whitelisted
         whitelisted: VecMap<ID, bool>,
         /// Vector of all markets outlets that, each outles holding IDs
-        /// owned by the slot
+        /// owned by the inventory
         markets: ObjectBag,
         // NFTs that are currently on sale. When a `NftCertificate` is sold,
         // its corresponding NFT ID will be flushed from `nfts` and will be
@@ -188,7 +188,7 @@ module nft_protocol::inventory {
     // === Assertions ===
 
     public fun assert_is_live(inventory: &Inventory, market_id: &ID) {
-        assert!(is_live(inventory, market_id), err::slot_not_live());
+        assert!(is_live(inventory, market_id), err::listing_not_live());
     }
 
     public fun assert_is_whitelisted(inventory: &Inventory, market_id: &ID) {

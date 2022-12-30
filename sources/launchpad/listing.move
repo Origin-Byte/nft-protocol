@@ -9,7 +9,7 @@
 /// the marketplace admin can decide to create a custom fee policy for each
 /// `Listing`.
 ///
-/// The listing acts as the object that configures the primary NFT release
+/// The listing acts as the object that configures the primary NFT listing
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
 module nft_protocol::listing {
@@ -37,7 +37,7 @@ module nft_protocol::listing {
 
     // === WhitelistCertificate ===
 
-    /// Whitin a release `Listing`, each market has its own whitelist policy.
+    /// Whitin a `Listing`, each market has its own whitelist policy.
     /// As an example, creators can create tiered sales based on the NFT rarity,
     /// and then whitelist only the rare NFT sale. They can then emit whitelist
     /// tokens and send them to users who have completed a set of defined actions.
@@ -107,7 +107,7 @@ module nft_protocol::listing {
         proceeds: Proceeds,
         /// Field with Object Box holding a Custom Fee implementation if any.
         /// In case this box is empty the calculation will applied on the
-        /// default fee object in the associated launchpad
+        /// default fee object in the associated Marketplace
         custom_fee: ObjectBox,
     }
 
@@ -128,10 +128,7 @@ module nft_protocol::listing {
         collection_id: ID,
     }
 
-    /// Initialises a `Listing` object.
-    /// and returns it.
-    /// Depending if the Launchpad alllows for auto-approval, the launchpad
-    /// admin might have to call `approve_slot` in order to validate the listing.
+    /// Initialises a `Listing` object and returns it.
     public fun new(
         listing_admin: address,
         receiver: address,
@@ -151,10 +148,7 @@ module nft_protocol::listing {
         }
     }
 
-    /// Initialises a `Listing` object and registers it in the `Launchpad` object
-    /// and shares it.
-    /// Depending if the Launchpad allows for auto-approval, the launchpad
-    /// admin might have to call `approve_slot` in order to validate the listing.
+    /// Initialises a standalone `Listing` object.
     public entry fun init_listing(
         listing_admin: address,
         receiver: address,
@@ -267,7 +261,7 @@ module nft_protocol::listing {
 
     /// Adds a fee object to the Listing's `custom_fee`
     ///
-    /// Can only be called by the `Launchpad` admin
+    /// Can only be called by the `Marketplace` admin
     public entry fun add_fee<FeeType: key + store>(
         marketplace: &Marketplace,
         listing: &mut Listing,
@@ -495,7 +489,7 @@ module nft_protocol::listing {
     public fun assert_listing_admin(listing: &Listing, ctx: &mut TxContext) {
         assert!(
             tx_context::sender(ctx) == listing.admin,
-            err::wrong_slot_admin()
+            err::wrong_listing_admin()
         );
     }
 

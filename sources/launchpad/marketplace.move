@@ -1,6 +1,6 @@
 /// Module of a `Marketplace` type.
 ///
-/// Marketplaces are platforms that facilitate the release of NFT collections
+/// Marketplaces are platforms that facilitate the listing of NFT collections
 /// to the public, by facilitating a primary market UI. NFT Creators can create
 /// Listings to sell their NFTs to the public and can decide to partner with
 /// a Marketplace such that these are sold through the Marketplace UI. In order
@@ -10,14 +10,14 @@
 /// Marketplaces and dApps that want to offer a launchpad service should create
 /// a `Marketplace` object.
 ///
-/// After the creation of the `Marketplace` a `Listing` for the NFT release needs
+/// After the creation of the `Marketplace` a `Listing` for the NFT listing needs
 /// to be created by the creator of the NFT Collection. Then, the `Listing` admin
 /// should request to join the marketplace launchpad, pending acceptance.
 ///
 /// Whilst the `Marketplace` stipulates a default fee policy, the marketplace
 /// admin can decide to create a custom fee policy for each `Listing`.
 ///
-/// The `Listing` acts as the object that configures the primary NFT release
+/// The `Listing` acts as the object that configures the primary NFT listing
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
 module nft_protocol::marketplace {

@@ -11,9 +11,6 @@
 /// Each sale segment can have a whitelisting process, each with their own
 /// whitelist tokens.
 module nft_protocol::fixed_price {
-    // TODO: Consider if we want to be able to delete the launchpad object
-    // TODO: Remove code duplication between `buy_nft_certificate` and
-    // `buy_whitelisted_nft_certificate`
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
@@ -161,7 +158,7 @@ module nft_protocol::fixed_price {
     // === Modifier Functions ===
 
     /// Permissioned endpoint to be called by `admin` to edit the fixed price
-    /// of the launchpad configuration.
+    /// of the Listing configuration.
     public entry fun set_price<FT>(
         listing: &mut Listing,
         inventory_id: ID,

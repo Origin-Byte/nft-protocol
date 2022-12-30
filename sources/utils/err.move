@@ -48,13 +48,13 @@ module nft_protocol::err {
         return Prefix + 107
     }
 
-    // === Launchpad ===
+    // === Marketplace ===
 
     public fun wrong_marketplace_admin(): u64 {
         return Prefix + 201
     }
 
-    public fun slot_not_live(): u64 {
+    public fun listing_not_live(): u64 {
         return Prefix + 202
     }
 
@@ -94,7 +94,7 @@ module nft_protocol::err {
         return Prefix + 211
     }
 
-    public fun wrong_slot_admin(): u64 {
+    public fun wrong_listing_admin(): u64 {
         return Prefix + 212
     }
 
@@ -106,7 +106,7 @@ module nft_protocol::err {
         return Prefix + 214
     }
 
-    public fun slot_not_approved(): u64 {
+    public fun listing_not_approved(): u64 {
         return Prefix + 215
     }
 
