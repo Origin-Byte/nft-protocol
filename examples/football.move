@@ -130,6 +130,6 @@ module nft_protocol::football {
         flyweight::add_archetype(archetype, registry, mint_cap);
 
         // TODO: Define the NFT minting process
-        // lp::add_nft(slot, market_id, nft);
+        // lp::add_nft(listing, market_id, nft);
     }
 }

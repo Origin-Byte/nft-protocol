@@ -17,8 +17,8 @@ module nft_protocol::mint_and_sell {
     use nft_protocol::fixed_price;
     use nft_protocol::collection;
     use nft_protocol::attribution;
-    use nft_protocol::slot::{Self, Slot};
-    use nft_protocol::launchpad::{Self, Launchpad};
+    use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::marketplace::{Self, Marketplace};
     use nft_protocol::inventory;
 
     struct Witness has drop {}
@@ -81,29 +81,29 @@ module nft_protocol::mint_and_sell {
         collection::share<Foo>(collection);
         transfer(mint_cap, CREATOR);
 
-        // 2. Create launchpad and add Slot
+        // 2. Create marketplace and add Listing
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
 
-        launchpad::init_launchpad(
+        marketplace::init_marketplace(
             MARKETPLACE,
             MARKETPLACE,
-            true,
             flat_fee::new(0, ctx(&mut scenario)),
             ctx(&mut scenario),
         );
 
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let launchpad = test_scenario::take_shared<Launchpad>(&scenario);
+        let marketplace = test_scenario::take_shared<Marketplace>(&scenario);
 
-        slot::init_slot(
-            &launchpad,
+        listing::init_listing(
             CREATOR,
             CREATOR,
             ctx(&mut scenario),
         );
 
+        // TODO: Add link marketplace to listing
+
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let slot = test_scenario::take_shared<Slot>(&scenario);
+        let listing = test_scenario::take_shared<Listing>(&scenario);
 
         // 3. Create inventory and mint NFT to it
         test_scenario::next_tx(&mut scenario, CREATOR);
@@ -138,7 +138,7 @@ module nft_protocol::mint_and_sell {
 
         inventory::deposit_nft(&mut inventory, nft);
 
-        // 4. Init Market in Launchpad Slot
+        // 4. Init Market in Marketplace Listing
         fixed_price::create_market_on_inventory<SUI>(
             &mut inventory,
             false,
@@ -146,11 +146,11 @@ module nft_protocol::mint_and_sell {
             ctx(&mut scenario),
         );
 
-        slot::add_inventory(&mut slot, inventory, ctx(&mut scenario));
+        listing::add_inventory(&mut listing, inventory, ctx(&mut scenario));
 
         // Return objects and end test
-        test_scenario::return_shared(launchpad);
-        test_scenario::return_shared(slot);
+        test_scenario::return_shared(marketplace);
+        test_scenario::return_shared(listing);
 
         test_scenario::end(scenario);
     }
