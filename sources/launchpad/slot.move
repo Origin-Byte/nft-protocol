@@ -17,7 +17,6 @@ module nft_protocol::listing {
     use sui::typed_id::{Self, TypedID};
     use sui::balance::Balance;
     use sui::object::{Self, ID , UID};
-    use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
 
@@ -89,9 +88,8 @@ module nft_protocol::listing {
 
     struct Listing has key, store {
         id: UID,
+        /// The ID of the marketplace if any
         marketplace_id: Option<TypedID<Marketplace>>,
-        /// Boolean indicating if the `Listing` is live
-        live: bool,
         /// The address of the `Listing` administrator
         admin: address,
         /// The address of the receiver of funds
@@ -132,7 +130,6 @@ module nft_protocol::listing {
         Listing {
             id: uid,
             marketplace_id: option::none(),
-            live: false,
             admin: listing_admin,
             receiver,
             inventories,
@@ -179,7 +176,6 @@ module nft_protocol::listing {
     /// Initializes an empty `Inventory` on `Listing`
     public entry fun init_inventory(
         listing: &mut Listing,
-        is_whitelisted: bool,
         ctx: &mut TxContext,
     ) {
         create_inventory(listing, is_whitelisted, ctx);
@@ -187,18 +183,15 @@ module nft_protocol::listing {
 
     public fun create_inventory(
         listing: &mut Listing,
-        is_whitelisted: bool,
         ctx: &mut TxContext,
     ): ID {
-        let inventory = inventory::new(is_whitelisted, ctx);
+        let inventory = inventory::new(ctx);
         let inventory_id = object::id(&inventory);
 
         add_inventory(listing, inventory, ctx);
 
         inventory_id
     }
-
-    // === Public functions ===
 
     public fun pay<FT>(
         listing: &mut Listing,
@@ -207,38 +200,6 @@ module nft_protocol::listing {
     ) {
         let proceeds = proceeds_mut(listing);
         proceeds::add(proceeds, balance, qty_sold);
-    }
-
-    /// Adds NFT as a dynamic child object with its ID as key
-    public fun redeem_nft_internal<
-        C,
-        Market: key + store,
-        Witness: drop
-    >(
-        _witness: Witness,
-        listing: &mut Listing,
-        inventory_id: ID,
-    ): Nft<C> {
-        inventory::redeem_nft<C>(inventory_mut(listing, inventory_id))
-    }
-
-    /// Adds NFT as a dynamic child object with its ID as key
-    public fun redeem_nft_internal_and_transfer<
-        C,
-        Market: key + store,
-        Witness: drop
-    >(
-        _witness: Witness,
-        listing: &mut Listing,
-        inventory_id: ID,
-        recipient: address,
-    ) {
-        let nft = redeem_nft_internal<C, Market, Witness>(
-            _witness,
-            listing,
-            inventory_id,
-        );
-        transfer::transfer(nft, recipient);
     }
 
     // === Admin functions ===
@@ -285,13 +246,14 @@ module nft_protocol::listing {
     public entry fun add_market<Market: key + store>(
         listing: &mut Listing,
         inventory_id: ID,
+        is_whitelisted: bool,
         market: Market,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
         let inventory = inventory_mut(listing, inventory_id);
-        inventory::add_market(inventory, market);
+        inventory::add_market(inventory, is_whitelisted, market);
     }
 
     /// Adds NFT as a dynamic child object with its ID as key
@@ -354,11 +316,6 @@ module nft_protocol::listing {
 
     // === Getter functions ===
 
-    /// Get the Listing's `live`
-    public fun is_live(listing: &Listing): bool {
-        listing.live
-    }
-
     /// Get the Listing's `receiver` address
     public fun receiver(listing: &Listing): address {
         listing.receiver
@@ -385,48 +342,6 @@ module nft_protocol::listing {
         &mut listing.proceeds
     }
 
-    /// Get specific `Listing` market
-    public fun market<Market: key + store>(
-        listing: &Listing,
-        inventory_id: ID,
-        market_id: ID,
-    ): &Market {
-        let inventory = inventory(listing, inventory_id);
-        inventory::market<Market>(inventory, market_id)
-    }
-
-    /// Get the specific `Listing` market
-    ///
-    /// This will require that sender is a `Listing` admin, for non admin mutable
-    /// access use `market_internal_mut`.
-    public fun market_mut<Market: key + store>(
-        listing: &mut Listing,
-        inventory_id: ID,
-        market_id: ID,
-        ctx: &mut TxContext,
-    ): &mut Market {
-        assert_listing_admin(listing, ctx);
-
-        let inventory = inventory_mut(listing, inventory_id);
-        inventory::market_mut<Market>(inventory, market_id)
-    }
-
-    /// Get the Listing's `market` mutably
-    ///
-    /// Does not require that sender is a `Listing` admin, limited for use only in
-    /// the module that defined the market type.
-    public fun market_internal_mut<Market: key + store, Witness: drop>(
-        _witness: Witness,
-        listing: &mut Listing,
-        inventory_id: ID,
-        market_id: ID,
-    ): &mut Market {
-        utils::assert_same_module_as_witness<Market, Witness>();
-
-        let inventory = inventory_mut(listing, inventory_id);
-        inventory::market_mut<Market>(inventory, market_id)
-    }
-
     /// Get the Listing's `Inventory`
     public fun inventory(listing: &Listing, inventory_id: ID): &Inventory {
         assert_inventory(listing, inventory_id);
@@ -437,6 +352,24 @@ module nft_protocol::listing {
     fun inventory_mut(listing: &mut Listing, inventory_id: ID): &mut Inventory {
         assert_inventory(listing, inventory_id);
         object_table::borrow_mut(&mut listing.inventories, inventory_id)
+    }
+
+    /// Get the Slot's `Inventory` mutably
+    ///
+    /// `Inventory` is unprotected therefore only market modules registered
+    /// on an `Inventory` can gain mutable access to it.
+    public fun inventory_internal_mut<Market: key + store, Witness: drop>(
+        _witness: Witness,
+        slot: &mut Slot,
+        inventory_id: ID,
+        market_id: ID,
+    ): &mut Inventory {
+        utils::assert_same_module_as_witness<Market, Witness>();
+
+        let inventory = inventory_mut(slot, inventory_id);
+        inventory::assert_market<Market>(inventory, market_id);
+
+        inventory
     }
 
     // === Assertions ===
@@ -486,38 +419,6 @@ module nft_protocol::listing {
         assert!(
             object_table::contains(&listing.inventories, inventory_id),
             err::undefined_inventory(),
-        );
-    }
-
-    public fun assert_market<M: key + store>(
-        listing: &Listing,
-        inventory_id: ID,
-        market_id: ID,
-    ) {
-        let inventory = inventory(listing, inventory_id);
-        inventory::assert_market<M>(inventory, market_id);
-    }
-
-    public fun assert_inventory_is_whitelisted(listing: &Listing, inventory_id: ID) {
-        let inventory = inventory(listing, inventory_id);
-        assert!(
-            inventory::is_whitelisted(inventory),
-            err::sale_is_not_whitelisted()
-        );
-    }
-
-    public fun assert_inventory_is_not_whitelisted(listing: &Listing, inventory_id: ID) {
-        let inventory = inventory(listing, inventory_id);
-        assert!(
-            !inventory::is_whitelisted(inventory),
-            err::sale_is_whitelisted()
-        );
-    }
-
-    public fun assert_contains_nft<C>(listing: &Listing, nft_id: ID) {
-        assert!(
-            dof::exists_with_type<ID, Nft<C>>(&listing.id, nft_id),
-            err::undefined_nft_id()
         );
     }
 

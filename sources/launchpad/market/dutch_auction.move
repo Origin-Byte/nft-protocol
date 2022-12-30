@@ -63,32 +63,34 @@ module nft_protocol::dutch_auction {
 
     /// Creates a `DutchAuctionMarket<FT>` and transfers to transaction sender
     public entry fun init_market<FT>(
-        price: u64,
+        reserve_price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = new<FT>(price, ctx);
+        let market = new<FT>(reserve_price, ctx);
         transfer::transfer(market, tx_context::sender(ctx));
     }
 
     /// Creates a `DutchAuctionMarket<FT>` on `Inventory`
     public entry fun create_market_on_inventory<FT>(
         inventory: &mut Inventory,
-        price: u64,
+        is_whitelisted: bool,
+        reserve_price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = new<FT>(price, ctx);
-        inventory::add_market(inventory, market);
+        let market = new<FT>(reserve_price, ctx);
+        inventory::add_market(inventory, is_whitelisted, market);
     }
 
     /// Creates a `DutchAuctionMarket<FT>` on `Listing`
     public entry fun create_market_on_listing<FT>(
         listing: &mut Listing,
         inventory_id: ID,
+        is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(reserve_price, ctx);
-        listing::add_market(listing, inventory_id, market, ctx);
+        listing::add_market(listing, inventory_id, is_whitelisted, market, ctx);
     }
 
     // === Entrypoints ===
@@ -103,11 +105,16 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        listing::assert_is_live(listing);
-        listing::assert_inventory_is_not_whitelisted(listing, inventory_id);
+        let inventory =
+            listing::inventory_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
+
+        inventory::assert_is_live(inventory, &market_id);
+        inventory::assert_is_not_whitelisted(inventory, &market_id);
 
         create_bid_(
-            listing::market_internal_mut(Witness {}, listing, inventory_id, market_id),
+            inventory::market_mut(inventory, market_id),
             wallet,
             price,
             quantity,
@@ -125,12 +132,18 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        listing::assert_is_live(listing);
-        listing::assert_inventory_is_whitelisted(listing, inventory_id);
+        let inventory =
+            listing::inventory_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
+
+        inventory::assert_is_live(inventory, &market_id);
+        inventory::assert_is_whitelisted(inventory, &market_id);
+
         listing::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
         create_bid_(
-            listing::market_internal_mut(Witness {}, listing, inventory_id, market_id),
+            inventory::market_mut(inventory, market_id),
             wallet,
             price,
             quantity,
@@ -154,8 +167,13 @@ module nft_protocol::dutch_auction {
         price: u64,
         ctx: &mut TxContext,
     ) {
+        let inventory =
+            listing::inventory_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
+
         cancel_bid_(
-            listing::market_internal_mut(Witness {}, listing, inventory_id, market_id),
+            inventory::market_mut(inventory, market_id),
             wallet,
             price,
             tx_context::sender(ctx)
@@ -178,12 +196,17 @@ module nft_protocol::dutch_auction {
         // the listing admin
         listing::assert_listing_admin(listing, ctx);
 
+        let inventory =
+            listing::inventory_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
+
         cancel_auction<FT>(
-            listing::market_internal_mut(Witness {}, listing, inventory_id, market_id),
+            inventory::market_mut(inventory, market_id),
             ctx,
         );
 
-        listing::sale_off(listing, ctx);
+        inventory::set_live(inventory, market_id, false);
     }
 
     /// Conclude the auction and toggle the Slingshot's `live` to `false`.
@@ -200,10 +223,14 @@ module nft_protocol::dutch_auction {
         // the listing admin
         listing::assert_listing_admin(listing, ctx);
 
-        let inventory = listing::inventory(listing, inventory_id);
+        let inventory =
+            listing::inventory_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
+
         let nfts_to_sell = inventory::length(inventory);
         let (fill_price, bids_to_fill) = conclude_auction<FT>(
-            listing::market_internal_mut(Witness {}, listing, inventory_id, market_id),
+            inventory::market_mut(inventory, market_id),
             // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
             // Investigate whether this logic should be paginated
             nfts_to_sell,
@@ -213,21 +240,13 @@ module nft_protocol::dutch_auction {
         while (!vector::is_empty(&bids_to_fill)) {
             let Bid {amount, owner} = vector::pop_back(&mut bids_to_fill);
 
-            let filled_funds = balance::split(&mut amount, (fill_price as u64));
+            let filled_funds =
+                balance::split(&mut amount, (fill_price as u64));
 
-            balance::join<FT>(
-                &mut total_funds,
-                filled_funds
-            );
+            balance::join<FT>(&mut total_funds, filled_funds);
 
-            listing::redeem_nft_internal_and_transfer<
-                C, DutchAuctionMarket<FT>, Witness
-            >(
-                Witness {},
-                listing,
-                inventory_id,
-                owner,
-            );
+            let nft = inventory::redeem_nft<C>(inventory);
+            transfer::transfer(nft, owner);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);

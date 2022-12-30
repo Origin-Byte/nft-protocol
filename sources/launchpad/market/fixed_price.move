@@ -14,7 +14,7 @@ module nft_protocol::fixed_price {
     // TODO: Consider if we want to be able to delete the launchpad object
     // TODO: Remove code duplication between `buy_nft_certificate` and
     // `buy_whitelisted_nft_certificate`
-    use sui::balance;
+    use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
@@ -54,22 +54,24 @@ module nft_protocol::fixed_price {
     /// Creates a `FixedPriceMarket<FT>` on `Inventory`
     public entry fun create_market_on_inventory<FT>(
         inventory: &mut Inventory,
+        is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(price, ctx);
-        inventory::add_market(inventory, market);
+        inventory::add_market(inventory, is_whitelisted, market);
     }
 
     /// Creates a `FixedPriceMarket<FT>` on `Listing`
     public entry fun create_market_on_listing<FT>(
         listing: &mut Listing,
         inventory_id: ID,
+        is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(price, ctx);
-        listing::add_market(listing, inventory_id, market, ctx);
+        listing::add_market(listing, inventory_id, is_whitelisted, market, ctx);
     }
 
     // === Entrypoints ===
@@ -87,16 +89,21 @@ module nft_protocol::fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        listing::assert_is_live(listing);
-        listing::assert_inventory_is_not_whitelisted(listing, inventory_id);
+        let inventory =
+            listing::inventory_internal_mut<FixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
 
-        buy_nft_<C, FT>(
-            listing,
-            inventory_id,
+        inventory::assert_is_not_whitelisted(inventory, &market_id);
+
+        let funds = buy_nft_<C, FT>(
+            inventory,
             market_id,
             wallet,
             ctx,
-        )
+        );
+
+        listing::pay(listing, funds, 1);
     }
 
     /// Permissioned endpoint to buy NFT certificates for whitelisted sales.
@@ -113,42 +120,42 @@ module nft_protocol::fixed_price {
         whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
-        listing::assert_is_live(listing);
-        listing::assert_inventory_is_whitelisted(listing, inventory_id);
+        let inventory =
+            listing::inventory_internal_mut<FixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
+
+        inventory::assert_is_whitelisted(inventory, &market_id);
         listing::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
         listing::burn_whitelist_certificate(whitelist_token);
 
-        buy_nft_<C, FT>(
-            listing,
-            inventory_id,
+        let funds = buy_nft_<C, FT>(
+            inventory,
             market_id,
             wallet,
             ctx,
-        )
+        );
+
+        listing::pay(listing, funds, 1);
     }
 
     fun buy_nft_<C, FT>(
-        listing: &mut Listing,
-        inventory_id: ID,
+        inventory: &mut Inventory,
         market_id: ID,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Balance<FT> {
+        inventory::assert_is_live(inventory, &market_id);
+
         let market =
-            listing::market<FixedPriceMarket<FT>>(listing, inventory_id, market_id);
-
+            inventory::market<FixedPriceMarket<FT>>(inventory, market_id);
         let funds = balance::split(coin::balance_mut(wallet), market.price);
-        listing::pay(listing, funds, 1);
 
-        listing::redeem_nft_internal_and_transfer<
-            C, FixedPriceMarket<FT>, Witness
-        >(
-            Witness {},
-            listing,
-            inventory_id,
-            tx_context::sender(ctx)
-        );
+        let nft = inventory::redeem_nft<C>(inventory);
+        transfer::transfer(nft, tx_context::sender(ctx));
+
+        funds
     }
 
     // === Modifier Functions ===
@@ -162,9 +169,17 @@ module nft_protocol::fixed_price {
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = listing::market_mut<FixedPriceMarket<FT>>(
-            listing, inventory_id, market_id, ctx
+        listing::assert_listing_admin(listing, ctx);
+
+        let inventory =
+            listing::inventory_internal_mut<FixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, inventory_id, market_id
+            );
+
+        let market = inventory::market_mut<FixedPriceMarket<FT>>(
+            inventory, market_id,
         );
+
         market.price = new_price;
     }
 

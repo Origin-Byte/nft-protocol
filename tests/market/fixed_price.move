@@ -7,8 +7,9 @@ module nft_protocol::test_fixed_price {
     use sui::test_scenario::{Self, Scenario, ctx};
 
     use nft_protocol::nft;
+    use nft_protocol::inventory;
     use nft_protocol::slot::{Self, Slot, WhitelistCertificate};
-    use nft_protocol::fixed_price::{Self, FixedPriceMarket};
+    use nft_protocol::fixed_price;
 
     use nft_protocol::test_slot::init_slot;
 
@@ -27,13 +28,12 @@ module nft_protocol::test_fixed_price {
         let market = fixed_price::new<SUI>(price, ctx(scenario));
         let market_id = object::id(&market);
 
-        let inventory_id = slot::create_inventory(
-            slot, is_whitelisted, ctx(scenario)
-        );
+        let inventory_id = slot::create_inventory(slot, ctx(scenario));
 
         slot::add_market(
             slot,
             inventory_id,
+            is_whitelisted,
             market,
             ctx(scenario)
         );
@@ -48,10 +48,12 @@ module nft_protocol::test_fixed_price {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        let market: &FixedPriceMarket<SUI> =
-            slot::market(&slot, inventory_id, market_id);
+        let market = inventory::market(
+            slot::inventory(&slot, inventory_id),
+            market_id,
+        );
 
-        assert!(fixed_price::price(market) == 10, 0);
+        assert!(fixed_price::price<SUI>(market) == 10, 0);
 
         test_scenario::return_shared(slot);
         test_scenario::return_shared(launchpad);
@@ -59,7 +61,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370202, location = nft_protocol::slot)]
+    #[expected_failure(abort_code = 13370202, location = nft_protocol::inventory)]
     fun try_buy_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
@@ -90,7 +92,7 @@ module nft_protocol::test_fixed_price {
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, false, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, inventory_id, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_nft<COLLECTION, SUI>(
@@ -122,7 +124,7 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario)
         );
 
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, inventory_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -146,14 +148,14 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370206, location = nft_protocol::slot)]
+    #[expected_failure(abort_code = 13370206, location = nft_protocol::inventory)]
     fun try_buy_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
 
         let (inventory_id, market_id) =
             init_market(&mut slot, 10, true, &mut scenario);
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, inventory_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -191,7 +193,7 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario)
         );
 
-        slot::sale_on(&mut slot, ctx(&mut scenario));
+        slot::sale_on(&mut slot, inventory_id, market_id, ctx(&mut scenario));
 
         slot::transfer_whitelist_certificate(
             &launchpad, &slot, market_id, BUYER, ctx(&mut scenario)
@@ -255,9 +257,11 @@ module nft_protocol::test_fixed_price {
             &mut slot, inventory_id, market_id, 20, ctx(&mut scenario)
         );
 
-        let market: &FixedPriceMarket<SUI> =
-            slot::market(&slot, inventory_id, market_id);
-        assert!(fixed_price::price(market) == 20, 0);
+        let market = inventory::market(
+            slot::inventory(&slot, inventory_id),
+            market_id,
+        );
+        assert!(fixed_price::price<SUI>(market) == 20, 0);
 
         test_scenario::return_shared(slot);
         test_scenario::return_shared(launchpad);
