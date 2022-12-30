@@ -178,7 +178,7 @@ module nft_protocol::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
-        create_inventory(listing, is_whitelisted, ctx);
+        create_inventory(listing, ctx);
     }
 
     public fun create_inventory(
@@ -269,51 +269,6 @@ module nft_protocol::listing {
         inventory::deposit_nft(inventory, nft);
     }
 
-    /// Toggle the Listing's `live` to `true` therefore making the NFT sale live.
-    /// To be called by the Listing admin.
-    public entry fun sale_on(
-        listing: &mut Listing,
-        ctx: &mut TxContext,
-    ) {
-        assert_listing_admin(listing, ctx);
-        listing.live = true
-    }
-
-    /// Toggle the Listing's `live` to `false` therefore pausing or stopping the
-    /// NFT sale. To be called by the Listing admin.
-    public entry fun sale_off(
-        listing: &mut Listing,
-        ctx: &mut TxContext,
-    ) {
-        assert_listing_admin(listing, ctx);
-        listing.live = false
-    }
-
-    /// Toggle the Listing's `live` to `true` therefore making the NFT sale live.
-    /// To be called by the Marketplace admin.
-    public entry fun delegated_sale_on(
-        marketplace: &Marketplace,
-        listing: &mut Listing,
-        ctx: &mut TxContext,
-    ) {
-        assert_listing_marketplace_match(marketplace, listing);
-        mkt::assert_marketplace_admin(marketplace, ctx);
-
-        listing.live = true
-    }
-
-    /// Toggle the Listing's `live` to `false` therefore pausing or stopping the
-    /// NFT sale. To be called by the Marketplace admin.
-    public entry fun delegated_sale_off(
-        marketplace: &Marketplace,
-        listing: &mut Listing,
-        ctx: &mut TxContext,
-    ) {
-        assert_listing_marketplace_match(marketplace, listing);
-        mkt::assert_marketplace_admin(marketplace, ctx);
-        listing.live = false
-    }
-
     // === Getter functions ===
 
     /// Get the Listing's `receiver` address
@@ -354,19 +309,19 @@ module nft_protocol::listing {
         object_table::borrow_mut(&mut listing.inventories, inventory_id)
     }
 
-    /// Get the Slot's `Inventory` mutably
+    /// Get the Listing's `Inventory` mutably
     ///
     /// `Inventory` is unprotected therefore only market modules registered
     /// on an `Inventory` can gain mutable access to it.
     public fun inventory_internal_mut<Market: key + store, Witness: drop>(
         _witness: Witness,
-        slot: &mut Slot,
+        listing: &mut Listing,
         inventory_id: ID,
         market_id: ID,
     ): &mut Inventory {
         utils::assert_same_module_as_witness<Market, Witness>();
 
-        let inventory = inventory_mut(slot, inventory_id);
+        let inventory = inventory_mut(listing, inventory_id);
         inventory::assert_market<Market>(inventory, market_id);
 
         inventory
@@ -402,10 +357,6 @@ module nft_protocol::listing {
             is_listing_admin || is_market_admin,
             err::wrong_marketplace_or_listing_admin()
         );
-    }
-
-    public fun assert_is_live(listing: &Listing) {
-        assert!(listing.live, err::slot_not_live());
     }
 
     public fun assert_default_fee(listing: &Listing) {
