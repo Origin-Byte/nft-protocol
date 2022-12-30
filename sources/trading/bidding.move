@@ -188,7 +188,7 @@ module nft_protocol::bidding {
         });
     }
 
-    /// Entry function to sell an NFT with an open `bid`.
+    /// Function to sell an NFT with an open `bid`.
     ///
     /// It splits funds from `Bid<FT>` by creating TradePayment<C, FT>
     /// for the Ask commision if any, and creating TradePayment<C, FT> for the
