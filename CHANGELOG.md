@@ -17,6 +17,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Market access permissions rearranged to use more direct `inventory_internal_mut`.
 - Renamed `Launchpad` to `Marketplace` and `Slot` to `Listing`
 - `Listing`s can not be create independent of `Marketplace`. They can operate independently or be attached to a `Marketplace` subsequent to its creation
+- Renamed `AttributionDomain` to `CreatorsDomain`
 
 ## [0.15.0] - 2022-12-22
 
