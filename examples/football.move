@@ -3,7 +3,7 @@ module nft_protocol::football {
 
     use sui::url;
     use sui::balance;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::tags;
@@ -73,8 +73,8 @@ module nft_protocol::football {
             registry
         );
 
-        transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<FOOTBALL>(collection);
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
+        transfer::share_object(collection);
     }
 
     public entry fun collect_royalty<FT>(

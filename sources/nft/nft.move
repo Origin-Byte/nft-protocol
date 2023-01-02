@@ -2,15 +2,18 @@
 ///
 /// OriginByte's NFT protocol brings dynamism, composability and extendability
 /// to NFTs. The current design allows creators to create NFTs with custom
-/// domain-specific fields, with their own bespoke behaviour. 
-/// 
+/// domain-specific fields, with their own bespoke behaviour.
+///
 /// OriginByte provides a set of standard domains which implement common NFT
 /// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
 /// easily display your NFT.
 module nft_protocol::nft {
+    use std::type_name::{Self, TypeName};
+
+    use sui::event;
     use sui::transfer;
     use sui::bag::{Self, Bag};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -18,12 +21,12 @@ module nft_protocol::nft {
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
     /// `Nft` object
-    /// 
-    /// `Nft` is generically associated with it's collection's witness type 
+    ///
+    /// `Nft` is generically associated with it's collection's witness type
     /// `C`.
-    /// 
-    /// An `Nft` exclusively owns domains of different types, which can be 
-    /// dynamically acquired and lost over its lifetime. OriginByte NFTs are 
+    ///
+    /// An `Nft` exclusively owns domains of different types, which can be
+    /// dynamically acquired and lost over its lifetime. OriginByte NFTs are
     /// modelled after [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See [borrow_domain](#borrow_domain_mut).
     struct Nft<phantom C> has key, store {
@@ -31,26 +34,39 @@ module nft_protocol::nft {
         /// Main storage object for NFT domains
         bag: Bag,
         /// Represents the logical owner of an NFT
-        /// 
+        ///
         /// It allows for the traceability of the owner of an NFT even when the
         /// NFT is owned by a shared `Safe` object.
         logical_owner: address,
     }
 
+    /// Event signalling that an `Nft` was minted
+    struct MintNftEvent has copy, drop {
+        nft_id: ID,
+        type_name: TypeName,
+    }
+
     /// Create a new `Nft`
     ///
     /// ##### Usage
-    /// 
+    ///
     /// ```
     /// struct SUIMARINES has drop {}
-    /// 
+    ///
     /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
     ///     let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
     /// }
     /// ```
     public fun new<C>(owner: address, ctx: &mut TxContext): Nft<C> {
+        let id = object::new(ctx);
+
+        event::emit(MintNftEvent {
+            nft_id: object::uid_to_inner(&id),
+            type_name: type_name::get<C>(),
+        });
+
         Nft {
-            id: object::new(ctx),
+            id,
             bag: bag::new(ctx),
             logical_owner: owner,
         }
@@ -59,9 +75,9 @@ module nft_protocol::nft {
     // === Domain Functions ===
 
     /// Check whether `Nft` has a domain of type `D`
-    /// 
+    ///
     /// ##### Usage
-    /// 
+    ///
     /// ```
     /// if (!nft::has_domain<C, DisplayDomain>(&nft)) {
     ///     return option::none()
@@ -72,13 +88,13 @@ module nft_protocol::nft {
     }
 
     /// Borrow domain of type `D` from `Nft`
-    /// 
+    ///
     /// ##### Panics
-    /// 
+    ///
     /// Panics if domain of type `D` is not present on the `Nft`
-    /// 
+    ///
     /// ##### Usage
-    /// 
+    ///
     /// ```
     /// let display_domain: DisplayDomain = nft::borrow_domain(&nft)
     /// ```
@@ -89,13 +105,13 @@ module nft_protocol::nft {
     }
 
     /// Mutably borrow domain of type `D` from `Nft`
-    /// 
-    /// Guarantees that domain `D` can only be mutated by the module 
-    /// instantiated it. In other words, witness `W` must be defined in the 
+    ///
+    /// Guarantees that domain `D` can only be mutated by the module
+    /// instantiated it. In other words, witness `W` must be defined in the
     /// module as domain `D`.
-    /// 
+    ///
     /// ##### Usage
-    /// 
+    ///
     /// ```
     /// module nft_protocol::display {
     ///     struct SUIMARINES has drop {}
@@ -105,31 +121,31 @@ module nft_protocol::nft {
     ///         id: UID,
     ///         name: String,
     ///     } has key, store
-    /// 
+    ///
     ///     public fun domain_mut(nft: &mut Nft<C>): &mut DisplayDomain {
     ///         let domain: &mut DisplayDomain =
     ///             collection::borrow_domain_mut(Witness {}, collection);
     ///     }
     /// }
     /// ```
-    /// 
+    ///
     /// ##### Panics
-    /// 
+    ///
     /// Panics when module attempts to mutably borrow a domain it did not
     /// define itself._witness
-    /// 
+    ///
     /// The module that actually added the domain to the `Nft` is not affected,
     /// in effect, this means that you can register OriginByte standard domains
     /// but OriginByte still controls access through any mutating methods it
     /// exposes.
-    /// 
+    ///
     /// ```
     /// module nft_protocol::fake_display {
     ///     use nft_protocol::display::DisplayDomain;
-    /// 
+    ///
     ///     struct SUIMARINES has drop {}
     ///     struct Witness has drop {}
-    /// 
+    ///
     ///     public fun domain_mut<C>(nft: &mut Nft<C>): &mut DisplayDomain {
     ///         // Call to `borrow_domain_mut` will panic due to `Witness` not originating from `nft_protocol::display`.
     ///         let domain: &mut DisplayDomain =
@@ -148,13 +164,13 @@ module nft_protocol::nft {
     }
 
     /// Adds domain of type `D` to `Nft`
-    /// 
+    ///
     /// ##### Panics
-    /// 
+    ///
     /// Panics if transaction sender is not logical owner of the `Nft`.
-    /// 
+    ///
     /// ##### Usage
-    /// 
+    ///
     /// ```
     /// let display_domain = display::new_display_domain(name, description);
     /// nft::add_domain(&mut nft, display_domain, ctx);
@@ -175,14 +191,14 @@ module nft_protocol::nft {
     }
 
     /// Adds domain of type `D` to `Nft`
-    /// 
+    ///
     /// ##### Panics
-    /// 
+    ///
     /// Panics when module attempts to remove a domain it did not define
     /// itself. See [borrow_domain_mut](#borrow_domain_mut).
-    /// 
+    ///
     /// ##### Usage
-    /// 
+    ///
     /// ```
     /// let display_domain: DisplayDomain =
     ///     nft::remove_domain(Witness {}, &mut nft);
@@ -198,7 +214,7 @@ module nft_protocol::nft {
     // === Transfer Functions ===
 
     /// Transfer the `Nft` to `recipient` while changing the `logical_owner`
-    /// 
+    ///
     /// If the authority was allowlisted by the creator, we transfer
     /// the NFT to the recipient address.
     //
@@ -214,7 +230,7 @@ module nft_protocol::nft {
     }
 
     /// Change the `logical_owner` of the `Nft` to `recipient`
-    /// 
+    ///
     /// Creator can allow certain contracts to change the logical owner of an NFT.
     //
     // TODO: Elaborate

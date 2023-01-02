@@ -6,7 +6,7 @@ module nft_protocol::mint_and_sell {
     use sui::url;
     use sui::sui::SUI;
     use sui::tx_context;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::nft;
@@ -78,8 +78,8 @@ module nft_protocol::mint_and_sell {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        collection::share<Foo>(collection);
-        transfer(mint_cap, CREATOR);
+        transfer::share_object(collection);
+        transfer::transfer(mint_cap, CREATOR);
 
         // 2. Create marketplace and add Listing
         test_scenario::next_tx(&mut scenario, MARKETPLACE);

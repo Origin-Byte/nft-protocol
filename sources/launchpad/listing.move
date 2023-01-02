@@ -19,6 +19,7 @@ module nft_protocol::listing {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
+    use sui::event;
     use sui::transfer;
     use sui::balance::Balance;
     use sui::object::{Self, ID , UID};
@@ -37,7 +38,7 @@ module nft_protocol::listing {
 
     // === WhitelistCertificate ===
 
-    /// Whitin a `Listing`, each market has its own whitelist policy.
+    /// Within a `Listing`, each market has its own whitelist policy.
     /// As an example, creators can create tiered sales based on the NFT rarity,
     /// and then whitelist only the rare NFT sale. They can then emit whitelist
     /// tokens and send them to users who have completed a set of defined actions.
@@ -111,21 +112,21 @@ module nft_protocol::listing {
         custom_fee: ObjectBox,
     }
 
-    // An ephemeral object representing the intention of a `Listing` admin
-    // to join a given Marketplace.
+    /// An ephemeral object representing the intention of a `Listing` admin
+    /// to join a given Marketplace.
     struct RequestToJoin has key, store {
         id: UID,
         marketplace_id: TypedID<Marketplace>,
     }
 
+    /// Event signalling that a `Listing` was created
     struct CreateListingEvent has copy, drop {
-        object_id: ID,
-        collection_id: ID,
+        listing_id: ID,
     }
 
+    /// Event signalling that a `Listing` was deleted
     struct DeleteListingEvent has copy, drop {
-        object_id: ID,
-        collection_id: ID,
+        listing_id: ID,
     }
 
     /// Initialises a `Listing` object and returns it.
@@ -134,11 +135,15 @@ module nft_protocol::listing {
         receiver: address,
         ctx: &mut TxContext,
     ): Listing {
-        let uid = object::new(ctx);
+        let id = object::new(ctx);
         let inventories = object_table::new<ID, Inventory>(ctx);
 
+        event::emit(CreateListingEvent {
+            listing_id: object::uid_to_inner(&id),
+        });
+
         Listing {
-            id: uid,
+            id,
             marketplace_id: option::none(),
             admin: listing_admin,
             receiver,
