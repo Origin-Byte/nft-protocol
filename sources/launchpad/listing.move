@@ -121,12 +121,12 @@ module nft_protocol::listing {
 
     /// Event signalling that a `Listing` was created
     struct CreateListingEvent has copy, drop {
-        object_id: ID,
+        listing_id: ID,
     }
 
     /// Event signalling that a `Listing` was deleted
     struct DeleteListingEvent has copy, drop {
-        object_id: ID,
+        listing_id: ID,
     }
 
     /// Initialises a `Listing` object and returns it.
@@ -139,7 +139,7 @@ module nft_protocol::listing {
         let inventories = object_table::new<ID, Inventory>(ctx);
 
         event::emit(CreateListingEvent {
-            object_id: object::uid_to_inner(&id)
+            listing_id: object::uid_to_inner(&id),
         });
 
         Listing {

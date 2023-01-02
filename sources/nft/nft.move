@@ -8,6 +8,8 @@
 /// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
 /// easily display your NFT.
 module nft_protocol::nft {
+    use std::type_name::{Self, TypeName};
+
     use sui::event;
     use sui::transfer;
     use sui::bag::{Self, Bag};
@@ -41,6 +43,7 @@ module nft_protocol::nft {
     /// Event signalling that an `Nft` was minted
     struct MintNftEvent has copy, drop {
         nft_id: ID,
+        type_name: TypeName,
     }
 
     /// Create a new `Nft`
@@ -57,7 +60,10 @@ module nft_protocol::nft {
     public fun new<C>(owner: address, ctx: &mut TxContext): Nft<C> {
         let id = object::new(ctx);
 
-        event::emit(MintNftEvent { nft_id: *object::uid_as_inner(&id) });
+        event::emit(MintNftEvent {
+            nft_id: object::uid_to_inner(&id),
+            type_name: type_name::get<C>(),
+        });
 
         Nft {
             id,
