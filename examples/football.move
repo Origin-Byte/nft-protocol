@@ -9,7 +9,7 @@ module nft_protocol::football {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::flyweight::{Self, Registry};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -31,7 +31,7 @@ module nft_protocol::football {
         collection::add_domain(
             &mut collection,
             &mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains

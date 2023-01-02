@@ -16,7 +16,7 @@ module nft_protocol::mint_and_sell {
     use nft_protocol::flat_fee;
     use nft_protocol::fixed_price;
     use nft_protocol::collection;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::marketplace::{Self, Marketplace};
     use nft_protocol::inventory;
@@ -44,7 +44,7 @@ module nft_protocol::mint_and_sell {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx(&mut scenario)))
+            creators::from_address(tx_context::sender(ctx(&mut scenario)))
         );
 
         // Register custom domains
