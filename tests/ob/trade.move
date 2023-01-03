@@ -20,7 +20,7 @@ module nft_protocol::test_ob_trade {
 
     fun create_col_wl_safes(scenario: &mut Scenario) {
         test_scenario::next_tx(scenario, CREATOR);
-        test_ob::create_collection_and_whitelist(scenario);
+        test_ob::create_collection_and_allowlist(scenario);
         test_ob::create_ob(scenario);
 
         test_scenario::next_tx(scenario, SELLER1);

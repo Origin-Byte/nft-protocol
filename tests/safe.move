@@ -2,7 +2,7 @@
 module nft_protocol::test_safe {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
-    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
     use sui::object;
     use sui::tx_context;
@@ -146,7 +146,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    fun it_can_deposit_whitelisted_collection() {
+    fun it_can_deposit_allowlisted_collection() {
         let scenario = test_scenario::begin(USER);
         let sender = tx_context::sender(ctx(&mut scenario));
 
@@ -176,7 +176,7 @@ module nft_protocol::test_safe {
 
     #[test]
     #[expected_failure(abort_code = 13370405, location = nft_protocol::safe)]
-    fun it_toggles_collection_whitelisting_for_deposits() {
+    fun it_toggles_collection_allowlisting_for_deposits() {
         let scenario = test_scenario::begin(USER);
         let sender = tx_context::sender(ctx(&mut scenario));
 
@@ -294,7 +294,7 @@ module nft_protocol::test_safe {
         safe::assert_transfer_cap_of_safe(&transfer_cap, &safe);
         safe::assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
 
-        let wl = dummy_whitelist(&mut scenario);
+        let wl = dummy_allowlist(&mut scenario);
         safe::transfer_nft_to_recipient<Foo, Witness>(
             transfer_cap, USER, Witness {}, &wl, &mut safe,
         );
@@ -378,7 +378,7 @@ module nft_protocol::test_safe {
         safe::assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
         assert!(safe::transfer_cap_is_exclusive(&transfer_cap), 0);
 
-        let wl = dummy_whitelist(&mut scenario);
+        let wl = dummy_allowlist(&mut scenario);
         safe::transfer_nft_to_recipient<Foo, Witness>(
             transfer_cap, USER, Witness {}, &wl, &mut safe,
         );
@@ -493,7 +493,7 @@ module nft_protocol::test_safe {
 
         safe::delist_nft(nft_id, &owner_cap, &mut safe, ctx(&mut scenario));
 
-        let wl = dummy_whitelist(&mut scenario);
+        let wl = dummy_allowlist(&mut scenario);
         safe::transfer_nft_to_recipient<Foo, Witness>(
             transfer_cap, USER, Witness {}, &wl, &mut safe,
         );
@@ -557,7 +557,7 @@ module nft_protocol::test_safe {
             ctx(&mut scenario),
         );
 
-        let wl = dummy_whitelist(&mut scenario);
+        let wl = dummy_allowlist(&mut scenario);
         safe::transfer_nft_to_safe<Foo, Witness>(
             transfer_cap,
             USER,
@@ -657,7 +657,7 @@ module nft_protocol::test_safe {
             ctx(&mut scenario)
         );
 
-        let wl = dummy_whitelist(&mut scenario);
+        let wl = dummy_allowlist(&mut scenario);
         safe::transfer_nft_to_recipient<Foo, Witness>(
             transfer_cap1, USER, Witness {}, &wl, &mut safe,
         );
@@ -858,7 +858,7 @@ module nft_protocol::test_safe {
     fun it_cannot_transfer_protocol_nft_as_generic_nft() {
         let scenario = test_scenario::begin(USER);
 
-        let wl = dummy_whitelist(&mut scenario);
+        let wl = dummy_allowlist(&mut scenario);
         let owner_cap = safe::create_safe(ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let safe: Safe = test_scenario::take_shared(&scenario);
@@ -1012,13 +1012,13 @@ module nft_protocol::test_safe {
         test_scenario::end(scenario);
     }
 
-    fun dummy_whitelist(scenario: &mut Scenario): Whitelist {
-        let col_cap = transfer_whitelist::create_collection_cap<Foo, Witness>(
+    fun dummy_allowlist(scenario: &mut Scenario): Allowlist {
+        let col_cap = transfer_allowlist::create_collection_cap<Foo, Witness>(
             &Witness {}, ctx(scenario),
         );
 
-        let wl = transfer_whitelist::create(Witness {}, ctx(scenario));
-        transfer_whitelist::insert_collection(
+        let wl = transfer_allowlist::create(Witness {}, ctx(scenario));
+        transfer_allowlist::insert_collection(
             Witness {},
             &col_cap,
             &mut wl,

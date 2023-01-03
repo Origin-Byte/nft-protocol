@@ -1,5 +1,5 @@
 #[test_only]
-/// This test focuses on integration between OB, Safe, a whitelist and
+/// This test focuses on integration between OB, Safe, a allowlist and
 /// royalty collection.
 ///
 /// We simulate a trade between two Safes, end to end, including royalty
@@ -19,7 +19,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
 
         test_ob::create_ob(&mut scenario);
 

@@ -22,7 +22,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_non_existing_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
@@ -41,7 +41,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_someone_elses_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
@@ -59,7 +59,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
@@ -94,7 +94,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_only_one_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
@@ -150,7 +150,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_ask_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
@@ -187,7 +187,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
 
@@ -204,7 +204,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_only_one_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
 
@@ -227,7 +227,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_non_existing_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, BUYER);
         test_ob::create_safe(&mut scenario, BUYER);
@@ -244,7 +244,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_someone_elses_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, BUYER);
         test_ob::create_safe(&mut scenario, BUYER);
@@ -261,7 +261,7 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_bid_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_whitelist(&mut scenario);
+        test_ob::create_collection_and_allowlist(&mut scenario);
         let _ob_id = test_ob::create_ob(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
 

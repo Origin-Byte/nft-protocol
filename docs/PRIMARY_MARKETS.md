@@ -2,9 +2,9 @@
 
 Origin-Byte primary markets allow you to setup or participate in initial NFT mints.
 
-# Launchpad
+# Marketplace
 
-## Slot
+## Listing
 
 ## Fixed price market
 

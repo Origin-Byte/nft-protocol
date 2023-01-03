@@ -1,9 +1,9 @@
 sui.log.*
 .env
 build
+target
 output.bpl
 .coverage_*
 .trace
 boilerplate
 .DS_Store
-target

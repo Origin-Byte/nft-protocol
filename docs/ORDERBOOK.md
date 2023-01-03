@@ -239,9 +239,9 @@ actions such as offering an NFT for really low price and then quickly changing
 the price to a higher one.
 The provided `Coin` wallet is used to pay for the NFT.
 The NFT is transferred from the seller's `Safe` to the buyer's `Safe`.
-The whitelist is used to check if the orderbook is authorized to trade the
+The allowlist is used to check if the orderbook is authorized to trade the
 collection at all.
-See the [whitelist](WHITELIST.md) documentation for more information.
+See the [allowlist](ALLOWLIST.md) documentation for more information.
 This endpoint does _not_ create a new `TradeIntermediate`, rather performs the
 transfer straight away.
 
@@ -253,14 +253,14 @@ buy_nft<C, FT>(
   wallet,
   seller_safe,
   buyer_safe,
-  whitelist: &Whitelist,
+  allowlist: &Allowlist,
   ctx: &mut TxContext,
 )
 ```
 
 Settles a trade by transferring the NFT from the seller's `Safe` to the buyer's
 `Safe`.
-See the [whitelist](WHITELIST.md) documentation for more information.
+See the [allowlist](ALLOWLIST.md) documentation for more information.
 This endpoint does _not_ create a new `TradeIntermediate`, rather performs the
 transfer straight away.
 
@@ -269,6 +269,6 @@ finish_trade<C, FT>(
     trade: &mut TradeIntermediate<C, FT>,
     seller_safe,
     buyer_safe,
-    whitelist,
+    allowlist,
 )
 ```

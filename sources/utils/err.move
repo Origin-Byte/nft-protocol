@@ -48,13 +48,13 @@ module nft_protocol::err {
         return Prefix + 107
     }
 
-    // === Launchpad ===
+    // === Marketplace ===
 
-    public fun wrong_launchpad_admin(): u64 {
+    public fun wrong_marketplace_admin(): u64 {
         return Prefix + 201
     }
 
-    public fun slot_not_live(): u64 {
+    public fun listing_not_live(): u64 {
         return Prefix + 202
     }
 
@@ -86,15 +86,15 @@ module nft_protocol::err {
         return Prefix + 209
     }
 
-    public fun launchpad_slot_mismatch(): u64 {
+    public fun marketplace_listing_mismatch(): u64 {
         return Prefix + 210
     }
 
-    public fun wrong_launchpad_or_slot_admin(): u64 {
+    public fun wrong_marketplace_or_listing_admin(): u64 {
         return Prefix + 211
     }
 
-    public fun wrong_slot_admin(): u64 {
+    public fun wrong_listing_admin(): u64 {
         return Prefix + 212
     }
 
@@ -106,16 +106,32 @@ module nft_protocol::err {
         return Prefix + 214
     }
 
-    public fun slot_not_approved(): u64 {
+    public fun listing_not_approved(): u64 {
         return Prefix + 215
     }
 
-    public fun undefined_market(): u64 {
+    public fun undefined_inventory(): u64 {
         return Prefix + 216
     }
 
-    public fun incorrect_nft_certificate(): u64 {
+    public fun undefined_market(): u64 {
         return Prefix + 217
+    }
+
+    public fun incorrect_nft_certificate(): u64 {
+        return Prefix + 218
+    }
+
+    public fun listing_already_attached_to_marketplace(): u64 {
+        return Prefix + 219
+    }
+
+    public fun listing_has_not_applied_to_this_marketplace(): u64 {
+        return Prefix + 219
+    }
+
+    public fun action_exclusive_to_standalone_listings(): u64 {
+        return Prefix + 219
     }
 
     // === Auction ===
@@ -174,13 +190,13 @@ module nft_protocol::err {
         return Prefix + 408
     }
 
-    // === Whitelist ===
+    // === Allowlist ===
 
-    public fun authority_not_whitelisted(): u64 {
+    public fun authority_not_allowlisted(): u64 {
         return Prefix + 500
     }
 
-    public fun sender_not_whitelist_admin(): u64 {
+    public fun sender_not_allowlist_admin(): u64 {
         return Prefix + 502
     }
 

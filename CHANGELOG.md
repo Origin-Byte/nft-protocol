@@ -6,6 +6,19 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2023-01-03
+
+### Changed
+
+- Renaming `whitelist` to `allowlist` in relation to transferring NFTs.
+- We maintain our own version of `movemate` dependency called `originmate`.
+- Markets (`FixedPriceMarket`, `DutchAuctionMarket`) are now registered on `Inventory` rather than the `Slot`.
+- Live and whitelisted status of markets is now tracked on `Inventory`.
+- Market access permissions rearranged to use more direct `inventory_internal_mut`.
+- Renamed `Launchpad` to `Marketplace` and `Slot` to `Listing`
+- `Listing`s can not be create independent of `Marketplace`. They can operate independently or be attached to a `Marketplace` subsequent to its creation
+- Renamed `AttributionDomain` to `CreatorsDomain`
+
 ## [0.15.0] - 2022-12-22
 
 ### Added

@@ -1,12 +1,12 @@
 #[test_only]
-/// A whitelist which permits any collection to add itself and any authority
+/// A allowlist which permits any collection to add itself and any authority
 /// to use it to transfer.
 ///
-/// Basically any collection which adds itself to this whitelist is saying:
+/// Basically any collection which adds itself to this allowlist is saying:
 /// we're ok with anyone transferring NFTs.
 module nft_protocol::example_free_for_all {
 
-    use nft_protocol::transfer_whitelist::{Self, Whitelist};
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::TxContext;
 
@@ -16,17 +16,17 @@ module nft_protocol::example_free_for_all {
         init_(ctx)
     }
     public fun init_(ctx: &mut TxContext) {
-        share_object(transfer_whitelist::create(Witness {}, ctx));
+        share_object(transfer_allowlist::create(Witness {}, ctx));
     }
 
     /// Only the creator is allowed to insert their collection.
     ///
-    /// However, any creator can insert their collection into simple whitelist.
+    /// However, any creator can insert their collection into simple allowlist.
     public entry fun insert_collection<T>(
-        col_cap: &transfer_whitelist::CollectionControlCap<T>,
-        list: &mut Whitelist,
+        col_cap: &transfer_allowlist::CollectionControlCap<T>,
+        list: &mut Allowlist,
     ) {
-        transfer_whitelist::insert_collection(
+        transfer_allowlist::insert_collection(
             Witness {},
             col_cap,
             list,
@@ -49,9 +49,9 @@ module nft_protocol::example_free_for_all {
 
         test_scenario::next_tx(&mut scenario, USER);
 
-        let wl: Whitelist = test_scenario::take_shared(&scenario);
+        let wl: Allowlist = test_scenario::take_shared(&scenario);
 
-        let col_cap = transfer_whitelist::create_collection_cap<Foo, Witness>(
+        let col_cap = transfer_allowlist::create_collection_cap<Foo, Witness>(
             &Witness {}, ctx(&mut scenario),
         );
 
