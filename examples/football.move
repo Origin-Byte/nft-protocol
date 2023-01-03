@@ -3,13 +3,13 @@ module nft_protocol::football {
 
     use sui::url;
     use sui::balance;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::flyweight::{Self, Registry};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -31,7 +31,7 @@ module nft_protocol::football {
         collection::add_domain(
             &mut collection,
             &mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
@@ -73,8 +73,8 @@ module nft_protocol::football {
             registry
         );
 
-        transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<FOOTBALL>(collection);
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
+        transfer::share_object(collection);
     }
 
     public entry fun collect_royalty<FT>(
@@ -130,6 +130,6 @@ module nft_protocol::football {
         flyweight::add_archetype(archetype, registry, mint_cap);
 
         // TODO: Define the NFT minting process
-        // lp::add_nft(slot, market_id, nft);
+        // lp::add_nft(listing, market_id, nft);
     }
 }

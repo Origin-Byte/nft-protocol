@@ -1,17 +1,16 @@
-#[test_only]
 module nft_protocol::suimarines {
     use std::string::{Self, String};
 
     use sui::url;
     use sui::balance;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -33,7 +32,7 @@ module nft_protocol::suimarines {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
@@ -67,10 +66,11 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<SUIMARINES>(collection);
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
+        transfer::share_object(collection);
     }
 
+    /// Calculates and transfers royalties to the `RoyaltyDomain`
     public entry fun collect_royalty<FT>(
         payment: &mut TradePayment<SUIMARINES, FT>,
         collection: &mut Collection<SUIMARINES>,
@@ -118,6 +118,6 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        inventory::add_nft(inventory, nft);
+        inventory::deposit_nft(inventory, nft);
     }
 }

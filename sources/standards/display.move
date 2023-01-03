@@ -1,10 +1,10 @@
-//! Module of NFT domains for displaying standard information
-//!
-//! Current display domains are:
-//!     - DisplayDomain (For NFTs and Collections)
-//!     - UrlDomain (For NFTs and Collections)
-//!     - SymbolDomain (For Collections)
-//!     - Attributes (For NFTs)
+/// Module of NFT domains for displaying standard information
+///
+/// Current display domains are:
+///     - DisplayDomain (For NFTs and Collections)
+///     - UrlDomain (For NFTs and Collections)
+///     - SymbolDomain (For Collections)
+///     - Attributes (For NFTs)
 module nft_protocol::display {
     use std::string::String;
     use std::option::{Self, Option};
@@ -14,7 +14,7 @@ module nft_protocol::display {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::utils;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -51,7 +51,7 @@ module nft_protocol::display {
         name: String,
         ctx: &mut TxContext,
     ) {
-        attribution::assert_collection_has_creator(
+        creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
 
@@ -69,7 +69,7 @@ module nft_protocol::display {
         description: String,
         ctx: &mut TxContext,
     ) {
-        attribution::assert_collection_has_creator(
+        creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
 
@@ -137,7 +137,7 @@ module nft_protocol::display {
         url: Url,
         ctx: &mut TxContext,
     ) {
-        attribution::assert_collection_has_creator(
+        creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
 
@@ -205,7 +205,7 @@ module nft_protocol::display {
         symbol: String,
         ctx: &mut TxContext,
     ) {
-        attribution::assert_collection_has_creator(
+        creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
 
@@ -292,7 +292,7 @@ module nft_protocol::display {
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ): &mut AttributesDomain {
-        attribution::assert_collection_has_creator(
+        creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
         nft::borrow_domain_mut<C, AttributesDomain, Witness>(Witness {}, nft)

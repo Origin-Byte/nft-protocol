@@ -1,12 +1,10 @@
 #[test_only]
+/// This test focuses on integration between bidding contract, Safe,
+/// a allowlist and royalty collection.
+///
+/// We simulate a trade between two Safes, end to end, including royalty
+/// collection.
 module nft_protocol::test_bidding_safe_to_safe_trade {
-    //! This test focuses on integration between bidding contract, Safe,
-    //! a whitelist and royalty collection.
-    //!
-    //! We simulate a trade between two Safes, end to end, including royalty
-    //! collection.
-
-    // use std::debug;
     use sui::coin;
     use std::vector;
     use sui::balance;
@@ -18,7 +16,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use nft_protocol::bidding;
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
-    use nft_protocol::transfer_whitelist::{Whitelist};
+    use nft_protocol::transfer_allowlist::{Allowlist};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::test_utils::{Self as utils};
     use nft_protocol::royalty_strategy_bps as royalty_bps;
@@ -34,13 +32,13 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
     struct Foo has drop {} // collection
     struct Witness has drop {} // collection witness, must be named witness
-    struct WhitelistWitness has drop {}
+    struct AllowlistWitness has drop {}
 
     #[test]
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
 
-        utils::create_collection_and_whitelist_with_type(
+        utils::create_collection_and_allowlist_with_type(
             Foo {},
             Witness {},
             CREATOR,
@@ -110,7 +108,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     fun it_works_with_royalties() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, mint_cap_id, _) = utils::create_collection_and_whitelist_with_type(
+        let (col_id, mint_cap_id, _) = utils::create_collection_and_allowlist_with_type(
             Foo {},
             Witness {},
             CREATOR,
@@ -233,7 +231,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         test_scenario::end(scenario);
     }
 
-    public entry fun collect_proportional_royalty<C, FT>(
+    public fun collect_proportional_royalty<C, FT>(
         payment: &mut TradePayment<C, FT>,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
@@ -297,7 +295,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
             buyer_safe_id,
         );
 
-        let wl: Whitelist = test_scenario::take_shared(scenario);
+        let wl: Allowlist = test_scenario::take_shared(scenario);
 
         assert!(!safe::has_nft<C>(nft_id, &buyer_safe), 0);
         assert!(safe::has_nft<C>(nft_id, &seller_safe), 0);

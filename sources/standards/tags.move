@@ -1,7 +1,7 @@
-//! Module of NFT and Collection `Tags` domain
-//!
-//! This domain allows wallets to organize the NFT display based on categories,
-//! such as Art, Profile Picture, Collectibles, etc.
+/// Module of NFT and Collection `Tags` domain
+///
+/// This domain allows wallets to organize the NFT display based on categories,
+/// such as Art, Profile Picture, Collectibles, etc.
 module nft_protocol::tags {
     // TODO: Consider if we should add a wrapper domain Tags {bag} such that
     // wallet can always query this domain instead of having to query all domains
@@ -12,7 +12,7 @@ module nft_protocol::tags {
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
 
     // === Tags ===
 
@@ -131,7 +131,7 @@ module nft_protocol::tags {
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ): &mut TagDomain {
-        attribution::assert_collection_has_creator(
+        creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
 

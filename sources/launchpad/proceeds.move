@@ -1,13 +1,13 @@
-//! Module performing custody of the funds acquired from the sale proceeds of
-//! an NFT releaset `Slot`. In addition, `Proceeds` also performs the bookeeping
-//! of the sales, in quantities and <FT>-amount.
-//!
-//! The process of retrieving the funds from the  `Proceeds` object embedded in
-//! a `Slot` guarantees that fees are transferred to the `launchpad.receiver`
-//! and therefore the `Slot.receiver` receives the proceeds net of fees.
+/// Module performing custody of the funds acquired from the sale proceeds of
+/// an NFT `Listing`. In addition, `Proceeds` also performs the bookeeping
+/// of the sales, in quantities and <FT>-amount.
+///
+/// The process of retrieving the funds from the  `Proceeds` object embedded in
+/// a `Slot` guarantees that fees are transferred to the `marketplace.receiver`
+/// and therefore the `Slot.receiver` receives the proceeds net of fees.
 module nft_protocol::proceeds {
     // TODO: Function to destroy Proceeds object
-    // TODO: reconsider `Proceeds.total` to acocmodate for multiple FTs
+    // TODO: reconsider `Proceeds.total` to accomodate for multiple FTs
     use sui::coin;
     use sui::transfer;
     use sui::tx_context::TxContext;
@@ -74,11 +74,11 @@ module nft_protocol::proceeds {
         }
     }
 
-    public fun collect<FT>(
+    public fun collect_with_fees<FT>(
         proceeds: &mut Proceeds,
         fees: u64,
-        launchpad_receiver: address,
-        slot_receiver: address,
+        marketplace_receiver: address,
+        listing_receiver: address,
         ctx: &mut TxContext,
     ) {
         let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
@@ -95,7 +95,7 @@ module nft_protocol::proceeds {
 
         transfer::transfer(
             fee,
-            launchpad_receiver,
+            marketplace_receiver,
         );
 
         let balance_value = balance::value(balance);
@@ -110,7 +110,33 @@ module nft_protocol::proceeds {
 
         transfer::transfer(
             proceeds_coin,
-            slot_receiver,
+            listing_receiver,
+        );
+    }
+
+    public fun collect_without_fees<FT>(
+        proceeds: &mut Proceeds,
+        listing_receiver: address,
+        ctx: &mut TxContext,
+    ) {
+        let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
+            &mut proceeds.id,
+            utils::marker<FT>(),
+        );
+
+        let balance_value = balance::value(balance);
+
+        // Take the whole balance
+        let proceeds_balance = balance::split<FT>(
+            balance,
+            balance_value,
+        );
+
+        let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
+
+        transfer::transfer(
+            proceeds_coin,
+            listing_receiver,
         );
     }
 

@@ -1,24 +1,23 @@
+/// Orderbook where bids are fungible tokens and asks are NFTs.
+/// A bid is a request to buy one NFT from a specific collection.
+/// An ask is one NFT with a min price condition.
+///
+/// One can
+/// - create a new orderbook between a given collection and a bid token;
+/// - set publicly accessible actions to be witness protected;
+/// - open a new bid;
+/// - cancel an existing bid they own;
+/// - offer an NFT if collection matches OB collection;
+/// - cancel an existing NFT offer;
+/// - instantly buy a specific NFT;
+/// - open bids and asks with a commission on behalf of a user.
 module nft_protocol::ob {
-    //! Orderbook where bids are fungible tokens and asks are NFTs.
-    //! A bid is a request to buy one NFT from a specific collection.
-    //! An ask is one NFT with a min price condition.
-    //!
-    //! One can
-    //! - create a new orderbook between a given collection and a bid token;
-    //! - set publicly accessible actions to be witness protected;
-    //! - open a new bid;
-    //! - cancel an existing bid they own;
-    //! - offer an NFT if collection matches OB collection;
-    //! - cancel an existing NFT offer;
-    //! - instantly buy a specific NFT;
-    //! - open bids and asks with a commission on behalf of a user.
-
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
     // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
     // TODO: do we allow anyone to create an OB for any collection?
 
-    use movemate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+    use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use std::option::{Self, Option};
     use std::vector;
@@ -30,7 +29,7 @@ module nft_protocol::ob {
 
     use nft_protocol::err;
     use nft_protocol::safe::{Self, Safe, TransferCap};
-    use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils;
     use nft_protocol::trading::{
         AskCommission,
@@ -125,7 +124,7 @@ module nft_protocol::ob {
         commission: Option<AskCommission>,
     }
 
-    /// TradeIntermediate` is made a shared object and can be called
+    /// `TradeIntermediate` is made a shared object and can be called
     /// permissionlessly.
     struct TradeIntermediate<phantom C, phantom FT> has key {
         id: UID,
@@ -404,12 +403,12 @@ module nft_protocol::ob {
         wallet: &mut Coin<FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.buy_nft, err::action_not_public());
         buy_nft_<C, FT>(
-            book, nft_id, price, wallet, seller_safe, buyer_safe, whitelist, ctx
+            book, nft_id, price, wallet, seller_safe, buyer_safe, allowlist, ctx
         )
     }
 
@@ -421,13 +420,13 @@ module nft_protocol::ob {
         wallet: &mut Coin<FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
         buy_nft_<C, FT>(
-            book, nft_id, price, wallet, seller_safe, buyer_safe, whitelist, ctx
+            book, nft_id, price, wallet, seller_safe, buyer_safe, allowlist, ctx
         )
     }
 
@@ -442,10 +441,10 @@ module nft_protocol::ob {
         trade: &mut TradeIntermediate<C, FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        finish_trade_<C, FT>(trade, seller_safe, buyer_safe, whitelist, ctx)
+        finish_trade_<C, FT>(trade, seller_safe, buyer_safe, allowlist, ctx)
     }
 
     // === Create orderbook ===
@@ -844,7 +843,7 @@ module nft_protocol::ob {
         wallet: &mut Coin<FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let buyer = tx_context::sender(ctx);
@@ -877,7 +876,7 @@ module nft_protocol::ob {
             transfer_cap,
             buyer,
             Witness {},
-            whitelist,
+            allowlist,
             seller_safe,
             buyer_safe,
             ctx,
@@ -888,7 +887,7 @@ module nft_protocol::ob {
         trade: &mut TradeIntermediate<C, FT>,
         seller_safe: &mut Safe,
         buyer_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let TradeIntermediate {
@@ -920,7 +919,7 @@ module nft_protocol::ob {
             transfer_cap,
             *buyer,
             Witness {},
-            whitelist,
+            allowlist,
             seller_safe,
             buyer_safe,
             ctx,

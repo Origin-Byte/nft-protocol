@@ -1,5 +1,5 @@
-//! Bidding module that allows users to bid for any given NFT in a safe,
-//! giving NFT owners a platform to sell their NFTs to any available bid.
+/// Bidding module that allows users to bid for any given NFT in a safe,
+/// giving NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
     use std::option::{Self, Option};
 
@@ -12,7 +12,7 @@ module nft_protocol::bidding {
 
     use nft_protocol::err;
     use nft_protocol::safe::{Self, Safe, TransferCap};
-    use nft_protocol::transfer_whitelist::Whitelist;
+    use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::trading::{
         AskCommission,
         BidCommission,
@@ -99,7 +99,7 @@ module nft_protocol::bidding {
         transfer_cap: TransferCap,
         sellers_safe: &mut Safe,
         buyers_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         sell_nft_<C, FT>(
@@ -108,7 +108,7 @@ module nft_protocol::bidding {
             option::none(),
             sellers_safe,
             buyers_safe,
-            whitelist,
+            allowlist,
             ctx,
         );
     }
@@ -133,7 +133,7 @@ module nft_protocol::bidding {
         commission_ft: u64,
         sellers_safe: &mut Safe,
         buyers_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let commission = new_ask_commission(
@@ -146,7 +146,7 @@ module nft_protocol::bidding {
             option::some(commission),
             sellers_safe,
             buyers_safe,
-            whitelist,
+            allowlist,
             ctx,
         );
     }
@@ -187,7 +187,7 @@ module nft_protocol::bidding {
         });
     }
 
-    /// Entry function to sell an NFT with an open `bid`.
+    /// Function to sell an NFT with an open `bid`.
     ///
     /// It splits funds from `Bid<FT>` by creating TradePayment<C, FT>
     /// for the Ask commision if any, and creating TradePayment<C, FT> for the
@@ -200,7 +200,7 @@ module nft_protocol::bidding {
         ask_commission: Option<AskCommission>,
         sellers_safe: &mut Safe,
         buyers_safe: &mut Safe,
-        whitelist: &Whitelist,
+        allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         safe::assert_transfer_cap_of_safe(&transfer_cap, sellers_safe);
@@ -222,7 +222,7 @@ module nft_protocol::bidding {
             transfer_cap,
             bid.buyer,
             Witness {},
-            whitelist,
+            allowlist,
             sellers_safe,
             buyers_safe,
             ctx,
