@@ -75,7 +75,6 @@ module nft_protocol::safe {
         transfer(cap, tx_context::sender(ctx));
     }
 
-
     /// Creates a new `Safe` shared object and returns the
     /// authority capability that grants authority over this safe.
     ///

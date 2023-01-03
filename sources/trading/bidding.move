@@ -1,7 +1,6 @@
 //! Bidding module that allows users to bid for any given NFT in a safe,
 //! giving NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
-    // TODO: Consider allowing for NFT owners to create their own Asks
     use std::option::{Self, Option};
 
     use sui::event::emit;
@@ -118,7 +117,7 @@ module nft_protocol::bidding {
     ///
     /// It performs the following:
     /// - Splits funds from `Bid<FT>` by:
-    ///     - (1) Creating TradePayment<C, FT> for the Ask commision
+    ///     - (1) Creating TradePayment<C, FT> for the Ask commission
     ///     - (2) Creating TradePayment<C, FT> for the net trade amount
     /// - Transfers NFT from `sellers_safe` to `buyers_safe` and
     /// burns `TransferCap`
