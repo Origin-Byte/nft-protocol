@@ -66,9 +66,8 @@ module gutenberg::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create<SUIMARINES>(
-            &witness,
-            ctx,
+        let (mint_cap, collection) = collection::create(
+            &witness, ctx,
         );
 
         collection::add_domain(
@@ -138,7 +137,7 @@ module gutenberg::suimarines {
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
+        let nft = nft::new(&SUIMARINES {}, tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft,

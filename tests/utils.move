@@ -136,7 +136,7 @@ module nft_protocol::test_utils {
         test_scenario::next_tx(scenario, user);
         let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
 
-        let nft = nft::new<Foo>(user, ctx(scenario));
+        let nft = nft::new(&Foo {}, user, ctx(scenario));
         let nft_id = object::id(&nft);
         safe::deposit_nft<Foo>(
             nft,
@@ -154,13 +154,14 @@ module nft_protocol::test_utils {
 
     // To be used if Collection type struct is in test module
     public fun mint_and_deposit_nft<C>(
+        witness: &C,
         scenario: &mut Scenario,
         user: address,
     ): ID {
         test_scenario::next_tx(scenario, user);
         let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
 
-        let nft = nft::new<C>(user, ctx(scenario));
+        let nft = nft::new(witness, user, ctx(scenario));
         let nft_id = object::id(&nft);
         safe::deposit_nft<C>(
             nft,

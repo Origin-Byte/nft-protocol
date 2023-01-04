@@ -20,7 +20,7 @@ module nft_protocol::test_tags {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Foo {}, OWNER, ctx);
 
         let tags = tags::empty(ctx);
 

@@ -30,7 +30,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Foo {}, OWNER, ctx);
 
         assert!(nft::logical_owner(&nft) == OWNER, 0);
 
@@ -43,7 +43,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Foo {}, OWNER, ctx);
 
         nft::add_domain(&mut nft, DomainA {}, ctx);
 
@@ -60,7 +60,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Foo {}, OWNER, ctx);
 
         nft::add_domain(&mut nft, DomainA {}, ctx);
 
@@ -78,7 +78,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Foo {}, OWNER, ctx);
 
         nft::add_domain(&mut nft, DomainA {}, ctx);
 
@@ -98,7 +98,7 @@ module nft_protocol::test_nft {
         let nft_id = {
             let ctx = ctx(&mut scenario);
 
-            let nft = nft::new<Foo>(OWNER, ctx);
+            let nft = nft::new(&Foo {}, OWNER, ctx);
 
             let nft_id = object::id(&nft);
 
@@ -127,7 +127,7 @@ module nft_protocol::test_nft {
         let ctx = ctx(&mut scenario);
 
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Foo {}, OWNER, ctx);
 
         nft::add_domain(&mut nft, DomainA {}, ctx);
 
