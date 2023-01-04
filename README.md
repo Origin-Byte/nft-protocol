@@ -1,5 +1,9 @@
 - Sui v0.19.0
 
+Checkout our:
+- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5037cd2fe5af081c7f88ecfc8c40fa39c6c77957)
+- [Developer Documentation](https://origin-byte.github.io/)
+
 # OriginByte
 
 A new approach to NFTs.
@@ -37,7 +41,7 @@ To deploy an NFT collection you will need to create a SUI [Move](https://docs.su
 We provide an example on how to build such collection in the examples folder. Additionally below follows an example of an NFT Collection, the SUIMARINES!
 
 ```move
-module nft_protocol::suimarines {
+module gutenberg::suimarines {
     use std::string::{Self, String};
 
     use sui::url;
@@ -49,7 +53,7 @@ module nft_protocol::suimarines {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -71,7 +75,7 @@ module nft_protocol::suimarines {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
@@ -106,7 +110,7 @@ module nft_protocol::suimarines {
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<SUIMARINES>(collection);
+        transfer::share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
@@ -167,6 +171,6 @@ and in your `Move.toml`, define the following dependency:
 ```toml
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
-# v1.0.0
-rev = "c37e1bd800a52e450421e9c881e6e676da3e98ed"
+# v0.16.0
+rev = "484ffaca16d561d8123c14138770fa99fe5591af"
 ```
