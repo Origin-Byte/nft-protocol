@@ -130,7 +130,7 @@ module nft_protocol::collection {
     ///         name: String,
     ///     } has key, store
     ///
-    ///     public fun domain_mut(nft: &mut Nft<C>): &mut DisplayDomain {
+    ///     public fun domain_mut(collection: &mut Collection<C>): &mut DisplayDomain {
     ///         let domain: &mut DisplayDomain =
     ///             collection::borrow_domain_mut(Witness {}, collection);
     ///     }
