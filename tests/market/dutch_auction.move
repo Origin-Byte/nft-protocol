@@ -9,7 +9,7 @@ module nft_protocol::test_dutch_auction {
     use sui::object::{Self, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use movemate::crit_bit_u64 as crit_bit;
+    use originmate::crit_bit_u64 as crit_bit;
 
     use nft_protocol::nft;
     use nft_protocol::proceeds;
@@ -65,7 +65,7 @@ module nft_protocol::test_dutch_auction {
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
 
         let market_id = init_market(&mut slot, 10, false, &mut scenario);
-        
+
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
@@ -256,7 +256,7 @@ module nft_protocol::test_dutch_auction {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
-        
+
         dutch_auction::create_bid(
             &mut wallet,
             &mut slot,
@@ -400,7 +400,7 @@ module nft_protocol::test_dutch_auction {
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
-        
+
         dutch_auction::create_bid(
             &mut wallet,
             &mut slot,
@@ -551,7 +551,7 @@ module nft_protocol::test_dutch_auction {
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
 
         let market_id = init_market(&mut slot, 10, false, &mut scenario);
-        
+
         slot::add_nft(
             &mut slot,
             market_id,
@@ -565,7 +565,7 @@ module nft_protocol::test_dutch_auction {
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
-        
+
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(35, ctx(&mut scenario));
@@ -615,12 +615,12 @@ module nft_protocol::test_dutch_auction {
             &mut scenario, CREATOR
         );
         slot::assert_nft_certificate_slot(object::id(&slot), &certificate0);
-        
+
         let certificate1 = test_scenario::take_from_address<NftCertificate>(
             &mut scenario, CREATOR
         );
         slot::assert_nft_certificate_slot(object::id(&slot), &certificate1);
-        
+
         test_scenario::return_to_address(CREATOR, certificate0);
         test_scenario::return_to_address(CREATOR, certificate1);
 
@@ -664,7 +664,7 @@ module nft_protocol::test_dutch_auction {
         let (launchpad, slot) = init_slot(CREATOR, &mut scenario);
 
         let market_id = init_market(&mut slot, 10, false, &mut scenario);
-        
+
         slot::add_nft(
             &mut slot,
             market_id,
@@ -678,7 +678,7 @@ module nft_protocol::test_dutch_auction {
             nft::new<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
-        
+
         slot::sale_on(&mut slot, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(35, ctx(&mut scenario));

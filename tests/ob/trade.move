@@ -1,6 +1,6 @@
 #[test_only]
 module nft_protocol::test_ob_trade {
-    use movemate::crit_bit_u64 as crit_bit;
+    use originmate::crit_bit_u64 as crit_bit;
     use nft_protocol::ob::{Self, Orderbook};
     use nft_protocol::safe;
     use nft_protocol::test_utils::{Self as test_ob};

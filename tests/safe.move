@@ -944,9 +944,9 @@ module nft_protocol::test_safe {
 
         let safe: Safe = test_scenario::take_shared(&scenario);
 
-        movemate::box::box(USER, true, ctx(&mut scenario));
+        originmate::box::box(USER, true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
-        let nft: movemate::box::Box<bool> =
+        let nft: originmate::box::Box<bool> =
             test_scenario::take_from_sender(&scenario);
         let nft_id = object::id(&nft);
         safe::deposit_generic_nft(
@@ -954,8 +954,8 @@ module nft_protocol::test_safe {
             &mut safe,
             ctx(&mut scenario),
         );
-        assert!(!safe::has_nft<movemate::box::Box<bool>>(nft_id, &safe), 0);
-        assert!(safe::has_generic_nft<movemate::box::Box<bool>>(nft_id, &safe), 0);
+        assert!(!safe::has_nft<originmate::box::Box<bool>>(nft_id, &safe), 0);
+        assert!(safe::has_generic_nft<originmate::box::Box<bool>>(nft_id, &safe), 0);
         safe::assert_has_nft(&nft_id, &safe);
 
         test_scenario::return_shared(safe);
@@ -974,9 +974,9 @@ module nft_protocol::test_safe {
         test_scenario::next_tx(&mut scenario, USER);
         let safe2: Safe = test_scenario::take_shared(&scenario);
 
-        movemate::box::box(USER, true, ctx(&mut scenario));
+        originmate::box::box(USER, true, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
-        let nft: movemate::box::Box<bool> =
+        let nft: originmate::box::Box<bool> =
             test_scenario::take_from_sender(&scenario);
         let nft_id = object::id(&nft);
         safe::deposit_generic_nft(
@@ -994,7 +994,7 @@ module nft_protocol::test_safe {
         );
 
         test_scenario::next_tx(&mut scenario, USER);
-        safe::transfer_generic_nft_to_safe<movemate::box::Box<bool>>(
+        safe::transfer_generic_nft_to_safe<originmate::box::Box<bool>>(
             transfer_cap,
             &mut safe1,
             &mut safe2,
