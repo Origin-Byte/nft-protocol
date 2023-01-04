@@ -2,6 +2,7 @@
 
 Checkout our:
 - Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5037cd2fe5af081c7f88ecfc8c40fa39c6c77957)
+- [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)
 
 # OriginByte
@@ -18,9 +19,7 @@ The ecosystem is partitioned into three critical components:
 - The NFT standard, encompassing the core `Nft`, `Collection`, and `Safe` types,
 controlling the lifecycle and properties of each NFT.
 - Primary markets, encompassing `Marketplace`, `Listing`, and numerous markets which
-control the initial minting of NFTs. If you are interested in setting up an NFT
-mint or want to purchase NFTs read the docs under:
-[docs/PRIMARY_MARKETS](./docs/PRIMARY_MARKETS.md).
+control the initial minting of NFTs.
 - Secondary markets, encompassing principally the `Orderbook` which allows you
 to trade existing NFTs.
 
