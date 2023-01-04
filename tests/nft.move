@@ -73,7 +73,7 @@ module nft_protocol::test_nft {
     }
 
     #[test]
-    #[expected_failure(abort_code = 0, location = sui::dynamic_field)]
+    #[expected_failure(abort_code = 13370001, location = nft_protocol::nft)]
     fun fails_adding_duplicate_domain() {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
@@ -91,7 +91,7 @@ module nft_protocol::test_nft {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370000, location = nft_protocol::nft)]
+    #[expected_failure(abort_code = 13370002, location = nft_protocol::nft)]
     fun fails_adding_domain_if_not_owner() {
         let scenario = test_scenario::begin(OWNER);
 
