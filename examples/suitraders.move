@@ -125,7 +125,9 @@ module nft_protocol::suitraders {
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(&SUITRADERS {}, tx_context::sender(ctx), ctx);
+        let nft = nft::new<SUITRADERS, Witness>(
+            &Witness {}, tx_context::sender(ctx), ctx
+        );
 
         display::add_display_domain(
             &mut nft,

@@ -8,8 +8,9 @@ module nft_protocol::test_tags {
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils::create_collection_and_allowlist_with_type;
 
-    struct Witness has drop {}
     struct Foo has drop {}
+
+    struct Witness has drop {}
 
     const OWNER: address = @0xA1C05;
     const FAKE_OWNER: address = @0xA1C11;
@@ -20,7 +21,7 @@ module nft_protocol::test_tags {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new(&Foo {}, OWNER, ctx);
+        let nft = nft::new(&Witness {}, OWNER, ctx);
 
         let tags = tags::empty(ctx);
 

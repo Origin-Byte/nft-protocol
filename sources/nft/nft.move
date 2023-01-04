@@ -65,12 +65,20 @@ module nft_protocol::nft {
     /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
     ///     let nft = nft::new(&witness, tx_context::sender(ctx), ctx);
     /// }
+    ///
+    /// ##### Panics
+    ///
+    /// Panics when attempting to create an NFT with a witness type originating
+    /// from a different module than the one-time collection witness `C`. See
+    /// [borrow_domain_mut](#borrow_domain_mut).
     /// ```
-    public fun new<C>(
-        _witness: &C,
+    public fun new<C, W>(
+        _witness: &W,
         owner: address,
         ctx: &mut TxContext
     ): Nft<C> {
+        utils::assert_same_module_as_witness<C, W>();
+
         let id = object::new(ctx);
 
         event::emit(MintNftEvent {

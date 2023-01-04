@@ -95,7 +95,9 @@ module nft_protocol::suimarines {
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(&SUIMARINES {}, tx_context::sender(ctx), ctx);
+        let nft = nft::new<SUIMARINES, Witness>(
+            &Witness {}, tx_context::sender(ctx), ctx
+        );
 
         display::add_display_domain(
             &mut nft,

@@ -13,7 +13,9 @@ module nft_protocol::test_fixed_price {
 
     use nft_protocol::test_listing::init_listing;
 
-    struct COLLECTION has drop {}
+    struct COLLECTION {}
+
+    struct Witness has drop {}
 
     const CREATOR: address = @0xA1C05;
     const BUYER: address = @0xA1C06;
@@ -117,7 +119,9 @@ module nft_protocol::test_fixed_price {
         listing::add_nft(
             &mut listing,
             inventory_id,
-            nft::new(&COLLECTION {}, CREATOR, ctx(&mut scenario)),
+            nft::new<COLLECTION, Witness>(
+                &Witness {}, CREATOR, ctx(&mut scenario)
+            ),
             ctx(&mut scenario)
         );
 
@@ -184,7 +188,9 @@ module nft_protocol::test_fixed_price {
         listing::add_nft(
             &mut listing,
             inventory_id,
-            nft::new(&COLLECTION {}, CREATOR, ctx(&mut scenario)),
+            nft::new<COLLECTION, Witness>(
+                &Witness {}, CREATOR, ctx(&mut scenario)
+            ),
             ctx(&mut scenario)
         );
 

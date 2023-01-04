@@ -108,8 +108,8 @@ module nft_protocol::mint_and_sell {
         test_scenario::next_tx(&mut scenario, CREATOR);
         let inventory = inventory::new(ctx(&mut scenario));
 
-        let nft = nft::new(
-            &Foo {},
+        let nft = nft::new<Foo, Witness>(
+            &Witness {},
             tx_context::sender(ctx(&mut scenario)),
             ctx(&mut scenario),
         );
