@@ -3,6 +3,7 @@ module nft_protocol::test_assert_same_module_as_witness {
     use nft_protocol::utils::{get_package_module_type, assert_same_module_as_witness};
     use nft_protocol::test_foo;
     use std::string;
+    use std::debug;
 
     struct Witness has drop {}
     struct Witness2 has drop {}
@@ -12,7 +13,7 @@ module nft_protocol::test_assert_same_module_as_witness {
     public fun it_returns_package_module_type() {
         let (package_addr, module_name, type_name) = get_package_module_type<Witness>();
 
-        assert!(package_addr == string::utf8(b"0000000000000000000000000000000000000000"), 0);
+        assert!(package_addr == string::utf8(b"22122de69059b544f3c5f35ce78854a9b926fa0d"), 0);
         assert!(module_name == string::utf8(b"test_assert_same_module_as_witness"), 0);
         assert!(type_name == string::utf8(b"Witness"), 0);
     }
