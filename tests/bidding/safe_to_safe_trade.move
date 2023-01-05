@@ -231,7 +231,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         test_scenario::end(scenario);
     }
 
-    public entry fun collect_proportional_royalty<C, FT>(
+    public fun collect_proportional_royalty<C, FT>(
         payment: &mut TradePayment<C, FT>,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,

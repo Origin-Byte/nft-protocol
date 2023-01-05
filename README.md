@@ -11,9 +11,9 @@ on-chain market infrastructure.
 
 The ecosystem is partitioned into three critical components:
 
-- The NFT standard, encompassing the core `Nft`, `Collection`, and `Safe` types, 
+- The NFT standard, encompassing the core `Nft`, `Collection`, and `Safe` types,
 controlling the lifecycle and properties of each NFT.
-- Primary markets, encompassing `Launchpad`, `Slot`, and numerous markets which
+- Primary markets, encompassing `Marketplace`, `Listing`, and numerous markets which
 control the initial minting of NFTs. If you are interested in setting up an NFT
 mint or want to purchase NFTs read the docs under:
 [docs/PRIMARY_MARKETS](./docs/PRIMARY_MARKETS.md).
@@ -38,11 +38,11 @@ We provide an example on how to build such collection in the examples folder. Ad
 
 ```move
 module nft_protocol::suimarines {
-    use std::string;
+    use std::string::{Self, String};
 
+    use sui::url;
     use sui::balance;
-    use sui::object::ID;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
@@ -50,7 +50,7 @@ module nft_protocol::suimarines {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::attribution;
-    use nft_protocol::slot::{Self, Slot};
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -65,7 +65,6 @@ module nft_protocol::suimarines {
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create<SUIMARINES>(
             &witness,
-            100, // max supply
             ctx,
         );
 
@@ -106,10 +105,11 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        transfer(mint_cap, tx_context::sender(ctx));
+        transfer::transfer(mint_cap, tx_context::sender(ctx));
         collection::share<SUIMARINES>(collection);
     }
 
+    /// Calculates and transfers royalties to the `RoyaltyDomain`
     public entry fun collect_royalty<FT>(
         payment: &mut TradePayment<SUIMARINES, FT>,
         collection: &mut Collection<SUIMARINES>,
@@ -126,28 +126,38 @@ module nft_protocol::suimarines {
     }
 
     public entry fun mint_nft(
-        name: vector<u8>,
-        description: vector<u8>,
+        name: String,
+        description: String,
         url: vector<u8>,
-        attribute_keys: vector<vector<u8>>,
-        attribute_values: vector<vector<u8>>,
-        mint_cap: &mut MintCap<SUIMARINES>,
-        slot: &mut Slot,
-        market_id: ID,
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,
+        _mint_cap: &MintCap<SUIMARINES>,
+        inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
 
-        collection::increment_supply(mint_cap, 1);
-
         display::add_display_domain(
             &mut nft,
-            string::utf8(name),
-            string::utf8(description),
+            name,
+            description,
             ctx,
         );
 
-        slot::add_nft(slot, market_id, nft, ctx);
+        display::add_url_domain(
+            &mut nft,
+            url::new_unsafe_from_bytes(url),
+            ctx,
+        );
+
+        display::add_attributes_domain_from_vec(
+            &mut nft,
+            attribute_keys,
+            attribute_values,
+            ctx,
+        );
+
+        inventory::deposit_nft(inventory, nft);
     }
 }
 ```

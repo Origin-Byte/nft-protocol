@@ -22,10 +22,11 @@
 /// frozen, in order to give creators the ability to ammend it prior to
 /// the primary sale taking place.
 module nft_protocol::collection {
+    use std::type_name::{Self, TypeName};
+
     use sui::event;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
-    use sui::transfer;
     use sui::bag::{Self, Bag};
 
     use nft_protocol::err;
@@ -50,29 +51,10 @@ module nft_protocol::collection {
         collection_id: ID,
     }
 
-    struct MintEvent has copy, drop {
+    /// Event signalling that a `Collection` was minted
+    struct CollectionMintEvent has copy, drop {
         collection_id: ID,
-    }
-
-    struct BurnEvent has copy, drop {
-        collection_id: ID,
-    }
-
-    /// Shares `Collection`.
-    ///
-    /// To be called by the Witness Module deployed by NFT creator.
-    public fun share<C>(
-        collection: Collection<C>,
-    ): ID {
-        let collection_id = object::id(&collection);
-
-        event::emit(
-            MintEvent { collection_id }
-        );
-
-        transfer::share_object(collection);
-
-        collection_id
+        type_name: TypeName,
     }
 
     /// Initialises a `MintAuthority` and transfers it to `authority` and
@@ -103,28 +85,19 @@ module nft_protocol::collection {
     /// `max_supply` should be above `0`. To create an unlimited supply the
     /// parameter `max_supply` should be equal to the biggest integer number
     /// that can be stored in a u64, which is `18446744073709551615`.
-    public fun create<T>(
-        _witness: &T,
+    public fun create<C>(
+        _witness: &C,
         ctx: &mut TxContext,
-    ): (MintCap<T>, Collection<T>) {
+    ): (MintCap<C>, Collection<C>) {
         let id = object::new(ctx);
 
-        event::emit(
-            MintEvent {
-                collection_id: object::uid_to_inner(&id),
-            }
-        );
+        event::emit(CollectionMintEvent {
+            collection_id: object::uid_to_inner(&id),
+            type_name: type_name::get<CollectionMintEvent>(),
+        });
 
-        let cap = create_mint_cap<T>(
-            object::uid_to_inner(&id),
-            ctx,
-        );
-
-        let col = Collection {
-            id,
-            domains: bag::new(ctx),
-        };
-
+        let cap = create_mint_cap<C>(object::uid_to_inner(&id), ctx);
+        let col = Collection { id, domains: bag::new(ctx) };
         (cap, col)
     }
 
@@ -169,18 +142,18 @@ module nft_protocol::collection {
 
     // === MintCap ===
 
-    fun create_mint_cap<T>(
+    fun create_mint_cap<C>(
         collection_id: ID,
         ctx: &mut TxContext,
-    ): MintCap<T> {
+    ): MintCap<C> {
         MintCap {
             id: object::new(ctx),
             collection_id: collection_id,
         }
     }
 
-    public fun mint_collection_id<T>(
-        mint: &MintCap<T>,
+    public fun mint_collection_id<C>(
+        mint: &MintCap<C>,
     ): ID {
         mint.collection_id
     }
@@ -200,14 +173,14 @@ module nft_protocol::collection {
     // === Test only helpers ===
 
     #[test_only]
-    public fun dummy_collection<T>(
-        witness: &T,
+    public fun dummy_collection<C>(
+        witness: &C,
         creator: address,
         scenario: &mut sui::test_scenario::Scenario,
-    ): (MintCap<T>, Collection<T>) {
+    ): (MintCap<C>, Collection<C>) {
         sui::test_scenario::next_tx(scenario, creator);
 
-        let (cap, col) = create<T>(
+        let (cap, col) = create<C>(
             witness,
             sui::test_scenario::ctx(scenario),
         );

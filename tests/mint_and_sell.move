@@ -6,7 +6,7 @@ module nft_protocol::mint_and_sell {
     use sui::url;
     use sui::sui::SUI;
     use sui::tx_context;
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::nft;
@@ -16,10 +16,10 @@ module nft_protocol::mint_and_sell {
     use nft_protocol::flat_fee;
     use nft_protocol::fixed_price;
     use nft_protocol::collection;
-    use nft_protocol::attribution;
-    use nft_protocol::slot::{Self, Slot};
-    use nft_protocol::launchpad::{Self, Launchpad};
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::creators;
+    use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::marketplace::{Self, Marketplace};
+    use nft_protocol::inventory;
 
     struct Witness has drop {}
 
@@ -44,7 +44,7 @@ module nft_protocol::mint_and_sell {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx(&mut scenario)))
+            creators::from_address(tx_context::sender(ctx(&mut scenario)))
         );
 
         // Register custom domains
@@ -78,41 +78,36 @@ module nft_protocol::mint_and_sell {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
-        collection::share<Foo>(collection);
-        transfer(mint_cap, CREATOR);
+        transfer::share_object(collection);
+        transfer::transfer(mint_cap, CREATOR);
 
-        // 2. Create launchpad and add Slot
+        // 2. Create marketplace and add Listing
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
 
-        launchpad::init_launchpad(
+        marketplace::init_marketplace(
             MARKETPLACE,
             MARKETPLACE,
-            true,
             flat_fee::new(0, ctx(&mut scenario)),
             ctx(&mut scenario),
         );
 
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let launchpad = test_scenario::take_shared<Launchpad>(&scenario);
+        let marketplace = test_scenario::take_shared<Marketplace>(&scenario);
 
-        slot::init_slot(
-            &launchpad,
+        listing::init_listing(
             CREATOR,
             CREATOR,
             ctx(&mut scenario),
         );
 
+        // TODO: Add link marketplace to listing
+
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let slot = test_scenario::take_shared<Slot>(&scenario);
+        let listing = test_scenario::take_shared<Listing>(&scenario);
 
         // 3. Create inventory and mint NFT to it
         test_scenario::next_tx(&mut scenario, CREATOR);
-        inventory::create_for_sender(false, ctx(&mut scenario));
-
-        test_scenario::next_tx(&mut scenario, CREATOR);
-        let inventory = test_scenario::take_from_address<Inventory>(
-            &scenario, CREATOR
-        );
+        let inventory = inventory::new(ctx(&mut scenario));
 
         let nft = nft::new<Foo>(
             tx_context::sender(ctx(&mut scenario)), ctx(&mut scenario)
@@ -143,17 +138,19 @@ module nft_protocol::mint_and_sell {
 
         inventory::deposit_nft(&mut inventory, nft);
 
-        // 4. Init Market in Launchpad Slot
-        fixed_price::init_market_with_inventory<SUI>(
-            &mut slot,
-            inventory,
+        // 4. Init Market in Marketplace Listing
+        fixed_price::create_market_on_inventory<SUI>(
+            &mut inventory,
+            false,
             100,
             ctx(&mut scenario),
         );
 
+        listing::add_inventory(&mut listing, inventory, ctx(&mut scenario));
+
         // Return objects and end test
-        test_scenario::return_shared(launchpad);
-        test_scenario::return_shared(slot);
+        test_scenario::return_shared(marketplace);
+        test_scenario::return_shared(listing);
 
         test_scenario::end(scenario);
     }
