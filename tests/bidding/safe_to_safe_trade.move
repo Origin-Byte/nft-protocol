@@ -51,7 +51,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
             &mut scenario, SELLER
         );
 
-        let nft_id = utils::mint_and_deposit_nft<Foo>(
+        let nft_id = utils::mint_and_deposit_nft<Foo, Witness>(
+            &Witness {},
             &mut scenario,
             SELLER,
         );
@@ -148,7 +149,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
             &mut scenario, SELLER
         );
 
-        let nft_id = utils::mint_and_deposit_nft<Foo>(
+        let nft_id = utils::mint_and_deposit_nft<Foo, Witness>(
+            &Witness {},
             &mut scenario,
             SELLER,
         );

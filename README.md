@@ -1,5 +1,10 @@
 - Sui v0.19.0
 
+Checkout our:
+- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5037cd2fe5af081c7f88ecfc8c40fa39c6c77957)
+- [Official Documentation](https://docs.originbyte.io/origin-byte/)
+- [Developer Documentation](https://origin-byte.github.io/)
+
 # OriginByte
 
 A new approach to NFTs.
@@ -14,9 +19,7 @@ The ecosystem is partitioned into three critical components:
 - The NFT standard, encompassing the core `Nft`, `Collection`, and `Safe` types,
 controlling the lifecycle and properties of each NFT.
 - Primary markets, encompassing `Marketplace`, `Listing`, and numerous markets which
-control the initial minting of NFTs. If you are interested in setting up an NFT
-mint or want to purchase NFTs read the docs under:
-[docs/PRIMARY_MARKETS](./docs/PRIMARY_MARKETS.md).
+control the initial minting of NFTs.
 - Secondary markets, encompassing principally the `Orderbook` which allows you
 to trade existing NFTs.
 
@@ -37,7 +40,7 @@ To deploy an NFT collection you will need to create a SUI [Move](https://docs.su
 We provide an example on how to build such collection in the examples folder. Additionally below follows an example of an NFT Collection, the SUIMARINES!
 
 ```move
-module nft_protocol::suimarines {
+module gutenberg::suimarines {
     use std::string::{Self, String};
 
     use sui::url;
@@ -49,7 +52,7 @@ module nft_protocol::suimarines {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -63,15 +66,14 @@ module nft_protocol::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create<SUIMARINES>(
-            &witness,
-            ctx,
+        let (mint_cap, collection) = collection::create(
+            &witness, ctx,
         );
 
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            attribution::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx))
         );
 
         // Register custom domains
@@ -106,7 +108,7 @@ module nft_protocol::suimarines {
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
-        collection::share<SUIMARINES>(collection);
+        transfer::share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
@@ -135,7 +137,9 @@ module nft_protocol::suimarines {
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
+        let nft = nft::new<SUIMARINES, Witness>(
+            &Witness {}, tx_context::sender(ctx), ctx
+        );
 
         display::add_display_domain(
             &mut nft,
@@ -167,6 +171,6 @@ and in your `Move.toml`, define the following dependency:
 ```toml
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
-# v1.0.0
-rev = "c37e1bd800a52e450421e9c881e6e676da3e98ed"
+# v0.16.0
+rev = "484ffaca16d561d8123c14138770fa99fe5591af"
 ```

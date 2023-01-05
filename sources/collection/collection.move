@@ -1,26 +1,11 @@
-/// Module of a generic `Collection` type and a `MintAuthority` type.
+/// Module defining the OriginByte `Collection` and `MintCap` types
 ///
-/// It acts as a generic interface for NFT Collections and it allows for
-/// the creation of arbitrary domain specific implementations.
+/// Conceptually, we can think of NFTs as being organized into collections; a
+/// one-to-many relational data model.
 ///
-/// The `MintAuthority` object gives power to the owner to mint objects.
-/// There is only one `MintAuthority` per `Collection`.
-/// The Mint Authority object contains a `SupplyPolicy` which
-/// can be regulated or unregulated.
-/// A Collection with unregulated Supply policy is a collection that
-/// does not keep track of its current supply objects. This allows for the
-/// minting process to be parallelized.
-///
-/// A Collection with regulated Supply policy is a collection that
-/// keeps track of its current supply objects. This means that whilst the
-/// minting can be parallelized on the client side, on the blockchain side
-/// nodes will have to lock the `MintAuthority` object in order to mutate
-/// it sequentially. Regulated Supply allows for collections to have limited
-/// or unlimited supply. The `MintAuthority` owner can modify the
-/// `max_supply` a posteriori, as long as the `Supply` is not frozen.
-/// After this function call the `Supply` object will not yet be set to
-/// frozen, in order to give creators the ability to ammend it prior to
-/// the primary sale taking place.
+/// OriginByte collections serve two purposes, to centralise collection level
+/// information on one object and thus avoid redundancy, and to provide
+/// configuration data to NFTs.
 module nft_protocol::collection {
     use std::type_name::{Self, TypeName};
 
@@ -32,59 +17,62 @@ module nft_protocol::collection {
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
 
-    /// An NFT `Collection` object with a generic `M`etadata.
+    /// NFT `Collection` object
     ///
-    /// The `Metadata` is a type exported by an upstream contract which is
-    /// used to store additional information about the NFT.
-    struct Collection<phantom T> has key, store {
+    /// OriginByte collections and NFTs have a generic parameter `C` which is a
+    /// one-time witness created by the creator's NFT collection module. This
+    /// allows `Collection` and `Nft` to be linked via type association, but
+    /// also ensures that NFTs can only be minted by the contract that
+    /// initially deployed them.
+    ///
+    /// A `Collection`, like each `Nft`, exclusively owns domains of different
+    /// types, which can be dynamically acquired and lost over its lifetime.
+    /// OriginByte collections are modelled after
+    /// [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
+    /// where their domains are accessible by type. See
+    /// [borrow_domain_mut](#borrow_domain_mut).
+    struct Collection<phantom C> has key, store {
+        /// `Collection` ID
         id: UID,
-        /// Domain storage equivalent to NFT domains which allows collections
-        /// to implement custom metadata.
+        /// Main storage object for collection domains
         domains: Bag,
     }
 
-    /// The `MintCapability` object gives power to the owner to mint objects.
-    /// There is only one `MintCapability` per `Collection`.
-    struct MintCap<phantom T> has key, store {
+    /// `MintCap<C>` delegates the capability to it's owner to mint `Nft<C>`.
+    /// There is only one `MintCap` per `Collection<C>`.
+    ///
+    /// This pattern is useful as `MintCap` can be made shared allowing users
+    /// to mint NFTs themselves, such as in a name service application.
+    struct MintCap<phantom C> has key, store {
+        /// `MintCap` ID
         id: UID,
-        // For discoverability purposes
+        /// ID of the `Collection` that `MintCap` controls.
+        ///
+        /// Intended for discoverability.
         collection_id: ID,
     }
 
     /// Event signalling that a `Collection` was minted
     struct CollectionMintEvent has copy, drop {
+        /// ID of the `Collection` that was minted
         collection_id: ID,
+        /// Type name of `Collection<C>` one-time witness `C`
+        ///
+        /// Intended to allow users to filter by collections of interest.
         type_name: TypeName,
     }
 
-    /// Initialises a `MintAuthority` and transfers it to `authority` and
-    /// initializes a `Collection` object and returns it. The `MintAuthority`
-    /// object gives power to the owner to mint objects. There is only one
-    /// `MintAuthority` per `Collection`. The Mint Authority object contains a
-    /// `SupplyPolicy` which can be regulated or unregulated.
+    /// Creates a `Collection<C>` and corresponding `MintCap<C>`
     ///
-    /// A Collection with unregulated Supply policy is a collection that
-    /// does not keep track of its current supply objects. This allows for the
-    /// minting process to be parallelized.
+    /// ##### Usage
     ///
-    /// To initialise a collection with a unregulated `SupplyPolicy`,
-    /// the parameter `max_supply` should be given as `0`.
+    /// ```
+    /// struct FOOTBALL has drop {}
     ///
-    /// A Collection with regulated Supply policy is a collection that
-    /// keeps track of its current supply objects. This means that whilst the
-    /// minting can be parallelized on the client side, on the blockchain side
-    /// nodes will have to lock the `MintAuthority` object in order to mutate
-    /// it sequentially. Regulated Supply allows for collections to have limited
-    /// or unlimited supply. The `MintAuthority` owner can modify the
-    /// `max_supply` a posteriori, as long as the `Supply` is not frozen.
-    /// After this function call the `Supply` object will not yet be set to
-    /// frozen, in order to give creators the ability to ammend it prior to
-    /// the primary sale taking place.
-    ///
-    /// To initialise a collection with regualred `SupplyPolicy`, the parameter
-    /// `max_supply` should be above `0`. To create an unlimited supply the
-    /// parameter `max_supply` should be equal to the biggest integer number
-    /// that can be stored in a u64, which is `18446744073709551615`.
+    /// fun init(witness: FOOTBALL, ctx: &mut TxContext) {
+    ///     let (mint_cap, collection) = collection::create(&witness, ctx);
+    /// }
+    /// ```
     public fun create<C>(
         _witness: &C,
         ctx: &mut TxContext,
@@ -93,73 +81,147 @@ module nft_protocol::collection {
 
         event::emit(CollectionMintEvent {
             collection_id: object::uid_to_inner(&id),
-            type_name: type_name::get<CollectionMintEvent>(),
+            type_name: type_name::get<C>(),
         });
 
-        let cap = create_mint_cap<C>(object::uid_to_inner(&id), ctx);
+        let cap = MintCap {
+            id: object::new(ctx),
+            collection_id: object::uid_to_inner(&id),
+        };
         let col = Collection { id, domains: bag::new(ctx) };
+
         (cap, col)
     }
 
     // === Domain Functions ===
 
+    /// Check whether `Collection` has a domain of type `D`
     public fun has_domain<C, D: store>(collection: &Collection<C>): bool {
         bag::contains_with_type<Marker<D>, D>(
             &collection.domains, utils::marker<D>()
         )
     }
 
+    /// Borrow domain of type `D` from `Nft`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if domain of type `D` is not present on the `Nft`
     public fun borrow_domain<C, D: store>(collection: &Collection<C>): &D {
+        assert_domain<C, D>(collection);
         bag::borrow<Marker<D>, D>(&collection.domains, utils::marker<D>())
     }
 
+    /// Mutably borrow domain of type `D` from `Collection`
+    ///
+    /// Guarantees that domain `D` can only be mutated by the module that
+    /// instantiated it. In other words, witness `W` must be defined in the
+    /// same module as domain `D`.
+    ///
+    /// ##### Usage
+    ///
+    /// ```
+    /// module nft_protocol::display {
+    ///     struct SUIMARINES has drop {}
+    ///     struct Witness has drop {}
+    ///
+    ///     struct DisplayDomain {
+    ///         id: UID,
+    ///         name: String,
+    ///     } has key, store
+    ///
+    ///     public fun domain_mut(collection: &mut Collection<C>): &mut DisplayDomain {
+    ///         let domain: &mut DisplayDomain =
+    ///             collection::borrow_domain_mut(Witness {}, collection);
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// ##### Panics
+    ///
+    /// Panics when module attempts to mutably borrow a domain it did not
+    /// define itself or if domain of type `D` is not present on the `Nft`. See
+    /// [nft::borrow_domain_mut](./nft.html#borrow_domain_mut).
+    /// ```
     public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
         collection: &mut Collection<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<D, W>();
+        assert_domain<C, D>(collection);
+
         bag::borrow_mut<Marker<D>, D>(
             &mut collection.domains, utils::marker<D>()
         )
     }
 
-    public fun add_domain<C, V: store>(
+    /// Adds domain of type `D` to `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if `MintCap` does not match `Collection` or domain `D` already
+    /// exists.
+    ///
+    /// ##### Usage
+    ///
+    /// ```
+    /// let display_domain = display::new_display_domain(name, description);
+    /// collection::add_domain(&mut nft, mint_cap, display_domain);
+    /// ```
+    public fun add_domain<C, D: store>(
         collection: &mut Collection<C>,
         mint_cap: &MintCap<C>,
-        v: V,
+        domain: D,
     ) {
         assert_mint_cap(mint_cap, collection);
-        bag::add(&mut collection.domains, utils::marker<V>(), v);
+        assert_no_domain<C, D>(collection);
+
+        bag::add(&mut collection.domains, utils::marker<D>(), domain);
     }
 
-    public fun remove_domain<C, W: drop, V: store>(
+    /// Removes domain of type `D` from `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics when module attempts to remove a domain it did not define
+    /// itself or if domain of type `D` is not present on the `Collection`. See
+    /// [borrow_domain_mut](#borrow_domain_mut).
+    ///
+    /// ##### Usage
+    ///
+    /// ```
+    /// let display_domain: DisplayDomain = collection::remove_domain(Witness {}, &mut nft);
+    /// ```
+    public fun remove_domain<C, W: drop, D: store>(
         _witness: W,
         collection: &mut Collection<C>,
-    ): V {
-        utils::assert_same_module_as_witness<W, V>();
-        bag::remove(&mut collection.domains, utils::marker<V>())
+    ): D {
+        utils::assert_same_module_as_witness<W, D>();
+        assert_domain<C, D>(collection);
+
+        bag::remove(&mut collection.domains, utils::marker<D>())
     }
 
     // === MintCap ===
 
-    fun create_mint_cap<C>(
-        collection_id: ID,
-        ctx: &mut TxContext,
-    ): MintCap<C> {
-        MintCap {
-            id: object::new(ctx),
-            collection_id: collection_id,
-        }
-    }
-
-    public fun mint_collection_id<C>(
-        mint: &MintCap<C>,
-    ): ID {
+    /// Returns ID of `Collection` associated with `MintCap`
+    public fun collection_id<C>(mint: &MintCap<C>): ID {
         mint.collection_id
     }
 
     // === Assertions ===
 
+    /// Assert that domain `D` exists on `Collection`
+    public fun assert_domain<C, D: store>(collection: &Collection<C>) {
+        assert!(has_domain<C, D>(collection), err::undefined_domain());
+    }
+
+    /// Assert that domain `D` does not exist on `Collection`
+    public fun assert_no_domain<C, D: store>(collection: &Collection<C>) {
+        assert!(!has_domain<C, D>(collection), err::domain_already_defined());
+    }
+
+    /// Assert that `MintCap` is associated with `Collection`
     public fun assert_mint_cap<C>(
         cap: &MintCap<C>,
         collection: &Collection<C>
