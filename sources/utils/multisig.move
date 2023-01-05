@@ -13,11 +13,11 @@ module nft_protocol::multisig {
 
     struct Multisig<T> has key, store {
         id: UID,
-        /// Version of collection's attribution domain at the time of creation
+        /// Version of collection's creators domain at the time of creation
         /// of the multisig.
         /// Important to avoid machinations where a signer is removed in favour
         /// of a new signer.
-        attribution_version: u64,
+        creators_version: u64,
         /// Signer's address as the key, their BPS share as the int
         remaining_signers: VecMap<address, u16>,
         /// initial # of signers = len(remaining_signers) + signature_count
@@ -32,7 +32,7 @@ module nft_protocol::multisig {
 
     /// Creates a new multisig with the given inner data.
     ///
-    /// If the attribution domain of the collection has changed after this
+    /// If the creators domain of the collection has changed after this
     /// point, the multisig becomes invalid.
     public fun new<C, T: store>(
         inner: T,
@@ -66,7 +66,7 @@ module nft_protocol::multisig {
             signature_count: 0,
             remaining_signers: signers,
             signers_bps_share: 0,
-            attribution_version: creators::version(attr),
+            creators_version: creators::version(attr),
         }
     }
 
@@ -121,9 +121,9 @@ module nft_protocol::multisig {
     /// `min_signers_bps_share` of the total BPS share.
     ///
     /// The invocation will also fail if
-    /// - signer is not in the attribution domain of the collection;
+    /// - signer is not in the creators domain of the collection;
     /// - multisig has been used already;
-    /// - the attribution domain has been mutated since the creation of the
+    /// - the creators domain has been mutated since the creation of the
     ///     multisig.
     public fun consume<T, C>(
         min_signature_count: u64,
@@ -137,7 +137,7 @@ module nft_protocol::multisig {
         assert!(multisig.signers_bps_share >= min_signers_bps_share, 0); // TODO
 
         let attr = creators::creators_domain(collection);
-        assert!(multisig.attribution_version == creators::version(attr), 0); // TODO
+        assert!(multisig.creators_version == creators::version(attr), 0); // TODO
 
         creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
