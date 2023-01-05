@@ -26,7 +26,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Witness {}, OWNER, ctx);
 
         display::add_display_domain(
             &mut nft,
@@ -85,7 +85,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Witness {}, OWNER, ctx);
 
         display::add_url_domain(
             &mut nft,
@@ -142,7 +142,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Witness {}, OWNER, ctx);
 
         display::add_symbol_domain(
             &mut nft,
@@ -199,7 +199,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new<Foo>(OWNER, ctx);
+        let nft = nft::new(&Witness {}, OWNER, ctx);
 
         let attributes = vec_map::empty();
         vec_map::insert(

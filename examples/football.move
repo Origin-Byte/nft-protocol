@@ -23,9 +23,8 @@ module nft_protocol::football {
     struct Witness has drop {}
 
     fun init(witness: FOOTBALL, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create<FOOTBALL>(
-            &witness,
-            ctx,
+        let (mint_cap, collection) = collection::create(
+            &witness, ctx,
         );
 
         collection::add_domain(
@@ -103,7 +102,7 @@ module nft_protocol::football {
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let archetype = flyweight::new<FOOTBALL>(supply, mint_cap, ctx);
+        let archetype = flyweight::new(&FOOTBALL {}, supply, mint_cap, ctx);
 
         let nft = flyweight::borrow_nft_mut(&mut archetype, mint_cap);
 

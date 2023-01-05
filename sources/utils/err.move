@@ -4,14 +4,22 @@ module nft_protocol::err {
 
     const Prefix: u64 = 13370000;
 
-    // === NFT ===
+    // === NFT & Collection ===
 
-    public fun not_nft_owner(): u64 {
+    public fun undefined_domain(): u64 {
         return Prefix + 000
     }
 
-    public fun mint_authority_mismatch(): u64 {
-        return Prefix + 10
+    public fun domain_already_defined(): u64 {
+        return Prefix + 001
+    }
+
+    public fun not_nft_owner(): u64 {
+        return Prefix + 002
+    }
+
+    public fun mint_cap_mismatch(): u64 {
+        return Prefix + 003
     }
 
     // === Supply ===
@@ -246,11 +254,5 @@ module nft_protocol::err {
 
     public fun missing_dynamic_field(): u64 {
         return Prefix + 902
-    }
-
-    // === Collection ===
-
-    public fun mint_cap_mismatch(): u64 {
-        return Prefix + 1000
     }
 }
