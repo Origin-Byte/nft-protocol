@@ -1,0 +1,68 @@
+name: sui-publish
+run-name: Publishing Sui packages
+
+on: workflow_dispatch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup dependencies
+        run: |
+          source .env.dist
+
+          wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
+          chmod +x sui
+
+          wget -qO stoml https://github.com/freshautomations/stoml/releases/download/v0.7.1/stoml_linux_amd64
+          chmod +x stoml
+
+      - name: Create keystore
+        env:
+          SUI_KEY: ${{ secrets.SUI_KEY }}
+        run: |
+          echo "[\"$SUI_KEY\"]" > sui.keystore
+
+      - name: Publish changed packages
+        run: |
+          COMMIT_MSG="Published"
+
+          for PACKAGE in `find . -name Move.toml`
+          do
+            # Get snake case package address
+            NAME=`./stoml $PACKAGE package.name | sed -r 's/([A-Z])/_\L\1/g' | sed 's/^_//'`
+            VERSION=`./stoml $PACKAGE package.version`
+
+            ORIGINAL=`grep "$NAME" $PACKAGE`
+            NEW="$NAME = \"0x0\""
+
+            # Sets the current package address to "0x0" for publishing
+            sed -i "s/$ORIGINAL/$NEW/g" $PACKAGE
+
+            # Test just in case
+            ./sui move test --path $PACKAGE
+
+            OBJECT=`./sui client --client.config .github/config.yaml publish --gas-budget 60000 $PACKAGE --json | jq '.effects.created[0].reference.objectId'`
+
+            sed -i "s/$NEW/$NAME = $OBJECT/g" $PACKAGE
+
+            COMMIT_MSG+=" $NAME ($VERSION)"
+          done
+
+          echo "COMMIT_MSG=$COMMIT_MSG" >> $GITHUB_ENV
+
+      - name: Cleanup
+        run: |
+          rm ./sui
+          rm ./stoml
+          rm ./sui.keystore
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          commit-message: ${{ env.COMMIT_MSG }}
+          committer: OriginByte <ci@originbyte.io>
+          title: ${{ env.COMMIT_MSG }}
