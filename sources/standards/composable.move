@@ -1,297 +1,153 @@
 module nft_protocol::composable {
-    use std::option::Option;
-    use std::fixed_point32;
+    // TODO: Limit configurations (i.e. how many weapon NFTs can be attached to Avatar NFT)
+    // TODO: Grouping of types into taxonomies can make the structuring of the
+    // type system easier as it would more closely resemble the business logic.
+    // However we should do this without introducing any convulution to this module,
+    // and therefore this should be a higher-level abstraction exposed in a separate module
+    use std::ascii;
+    use std::hash;
+    use std::vector;
+    use std::string::{Self, String};
+    use std::type_name::{Self, TypeName};
 
     use sui::object::{Self, UID};
-    use sui::coin;
-    use sui::transfer;
-    use sui::vec_map::{Self, VecMap};
-    use sui::balance::{Self, Balance};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
 
-    use nft_protocol::err;
-    use nft_protocol::nft::Nft;
-    use nft_protocol::box::{Self, Box};
-    use nft_protocol::collection::{Self, Collection, MintCap};
-
-    struct Type has key, store {
-        id: UID,
-        type: Box,
-    }
-
-    struct SubType has key, store {
-        id: UID,
-        mother: Type,
-        type: Box,
-    }
-
-    struct Glue has key, store {
-        id: UID,
-        parent: Type,
-        child: Type,
-        limit: Option<u64>, // Objective of Option is to make storage efficient
-    }
-
-    struct ComposabilityGod has key, store {}
-
-    public fun new_type<V: key + store>(type: V, ctx: &mut TxContext): Type {
-        Type { id: object::new(ctx), type: box::new(type, ctx) }
-    }
-
-    public fun type(self: &Type): &Box {
-        &self.type
-    }
-
-    public fun compose<T>(
-        parent_nft: Nft<T>,
-        child_nft: Nft<T>,
-        collection: &Collection<T>
-    ) {
-
-    }
-
-    public fun create_glue<T>(
-        parent_type: Type,
-        child_type: Type,
-        collection: &Collection<T>
-    ) {
-
-    }
-
-    /// === CreatorsDomain ===
-
-    const BPS: u16 = 10_000;
-
-    struct CreatorsDomain has copy, drop, store {
-        is_frozen: bool,
-        /// Address that receives the mint and trade royalties
-        creators: VecMap<address, Creator>,
-    }
-
-    /// Creates an empty `Attributions` object
-    ///
-    /// By not attributing any `Creators`, nobody will ever be able to claim
-    /// royalties from this `Attributions` object or modify it's domains.
-    public fun empty(): CreatorsDomain {
-        CreatorsDomain { is_frozen: false, creators: vec_map::empty() }
-    }
-
-    public fun from_address(who: address): CreatorsDomain {
-        let domain = empty();
-        vec_map::insert(&mut domain.creators, who, new_creator(who, BPS));
-        domain
-    }
-
-    public fun from_creators(
-        creators: VecMap<address, Creator>
-    ): CreatorsDomain {
-        let domain = CreatorsDomain { is_frozen: false, creators };
-        assert_total_shares(&domain);
-
-        domain
-    }
-
-    public fun is_empty(domain: &CreatorsDomain): bool {
-        vec_map::is_empty(&domain.creators)
-    }
-
-    public fun is_frozen(domain: &CreatorsDomain): bool {
-        domain.is_frozen
-    }
-
-    public fun creators(
-        domain: &CreatorsDomain
-    ): &VecMap<address, Creator> {
-        &domain.creators
-    }
-
-    public fun get(
-        domain: &CreatorsDomain,
-        who: &address,
-    ): &Creator {
-        assert!(
-            vec_map::contains(&domain.creators, who),
-            err::address_not_attributed()
-        );
-        vec_map::get(&domain.creators, who)
-    }
-
-    fun get_mut(
-        domain: &mut CreatorsDomain,
-        who: address,
-    ): &mut Creator {
-        assert!(
-            vec_map::contains(&domain.creators, &who),
-            err::address_not_attributed()
-        );
-        vec_map::get_mut(&mut domain.creators, &who)
-    }
-
-    /// === Mutability ===
-
-    /// Add a `Creator` to CreatorsDomain object
-    ///
-    /// This must be done by a `Creator` which already has an attribution who
-    /// gives up an arithmetic share of their royalty share.
-    public fun add_creator(
-        domain: &mut CreatorsDomain,
-        new_creator: Creator,
-        ctx: &mut TxContext,
-    ) {
-        // Asserts that sender is a creator
-        let creator = get_mut(domain, tx_context::sender(ctx));
-
-        assert!(
-            creator.share_of_royalty_bps >= new_creator.share_of_royalty_bps,
-            err::address_does_not_have_enough_shares()
-        );
-
-        creator.share_of_royalty_bps =
-            creator.share_of_royalty_bps - new_creator.share_of_royalty_bps;
-
-        if (creator.share_of_royalty_bps == 0) {
-            let who = creator.who;
-            vec_map::remove(&mut domain.creators, &who);
-        };
-
-        vec_map::insert(&mut domain.creators, new_creator.who, new_creator);
-    }
-
-    /// Remove a `Creator` from CreatorsDomain
-    ///
-    /// `Creator` can only remove themselves.
-    ///
-    /// If the only `Creator` is removed then nobody will ever be able to claim
-    /// royalties in the future again.
-    ///
-    /// Shares of removed `Creator` are allocated to the provided address, who
-    /// must be a `Creator`.
-    //
-    // TODO: Create removal methods which split shares evenly and
-    // proportionally.
-    public fun remove_creator_by_transfer(
-        domain: &mut CreatorsDomain,
-        to: address,
-        ctx: &mut TxContext,
-    ) {
-        // Asserts that sender is a creator
-        let (_, creator) = vec_map::remove(
-            &mut domain.creators,
-            &tx_context::sender(ctx)
-        );
-
-        // Get creator to which shares will be transfered
-        let beneficiary = get_mut(domain, to);
-
-        beneficiary.share_of_royalty_bps =
-            beneficiary.share_of_royalty_bps + creator.share_of_royalty_bps;
-    }
-
-    /// Makes `Collection` domains immutable
-    ///
-    /// This is irreversible, use with caution.
-    ///
-    /// Will cause `assert_collection_has_creator` and `assert_is_creator` to
-    /// always fail, thus making all standard domains immutable.
-    public fun freeze_domains(domain: &mut CreatorsDomain,) {
-        // Only creators can obtain `&mut CreatorsDomain`
-        domain.is_frozen = true
-    }
-
-    /// Distributes content of `aggregate` balance among the creators defined
-    /// in the `CreatorsDomain`
-    public fun distribute_royalties<FT>(
-        domain: &CreatorsDomain,
-        aggregate: &mut Balance<FT>,
-        ctx: &mut TxContext,
-    ) {
-        // balance * share_of_royalty_bps / BPS
-        let total = fixed_point32::create_from_rational(
-            balance::value(aggregate),
-            (BPS as u64)
-        );
-
-        let i = 0;
-        while (i < vec_map::size(&domain.creators)) {
-            let (_, creator) =
-                vec_map::get_entry_by_idx(&domain.creators, i);
-
-            // Truncates fractional part of the result thus ensuring that sum
-            // of royalty shares is not greater than total balance.
-            let owed_royalty = fixed_point32::multiply_u64(
-                (creator.share_of_royalty_bps as u64),
-                total,
-            );
-
-            if (owed_royalty != 0) {
-                let wallet = coin::from_balance(
-                    balance::split(aggregate, owed_royalty),
-                    ctx,
-                );
-
-                transfer::transfer(wallet, creator.who);
-            };
-
-            i = i + 1;
-        };
-    }
-
-    /// === Utils ===
-
-    fun assert_total_shares(domain: &CreatorsDomain) {
-        let bps_total = 0;
-
-        let i = 0;
-        while (i < vec_map::size(&domain.creators)) {
-            let (_, creator) =
-                vec_map::get_entry_by_idx(&domain.creators, i);
-            bps_total = bps_total + creator.share_of_royalty_bps;
-            i = i + 1;
-        };
-
-        assert!(bps_total == BPS, err::invalid_total_share_of_royalties());
-    }
-
-    public fun assert_is_creator(
-        domain: &CreatorsDomain,
-        who: address
-    ) {
-        get(domain, &who);
-    }
-
-    public fun assert_collection_has_creator<C>(
-        collection: &Collection<C>,
-        who: address
-    ) {
-        assert_is_creator(creators_domain(collection), who);
-    }
-
-    /// ====== Interoperability ===
+    use nft_protocol::nft::{Self, Nft};
+    use sui::object_bag::{Self, ObjectBag};
+    use sui::object_table::{Self, ObjectTable};
+    use nft_protocol::object_vec::{Self, ObjectVec};
+    use nft_protocol::collection::{Self, Collection};
 
     struct Witness has drop {}
 
-    public fun creators_domain<C>(
+    struct Nfts<phantom T> has key, store {
+        // A 2-rank tensor represented by a 2-nested object vector, where
+        // the outer vector is indexed by object TypeName, and the inner vector
+        // is index.
+        // A nested structure is preferred over a simple ObjectTable as it
+        // reduces the amount of average iterations required in read/write
+        // operations
+        table: ObjectTable<TypeName, ObjectVec<Nft<T>>>
+    }
+
+    struct Link<Parent: store, Child: store> has key, store {
+        id: UID,
+        parent: Parent,
+        child: Child,
+        // limit: Option<u64>, // Objective of Option is to make storage efficient
+    }
+
+    struct Blueprint has key, store {
+        id: UID,
+        links: ObjectBag,
+    }
+
+    public fun new_link<Parent: store, Child: store>(
+        parent: Parent,
+        child: Child,
+        ctx: &mut TxContext
+    ): Link<Parent, Child> {
+        Link {
+            id: object::new(ctx),
+            parent: parent,
+            child: child,
+            // limit: option::none(),
+        }
+    }
+
+    public fun new_blueprint(ctx: &mut TxContext): Blueprint {
+        Blueprint {
+            id: object::new(ctx),
+            links: object_bag::new(ctx),
+        }
+    }
+
+    public fun link_types<Parent: store, Child: store>(
+        parent: Parent,
+        child: Child,
+        blueprint: &mut Blueprint,
+        ctx: &mut TxContext,
+    ) {
+        let link = new_link(parent, child, ctx);
+
+        let hash = get_hash<Parent, Child>();
+
+        object_bag::add(&mut blueprint.links, hash, link);
+    }
+
+    public fun compose<T, Parent: store, Child: store>(
+        parent_nft: &mut Nft<T>,
+        child_nft: Nft<T>,
+        collection: &Collection<T>,
+        ctx: &mut TxContext,
+    ) {
+        let blueprint = collection::borrow_domain<T, Blueprint>(collection);
+
+        let parent = nft::borrow_domain<T, Parent>(parent_nft);
+        let child = nft::borrow_domain<T, Child>(&child_nft);
+
+        assert!(has_link(parent, child, blueprint), 0);
+
+        let nfts = nft::borrow_domain_mut<T, Nfts<T>, Witness>(
+            Witness {}, parent_nft
+        );
+
+        let has_type = object_table::contains(
+            &nfts.table, type_name::get<Child>()
+        );
+
+        if (!has_type) {
+            object_table::add(
+                &mut nfts.table,
+                type_name::get<Child>(),
+                object_vec::new<Nft<T>>(ctx)
+            );
+        };
+
+        let table = object_table::borrow_mut(
+            &mut nfts.table,
+            type_name::get<Child>()
+        );
+
+        object_vec::add(table, child_nft);
+    }
+
+    public fun get_hash<Parent: store, Child: store>(
+    ): String {
+        let type = ascii::into_bytes(
+            type_name::into_string(type_name::get<Parent>())
+        );
+
+        vector::append(
+            &mut type,
+            ascii::into_bytes(type_name::into_string(type_name::get<Child>())),
+        );
+
+        string::utf8(hash::sha2_256(type))
+    }
+
+    public fun has_link<Parent: store, Child: store>(
+        parent: &Parent,
+        child: &Child,
+        blueprint: &Blueprint,
+    ): bool {
+        let hash = get_hash<Parent, Child>();
+
+        object_bag::contains(&blueprint.links, hash)
+    }
+
+    public fun nfts_domain<C>(
         collection: &Collection<C>,
-    ): &CreatorsDomain {
+    ): &Nfts<C> {
         collection::borrow_domain(collection)
     }
 
-    public fun creators_domain_mut<C>(
-        collection: &mut Collection<C>,
+    fun add_nfts_domain<C>(
+        nft: &mut Nft<C>,
+        domain: Nfts<C>,
         ctx: &mut TxContext,
-    ): &mut CreatorsDomain {
-        assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
-        );
-
-        collection::borrow_domain_mut(Witness {}, collection)
-    }
-
-    public fun add_creators_domain<C>(
-        collection: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
-        domain: CreatorsDomain,
     ) {
-        collection::add_domain(collection, mint_cap, domain);
+        nft::add_domain(nft, domain, ctx);
     }
 }
