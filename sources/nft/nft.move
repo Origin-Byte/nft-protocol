@@ -234,6 +234,10 @@ module nft_protocol::nft {
     ///
     /// If the authority was allowlisted by the creator, we transfer
     /// the NFT to the recipient address.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if authority token, `Auth`, was not defined on `Allowlist`.
     public fun transfer<C, Auth: drop>(
         nft: Nft<C>,
         recipient: address,
@@ -247,6 +251,10 @@ module nft_protocol::nft {
     /// Change the `logical_owner` of the `Nft` to `recipient`
     ///
     /// Creator can allow certain contracts to change the logical owner of an NFT.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if authority token, `Auth`, was not defined on `Allowlist`.
     public fun change_logical_owner<C, Auth: drop>(
         nft: &mut Nft<C>,
         recipient: address,
@@ -264,12 +272,20 @@ module nft_protocol::nft {
 
     // === Assertions ===
 
-    /// Assert that domain `D` exists on `Nft`
+    /// Assert that domain, `D`, exists on `Nft`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if domain, `D`, does not exist on `Nft`.
     public fun assert_domain<C, D: store>(nft: &Nft<C>) {
         assert!(has_domain<C, D>(nft), err::undefined_domain());
     }
 
-    /// Assert that domain `D` does not exist on `Nft`
+    /// Assert that domain, `D`, does not exist on `Nft`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if domain, `D`, exists on `Nft`.
     public fun assert_no_domain<C, D: store>(nft: &Nft<C>) {
         assert!(!has_domain<C, D>(nft), err::domain_already_defined());
     }
