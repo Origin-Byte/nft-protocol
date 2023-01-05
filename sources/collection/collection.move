@@ -212,16 +212,28 @@ module nft_protocol::collection {
     // === Assertions ===
 
     /// Assert that domain `D` exists on `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if domain, `D`, does not exist on `Collection`.
     public fun assert_domain<C, D: store>(collection: &Collection<C>) {
         assert!(has_domain<C, D>(collection), err::undefined_domain());
     }
 
     /// Assert that domain `D` does not exist on `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if domain, `D`, does exists on `Collection`.
     public fun assert_no_domain<C, D: store>(collection: &Collection<C>) {
         assert!(!has_domain<C, D>(collection), err::domain_already_defined());
     }
 
     /// Assert that `MintCap` is associated with `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if `MintCap` is not associated with the `Collection`.
     public fun assert_mint_cap<C>(
         cap: &MintCap<C>,
         collection: &Collection<C>
