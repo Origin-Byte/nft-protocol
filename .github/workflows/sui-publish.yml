@@ -63,6 +63,6 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
-          commit-message: ${{ env.COMMIT_MSG }}
+          commit-message: "[skip ci] ${{ env.COMMIT_MSG }}"
           committer: OriginByte <ci@originbyte.io>
           title: ${{ env.COMMIT_MSG }}

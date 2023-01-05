@@ -20,22 +20,7 @@ jobs:
           wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
           chmod +x sui
 
-          wget -qO stoml https://github.com/freshautomations/stoml/releases/download/v0.7.1/stoml_linux_amd64
-          chmod +x stoml
-
       - name: Run test for all modules
         run: |
-          for PACKAGE in `find . -name Move.toml`
-          do
-            # Get snake case package address
-            NAME=`./stoml $PACKAGE package.name | sed -r 's/([A-Z])/_\L\1/g' | sed 's/^_//'`
-            VERSION=`./stoml $PACKAGE package.version`
-
-            ORIGINAL=`grep "$NAME" $PACKAGE`
-            NEW="$NAME = \"0x0\""
-
-            # Sets the current package address to "0x0" for testing
-            sed -i "s/$ORIGINAL/$NEW/g" $PACKAGE
-
-            ./sui move test -p $PACKAGE
-          done
+          find . -name "Move.toml" |
+          while read PACKAGE; do ./sui move test -p $PACKAGE; done
