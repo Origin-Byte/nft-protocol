@@ -8,7 +8,7 @@ module nft_protocol::multisig {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::attribution;
+    use nft_protocol::creators;
     use nft_protocol::collection::Collection;
 
     struct Multisig<T> has key, store {
@@ -39,8 +39,8 @@ module nft_protocol::multisig {
         collection: &Collection<C>,
         ctx: &mut TxContext,
     ): Multisig<T> {
-        let attr = attribution::attribution_domain(collection);
-        let creators = *attribution::creators(attr);
+        let attr = creators::creators_domain(collection);
+        let creators = *creators::creators(attr);
 
         let creators_len = vec_map::size(&creators);
         assert!(creators_len > 0, 0); // TODO
@@ -54,7 +54,7 @@ module nft_protocol::multisig {
             vec_map::insert(
                 &mut signers,
                 addr,
-                attribution::share_of_royalty_bps(&creator),
+                creators::share_of_royalty_bps(&creator),
             );
             i = i + 1;
         };
@@ -66,7 +66,7 @@ module nft_protocol::multisig {
             signature_count: 0,
             remaining_signers: signers,
             signers_bps_share: 0,
-            attribution_version: attribution::version(attr),
+            attribution_version: creators::version(attr),
         }
     }
 
@@ -136,10 +136,10 @@ module nft_protocol::multisig {
         assert!(multisig.signature_count >= min_signature_count, 0);  // TODO
         assert!(multisig.signers_bps_share >= min_signers_bps_share, 0); // TODO
 
-        let attr = attribution::attribution_domain(collection);
-        assert!(multisig.attribution_version == attribution::version(attr), 0); // TODO
+        let attr = creators::creators_domain(collection);
+        assert!(multisig.attribution_version == creators::version(attr), 0); // TODO
 
-        attribution::assert_collection_has_creator(
+        creators::assert_collection_has_creator(
             collection, tx_context::sender(ctx)
         );
 

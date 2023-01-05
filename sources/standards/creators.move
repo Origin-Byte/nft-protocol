@@ -38,8 +38,6 @@ module nft_protocol::creators {
 
     /// === CreatorsDomain ===
 
-    const BPS: u16 = 10_000;
-
     struct CreatorsDomain has copy, drop, store {
         /// Increments every time we mutate the creators map.
         ///
@@ -201,7 +199,7 @@ module nft_protocol::creators {
         aggregate: &mut Balance<FT>,
         ctx: &mut TxContext,
     ) {
-        // balance * share_of_royalty_bps / BPS
+        // balance * share_of_royalty_bps / utils::bps()
         let total = fixed_point32::create_from_rational(
             balance::value(aggregate),
             (utils::bps() as u64)
