@@ -136,12 +136,10 @@ module nft_protocol::test_utils {
         test_scenario::next_tx(scenario, user);
         let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
 
-        let nft = nft::new<Foo>(user, ctx(scenario));
+        let nft = nft::new(&Witness {}, user, ctx(scenario));
         let nft_id = object::id(&nft);
         safe::deposit_nft<Foo>(
-            nft,
-            &mut safe,
-            ctx(scenario),
+            nft, &mut safe, ctx(scenario),
         );
 
         test_scenario::return_shared(safe);
@@ -153,19 +151,18 @@ module nft_protocol::test_utils {
     }
 
     // To be used if Collection type struct is in test module
-    public fun mint_and_deposit_nft<C>(
+    public fun mint_and_deposit_nft<C, W>(
+        witness: &W,
         scenario: &mut Scenario,
         user: address,
     ): ID {
         test_scenario::next_tx(scenario, user);
         let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
 
-        let nft = nft::new<C>(user, ctx(scenario));
+        let nft = nft::new(witness, user, ctx(scenario));
         let nft_id = object::id(&nft);
         safe::deposit_nft<C>(
-            nft,
-            &mut safe,
-            ctx(scenario),
+            nft, &mut safe, ctx(scenario),
         );
 
         test_scenario::next_tx(scenario, user);

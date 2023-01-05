@@ -1,4 +1,4 @@
-- Sui v0.19.0
+- Sui v0.20.0
 
 Checkout our:
 - Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5037cd2fe5af081c7f88ecfc8c40fa39c6c77957)
@@ -66,9 +66,8 @@ module gutenberg::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create<SUIMARINES>(
-            &witness,
-            ctx,
+        let (mint_cap, collection) = collection::create(
+            &witness, ctx,
         );
 
         collection::add_domain(
@@ -138,7 +137,9 @@ module gutenberg::suimarines {
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUIMARINES>(tx_context::sender(ctx), ctx);
+        let nft = nft::new<SUIMARINES, Witness>(
+            &Witness {}, tx_context::sender(ctx), ctx
+        );
 
         display::add_display_domain(
             &mut nft,

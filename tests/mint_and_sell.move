@@ -36,9 +36,8 @@ module nft_protocol::mint_and_sell {
         // 1. Create collection and add domains
         let scenario = test_scenario::begin(CREATOR);
 
-        let (mint_cap, collection) = collection::create<Foo>(
-            &Foo {},
-            ctx(&mut scenario),
+        let (mint_cap, collection) = collection::create(
+            &Foo {}, ctx(&mut scenario),
         );
 
         collection::add_domain(
@@ -109,8 +108,10 @@ module nft_protocol::mint_and_sell {
         test_scenario::next_tx(&mut scenario, CREATOR);
         let inventory = inventory::new(ctx(&mut scenario));
 
-        let nft = nft::new<Foo>(
-            tx_context::sender(ctx(&mut scenario)), ctx(&mut scenario)
+        let nft = nft::new<Foo, Witness>(
+            &Witness {},
+            tx_context::sender(ctx(&mut scenario)),
+            ctx(&mut scenario),
         );
 
         display::add_display_domain(
