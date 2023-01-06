@@ -4,6 +4,8 @@ module nft_protocol::composable {
     // type system easier as it would more closely resemble the business logic.
     // However we should do this without introducing any convulution to this module,
     // and therefore this should be a higher-level abstraction exposed in a separate module
+    // TODO: Ideally we would allow for multiple NFTs to be composed together in a single
+    // transaction
     use std::ascii;
     use std::hash;
     use std::vector;
@@ -21,6 +23,8 @@ module nft_protocol::composable {
 
     struct Witness has drop {}
 
+    /// Domain to be owned by the parent Nft.
+    /// Allows the parent Nft to hold Child Nfts
     struct Nfts<phantom T> has key, store {
         // A 2-rank tensor represented by a 2-nested object vector, where
         // the outer vector is indexed by object TypeName, and the inner vector
@@ -31,6 +35,10 @@ module nft_protocol::composable {
         table: ObjectTable<TypeName, ObjectVec<Nft<T>>>
     }
 
+    /// Defines which NFTs can be composed with each other
+    /// The type-exporting collection module will export a type system
+    /// for its NFTs, and links can be made between types via parent-child
+    /// relationship.
     struct Link<Parent: store, Child: store> has key, store {
         id: UID,
         parent: Parent,
@@ -38,6 +46,7 @@ module nft_protocol::composable {
         // limit: Option<u64>, // Objective of Option is to make storage efficient
     }
 
+    /// Domain held in the Collection object, grouping all Links in a collection
     struct Blueprint has key, store {
         id: UID,
         links: ObjectBag,
