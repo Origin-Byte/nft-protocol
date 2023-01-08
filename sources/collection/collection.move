@@ -5,22 +5,6 @@
 ///
 /// The `MintAuthority` object gives power to the owner to mint objects.
 /// There is only one `MintAuthority` per `Collection`.
-/// The Mint Authority object contains a `SupplyPolicy` which
-/// can be regulated or unregulated.
-/// A Collection with unregulated Supply policy is a collection that
-/// does not keep track of its current supply objects. This allows for the
-/// minting process to be parallelized.
-///
-/// A Collection with regulated Supply policy is a collection that
-/// keeps track of its current supply objects. This means that whilst the
-/// minting can be parallelized on the client side, on the blockchain side
-/// nodes will have to lock the `MintAuthority` object in order to mutate
-/// it sequentially. Regulated Supply allows for collections to have limited
-/// or unlimited supply. The `MintAuthority` owner can modify the
-/// `max_supply` a posteriori, as long as the `Supply` is not frozen.
-/// After this function call the `Supply` object will not yet be set to
-/// frozen, in order to give creators the ability to ammend it prior to
-/// the primary sale taking place.
 module nft_protocol::collection {
     use std::type_name::{Self, TypeName};
 
@@ -47,7 +31,7 @@ module nft_protocol::collection {
     /// There is only one `MintCapability` per `Collection`.
     struct MintCap<phantom T> has key, store {
         id: UID,
-        // For discoverability purposes
+        // For discovery purposes
         collection_id: ID,
     }
 
@@ -60,31 +44,7 @@ module nft_protocol::collection {
     /// Initialises a `MintAuthority` and transfers it to `authority` and
     /// initializes a `Collection` object and returns it. The `MintAuthority`
     /// object gives power to the owner to mint objects. There is only one
-    /// `MintAuthority` per `Collection`. The Mint Authority object contains a
-    /// `SupplyPolicy` which can be regulated or unregulated.
-    ///
-    /// A Collection with unregulated Supply policy is a collection that
-    /// does not keep track of its current supply objects. This allows for the
-    /// minting process to be parallelized.
-    ///
-    /// To initialise a collection with a unregulated `SupplyPolicy`,
-    /// the parameter `max_supply` should be given as `0`.
-    ///
-    /// A Collection with regulated Supply policy is a collection that
-    /// keeps track of its current supply objects. This means that whilst the
-    /// minting can be parallelized on the client side, on the blockchain side
-    /// nodes will have to lock the `MintAuthority` object in order to mutate
-    /// it sequentially. Regulated Supply allows for collections to have limited
-    /// or unlimited supply. The `MintAuthority` owner can modify the
-    /// `max_supply` a posteriori, as long as the `Supply` is not frozen.
-    /// After this function call the `Supply` object will not yet be set to
-    /// frozen, in order to give creators the ability to ammend it prior to
-    /// the primary sale taking place.
-    ///
-    /// To initialise a collection with regualred `SupplyPolicy`, the parameter
-    /// `max_supply` should be above `0`. To create an unlimited supply the
-    /// parameter `max_supply` should be equal to the biggest integer number
-    /// that can be stored in a u64, which is `18446744073709551615`.
+    /// `MintAuthority` per `Collection`.
     public fun create<C>(
         _witness: &C,
         ctx: &mut TxContext,
