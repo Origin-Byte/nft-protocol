@@ -185,7 +185,14 @@ module nft_protocol::royalty {
         balance::join(aggregate, b);
     }
 
-    /// Distribute aggregated royalties among creators
+    /// Distributes the aggregated royalties for fungible token, `FT`, among
+    /// the creators defined in `CreatorsDomain`.
+    ///
+    /// This endpoint is permissionless and can be called by anyone.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if there is no aggregate for token `FT`.
     public entry fun distribute_royalties<C, FT>(
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
@@ -199,7 +206,7 @@ module nft_protocol::royalty {
             utils::marker<Balance<FT>>(),
         );
 
-        creators::distribute_royalties(
+        creators::distribute_balance(
             &creators,
             aggregate,
             ctx,

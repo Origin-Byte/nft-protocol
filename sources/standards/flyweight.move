@@ -61,6 +61,7 @@ module nft_protocol::flyweight {
 
     /// Create a `Archetype` object and shares it.
     public fun new<C>(
+        witness: &C,
         supply: u64,
         mint: &MintCap<C>,
         ctx: &mut TxContext,
@@ -74,8 +75,7 @@ module nft_protocol::flyweight {
         );
 
         let owner = object::id_to_address(&object::id(mint));
-
-        let nft = nft::new<C>(owner, ctx);
+        let nft = nft::new(witness, owner, ctx);
 
         Archetype<C> {
             id,

@@ -6,8 +6,6 @@ on:
     types: [ opened, synchronize ]
     branches: [ main, develop ]
 
-  workflow_call:
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,4 +24,3 @@ jobs:
         run: |
           find . -name "Move.toml" |
           while read PACKAGE; do ./sui move test -p $PACKAGE; done
-

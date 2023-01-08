@@ -1,7 +1,10 @@
-/// Module of Collection `Creators` domain.
+/// Module of Collection `CreatorsDomain`
 ///
-/// Creators domain gathers all collection creators, their respective
-/// addresses as well as the share of royalty.
+/// `CreatorsDomain` tracks all collection creators, their respective
+/// addresses, as well as their royalty share.
+///
+/// `CreatorsDomain` is used to authenticate mutable operations on other
+/// OriginByte standard domains.
 module nft_protocol::creators {
     use std::fixed_point32;
 
@@ -15,44 +18,87 @@ module nft_protocol::creators {
     use nft_protocol::err;
     use nft_protocol::utils;
 
-    /// === Creator ===
+    // === Creator ===
 
-    /// Creator struct which holds the addresses of the creators of the NFT
-    /// Collection, as well their share of the royalties collected.
+    /// `Creator` type which holds the address of the `Collection` creator as
+    /// well their share of the royalties.
     struct Creator has store, copy, drop {
         who: address,
         share_of_royalty_bps: u16,
     }
 
+    /// Create new `Creator`
     public fun new_creator(who: address, share_of_royalty_bps: u16): Creator {
         Creator { who, share_of_royalty_bps }
     }
 
+    /// Returns the address belonging to the `Creator`
     public fun who(creator: &Creator): address {
         creator.who
     }
 
+    /// Returns the royalty share of the `Creator` in basis points
     public fun share_of_royalty_bps(creator: &Creator): u16 {
         creator.share_of_royalty_bps
     }
 
     /// === CreatorsDomain ===
 
+    /// `CreatorsDomain` tracks collection creators, their respective
+    /// addresses, as well as their royalty share.
+    ///
+    /// ##### Usage
+    ///
+    /// Originbyte Standard domains will authenticate mutable operations for
+    /// transaction senders which are creators using
+    /// `assert_collection_has_creator`.
+    ///
+    /// `CreatorsDomain` can additionally be frozen which will cause
+    /// `assert_collection_has_creator` to always fail, therefore, allowing
+    /// creators to lock in their NFT collection.
+    ///
+    /// ```
+    /// module nft_protocol::display {
+    ///     struct SUIMARINES has drop {}
+    ///     struct Witness has drop {}
+    ///
+    ///     struct DisplayDomain {
+    ///         id: UID,
+    ///         name: String,
+    ///     } has key, store
+    ///
+    ///     public fun set_name<C>(
+    ///         collection: &mut Collection<C>,
+    ///         name: String,
+    ///         ctx: &mut TxContext,
+    ///     ) {
+    ///         creators::assert_collection_has_creator(
+    ///             collection, tx_context::sender(ctx)
+    ///         );
+    ///
+    ///         let domain: &mut DisplayDomain =
+    ///             collection::borrow_domain_mut(Witness {}, collection);
+    ///
+    ///         domain.name = name;
+    ///     }
+    /// }
     struct CreatorsDomain has copy, drop, store {
         /// Increments every time we mutate the creators map.
         ///
         /// Enables multisig to invalidate itself if the attribution domain
         /// changed.
         version: u64,
+        /// Frozen `CreatorsDomain` will no longer authenticate creators
         is_frozen: bool,
-        /// Address that receives the mint and trade royalties
+        /// Creators that receive the mint and trade royalties
         creators: VecMap<address, Creator>,
     }
 
-    /// Creates an empty `Attributions` object
+    /// Creates an empty `CreatorsDomain` object
     ///
     /// By not attributing any `Creators`, nobody will ever be able to claim
-    /// royalties from this `Attributions` object or modify it's domains.
+    /// royalties from this `CreatorsDomain` object or modify the `Collection`
+    /// domains.
     public fun empty(): CreatorsDomain {
         CreatorsDomain {
             version: 0,
@@ -61,12 +107,24 @@ module nft_protocol::creators {
         }
     }
 
+    /// Creates a `CreatorsDomain` object with only one creator
+    ///
+    /// Only the single `Creator` will ever be able to claim royalties from
+    /// this `CreatorsDomain` object and modify the `Collection` domains.
     public fun from_address(who: address): CreatorsDomain {
         let domain = empty();
         vec_map::insert(&mut domain.creators, who, new_creator(who, utils::bps()));
         domain
     }
 
+    /// Creates a `CreatorsDomain` with multiple creators
+    ///
+    /// Creators will be able to claim royalties and modify `Collection`
+    /// domains.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if total sum of creator basis point share is not equal to 10000.
     public fun from_creators(
         creators: VecMap<address, Creator>
     ): CreatorsDomain {
@@ -76,24 +134,34 @@ module nft_protocol::creators {
         domain
     }
 
+    /// Returns whether `CreatorsDomain` has defined any creators
     public fun is_empty(domain: &CreatorsDomain): bool {
         vec_map::is_empty(&domain.creators)
     }
 
+    /// Returns whether `CreatorsDomain` is frozen
     public fun is_frozen(domain: &CreatorsDomain): bool {
         domain.is_frozen
     }
 
+    /// Returns the version of the `CreatorsDomain` which increments with every
+    /// mutation.
     public fun version(attributions: &CreatorsDomain): u64 {
         attributions.version
     }
 
+    /// Returns the list of creators defined on the `CreatorsDomain`
     public fun creators(
         domain: &CreatorsDomain
     ): &VecMap<address, Creator> {
         &domain.creators
     }
 
+    /// Returns the `Creator` type for the given address
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if the provided address is not an attributed creator
     public fun get(
         domain: &CreatorsDomain,
         who: &address,
@@ -105,6 +173,11 @@ module nft_protocol::creators {
         vec_map::get(&domain.creators, who)
     }
 
+    /// Returns a mutable reference to the `Creator` type for the given address
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if the provided address is not an attributed creator
     fun get_mut(
         domain: &mut CreatorsDomain,
         who: address,
@@ -116,12 +189,18 @@ module nft_protocol::creators {
         vec_map::get_mut(&mut domain.creators, &who)
     }
 
-    /// === Mutability ===
+    // === Mutability ===
 
-    /// Add a `Creator` to CreatorsDomain object
+    /// Add a `Creator` to `CreatorsDomain` object
     ///
-    /// This must be done by a `Creator` which already has an attribution who
-    /// gives up an arithmetic share of their royalty share.
+    /// This must be done by a creator which already has an attribution who
+    /// gives up their share of the royalties for the benefit of the new
+    /// creator.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if the transaction sender does not have a large enough royalty
+    /// share to transfer to the new creator.
     // TODO: assert not frozen?
     public fun add_creator(
         domain: &mut CreatorsDomain,
@@ -150,13 +229,11 @@ module nft_protocol::creators {
 
     /// Remove a `Creator` from CreatorsDomain
     ///
-    /// `Creator` can only remove themselves.
+    /// Creators can only remove themselves. Shares of removed `Creator` are
+    /// allocated to the provided address, who also must be a `Creator`.
     ///
     /// If the only `Creator` is removed then nobody will ever be able to claim
     /// royalties in the future again.
-    ///
-    /// Shares of removed `Creator` are allocated to the provided address, who
-    /// must be a `Creator`.
     //
     // TODO: Create removal methods which split shares evenly and
     // proportionally.
@@ -183,18 +260,18 @@ module nft_protocol::creators {
 
     /// Makes `Collection` domains immutable
     ///
-    /// This is irreversible, use with caution.
-    ///
     /// Will cause `assert_collection_has_creator` and `assert_is_creator` to
     /// always fail, thus making all standard domains immutable.
+    ///
+    /// This is irreversible, use with caution.
     public fun freeze_domains(domain: &mut CreatorsDomain,) {
         // Only creators can obtain `&mut CreatorsDomain`
         domain.is_frozen = true
     }
 
-    /// Distributes content of `aggregate` balance among the creators defined
-    /// in the `CreatorsDomain`
-    public fun distribute_royalties<FT>(
+    /// Distributes the contents of a `Balance<FT>` among the creators defined
+    /// in the `CreatorsDomain`.
+    public fun distribute_balance<FT>(
         domain: &CreatorsDomain,
         aggregate: &mut Balance<FT>,
         ctx: &mut TxContext,
@@ -230,8 +307,13 @@ module nft_protocol::creators {
         };
     }
 
-    /// === Utils ===
+    // === Utils ===
 
+    /// Asserts that total `Creator` shares add up to 10000 basis points
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if shares do not add up to 10000 basis points
     fun assert_total_shares(domain: &CreatorsDomain) {
         let bps_total = 0;
 
@@ -246,6 +328,11 @@ module nft_protocol::creators {
         assert!(bps_total == utils::bps(), err::invalid_total_share_of_royalties());
     }
 
+    /// Asserts that address is a `Creator` attributed in `CreatorsDomain`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if address is not an attribtued creator.
     public fun assert_is_creator(
         domain: &CreatorsDomain,
         who: address
@@ -253,6 +340,13 @@ module nft_protocol::creators {
         get(domain, &who);
     }
 
+    /// Asserts that address is a `Creator` attributed in `CreatorsDomain` of
+    /// the `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if `CreatorsDomain` is not defined or address is not an
+    /// attributed creator.
     public fun assert_collection_has_creator<C>(
         collection: &Collection<C>,
         who: address
@@ -264,12 +358,25 @@ module nft_protocol::creators {
 
     struct Witness has drop {}
 
+    /// Borrows `CreatorsDomain` from `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if `CreatorsDomain` is not registered on `Collection`.
     public fun creators_domain<C>(
         collection: &Collection<C>,
     ): &CreatorsDomain {
         collection::borrow_domain(collection)
     }
 
+    /// Mutably borrows `CreatorsDomain` from `Collection`
+    ///
+    /// `CreatorsDomain` has secured endpoints therefore it is safe to expose
+    /// a mutable reference to it.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if `CreatorsDomain` is not registered on `Collection`.
     public fun creators_domain_mut<C>(
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
@@ -281,6 +388,12 @@ module nft_protocol::creators {
         collection::borrow_domain_mut(Witness {}, collection)
     }
 
+    /// Adds `CreatorsDomain` to `Collection`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if `MintCap` does not match `Collection` or domain `D` already
+    /// exists.
     public fun add_creators_domain<C>(
         collection: &mut Collection<C>,
         mint_cap: &mut MintCap<C>,
