@@ -6,12 +6,29 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- `PluginDomain` which collects type names of witness structs.
+  These then serve to authorize a function in a "base" contract (the one that is deployed with the one-time-witness type.)
+  The function returns the original witness type (of the same module as the OTW) in exchange for a witness of another smart contract (a plugin) if that plugin's witness is present in the `PluginDomain`.
+- `Multisig` is a utility struct which enables smart contracts to authorize
+  actions signed by predefined set of accounts.
+
+### Changed
+
+- Adding a creator now accepts a mutable reference to the collection instead of
+  the `CreatorDomain`.
+  This is because getting the reference to the `CreatorDomain` required a `&mut TxContext`.
+  The same reference was required in the `add_creator` function.
 
 ## [0.17.0] - 2022-12-19
 
 ### Changed
 
 - Updated Sui dep to `0.20.0`
+
 ## [0.16.0] - 2023-01-03
 
 ### Changed

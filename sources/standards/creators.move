@@ -8,14 +8,15 @@
 module nft_protocol::creators {
     use std::fixed_point32;
 
+    use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::transfer;
-    use sui::vec_map::{Self, VecMap};
-    use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
+    use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::err;
+    use nft_protocol::utils;
 
     // === Creator ===
 
@@ -42,8 +43,6 @@ module nft_protocol::creators {
     }
 
     /// === CreatorsDomain ===
-
-    const BPS: u16 = 10_000;
 
     /// `CreatorsDomain` tracks collection creators, their respective
     /// addresses, as well as their royalty share.
@@ -84,6 +83,11 @@ module nft_protocol::creators {
     ///     }
     /// }
     struct CreatorsDomain has copy, drop, store {
+        /// Increments every time we mutate the creators map.
+        ///
+        /// Enables multisig to invalidate itself if the attribution domain
+        /// changed.
+        version: u64,
         /// Frozen `CreatorsDomain` will no longer authenticate creators
         is_frozen: bool,
         /// Creators that receive the mint and trade royalties
@@ -96,7 +100,11 @@ module nft_protocol::creators {
     /// royalties from this `CreatorsDomain` object or modify the `Collection`
     /// domains.
     public fun empty(): CreatorsDomain {
-        CreatorsDomain { is_frozen: false, creators: vec_map::empty() }
+        CreatorsDomain {
+            version: 0,
+            is_frozen: false,
+            creators: vec_map::empty()
+        }
     }
 
     /// Creates a `CreatorsDomain` object with only one creator
@@ -105,7 +113,7 @@ module nft_protocol::creators {
     /// this `CreatorsDomain` object and modify the `Collection` domains.
     public fun from_address(who: address): CreatorsDomain {
         let domain = empty();
-        vec_map::insert(&mut domain.creators, who, new_creator(who, BPS));
+        vec_map::insert(&mut domain.creators, who, new_creator(who, utils::bps()));
         domain
     }
 
@@ -120,7 +128,7 @@ module nft_protocol::creators {
     public fun from_creators(
         creators: VecMap<address, Creator>
     ): CreatorsDomain {
-        let domain = CreatorsDomain { is_frozen: false, creators };
+        let domain = CreatorsDomain { version: 0, is_frozen: false, creators };
         assert_total_shares(&domain);
 
         domain
@@ -134,6 +142,12 @@ module nft_protocol::creators {
     /// Returns whether `CreatorsDomain` is frozen
     public fun is_frozen(domain: &CreatorsDomain): bool {
         domain.is_frozen
+    }
+
+    /// Returns the version of the `CreatorsDomain` which increments with every
+    /// mutation.
+    public fun version(attributions: &CreatorsDomain): u64 {
+        attributions.version
     }
 
     /// Returns the list of creators defined on the `CreatorsDomain`
@@ -187,13 +201,18 @@ module nft_protocol::creators {
     ///
     /// Panics if the transaction sender does not have a large enough royalty
     /// share to transfer to the new creator.
-    public fun add_creator(
-        domain: &mut CreatorsDomain,
+    // TODO: assert not frozen?
+    public fun add_creator<C>(
+        collection: &mut Collection<C>,
         new_creator: Creator,
         ctx: &mut TxContext,
     ) {
+        let sender = tx_context::sender(ctx);
+
+        let domain = creators_domain_mut(collection, ctx);
+
         // Asserts that sender is a creator
-        let creator = get_mut(domain, tx_context::sender(ctx));
+        let creator = get_mut(domain, sender);
 
         assert!(
             creator.share_of_royalty_bps >= new_creator.share_of_royalty_bps,
@@ -209,6 +228,7 @@ module nft_protocol::creators {
         };
 
         vec_map::insert(&mut domain.creators, new_creator.who, new_creator);
+        domain.version = domain.version + 1;
     }
 
     /// Remove a `Creator` from CreatorsDomain
@@ -221,6 +241,7 @@ module nft_protocol::creators {
     //
     // TODO: Create removal methods which split shares evenly and
     // proportionally.
+    // TODO: assert not frozen?
     public fun remove_creator_by_transfer(
         domain: &mut CreatorsDomain,
         to: address,
@@ -237,6 +258,8 @@ module nft_protocol::creators {
 
         beneficiary.share_of_royalty_bps =
             beneficiary.share_of_royalty_bps + creator.share_of_royalty_bps;
+
+        domain.version = domain.version + 1;
     }
 
     /// Makes `Collection` domains immutable
@@ -257,10 +280,10 @@ module nft_protocol::creators {
         aggregate: &mut Balance<FT>,
         ctx: &mut TxContext,
     ) {
-        // balance * share_of_royalty_bps / BPS
+        // balance * share_of_royalty_bps / utils::bps()
         let total = fixed_point32::create_from_rational(
             balance::value(aggregate),
-            (BPS as u64)
+            (utils::bps() as u64)
         );
 
         let i = 0;
@@ -306,7 +329,7 @@ module nft_protocol::creators {
             i = i + 1;
         };
 
-        assert!(bps_total == BPS, err::invalid_total_share_of_royalties());
+        assert!(bps_total == utils::bps(), err::invalid_total_share_of_royalties());
     }
 
     /// Asserts that address is a `Creator` attributed in `CreatorsDomain`
