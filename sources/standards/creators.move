@@ -202,13 +202,17 @@ module nft_protocol::creators {
     /// Panics if the transaction sender does not have a large enough royalty
     /// share to transfer to the new creator.
     // TODO: assert not frozen?
-    public fun add_creator(
-        domain: &mut CreatorsDomain,
+    public fun add_creator<C>(
+        collection: &mut Collection<C>,
         new_creator: Creator,
         ctx: &mut TxContext,
     ) {
+        let sender = tx_context::sender(ctx);
+
+        let domain = creators_domain_mut(collection, ctx);
+
         // Asserts that sender is a creator
-        let creator = get_mut(domain, tx_context::sender(ctx));
+        let creator = get_mut(domain, sender);
 
         assert!(
             creator.share_of_royalty_bps >= new_creator.share_of_royalty_bps,

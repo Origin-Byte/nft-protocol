@@ -1,9 +1,15 @@
+/// A plugin is a smart contract which extends the functionality of a collection
+/// base smart contract by being allowed to get an instance of the `Witness`
+/// struct.
+/// Therefore, a plugin can be used to implement custom logic for a collection
+/// post deployment of the original collection smart contract.
 module nft_protocol::plugins {
-    use sui::vec_set::{Self, VecSet};
     use std::type_name::{Self, TypeName};
+    use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::utils;
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::err;
+    use nft_protocol::utils;
 
     // === PluginDomain ===
 
@@ -18,6 +24,11 @@ module nft_protocol::plugins {
     }
 
     public fun has_plugin<PluginWitness>(domain: &PluginDomain): bool {
+        vec_set::contains(&domain.packages, &type_name::get<PluginWitness>())
+    }
+
+    public fun collection_has_plugin<C, PluginWitness>(collection: &Collection<C>): bool {
+        let domain: &PluginDomain = collection::borrow_domain(collection);
         vec_set::contains(&domain.packages, &type_name::get<PluginWitness>())
     }
 
@@ -54,6 +65,13 @@ module nft_protocol::plugins {
     /// === Assertions ===
 
     public fun assert_has_plugin<PluginWitness>(domain: &PluginDomain) {
-        assert!(has_plugin<PluginWitness>(domain), 0); // TODO
+        assert!(has_plugin<PluginWitness>(domain), err::collection_does_not_have_plugin());
+    }
+
+    public fun assert_collection_has_plugin<C, PluginWitness>(collection: &Collection<C>) {
+        assert!(
+            collection_has_plugin<C, PluginWitness>(collection),
+            err::collection_does_not_have_plugin(),
+        );
     }
 }
