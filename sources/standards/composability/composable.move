@@ -9,6 +9,7 @@ module nft_protocol::composable {
     use std::ascii;
     use std::hash;
     use std::vector;
+    use std::option::{Self, Option};
     use std::string::{Self, String};
     use std::type_name::{Self, TypeName};
 
@@ -17,6 +18,7 @@ module nft_protocol::composable {
 
     use nft_protocol::nft::{Self, Nft};
     use sui::object_bag::{Self, ObjectBag};
+    use sui::bag::{Self, Bag};
     use sui::object_table::{Self, ObjectTable};
     use nft_protocol::object_vec::{Self, ObjectVec};
     use nft_protocol::collection::{Self, Collection};
@@ -39,31 +41,50 @@ module nft_protocol::composable {
     /// The type-exporting collection module will export a type system
     /// for its NFTs, and links can be made between types via parent-child
     /// relationship.
-    struct Link<Parent: store, Child: store> has key, store {
+    struct Link<Parent: store> has key, store {
         id: UID,
         parent: Parent,
-        child: Child,
-        // limit: Option<u64>, // Objective of Option is to make storage efficient
+        // Children types ordered by rendering order
+        children: Bag,
+        // Maximum limit ordered by rendering order
+        limit: vector<u64>,
     }
 
     /// Domain held in the Collection object, grouping all Links in a collection
     struct Blueprint has key, store {
         id: UID,
+        // ObjectBag with Links. It is an ObjectBag instead of ObjectTable,
+        // in order to avoid the Parent generic in Link
         links: ObjectBag,
     }
 
     public fun new_link<Parent: store, Child: store>(
         parent: Parent,
-        child: Child,
         ctx: &mut TxContext
-    ): Link<Parent, Child> {
+    ): Link<Parent> {
         Link {
             id: object::new(ctx),
             parent: parent,
-            child: child,
-            // limit: option::none(),
+            children: bag::new(ctx),
+            limit: vector::empty(),
         }
     }
+
+    public fun add_to_link<Parent: store, Child: store>(
+        link: &mut Link<Parent>,
+        new_child: Child,
+        limit: u64,
+        ctx: &mut TxContext
+    ) {
+        let index = bag::length(&link.children);
+
+        bag::add(&mut link.children, index + 1, new_child);
+
+        vector::push_back(&mut link.limit, limit);
+    }
+
+    // TODO
+    public fun reorder_children() {}
 
     public fun new_blueprint(ctx: &mut TxContext): Blueprint {
         Blueprint {
@@ -72,17 +93,14 @@ module nft_protocol::composable {
         }
     }
 
-    public fun link_types<Parent: store, Child: store>(
-        parent: Parent,
-        child: Child,
+    public fun add_link_to_blueprint<Parent: store, Child: store>(
+        link: Link<Parent>,
         blueprint: &mut Blueprint,
         ctx: &mut TxContext,
     ) {
-        let link = new_link(parent, child, ctx);
+        let type = type_name::get<Child>();
 
-        let hash = get_hash<Parent, Child>();
-
-        object_bag::add(&mut blueprint.links, hash, link);
+        object_bag::add(&mut blueprint.links, type, link);
     }
 
     public fun compose<T, Parent: store, Child: store>(
@@ -93,9 +111,11 @@ module nft_protocol::composable {
     ) {
         let blueprint = collection::borrow_domain<T, Blueprint>(collection);
 
+        // Fetching types
         let parent = nft::borrow_domain<T, Parent>(parent_nft);
         let child = nft::borrow_domain<T, Child>(&child_nft);
 
+        // Assert if Parent and Child have link
         assert!(has_link(parent, child, blueprint), 0);
 
         let nfts = nft::borrow_domain_mut<T, Nfts<T>, Witness>(
@@ -106,6 +126,8 @@ module nft_protocol::composable {
             &nfts.table, type_name::get<Child>()
         );
 
+        // If it doesn't have an ObjectVec yet for this type, then it needs
+        // to create one.
         if (!has_type) {
             object_table::add(
                 &mut nfts.table,
@@ -114,36 +136,54 @@ module nft_protocol::composable {
             );
         };
 
-        let table = object_table::borrow_mut(
+        let vec = object_table::borrow_mut(
             &mut nfts.table,
             type_name::get<Child>()
         );
 
-        object_vec::add(table, child_nft);
-    }
+        // Get link
+        let type = type_name::get<Parent>();
 
-    public fun get_hash<Parent: store, Child: store>(
-    ): String {
-        let type = ascii::into_bytes(
-            type_name::into_string(type_name::get<Parent>())
+        let link = object_bag::borrow_mut(
+            &mut blueprint.links, type
         );
 
-        vector::append(
-            &mut type,
-            ascii::into_bytes(type_name::into_string(type_name::get<Child>())),
-        );
+        // TODO: problem here is that there is no way to fetch without iterating
+        let limit = link.limits
 
-        string::utf8(hash::sha2_256(type))
+        assert!(
+            object_vec::length(&vec) < link.
+        )
+
+        object_vec::add(vec, child_nft);
     }
+
+    // public fun get_hash<Parent: store, Child: store>(
+    // ): String {
+    //     let type = ascii::into_bytes(
+    //         type_name::into_string(type_name::get<Parent>())
+    //     );
+
+    //     vector::append(
+    //         &mut type,
+    //         ascii::into_bytes(type_name::into_string(type_name::get<Child>())),
+    //     );
+
+    //     string::utf8(hash::sha2_256(type))
+    // }
 
     public fun has_link<Parent: store, Child: store>(
         parent: &Parent,
         child: &Child,
         blueprint: &Blueprint,
     ): bool {
-        let hash = get_hash<Parent, Child>();
+        let parent_type = type_name::get<Parent>();
 
-        object_bag::contains(&blueprint.links, hash)
+        let link = object_bag::borrow<TypeName, Link<Parent>>(&blueprint.links, parent_type);
+
+        let child_type = type_name::get<Child>();
+
+        bag::contains(&link.children, child_type)
     }
 
     public fun nfts_domain<C>(
