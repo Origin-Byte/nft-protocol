@@ -3,6 +3,10 @@
 /// struct.
 /// Therefore, a plugin can be used to implement custom logic for a collection
 /// post deployment of the original collection smart contract.
+///
+/// This solves the issue that after a package is deployed, it can no longer
+/// leverage our pattern where we use `Witness` to authorize access to various
+/// APIs.
 module nft_protocol::plugins {
     use std::type_name::{Self, TypeName};
     use sui::vec_set::{Self, VecSet};
