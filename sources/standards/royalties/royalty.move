@@ -39,7 +39,7 @@ module nft_protocol::royalty {
     /// ##### Usage
     ///
     /// `RoyaltyDomain` can only calculate royalties owed and distribute them
-    /// to shareholders, but relies on a trusted execution price oracle.
+    /// to shareholders, as a result, it relies on trusted price execution.
     ///
     /// The usage example shows how to derive the owed royalties from the
     /// example sollection, `Suimarines`, which uses `TradePayment` as the
@@ -83,10 +83,10 @@ module nft_protocol::royalty {
         from_shares(vec_map::empty(), ctx)
     }
 
-    /// Creates a `RoyaltyDomain` object with only one creator
+    /// Creates a `RoyaltyDomain` object with only one address attribution
     ///
     /// Only the single address will be able to claim royalties from this
-    /// `RoyaltyDomain` object and modify the `Collection` domains.
+    /// `RoyaltyDomain` object.
     public fun from_address(who: address, ctx: &mut TxContext): RoyaltyDomain {
         let shares = vec_map::empty();
         vec_map::insert(&mut shares, who, BPS);
@@ -94,10 +94,10 @@ module nft_protocol::royalty {
         from_shares(shares, ctx)
     }
 
-    /// Creates a `RoyaltyDomain` with multiple creators
+    /// Creates a `RoyaltyDomain` with multiple attributions
     ///
-    /// Creators will be able to claim royalties and modify `Collection`
-    /// domains.
+    /// Attributed addresses will be able to claim royalties weighted by their
+    /// share in the total royalties.
     ///
     /// ##### Panics
     ///
@@ -163,6 +163,9 @@ module nft_protocol::royalty {
     /// Panics if the transaction sender does not have a large enough royalty
     /// share to transfer to the new creator or is not attributed in the first
     /// place.
+    //
+    // TODO: Add share method for empty RoyaltyDomain controlled by
+    // CreatorsDomain
     public fun add_share(
         domain: &mut RoyaltyDomain,
         who: address,
