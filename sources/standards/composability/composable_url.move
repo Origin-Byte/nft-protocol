@@ -7,7 +7,7 @@ module nft_protocol::c_url {
 
     use nft_protocol::nft::{Self, Nft};
 
-    friend nft_protocol::composable;
+    friend nft_protocol::c_nft;
 
     // TODO: Perhaps use the plugin pattern here?
     struct Witness has drop {}
