@@ -178,8 +178,8 @@ module nft_protocol::creators {
     ///
     /// ##### Panics
     ///
-    /// Panics if `MintCap` does not match `Collection` or domain `D` already
-    /// exists.
+    /// Panics if `MintCap` does not match `Collection` or `CreatorsDomain`
+    /// already exists.
     public fun add_creators_domain<C>(
         collection: &mut Collection<C>,
         mint_cap: &mut MintCap<C>,
