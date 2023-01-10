@@ -41,6 +41,7 @@ module nft_protocol::ob {
         transfer_bid_commission,
     };
 
+    /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
     /// A critbit order book implementation. Contains two ordered trees:

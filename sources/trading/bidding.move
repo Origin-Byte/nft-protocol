@@ -24,6 +24,7 @@ module nft_protocol::bidding {
         transfer_bid_commission,
     };
 
+    /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
     struct Bid<phantom FT> has key {
