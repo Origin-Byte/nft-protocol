@@ -22,15 +22,17 @@ module nft_protocol::c_nft {
 
     /// ====== ChildNode ===
 
-    /// Defines which NFTs can be composed with each other
-    /// The type-exporting collection module will export a type system
-    /// for its NFTs, and links can be made between types via parent-child
-    /// relationship.
+    /// Defines a Child type in the context of a composability node.
+    /// To be used by ParentNode
     struct ChildNode has key, store {
         id: UID,
-        // Children types ordered by rendering order
+        // Childr type
         type: TypeName,
+        // Amount of times child NFT of a the type given
+        // can be attached to a given Parent NFT
         limit: u64,
+        // Represents the layer in which the child NFT is stacked,
+        // for rendering purposes.
         order: u64,
     }
 
@@ -49,14 +51,12 @@ module nft_protocol::c_nft {
 
     /// ====== ParentNode ===
 
-    /// Defines which NFTs can be composed with each other
-    /// The type-exporting collection module will export a type system
-    /// for its NFTs, and links can be made between types via parent-child
-    /// relationship.
+    /// Defines which child NFTs can be attached to the Parent NFT.
     struct ParentNode has key, store {
         id: UID,
         children: ObjectTable<TypeName, ChildNode>,
-        // Represented here for the purpose of ownership test
+        // Orders are redundantly represented here for
+        // the purpose of ownership test
         orders: VecSet<u64>,
     }
 
@@ -80,12 +80,12 @@ module nft_protocol::c_nft {
     /// ====== Blueprint ===
 
     /// Domain held in the Collection object, blueprinting all the composability
-    /// between types
+    /// between types. It contains a ObjectTable with all the nodes of the
+    /// composability flattened.
     struct Blueprint has key, store {
         id: UID,
-        // ObjectTable with outer index TypeName as the type of the Parent,
-        // and inner index as the order, represented by the order
-        // of the ObjectVec
+        // ObjectTable with index TypeName as the type of the Parent,
+        // and the value as ParentNode which contains all the children info
         nodes: ObjectTable<TypeName, ParentNode>,
     }
 
@@ -97,20 +97,6 @@ module nft_protocol::c_nft {
             nodes: object_table::new<TypeName, ParentNode>(ctx),
         }
     }
-
-    // TODO
-    // public entry fun build_composability_tree(
-
-    //     ctx: &mut TxContext,
-    // ) {
-    //     let blueprint = new_blueprint(ctx);
-
-    //     c_nft::add_parent_child_relationship<Avatar>(
-    //         &mut blueprint,
-    //         c_nft::new_child_node<Skin>(1, 1, ctx), // limit, order, ctx
-    //         ctx
-    //     );
-    // }
 
     public entry fun add_parent_child_relationship<Parent: store>(
         blueprint: &mut Blueprint,
