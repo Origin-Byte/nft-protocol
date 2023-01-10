@@ -8,6 +8,7 @@ module nft_protocol::deadbytes {
 
     use nft_protocol::nft;
     use nft_protocol::tags;
+    use nft_protocol::c_nft;
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
@@ -19,11 +20,11 @@ module nft_protocol::deadbytes {
     struct DEADBYTES has drop {}
 
     /// Types
-    struct Avatar has drop {}
-    struct Skin has drop {}
-    struct Hat has drop {}
-    struct Glasses has drop {}
-    struct Gun has drop {}
+    struct Avatar has copy, drop, store {}
+    struct Skin has copy, drop, store {}
+    struct Hat has copy, drop, store {}
+    struct Glasses has copy, drop, store {}
+    struct Gun has copy, drop, store {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
@@ -73,6 +74,31 @@ module nft_protocol::deadbytes {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
+        // Composability
+        let blueprint = c_nft::new_blueprint(ctx);
+        c_nft::add_parent_child_relationship<Avatar>(
+            &mut blueprint,
+            c_nft::new_child_node<Skin>(1, 1, ctx), // limit, order, ctx
+            ctx
+        );
+        c_nft::add_parent_child_relationship<Avatar>(
+            &mut blueprint,
+            c_nft::new_child_node<Hat>(1, 1, ctx), // limit, order, ctx
+            ctx
+        );
+        c_nft::add_parent_child_relationship<Avatar>(
+            &mut blueprint,
+            c_nft::new_child_node<Glasses>(1, 1, ctx), // limit, order, ctx
+            ctx
+        );
+        c_nft::add_parent_child_relationship<Avatar>(
+            &mut blueprint,
+            c_nft::new_child_node<Gun>(1, 1, ctx), // limit, order, ctx
+            ctx
+        );
+
+        c_nft::add_blueprint_domain(&mut collection, &mut mint_cap, blueprint);
+
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
     }
@@ -103,7 +129,7 @@ module nft_protocol::deadbytes {
         inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<DEADBYTES>(tx_context::sender(ctx), ctx);
+        let nft = nft::new<DEADBYTES, Witness>(&Witness {}, tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft,
