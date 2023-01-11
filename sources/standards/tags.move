@@ -84,6 +84,7 @@ module nft_protocol::tags {
         bag: Bag,
     }
 
+    /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
     public fun empty(ctx: &mut TxContext): TagDomain {
@@ -112,7 +113,7 @@ module nft_protocol::tags {
         let _: T = bag::remove(&mut domain.bag, utils::marker<T>());
     }
 
-    /// ====== Interoperability ===
+    // ====== Interoperability ===
 
     public fun tag_domain<C>(
         nft: &Nft<C>,
@@ -132,7 +133,7 @@ module nft_protocol::tags {
         ctx: &mut TxContext,
     ): &mut TagDomain {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
 
         collection::borrow_domain_mut(Witness {}, collection)
