@@ -145,9 +145,9 @@ module nft_protocol::test_nft {
 
     #[test]
     fun it_recognizes_nft_type() {
-        assert!(utils::is_protocol_nft_type<Nft<sui::object::ID>>(), 0);
-        assert!(!utils::is_protocol_nft_type<sui::object::ID>(), 1);
-        assert!(!utils::is_protocol_nft_type<utils::Marker<sui::object::ID>>(), 2);
-        assert!(!utils::is_protocol_nft_type<nft::MintNftEvent>(), 2);
+        assert!(utils::is_nft_protocol_nft_type<Nft<sui::object::ID>>(), 0);
+        assert!(!utils::is_nft_protocol_nft_type<sui::object::ID>(), 1);
+        assert!(!utils::is_nft_protocol_nft_type<utils::Marker<sui::object::ID>>(), 2);
+        assert!(!utils::is_nft_protocol_nft_type<nft::MintNftEvent>(), 2);
     }
 }

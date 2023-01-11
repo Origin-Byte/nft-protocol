@@ -216,7 +216,7 @@ module nft_protocol::unprotected_safe {
         safe: &mut UnprotectedSafe,
         ctx: &mut TxContext,
     ) {
-        let is_generic = !utils::is_protocol_nft_type<T>();
+        let is_generic = !utils::is_nft_protocol_nft_type<T>();
         deposit_nft_(nft, is_generic, safe, ctx);
     }
 
