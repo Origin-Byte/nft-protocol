@@ -1,7 +1,7 @@
 /// Module of a Fixed Price Sale `Market` type.
 ///
 /// It implements a fixed price sale configuration, where all NFTs in the sale
-/// inventory get sold at a fixed price.
+/// warehouse get sold at a fixed price.
 ///
 /// NFT creators can decide if they want to create a simple primary market sale
 /// or if they want to create a tiered market sale by segregating NFTs by
@@ -17,7 +17,7 @@ module nft_protocol::fixed_price {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
 
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::listing::{Self, Listing, WhitelistCertificate};
 
     struct FixedPriceMarket<phantom FT> has key, store {
@@ -49,27 +49,27 @@ module nft_protocol::fixed_price {
         transfer::transfer(market, tx_context::sender(ctx));
     }
 
-    /// Creates a `FixedPriceMarket<FT>` on `Inventory`
-    public entry fun create_market_on_inventory<FT>(
-        inventory: &mut Inventory,
+    /// Creates a `FixedPriceMarket<FT>` on `Warehouse`
+    public entry fun create_market_on_warehouse<FT>(
+        warehouse: &mut Warehouse,
         is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(price, ctx);
-        inventory::add_market(inventory, is_whitelisted, market);
+        warehouse::add_market(warehouse, is_whitelisted, market);
     }
 
     /// Creates a `FixedPriceMarket<FT>` on `Listing`
     public entry fun create_market_on_listing<FT>(
         listing: &mut Listing,
-        inventory_id: ID,
+        warehouse_id: ID,
         is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(price, ctx);
-        listing::add_market(listing, inventory_id, is_whitelisted, market, ctx);
+        listing::add_market(listing, warehouse_id, is_whitelisted, market, ctx);
     }
 
     // === Entrypoints ===
@@ -82,20 +82,20 @@ module nft_protocol::fixed_price {
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
     public entry fun buy_nft<C, FT>(
         listing: &mut Listing,
-        inventory_id: ID,
+        warehouse_id: ID,
         market_id: ID,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let inventory =
-            listing::inventory_internal_mut<FixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, inventory_id, market_id
+        let warehouse =
+            listing::warehouse_internal_mut<FixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, warehouse_id, market_id
             );
 
-        inventory::assert_is_not_whitelisted(inventory, &market_id);
+        warehouse::assert_is_not_whitelisted(warehouse, &market_id);
 
         let funds = buy_nft_<C, FT>(
-            inventory,
+            warehouse,
             market_id,
             wallet,
             ctx,
@@ -112,24 +112,24 @@ module nft_protocol::fixed_price {
     /// `claim_nft` and claim the NFT that has been allocated by the slingshot
     public entry fun buy_whitelisted_nft<C, FT>(
         listing: &mut Listing,
-        inventory_id: ID,
+        warehouse_id: ID,
         market_id: ID,
         wallet: &mut Coin<FT>,
         whitelist_token: WhitelistCertificate,
         ctx: &mut TxContext,
     ) {
-        let inventory =
-            listing::inventory_internal_mut<FixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, inventory_id, market_id
+        let warehouse =
+            listing::warehouse_internal_mut<FixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, warehouse_id, market_id
             );
 
-        inventory::assert_is_whitelisted(inventory, &market_id);
+        warehouse::assert_is_whitelisted(warehouse, &market_id);
         listing::assert_whitelist_certificate_market(market_id, &whitelist_token);
 
         listing::burn_whitelist_certificate(whitelist_token);
 
         let funds = buy_nft_<C, FT>(
-            inventory,
+            warehouse,
             market_id,
             wallet,
             ctx,
@@ -139,18 +139,18 @@ module nft_protocol::fixed_price {
     }
 
     fun buy_nft_<C, FT>(
-        inventory: &mut Inventory,
+        warehouse: &mut Warehouse,
         market_id: ID,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Balance<FT> {
-        inventory::assert_is_live(inventory, &market_id);
+        warehouse::assert_is_live(warehouse, &market_id);
 
         let market =
-            inventory::market<FixedPriceMarket<FT>>(inventory, market_id);
+            warehouse::market<FixedPriceMarket<FT>>(warehouse, market_id);
         let funds = balance::split(coin::balance_mut(wallet), market.price);
 
-        let nft = inventory::redeem_nft<C>(inventory);
+        let nft = warehouse::redeem_nft<C>(warehouse);
         transfer::transfer(nft, tx_context::sender(ctx));
 
         funds
@@ -162,20 +162,20 @@ module nft_protocol::fixed_price {
     /// of the Listing configuration.
     public entry fun set_price<FT>(
         listing: &mut Listing,
-        inventory_id: ID,
+        warehouse_id: ID,
         market_id: ID,
         new_price: u64,
         ctx: &mut TxContext,
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let inventory =
-            listing::inventory_internal_mut<FixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, inventory_id, market_id
+        let warehouse =
+            listing::warehouse_internal_mut<FixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, warehouse_id, market_id
             );
 
-        let market = inventory::market_mut<FixedPriceMarket<FT>>(
-            inventory, market_id,
+        let market = warehouse::market_mut<FixedPriceMarket<FT>>(
+            warehouse, market_id,
         );
 
         market.price = new_price;
