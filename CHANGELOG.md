@@ -16,6 +16,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   they wish so.
 - `TransferCap` exposes information about whether an NFT is a generic or native
   to our protocol.
+- `safe::deposit_generic_nft_privileged`
 - Refactored RoyaltyDomain and CreatorsDomain to split royalty share and authorization logic.
 - Added entry function redeem_nft_transfer thus allowing creators to retrieve NFTs from private `Inventory`.
 
