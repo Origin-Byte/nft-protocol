@@ -228,7 +228,7 @@ module nft_protocol::err {
         return Prefix + 701
     }
 
-    // === AttributionDomain ===
+    // === RoyaltyDomain ===
 
     public fun address_not_attributed(): u64 {
         return Prefix + 800
@@ -240,6 +240,10 @@ module nft_protocol::err {
 
     public fun invalid_total_share_of_royalties(): u64 {
         return Prefix + 802
+    }
+
+    public fun share_attribution_already_exists(): u64 {
+        return Prefix + 803
     }
 
     // === Generic ===

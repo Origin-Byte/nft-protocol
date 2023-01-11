@@ -142,9 +142,14 @@ module nft_protocol::royalty {
         vec_map::get_mut(&mut domain.royalty_shares_bps, who)
     }
 
-    /// Returns whether address is a defined creator
+    /// Returns true when address is a defined creator
     public fun contains_share(domain: &RoyaltyDomain, who: &address): bool {
         vec_map::contains(&domain.royalty_shares_bps, who)
+    }
+
+    /// Returns true when a share attribution exists
+    public fun contains_shares(domain: &RoyaltyDomain): bool {
+        !vec_map::is_empty(&domain.royalty_shares_bps)
     }
 
     /// Returns the list of creators defined on the `CreatorsDomain`
@@ -195,15 +200,47 @@ module nft_protocol::royalty {
         }
     }
 
-    /// Remove a share attribution from an address
+    /// Attribute royalties to an address
     ///
-    /// Attributed addresses can only remove their own attributions. Shares of
-    /// the removed attribution are allocated to the provided address which
-    /// must already be attributed. Ensures that the total sum of shares
-    /// remains constant.
-    //
-    // TODO: Create removal methods which split shares evenly and
-    // proportionally.
+    /// ##### Panics
+    ///
+    /// Panics if a share attribution already exists
+    public fun add_share_to_empty(
+        domain: &mut RoyaltyDomain,
+        who: address,
+    ) {
+        assert_empty(domain);
+
+        let shares = vec_map::empty();
+        vec_map::insert(&mut shares, who, BPS);
+
+        domain.royalty_shares_bps = shares;
+    }
+
+    /// Attribute royalties to addresses
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if a share attribution already exists
+    public fun add_shares_to_empty(
+        domain: &mut RoyaltyDomain,
+        royalty_shares_bps: VecMap<address, u16>,
+    ) {
+        assert_empty(domain);
+        assert_total_shares(&royalty_shares_bps);
+        domain.royalty_shares_bps = royalty_shares_bps;
+    }
+
+    /// Remove a share attribution from an address and transfer attribution to
+    /// another address
+    ///
+    /// Shares of the removed attribution are allocated to the provided
+    /// address, ensures that the total sum of shares remains constant.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if attempting to remove attribution which doesn't belong to the
+    /// transaction sender
     public fun remove_creator_by_transfer(
         domain: &mut RoyaltyDomain,
         to: address,
@@ -216,8 +253,12 @@ module nft_protocol::royalty {
         );
 
         // Get creator to which shares will be transfered
-        let beneficiary_share = borrow_share_mut(domain, &to);
-        *beneficiary_share = *beneficiary_share + share;
+        if (contains_share(domain, &to)) {
+            let beneficiary_share = borrow_share_mut(domain, &to);
+            *beneficiary_share = *beneficiary_share + share;
+        } else {
+            vec_map::insert(&mut domain.royalty_shares_bps, to, share);
+        }
     }
 
     // === Royalties ===
@@ -486,6 +527,11 @@ module nft_protocol::royalty {
     }
 
     // === Utils ===
+
+    /// Asserts that no share attributions exist
+    fun assert_empty(domain: &RoyaltyDomain) {
+        assert!(!contains_shares(domain), err::share_attribution_already_exists())
+    }
 
     /// Asserts that total shares add up to 10000 basis points or no shares
     /// exist
