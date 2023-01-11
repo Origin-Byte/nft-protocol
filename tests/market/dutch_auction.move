@@ -13,7 +13,7 @@ module nft_protocol::test_dutch_auction {
 
     use nft_protocol::nft;
     use nft_protocol::proceeds;
-    use nft_protocol::inventory;
+    use nft_protocol::warehouse;
     use nft_protocol::listing::{Self, WhitelistCertificate, Listing};
     use nft_protocol::dutch_auction;
 
@@ -35,17 +35,17 @@ module nft_protocol::test_dutch_auction {
         let market = dutch_auction::new<SUI>(reserve_price, ctx(scenario));
         let market_id = object::id(&market);
 
-        let inventory_id = listing::create_inventory(listing, ctx(scenario));
+        let warehouse_id = listing::create_warehouse(listing, ctx(scenario));
 
         listing::add_market(
             listing,
-            inventory_id,
+            warehouse_id,
             is_whitelisted,
             market,
             ctx(scenario),
         );
 
-        (inventory_id, market_id)
+        (warehouse_id, market_id)
     }
 
     #[test]
@@ -53,10 +53,10 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
 
@@ -67,12 +67,12 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370202, location = nft_protocol::inventory)]
+    #[expected_failure(abort_code = 13370202, location = nft_protocol::warehouse)]
     fun try_bid_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -81,7 +81,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -99,9 +99,9 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -109,7 +109,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             9,
             1,
@@ -126,9 +126,9 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -137,7 +137,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -149,7 +149,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -159,7 +159,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             12,
             2,
@@ -168,8 +168,8 @@ module nft_protocol::test_dutch_auction {
 
         assert!(coin::value(&wallet) == 5, 0);
 
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -198,14 +198,14 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370206, location = nft_protocol::inventory)]
+    #[expected_failure(abort_code = 13370206, location = nft_protocol::warehouse)]
     fun try_bid_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, true, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -213,7 +213,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -230,9 +230,9 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, true, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         listing::transfer_whitelist_certificate(
             &listing, market_id, BUYER, ctx(&mut scenario)
@@ -248,7 +248,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid_whitelisted<SUI>(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             certificate,
             10,
@@ -269,9 +269,9 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -280,7 +280,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -290,13 +290,13 @@ module nft_protocol::test_dutch_auction {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         listing::sale_off(
-            &mut listing, inventory_id, market_id, ctx(&mut scenario)
+            &mut listing, warehouse_id, market_id, ctx(&mut scenario)
         );
 
         dutch_auction::cancel_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             ctx(&mut scenario),
@@ -312,9 +312,9 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
@@ -323,7 +323,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -335,7 +335,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -347,15 +347,15 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
             ctx(&mut scenario),
         );
 
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -374,14 +374,14 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::cancel_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             ctx(&mut scenario),
         );
 
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -396,14 +396,14 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::cancel_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             ctx(&mut scenario),
         );
 
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -418,7 +418,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::cancel_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             ctx(&mut scenario),
@@ -427,8 +427,8 @@ module nft_protocol::test_dutch_auction {
         assert!(coin::value(&wallet) == 44, 0);
 
         // Check that price levels are automatically removed once empty
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -444,16 +444,16 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
 
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -462,20 +462,20 @@ module nft_protocol::test_dutch_auction {
 
         // Bids should be cancellable even if listing is turned off
         listing::sale_off(
-            &mut listing, inventory_id, market_id, ctx(&mut scenario)
+            &mut listing, warehouse_id, market_id, ctx(&mut scenario)
         );
 
         dutch_auction::cancel_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             ctx(&mut scenario),
         );
 
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -492,14 +492,14 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
         dutch_auction::sale_cancel<SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             ctx(&mut scenario),
         );
@@ -513,9 +513,9 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(44, ctx(&mut scenario));
 
@@ -524,7 +524,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -536,7 +536,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             12,
             1,
@@ -545,17 +545,17 @@ module nft_protocol::test_dutch_auction {
 
         dutch_auction::sale_cancel<SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             ctx(&mut scenario),
         );
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let inventory = listing::inventory(&listing, inventory_id);
+        let warehouse = listing::warehouse(&listing, warehouse_id);
 
         // Listing should be automatically turned off after cancelling the auction
-        assert!(!inventory::is_live(inventory, &market_id), 0);
+        assert!(!warehouse::is_live(warehouse, &market_id), 0);
 
         // Check wallet balances
         assert!(coin::value(&wallet) == 22, 0);
@@ -575,7 +575,7 @@ module nft_protocol::test_dutch_auction {
         test_scenario::return_to_address(CREATOR, refunded);
 
         // Check bid state
-        let market = inventory::market(inventory, market_id);
+        let market = warehouse::market(warehouse, market_id);
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
@@ -590,14 +590,14 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
         dutch_auction::sale_conclude<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             ctx(&mut scenario),
         );
@@ -611,11 +611,11 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
         listing::add_nft(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             nft::new<COLLECTION, Witness>(
                 &Witness {}, CREATOR, ctx(&mut scenario)
             ),
@@ -624,21 +624,21 @@ module nft_protocol::test_dutch_auction {
 
         listing::add_nft(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             nft::new<COLLECTION, Witness>(
                 &Witness {}, CREATOR, ctx(&mut scenario)
             ),
             ctx(&mut scenario)
         );
 
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(35, ctx(&mut scenario));
 
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -648,7 +648,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             11,
             1,
@@ -658,7 +658,7 @@ module nft_protocol::test_dutch_auction {
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             12,
             1,
@@ -667,17 +667,17 @@ module nft_protocol::test_dutch_auction {
 
         dutch_auction::sale_conclude<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             ctx(&mut scenario),
         );
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let inventory = listing::inventory(&listing, inventory_id);
+        let warehouse = listing::warehouse(&listing, warehouse_id);
 
         // Listing should be automatically turned off after concluding the auction
-        assert!(!inventory::is_live(inventory, &market_id), 0);
+        assert!(!warehouse::is_live(warehouse, &market_id), 0);
 
         // Check wallet balances
         assert!(coin::value(&wallet) == 2, 0);
@@ -704,7 +704,7 @@ module nft_protocol::test_dutch_auction {
         test_scenario::return_to_address(CREATOR, refunded1);
 
         // Check bid state
-        let market = inventory::market(inventory, market_id);
+        let market = warehouse::market(warehouse, market_id);
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
@@ -718,12 +718,12 @@ module nft_protocol::test_dutch_auction {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
         listing::add_nft(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             nft::new<COLLECTION, Witness>(
                 &Witness {}, CREATOR, ctx(&mut scenario)
             ),
@@ -732,21 +732,21 @@ module nft_protocol::test_dutch_auction {
 
         listing::add_nft(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             nft::new<COLLECTION, Witness>(
                 &Witness {}, CREATOR, ctx(&mut scenario)
             ),
             ctx(&mut scenario)
         );
 
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(35, ctx(&mut scenario));
 
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             10,
             1,
@@ -755,20 +755,20 @@ module nft_protocol::test_dutch_auction {
 
         dutch_auction::sale_conclude<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             ctx(&mut scenario),
         );
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let inventory = listing::inventory(&listing, inventory_id);
+        let warehouse = listing::warehouse(&listing, warehouse_id);
 
-        // Listing should not be turned off as all inventory has not been sold
-        assert!(inventory::is_live(inventory, &market_id), 0);
+        // Listing should not be turned off as all warehouse has not been sold
+        assert!(warehouse::is_live(warehouse, &market_id), 0);
 
         // Check bid state
-        let market = inventory::market(inventory, market_id);
+        let market = warehouse::market(warehouse, market_id);
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 

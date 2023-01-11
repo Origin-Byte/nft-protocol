@@ -53,7 +53,7 @@ module gutenberg::suimarines {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -134,7 +134,7 @@ module gutenberg::suimarines {
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         _mint_cap: &MintCap<SUIMARINES>,
-        inventory: &mut Inventory,
+        warehouse: &mut Warehouse,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUIMARINES, Witness>(
@@ -161,7 +161,7 @@ module gutenberg::suimarines {
             ctx,
         );
 
-        inventory::deposit_nft(inventory, nft);
+        warehouse::deposit_nft(warehouse, nft);
     }
 }
 ```
