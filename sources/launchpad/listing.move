@@ -102,7 +102,7 @@ module nft_protocol::listing {
         admin: address,
         /// The address of the receiver of funds
         receiver: address,
-        inventories: ObjectTable<ID, Warehouse>,
+        warehouses: ObjectTable<ID, Warehouse>,
         /// Proceeds object holds the balance of Fungible Tokens acquired from
         /// the sale of the Listing
         proceeds: Proceeds,
@@ -136,7 +136,7 @@ module nft_protocol::listing {
         ctx: &mut TxContext,
     ): Listing {
         let id = object::new(ctx);
-        let inventories = object_table::new<ID, Warehouse>(ctx);
+        let warehouses = object_table::new<ID, Warehouse>(ctx);
 
         event::emit(CreateListingEvent {
             listing_id: object::uid_to_inner(&id),
@@ -147,7 +147,7 @@ module nft_protocol::listing {
             marketplace_id: option::none(),
             admin: listing_admin,
             receiver,
-            inventories,
+            warehouses,
             proceeds: proceeds::empty(ctx),
             custom_fee: obox::empty(ctx),
         }
@@ -296,13 +296,13 @@ module nft_protocol::listing {
         assert_listing_admin(listing, ctx);
 
         object_table::add<ID, Warehouse>(
-            &mut listing.inventories,
+            &mut listing.warehouses,
             object::id(&warehouse),
             warehouse,
         );
     }
 
-    /// Adds a new Market to `markets` and Warehouse to `inventories` tables
+    /// Adds a new Market to `markets` and Warehouse to `warehouses` tables
     public entry fun add_market<Market: key + store>(
         listing: &mut Listing,
         warehouse_id: ID,
@@ -453,13 +453,13 @@ module nft_protocol::listing {
     /// Get the Listing's `Warehouse`
     public fun warehouse(listing: &Listing, warehouse_id: ID): &Warehouse {
         assert_warehouse(listing, warehouse_id);
-        object_table::borrow(&listing.inventories, warehouse_id)
+        object_table::borrow(&listing.warehouses, warehouse_id)
     }
 
     /// Get the Listing's `Warehouse` mutably
     fun warehouse_mut(listing: &mut Listing, warehouse_id: ID): &mut Warehouse {
         assert_warehouse(listing, warehouse_id);
-        object_table::borrow_mut(&mut listing.inventories, warehouse_id)
+        object_table::borrow_mut(&mut listing.warehouses, warehouse_id)
     }
 
     /// Get the Listing's `Warehouse` mutably
@@ -521,7 +521,7 @@ module nft_protocol::listing {
 
     public fun assert_warehouse(listing: &Listing, warehouse_id: ID) {
         assert!(
-            object_table::contains(&listing.inventories, warehouse_id),
+            object_table::contains(&listing.warehouses, warehouse_id),
             err::undefined_warehouse(),
         );
     }
