@@ -18,6 +18,7 @@ module nft_protocol::display {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
+    /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
     struct DisplayDomain has store {
@@ -52,7 +53,7 @@ module nft_protocol::display {
         ctx: &mut TxContext,
     ) {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
 
         let domain: &mut DisplayDomain =
@@ -70,7 +71,7 @@ module nft_protocol::display {
         ctx: &mut TxContext,
     ) {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
 
         let domain: &mut DisplayDomain =
@@ -79,7 +80,7 @@ module nft_protocol::display {
         domain.description = description;
     }
 
-    /// ====== Interoperability ===
+    // ====== Interoperability ===
 
     public fun display_domain<C>(
         nft: &Nft<C>,
@@ -113,7 +114,7 @@ module nft_protocol::display {
         );
     }
 
-    /// === UrlDomain ===
+    // === UrlDomain ===
 
     struct UrlDomain has store {
         url: Url,
@@ -138,7 +139,7 @@ module nft_protocol::display {
         ctx: &mut TxContext,
     ) {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
 
         let domain: &mut UrlDomain =
@@ -147,7 +148,7 @@ module nft_protocol::display {
         domain.url = url;
     }
 
-    /// ====== Interoperability ===
+    // ====== Interoperability ===
 
     public fun display_url<C>(nft: &Nft<C>): Option<Url> {
         if (!nft::has_domain<C, UrlDomain>(nft)) {
@@ -181,7 +182,7 @@ module nft_protocol::display {
         collection::add_domain(nft, mint_cap, new_url_domain(url));
     }
 
-    /// === SymbolDomain ===
+    // === SymbolDomain ===
 
     struct SymbolDomain has store {
         symbol: String,
@@ -206,7 +207,7 @@ module nft_protocol::display {
         ctx: &mut TxContext,
     ) {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
 
         let domain: &mut SymbolDomain =
@@ -215,7 +216,7 @@ module nft_protocol::display {
         domain.symbol = symbol;
     }
 
-    /// ====== Interoperability ===
+    // ====== Interoperability ===
 
     public fun display_symbol<C>(nft: &Nft<C>): Option<String> {
         if (!nft::has_domain<C, SymbolDomain>(nft)) {
@@ -251,7 +252,7 @@ module nft_protocol::display {
         collection::add_domain(nft, mint_cap, new_symbol_domain(symbol));
     }
 
-    /// === AttributesDomain ===
+    // === AttributesDomain ===
 
     struct AttributesDomain has store {
         map: VecMap<String, String>,
@@ -281,7 +282,7 @@ module nft_protocol::display {
         AttributesDomain { map }
     }
 
-    /// ====== Interoperability ===
+    // ====== Interoperability ===
 
     public fun display_attribute<C>(nft: &Nft<C>): &AttributesDomain {
         nft::borrow_domain<C, AttributesDomain>(nft)
@@ -293,7 +294,7 @@ module nft_protocol::display {
         ctx: &mut TxContext,
     ): &mut AttributesDomain {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
         nft::borrow_domain_mut<C, AttributesDomain, Witness>(Witness {}, nft)
     }

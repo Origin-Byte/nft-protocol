@@ -4,8 +4,6 @@ module nft_protocol::test_royalty {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::royalty::{Self, RoyaltyDomain};
-    use nft_protocol::royalty_strategy_bps as royalty_bps;
-    use nft_protocol::royalty_strategy_constant as royalty_const;
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils::create_collection_and_allowlist_with_type;
 
@@ -36,18 +34,9 @@ module nft_protocol::test_royalty {
             &scenario, CREATOR, cap_id
         );
 
-        let royalty = royalty::new(ctx(&mut scenario));
-
-        royalty::add_proportional_royalty(
-            &mut royalty,
-            royalty_bps::new(100),
-        );
-
-        royalty::add_constant_royalty(
-            &mut royalty,
-            royalty_const::new(100),
-        );
-
+        let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
+        royalty::add_proportional_royalty(&mut royalty, 100);
+        royalty::add_constant_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(
             &mut collection, &mut mint_cap, royalty
         );
