@@ -6,12 +6,23 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Orderbook and bidding liquidity layer contracts now support 3rd party
+  collections, ie. those which are not build with `nft-protocol` primitives.
+  These collections must implement their own royalty enforcement policies if
+  they wish so.
+- `TransferCap` exposes information about whether an NFT is a generic or native
+  to our protocol.
 
 ## [0.17.0] - 2022-12-19
 
 ### Changed
 
 - Updated Sui dep to `0.20.0`
+
 ## [0.16.0] - 2023-01-03
 
 ### Changed

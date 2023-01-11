@@ -10,12 +10,18 @@
 /// - offer an NFT if collection matches OB collection;
 /// - cancel an existing NFT offer;
 /// - instantly buy a specific NFT;
-/// - open bids and asks with a commission on behalf of a user.
+/// - open bids and asks with a commission on behalf of a user;
+/// - trade both native and 3rd party collections.
+///
+/// # Other resources
+/// - https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook
+/// - https://origin-byte.github.io/ob.html
 module nft_protocol::ob {
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
     // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
     // TODO: do we allow anyone to create an OB for any collection?
+    // TODO: settings to skip royalty settlement (witness protected)
 
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
@@ -37,7 +43,8 @@ module nft_protocol::ob {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        settle_funds,
+        settle_funds_no_royalties,
+        settle_funds_with_royalties,
         transfer_bid_commission,
     };
 
@@ -90,7 +97,7 @@ module nft_protocol::ob {
 
     /// An offer for a single NFT in a collection.
     struct Bid<phantom FT> has store {
-        /// How many "T"okens are being offered by the order issuer for one NFT.
+        /// How many token are being offered by the order issuer for one NFT.
         offer: Balance<FT>,
         /// The address of the user who created this bid and who will receive an
         /// NFT in exchange for their tokens.
@@ -119,7 +126,7 @@ module nft_protocol::ob {
         /// Who owns the NFT.
         owner: address,
         /// If the NFT is offered via a marketplace or a wallet, the
-        /// faciliatator can optionally set how many tokens they want to claim
+        /// facilitator can optionally set how many tokens they want to claim
         /// from the price of the NFT for themselves as a commission.
         commission: Option<AskCommission>,
     }
@@ -412,6 +419,23 @@ module nft_protocol::ob {
         )
     }
 
+    /// Similar to [`buy_nft`] except that this is meant for generic
+    /// collections, ie. those which aren't native to our protocol.
+    public entry fun buy_generic_nft<C: key + store, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft_id: ID,
+        price: u64,
+        wallet: &mut Coin<FT>,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        assert!(!book.protected_actions.buy_nft, err::action_not_public());
+        buy_generic_nft_<C, FT>(
+            book, nft_id, price, wallet, seller_safe, buyer_safe, ctx
+        )
+    }
+
     public fun buy_nft_protected<W: drop, C, FT>(
         _witness: W,
         book: &mut Orderbook<C, FT>,
@@ -430,13 +454,30 @@ module nft_protocol::ob {
         )
     }
 
+    public fun buy_generic_nft_protected<W: drop, C: key + store, FT>(
+        _witness: W,
+        book: &mut Orderbook<C, FT>,
+        nft_id: ID,
+        price: u64,
+        wallet: &mut Coin<FT>,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        utils::assert_same_module_as_witness<C, W>();
+
+        buy_generic_nft_<C, FT>(
+            book, nft_id, price, wallet, seller_safe, buyer_safe, ctx
+        )
+    }
+
     // === Finish trade ===
 
     /// When a bid is created and there's an ask with a lower price, then the
     /// trade cannot be resolved immediately.
     /// That's because we don't know the `Safe` ID up front in OB.
     /// Therefore, the tx creates `TradeIntermediate` which then has to be
-    /// permission-lessly resolved via this endpoint.
+    /// permissionlessly resolved via this endpoint.
     public entry fun finish_trade<C, FT>(
         trade: &mut TradeIntermediate<C, FT>,
         seller_safe: &mut Safe,
@@ -445,6 +486,17 @@ module nft_protocol::ob {
         ctx: &mut TxContext,
     ) {
         finish_trade_<C, FT>(trade, seller_safe, buyer_safe, allowlist, ctx)
+    }
+
+    /// Similar to [`finish_trade`] except that this is meant for generic
+    /// collections, ie. those which aren't native to our protocol.
+    public entry fun finish_trade_of_generic_nft<C: key + store, FT>(
+        trade: &mut TradeIntermediate<C, FT>,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        finish_trade_of_generic_nft_<C, FT>(trade, seller_safe, buyer_safe, ctx)
     }
 
     // === Create orderbook ===
@@ -735,13 +787,13 @@ module nft_protocol::ob {
         ctx: &mut TxContext,
     ) {
         safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
-        safe::assert_transfer_cap_exlusive(&transfer_cap);
+        safe::assert_transfer_cap_exclusive(&transfer_cap);
 
         let seller = tx_context::sender(ctx);
 
         let bids = &mut book.bids;
 
-        // if map empty, then higherst bid ask price is 0
+        // if map empty, then highest bid ask price is 0
         let (can_be_filled, highest_bid_price) = if (crit_bit::is_empty(bids)) {
             (false, 0)
         } else {
@@ -863,7 +915,7 @@ module nft_protocol::ob {
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
 
-        settle_funds<C, FT>(
+        settle_funds_with_royalties<C, FT>(
             &mut bid_offer,
             buyer,
             &mut maybe_commission,
@@ -877,6 +929,49 @@ module nft_protocol::ob {
             buyer,
             Witness {},
             allowlist,
+            seller_safe,
+            buyer_safe,
+            ctx,
+        );
+    }
+
+    fun buy_generic_nft_<C: key + store, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft_id: ID,
+        price: u64,
+        wallet: &mut Coin<FT>,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        let buyer = tx_context::sender(ctx);
+
+        let Ask {
+            id,
+            transfer_cap,
+            owner: _,
+            price: _,
+            commission: maybe_commission,
+        } = remove_ask(
+            &mut book.asks,
+            price,
+            nft_id,
+        );
+        object::delete(id);
+
+        let bid_offer = balance::split(coin::balance_mut(wallet), price);
+
+        settle_funds_no_royalties<C, FT>(
+            &mut bid_offer,
+            buyer,
+            &mut maybe_commission,
+            ctx,
+        );
+        option::destroy_none(maybe_commission);
+        balance::destroy_zero(bid_offer);
+
+        safe::transfer_generic_nft_to_safe<C>(
+            transfer_cap,
             seller_safe,
             buyer_safe,
             ctx,
@@ -902,13 +997,13 @@ module nft_protocol::ob {
         let transfer_cap = option::extract(transfer_cap);
 
         safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
-        safe::assert_transfer_cap_exlusive(&transfer_cap);
+        safe::assert_transfer_cap_exclusive(&transfer_cap);
         assert!(
             *expected_buyer_safe_id == object::id(buyer_safe),
             err::safe_id_mismatch(),
         );
 
-        settle_funds<C, FT>(
+        settle_funds_with_royalties<C, FT>(
             paid,
             *buyer,
             maybe_commission,
@@ -920,6 +1015,45 @@ module nft_protocol::ob {
             *buyer,
             Witness {},
             allowlist,
+            seller_safe,
+            buyer_safe,
+            ctx,
+        );
+    }
+
+    fun finish_trade_of_generic_nft_<C: key + store, FT>(
+        trade: &mut TradeIntermediate<C, FT>,
+        seller_safe: &mut Safe,
+        buyer_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        let TradeIntermediate {
+            id: _,
+            transfer_cap,
+            paid,
+            buyer,
+            buyer_safe: expected_buyer_safe_id,
+            commission: maybe_commission,
+        } = trade;
+
+        let transfer_cap = option::extract(transfer_cap);
+
+        safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
+        safe::assert_transfer_cap_exclusive(&transfer_cap);
+        assert!(
+            *expected_buyer_safe_id == object::id(buyer_safe),
+            err::safe_id_mismatch(),
+        );
+
+        settle_funds_no_royalties<C, FT>(
+            paid,
+            *buyer,
+            maybe_commission,
+            ctx,
+        );
+
+        safe::transfer_generic_nft_to_safe<C>(
+            transfer_cap,
             seller_safe,
             buyer_safe,
             ctx,

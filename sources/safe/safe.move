@@ -383,6 +383,10 @@ module nft_protocol::safe {
         unprotected_safe::transfer_cap_is_exclusive(&cap.inner)
     }
 
+    public fun transfer_cap_is_nft_generic(cap: &TransferCap): bool {
+        unprotected_safe::transfer_cap_is_nft_generic(&cap.inner)
+    }
+
     public fun are_all_deposits_enabled(safe: &Safe): bool {
         safe.enable_any_deposit
     }
@@ -409,8 +413,12 @@ module nft_protocol::safe {
         unprotected_safe::assert_not_exclusively_listed(&cap.inner)
     }
 
-    public fun assert_transfer_cap_exlusive(cap: &TransferCap) {
-        unprotected_safe::assert_transfer_cap_exlusive(&cap.inner)
+    public fun assert_transfer_cap_exclusive(cap: &TransferCap) {
+        unprotected_safe::assert_transfer_cap_exclusive(&cap.inner)
+    }
+
+    public fun assert_transfer_cap_of_native_nft(cap: &TransferCap) {
+        unprotected_safe::assert_transfer_cap_of_native_nft(&cap.inner)
     }
 
     public fun assert_can_deposit<T>(safe: &Safe) {
