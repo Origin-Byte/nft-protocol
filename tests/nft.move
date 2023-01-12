@@ -10,11 +10,12 @@ module nft_protocol::fake_witness {
 
 #[test_only]
 module nft_protocol::test_nft {
-    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::fake_witness::{Self, FakeWitness};
-    use sui::transfer::transfer;
+    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::utils;
     use sui::object;
     use sui::test_scenario::{Self, ctx};
+    use sui::transfer::transfer;
 
     struct Witness has drop {}
 
@@ -140,5 +141,13 @@ module nft_protocol::test_nft {
 
         transfer(nft, OWNER);
         test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_recognizes_nft_type() {
+        assert!(utils::is_nft_protocol_nft_type<Nft<sui::object::ID>>(), 0);
+        assert!(!utils::is_nft_protocol_nft_type<sui::object::ID>(), 1);
+        assert!(!utils::is_nft_protocol_nft_type<utils::Marker<sui::object::ID>>(), 2);
+        assert!(!utils::is_nft_protocol_nft_type<nft::MintNftEvent>(), 2);
     }
 }

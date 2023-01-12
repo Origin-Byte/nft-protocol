@@ -8,6 +8,15 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ## Unreleased
 
+### Added
+
+- Orderbook and bidding liquidity layer contracts now support 3rd party
+  collections, ie. those which are not build with `nft-protocol` primitives.
+  These collections must implement their own royalty enforcement policies if
+  they wish so.
+- `TransferCap` exposes information about whether an NFT is a generic or native
+  to our protocol.
+- `safe::deposit_generic_nft_privileged`
 - Refactored RoyaltyDomain and CreatorsDomain to split royalty share and authorization logic.
 - Added entry function redeem_nft_transfer thus allowing creators to retrieve NFTs from private `Inventory`.
 
@@ -16,6 +25,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Changed
 
 - Updated Sui dep to `0.20.0`
+
 ## [0.16.0] - 2023-01-03
 
 ### Changed

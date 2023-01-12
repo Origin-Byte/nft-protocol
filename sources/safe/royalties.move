@@ -35,7 +35,7 @@ module nft_protocol::royalties {
         amount: Balance<FT>,
         /// The address where the amount should be transferred to.
         /// This could be either the payment for the seller or a marketplace's
-        /// commision.
+        /// commission.
         beneficiary: address,
         /// Optionally we enable grouping of payments, e.g. if there are
         /// multiple payments for one NFT (such as commission.), it might be

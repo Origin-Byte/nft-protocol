@@ -825,10 +825,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(
-        abort_code = 13370408,
-        location = nft_protocol::unprotected_safe,
-    )]
+    #[expected_failure(abort_code = 13370408, location = nft_protocol::utils)]
     fun it_cannot_transfer_protocol_nft_as_generic_nft() {
         let scenario = test_scenario::begin(USER);
 
@@ -865,10 +862,7 @@ module nft_protocol::test_safe {
     }
 
     #[test]
-    #[expected_failure(
-        abort_code = 13370408,
-        location = nft_protocol::unprotected_safe,
-    )]
+    #[expected_failure(abort_code = 13370408, location = nft_protocol::utils)]
     fun it_cannot_transfer_protocol_nft_as_generic_nft_from_safe_to_safe() {
         let scenario = test_scenario::begin(USER);
 

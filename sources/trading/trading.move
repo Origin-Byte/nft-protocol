@@ -64,7 +64,9 @@ module nft_protocol::trading {
         };
     }
 
-    public fun settle_funds<C, FT>(
+    /// Wraps the funds in an object which can be only unwrapped in a method
+    /// of the `C`ollection that deals with royalties.
+    public fun settle_funds_with_royalties<C, FT>(
         paid: &mut Balance<FT>,
         recipient: address,
         maybe_commission: &mut Option<AskCommission>,
@@ -105,6 +107,42 @@ module nft_protocol::trading {
                 balance::split(paid, amount),
                 recipient,
                 ctx,
+            );
+        };
+    }
+
+    /// No royalty collection, just transfer the funds directly.
+    public fun settle_funds_no_royalties<C, FT>(
+        paid: &mut Balance<FT>,
+        recipient: address,
+        maybe_commission: &mut Option<AskCommission>,
+        ctx: &mut TxContext,
+    ) {
+        let amount = balance::value(paid);
+
+        if (option::is_some(maybe_commission)) {
+            // the `p`aid amount for the NFT and the commission `c`ut
+
+            let AskCommission {
+                cut, beneficiary,
+            } = option::extract(maybe_commission);
+
+            // `p` - `c` goes to seller
+            transfer(
+                coin::from_balance(balance::split(paid, amount - cut), ctx),
+                recipient,
+            );
+
+            // `c` goes to the marketplace
+            transfer(
+                coin::from_balance(balance::split(paid, cut), ctx),
+                beneficiary,
+            );
+        } else {
+            // no commission, all `p` goes to seller
+            transfer(
+                coin::from_balance(balance::split(paid, amount), ctx),
+                recipient,
             );
         };
     }

@@ -188,6 +188,7 @@ Let us now consider the case where one of the keypairs gets lost. If the user lo
 If the user loses the `owner` keypair, he or she will be able to call `rescue_assets()` signing with `backup` keypair. If the the `owner` keypair does not refute the rescuing of the assets by calling `refute_rescue` within the given `resolution_time` then the funds will be ultimately rescued. To ultimately refute the rescue, both `owner` and `backup` signatures need to be collected.
 
 This mechanism is extremely useful as it allows for defending against a compromised key and a lost key, reducing the vulnerability surface to the following cases:
+
 - User loses both `owner` and `backup` keypair
 - Both `owner` and `backup` keypair get compromised
 - User loses one of the keypairs whilst the other gets compromised
@@ -223,7 +224,7 @@ To achieve Mutable interactions we propose:
 The TLDR follows that:
 
 - Any NFT ownership model we settle on should satisfy the properties and specification above described;
-- Both TransferCap and Event-based approach satisfy to some degree the requirements, however we believe TransferCap approach will simplify the implementation of exclusive listing because the smart contract doesn't have to implement logic for de-listing an exclusively listed NFT. If I list something exlusively without transfer cap, I cannot de-list it as user without going to the source smart contract and getting its permission;
+- Both TransferCap and Event-based approach satisfy to some degree the requirements, however we believe TransferCap approach will simplify the implementation of exclusive listing because the smart contract doesn't have to implement logic for de-listing an exclusively listed NFT. If I list something exclusively without transfer cap, I cannot de-list it as user without going to the source smart contract and getting its permission;
 - We have added some implementation proposals around the burner wallets and fail safes around compromised or lost keypairs, which we would like to get your opinion on;
 - We also propose a flow for games and Dapps to interact with the NFTs and would like to hear your opinion as well.
 
