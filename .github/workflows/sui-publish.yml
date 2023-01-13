@@ -46,7 +46,13 @@ jobs:
             # Test just in case
             ./sui move test --path $PACKAGE
 
-            OBJECT=`./sui client --client.config .github/config.yaml publish --gas-budget 60000 $PACKAGE --json | jq '.effects.created[0].reference.objectId'`
+            PUBLISH=`./sui client --client.config .github/config.yaml publish --gas-budget 60000 $PACKAGE --json`
+            if [ $? -ne 0 ]; then
+                echo $PUBLISH
+                exit 1
+            fi
+
+            OBJECT=`echo $PUBLISH | jq '.effects.created[0].reference.objectId'`
 
             sed -i "s/$NEW/$NAME = $OBJECT/g" $PACKAGE
 
