@@ -10,7 +10,7 @@ rev = "2d709054a08d904b9229a2472af679f210af3827"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
-# devnet-0.20.0
+# devnet-0.21.0
 rev = "1b8bbf1e41beb45b71fbea96759110f1d1b01f5f"
 
 [addresses]
