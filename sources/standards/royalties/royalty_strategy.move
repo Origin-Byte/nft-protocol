@@ -8,6 +8,10 @@ module nft_protocol::royalty_strategy_bps {
         royalty_fee_bps: u64,
     }
 
+    public fun new(royalty_fee_bps: u64): BpsRoyaltyStrategy {
+        BpsRoyaltyStrategy { royalty_fee_bps }
+    }
+
     public fun royalty_fee_bps(domain: &BpsRoyaltyStrategy): u64 {
         domain.royalty_fee_bps
     }
@@ -25,10 +29,6 @@ module nft_protocol::royalty_strategy_bps {
             royalty_rate,
         )
     }
-
-    public fun new(royalty_fee_bps: u64): BpsRoyaltyStrategy {
-        BpsRoyaltyStrategy { royalty_fee_bps }
-    }
 }
 
 module nft_protocol::royalty_strategy_constant {
@@ -37,15 +37,15 @@ module nft_protocol::royalty_strategy_constant {
         royalty_fee: u64,
     }
 
+    public fun new(royalty_fee: u64): ConstantRoyaltyStrategy {
+        ConstantRoyaltyStrategy { royalty_fee}
+    }
+
     public fun royalty_fee(domain: &ConstantRoyaltyStrategy): u64 {
         domain.royalty_fee
     }
 
     public fun calculate(domain: &ConstantRoyaltyStrategy): u64  {
         royalty_fee(domain)
-    }
-
-    public fun new(royalty_fee: u64): ConstantRoyaltyStrategy {
-        ConstantRoyaltyStrategy { royalty_fee}
     }
 }

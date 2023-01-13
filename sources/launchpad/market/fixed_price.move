@@ -25,6 +25,7 @@ module nft_protocol::fixed_price {
         price: u64,
     }
 
+    /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
     // === Init functions ===

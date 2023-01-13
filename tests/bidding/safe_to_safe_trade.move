@@ -2,11 +2,9 @@
 /// This test focuses on integration between bidding contract, Safe,
 /// a allowlist and royalty collection.
 ///
-/// We simulate a trade between two Safes, end to end, including royalty
-/// collection.
+/// We simulate a trade between two Safes, end to end.
 module nft_protocol::test_bidding_safe_to_safe_trade {
     use sui::coin;
-    use std::vector;
     use sui::balance;
     use sui::sui::SUI;
     use sui::object::ID;
@@ -19,7 +17,6 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use nft_protocol::transfer_allowlist::{Allowlist};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::test_utils::{Self as utils};
-    use nft_protocol::royalty_strategy_bps as royalty_bps;
     use nft_protocol::collection::{Self, Collection, MintCap};
 
     use nft_protocol::royalty_strategy_bps::{BpsRoyaltyStrategy};
@@ -129,13 +126,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
             mint_cap_id,
         );
 
-        let royalty = royalty::new(ctx(&mut scenario));
-
-        royalty::add_proportional_royalty(
-            &mut royalty,
-            royalty_bps::new(100),
-        );
-
+        let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
+        royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain<Foo>(
             &mut collection, &mut mint_cap, royalty
         );
@@ -241,7 +233,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         let domain = royalty::royalty_domain(collection);
 
         assert!(
-            royalty::contains_royalty_strategy<BpsRoyaltyStrategy>(domain), 0
+            royalty::contains_strategy<BpsRoyaltyStrategy>(domain), 0
         );
 
         let royalty_owed =
@@ -282,6 +274,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         buyer_safe_id: ID,
     ) {
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
+        safe::assert_transfer_cap_of_native_nft(&transfer_cap);
 
         test_scenario::next_tx(scenario, SELLER);
 
@@ -320,19 +313,5 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         test_scenario::return_shared(bid);
 
         test_scenario::next_tx(scenario, SELLER);
-    }
-
-    fun user_safe_id(scenario: &Scenario, user: address): ID {
-        let owner_cap_id = vector::pop_back(
-            &mut test_scenario::ids_for_address<safe::OwnerCap>(user)
-        );
-        let owner_cap: safe::OwnerCap =
-            test_scenario::take_from_address_by_id(scenario, user, owner_cap_id);
-
-        let safe_id = safe::owner_cap_safe(&owner_cap);
-
-        test_scenario::return_to_address(user, owner_cap);
-
-        safe_id
     }
 }
