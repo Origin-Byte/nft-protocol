@@ -6,9 +6,9 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.18.0] - 2023-01-13
 
-### Added
+### Changed
 
 - Orderbook and bidding liquidity layer contracts now support 3rd party
   collections, ie. those which are not build with `nft-protocol` primitives.
@@ -19,6 +19,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - `safe::deposit_generic_nft_privileged`
 - Refactored RoyaltyDomain and CreatorsDomain to split royalty share and authorization logic.
 - Added entry function redeem_nft_transfer thus allowing creators to retrieve NFTs from private `Inventory`.
+- Updated Sui dep to `0.21.0`
 
 ## [0.17.0] - 2022-12-19
 
