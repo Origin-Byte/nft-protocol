@@ -31,7 +31,7 @@ module nft_protocol::unprotected_safe {
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils;
 
-    use sui::event;
+    // use sui::event;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{share_object, transfer};
     use sui::tx_context::{Self, TxContext};
@@ -358,12 +358,12 @@ module nft_protocol::unprotected_safe {
 
         dof::add(&mut safe.id, nft_id, nft);
 
-        event::emit(
-            DepositEvent {
-                safe: object::id(safe),
-                nft: nft_id,
-            }
-        );
+        // event::emit(
+        //     DepositEvent {
+        //         safe: object::id(safe),
+        //         nft: nft_id,
+        //     }
+        // );
     }
 
     fun get_nft_for_transfer_<T>(
@@ -379,12 +379,12 @@ module nft_protocol::unprotected_safe {
     ): T {
         let nft_id = transfer_cap.nft;
 
-        event::emit(
-            TransferEvent {
-                safe: object::id(safe),
-                nft: nft_id,
-            }
-        );
+        // event::emit(
+        //     TransferEvent {
+        //         safe: object::id(safe),
+        //         nft: nft_id,
+        //     }
+        // );
 
         assert_transfer_cap_of_safe(&transfer_cap, safe);
         assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
