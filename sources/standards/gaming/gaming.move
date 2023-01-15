@@ -38,7 +38,7 @@ module nft_protocol::gaming {
         ctx: &mut TxContext,
     ) {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
 
         let domain: &mut MatchInviteDomain =
