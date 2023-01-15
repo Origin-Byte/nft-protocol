@@ -186,7 +186,7 @@ module nft_protocol::err {
         return Prefix + 405
     }
 
-    public fun nft_not_exlusively_listed(): u64 {
+    public fun nft_not_exclusively_listed(): u64 {
         return Prefix + 406
     }
 
@@ -196,6 +196,10 @@ module nft_protocol::err {
 
     public fun generic_nft_must_not_be_protocol_type(): u64 {
         return Prefix + 408
+    }
+
+    public fun nft_is_generic(): u64 {
+        return Prefix + 409
     }
 
     // === Allowlist ===
@@ -228,7 +232,7 @@ module nft_protocol::err {
         return Prefix + 701
     }
 
-    // === AttributionDomain ===
+    // === RoyaltyDomain ===
 
     public fun address_not_attributed(): u64 {
         return Prefix + 800
@@ -240,6 +244,10 @@ module nft_protocol::err {
 
     public fun invalid_total_share_of_royalties(): u64 {
         return Prefix + 802
+    }
+
+    public fun share_attribution_already_exists(): u64 {
+        return Prefix + 803
     }
 
     // === Generic ===
