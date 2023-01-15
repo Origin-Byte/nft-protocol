@@ -1087,7 +1087,6 @@ module nft_protocol::ob {
         });
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
-
         settle_funds_with_royalties<C, FT>(
             &mut bid_offer,
             buyer,
@@ -1121,8 +1120,7 @@ module nft_protocol::ob {
 
         let Ask {
             transfer_cap,
-            // owner: seller,
-            owner: _,
+            owner: seller,
             price: _,
             commission: maybe_commission,
         } = remove_ask(
@@ -1131,18 +1129,17 @@ module nft_protocol::ob {
             nft_id,
         );
 
-        // event::emit(TradeFilledEvent {
-        //     buyer_safe: object::id(buyer_safe),
-        //     buyer,
-        //     nft: nft_id,
-        //     price,
-        //     seller_safe: object::id(seller_safe),
-        //     seller,
-        //     trade_intermediate: option::none(),
-        // });
+        event::emit(TradeFilledEvent {
+            buyer_safe: object::id(buyer_safe),
+            buyer,
+            nft: nft_id,
+            price,
+            seller_safe: object::id(seller_safe),
+            seller,
+            trade_intermediate: option::none(),
+        });
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
-
         settle_funds_no_royalties<C, FT>(
             &mut bid_offer,
             buyer,
