@@ -42,7 +42,7 @@ module nft_protocol::ob {
     use std::vector;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
-    use sui::event::emit;
+    use sui::event;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
@@ -151,7 +151,7 @@ module nft_protocol::ob {
         nft: ID,
         orderbook: ID,
         price: u64,
-        seller: address,
+        owner: address,
     }
 
     /// When de-listed, not when sold!
@@ -159,18 +159,18 @@ module nft_protocol::ob {
         nft: ID,
         orderbook: ID,
         price: u64,
-        seller: address,
+        owner: address,
     }
 
     struct BidCreatedEvent has copy, drop {
-        buyer: address,
+        owner: address,
         orderbook: ID,
         price: u64,
     }
 
     /// When de-listed, not when bought!
     struct BidClosedEvent has copy, drop {
-        buyer: address,
+        owner: address,
         orderbook: ID,
         price: u64,
     }
@@ -819,7 +819,7 @@ module nft_protocol::ob {
             let trade_intermediate_id = object::id(&trade_intermediate);
             share_object(trade_intermediate);
 
-            emit(TradeFilledEvent {
+            event::emit(TradeFilledEvent {
                 buyer_safe: buyer_safe_id,
                 buyer,
                 nft,
@@ -832,8 +832,8 @@ module nft_protocol::ob {
             transfer_bid_commission(&mut bid_commission, ctx);
             option::destroy_none(bid_commission);
         } else {
-            emit(BidCreatedEvent {
-                buyer,
+            event::emit(BidCreatedEvent {
+                owner: buyer,
                 orderbook: object::id(book),
                 price,
             });
@@ -872,8 +872,8 @@ module nft_protocol::ob {
     ) {
         let sender = tx_context::sender(ctx);
 
-        emit(BidClosedEvent {
-            buyer: sender,
+        event::emit(BidClosedEvent {
+            owner: sender,
             orderbook: object::id(book),
             price: bid_price_level,
         });
@@ -980,7 +980,7 @@ module nft_protocol::ob {
             let trade_intermediate_id = object::id(&trade_intermediate);
             share_object(trade_intermediate);
 
-            emit(TradeFilledEvent {
+            event::emit(TradeFilledEvent {
                 buyer_safe: buyer_safe_id,
                 buyer,
                 nft,
@@ -993,11 +993,11 @@ module nft_protocol::ob {
             transfer_bid_commission(&mut bid_commission, ctx);
             option::destroy_none(bid_commission);
         } else {
-            emit(AskCreatedEvent {
+            event::emit(AskCreatedEvent {
                 price,
                 orderbook: object::id(book),
                 nft: safe::transfer_cap_nft(&transfer_cap),
-                seller
+                owner: seller
             });
 
             let ask = Ask {
@@ -1041,11 +1041,11 @@ module nft_protocol::ob {
             nft_id,
         );
 
-        emit(AskClosedEvent {
+        event::emit(AskClosedEvent {
             price: nft_price_level,
             orderbook: object::id(book),
             nft: nft_id,
-            seller: sender
+            owner: sender
         });
 
         assert!(owner == sender, err::order_owner_must_be_sender());
@@ -1076,7 +1076,7 @@ module nft_protocol::ob {
             nft_id,
         );
 
-        emit(TradeFilledEvent {
+        event::emit(TradeFilledEvent {
             buyer_safe: object::id(buyer_safe),
             buyer,
             nft: nft_id,
@@ -1121,7 +1121,7 @@ module nft_protocol::ob {
 
         let Ask {
             transfer_cap,
-            owner: _,
+            owner: seller,
             price: _,
             commission: maybe_commission,
         } = remove_ask(
@@ -1130,13 +1130,13 @@ module nft_protocol::ob {
             nft_id,
         );
 
-        emit(TradeFilledEvent {
+        event::emit(TradeFilledEvent {
             buyer_safe: object::id(buyer_safe),
             buyer,
             nft: nft_id,
             price,
             seller_safe: object::id(seller_safe),
-            seller: tx_context::sender(ctx),
+            seller,
             trade_intermediate: option::none(),
         });
 
