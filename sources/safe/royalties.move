@@ -14,15 +14,14 @@
 /// implementation will be such that they include everything in one batched
 /// tx if possible, or have automation.
 module nft_protocol::royalties {
+    use nft_protocol::utils;
     use std::option::{Self, Option};
-
     use sui::balance::{Self, Balance};
     use sui::coin;
+    use sui::event::emit;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::TxContext;
-
-    use nft_protocol::utils;
 
     /// `W` is the collection's witness (not the one time witness!) which
     /// helps us ensure that the right royalty collection logic is operating
@@ -41,6 +40,13 @@ module nft_protocol::royalties {
         /// multiple payments for one NFT (such as commission.), it might be
         /// useful for the royalty collection logic to distinguish such
         /// scenario.
+        trade: Option<ID>,
+    }
+
+    struct TradePaymentCreatedEvent has copy, drop {
+        trade_payment: ID,
+        amount: u64,
+        beneficiary: address,
         trade: Option<ID>,
     }
 
@@ -112,12 +118,19 @@ module nft_protocol::royalties {
         trade: Option<ID>,
         ctx: &mut TxContext,
     ) {
-        share_object(TradePayment<C, FT> {
+        let payment = TradePayment<C, FT> {
             id: object::new(ctx),
             amount,
             beneficiary,
             trade,
+        };
+        emit(TradePaymentCreatedEvent {
+            amount: balance::value(&payment.amount),
+            beneficiary,
+            trade_payment: object::id(&payment),
+            trade,
         });
+        share_object(payment);
     }
 
     // === Getters ===

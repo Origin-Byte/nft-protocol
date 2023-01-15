@@ -6,6 +6,25 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Orderbook event `AskCreatedEvent`/`BidCreatedEvent` are emitted when
+  creating a new position in orderbook.
+- Orderbook event `AskClosedEvent`/`BidClosedEvent` are emitted when
+  closing a position in orderbook.
+- Orderbook event `TradeFilledEvent` is emitted when a trade is filled.
+  That is, either on `create_bid`/`create_ask` when the trade is immediately
+  filled, or on `buy_nft`/`buy_generic_nft`.
+- Royalties event when `TradePayment` is created.
+
+### Fixed
+
+- When creating a bid higher than the lowest ask, the bid is now filled with
+  the lowest ask price.
+  Before, it was filled with the bid price.
+
 ## [0.18.0] - 2023-01-13
 
 ### Changed
