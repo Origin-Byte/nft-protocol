@@ -50,7 +50,7 @@ module nft_protocol::inventory {
     /// #### Panics
     ///
     /// Panics if collection supply is regulated.
-    public fun new<C>(
+    public fun new_unregulated<C>(
         collection: &Collection<C>,
         ctx: &mut TxContext,
     ): Inventory<C> {
@@ -70,11 +70,11 @@ module nft_protocol::inventory {
     /// #### Panics
     ///
     /// Panics if collection supply is regulated.
-    public entry fun init<C>(
+    public entry fun init_unregulated<C>(
         collection: &Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let inventory = new<C>(collection, ctx);
+        let inventory = new_unregulated<C>(collection, ctx);
         transfer::transfer(inventory, tx_context::sender(ctx));
     }
 
@@ -206,7 +206,6 @@ module nft_protocol::inventory {
     public entry fun increment_supply<C>(
         inventory: &mut Inventory<C>,
         value: u64,
-        ctx: &mut TxContext,
     ) {
         assert_regulated(inventory);
         let delegated: &mut DelegatedSupply<C> =

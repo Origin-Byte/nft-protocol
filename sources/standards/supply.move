@@ -76,12 +76,13 @@ module nft_protocol::supply_domain {
     /// Panics if collection is unregulated or supply is non-zero or frozen.
     public entry fun deregulate<C>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
     ) {
         supply::assert_not_frozen(supply(collection));
         let SupplyDomain<C> { supply } =
             collection::remove_domain(Witness {}, collection);
-        supply::assert_zero(&supply.supply);
+        let DelegatedSupply<C> { supply } = supply;
+        supply::assert_zero(&supply);
     }
 
     /// Freeze the supply of `Collection`
@@ -91,7 +92,7 @@ module nft_protocol::supply_domain {
     /// Panics if collection is unregulated or supply was already frozen.
     public entry fun freeze_supply<C>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
     ) {
         supply::freeze_supply(supply_mut(collection))
     }
@@ -107,7 +108,7 @@ module nft_protocol::supply_domain {
     /// is no excess supply to delegate a supply of `value`.
     public fun delegate<C>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
         value: u64,
     ): DelegatedSupply<C> {
         let supply = supply_mut(collection);
@@ -137,7 +138,7 @@ module nft_protocol::supply_domain {
     /// Panics if collection is unregulated or supply is frozen.
     public entry fun increase_max_supply<C>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
         value: u64,
     ) {
         supply::increase_maximum(supply_mut(collection), value)
@@ -151,7 +152,7 @@ module nft_protocol::supply_domain {
     /// maximum supply is smaller than current supply.
     public entry fun decrease_max_supply<C>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
         value: u64
     ) {
         supply::decrease_maximum(supply_mut(collection), value)
@@ -164,7 +165,7 @@ module nft_protocol::supply_domain {
     /// Panics if collection is unregulated or supply exceeds maximum.
     public fun increment_supply<C>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
         value: u64
     ) {
         supply::increment(supply_mut(collection), value)
@@ -177,7 +178,7 @@ module nft_protocol::supply_domain {
     /// Panics if collection is unregulated.
     public fun decrement_supply<C>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
         value: u64
     ) {
         supply::decrement(supply_mut(collection), value)
