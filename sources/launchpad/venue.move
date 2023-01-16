@@ -1,3 +1,13 @@
+/// Module representing the market `Venue` type
+///
+/// `Venue` allows creator to configure a primary market through which
+/// their collection will be sold. This includes defining multiple markets,
+/// but also their whitelist status.
+///
+/// `Venue` is an unprotected type that composes the inventory structure of
+/// `Listing`. In consequence, `Inventory` can be constructed independently
+/// before it is published in a `Listing`, allowing `Inventory` to be
+/// constructed while avoiding shared consensus transactions on `Listing`.
 module nft_protocol::venue {
     use std::vector;
 

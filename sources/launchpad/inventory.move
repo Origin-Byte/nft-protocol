@@ -4,10 +4,9 @@
 /// their collection will be sold. This includes defining multiple primary
 /// markets, but also whether the inventory is whitelisted.
 ///
-/// `Inventory` is an unprotected type that composes the inventory structure of
-/// `Listing`. In consequence, `Inventory` can be constructed independently
-/// before it is published in a `Listing`, allowing `Inventory` to be
-/// constructed while avoiding shared consensus transactions on `Listing`.
+/// `Inventory` is an unprotected type that can be constructed independently
+/// before it is merged to a `Venue`, allowing `Inventory` to be constructed
+/// while avoiding shared consensus transactions on `Listing`.
 module nft_protocol::inventory {
     use std::vector;
 
@@ -239,7 +238,7 @@ module nft_protocol::inventory {
     // === Getter Functions ===
 
     /// Return how many `Nft` there are to sell
-    public fun length<C>(inventory: &Inventory<C>): u64 {
+    public fun size<C>(inventory: &Inventory<C>): u64 {
         vector::length(&inventory.nfts)
     }
 
