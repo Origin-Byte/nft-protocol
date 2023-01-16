@@ -1,237 +1,236 @@
-/// Module representing the Nft bookeeping Inventories of `Slot`s.
+/// Module representing the NFT bookkeeping `Inventory` type
 ///
-/// Listings can have multiple concurrent markets, repsented
-/// through `markets: ObjectBag`, allowing NFT creators to perform tiered sales.
-/// An example of this would be an Gaming NFT creator separating the sale
-/// based on NFT rarity and emit whitelist tokens to different users for
-/// different rarities depending on the user's game score.
+/// `Inventory` allows creator to configure the priamry market through which
+/// their collection will be sold. This includes defining multiple primary
+/// markets, but also whether the inventory is whitelisted.
 ///
-/// The Slot object is agnostic to the Market mechanism and instead decides to
-/// outsource this logic to generic `Market` objects. This way developers can
-/// come up with their plug-and-play market primitives, of which some examples
-/// are Dutch Auctions, Sealed-Bid Auctions, etc.
-///
-/// Each market has a dedicated inventory, which tracks which NFTs are on
-/// the shelves still to be sold, and which NFTs have been sold via Certificates
-/// but are still waiting to be redeemed.
+/// `Inventory` is an unprotected type that composes the inventory structure of
+/// `Listing`. In consequence, `Inventory` can be constructed independently
+/// before it is published in a `Listing`, allowing `Inventory` to be
+/// constructed while avoiding shared consensus transactions on `Listing`.
 module nft_protocol::inventory {
     use std::vector;
 
     use sui::transfer;
+    use sui::dynamic_field as df;
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
-    use sui::vec_map::{Self, VecMap};
     use sui::object::{Self, ID , UID};
-    use sui::object_bag::{Self, ObjectBag};
 
-    use nft_protocol::nft::Nft;
     use nft_protocol::err;
+    use nft_protocol::nft::Nft;
+    use nft_protocol::collection::{Collection, MintCap};
+    use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::supply_domain::{Self, DelegatedSupply};
+    use nft_protocol::utils;
 
     friend nft_protocol::listing;
 
-    // The `Inventory` of a sale performs the bookeeping of all the NFTs that
-    // are currently on sale as well as the NFTs whose certificates have been
-    // sold and currently waiting to be redeemed
-    struct Inventory has key, store {
+    /// `Inventory` object
+    ///
+    /// `Inventory` has a generic parameter `C` which is a one-time witness
+    /// created by the creator's NFT collection module.
+    /// Ensures that any domains restricting the process of minting NFTs such
+    /// as `SupplyDomain` are respected.
+    /// Requires that all functions that mint NFTs, such as
+    /// `suimarines::mint_nft` always mint to an `Inventory`.
+    struct Inventory<phantom C> has key, store {
         id: UID,
-        /// Track which markets are live
-        live: VecMap<ID, bool>,
-        /// Track which markets are whitelisted
-        whitelisted: VecMap<ID, bool>,
-        /// Vector of all markets outlets that, each outles holding IDs
-        /// owned by the inventory
-        markets: ObjectBag,
         // NFTs that are currently on sale. When a `NftCertificate` is sold,
         // its corresponding NFT ID will be flushed from `nfts` and will be
         // added to `queue`.
-        nfts_on_sale: vector<ID>,
+        nfts: vector<ID>,
     }
 
-    public fun new(
+    /// Create a new `Inventory`
+    ///
+    /// Doesn't require the collection witness as `Inventory` doesn't maintain
+    /// any safety guarantees.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if collection supply is regulated.
+    public fun new<C>(
+        collection: &Collection<C>,
         ctx: &mut TxContext,
-    ): Inventory {
+    ): Inventory<C> {
+        supply_domain::assert_unregulated(collection);
+
         Inventory {
             id: object::new(ctx),
-            live: vec_map::empty(),
-            whitelisted: vec_map::empty(),
-            markets: object_bag::new(ctx),
-            nfts_on_sale: vector::empty(),
+            nfts: vector::empty(),
         }
     }
 
     /// Creates a `Inventory` and transfers to transaction sender
-    public entry fun init_inventory(ctx: &mut TxContext) {
-        let inventory = new(ctx);
+    ///
+    /// Doesn't require the collection witness as `Inventory` doesn't maintain
+    /// any safety guarantees.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if collection supply is regulated.
+    public entry fun init<C>(
+        collection: &Collection<C>,
+        ctx: &mut TxContext,
+    ) {
+        let inventory = new<C>(collection, ctx);
         transfer::transfer(inventory, tx_context::sender(ctx));
     }
 
-    /// Adds a new market to `Inventory` allowing NFTs deposited to the
-    /// inventory to be sold.
+    /// Create a new `Inventory` with regulated supply
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
-    public entry fun add_market<Market: key + store>(
-        inventory: &mut Inventory,
-        is_whitelisted: bool,
-        market: Market,
-    ) {
-        let market_id = object::id(&market);
+    /// Doesn't require the collection witness as `Inventory` doesn't maintain
+    /// any safety guarantees.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if collection supply is unregulated.
+    public fun new_regulated<C>(
+        collection: &mut Collection<C>,
+        mint_cap: &MintCap<C>,
+        supply: u64,
+        ctx: &mut TxContext,
+    ): Inventory<C> {
+        supply_domain::assert_regulated(collection);
 
-        vec_map::insert(&mut inventory.live, market_id, false);
-        vec_map::insert(&mut inventory.whitelisted, market_id, is_whitelisted);
+        let inventory = Inventory {
+            id: object::new(ctx),
+            nfts: vector::empty(),
+        };
 
-        object_bag::add<ID, Market>(
-            &mut inventory.markets,
-            market_id,
-            market,
+        let delegated = supply_domain::delegate(collection, mint_cap, supply);
+        df::add(
+            &mut inventory.id,
+            // Use `Supply` instead of `DelegatedSupply<C>` to save on space
+            utils::marker<Supply>(),
+            delegated,
         );
+
+        inventory
     }
 
-    /// Adds NFT as a dynamic child object with its ID as key and
-    /// adds an NFT's ID to the `nfts` field in `Inventory` object.
+    /// Creates a regulated `Inventory` and transfers to transaction sender
     ///
-    /// This should only be callable when Inventory is private and not
-    /// owned by the Slot. The function call will fail otherwise, because
-    /// one would have to refer to the Slot, the parent shared object, in order
-    /// for the bytecode verifier not to fail.
+    /// Doesn't require the collection witness as `Inventory` doesn't maintain
+    /// any safety guarantees.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if collection supply is unregulated.
+    public entry fun init_regulated<C>(
+        collection: &mut Collection<C>,
+        mint_cap: &MintCap<C>,
+        supply: u64,
+        ctx: &mut TxContext,
+    ) {
+        let inventory = new_regulated<C>(collection, mint_cap, supply, ctx);
+        transfer::transfer(inventory, tx_context::sender(ctx));
+    }
+
+    /// Returns whether `Inventory` has a regulated supply
+    public fun is_regulated<C>(
+        inventory: &Inventory<C>,
+    ): bool {
+        df::exists_with_type<utils::Marker<Supply>, DelegatedSupply<C>>(
+            &inventory.id, utils::marker<Supply>()
+        )
+    }
+
+    /// Deposits NFT to `Inventory`
+    ///
+    /// `Inventory` delegated supply is not updated in order to maintain a
+    /// consistent global supply. See [`increment_supply`](#increment_supply).
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     public entry fun deposit_nft<C>(
-        inventory: &mut Inventory,
+        inventory: &mut Inventory<C>,
         nft: Nft<C>,
     ) {
         let nft_id = object::id(&nft);
-        vector::push_back(&mut inventory.nfts_on_sale, nft_id);
+        vector::push_back(&mut inventory.nfts, nft_id);
 
         dof::add(&mut inventory.id, nft_id, nft);
     }
 
     /// Redeems NFT from `Inventory`
     ///
+    /// `Inventory` delegated supply is not updated in order to maintain a
+    /// consistent global supply. See [`increment_supply`](#increment_supply).
+    ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is empty
     public fun redeem_nft<C>(
-        inventory: &mut Inventory,
+        inventory: &mut Inventory<C>,
     ): Nft<C> {
-        let nfts = &mut inventory.nfts_on_sale;
+        let nfts = &mut inventory.nfts;
         assert!(!vector::is_empty(nfts), err::no_nfts_left());
 
         dof::remove(&mut inventory.id, vector::pop_back(nfts))
     }
 
-    /// Redeems NFT from `Inventory` and transfers to sender
+    /// Redeems specific NFT from `Inventory` and transfers to sender
+    ///
+    /// `Inventory` delegated supply is not updated in order to maintain a
+    /// consistent global supply. See [`increment_supply`](#increment_supply).
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// Entry mint functions like `suimarines::mint_nft` take an `Inventory`
     /// object to deposit into. Calling `redeem_nft_transfer` allows one to
     /// withdraw an NFT and own it directly.
     public entry fun redeem_nft_transfer<C>(
-        inventory: &mut Inventory,
+        inventory: &mut Inventory<C>,
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft<C>(inventory);
         transfer::transfer(nft, tx_context::sender(ctx));
     }
 
-    /// Set market's live status
-    public entry fun set_live(
-        inventory: &mut Inventory,
-        market_id: ID,
-        is_live: bool,
+    /// Increments the delegated supply of `Inventory`
+    ///
+    /// This endpoint must be called before a new `Nft` object is created to
+    /// ensure that global supply tracking remains consistent.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is unregulated.
+    public entry fun increment_supply<C>(
+        inventory: &mut Inventory<C>,
+        value: u64,
+        ctx: &mut TxContext,
     ) {
-        *vec_map::get_mut(&mut inventory.live, &market_id) = is_live;
-    }
-
-    /// Set market's whitelist status
-    public entry fun set_whitelisted(
-        inventory: &mut Inventory,
-        market_id: ID,
-        is_whitelisted: bool,
-    ) {
-        *vec_map::get_mut(&mut inventory.whitelisted, &market_id) =
-            is_whitelisted;
+        assert_regulated(inventory);
+        let delegated: &mut DelegatedSupply<C> =
+            df::borrow_mut(&mut inventory.id,utils::marker<Supply>());
+        let supply = supply_domain::delegated_supply_mut(delegated);
+        supply::increment(supply, value);
     }
 
     // === Getter Functions ===
 
-    /// Check how many `nfts` there are to sell
-    public fun length(inventory: &Inventory): u64 {
-        vector::length(&inventory.nfts_on_sale)
+    /// Return how many `Nft` there are to sell
+    public fun length<C>(inventory: &Inventory<C>): u64 {
+        vector::length(&inventory.nfts)
     }
 
-    /// Get the market's `live` status
-    public fun is_live(inventory: &Inventory, market_id: &ID): bool {
-        *vec_map::get(&inventory.live, market_id)
-    }
-
-    public fun is_empty(inventory: &Inventory): bool {
-        vector::is_empty(&inventory.nfts_on_sale)
-    }
-
-    public fun is_whitelisted(inventory: &Inventory, market_id: &ID): bool {
-        *vec_map::get(&inventory.whitelisted, market_id)
-    }
-
-    /// Get the `Inventory` markets
-    public fun markets(inventory: &Inventory): &ObjectBag {
-        &inventory.markets
-    }
-
-    /// Get specific `Inventory` market
-    public fun market<Market: key + store>(
-        inventory: &Inventory,
-        market_id: ID,
-    ): &Market {
-        assert_market<Market>(inventory, market_id);
-        object_bag::borrow<ID, Market>(&inventory.markets, market_id)
-    }
-
-    /// Get specific `Inventory` market mutably
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
-    public fun market_mut<Market: key + store>(
-        inventory: &mut Inventory,
-        market_id: ID,
-    ): &mut Market {
-        assert_market<Market>(inventory, market_id);
-        object_bag::borrow_mut<ID, Market>(&mut inventory.markets, market_id)
+    /// Return whether there are any `Nft` in the `Inventory`
+    public fun is_empty<C>(inventory: &Inventory<C>): bool {
+        vector::is_empty(&inventory.nfts)
     }
 
     // === Assertions ===
 
-    public fun assert_is_live(inventory: &Inventory, market_id: &ID) {
-        assert!(is_live(inventory, market_id), err::listing_not_live());
-    }
-
-    public fun assert_is_whitelisted(inventory: &Inventory, market_id: &ID) {
-        assert!(
-            is_whitelisted(inventory, market_id),
-            err::sale_is_not_whitelisted()
-        );
-    }
-
-    public fun assert_is_not_whitelisted(inventory: &Inventory, market_id: &ID) {
-        assert!(
-            !is_whitelisted(inventory, market_id),
-            err::sale_is_whitelisted()
-        );
-    }
-
-    public fun assert_market<Market: key + store>(
-        inventory: &Inventory,
-        market_id: ID,
-    ) {
-        assert!(
-            object_bag::contains_with_type<ID, Market>(
-                &inventory.markets, market_id
-            ),
-            err::undefined_market(),
-        );
+    /// Asserts that `Inventory` has a regulated supply
+    public fun assert_regulated<C>(inventory: &Inventory<C>) {
+        assert!(is_regulated(inventory), err::inventory_not_regulated());
     }
 }

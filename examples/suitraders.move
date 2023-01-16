@@ -68,23 +68,23 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
+        let venue_id =
+            nft_protocol::listing::create_venue(&mut listing, ctx);
 
         nft_protocol::fixed_price::create_market_on_listing<sui::sui::SUI>(
             &mut listing,
-            inventory_id,
+            venue_id,
             false, // is whitelisted
             500, // price
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
+        let venue_id =
+            nft_protocol::listing::create_venue(&mut listing, ctx);
 
         nft_protocol::dutch_auction::create_market_on_listing<sui::sui::SUI>(
             &mut listing,
-            inventory_id,
+            venue_id,
             false, // is whitelisted
             100, // reserve price
             ctx,
@@ -119,7 +119,7 @@ module nft_protocol::suitraders {
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         _mint_cap: &MintCap<SUITRADERS>,
-        inventory: &mut Inventory,
+        inventory: &mut Inventory<SUITRADERS>,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUITRADERS, Witness>(

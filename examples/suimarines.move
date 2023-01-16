@@ -89,7 +89,7 @@ module nft_protocol::suimarines {
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         _mint_cap: &MintCap<SUIMARINES>,
-        inventory: &mut Inventory,
+        inventory: &mut Inventory<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUIMARINES, Witness>(

@@ -14,7 +14,8 @@ module nft_protocol::test_dutch_auction {
     use nft_protocol::nft;
     use nft_protocol::proceeds;
     use nft_protocol::inventory;
-    use nft_protocol::listing::{Self, WhitelistCertificate, Listing};
+    use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::dutch_auction;
 
     use nft_protocol::test_listing::init_listing;
@@ -234,15 +235,15 @@ module nft_protocol::test_dutch_auction {
             init_market(&mut listing, 10, true, &mut scenario);
         listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
 
-        listing::transfer_whitelist_certificate(
-            &listing, market_id, BUYER, ctx(&mut scenario)
+        market_whitelist::issue(
+            &listing, inventory_id, market_id, BUYER, ctx(&mut scenario)
         );
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        let certificate = test_scenario::take_from_address<
-            WhitelistCertificate
-        >(&scenario, BUYER);
+        let certificate = test_scenario::take_from_address<Certificate>(
+            &scenario, BUYER
+        );
 
         let wallet = coin::mint_for_testing<SUI>(15, ctx(&mut scenario));
         dutch_auction::create_bid_whitelisted<SUI>(

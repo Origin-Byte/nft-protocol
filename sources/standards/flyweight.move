@@ -117,7 +117,7 @@ module nft_protocol::flyweight {
     ) {
         let id = object::new(ctx);
 
-        supply::increment_supply(&mut state.supply, 1);
+        supply::increment(&mut state.supply, 1);
 
         let pointer = Pointer {
             id,

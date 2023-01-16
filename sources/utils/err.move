@@ -24,36 +24,40 @@ module nft_protocol::err {
 
     // === Supply ===
 
-    public fun supply_policy_mismatch(): u64 {
+    public fun supply_regulated(): u64 {
         return Prefix + 100
     }
 
-    public fun supply_is_not_zero(): u64 {
+    public fun supply_not_regulated(): u64 {
         return Prefix + 101
     }
 
-    public fun supply_is_limited(): u64 {
+    public fun supply_is_not_zero(): u64 {
         return Prefix + 102
     }
 
-    public fun supply_is_unlimited(): u64 {
+    public fun supply_is_limited(): u64 {
         return Prefix + 103
     }
 
-    public fun frozen_supply(): u64 {
+    public fun supply_frozen(): u64 {
         return Prefix + 104
     }
 
-    public fun max_supply_cannot_be_below_current_supply(): u64 {
+    public fun supply_not_frozen(): u64 {
         return Prefix + 105
     }
 
-    public fun current_supply_cannot_be_negative(): u64 {
+    public fun max_supply_cannot_be_below_current_supply(): u64 {
         return Prefix + 106
     }
 
     public fun supply_maxed_out(): u64 {
         return Prefix + 107
+    }
+
+    public fun inventory_not_regulated(): u64 {
+        return Prefix + 108
     }
 
     // === Marketplace ===

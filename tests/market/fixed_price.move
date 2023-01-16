@@ -8,7 +8,8 @@ module nft_protocol::test_fixed_price {
 
     use nft_protocol::nft;
     use nft_protocol::inventory;
-    use nft_protocol::listing::{Self, Listing, WhitelistCertificate};
+    use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::fixed_price;
 
     use nft_protocol::test_listing::init_listing;
@@ -194,17 +195,19 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario)
         );
 
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(
+            &mut listing, inventory_id, market_id, ctx(&mut scenario)
+        );
 
-        listing::transfer_whitelist_certificate(
-            &listing, market_id, BUYER, ctx(&mut scenario)
+        market_whitelist::issue(
+            &listing, inventory_id, market_id, BUYER, ctx(&mut scenario)
         );
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        let certificate = test_scenario::take_from_address<
-            WhitelistCertificate
-        >(&scenario, BUYER);
+        let certificate = test_scenario::take_from_address<Certificate>(
+            &scenario, BUYER
+        );
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_whitelisted_nft<COLLECTION, SUI>(
