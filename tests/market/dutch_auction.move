@@ -68,7 +68,7 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370202, location = nft_protocol::inventory)]
+    #[expected_failure(abort_code = 13370202, location = nft_protocol::venue)]
     fun try_bid_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -199,7 +199,7 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370206, location = nft_protocol::inventory)]
+    #[expected_failure(abort_code = 13370206, location = nft_protocol::venue)]
     fun try_bid_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
