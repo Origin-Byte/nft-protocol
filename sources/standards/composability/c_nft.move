@@ -77,6 +77,27 @@ module nft_protocol::c_nft {
         object_table::add(&mut parent_node.children, child.type, child);
     }
 
+    /// ====== Type ===
+
+    struct Type<phantom T> has key, store {
+        id: UID,
+    }
+
+    public fun new_type<T: drop + store>(
+        ctx: &mut TxContext,
+    ): Type<T> {
+        Type {
+            id: object::new(ctx),
+        }
+    }
+
+    public fun add_type_domain<C, T: drop + store>(
+        nft: &mut Nft<C>,
+        ctx: &mut TxContext
+    ) {
+        nft::add_domain(nft, new_type<T>(ctx), ctx);
+    }
+
     /// ====== Blueprint ===
 
     /// Domain held in the Collection object, blueprinting all the composability
