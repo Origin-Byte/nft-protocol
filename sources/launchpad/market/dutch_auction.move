@@ -72,8 +72,8 @@ module nft_protocol::dutch_auction {
         transfer::transfer(market, tx_context::sender(ctx));
     }
 
-    /// Creates a `DutchAuctionMarket<FT>` on `Inventory`
-    public entry fun create_market_on_inventory<FT>(
+    /// Creates a `DutchAuctionMarket<FT>` on `Venue`
+    public entry fun create_market_on_venue<FT>(
         venue: &mut Venue,
         is_whitelisted: bool,
         reserve_price: u64,

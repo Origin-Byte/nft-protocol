@@ -10,6 +10,8 @@ module nft_protocol::venue {
 
     use nft_protocol::err;
     use nft_protocol::nft::Nft;
+    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::collection::Collection;
 
     friend nft_protocol::listing;
 
@@ -78,23 +80,24 @@ module nft_protocol::venue {
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Venue`.
-    // public entry fun merge_inventory<C>(
-    //     inventory: &mut Inventory<C>,
-    // ) {
-    //     let nft_id = object::id(&nft);
-    //     vector::push_back(&mut inventory.nfts_on_sale, nft_id);
+    public entry fun merge_inventory<C>(
+        venue: &mut Venue,
+        collection: &mut Collection<C>,
+        inventory: Inventory<C>,
+    ) {
+        while (!inventory::is_empty(&inventory)) {
+            let nft = inventory::redeem_nft(&mut inventory);
+            deposit_nft(venue, nft);
+        };
 
-    //     dof::add(&mut inventory.id, nft_id, nft);
-    // }
+        inventory::destroy(collection, inventory);
+    }
 
     /// Deposits NFT to `Venue`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Venue`.
-    public entry fun deposit_nft<C>(
-        venue: &mut Venue,
-        nft: Nft<C>,
-    ) {
+    public entry fun deposit_nft<C>(venue: &mut Venue, nft: Nft<C>) {
         let nft_id = object::id(&nft);
         vector::push_back(&mut venue.nfts_on_sale, nft_id);
 

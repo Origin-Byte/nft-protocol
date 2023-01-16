@@ -60,6 +60,10 @@ module nft_protocol::err {
         return Prefix + 108
     }
 
+    public fun inventory_not_empty(): u64 {
+        return Prefix + 109
+    }
+
     // === Marketplace ===
 
     public fun wrong_marketplace_admin(): u64 {

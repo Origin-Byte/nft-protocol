@@ -50,8 +50,8 @@ module nft_protocol::fixed_price {
         transfer::transfer(market, tx_context::sender(ctx));
     }
 
-    /// Creates a `FixedPriceMarket<FT>` on `Inventory`
-    public entry fun create_market_on_inventory<FT>(
+    /// Creates a `FixedPriceMarket<FT>` on `Venue`
+    public entry fun create_market_on_venue<FT>(
         venue: &mut Venue,
         is_whitelisted: bool,
         price: u64,

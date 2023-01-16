@@ -209,9 +209,31 @@ module nft_protocol::inventory {
     ) {
         assert_regulated(inventory);
         let delegated: &mut DelegatedSupply<C> =
-            df::borrow_mut(&mut inventory.id,utils::marker<Supply>());
+            df::borrow_mut(&mut inventory.id, utils::marker<Supply>());
         let supply = supply_domain::delegated_supply_mut(delegated);
         supply::increment(supply, value);
+    }
+
+    /// Destroys `Inventory`
+    ///
+    /// If `Inventory` was regulated then excess supply is returned to the `Collection`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is not empty
+    public entry fun destroy<C>(
+        collection: &mut Collection<C>,
+        inventory: Inventory<C>,
+    ) {
+        assert_is_empty(&inventory);
+        if (is_regulated(&inventory)) {
+            let delegated: DelegatedSupply<C> =
+                df::remove(&mut inventory.id, utils::marker<Supply>());
+            supply_domain::merge_delegated(collection, delegated);
+        };
+
+        let Inventory { id, nfts: _ } = inventory;
+        object::delete(id);
     }
 
     // === Getter Functions ===
@@ -231,5 +253,10 @@ module nft_protocol::inventory {
     /// Asserts that `Inventory` has a regulated supply
     public fun assert_regulated<C>(inventory: &Inventory<C>) {
         assert!(is_regulated(inventory), err::inventory_not_regulated());
+    }
+
+    /// Asserts that `Inventory` is empty
+    public fun assert_is_empty<C>(inventory: &Inventory<C>) {
+        assert!(is_empty(inventory), err::inventory_not_empty());
     }
 }

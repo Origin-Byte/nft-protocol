@@ -7,7 +7,7 @@ module nft_protocol::test_fixed_price {
     use sui::test_scenario::{Self, Scenario, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::inventory;
+    use nft_protocol::venue;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::fixed_price;
@@ -31,17 +31,17 @@ module nft_protocol::test_fixed_price {
         let market = fixed_price::new<SUI>(price, ctx(scenario));
         let market_id = object::id(&market);
 
-        let inventory_id = listing::create_inventory(listing, ctx(scenario));
+        let venue_id = listing::create_venue(listing, ctx(scenario));
 
         listing::add_market(
             listing,
-            inventory_id,
+            venue_id,
             is_whitelisted,
             market,
             ctx(scenario)
         );
 
-        (inventory_id, market_id)
+        (venue_id, market_id)
     }
 
     #[test]
@@ -51,8 +51,8 @@ module nft_protocol::test_fixed_price {
 
         let (inventory_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = venue::market(
+            listing::venue(&listing, inventory_id),
             market_id,
         );
 
@@ -259,8 +259,8 @@ module nft_protocol::test_fixed_price {
             &mut listing, inventory_id, market_id, 20, ctx(&mut scenario)
         );
 
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = venue::market(
+            listing::venue(&listing, inventory_id),
             market_id,
         );
         assert!(fixed_price::price<SUI>(market) == 20, 0);

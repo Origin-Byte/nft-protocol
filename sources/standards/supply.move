@@ -188,12 +188,12 @@ module nft_protocol::supply_domain {
 
     /// Assert that the `Collection` supply is regulated
     public fun assert_regulated<C>(collection: &Collection<C>) {
-        assert!(!is_regulated(collection), err::supply_not_regulated());
+        assert!(is_regulated(collection), err::supply_not_regulated());
     }
 
     /// Assert that the `Collection` supply is not regulated
     public fun assert_unregulated<C>(collection: &Collection<C>) {
-        assert!(is_regulated(collection), err::supply_regulated());
+        assert!(!is_regulated(collection), err::supply_regulated());
     }
 
     // === DelegatedSupply ===
