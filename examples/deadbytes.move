@@ -119,7 +119,7 @@ module nft_protocol::deadbytes {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_nft(
+    public entry fun mint_nft<T: drop + store>(
         name: String,
         description: String,
         url: vector<u8>,
@@ -150,6 +150,8 @@ module nft_protocol::deadbytes {
             attribute_values,
             ctx,
         );
+
+        c_nft::add_type_domain<DEADBYTES, T>(&mut nft, ctx);
 
         inventory::deposit_nft(inventory, nft);
     }
