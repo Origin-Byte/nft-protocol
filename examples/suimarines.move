@@ -54,11 +54,8 @@ module nft_protocol::suimarines {
             string::utf8(b"SUIM")
         );
 
-        let royalty = royalty::new(ctx);
-        royalty::add_proportional_royalty(
-            &mut royalty,
-            nft_protocol::royalty_strategy_bps::new(100),
-        );
+        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
+        royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         let tags = tags::empty(ctx);

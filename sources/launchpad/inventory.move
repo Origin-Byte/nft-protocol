@@ -120,6 +120,24 @@ module nft_protocol::inventory {
         dof::remove(&mut inventory.id, vector::pop_back(nfts))
     }
 
+    /// Redeems NFT from `Inventory` and transfers to sender
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    ///
+    /// ##### Usage
+    ///
+    /// Entry mint functions like `suimarines::mint_nft` take an `Inventory`
+    /// object to deposit into. Calling `redeem_nft_transfer` allows one to
+    /// withdraw an NFT and own it directly.
+    public entry fun redeem_nft_transfer<C>(
+        inventory: &mut Inventory,
+        ctx: &mut TxContext,
+    ) {
+        let nft = redeem_nft<C>(inventory);
+        transfer::transfer(nft, tx_context::sender(ctx));
+    }
+
     /// Set market's live status
     public entry fun set_live(
         inventory: &mut Inventory,

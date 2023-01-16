@@ -22,6 +22,35 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   the `CreatorDomain`.
   This is because getting the reference to the `CreatorDomain` required a `&mut TxContext`.
   The same reference was required in the `add_creator` function.
+- Orderbook event `AskCreatedEvent`/`BidCreatedEvent` are emitted when
+  creating a new position in orderbook.
+- Orderbook event `AskClosedEvent`/`BidClosedEvent` are emitted when
+  closing a position in orderbook.
+- Orderbook event `TradeFilledEvent` is emitted when a trade is filled.
+  That is, either on `create_bid`/`create_ask` when the trade is immediately
+  filled, or on `buy_nft`/`buy_generic_nft`.
+- Royalties event when `TradePayment` is created.
+
+### Fixed
+
+- When creating a bid higher than the lowest ask, the bid is now filled with
+  the lowest ask price.
+  Before, it was filled with the bid price.
+
+## [0.18.0] - 2023-01-13
+
+### Changed
+
+- Orderbook and bidding liquidity layer contracts now support 3rd party
+  collections, ie. those which are not build with `nft-protocol` primitives.
+  These collections must implement their own royalty enforcement policies if
+  they wish so.
+- `TransferCap` exposes information about whether an NFT is a generic or native
+  to our protocol.
+- `safe::deposit_generic_nft_privileged`
+- Refactored RoyaltyDomain and CreatorsDomain to split royalty share and authorization logic.
+- Added entry function redeem_nft_transfer thus allowing creators to retrieve NFTs from private `Inventory`.
+- Updated Sui dep to `0.21.0`
 
 ## [0.17.0] - 2022-12-19
 

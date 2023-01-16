@@ -48,7 +48,7 @@ module nft_protocol::collection {
         id: UID,
         /// ID of the `Collection` that `MintCap` controls.
         ///
-        /// Intended for discoverability.
+        /// Intended for discovery.
         collection_id: ID,
     }
 
