@@ -108,7 +108,6 @@ module nft_protocol::plugin_pattern_plugin_contract {
 #[test_only]
 module nft_protocol::test_plugin_pattern {
     use nft_protocol::collection::Collection;
-    use nft_protocol::creators;
     use nft_protocol::multisig::{Self, Multisig};
     use nft_protocol::plugin_pattern_base_contract::{Self, Foo, AddPlugin};
     use nft_protocol::plugin_pattern_plugin_contract::{Self, Witness as PWitness};
@@ -194,52 +193,6 @@ module nft_protocol::test_plugin_pattern {
         >(&scenario);
 
         test_scenario::next_tx(&mut scenario, USER);
-        multisig::sign(&mut multisig, ctx(&mut scenario));
-
-        plugin_pattern_base_contract::add_plugin(
-            &mut multisig,
-            &mut col,
-        );
-
-        test_scenario::next_tx(&mut scenario, USER);
-
-        let nft =
-            plugin_pattern_plugin_contract::mint_nft(&mut col, ctx(&mut scenario));
-
-        transfer(nft, USER);
-        test_scenario::return_shared(multisig);
-        test_scenario::return_shared(col);
-        test_scenario::end(scenario);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = 13370805, location = nft_protocol::multisig)]
-    fun it_fails_if_creators_domain_is_frozen() {
-        let scenario = test_scenario::begin(USER);
-
-        plugin_pattern_base_contract::init_(ctx(&mut scenario));
-        test_scenario::next_tx(&mut scenario, USER);
-
-        let col = test_scenario::take_shared<Collection<Foo>>(&scenario);
-
-        plugin_pattern_base_contract::create_multisig_to_add_plugin<PWitness>(
-            &col,
-            ctx(&mut scenario),
-        );
-
-        test_scenario::next_tx(&mut scenario, USER);
-
-        let multisig = test_scenario::take_shared<
-            Multisig<multisig::FromCreatorsDomain<AddPlugin<PWitness>>>
-        >(&scenario);
-
-        test_scenario::next_tx(&mut scenario, USER);
-        multisig::sign(&mut multisig, ctx(&mut scenario));
-
-        let attr = creators::creators_domain_mut(&mut col, ctx(&mut scenario));
-        creators::freeze_domain(attr);
-
-        test_scenario::next_tx(&mut scenario, plugin_pattern_base_contract::second_creator());
         multisig::sign(&mut multisig, ctx(&mut scenario));
 
         plugin_pattern_base_contract::add_plugin(

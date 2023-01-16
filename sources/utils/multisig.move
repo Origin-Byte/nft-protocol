@@ -129,7 +129,6 @@ module nft_protocol::multisig {
         ctx: &mut TxContext,
     ): Multisig<FromCreatorsDomain<A>> {
         let attr = creators::creators_domain(collection);
-        assert!(!creators::is_frozen(attr), err::domain_is_frozen());
         let creators = creators::borrow_creators(attr);
 
         let creators_len = vec_set::size(creators);
@@ -160,7 +159,6 @@ module nft_protocol::multisig {
     ///     multisig.
     public fun consume_from_creators_domain<A, C>(
         min_signature_count: u64,
-        collection: &Collection<C>,
         multisig: &mut Multisig<FromCreatorsDomain<A>>,
     ): A {
         let FromCreatorsDomain {
@@ -169,12 +167,6 @@ module nft_protocol::multisig {
             min_signature_count,
             0,
             multisig,
-        );
-
-        let attr = creators::creators_domain(collection);
-        assert!(
-            !creators::is_frozen(attr),
-            err::domain_is_frozen(),
         );
 
         action

@@ -270,10 +270,6 @@ module nft_protocol::err {
         return Prefix + 804
     }
 
-    public fun domain_is_frozen(): u64 {
-        return Prefix + 805
-    }
-
     // === Generic ===
 
     public fun generic_bag_full(): u64 {

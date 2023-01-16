@@ -46,8 +46,6 @@ module nft_protocol::creators {
     ///     }
     /// }
     struct CreatorsDomain has copy, drop, store {
-        /// Frozen `CreatorsDomain` will no longer authenticate creators
-        is_frozen: bool,
         /// Creators that have the ability to mutate standard domains
         creators: VecSet<address>,
     }
@@ -75,7 +73,7 @@ module nft_protocol::creators {
     ///
     /// Each attributed creator will be able to modify `Collection` domains.
     public fun from_creators(creators: VecSet<address>): CreatorsDomain {
-        CreatorsDomain { is_frozen: false, creators }
+        CreatorsDomain { creators }
     }
 
     // === Getters ===
@@ -83,11 +81,6 @@ module nft_protocol::creators {
     /// Returns whether `CreatorsDomain` has no defined creators
     public fun is_empty(domain: &CreatorsDomain): bool {
         vec_set::is_empty(&domain.creators)
-    }
-
-    /// Returns whether `CreatorsDomain` is frozen
-    public fun is_frozen(domain: &CreatorsDomain): bool {
-        domain.is_frozen
     }
 
     /// Returns whether address is a defined creator
@@ -98,19 +91,6 @@ module nft_protocol::creators {
     /// Returns the list of creators defined on the `CreatorsDomain`
     public fun borrow_creators(domain: &CreatorsDomain): &VecSet<address> {
         &domain.creators
-    }
-
-    // === Mutability ===
-
-    /// Makes `Collection` domains immutable
-    ///
-    /// Will cause `assert_collection_has_creator` and `assert_is_creator` to
-    /// always fail, thus making all standard domains immutable.
-    ///
-    /// This is irreversible, use with caution.
-    public fun freeze_domain(domain: &mut CreatorsDomain) {
-        // Only creators can obtain `&mut CreatorsDomain`
-        domain.is_frozen = true;
     }
 
     // === Utils ===
