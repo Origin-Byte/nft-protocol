@@ -42,7 +42,7 @@ module nft_protocol::royalty {
     /// to shareholders, as a result, it relies on trusted price execution.
     ///
     /// The usage example shows how to derive the owed royalties from the
-    /// example sollection, `Suimarines`, which uses `TradePayment` as the
+    /// example collection, `Suimarines`, which uses `TradePayment` as the
     /// price oracle, but is also responsible for deconstructing it. For more
     /// information read [royalties](./royalties.html).
     ///

@@ -1,12 +1,11 @@
 module nft_protocol::plugin_pattern_base_contract {
-    use sui::transfer::{transfer, share_object};
-    use sui::tx_context::{Self, TxContext};
-
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::creators;
     use nft_protocol::multisig::{Self, Multisig, FromCreatorsDomain};
     use nft_protocol::plugins;
-    use nft_protocol::utils;
+    use sui::transfer::{transfer, share_object};
+    use sui::tx_context::{Self, TxContext};
+    use sui::vec_set;
 
     /// Simulates one-time-witness
     struct Foo has drop {}
@@ -29,15 +28,12 @@ module nft_protocol::plugin_pattern_base_contract {
             ctx,
         );
 
+        let creators_addrs = vec_set::singleton(tx_context::sender(ctx));
+        vec_set::insert(&mut creators_addrs, SECOND_CREATOR);
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx))
-        );
-        creators::add_creator(
-            &mut collection,
-            creators::new_creator(SECOND_CREATOR, utils::bps() / 100 * 50),
-            ctx,
+            creators::from_creators(creators_addrs)
         );
 
         collection::add_domain(
@@ -67,7 +63,7 @@ module nft_protocol::plugin_pattern_base_contract {
         ctx: &mut TxContext,
     ) {
         creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
+            collection, &tx_context::sender(ctx)
         );
 
         share_object(multisig::from_creators_domain(
@@ -81,12 +77,8 @@ module nft_protocol::plugin_pattern_base_contract {
         multisig: &mut Multisig<FromCreatorsDomain<AddPlugin<PluginWitness>>>,
         collection: &mut Collection<Foo>,
     ) {
-        // 75% of share power is required to add a plugin
-        multisig::consume_with_min_bps_share_from_creators_domain(
-            utils::bps() / 100 * 75,
-            collection,
-            multisig,
-        );
+        // both creators must sign
+        multisig::consume_from_creators_domain(2, collection, multisig);
 
         let d = plugins::borrow_plugin_domain_mut(Witness{}, collection);
         plugins::add_plugin<PluginWitness>(d);
@@ -115,21 +107,19 @@ module nft_protocol::plugin_pattern_plugin_contract {
 
 #[test_only]
 module nft_protocol::test_plugin_pattern {
-    use sui::test_scenario::{Self, ctx};
-    use sui::transfer::transfer;
-
     use nft_protocol::collection::Collection;
     use nft_protocol::creators;
     use nft_protocol::multisig::{Self, Multisig};
     use nft_protocol::plugin_pattern_base_contract::{Self, Foo, AddPlugin};
     use nft_protocol::plugin_pattern_plugin_contract::{Self, Witness as PWitness};
-    use nft_protocol::utils;
+    use sui::test_scenario::{Self, ctx};
+    use sui::transfer::transfer;
 
     const USER: address = @0xA1C03;
     const THIRD_PARTY: address = @0xA1C04;
 
     #[test]
-    #[expected_failure(abort_code = 13370803, location = nft_protocol::plugins)]
+    #[expected_failure(abort_code = 13370804, location = nft_protocol::plugins)]
     fun it_cannot_grab_witness_if_not_plugin() {
         let scenario = test_scenario::begin(USER);
 
@@ -147,7 +137,7 @@ module nft_protocol::test_plugin_pattern {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370605, location = nft_protocol::multisig)]
+    #[expected_failure(abort_code = 13370604, location = nft_protocol::multisig)]
     fun it_cannot_add_plugin_if_not_signed() {
         let scenario = test_scenario::begin(USER);
 
@@ -183,8 +173,8 @@ module nft_protocol::test_plugin_pattern {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370605, location = nft_protocol::multisig)]
-    fun it_cannot_add_plugin_if_signed_only_by_one() {
+    #[expected_failure(abort_code = 13370604, location = nft_protocol::multisig)]
+    fun it_cannot_add_plugin_if_signed_only_by_one_creator() {
         let scenario = test_scenario::begin(USER);
 
         plugin_pattern_base_contract::init_(ctx(&mut scenario));
@@ -223,8 +213,8 @@ module nft_protocol::test_plugin_pattern {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370606, location = nft_protocol::multisig)]
-    fun it_fails_if_creators_domain_changes() {
+    #[expected_failure(abort_code = 13370805, location = nft_protocol::multisig)]
+    fun it_fails_if_creators_domain_is_frozen() {
         let scenario = test_scenario::begin(USER);
 
         plugin_pattern_base_contract::init_(ctx(&mut scenario));
@@ -246,14 +236,11 @@ module nft_protocol::test_plugin_pattern {
         test_scenario::next_tx(&mut scenario, USER);
         multisig::sign(&mut multisig, ctx(&mut scenario));
 
+        let attr = creators::creators_domain_mut(&mut col, ctx(&mut scenario));
+        creators::freeze_domain(attr);
+
         test_scenario::next_tx(&mut scenario, plugin_pattern_base_contract::second_creator());
         multisig::sign(&mut multisig, ctx(&mut scenario));
-
-        creators::add_creator(
-            &mut col,
-            creators::new_creator(THIRD_PARTY, utils::bps() / 100 * 10),
-            ctx(&mut scenario),
-        );
 
         plugin_pattern_base_contract::add_plugin(
             &mut multisig,

@@ -17,6 +17,7 @@ module nft_protocol::multisig {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
+    use sui::vec_set;
 
     use nft_protocol::collection::Collection;
     use nft_protocol::creators;
@@ -112,20 +113,13 @@ module nft_protocol::multisig {
 
     /// A helper struct which enables conveniently creating a multisig that
     /// needs to be signed by the creators of a collection.
-    ///
-    /// The weight of each creator's signature is their share of the royalty.
     struct FromCreatorsDomain<A> has store {
-        /// Version of collection's creators domain at the time of creation
-        /// of the multisig.
-        /// Important to avoid machinations where a signer is removed in favour
-        /// of a new signer.
-        creators_version: u64,
         action: A,
     }
 
 
     /// Creates a new multisig from the creators domain.
-    /// The weight of each creator is their share of the royalty BPS.
+    /// The weight of each creator is equal.
     ///
     /// If the creators domain of the collection has changed after this
     /// point, the multisig becomes invalid.
@@ -135,90 +129,54 @@ module nft_protocol::multisig {
         ctx: &mut TxContext,
     ): Multisig<FromCreatorsDomain<A>> {
         let attr = creators::creators_domain(collection);
-        let creators = *creators::creators(attr);
+        assert!(!creators::is_frozen(attr), err::domain_is_frozen());
+        let creators = creators::borrow_creators(attr);
 
-        let creators_len = vec_map::size(&creators);
+        let creators_len = vec_set::size(creators);
         assert!(creators_len > 0, err::multisig_signers_must_not_be_empty());
 
         let i = 0;
         let signers = vec_map::empty();
-        let (creator_addresses, creators) = vec_map::into_keys_values(creators);
+        let creator_addresses = vec_set::into_keys(*creators);
         while (i < creators_len) {
             let addr = vector::pop_back(&mut creator_addresses);
-            let creator = vector::pop_back(&mut creators);
-            vec_map::insert(
-                &mut signers,
-                addr,
-                creators::share_of_royalty_bps(&creator),
-            );
+            vec_map::insert(&mut signers, addr, 1);
             i = i + 1;
         };
 
         new(
-            FromCreatorsDomain {
-                creators_version: creators::version(attr),
-                action,
-            },
+            FromCreatorsDomain { action },
             signers,
             ctx,
         )
     }
 
     /// Checks that the multisig has been signed by at least
-    /// `min_signature_count` AND those signers have at least
-    /// `min_signed_signers_bps_share` of the total BPS share.
+    /// `min_signature_count`.
     ///
-    /// The invocation will also fail if
+    /// #### Fails
     /// - multisig has been used already;
     /// - the creators domain has been mutated since the creation of the
     ///     multisig.
     public fun consume_from_creators_domain<A, C>(
         min_signature_count: u64,
-        min_signed_signers_bps_share: u16,
         collection: &Collection<C>,
         multisig: &mut Multisig<FromCreatorsDomain<A>>,
     ): A {
         let FromCreatorsDomain {
-            creators_version,
             action,
         } = consume(
             min_signature_count,
-            min_signed_signers_bps_share,
+            0,
             multisig,
         );
 
         let attr = creators::creators_domain(collection);
         assert!(
-            creators_version == creators::version(attr),
-            err::multisig_creators_domain_version_changed(),
+            !creators::is_frozen(attr),
+            err::domain_is_frozen(),
         );
 
         action
-    }
-
-    public fun consume_with_min_sig_count_from_creators_domain<A, C>(
-        min_signature_count: u64,
-        collection: &Collection<C>,
-        multisig: &mut Multisig<FromCreatorsDomain<A>>,
-    ): A {
-        consume_from_creators_domain(
-            min_signature_count,
-            0,
-            collection,
-            multisig,
-        )
-    }
-
-    public fun consume_with_min_bps_share_from_creators_domain<A, C>(
-        min_signed_signers_bps_share: u16,
-        collection: &Collection<C>,
-        multisig: &mut Multisig<FromCreatorsDomain<A>>,
-    ): A {
-        consume_from_creators_domain(
-            0,
-            min_signed_signers_bps_share,
-            collection,
-            multisig,
-        )
     }
 }

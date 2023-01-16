@@ -238,10 +238,6 @@ module nft_protocol::err {
         return Prefix + 605
     }
 
-    public fun multisig_creators_domain_version_changed(): u64 {
-        return Prefix + 606
-    }
-
     // === Trading ===
 
     public fun sender_not_owner(): u64 {
@@ -272,6 +268,10 @@ module nft_protocol::err {
 
     public fun collection_does_not_have_plugin(): u64 {
         return Prefix + 804
+    }
+
+    public fun domain_is_frozen(): u64 {
+        return Prefix + 805
     }
 
     // === Generic ===

@@ -46,11 +46,6 @@ module nft_protocol::creators {
     ///     }
     /// }
     struct CreatorsDomain has copy, drop, store {
-        /// Increments every time we mutate the creators map.
-        ///
-        /// Enables multisig to invalidate itself if the attribution domain
-        /// changed.
-        version: u64,
         /// Frozen `CreatorsDomain` will no longer authenticate creators
         is_frozen: bool,
         /// Creators that have the ability to mutate standard domains
@@ -80,7 +75,7 @@ module nft_protocol::creators {
     ///
     /// Each attributed creator will be able to modify `Collection` domains.
     public fun from_creators(creators: VecSet<address>): CreatorsDomain {
-        CreatorsDomain { is_frozen: false, creators, version: 0 }
+        CreatorsDomain { is_frozen: false, creators }
     }
 
     // === Getters ===
@@ -93,12 +88,6 @@ module nft_protocol::creators {
     /// Returns whether `CreatorsDomain` is frozen
     public fun is_frozen(domain: &CreatorsDomain): bool {
         domain.is_frozen
-    }
-
-    /// Returns the version of the `CreatorsDomain` which increments with every
-    /// mutation.
-    public fun version(attributions: &CreatorsDomain): u64 {
-        attributions.version
     }
 
     /// Returns whether address is a defined creator
@@ -119,9 +108,9 @@ module nft_protocol::creators {
     /// always fail, thus making all standard domains immutable.
     ///
     /// This is irreversible, use with caution.
-    public fun freeze_domains(domain: &mut CreatorsDomain,) {
+    public fun freeze_domain(domain: &mut CreatorsDomain) {
         // Only creators can obtain `&mut CreatorsDomain`
-        domain.is_frozen = true
+        domain.is_frozen = true;
     }
 
     // === Utils ===
