@@ -37,6 +37,11 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   the lowest ask price.
   Before, it was filled with the bid price.
 
+### Removed
+
+- `CreatorsDomain` no longer has `is_frozen` flag as it needs to be
+  reconstructed when edited, and it can be dropped when no longer needed.
+
 ## [0.18.0] - 2023-01-13
 
 ### Changed
