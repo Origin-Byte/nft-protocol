@@ -477,7 +477,7 @@ module nft_protocol::listing {
     public fun assert_venue(listing: &Listing, venue_id: ID) {
         assert!(
             object_table::contains(&listing.venues, venue_id),
-            err::undefined_inventory(),
+            err::undefined_venue(),
         );
     }
 }

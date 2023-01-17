@@ -105,7 +105,7 @@ module nft_protocol::mint_and_sell {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         let collection = test_scenario::take_shared<Collection<Foo>>(&mut scenario);
-        let inventory = inventory::new(ctx(&mut scenario));
+        let warehouse = warehouse::new(ctx(&mut scenario));
 
         let nft = nft::new<Foo, Witness>(
             &Witness {},
@@ -150,7 +150,7 @@ module nft_protocol::mint_and_sell {
         );
 
         // Return objects and end test
-        transfer::transfer(inventory, CREATOR);
+        transfer::transfer(warehouse, CREATOR);
 
         test_scenario::return_shared(collection);
         test_scenario::return_shared(marketplace);

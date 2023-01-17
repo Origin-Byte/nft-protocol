@@ -57,7 +57,7 @@ module nft_protocol::test_dutch_auction {
         let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
 
@@ -170,7 +170,7 @@ module nft_protocol::test_dutch_auction {
         assert!(coin::value(&wallet) == 5, 0);
 
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -236,7 +236,7 @@ module nft_protocol::test_dutch_auction {
         listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         market_whitelist::issue(
-            &listing, inventory_id, market_id, BUYER, ctx(&mut scenario)
+            &listing, warehouse_id, market_id, BUYER, ctx(&mut scenario)
         );
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -356,7 +356,7 @@ module nft_protocol::test_dutch_auction {
         );
 
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -382,7 +382,7 @@ module nft_protocol::test_dutch_auction {
         );
 
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -404,7 +404,7 @@ module nft_protocol::test_dutch_auction {
         );
 
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -429,7 +429,7 @@ module nft_protocol::test_dutch_auction {
 
         // Check that price levels are automatically removed once empty
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -476,7 +476,7 @@ module nft_protocol::test_dutch_auction {
         );
 
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -553,7 +553,7 @@ module nft_protocol::test_dutch_auction {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let inventory = listing::venue(&listing, inventory_id);
+        let inventory = listing::venue(&listing, warehouse_id);
 
         // Listing should be automatically turned off after cancelling the auction
         assert!(!venue::is_live(inventory, &market_id), 0);
@@ -675,7 +675,7 @@ module nft_protocol::test_dutch_auction {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let inventory = listing::venue(&listing, inventory_id);
+        let inventory = listing::venue(&listing, warehouse_id);
 
         // Listing should be automatically turned off after concluding the auction
         assert!(!venue::is_live(inventory, &market_id), 0);
@@ -763,7 +763,7 @@ module nft_protocol::test_dutch_auction {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let inventory = listing::venue(&listing, inventory_id);
+        let inventory = listing::venue(&listing, warehouse_id);
 
         // Listing should not be turned off as all inventory has not been sold
         assert!(venue::is_live(inventory, &market_id), 0);

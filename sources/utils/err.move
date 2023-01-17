@@ -56,11 +56,7 @@ module nft_protocol::err {
         return Prefix + 107
     }
 
-    public fun inventory_not_regulated(): u64 {
-        return Prefix + 108
-    }
-
-    public fun inventory_not_empty(): u64 {
+    public fun warehouse_not_empty(): u64 {
         return Prefix + 109
     }
 
@@ -126,7 +122,7 @@ module nft_protocol::err {
         return Prefix + 215
     }
 
-    public fun undefined_warehouse(): u64 {
+    public fun undefined_venue(): u64 {
         return Prefix + 216
     }
 

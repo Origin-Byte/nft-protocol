@@ -52,7 +52,7 @@ module nft_protocol::test_fixed_price {
         let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
 
@@ -196,11 +196,11 @@ module nft_protocol::test_fixed_price {
         );
 
         listing::sale_on(
-            &mut listing, inventory_id, market_id, ctx(&mut scenario)
+            &mut listing, warehouse_id, market_id, ctx(&mut scenario)
         );
 
         market_whitelist::issue(
-            &listing, inventory_id, market_id, BUYER, ctx(&mut scenario)
+            &listing, warehouse_id, market_id, BUYER, ctx(&mut scenario)
         );
 
         test_scenario::next_tx(&mut scenario, BUYER);
@@ -260,7 +260,7 @@ module nft_protocol::test_fixed_price {
         );
 
         let market = venue::market(
-            listing::venue(&listing, inventory_id),
+            listing::venue(&listing, warehouse_id),
             market_id,
         );
         assert!(fixed_price::price<SUI>(market) == 20, 0);

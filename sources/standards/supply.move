@@ -15,7 +15,7 @@ module nft_protocol::supply_domain {
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::supply::{Self, Supply};
 
-    friend nft_protocol::inventory;
+    friend nft_protocol::warehouse;
 
     struct SupplyDomain<phantom C> has store {
         supply: Supply,
@@ -253,12 +253,6 @@ module nft_protocol::supply_domain {
         &delegated.supply
     }
 
-    public(friend) fun delegated_supply_mut<C>(
-        delegated: &mut RegulatedMintCap<C>
-    ): &mut Supply {
-        &mut delegated.supply
-    }
-
     /// Increments the delegated supply of `Inventory`
     ///
     /// This endpoint must be called before a new `Nft` object is created to
@@ -271,6 +265,6 @@ module nft_protocol::supply_domain {
         delegated: &mut RegulatedMintCap<C>,
         value: u64,
     ) {
-        supply::increment(delegated_supply_mut(delegated), value);
+        supply::increment(&mut delegated.supply, value);
     }
 }
