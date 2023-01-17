@@ -15,7 +15,7 @@ module nft_protocol::mint_and_sell {
     use nft_protocol::display;
     use nft_protocol::flat_fee;
     use nft_protocol::fixed_price;
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::creators;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::marketplace::{Self, Marketplace};
@@ -103,6 +103,8 @@ module nft_protocol::mint_and_sell {
 
         // 3. Create warehouse and mint NFT to it
         test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let collection = test_scenario::take_shared<Collection<Foo>>(&mut scenario);
         let warehouse = warehouse::new(ctx(&mut scenario));
 
         let nft = nft::new<Foo, Witness>(
@@ -137,16 +139,20 @@ module nft_protocol::mint_and_sell {
         warehouse::deposit_nft(&mut warehouse, nft);
 
         // 4. Init Market in Marketplace Listing
-        fixed_price::create_market_on_warehouse<SUI>(
-            &mut warehouse,
+        let venue_id = listing::create_venue(&mut listing, ctx(&mut scenario));
+
+        fixed_price::create_market_on_listing<SUI>(
+            &mut listing,
+            venue_id,
             false,
             100,
             ctx(&mut scenario),
         );
 
-        listing::add_warehouse(&mut listing, warehouse, ctx(&mut scenario));
-
         // Return objects and end test
+        transfer::transfer(warehouse, CREATOR);
+
+        test_scenario::return_shared(collection);
         test_scenario::return_shared(marketplace);
         test_scenario::return_shared(listing);
 
