@@ -1,17 +1,27 @@
 /// Module for an NFT `Listing`
 ///
 /// A `Listing` allows creators to sell their NFTs to the primary market using
-/// bespoke market primitives, such as Fixed Price Sales and Dutch Auctions.
-/// `Listings` can be standalone or be attached to Marketplace, in which case
-/// they will pay fees to it.
+/// bespoke market primitives, such as `FixedPriceMarket` and
+/// `DutchAuctionMarket`.
+/// `Listing` can be standalone or be attached to `Marketplace`.
 ///
-/// Whilst the associated `Marketplace` object stipulates a default fee policy,
-/// the marketplace admin can decide to create a custom fee policy for each
+/// Associated `Marketplace` objects may stipulate a fee policy, the
+/// marketplace admin can decide to create a custom fee policy for each
 /// `Listing`.
 ///
-/// The listing acts as the object that configures the primary NFT listing
-/// strategy, that is the primary market sale. Primary market sales can take
-/// many shapes, depending on the business level requirements.
+/// `Listing` may define multiple `Inventory` objects which themselves can
+/// define multiple markets.
+/// In consequence, each `Listing` may tier it's sales into different NFT
+/// rarities, but may also want to sell one NFT inventory through different
+/// sales channels.
+/// For example, a creator might want to auction a rare tier of their
+/// collection or provide an instant-buy option for users not wanting to
+/// participate in the auction.
+/// Alternatively, an inventory listing may want to sell NFTs for multiple
+/// fungible tokens.
+///
+/// In essence, `Listing` is a shared object that provides a safe API to the
+/// underlying inventories which are unprotected.
 module nft_protocol::listing {
     // TODO: Currently, to issue whitelist token one has to call a function
     // times the number of whitelist addresses. Let us consider more gas efficient
@@ -34,65 +44,7 @@ module nft_protocol::listing {
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::object_box::{Self as obox, ObjectBox};
-    use nft_protocol::warehouse::{Self, Warehouse};
-
-    // === WhitelistCertificate ===
-
-    /// Within a `Listing`, each market has its own whitelist policy.
-    /// As an example, creators can create tiered sales based on the NFT rarity,
-    /// and then whitelist only the rare NFT sale. They can then emit whitelist
-    /// tokens and send them to users who have completed a set of defined actions.
-    struct WhitelistCertificate has key, store {
-        id: UID,
-        /// `Listing` from which this certificate can withdraw an `Nft`
-        listing_id: ID,
-        /// `Warehouse` from which this certificate can withdraw an `Nft`
-        market_id: ID,
-    }
-
-    public fun issue_whitelist_certificate(
-        listing: &Listing,
-        market_id: ID,
-        ctx: &mut TxContext,
-    ): WhitelistCertificate {
-        assert_listing_admin(listing, ctx);
-
-        let certificate = WhitelistCertificate {
-            id: object::new(ctx),
-            listing_id: object::id(listing),
-            market_id,
-        };
-
-        certificate
-    }
-
-    public entry fun transfer_whitelist_certificate(
-        listing: &Listing,
-        market_id: ID,
-        recipient: address,
-        ctx: &mut TxContext,
-    ) {
-        let certificate = issue_whitelist_certificate(
-            listing,
-            market_id,
-            ctx,
-        );
-        transfer::transfer(certificate, recipient);
-    }
-
-    public fun burn_whitelist_certificate(
-        certificate: WhitelistCertificate,
-    ) {
-        let WhitelistCertificate {
-            id,
-            listing_id: _,
-            market_id: _,
-        } = certificate;
-
-        object::delete(id);
-    }
-
-    // === Listing ===
+    use nft_protocol::venue::{Self, Venue};
 
     struct Listing has key, store {
         id: UID,
@@ -102,13 +54,16 @@ module nft_protocol::listing {
         admin: address,
         /// The address of the receiver of funds
         receiver: address,
-        warehouses: ObjectTable<ID, Warehouse>,
-        /// Proceeds object holds the balance of Fungible Tokens acquired from
-        /// the sale of the Listing
+        /// Main object that holds all venues part of the listing
+        venues: ObjectTable<ID, Venue>,
+        /// Proceeds object holds the balance of fungible tokens acquired from
+        /// the sale of the listing
         proceeds: Proceeds,
         /// Field with Object Box holding a Custom Fee implementation if any.
         /// In case this box is empty the calculation will applied on the
         /// default fee object in the associated Marketplace
+        //
+        // TODO: Turn into dynamic field like RequestToJoin
         custom_fee: ObjectBox,
     }
 
@@ -136,7 +91,7 @@ module nft_protocol::listing {
         ctx: &mut TxContext,
     ): Listing {
         let id = object::new(ctx);
-        let warehouses = object_table::new<ID, Warehouse>(ctx);
+        let venues = object_table::new<ID, Venue>(ctx);
 
         event::emit(CreateListingEvent {
             listing_id: object::uid_to_inner(&id),
@@ -147,7 +102,7 @@ module nft_protocol::listing {
             marketplace_id: option::none(),
             admin: listing_admin,
             receiver,
-            warehouses,
+            venues,
             proceeds: proceeds::empty(ctx),
             custom_fee: obox::empty(ctx),
         }
@@ -168,24 +123,24 @@ module nft_protocol::listing {
         transfer::share_object(listing);
     }
 
-    /// Initializes an empty `Warehouse` on `Listing`
-    public entry fun init_warehouse(
+    /// Initializes an empty `Venue` on `Listing`
+    public entry fun init_venue(
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
-        create_warehouse(listing, ctx);
+        create_venue(listing, ctx);
     }
 
-    public fun create_warehouse(
+    public fun create_venue(
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
-        let warehouse = warehouse::new(ctx);
-        let warehouse_id = object::id(&warehouse);
+        let venue = venue::new(ctx);
+        let venue_id = object::id(&venue);
 
-        add_warehouse(listing, warehouse, ctx);
+        add_venue(listing, venue, ctx);
 
-        warehouse_id
+        venue_id
     }
 
     public fun pay<FT>(
@@ -288,59 +243,59 @@ module nft_protocol::listing {
         obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
 
-    public entry fun add_warehouse(
+    public entry fun add_venue(
         listing: &mut Listing,
-        warehouse: Warehouse,
+        venue: Venue,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
-        object_table::add<ID, Warehouse>(
-            &mut listing.warehouses,
-            object::id(&warehouse),
-            warehouse,
+        object_table::add<ID, Venue>(
+            &mut listing.venues,
+            object::id(&venue),
+            venue,
         );
     }
 
     /// Adds a new Market to `markets` and Warehouse to `warehouses` tables
     public entry fun add_market<Market: key + store>(
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         is_whitelisted: bool,
         market: Market,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
-        let warehouse = warehouse_mut(listing, warehouse_id);
-        warehouse::add_market(warehouse, is_whitelisted, market);
+        let inventory = venue_mut(listing, venue_id);
+        venue::add_market(inventory, is_whitelisted, market);
     }
 
     /// Adds NFT as a dynamic child object with its ID as key
     public entry fun add_nft<C>(
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         nft: Nft<C>,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
-        let warehouse = warehouse_mut(listing, warehouse_id);
-        warehouse::deposit_nft(warehouse, nft);
+        let inventory = venue_mut(listing, venue_id);
+        venue::deposit_nft(inventory, nft);
     }
 
     /// Set market's live status to `true` therefore making the NFT sale live.
     /// To be called by the `Listing` admin.
     public entry fun sale_on(
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
-        warehouse::set_live(
-            warehouse_mut(listing, warehouse_id),
+        venue::set_live(
+            venue_mut(listing, venue_id),
             market_id,
             true,
         );
@@ -350,14 +305,14 @@ module nft_protocol::listing {
     /// NFT sale. To be called by the `Listing` admin.
     public entry fun sale_off(
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
-        warehouse::set_live(
-            warehouse_mut(listing, warehouse_id),
+        venue::set_live(
+            venue_mut(listing, venue_id),
             market_id,
             false,
         );
@@ -368,15 +323,15 @@ module nft_protocol::listing {
     public entry fun sale_on_delegated(
         marketplace: &Marketplace,
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
-        warehouse::set_live(
-            warehouse_mut(listing, warehouse_id),
+        venue::set_live(
+            venue_mut(listing, venue_id),
             market_id,
             true,
         );
@@ -387,15 +342,15 @@ module nft_protocol::listing {
     public entry fun sale_off_delegated(
         marketplace: &Marketplace,
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
-        warehouse::set_live(
-            warehouse_mut(listing, warehouse_id),
+        venue::set_live(
+            venue_mut(listing, venue_id),
             market_id,
             false,
         );
@@ -450,34 +405,34 @@ module nft_protocol::listing {
         &mut listing.proceeds
     }
 
-    /// Get the Listing's `Warehouse`
-    public fun warehouse(listing: &Listing, warehouse_id: ID): &Warehouse {
-        assert_warehouse(listing, warehouse_id);
-        object_table::borrow(&listing.warehouses, warehouse_id)
+    /// Get the Listing's `Venue`
+    public fun venue(listing: &Listing, venue_id: ID): &Venue {
+        assert_venue(listing, venue_id);
+        object_table::borrow(&listing.venues, venue_id)
     }
 
-    /// Get the Listing's `Warehouse` mutably
-    fun warehouse_mut(listing: &mut Listing, warehouse_id: ID): &mut Warehouse {
-        assert_warehouse(listing, warehouse_id);
-        object_table::borrow_mut(&mut listing.warehouses, warehouse_id)
+    /// Get the Listing's `Venue` mutably
+    fun venue_mut(listing: &mut Listing, venue_id: ID): &mut Venue {
+        assert_venue(listing, venue_id);
+        object_table::borrow_mut(&mut listing.venues, venue_id)
     }
 
     /// Get the Listing's `Warehouse` mutably
     ///
-    /// `Warehouse` is unprotected therefore only market modules registered
-    /// on an `Warehouse` can gain mutable access to it.
-    public fun warehouse_internal_mut<Market: key + store, Witness: drop>(
+    /// `Venue` is unprotected therefore only market modules registered
+    /// on an `Venue` can gain mutable access to it.
+    public fun venue_internal_mut<Market: key + store, Witness: drop>(
         _witness: Witness,
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
-    ): &mut Warehouse {
+    ): &mut Venue {
         utils::assert_same_module_as_witness<Market, Witness>();
 
-        let warehouse = warehouse_mut(listing, warehouse_id);
-        warehouse::assert_market<Market>(warehouse, market_id);
+        let venue = venue_mut(listing, venue_id);
+        venue::assert_market<Market>(venue, market_id);
 
-        warehouse
+        venue
     }
 
     // === Assertions ===
@@ -519,21 +474,10 @@ module nft_protocol::listing {
         );
     }
 
-    public fun assert_warehouse(listing: &Listing, warehouse_id: ID) {
+    public fun assert_venue(listing: &Listing, venue_id: ID) {
         assert!(
-            object_table::contains(&listing.warehouses, warehouse_id),
-            err::undefined_warehouse(),
-        );
-    }
-
-    public fun assert_whitelist_certificate_market(
-        market_id: ID,
-        certificate: &WhitelistCertificate,
-    ) {
-        // Infer that whitelist token corresponds to correct sale warehouse
-        assert!(
-            certificate.market_id == market_id,
-            err::incorrect_whitelist_certificate()
+            object_table::contains(&listing.venues, venue_id),
+            err::undefined_inventory(),
         );
     }
 }

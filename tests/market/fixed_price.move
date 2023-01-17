@@ -7,8 +7,9 @@ module nft_protocol::test_fixed_price {
     use sui::test_scenario::{Self, Scenario, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::warehouse;
-    use nft_protocol::listing::{Self, Listing, WhitelistCertificate};
+    use nft_protocol::venue;
+    use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::fixed_price;
 
     use nft_protocol::test_listing::init_listing;
@@ -30,17 +31,17 @@ module nft_protocol::test_fixed_price {
         let market = fixed_price::new<SUI>(price, ctx(scenario));
         let market_id = object::id(&market);
 
-        let warehouse_id = listing::create_warehouse(listing, ctx(scenario));
+        let venue_id = listing::create_venue(listing, ctx(scenario));
 
         listing::add_market(
             listing,
-            warehouse_id,
+            venue_id,
             is_whitelisted,
             market,
             ctx(scenario)
         );
 
-        (warehouse_id, market_id)
+        (venue_id, market_id)
     }
 
     #[test]
@@ -50,8 +51,8 @@ module nft_protocol::test_fixed_price {
 
         let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        let market = warehouse::market(
-            listing::warehouse(&listing, warehouse_id),
+        let market = venue::market(
+            listing::venue(&listing, inventory_id),
             market_id,
         );
 
@@ -62,7 +63,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370202, location = nft_protocol::warehouse)]
+    #[expected_failure(abort_code = 13370202, location = nft_protocol::venue)]
     fun try_buy_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -85,7 +86,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370209, location = nft_protocol::warehouse)]
+    #[expected_failure(abort_code = 13370209, location = nft_protocol::venue)]
     fun try_buy_no_supply() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -148,7 +149,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370206, location = nft_protocol::warehouse)]
+    #[expected_failure(abort_code = 13370206, location = nft_protocol::venue)]
     fun try_buy_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -194,17 +195,19 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario)
         );
 
-        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
+        listing::sale_on(
+            &mut listing, inventory_id, market_id, ctx(&mut scenario)
+        );
 
-        listing::transfer_whitelist_certificate(
-            &listing, market_id, BUYER, ctx(&mut scenario)
+        market_whitelist::issue(
+            &listing, inventory_id, market_id, BUYER, ctx(&mut scenario)
         );
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        let certificate = test_scenario::take_from_address<
-            WhitelistCertificate
-        >(&scenario, BUYER);
+        let certificate = test_scenario::take_from_address<Certificate>(
+            &scenario, BUYER
+        );
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_whitelisted_nft<COLLECTION, SUI>(
@@ -256,8 +259,8 @@ module nft_protocol::test_fixed_price {
             &mut listing, warehouse_id, market_id, 20, ctx(&mut scenario)
         );
 
-        let market = warehouse::market(
-            listing::warehouse(&listing, warehouse_id),
+        let market = venue::market(
+            listing::venue(&listing, inventory_id),
             market_id,
         );
         assert!(fixed_price::price<SUI>(market) == 20, 0);

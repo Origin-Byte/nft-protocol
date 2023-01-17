@@ -24,8 +24,9 @@ module nft_protocol::dutch_auction {
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use nft_protocol::err;
-    use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::listing::{Self, Listing, WhitelistCertificate};
+    use nft_protocol::venue::{Self, Venue};
+    use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::market_whitelist::{Self, Certificate};
 
     struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
@@ -71,27 +72,27 @@ module nft_protocol::dutch_auction {
         transfer::transfer(market, tx_context::sender(ctx));
     }
 
-    /// Creates a `DutchAuctionMarket<FT>` on `Warehouse`
-    public entry fun create_market_on_warehouse<FT>(
-        warehouse: &mut Warehouse,
+    /// Creates a `DutchAuctionMarket<FT>` on `Venue`
+    public entry fun create_market_on_venue<FT>(
+        venue: &mut Venue,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(reserve_price, ctx);
-        warehouse::add_market(warehouse, is_whitelisted, market);
+        venue::add_market(venue, is_whitelisted, market);
     }
 
     /// Creates a `DutchAuctionMarket<FT>` on `Listing`
     public entry fun create_market_on_listing<FT>(
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(reserve_price, ctx);
-        listing::add_market(listing, warehouse_id, is_whitelisted, market, ctx);
+        listing::add_market(listing, venue_id, is_whitelisted, market, ctx);
     }
 
     // === Entrypoints ===
@@ -100,22 +101,22 @@ module nft_protocol::dutch_auction {
     public entry fun create_bid<FT>(
         wallet: &mut Coin<FT>,
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         price: u64,
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        let warehouse =
-            listing::warehouse_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, warehouse_id, market_id
+        let venue =
+            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, venue_id, market_id
             );
 
-        warehouse::assert_is_live(warehouse, &market_id);
-        warehouse::assert_is_not_whitelisted(warehouse, &market_id);
+        venue::assert_is_live(venue, &market_id);
+        venue::assert_is_not_whitelisted(venue, &market_id);
 
         create_bid_(
-            warehouse::market_mut(warehouse, market_id),
+            venue::market_mut(venue, market_id),
             wallet,
             price,
             quantity,
@@ -126,32 +127,32 @@ module nft_protocol::dutch_auction {
     public entry fun create_bid_whitelisted<FT>(
         wallet: &mut Coin<FT>,
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
-        whitelist_token: WhitelistCertificate,
+        whitelist_token: Certificate,
         price: u64,
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        let warehouse =
-            listing::warehouse_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, warehouse_id, market_id
+        let venue =
+            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, venue_id, market_id
             );
 
-        warehouse::assert_is_live(warehouse, &market_id);
-        warehouse::assert_is_whitelisted(warehouse, &market_id);
+        venue::assert_is_live(venue, &market_id);
+        venue::assert_is_whitelisted(venue, &market_id);
 
-        listing::assert_whitelist_certificate_market(market_id, &whitelist_token);
+        market_whitelist::assert_certificate(market_id, &whitelist_token);
 
         create_bid_(
-            warehouse::market_mut(warehouse, market_id),
+            venue::market_mut(venue, market_id),
             wallet,
             price,
             quantity,
             tx_context::sender(ctx)
         );
 
-        listing::burn_whitelist_certificate(whitelist_token);
+        market_whitelist::burn(whitelist_token);
     }
 
     /// Cancels a single bid at the given price level in a FIFO manner
@@ -163,18 +164,18 @@ module nft_protocol::dutch_auction {
     public entry fun cancel_bid<FT>(
         wallet: &mut Coin<FT>,
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let warehouse =
-            listing::warehouse_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, warehouse_id, market_id
+        let venue =
+            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, venue_id, market_id
             );
 
         cancel_bid_(
-            warehouse::market_mut(warehouse, market_id),
+            venue::market_mut(venue, market_id),
             wallet,
             price,
             tx_context::sender(ctx)
@@ -189,7 +190,7 @@ module nft_protocol::dutch_auction {
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_cancel<FT>(
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
@@ -197,17 +198,17 @@ module nft_protocol::dutch_auction {
         // the listing admin
         listing::assert_listing_admin(listing, ctx);
 
-        let warehouse =
-            listing::warehouse_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, warehouse_id, market_id
+        let venue =
+            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, venue_id, market_id
             );
 
         cancel_auction<FT>(
-            warehouse::market_mut(warehouse, market_id),
+            venue::market_mut(venue, market_id),
             ctx,
         );
 
-        warehouse::set_live(warehouse, market_id, false);
+        venue::set_live(venue, market_id, false);
     }
 
     /// Conclude the auction and toggle the Slingshot's `live` to `false`.
@@ -216,7 +217,7 @@ module nft_protocol::dutch_auction {
     /// Permissioned endpoint to be called by `admin`.
     public entry fun sale_conclude<C, FT>(
         listing: &mut Listing,
-        warehouse_id: ID,
+        venue_id: ID,
         market_id: ID,
         ctx: &mut TxContext,
     ) {
@@ -224,14 +225,14 @@ module nft_protocol::dutch_auction {
         // the listing admin
         listing::assert_listing_admin(listing, ctx);
 
-        let warehouse =
-            listing::warehouse_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, warehouse_id, market_id
+        let venue =
+            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, venue_id, market_id
             );
 
-        let nfts_to_sell = warehouse::length(warehouse);
+        let nfts_to_sell = venue::length(venue);
         let (fill_price, bids_to_fill) = conclude_auction<FT>(
-            warehouse::market_mut(warehouse, market_id),
+            venue::market_mut(venue, market_id),
             // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
             // Investigate whether this logic should be paginated
             nfts_to_sell,
@@ -246,7 +247,7 @@ module nft_protocol::dutch_auction {
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            let nft = warehouse::redeem_nft<C>(warehouse);
+            let nft = venue::redeem_nft<C>(venue);
             transfer::transfer(nft, owner);
 
             if (balance::value(&amount) == 0) {
@@ -262,8 +263,8 @@ module nft_protocol::dutch_auction {
         vector::destroy_empty(bids_to_fill);
 
         // Cancel all remaining orders if there are no NFTs left to sell
-        if (warehouse::is_empty(listing::warehouse(listing, warehouse_id))) {
-            sale_cancel<FT>(listing, warehouse_id, market_id, ctx);
+        if (venue::is_empty(listing::venue(listing, venue_id))) {
+            sale_cancel<FT>(listing, venue_id, market_id, ctx);
         }
     }
 
