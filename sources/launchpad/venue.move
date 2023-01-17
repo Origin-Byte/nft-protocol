@@ -57,9 +57,9 @@ module nft_protocol::venue {
     }
 
     /// Creates a `Venue` and transfers to transaction sender
-    public entry fun init_inventory(ctx: &mut TxContext) {
-        let inventory = new(ctx);
-        transfer::transfer(inventory, tx_context::sender(ctx));
+    public entry fun init_venue(ctx: &mut TxContext) {
+        let venue = new(ctx);
+        transfer::transfer(venue, tx_context::sender(ctx));
     }
 
     /// Adds a new market to `Venue` allowing NFTs deposited to the
