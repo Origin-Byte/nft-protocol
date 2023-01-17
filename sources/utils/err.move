@@ -118,7 +118,7 @@ module nft_protocol::err {
         return Prefix + 215
     }
 
-    public fun undefined_inventory(): u64 {
+    public fun undefined_warehouse(): u64 {
         return Prefix + 216
     }
 

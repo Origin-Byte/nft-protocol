@@ -7,7 +7,7 @@ module nft_protocol::test_fixed_price {
     use sui::test_scenario::{Self, Scenario, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::inventory;
+    use nft_protocol::warehouse;
     use nft_protocol::listing::{Self, Listing, WhitelistCertificate};
     use nft_protocol::fixed_price;
 
@@ -20,7 +20,7 @@ module nft_protocol::test_fixed_price {
     const CREATOR: address = @0xA1C05;
     const BUYER: address = @0xA1C06;
 
-    /// Initializes inventory and market
+    /// Initializes warehouse and market
     fun init_market(
         listing: &mut Listing,
         price: u64,
@@ -30,17 +30,17 @@ module nft_protocol::test_fixed_price {
         let market = fixed_price::new<SUI>(price, ctx(scenario));
         let market_id = object::id(&market);
 
-        let inventory_id = listing::create_inventory(listing, ctx(scenario));
+        let warehouse_id = listing::create_warehouse(listing, ctx(scenario));
 
         listing::add_market(
             listing,
-            inventory_id,
+            warehouse_id,
             is_whitelisted,
             market,
             ctx(scenario)
         );
 
-        (inventory_id, market_id)
+        (warehouse_id, market_id)
     }
 
     #[test]
@@ -48,10 +48,10 @@ module nft_protocol::test_fixed_price {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
 
@@ -62,18 +62,18 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370202, location = nft_protocol::inventory)]
+    #[expected_failure(abort_code = 13370202, location = nft_protocol::warehouse)]
     fun try_buy_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_nft<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             &mut wallet,
             ctx(&mut scenario),
@@ -85,19 +85,19 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370209, location = nft_protocol::inventory)]
+    #[expected_failure(abort_code = 13370209, location = nft_protocol::warehouse)]
     fun try_buy_no_supply() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_nft<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             &mut wallet,
             ctx(&mut scenario),
@@ -113,26 +113,26 @@ module nft_protocol::test_fixed_price {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
         listing::add_nft(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             nft::new<COLLECTION, Witness>(
                 &Witness {}, CREATOR, ctx(&mut scenario)
             ),
             ctx(&mut scenario)
         );
 
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(15, ctx(&mut scenario));
         fixed_price::buy_nft<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             &mut wallet,
             ctx(&mut scenario),
@@ -148,21 +148,21 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370206, location = nft_protocol::inventory)]
+    #[expected_failure(abort_code = 13370206, location = nft_protocol::warehouse)]
     fun try_buy_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, true, &mut scenario);
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_nft<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             &mut wallet,
             ctx(&mut scenario),
@@ -182,19 +182,19 @@ module nft_protocol::test_fixed_price {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, true, &mut scenario);
 
         listing::add_nft(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             nft::new<COLLECTION, Witness>(
                 &Witness {}, CREATOR, ctx(&mut scenario)
             ),
             ctx(&mut scenario)
         );
 
-        listing::sale_on(&mut listing, inventory_id, market_id, ctx(&mut scenario));
+        listing::sale_on(&mut listing, warehouse_id, market_id, ctx(&mut scenario));
 
         listing::transfer_whitelist_certificate(
             &listing, market_id, BUYER, ctx(&mut scenario)
@@ -209,7 +209,7 @@ module nft_protocol::test_fixed_price {
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
         fixed_price::buy_whitelisted_nft<COLLECTION, SUI>(
             &mut listing,
-            inventory_id,
+            warehouse_id,
             market_id,
             &mut wallet,
             certificate,
@@ -229,13 +229,13 @@ module nft_protocol::test_fixed_price {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, true, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
         fixed_price::set_price<SUI>(
-            &mut listing, inventory_id, market_id, 20, ctx(&mut scenario)
+            &mut listing, warehouse_id, market_id, 20, ctx(&mut scenario)
         );
 
         test_scenario::return_shared(listing);
@@ -247,17 +247,17 @@ module nft_protocol::test_fixed_price {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let (inventory_id, market_id) =
+        let (warehouse_id, market_id) =
             init_market(&mut listing, 10, true, &mut scenario);
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         fixed_price::set_price<SUI>(
-            &mut listing, inventory_id, market_id, 20, ctx(&mut scenario)
+            &mut listing, warehouse_id, market_id, 20, ctx(&mut scenario)
         );
 
-        let market = inventory::market(
-            listing::inventory(&listing, inventory_id),
+        let market = warehouse::market(
+            listing::warehouse(&listing, warehouse_id),
             market_id,
         );
         assert!(fixed_price::price<SUI>(market) == 20, 0);
