@@ -22,9 +22,6 @@
 /// represent 1-to-many relationships. Essentially this allows us to build
 /// NFTs which effectively have a supply.
 module nft_protocol::flyweight {
-    // TODO: Where does it make sense to control supply?
-    // TODO: Where does it make sense to control ownership of the shared data object?
-    // This should ideally be controlled solely by the NFT Creators..
     use sui::transfer;
     use sui::dynamic_field as df;
     use sui::object::{Self, UID, ID};
