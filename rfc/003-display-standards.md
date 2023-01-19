@@ -31,7 +31,7 @@ In order words, when a UI fetches a given object it fetches its dynamic object f
 
 We propose a tag system that allows for Wallets to organise their NFT display by categories. Wallets can query NFTs and check if they have a field tags in the root-level or as a dynamic field, to figure out what the business domain of each NFT is.
 
-<img src="assets/display.png" width="166" height="335" />
+<img src="../assets/display.png" width="166" height="335" />
 
 Currently, we have considered the following Tags:
 
