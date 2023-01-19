@@ -104,7 +104,9 @@ module nft_protocol::collection {
     /// ##### Panics
     ///
     /// Panics if domain of type `D` is not present on the `Nft`
-    public fun borrow_domain<C, D: key + store>(collection: &Collection<C>): &D {
+    public fun borrow_domain<C, D: key + store>(
+        collection: &Collection<C>
+    ): &D {
         assert_domain<C, D>(collection);
         dof::borrow(&collection.id, utils::marker<D>())
     }
@@ -220,7 +222,9 @@ module nft_protocol::collection {
     /// ##### Panics
     ///
     /// Panics if domain, `D`, does exists on `Collection`.
-    public fun assert_no_domain<C, D: key + store>(collection: &Collection<C>) {
+    public fun assert_no_domain<C, D: key + store>(
+        collection: &Collection<C>
+    ) {
         assert!(!has_domain<C, D>(collection), err::domain_already_defined());
     }
 
