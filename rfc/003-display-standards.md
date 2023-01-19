@@ -22,7 +22,7 @@ In the previous RFC, the display standard was organised in:
 | sui::object::UID | Displayed in hex with a leading 0x (e.g., 0xabc..), with a clickable hyperlink to the object view page in the Sui explorer |
 | std::option::Option | Displayed as None if the Option does not contain a value, and Some(_) with display rules applied to the contents if the Option contains a value. |
 
-### Object trees
+### Dynamic Object Fields
 
 This RFC proposes to expand display standards to leverage on the feature of dynamic object fields. The core idea is that the fields mentioned above should not be required to be present in the root level object but can be in a dynamic object field immediately attached to the root-level object.
 
