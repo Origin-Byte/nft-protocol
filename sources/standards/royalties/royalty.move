@@ -19,6 +19,7 @@ module nft_protocol::royalty {
     use sui::tx_context::{Self, TxContext};
     use sui::bag::{Self, Bag};
     use sui::vec_map::{Self, VecMap};
+    use sui::object::{Self, UID};
 
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
@@ -66,7 +67,9 @@ module nft_protocol::royalty {
     ///     }
     /// }
     /// ```
-    struct RoyaltyDomain has store {
+    struct RoyaltyDomain has key, store {
+        /// `RoyaltyDomain` ID
+        id: UID,
         /// Royalty strategies
         strategies: Bag,
         /// Aggregates received royalties across different coins
@@ -108,6 +111,7 @@ module nft_protocol::royalty {
     ): RoyaltyDomain {
         assert_total_shares(&royalty_shares_bps);
         RoyaltyDomain {
+            id: object::new(ctx),
             strategies: bag::new(ctx),
             aggregations: bag::new(ctx),
             royalty_shares_bps,

@@ -17,13 +17,15 @@ module nft_protocol::supply_domain {
 
     friend nft_protocol::warehouse;
 
-    struct SupplyDomain<phantom C> has store {
+    struct SupplyDomain<phantom C> has key, store {
+        id: UID,
         supply: Supply,
     }
 
     /// Creates a `SupplyDomain`
-    fun new<C>(max: u64, frozen: bool): SupplyDomain<C> {
+    fun new<C>(max: u64, frozen: bool, ctx: &mut TxContext): SupplyDomain<C> {
         SupplyDomain {
+            id: object::new(ctx),
             supply: supply::new(max, frozen),
         }
     }
@@ -69,8 +71,9 @@ module nft_protocol::supply_domain {
         mint_cap: &MintCap<C>,
         max: u64,
         frozen: bool,
+        ctx: &mut TxContext,
     ) {
-        collection::add_domain(collection, mint_cap, new<C>(max, frozen));
+        collection::add_domain(collection, mint_cap, new<C>(max, frozen, ctx));
     }
 
     /// Deregulate the supply of `Collection`
@@ -83,9 +86,10 @@ module nft_protocol::supply_domain {
         _mint_cap: &MintCap<C>,
     ) {
         supply::assert_not_frozen(supply(collection));
-        let SupplyDomain<C> { supply } =
+        let SupplyDomain<C> { id, supply } =
             collection::remove_domain(Witness {}, collection);
         supply::assert_zero(&supply);
+        object::delete(id);
     }
 
     /// Freeze the supply of `Collection`

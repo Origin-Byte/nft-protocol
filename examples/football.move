@@ -30,7 +30,7 @@ module nft_protocol::football {
         collection::add_domain(
             &mut collection,
             &mint_cap,
-            creators::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx), ctx)
         );
 
         // Register custom domains
@@ -39,18 +39,21 @@ module nft_protocol::football {
             &mint_cap,
             string::utf8(b"Football digital stickers"),
             string::utf8(b"A NFT collection of football player collectibles"),
+            ctx,
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx,
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mint_cap,
-            string::utf8(b"FOOT")
+            string::utf8(b"FOOT"),
+            ctx
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
