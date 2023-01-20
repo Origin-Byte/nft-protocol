@@ -14,4 +14,4 @@ git = "https://github.com/Origin-Byte/originmate.git"
 rev = "fe192e74e25ed71449996fcb30337ed7232f41e3"
 
 [addresses]
-nft_protocol = "0x64d9d4d268ba2db560a097eb5e1f2778f9439d38"
+nft_protocol = "0x"
