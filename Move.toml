@@ -5,7 +5,7 @@ version = "0.18.0"
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework"
-# devnet-0.21.0
+# devnet-0.22.0
 rev = "2d709054a08d904b9229a2472af679f210af3827"
 
 [dependencies.Originmate]
