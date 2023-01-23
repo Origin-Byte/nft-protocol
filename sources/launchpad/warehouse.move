@@ -11,8 +11,18 @@ module nft_protocol::warehouse {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
-    use nft_protocol::err;
     use nft_protocol::nft::Nft;
+
+    /// `Warehouse` does not have NFTs left to withdraw
+    ///
+    /// Call `Venue::deposit_nft` or `Listing::add_nft` to add NFTs.
+    const EEMPTY: u64 = 1;
+
+    /// `Warehouse` still has NFTs left to withdraw
+    ///
+    /// Call `Venue::redeem_nft` or a `Listing` market to withdraw remaining
+    /// NFTs.
+    const ENOT_EMPTY: u64 = 2;
 
     /// `Warehouse` object
     struct Warehouse has key, store {
@@ -60,7 +70,7 @@ module nft_protocol::warehouse {
     /// Panics if `Warehouse` is empty
     public fun redeem_nft<C>(warehouse: &mut Warehouse): Nft<C> {
         let nfts = &mut warehouse.nfts;
-        assert!(!vector::is_empty(nfts), err::no_nfts_left());
+        assert!(!vector::is_empty(nfts), EEMPTY);
 
         dof::remove(&mut warehouse.id, vector::pop_back(nfts))
     }
@@ -110,6 +120,6 @@ module nft_protocol::warehouse {
 
     /// Asserts that `Warehouse` is empty
     public fun assert_is_empty(warehouse: &Warehouse) {
-        assert!(is_empty(warehouse), err::warehouse_not_empty());
+        assert!(is_empty(warehouse), ENOT_EMPTY);
     }
 }

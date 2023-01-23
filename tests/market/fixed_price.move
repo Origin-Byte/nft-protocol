@@ -8,6 +8,7 @@ module nft_protocol::test_fixed_price {
 
     use nft_protocol::nft;
     use nft_protocol::venue;
+    use nft_protocol::warehouse;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::fixed_price;
@@ -54,7 +55,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370202, location = nft_protocol::venue)]
+    #[expected_failure(abort_code = venue::EVENUE_NOT_LIVE)]
     fun try_buy_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -76,7 +77,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370209, location = nft_protocol::venue)]
+    #[expected_failure(abort_code = warehouse::EEMPTY)]
     fun try_buy_no_supply() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -137,7 +138,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370206, location = nft_protocol::venue)]
+    #[expected_failure(abort_code = venue::EVENUE_WHITELISTED)]
     fun try_buy_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);

@@ -229,6 +229,7 @@ module nft_protocol::dutch_auction {
             listing::inventory_internal_mut<DutchAuctionMarket<FT>, Witness>(
                 Witness {}, listing, venue_id
             );
+        let inventory_id = object::id(inventory);
 
         let nfts_to_sell = warehouse::size(inventory);
         let (fill_price, bids_to_fill) = conclude_auction<FT>(
@@ -263,7 +264,7 @@ module nft_protocol::dutch_auction {
         vector::destroy_empty(bids_to_fill);
 
         // Cancel all remaining orders if there are no NFTs left to sell
-        let venue = listing::borrow_warehouse(listing, venue_id);
+        let venue = listing::borrow_warehouse(listing, inventory_id);
         if (warehouse::is_empty(venue)) {
             sale_cancel<FT>(listing, venue_id, ctx);
         }

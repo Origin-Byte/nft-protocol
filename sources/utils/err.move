@@ -36,10 +36,6 @@ module nft_protocol::err {
         return Prefix + 102
     }
 
-    public fun supply_is_limited(): u64 {
-        return Prefix + 103
-    }
-
     public fun supply_frozen(): u64 {
         return Prefix + 104
     }
@@ -56,46 +52,10 @@ module nft_protocol::err {
         return Prefix + 107
     }
 
-    public fun warehouse_not_empty(): u64 {
-        return Prefix + 109
-    }
-
     // === Marketplace ===
 
     public fun wrong_marketplace_admin(): u64 {
         return Prefix + 201
-    }
-
-    public fun listing_not_live(): u64 {
-        return Prefix + 202
-    }
-
-    public fun nft_sale_incompleted(): u64 {
-        return Prefix + 203
-    }
-
-    public fun nft_redemption_incompleted(): u64 {
-        return Prefix + 204
-    }
-
-    public fun sale_is_not_whitelisted(): u64 {
-        return Prefix + 205
-    }
-
-    public fun sale_is_whitelisted(): u64 {
-        return Prefix + 206
-    }
-
-    public fun incorrect_whitelist_certificate(): u64 {
-        return Prefix + 207
-    }
-
-    public fun undefined_nft_id(): u64 {
-        return Prefix + 208
-    }
-
-    public fun no_nfts_left(): u64 {
-        return Prefix + 209
     }
 
     public fun marketplace_listing_mismatch(): u64 {
@@ -116,22 +76,6 @@ module nft_protocol::err {
 
     public fun has_custom_fee_policy(): u64 {
         return Prefix + 214
-    }
-
-    public fun listing_not_approved(): u64 {
-        return Prefix + 215
-    }
-
-    public fun undefined_venue(): u64 {
-        return Prefix + 216
-    }
-
-    public fun undefined_market(): u64 {
-        return Prefix + 217
-    }
-
-    public fun incorrect_nft_certificate(): u64 {
-        return Prefix + 218
     }
 
     public fun listing_already_attached_to_marketplace(): u64 {
