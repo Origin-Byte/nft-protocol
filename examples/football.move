@@ -6,11 +6,12 @@ module nft_protocol::football {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::nft;
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::flyweight::{Self, Registry};
+    use nft_protocol::flyweight;
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -64,13 +65,7 @@ module nft_protocol::football {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&mut collection, &mint_cap, tags);
 
-        let registry = flyweight::init_registry<FOOTBALL>(ctx, &mint_cap);
-
-        flyweight::add_archetypes_domain<FOOTBALL>(
-            &mut collection,
-            &mint_cap,
-            registry
-        );
+        flyweight::init_registry<FOOTBALL>(&mut collection, &mint_cap, ctx);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
@@ -95,40 +90,24 @@ module nft_protocol::football {
         name: String,
         description: String,
         url: vector<u8>,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
+        collection: &mut Collection<FOOTBALL>,
         mint_cap: &MintCap<FOOTBALL>,
-        registry: &mut Registry<FOOTBALL>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let archetype = flyweight::new(&FOOTBALL {}, supply, mint_cap, ctx);
-
-        let nft = flyweight::borrow_nft_mut(&mut archetype, mint_cap);
+        let nft = nft::new<FOOTBALL, Witness>(
+            &Witness {}, tx_context::sender(ctx), ctx
+        );
 
         display::add_display_domain(
-            nft,
-            name,
-            description,
-            ctx,
+            &mut nft, name, description, ctx,
         );
 
         display::add_url_domain(
-            nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
+            &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
-        display::add_attributes_domain_from_vec(
-            nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
-        );
-
-        flyweight::add_archetype(archetype, registry, mint_cap);
-
-        // TODO: Define the NFT minting process
-        // lp::add_nft(listing, market_id, nft);
+        let archetype = flyweight::new_regulated(nft, supply, ctx);
+        flyweight::add_collection_archetype(collection, mint_cap, archetype);
     }
 }
