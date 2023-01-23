@@ -24,16 +24,17 @@ module nft_protocol::dutch_auction {
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use nft_protocol::err;
-    use nft_protocol::venue::{Self, Venue};
+    use nft_protocol::venue;
     use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::warehouse;
     use nft_protocol::market_whitelist::{Self, Certificate};
 
     struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
         /// The minimum price at which NFTs can be sold
         reserve_price: u64,
-        /// A bid order stores amount of "T"okens the buyer is willing to
-        /// purchase
+        /// A bid order stores the ammount of fungible token, FT, that the
+        /// buyer is willing to purchase.
         bids: CBTree<vector<Bid<FT>>>,
     }
 
@@ -72,27 +73,31 @@ module nft_protocol::dutch_auction {
         transfer::transfer(market, tx_context::sender(ctx));
     }
 
-    /// Creates a `DutchAuctionMarket<FT>` on `Venue`
-    public entry fun create_market_on_venue<FT>(
-        venue: &mut Venue,
+    /// Initializes a `Venue` with `DutchAuctionMarket<FT>`
+    public entry fun init_venue<FT>(
+        listing: &mut Listing,
+        inventory_id: ID,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = new<FT>(reserve_price, ctx);
-        venue::add_market(venue, is_whitelisted, market);
+        create_venue<FT>(
+            listing, inventory_id, is_whitelisted, reserve_price, ctx
+        );
     }
 
-    /// Creates a `DutchAuctionMarket<FT>` on `Listing`
-    public entry fun create_market_on_listing<FT>(
+    /// Creates a `Venue` with `DutchAuctionMarket<FT>`
+    public fun create_venue<FT>(
         listing: &mut Listing,
-        venue_id: ID,
+        inventory_id: ID,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let market = new<FT>(reserve_price, ctx);
-        listing::add_market(listing, venue_id, is_whitelisted, market, ctx);
+        listing::create_venue(
+            listing, inventory_id, market, is_whitelisted, ctx
+        )
     }
 
     // === Entrypoints ===
@@ -102,21 +107,20 @@ module nft_protocol::dutch_auction {
         wallet: &mut Coin<FT>,
         listing: &mut Listing,
         venue_id: ID,
-        market_id: ID,
         price: u64,
         quantity: u64,
         ctx: &mut TxContext,
     ) {
         let venue =
             listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id, market_id
+                Witness {}, listing, venue_id
             );
 
-        venue::assert_is_live(venue, &market_id);
-        venue::assert_is_not_whitelisted(venue, &market_id);
+        venue::assert_is_live(venue);
+        venue::assert_is_not_whitelisted(venue);
 
         create_bid_(
-            venue::market_mut(venue, market_id),
+            venue::borrow_market_mut(venue),
             wallet,
             price,
             quantity,
@@ -128,7 +132,6 @@ module nft_protocol::dutch_auction {
         wallet: &mut Coin<FT>,
         listing: &mut Listing,
         venue_id: ID,
-        market_id: ID,
         whitelist_token: Certificate,
         price: u64,
         quantity: u64,
@@ -136,16 +139,16 @@ module nft_protocol::dutch_auction {
     ) {
         let venue =
             listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id, market_id
+                Witness {}, listing, venue_id
             );
 
-        venue::assert_is_live(venue, &market_id);
-        venue::assert_is_whitelisted(venue, &market_id);
+        venue::assert_is_live(venue);
+        venue::assert_is_whitelisted(venue);
 
-        market_whitelist::assert_certificate(market_id, &whitelist_token);
+        market_whitelist::assert_certificate(&whitelist_token, venue_id);
 
         create_bid_(
-            venue::market_mut(venue, market_id),
+            venue::borrow_market_mut(venue),
             wallet,
             price,
             quantity,
@@ -165,17 +168,16 @@ module nft_protocol::dutch_auction {
         wallet: &mut Coin<FT>,
         listing: &mut Listing,
         venue_id: ID,
-        market_id: ID,
         price: u64,
         ctx: &mut TxContext,
     ) {
         let venue =
             listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id, market_id
+                Witness {}, listing, venue_id
             );
 
         cancel_bid_(
-            venue::market_mut(venue, market_id),
+            venue::borrow_market_mut(venue),
             wallet,
             price,
             tx_context::sender(ctx)
@@ -191,7 +193,6 @@ module nft_protocol::dutch_auction {
     public entry fun sale_cancel<FT>(
         listing: &mut Listing,
         venue_id: ID,
-        market_id: ID,
         ctx: &mut TxContext,
     ) {
         // TODO: Consider an entrepoint to be called by the Marketplace instead of
@@ -200,15 +201,15 @@ module nft_protocol::dutch_auction {
 
         let venue =
             listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id, market_id
+                Witness {}, listing, venue_id
             );
 
         cancel_auction<FT>(
-            venue::market_mut(venue, market_id),
+            venue::borrow_market_mut(venue),
             ctx,
         );
 
-        venue::set_live(venue, market_id, false);
+        venue::set_live(venue, false);
     }
 
     /// Conclude the auction and toggle the Slingshot's `live` to `false`.
@@ -218,21 +219,20 @@ module nft_protocol::dutch_auction {
     public entry fun sale_conclude<C, FT>(
         listing: &mut Listing,
         venue_id: ID,
-        market_id: ID,
         ctx: &mut TxContext,
     ) {
-        // TODO: Consider an entrepoint to be called by the Marketplace instead of
-        // the listing admin
+        // TODO: Consider an entrepoint to be called by the Marketplace instead
+        // of the listing admin
         listing::assert_listing_admin(listing, ctx);
 
-        let venue =
-            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id, market_id
+        let (venue, inventory) =
+            listing::inventory_internal_mut<DutchAuctionMarket<FT>, Witness>(
+                Witness {}, listing, venue_id
             );
 
-        let nfts_to_sell = venue::length(venue);
+        let nfts_to_sell = warehouse::size(inventory);
         let (fill_price, bids_to_fill) = conclude_auction<FT>(
-            venue::market_mut(venue, market_id),
+            venue::borrow_market_mut(venue),
             // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
             // Investigate whether this logic should be paginated
             nfts_to_sell,
@@ -247,7 +247,7 @@ module nft_protocol::dutch_auction {
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            let nft = venue::redeem_nft<C>(venue);
+            let nft = warehouse::redeem_nft<C>(inventory);
             transfer::transfer(nft, owner);
 
             if (balance::value(&amount) == 0) {
@@ -263,8 +263,9 @@ module nft_protocol::dutch_auction {
         vector::destroy_empty(bids_to_fill);
 
         // Cancel all remaining orders if there are no NFTs left to sell
-        if (venue::is_empty(listing::venue(listing, venue_id))) {
-            sale_cancel<FT>(listing, venue_id, market_id, ctx);
+        let venue = listing::borrow_warehouse(listing, venue_id);
+        if (warehouse::is_empty(venue)) {
+            sale_cancel<FT>(listing, venue_id, ctx);
         }
     }
 
