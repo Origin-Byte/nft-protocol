@@ -1,7 +1,7 @@
-- Sui v0.21.0
+- Sui v0.22.0
 
 Checkout our:
-- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5037cd2fe5af081c7f88ecfc8c40fa39c6c77957)
+- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5db59b623554ef931b23c07ed4f7d577942bd52d)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)
 
@@ -171,6 +171,6 @@ and in your `Move.toml`, define the following dependency:
 ```toml
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
-# v0.16.0
-rev = "484ffaca16d561d8123c14138770fa99fe5591af"
+# v0.19.0
+rev = "b3923a1ba8ee4ea7757a8155c780bc2e8786dc18"
 ```
