@@ -9,7 +9,7 @@
 module nft_protocol::venue {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
-    use sui::object::{Self, ID, UID};
+    use sui::object::{Self, UID};
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{Self, Marker};
@@ -52,13 +52,10 @@ module nft_protocol::venue {
         is_live: bool,
         /// Track which market is whitelisted
         is_whitelisted: bool,
-        /// The `Warehouse` or `Factory` from which this venue will redeem NFTs.
-        inventory_id: ID,
     }
 
     /// Create a new `Venue`
     public fun new<Market: store>(
-        inventory_id: ID,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext
@@ -70,18 +67,16 @@ module nft_protocol::venue {
             id: venue_id,
             is_live: false,
             is_whitelisted,
-            inventory_id,
         }
     }
 
     /// Initializes a `Venue` and transfers to transaction sender
     public entry fun init_venue<Market: store>(
-        inventory_id: ID,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext
     ) {
-        let venue = new(inventory_id, market, is_whitelisted, ctx);
+        let venue = new(market, is_whitelisted, ctx);
         transfer::transfer(venue, tx_context::sender(ctx));
     }
 
@@ -117,13 +112,6 @@ module nft_protocol::venue {
     /// Get whether the venue is whitelisted
     public fun is_whitelisted(venue: &Venue): bool {
         venue.is_whitelisted
-    }
-
-    /// Returns the associated inventory ID
-    ///
-    /// ID may be of a `Warehouse` or `Factory`.
-    public fun inventory_id(venue: &Venue): ID {
-        venue.inventory_id
     }
 
     /// Borrow `Venue` market
