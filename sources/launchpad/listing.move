@@ -556,15 +556,12 @@ module nft_protocol::listing {
     ///
     /// Panics if witness does not originate from the same module as market.
     public fun inventory_internal_mut<Market: store, Witness: drop>(
-        _witness: Witness,
+        witness: Witness,
         listing: &mut Listing,
         venue_id: ID,
         inventory_id: ID,
     ): &mut Warehouse {
-        utils::assert_same_module_as_witness<Market, Witness>();
-        let venue = borrow_venue(listing, venue_id);
-        venue::assert_market<Market>(venue);
-
+        venue_internal_mut<Market, Witness>(witness, listing, venue_id);
         // ID may be of a `Warehouse` or `Factory`
         borrow_warehouse_mut(listing, inventory_id)
     }

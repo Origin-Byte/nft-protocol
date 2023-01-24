@@ -28,8 +28,6 @@ module nft_protocol::dutch_auction {
     use nft_protocol::warehouse;
     use nft_protocol::market_whitelist::{Self, Certificate};
 
-    const U64_MAX: u64 = 18446744073709551615;
-
     struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
         /// The minimum price at which NFTs can be sold
