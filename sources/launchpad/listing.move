@@ -58,6 +58,12 @@ module nft_protocol::listing {
     /// using `Listing::add_warehouse`.
     const EUNDEFINED_WAREHOUSE: u64 = 2;
 
+    /// `Warehouse` or `Facotry` was not defined on `Listing`
+    ///
+    /// Initialize `Warehouse` using `Listing::init_warehouse` or insert one
+    /// using `Listing::add_warehouse`.
+    const EUNDEFINED_INVENTORY: u64 = 3;
+
     struct Listing has key, store {
         id: UID,
         /// The ID of the marketplace if any
@@ -144,12 +150,11 @@ module nft_protocol::listing {
     /// Panics if transaction sender is not listing admin.
     public entry fun init_venue<Market: store>(
         listing: &mut Listing,
-        inventory_id: ID,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ) {
-        create_venue(listing, inventory_id, market, is_whitelisted, ctx);
+        create_venue(listing, market, is_whitelisted, ctx);
     }
 
     /// Creates a `Venue` on `Listing` and returns it's ID
@@ -159,12 +164,11 @@ module nft_protocol::listing {
     /// Panics if transaction sender is not listing admin.
     public fun create_venue<Market: store>(
         listing: &mut Listing,
-        inventory_id: ID,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ): ID {
-        let venue = venue::new(inventory_id, market, is_whitelisted, ctx);
+        let venue = venue::new(market, is_whitelisted, ctx);
         let venue_id = object::id(&venue);
         add_venue(listing, venue, ctx);
         venue_id
@@ -309,10 +313,6 @@ module nft_protocol::listing {
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
-
-        let inventory_id = venue::inventory_id(&venue);
-        assert_warehouse(listing, inventory_id);
-
         object_table::add(
             &mut listing.venues,
             object::id(&venue),
@@ -492,25 +492,6 @@ module nft_protocol::listing {
         object_table::borrow_mut(&mut listing.venues, venue_id)
     }
 
-    /// Mutably borrow the Listing's `Venue` and the corresponding inventory
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Venue` does not exist.
-    fun borrow_venue_inventory_mut(
-        listing: &mut Listing,
-        venue_id: ID,
-    ): (&mut Venue, &mut Warehouse) {
-        assert_venue(listing, venue_id);
-        let venue = object_table::borrow_mut(&mut listing.venues, venue_id);
-
-        // ID may be of a `Warehouse` or `Factory`
-        let inventory_id = venue::inventory_id(venue);
-        let warehouse = object_table::borrow_mut(&mut listing.warehouses, inventory_id);
-
-        (venue, warehouse)
-    }
-
     /// Mutably borrow the Listing's `Venue` and the corresponding
     /// inventory
     ///
@@ -530,27 +511,6 @@ module nft_protocol::listing {
         venue::assert_market<Market>(venue);
 
         venue
-    }
-
-    /// Mutably borrow the Listing's `Venue` and the corresponding
-    /// inventory
-    ///
-    /// `Venue` and inventories are unprotected therefore only market modules
-    /// registered on a `Venue` can gain mutable access to it.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if witness does not originate from the same module as market.
-    public fun inventory_internal_mut<Market: store, Witness: drop>(
-        _witness: Witness,
-        listing: &mut Listing,
-        venue_id: ID,
-    ): (&mut Venue, &mut Warehouse) {
-        utils::assert_same_module_as_witness<Market, Witness>();
-        let (venue, warehouse) = borrow_venue_inventory_mut(listing, venue_id);
-        venue::assert_market<Market>(venue);
-
-        (venue, warehouse)
     }
 
     /// Returns whether `Warehouse` with given ID exists
@@ -587,27 +547,36 @@ module nft_protocol::listing {
         object_table::borrow_mut(&mut listing.warehouses, inventory_id)
     }
 
-    /// Redeems an NFT from `Warehouse` or `Factory`
+    /// Mutably borrow a `Warehouse`
     ///
-    /// Inventories are unprotected therefore only market modules registered
-    /// on an `Venue` may withdraw from it. Additionally, `Venue` may only
-    /// withdraw from a single inventory.
+    /// `Warehouse` is unprotected therefore only market modules
+    /// registered on a `Venue` can gain mutable access to it.
     ///
     /// #### Panics
     ///
-    /// Panics if witness does not originate from the same module as market or
-    /// `Venue` or inventory does not exist.
-    public fun redeem_nft_internal<C, Market: store, Witness: drop>(
-        _witness: Witness,
+    /// Panics if witness does not originate from the same module as market.
+    public fun inventory_internal_mut<Market: store, Witness: drop>(
+        witness: Witness,
         listing: &mut Listing,
         venue_id: ID,
-    ): Nft<C> {
-        utils::assert_same_module_as_witness<Market, Witness>();
-        let venue = borrow_venue(listing, venue_id);
+        inventory_id: ID,
+    ): &mut Warehouse {
+        venue_internal_mut<Market, Witness>(witness, listing, venue_id);
         // ID may be of a `Warehouse` or `Factory`
-        let inventory_id = venue::inventory_id(venue);
-        let warehouse = borrow_warehouse_mut(listing, inventory_id);
-        warehouse::redeem_nft(warehouse)
+        borrow_warehouse_mut(listing, inventory_id)
+    }
+
+    /// Returns how many NFTs can be withdrawn
+    ///
+    /// Returns none if the supply is uncapped
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Warehouse` or `Listing` with the ID does not exist
+    public fun supply(listing: &Listing, inventory_id: ID): Option<u64> {
+        assert_inventory(listing, inventory_id);
+        let warehouse = borrow_warehouse(listing, inventory_id);
+        option::some(warehouse::size(warehouse))
     }
 
     // === Assertions ===
@@ -656,5 +625,10 @@ module nft_protocol::listing {
 
     public fun assert_warehouse(listing: &Listing, warehouse_id: ID) {
         assert!(contains_warehouse(listing, warehouse_id), EUNDEFINED_WAREHOUSE);
+    }
+
+    public fun assert_inventory(listing: &Listing, inventory_id: ID) {
+        // Inventory can be either `Warehouse` or `Factory`
+        assert!(contains_warehouse(listing, inventory_id), EUNDEFINED_INVENTORY);
     }
 }
