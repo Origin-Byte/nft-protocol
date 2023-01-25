@@ -33,13 +33,13 @@ module nft_protocol::plugin_pattern_base_contract {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_creators(creators_addrs)
+            creators::from_creators(creators_addrs, ctx)
         );
 
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            plugins::empty(),
+            plugins::empty(ctx),
         );
 
         transfer(mint_cap, sender);
@@ -78,7 +78,7 @@ module nft_protocol::plugin_pattern_base_contract {
         collection: &mut Collection<Foo>,
     ) {
         // both creators must sign
-        multisig::consume_from_creators_domain(2, collection, multisig);
+        multisig::consume_from_creators_domain<AddPlugin<PluginWitness>, Foo>(2, multisig);
 
         let d = plugins::borrow_plugin_domain_mut(Witness{}, collection);
         plugins::add_plugin<PluginWitness>(d);

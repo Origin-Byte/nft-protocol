@@ -10,6 +10,8 @@
 module nft_protocol::plugins {
     use std::type_name::{Self, TypeName};
     use sui::vec_set::{Self, VecSet};
+    use sui::object::{Self, UID};
+    use sui::tx_context::TxContext;
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::err;
@@ -17,14 +19,15 @@ module nft_protocol::plugins {
 
     // === PluginDomain ===
 
-    struct PluginDomain has store {
+    struct PluginDomain has key, store {
+        id: UID,
         packages: VecSet<TypeName>,
     }
 
     struct Witness has drop {}
 
-    public fun empty(): PluginDomain {
-        PluginDomain { packages: vec_set::empty() }
+    public fun empty(ctx: &mut TxContext): PluginDomain {
+        PluginDomain { id: object::new(ctx), packages: vec_set::empty() }
     }
 
     public fun has_plugin<PluginWitness>(domain: &PluginDomain): bool {
