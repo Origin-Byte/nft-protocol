@@ -170,6 +170,22 @@ module nft_protocol::err {
         return Prefix + 601
     }
 
+    public fun multisig_signers_must_not_be_empty(): u64 {
+        return Prefix + 602
+    }
+
+    public fun multisig_already_used(): u64 {
+        return Prefix + 603
+    }
+
+    public fun multisig_not_enough_signatures(): u64 {
+        return Prefix + 604
+    }
+
+    public fun multisig_not_enough_signers_weight(): u64 {
+        return Prefix + 605
+    }
+
     // === Trading ===
 
     public fun sender_not_owner(): u64 {
@@ -180,7 +196,7 @@ module nft_protocol::err {
         return Prefix + 701
     }
 
-    // === RoyaltyDomain ===
+    // === Domains ===
 
     public fun address_not_attributed(): u64 {
         return Prefix + 800
@@ -196,6 +212,10 @@ module nft_protocol::err {
 
     public fun share_attribution_already_exists(): u64 {
         return Prefix + 803
+    }
+
+    public fun collection_does_not_have_plugin(): u64 {
+        return Prefix + 804
     }
 
     // === Generic ===

@@ -16,6 +16,10 @@ module nft_protocol::utils {
         Marker<T> {}
     }
 
+    public fun bps(): u16 {
+        10_000
+    }
+
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
     ///
