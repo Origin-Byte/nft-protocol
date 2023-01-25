@@ -9,9 +9,6 @@ module nft_protocol::creators {
 
     use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::err;
-    use sui::tx_context::{Self, TxContext};
-    use sui::vec_set::{Self, VecSet};
 
     /// `CreatorsDomain` tracks collection creators
     ///
