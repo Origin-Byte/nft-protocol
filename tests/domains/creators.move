@@ -1,7 +1,7 @@
 #[test_only]
 module nft_protocol::test_creators {
 
-    use sui::test_scenario;
+    use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::creators::{Self, CreatorsDomain};
     use nft_protocol::collection::{Self, Collection, MintCap};
@@ -34,7 +34,7 @@ module nft_protocol::test_creators {
             &scenario, CREATOR, cap_id
         );
 
-        let attribution = creators::from_address(CREATOR);
+        let attribution = creators::from_address(CREATOR, ctx(&mut scenario));
 
         creators::add_creators_domain(
             &mut collection, &mut mint_cap, attribution

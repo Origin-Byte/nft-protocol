@@ -31,6 +31,9 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   filled, or on `buy_nft`/`buy_generic_nft`.
 - Royalties event when `TradePayment` is created.
 
+### Changed
+- Renamed `Inventory` to `Warehouse`
+
 ### Fixed
 
 - When creating a bid higher than the lowest ask, the bid is now filled with

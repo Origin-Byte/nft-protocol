@@ -69,6 +69,7 @@ module nft_protocol::test_display {
             &mint_cap,
             string::utf8(b"Suimarines-234"),
             string::utf8(b"Collection of Suimarines"),
+            ctx(&mut scenario)
         );
 
         // If domain does not exist this function call will fail
@@ -90,7 +91,7 @@ module nft_protocol::test_display {
         display::add_url_domain(
             &mut nft,
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-            ctx
+            ctx(&mut scenario),
         );
 
         // If domain does not exist this function call will fail
@@ -126,6 +127,7 @@ module nft_protocol::test_display {
             &mut collection,
             &mint_cap,
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx(&mut scenario)
         );
 
         // If domain does not exist this function call will fail
@@ -183,6 +185,7 @@ module nft_protocol::test_display {
             &mut collection,
             &mint_cap,
             string::utf8(b"SUIM"),
+            ctx(&mut scenario)
         );
 
         // If domain does not exist this function call will fail

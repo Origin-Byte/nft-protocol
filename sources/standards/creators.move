@@ -3,6 +3,11 @@
 /// `CreatorsDomain` tracks all collection creators, used to authenticate
 /// mutable operations on other OriginByte standard domains.
 module nft_protocol::creators {
+    use sui::object::{Self, UID};
+    use sui::vec_set::{Self, VecSet};
+    use sui::tx_context::{Self, TxContext};
+
+    use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::err;
     use sui::tx_context::{Self, TxContext};
@@ -45,7 +50,11 @@ module nft_protocol::creators {
     ///         domain.name = name;
     ///     }
     /// }
-    struct CreatorsDomain has copy, drop, store {
+    struct CreatorsDomain has key, store {
+        /// 'CreatorsDomain` ID
+        id: UID,
+        /// Frozen `CreatorsDomain` will no longer authenticate creators
+        is_frozen: bool,
         /// Creators that have the ability to mutate standard domains
         creators: VecSet<address>,
     }
@@ -54,26 +63,32 @@ module nft_protocol::creators {
     ///
     /// By not attributing any `Creators`, nobody will ever be able to modify
     /// `Collection` domains.
-    public fun new_empty(): CreatorsDomain {
-        from_creators(vec_set::empty())
+    public fun new_empty(ctx: &mut TxContext): CreatorsDomain {
+        from_creators(vec_set::empty(), ctx)
     }
 
     /// Creates a `CreatorsDomain` object with only one creator
     ///
     /// Only the single `Creator` will ever be able to modify `Collection`
     /// domains.
-    public fun from_address(who: address): CreatorsDomain {
+    public fun from_address(
+        who: address,
+        ctx: &mut TxContext,
+    ): CreatorsDomain {
         let creators = vec_set::empty();
         vec_set::insert(&mut creators, who);
 
-        from_creators(creators)
+        from_creators(creators, ctx)
     }
 
     /// Creates a `CreatorsDomain` with multiple creators
     ///
     /// Each attributed creator will be able to modify `Collection` domains.
-    public fun from_creators(creators: VecSet<address>): CreatorsDomain {
-        CreatorsDomain { creators }
+    public fun from_creators(
+        creators: VecSet<address>,
+        ctx: &mut TxContext,
+    ): CreatorsDomain {
+        CreatorsDomain { id: object::new(ctx), is_frozen: false, creators }
     }
 
     // === Getters ===

@@ -13,7 +13,8 @@ module nft_protocol::test_nft {
     use nft_protocol::fake_witness::{Self, FakeWitness};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::utils;
-    use sui::object;
+
+    use sui::object::{Self, UID};
     use sui::test_scenario::{Self, ctx};
     use sui::transfer::transfer;
 
@@ -21,7 +22,9 @@ module nft_protocol::test_nft {
 
     struct Foo has drop {}
 
-    struct DomainA has store {}
+    struct DomainA has key, store {
+        id: UID
+    }
 
     const OWNER: address = @0xA1C05;
     const FAKE_OWNER: address = @0xA1C11;
@@ -46,7 +49,7 @@ module nft_protocol::test_nft {
 
         let nft = nft::new(&Witness {}, OWNER, ctx);
 
-        nft::add_domain(&mut nft, DomainA {}, ctx);
+        nft::add_domain(&mut nft, DomainA { id: object::new(ctx) }, ctx);
 
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, DomainA>(&nft);
@@ -63,7 +66,7 @@ module nft_protocol::test_nft {
 
         let nft = nft::new(&Witness {}, OWNER, ctx);
 
-        nft::add_domain(&mut nft, DomainA {}, ctx);
+        nft::add_domain(&mut nft, DomainA { id: object::new(ctx) }, ctx);
 
         nft::borrow_domain_mut<Foo, DomainA, Witness>(
             Witness {}, &mut nft
@@ -81,10 +84,10 @@ module nft_protocol::test_nft {
 
         let nft = nft::new<Foo, Witness>(&Witness {}, OWNER, ctx);
 
-        nft::add_domain(&mut nft, DomainA {}, ctx);
+        nft::add_domain(&mut nft, DomainA { id: object::new(ctx) }, ctx);
 
         // This second call will fail
-        nft::add_domain(&mut nft, DomainA {}, ctx);
+        nft::add_domain(&mut nft, DomainA { id: object::new(ctx) }, ctx);
 
         transfer(nft, OWNER);
 
@@ -114,7 +117,7 @@ module nft_protocol::test_nft {
         );
 
         let ctx = ctx(&mut scenario);
-        nft::add_domain(&mut nft, DomainA {}, ctx);
+        nft::add_domain(&mut nft, DomainA { id: object::new(ctx) }, ctx);
 
         transfer(nft, OWNER);
 
@@ -130,7 +133,7 @@ module nft_protocol::test_nft {
 
         let nft = nft::new(&Witness {}, OWNER, ctx);
 
-        nft::add_domain(&mut nft, DomainA {}, ctx);
+        nft::add_domain(&mut nft, DomainA { id: object::new(ctx) }, ctx);
 
         nft::borrow_domain<Foo, DomainA>(&nft);
 

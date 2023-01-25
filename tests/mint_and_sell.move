@@ -15,11 +15,11 @@ module nft_protocol::mint_and_sell {
     use nft_protocol::display;
     use nft_protocol::flat_fee;
     use nft_protocol::fixed_price;
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::creators;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::marketplace::{Self, Marketplace};
-    use nft_protocol::inventory;
+    use nft_protocol::warehouse;
 
     struct Witness has drop {}
 
@@ -43,7 +43,10 @@ module nft_protocol::mint_and_sell {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx(&mut scenario)))
+            creators::from_address(
+                tx_context::sender(ctx(&mut scenario)),
+                ctx(&mut scenario)
+            )
         );
 
         // Register custom domains
@@ -52,18 +55,21 @@ module nft_protocol::mint_and_sell {
             &mut mint_cap,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+            ctx(&mut scenario),
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx(&mut scenario),
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUIM")
+            string::utf8(b"SUIM"),
+            ctx(&mut scenario),
         );
 
         let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
@@ -101,9 +107,11 @@ module nft_protocol::mint_and_sell {
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
         let listing = test_scenario::take_shared<Listing>(&scenario);
 
-        // 3. Create inventory and mint NFT to it
+        // 3. Create warehouse and mint NFT to it
         test_scenario::next_tx(&mut scenario, CREATOR);
-        let inventory = inventory::new(ctx(&mut scenario));
+
+        let collection = test_scenario::take_shared<Collection<Foo>>(&mut scenario);
+        let warehouse = warehouse::new(ctx(&mut scenario));
 
         let nft = nft::new<Foo, Witness>(
             &Witness {},
@@ -134,19 +142,23 @@ module nft_protocol::mint_and_sell {
             ctx(&mut scenario),
         );
 
-        inventory::deposit_nft(&mut inventory, nft);
+        warehouse::deposit_nft(&mut warehouse, nft);
 
         // 4. Init Market in Marketplace Listing
-        fixed_price::create_market_on_inventory<SUI>(
-            &mut inventory,
+        let venue_id = listing::create_venue(&mut listing, ctx(&mut scenario));
+
+        fixed_price::create_market_on_listing<SUI>(
+            &mut listing,
+            venue_id,
             false,
             100,
             ctx(&mut scenario),
         );
 
-        listing::add_inventory(&mut listing, inventory, ctx(&mut scenario));
-
         // Return objects and end test
+        transfer::transfer(warehouse, CREATOR);
+
+        test_scenario::return_shared(collection);
         test_scenario::return_shared(marketplace);
         test_scenario::return_shared(listing);
 
