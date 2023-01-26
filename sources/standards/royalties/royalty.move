@@ -23,7 +23,7 @@ module nft_protocol::royalty {
 
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::creators;
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::royalty_strategy_constant::{
@@ -509,13 +509,9 @@ module nft_protocol::royalty {
     ///
     /// Requires that `CreatorsDomain` is defined and sender is a creator
     public fun royalty_domain_mut<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        ctx: &mut TxContext,
     ): &mut RoyaltyDomain {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
-
         collection::borrow_domain_mut(Witness {}, collection)
     }
 

@@ -46,7 +46,7 @@ module nft_protocol::test_tags {
         let scenario = test_scenario::begin(CREATOR);
 
         let (col_id, cap_id, _wl_id) = create_collection_and_allowlist_with_type(
-            Foo {},
+            &Foo {},
             Witness {},
             CREATOR,
             &mut scenario,

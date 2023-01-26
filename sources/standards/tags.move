@@ -8,12 +8,12 @@ module nft_protocol::tags {
     // and figure out which ones are tags or not.
     use sui::bag::{Self, Bag};
     use sui::object::{Self, UID};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
 
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::creators;
 
     // === Tags ===
 
@@ -131,13 +131,9 @@ module nft_protocol::tags {
 
     /// Requires that sender is a creator
     public fun collection_tag_domain_mut<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        ctx: &mut TxContext,
     ): &mut TagDomain {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
-
         collection::borrow_domain_mut(Witness {}, collection)
     }
 

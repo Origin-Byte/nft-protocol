@@ -31,7 +31,7 @@ module nft_protocol::football {
         collection::add_domain(
             &mut collection,
             &mint_cap,
-            creators::from_address(tx_context::sender(ctx), ctx)
+            creators::from_address(&witness, tx_context::sender(ctx), ctx),
         );
 
         // Register custom domains

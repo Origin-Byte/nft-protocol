@@ -52,14 +52,14 @@ module nft_protocol::test_utils {
     }
 
     public fun create_collection_and_allowlist_with_type<C: drop, Witness: drop>(
-        coll_type: C,
+        coll_type: &C,
         transfer_witness: Witness,
         creator: address,
         scenario: &mut Scenario,
         ): (ID, ID, ID) {
         let (cap, col) = collection::dummy_collection<C>(
-            &coll_type, creator, scenario
-            );
+            coll_type, creator, scenario
+        );
 
         let col_id = object::id(&col);
         let cap_id = object::id(&cap);
