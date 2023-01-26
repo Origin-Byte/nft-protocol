@@ -1,226 +1,183 @@
 /// Module representing the market `Venue` type
 ///
 /// `Venue` allows creator to configure a primary market through which
-/// their collection will be sold. This includes defining multiple markets,
-/// but also their whitelist status.
+/// their collection will be sold. `Venue` enforces that all purchases made
+/// through it will draw from an inventory determined at construction.
 ///
-/// `Venue` is an unprotected type that composes the inventory structure of
-/// `Listing`. In consequence, `Inventory` can be constructed independently
-/// before it is published in a `Listing`, allowing `Inventory` to be
-/// constructed while avoiding shared consensus transactions on `Listing`.
+/// `Venue` is an unprotected type that composes the market structure of
+/// `Listing`.
 module nft_protocol::venue {
-    use std::vector;
-
     use sui::transfer;
-    use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
-    use sui::vec_map::{Self, VecMap};
-    use sui::object::{Self, ID , UID};
-    use sui::object_bag::{Self, ObjectBag};
+    use sui::object::{Self, UID};
+    use sui::dynamic_field as df;
 
-    use nft_protocol::err;
-    use nft_protocol::nft::Nft;
+    use nft_protocol::utils::{Self, Marker};
 
-    friend nft_protocol::listing;
+    /// `Venue` is not live
+    ///
+    /// Call `Venue::set_live` or `Listing::sale_on` to make it live.
+    const EVENUE_NOT_LIVE: u64 = 1;
+
+    /// `Venue` whitelisted
+    ///
+    /// Ensure that `Venue` is not whitelisted when calling `Venue::new` or
+    /// call `Venue::set_whitelisted`.
+    const EVENUE_WHITELISTED: u64 = 2;
+
+    /// `Venue` not whitelisted
+    ///
+    /// Ensure that `Venue` is whitelisted when calling `Venue::new` or call
+    /// `Venue::set_whitelisted`.
+    const EVENUE_NOT_WHITELISETED: u64 = 3;
+
+    /// `Venue` market accessed with incorrect type
+    ///
+    /// Ensure that the type argument provided to `Venue::borrow_market`
+    /// corresponds to the underlying market.
+    const EVENUE_INCORRECT_MARKET_TYPE: u64 = 4;
 
     /// `Venue` object
     ///
-    /// `Venue` is a private object that handles the parametrization of NFT
-    /// primary sales. It is intended to be inserted into a `Listing` which
-    /// publicises it as a market venue.
+    /// `Venue` is a thin wrapper around a generic `Market` that handles
+    /// tracking live status and whitelist assertions. `Venue` itself is not
+    /// generic as to not require knowledge of the underlying market to
+    /// perform administrative operations.
     ///
-    /// NFTs are deposited into `Venue` by composing multiple `Inventory`.
+    /// `Venue` is unprotected and relies on safely obtaining a mutable
+    /// reference.
     struct Venue has key, store {
         id: UID,
-        /// Track which markets are live
-        live: VecMap<ID, bool>,
-        /// Track which markets are whitelisted
-        whitelisted: VecMap<ID, bool>,
-        /// Vector of all markets outlets that, each outles holding IDs
-        /// owned by the inventory
-        markets: ObjectBag,
-        // NFTs that are currently on sale. When a `NftCertificate` is sold,
-        // its corresponding NFT ID will be flushed from `nfts` and will be
-        // added to `queue`.
-        nfts_on_sale: vector<ID>,
+        /// Track whether market is live
+        is_live: bool,
+        /// Track which market is whitelisted
+        is_whitelisted: bool,
     }
 
     /// Create a new `Venue`
-    public fun new(ctx: &mut TxContext): Venue {
+    public fun new<Market: store>(
+        market: Market,
+        is_whitelisted: bool,
+        ctx: &mut TxContext
+    ): Venue {
+        let venue_id = object::new(ctx);
+        df::add(&mut venue_id, utils::marker<Market>(), market);
+
         Venue {
-            id: object::new(ctx),
-            live: vec_map::empty(),
-            whitelisted: vec_map::empty(),
-            markets: object_bag::new(ctx),
-            nfts_on_sale: vector::empty(),
+            id: venue_id,
+            is_live: false,
+            is_whitelisted,
         }
     }
 
-    /// Creates a `Venue` and transfers to transaction sender
-    public entry fun init_venue(ctx: &mut TxContext) {
-        let venue = new(ctx);
+    /// Initializes a `Venue` and transfers to transaction sender
+    public entry fun init_venue<Market: store>(
+        market: Market,
+        is_whitelisted: bool,
+        ctx: &mut TxContext
+    ) {
+        let venue = new(market, is_whitelisted, ctx);
         transfer::transfer(venue, tx_context::sender(ctx));
     }
 
-    /// Adds a new market to `Venue` allowing NFTs deposited to the
-    /// inventory to be sold.
+    /// Set market's live status
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Venue`.
-    public entry fun add_market<Market: key + store>(
+    public entry fun set_live(
+        venue: &mut Venue,
+        is_live: bool,
+    ) {
+        venue.is_live = is_live;
+    }
+
+    /// Set market's whitelist status
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Venue`.
+    public entry fun set_whitelisted(
         venue: &mut Venue,
         is_whitelisted: bool,
-        market: Market,
     ) {
-        let market_id = object::id(&market);
-
-        vec_map::insert(&mut venue.live, market_id, false);
-        vec_map::insert(&mut venue.whitelisted, market_id, is_whitelisted);
-
-        object_bag::add<ID, Market>(
-            &mut venue.markets,
-            market_id,
-            market,
-        );
+        venue.is_whitelisted = is_whitelisted;
     }
 
-    /// Deposits NFT to `Venue`
+    // === Getter Functions ===
+
+    /// Get whether the venue is live
+    public fun is_live(venue: &Venue): bool {
+        venue.is_live
+    }
+
+    /// Get whether the venue is whitelisted
+    public fun is_whitelisted(venue: &Venue): bool {
+        venue.is_whitelisted
+    }
+
+    /// Borrow `Venue` market
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Venue`.
-    public entry fun deposit_nft<C>(venue: &mut Venue, nft: Nft<C>) {
-        let nft_id = object::id(&nft);
-        vector::push_back(&mut venue.nfts_on_sale, nft_id);
-
-        dof::add(&mut venue.id, nft_id, nft);
+    /// #### Panics
+    ///
+    /// Panics if incorrect type was provided for the underlying market.
+    public fun borrow_market<Market: store>(
+        venue: &Venue,
+    ): &Market {
+        assert_market<Market>(venue);
+        df::borrow(&venue.id, utils::marker<Market>())
     }
 
-    /// Redeems NFT from `Venue`
+    /// Mutably borrow `Venue` market
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Venue`.
     ///
     /// #### Panics
     ///
-    /// Panics if `Venue` is empty
-    public fun redeem_nft<C>(
+    /// Panics if incorrect type was provided for the underlying market.
+    public fun borrow_market_mut<Market: store>(
         venue: &mut Venue,
-    ): Nft<C> {
-        let nfts = &mut venue.nfts_on_sale;
-        assert!(!vector::is_empty(nfts), err::no_nfts_left());
-
-        dof::remove(&mut venue.id, vector::pop_back(nfts))
-    }
-
-    /// Redeems specific NFT from `Venue` and transfers to sender
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Venue`.
-    ///
-    /// #### Usage
-    ///
-    /// Entry mint functions like `suimarines::mint_nft` take an `Venue`
-    /// object to deposit into. Calling `redeem_nft_transfer` allows one to
-    /// withdraw an NFT and own it directly.
-    public entry fun redeem_nft_transfer<C>(
-        venue: &mut Venue,
-        ctx: &mut TxContext,
-    ) {
-        let nft = redeem_nft<C>(venue);
-        transfer::transfer(nft, tx_context::sender(ctx));
-    }
-
-    /// Set market's live status
-    public entry fun set_live(
-        venue: &mut Venue,
-        market_id: ID,
-        is_live: bool,
-    ) {
-        *vec_map::get_mut(&mut venue.live, &market_id) = is_live;
-    }
-
-    /// Set market's whitelist status
-    public entry fun set_whitelisted(
-        venue: &mut Venue,
-        market_id: ID,
-        is_whitelisted: bool,
-    ) {
-        *vec_map::get_mut(&mut venue.whitelisted, &market_id) =
-            is_whitelisted;
-    }
-
-    // === Getter Functions ===
-
-    /// Check how many `nfts` there are to sell
-    public fun length(venue: &Venue): u64 {
-        vector::length(&venue.nfts_on_sale)
-    }
-
-    /// Get the market's `live` status
-    public fun is_live(venue: &Venue, market_id: &ID): bool {
-        *vec_map::get(&venue.live, market_id)
-    }
-
-    public fun is_empty(venue: &Venue): bool {
-        vector::is_empty(&venue.nfts_on_sale)
-    }
-
-    public fun is_whitelisted(venue: &Venue, market_id: &ID): bool {
-        *vec_map::get(&venue.whitelisted, market_id)
-    }
-
-    /// Get the `Venue` markets
-    public fun markets<C>(venue: &Venue): &ObjectBag {
-        &venue.markets
-    }
-
-    /// Get specific `Venue` market
-    public fun market<Market: key + store>(
-        venue: &Venue,
-        market_id: ID,
-    ): &Market {
-        assert_market<Market>(venue, market_id);
-        object_bag::borrow<ID, Market>(&venue.markets, market_id)
-    }
-
-    /// Get specific `Venue` market mutably
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Venue`.
-    public fun market_mut<Market: key + store>(
-        venue: &mut Venue,
-        market_id: ID,
     ): &mut Market {
-        assert_market<Market>(venue, market_id);
-        object_bag::borrow_mut<ID, Market>(&mut venue.markets, market_id)
+        assert_market<Market>(venue);
+        df::borrow_mut(&mut venue.id, utils::marker<Market>())
     }
 
     // === Assertions ===
 
-    public fun assert_is_live(venue: &Venue, market_id: &ID) {
-        assert!(is_live(venue, market_id), err::listing_not_live());
+    /// Asserts the type of the underlying market of the `Venue`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if incorrect type was provided
+    public fun assert_market<Market: store>(venue: &Venue): bool {
+        df::exists_with_type<Marker<Market>, Market>(
+            &venue.id, utils::marker<Market>()
+        )
     }
 
-    public fun assert_is_whitelisted(venue: &Venue, market_id: &ID) {
-        assert!(
-            is_whitelisted(venue, market_id),
-            err::sale_is_not_whitelisted()
-        );
+    /// Asserts that `Venue` is live
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` is not live
+    public fun assert_is_live(venue: &Venue) {
+        assert!(is_live(venue), EVENUE_NOT_LIVE);
     }
 
-    public fun assert_is_not_whitelisted(venue: &Venue, market_id: &ID) {
-        assert!(
-            !is_whitelisted(venue, market_id),
-            err::sale_is_whitelisted()
-        );
+    /// Asserts that `Venue` is whitelisted
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` is not whitelisted
+    public fun assert_is_whitelisted(venue: &Venue) {
+        assert!(is_whitelisted(venue), EVENUE_NOT_WHITELISETED);
     }
 
-    public fun assert_market<Market: key + store>(venue: &Venue, market_id: ID) {
-        assert!(
-            object_bag::contains_with_type<ID, Market>(
-                &venue.markets, market_id
-            ),
-            err::undefined_market(),
-        );
+    /// Asserts that `Venue` is not whitelisted
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` is whitelisted
+    public fun assert_is_not_whitelisted(venue: &Venue) {
+        assert!(!is_whitelisted(venue), EVENUE_WHITELISTED);
     }
 }
