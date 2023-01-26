@@ -1,6 +1,5 @@
 /// Utility functions
 module nft_protocol::utils {
-    use std::debug;
     use std::ascii;
     use std::string::{Self, String, sub_string};
     use std::type_name;
