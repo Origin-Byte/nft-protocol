@@ -3,8 +3,10 @@ module nft_protocol::market_whitelist {
     use sui::object::{Self, ID , UID};
     use sui::tx_context::TxContext;
 
-    use nft_protocol::err;
     use nft_protocol::listing::{Self, Listing};
+
+    /// `Certificate` issued for incorrect `Venue` ID
+    const EINCORRECT_CERTIFICATE: u64 = 1;
 
     /// Grants owner the privilege to participate in an NFT sale in a
     /// whitelisted `Listing`
@@ -18,24 +20,20 @@ module nft_protocol::market_whitelist {
         id: UID,
         /// `Listing` from which this certificate can withdraw an `Nft`
         listing_id: ID,
-        /// `Inventory` from which this certificate can withdraw an `Nft`
-        inventory_id: ID,
-        /// Market on `Inventory` from which this certificate can withdraw an
-        /// `Nft`
-        market_id: ID,
+        /// `Venue` from which this certificate can withdraw an `Nft`
+        venue_id: ID,
     }
 
     /// Create a new `Certificate`
     ///
     /// Can be used by owner to participate in the provided market.
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if transaction sender is not `Listing` admin
     public fun new(
         listing: &Listing,
-        inventory_id: ID,
-        market_id: ID,
+        venue_id: ID,
         ctx: &mut TxContext,
     ): Certificate {
         listing::assert_listing_admin(listing, ctx);
@@ -43,8 +41,7 @@ module nft_protocol::market_whitelist {
         let certificate = Certificate {
             id: object::new(ctx),
             listing_id: object::id(listing),
-            inventory_id,
-            market_id,
+            venue_id,
         };
 
         certificate
@@ -54,19 +51,16 @@ module nft_protocol::market_whitelist {
     ///
     /// Can be used by owner to participate in the provided market.
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if transaction sender is not `Listing` admin
     public entry fun issue(
         listing: &Listing,
-        inventory_id: ID,
-        market_id: ID,
+        venue_id: ID,
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        let certificate = new(
-            listing, inventory_id, market_id, ctx,
-        );
+        let certificate = new(listing, venue_id, ctx);
         transfer::transfer(certificate, recipient);
     }
 
@@ -77,8 +71,7 @@ module nft_protocol::market_whitelist {
         let Certificate {
             id,
             listing_id: _,
-            inventory_id: _,
-            market_id: _,
+            venue_id: _,
         } = certificate;
 
         object::delete(id);
@@ -86,14 +79,12 @@ module nft_protocol::market_whitelist {
 
     // === Assertions ===
 
-    public fun assert_certificate(
-        market_id: ID,
-        certificate: &Certificate,
-    ) {
-        // Infer that whitelist token corresponds to correct sale inventory
-        assert!(
-            certificate.market_id == market_id,
-            err::incorrect_whitelist_certificate()
-        );
+    /// Assert `Certificate` parameters
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Certificate` parameters don't match
+    public fun assert_certificate(certificate: &Certificate, venue_id: ID) {
+        assert!(certificate.venue_id == venue_id, EINCORRECT_CERTIFICATE);
     }
 }

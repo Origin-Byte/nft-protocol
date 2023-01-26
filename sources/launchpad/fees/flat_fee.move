@@ -40,7 +40,7 @@ module nft_protocol::flat_fee {
         listing::assert_correct_admin(marketplace, listing, ctx);
 
         let (proceeds_value, listing_receiver) = {
-            let proceeds = listing::proceeds(listing);
+            let proceeds = listing::borrow_proceeds(listing);
             let listing_receiver = listing::receiver(listing);
             let proceeds_value = proceeds::balance<FT>(proceeds);
             (proceeds_value, listing_receiver)
@@ -62,7 +62,7 @@ module nft_protocol::flat_fee {
         let fee = balance::value(proceeds_value) * policy.rate_bps;
 
         proceeds::collect_with_fees<FT>(
-            listing::proceeds_mut(listing),
+            listing::borrow_proceeds_mut(listing),
             fee,
             mkt::receiver(marketplace),
             listing_receiver,
