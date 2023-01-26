@@ -43,8 +43,8 @@ module nft_protocol::listing {
     use nft_protocol::nft::Nft;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
-    use nft_protocol::object_box::{Self as obox, ObjectBox};
     use nft_protocol::venue::{Self, Venue};
+    use originmate::object_box::{Self as obox, ObjectBox};
 
     struct Listing has key, store {
         id: UID,

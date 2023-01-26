@@ -6,7 +6,7 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.20.0] - 2023-01-26
 
 ### Added
 
@@ -20,13 +20,25 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Royalties event when `TradePayment` is created.
 
 ### Changed
+- Updated Sui dep to `0.23.0`
 - Renamed `Inventory` to `Warehouse`
 
 ### Fixed
 
 - When creating a bid higher than the lowest ask, the bid is now filled with
-  the lowest ask price.
-  Before, it was filled with the bid price.
+  the lowest ask price. Before, it was filled with the bid price.
+
+## [0.19.1] - 2023-01-23
+
+### Changed
+
+- Updated Sui dep to `0.22.1`
+
+## [0.19.0] - 2023-01-13
+
+### Changed
+
+- Updated Sui dep to `0.22.0`
 
 ## [0.18.0] - 2023-01-13
 

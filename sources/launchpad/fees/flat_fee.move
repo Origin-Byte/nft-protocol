@@ -8,9 +8,9 @@ module nft_protocol::flat_fee {
 
     use nft_protocol::err;
     use nft_protocol::proceeds;
-    use nft_protocol::object_box;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
+    use originmate::object_box;
 
     struct FlatFee has key, store {
         id: UID,
