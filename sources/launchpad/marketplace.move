@@ -27,7 +27,7 @@ module nft_protocol::marketplace {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::object_box::{Self as obox, ObjectBox};
+    use originmate::object_box::{Self as obox, ObjectBox};
 
     struct Marketplace has key, store {
         id: UID,
