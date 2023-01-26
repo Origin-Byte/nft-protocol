@@ -17,8 +17,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use nft_protocol::transfer_allowlist::{Allowlist};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::test_utils::{Self as utils};
-    use nft_protocol::collection::{Self, Collection, MintCap};
-
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps::{BpsRoyaltyStrategy};
 
     const BUYER: address = @0xA1C06;
@@ -129,7 +129,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain<Foo>(
-            &mut collection, &mut mint_cap, royalty
+            Witness {}, &mut collection, royalty
         );
 
         // If domain does not exist this function call will fail

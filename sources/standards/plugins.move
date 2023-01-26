@@ -17,7 +17,7 @@ module nft_protocol::plugins {
     use nft_protocol::witness::{
         Self, WitnessGenerator, Witness as DelegatedWitness
     };
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
 
     /// `PluginDomain` not registered on `Collection`
     ///
@@ -149,11 +149,14 @@ module nft_protocol::plugins {
     public fun add_plugin_domain<C>(
         witness: &C,
         collection: &mut Collection<C>,
-        mint_cap: &mut MintCap<C>,
         ctx: &mut TxContext,
     ) {
         let domain = new(witness, ctx);
-        collection::add_domain(collection, mint_cap, domain);
+        collection::add_domain(
+            witness::from_witness(witness),
+            collection,
+            domain,
+        );
     }
 
     // === Assertions ===

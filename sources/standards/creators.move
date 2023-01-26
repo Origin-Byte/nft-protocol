@@ -47,7 +47,7 @@ module nft_protocol::creators {
     ///     } has key, store
     ///
     ///     public fun set_name<C>(
-    ///         _witness: DelegatedWitness<C>,
+    ///         _witness: &DelegatedWitness<C>,
     ///         collection: &mut Collection<C>,
     ///         name: String,
     ///     ) {

@@ -17,7 +17,7 @@ module nft_protocol::display {
     use nft_protocol::utils;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
@@ -99,14 +99,14 @@ module nft_protocol::display {
     }
 
     public fun add_collection_display_domain<C>(
+        witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         name: String,
         description: String,
         ctx: &mut TxContext,
     ) {
         collection::add_domain(
-            collection, mint_cap, new_display_domain(name, description, ctx)
+            witness, collection, new_display_domain(name, description, ctx)
         );
     }
 
@@ -168,12 +168,12 @@ module nft_protocol::display {
     }
 
     public fun add_collection_url_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         url: Url,
         ctx: &mut TxContext,
     ) {
-        collection::add_domain(nft, mint_cap, new_url_domain(url, ctx));
+        collection::add_domain(witness, nft, new_url_domain(url, ctx));
     }
 
     // === SymbolDomain ===
@@ -239,12 +239,12 @@ module nft_protocol::display {
     }
 
     public fun add_collection_symbol_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         symbol: String,
         ctx: &mut TxContext,
     ) {
-        collection::add_domain(nft, mint_cap, new_symbol_domain(symbol, ctx));
+        collection::add_domain(witness, nft, new_symbol_domain(symbol, ctx));
     }
 
     // === AttributesDomain ===

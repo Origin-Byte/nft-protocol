@@ -11,7 +11,7 @@ module nft_protocol::warehouse {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
-    use nft_protocol::nft::Nft;
+    use nft_protocol::nft::{Self, Nft};
 
     /// `Warehouse` does not have NFTs left to withdraw
     ///
@@ -25,7 +25,7 @@ module nft_protocol::warehouse {
     const ENOT_EMPTY: u64 = 2;
 
     /// `Warehouse` object
-    struct Warehouse has key, store {
+    struct Warehouse<phantom C> has key, store {
         id: UID,
         // NFTs that are currently on sale. When a `NftCertificate` is sold,
         // its corresponding NFT ID will be flushed from `nfts` and will be
@@ -34,7 +34,7 @@ module nft_protocol::warehouse {
     }
 
     /// Create a new `Warehouse`
-    public fun new(ctx: &mut TxContext): Warehouse {
+    public fun new<C>(ctx: &mut TxContext): Warehouse<C> {
         Warehouse {
             id: object::new(ctx),
             nfts: vector::empty(),
@@ -42,8 +42,8 @@ module nft_protocol::warehouse {
     }
 
     /// Creates a `Warehouse` and transfers to transaction sender
-    public entry fun init_warehouse(ctx: &mut TxContext) {
-        transfer::transfer(new(ctx), tx_context::sender(ctx));
+    public entry fun init_warehouse<C>(ctx: &mut TxContext) {
+        transfer::transfer(new<C>(ctx), tx_context::sender(ctx));
     }
 
     /// Deposits NFT to `Warehouse`
@@ -51,7 +51,7 @@ module nft_protocol::warehouse {
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
     public entry fun deposit_nft<C>(
-        warehouse: &mut Warehouse,
+        warehouse: &mut Warehouse<C>,
         nft: Nft<C>,
     ) {
         let nft_id = object::id(&nft);
@@ -68,11 +68,16 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty
-    public fun redeem_nft<C>(warehouse: &mut Warehouse): Nft<C> {
+    public fun redeem_nft<C>(
+        warehouse: &mut Warehouse<C>,
+        owner: address,
+    ): Nft<C> {
         let nfts = &mut warehouse.nfts;
         assert!(!vector::is_empty(nfts), EEMPTY);
 
-        dof::remove(&mut warehouse.id, vector::pop_back(nfts))
+        let nft = dof::remove(&mut warehouse.id, vector::pop_back(nfts));
+        nft::change_logical_owner_internal(&mut nft, owner);
+        nft
     }
 
     /// Redeems specific NFT from `Warehouse` and transfers to sender
@@ -86,11 +91,12 @@ module nft_protocol::warehouse {
     /// object to deposit into. Calling `redeem_nft_transfer` allows one to
     /// withdraw an NFT and own it directly.
     public entry fun redeem_nft_transfer<C>(
-        warehouse: &mut Warehouse,
+        warehouse: &mut Warehouse<C>,
         ctx: &mut TxContext,
     ) {
-        let nft = redeem_nft<C>(warehouse);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        let sender = tx_context::sender(ctx);
+        let nft = redeem_nft<C>(warehouse, sender);
+        transfer::transfer(nft, sender);
     }
 
     /// Destroys `Warehouse`
@@ -98,7 +104,7 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is not empty
-    public entry fun destroy<C>(warehouse: Warehouse) {
+    public entry fun destroy<C>(warehouse: Warehouse<C>) {
         assert_is_empty(&warehouse);
         let Warehouse { id, nfts: _ } = warehouse;
         object::delete(id);
@@ -107,19 +113,19 @@ module nft_protocol::warehouse {
     // === Getter Functions ===
 
     /// Return how many `Nft` there are to sell
-    public fun size(warehouse: &Warehouse): u64 {
+    public fun supply<C>(warehouse: &Warehouse<C>): u64 {
         vector::length(&warehouse.nfts)
     }
 
     /// Return whether there are any `Nft` in the `Warehouse`
-    public fun is_empty(warehouse: &Warehouse): bool {
+    public fun is_empty<C>(warehouse: &Warehouse<C>): bool {
         vector::is_empty(&warehouse.nfts)
     }
 
     // === Assertions ===
 
     /// Asserts that `Warehouse` is empty
-    public fun assert_is_empty(warehouse: &Warehouse) {
+    public fun assert_is_empty<C>(warehouse: &Warehouse<C>) {
         assert!(is_empty(warehouse), ENOT_EMPTY);
     }
 }
