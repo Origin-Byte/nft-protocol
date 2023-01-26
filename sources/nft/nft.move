@@ -19,6 +19,24 @@ module nft_protocol::nft {
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
+    use nft_protocol::mint_cap::{
+        Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
+    };
+
+    // TODO: Remove this after refactoring NFT permissions to allow
+    // DelegatedWitness
+    friend nft_protocol::warehouse;
+    friend nft_protocol::flyweight_mint_cap;
+
+    /// Domain not defined
+    ///
+    /// Call `collection::add_domain` to add domains
+    const EUNDEFINED_DOMAIN: u64 = 1;
+
+    /// Domain already defined
+    ///
+    /// Call `collection::borrow` to borrow domain
+    const EEXISTING_DOMAIN: u64 = 2;
 
     /// `Nft` object
     ///
@@ -54,29 +72,10 @@ module nft_protocol::nft {
     }
 
     /// Create a new `Nft`
-    ///
-    /// ##### Usage
-    ///
-    /// ```
-    /// struct SUIMARINES has drop {}
-    ///
-    /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-    ///     let nft = nft::new(&witness, tx_context::sender(ctx), ctx);
-    /// }
-    /// ```
-    ///
-    /// ##### Panics
-    ///
-    /// Panics when attempting to create an NFT with a witness type originating
-    /// from a different module than the one-time collection witness `C`. See
-    /// [borrow_domain_mut](#borrow_domain_mut).
-    public fun new<C, W>(
-        _witness: &W,
+    fun new_<C>(
         owner: address,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): Nft<C> {
-        utils::assert_same_module_as_witness<C, W>();
-
         let id = object::new(ctx);
 
         event::emit(MintNftEvent {
@@ -90,6 +89,59 @@ module nft_protocol::nft {
         }
     }
 
+    /// Create a new `Nft`
+    ///
+    /// #### Usage
+    ///
+    /// ```
+    /// struct SUIMARINES has drop {}
+    ///
+    /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
+    ///
+    ///     let nft = nft::new(&witness, tx_context::sender(ctx), ctx);
+    /// }
+    /// ```
+    public fun new<C>(
+        _mint_cap: &MintCap<C>,
+        owner: address,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        new_(owner, ctx)
+    }
+
+    /// Create a new `Nft` using `RegulatedMintCap`
+    ///
+    /// `RegulatedMintCap` may only be created by
+    /// `supply_domain::delegate_regulated`.
+    ///
+    /// See [new](#new) for usage information.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if supply is exceeded.
+    public fun new_regulated<C>(
+        mint_cap: &mut RegulatedMintCap<C>,
+        owner: address,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        mint_cap::increment_supply(mint_cap, 1);
+        new_(owner, ctx)
+    }
+
+    /// Create a new `Nft` using `UnregulatedMintCap`
+    ///
+    /// `UnregulatedMintCap` may only be created by
+    /// `supply_domain::delegate_unregulated`.
+    ///
+    /// See [new](#new) for usage information.
+    public fun new_unregulated<C>(
+        _mint_cap: &UnregulatedMintCap<C>,
+        owner: address,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        new_(owner, ctx)
+    }
+
     // === Domain Functions ===
 
     /// Check whether `Nft` has a domain of type `D`
@@ -99,7 +151,7 @@ module nft_protocol::nft {
 
     /// Borrow domain of type `D` from `Nft`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if domain of type `D` is not present on the `Nft`
     public fun borrow_domain<C, D: key + store>(nft: &Nft<C>): &D {
@@ -113,7 +165,7 @@ module nft_protocol::nft {
     /// instantiated it. In other words, witness `W` must be defined in the
     /// same module as domain `D`.
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// ```
     /// module nft_protocol::display {
@@ -132,7 +184,7 @@ module nft_protocol::nft {
     /// }
     /// ```
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics when module attempts to mutably borrow a domain it did not
     /// define itself or if domain of type `D` is not present on the `Nft`.
@@ -168,12 +220,12 @@ module nft_protocol::nft {
 
     /// Adds domain of type `D` to `Nft`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if transaction sender is not logical owner of the `Nft` or
     /// domain `D` already exists.
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// ```
     /// let display_domain = display::new_display_domain(name, description);
@@ -197,13 +249,13 @@ module nft_protocol::nft {
 
     /// Removes domain of type `D` from `Nft`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics when module attempts to remove a domain it did not define
     /// itself or if domain of type `D` is not present on the `Nft`. See
     /// [borrow_domain_mut](#borrow_domain_mut).
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// ```
     /// let display_domain: DisplayDomain = nft::remove_domain(Witness {}, &mut nft);
@@ -232,7 +284,7 @@ module nft_protocol::nft {
     /// If the authority was allowlisted by the creator, we transfer
     /// the NFT to the recipient address.
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if authority token, `Auth`, was not defined on `Allowlist`.
     public fun transfer<C, Auth: drop>(
@@ -249,7 +301,7 @@ module nft_protocol::nft {
     ///
     /// Creator can allow certain contracts to change the logical owner of an NFT.
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if authority token, `Auth`, was not defined on `Allowlist`.
     public fun change_logical_owner<C, Auth: drop>(
@@ -267,23 +319,34 @@ module nft_protocol::nft {
         nft.logical_owner = recipient;
     }
 
+    // TODO: Remove this after refactoring NFT permissions to allow
+    // DelegatedWitness
+    //
+    // Cannot construct an NFT without being the logical owner :/
+    public(friend) fun change_logical_owner_internal<C>(
+        nft: &mut Nft<C>,
+        recipient: address,
+    ) {
+        nft.logical_owner = recipient
+    }
+
     // === Assertions ===
 
     /// Assert that domain, `D`, exists on `Nft`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if domain, `D`, does not exist on `Nft`.
     public fun assert_domain<C, D: key + store>(nft: &Nft<C>) {
-        assert!(has_domain<C, D>(nft), err::undefined_domain());
+        assert!(has_domain<C, D>(nft), EUNDEFINED_DOMAIN);
     }
 
     /// Assert that domain, `D`, does not exist on `Nft`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if domain, `D`, exists on `Nft`.
     public fun assert_no_domain<C, D: key + store>(nft: &Nft<C>) {
-        assert!(!has_domain<C, D>(nft), err::domain_already_defined());
+        assert!(!has_domain<C, D>(nft), EEXISTING_DOMAIN);
     }
 }

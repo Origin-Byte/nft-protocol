@@ -12,6 +12,11 @@ module nft_protocol::witness {
         WitnessGenerator {}
     }
 
+    /// Delegate a witness from collection one time witness
+    public fun from_witness<C>(_witness: &C): Witness<C> {
+        Witness {}
+    }
+
     /// Delegate a collection generic witness
     public fun delegate<C>(_generator: &WitnessGenerator<C>): Witness<C> {
         Witness {}

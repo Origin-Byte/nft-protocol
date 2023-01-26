@@ -11,9 +11,11 @@ module nft_protocol::football {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::flyweight;
+    use nft_protocol::flyweight_archetype;
+    use nft_protocol::flyweight_registry;
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
     struct FOOTBALL has drop {}
@@ -24,48 +26,59 @@ module nft_protocol::football {
     struct Witness has drop {}
 
     fun init(witness: FOOTBALL, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(
-            &witness, ctx,
-        );
+        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let delegated_witness = nft_protocol::witness::from_witness(&witness);
 
         collection::add_domain(
+            delegated_witness,
             &mut collection,
-            &mint_cap,
             creators::from_address(&witness, tx_context::sender(ctx), ctx),
         );
 
         // Register custom domains
         display::add_collection_display_domain(
+            delegated_witness,
             &mut collection,
-            &mint_cap,
             string::utf8(b"Football digital stickers"),
             string::utf8(b"A NFT collection of football player collectibles"),
             ctx,
         );
 
         display::add_collection_url_domain(
+            delegated_witness,
             &mut collection,
-            &mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
             ctx,
         );
 
         display::add_collection_symbol_domain(
+            delegated_witness,
             &mut collection,
-            &mint_cap,
             string::utf8(b"FOOT"),
             ctx
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(&mut collection, &mint_cap, royalty);
+        royalty::add_royalty_domain(
+            delegated_witness,
+            &mut collection,
+            royalty,
+        );
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, &mint_cap, tags);
+        tags::add_collection_tag_domain(
+            delegated_witness,
+            &mut collection,
+            tags,
+        );
 
-        flyweight::init_registry<FOOTBALL>(&mut collection, &mint_cap, ctx);
+        flyweight_registry::init_registry<FOOTBALL>(
+            delegated_witness,
+            &mut collection,
+            ctx,
+        );
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
@@ -95,9 +108,7 @@ module nft_protocol::football {
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<FOOTBALL, Witness>(
-            &Witness {}, tx_context::sender(ctx), ctx
-        );
+        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft, name, description, ctx,
@@ -107,7 +118,7 @@ module nft_protocol::football {
             &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
-        let archetype = flyweight::new_regulated(nft, supply, ctx);
-        flyweight::add_collection_archetype(collection, mint_cap, archetype);
+        let archetype = flyweight_archetype::new_regulated(nft, supply, ctx);
+        flyweight_registry::add_collection_archetype(mint_cap, collection, archetype);
     }
 }
