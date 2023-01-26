@@ -11,7 +11,7 @@ module nft_protocol::suimarines {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -31,7 +31,7 @@ module nft_protocol::suimarines {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx), ctx)
         );
 
         // Register custom domains
@@ -40,18 +40,21 @@ module nft_protocol::suimarines {
             &mut mint_cap,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+            ctx,
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx,
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUIM")
+            string::utf8(b"SUIM"),
+            ctx,
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
@@ -89,7 +92,7 @@ module nft_protocol::suimarines {
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         _mint_cap: &MintCap<SUIMARINES>,
-        inventory: &mut Inventory,
+        warehouse: &mut Warehouse,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUIMARINES, Witness>(
@@ -116,6 +119,6 @@ module nft_protocol::suimarines {
             ctx,
         );
 
-        inventory::deposit_nft(inventory, nft);
+        warehouse::deposit_nft(warehouse, nft);
     }
 }

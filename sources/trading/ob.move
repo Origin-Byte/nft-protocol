@@ -42,6 +42,7 @@ module nft_protocol::ob {
     use std::vector;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
+    use sui::event;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
@@ -116,8 +117,7 @@ module nft_protocol::ob {
     /// When an ask is matched with a bid, we transfer the ownership of the
     /// [`Ask`] object to the bid owner (buyer).
     /// The buyer can then claim the NFT via [`claim_nft`] endpoint.
-    struct Ask has key, store {
-        id: UID,
+    struct Ask has store {
         /// How many tokens does the seller want for their NFT in exchange.
         price: u64,
         /// Capability to get an NFT from a safe.
@@ -147,40 +147,54 @@ module nft_protocol::ob {
 
     // === Events ===
 
-    struct AskCreated<phantom FT> has copy, drop {
-        id: ID,
+    struct AskCreatedEvent has copy, drop {
         nft: ID,
-        seller: address,
+        orderbook: ID,
         price: u64,
+        owner: address,
     }
 
     /// When de-listed, not when sold!
-    struct AskClosed<phantom FT> has copy, drop {
-        id: ID,
+    struct AskClosedEvent has copy, drop {
         nft: ID,
-        seller: address,
+        orderbook: ID,
+        price: u64,
+        owner: address,
     }
 
-    struct BidCreated<phantom FT> has copy, drop {
-        id: ID,
+    struct BidCreatedEvent has copy, drop {
+        owner: address,
+        orderbook: ID,
         price: u64,
-        buyer: address,
     }
 
     /// When de-listed, not when bought!
-    struct BidClosed<phantom FT> has copy, drop {
-        id: ID,
-        bid: ID,
+    struct BidClosedEvent has copy, drop {
+        owner: address,
+        orderbook: ID,
+        price: u64,
     }
 
-    struct TradeExecuted<phantom FT> has copy, drop {
-        id: ID,
+    /// Either an ask is created and immediately matched with a bid, or a bid
+    /// is created and immediately matched with an ask.
+    /// In both cases [`TradeFilledEvent`] is emitted.
+    /// In such case, the property `trade_intermediate` is `Some`.
+    ///
+    /// If the NFT was bought directly (`buy_nft` or `buy_generic_nft`), then
+    /// the property `trade_intermediate` is `None`.
+    struct TradeFilledEvent has copy, drop {
+        buyer_safe: ID,
+        buyer: address,
         nft: ID,
         price: u64,
+        seller_safe: ID,
         seller: address,
-        buyer: address,
+        /// Is `None` if the NFT was bought directly (`buy_nft` or
+        /// `buy_generic_nft`.)
+        ///
+        /// Is `Some` if the NFT was bought via `create_bid` or `create_ask`.
+        trade_intermediate: Option<ID>,
     }
-
 
     // === Create bid ===
 
@@ -760,10 +774,6 @@ module nft_protocol::ob {
         let buyer = tx_context::sender(ctx);
         let buyer_safe_id = object::id(buyer_safe);
 
-        // take the amount that the sender wants to create a bid with from their
-        // wallet
-        let bid_offer = balance::split(coin::balance_mut(wallet), price);
-
         let asks = &mut book.asks;
 
         // if map empty, then lowest ask price is 0
@@ -789,27 +799,49 @@ module nft_protocol::ob {
             };
 
             let Ask {
-                id,
                 price: _,
-                owner: _,
+                owner: seller,
                 transfer_cap,
                 commission: ask_commission,
             } = ask;
-            object::delete(id);
+            let nft = safe::transfer_cap_nft(&transfer_cap);
+            let seller_safe = safe::transfer_cap_safe(&transfer_cap);
 
             // see also `finish_trade` entry point
-            share_object(TradeIntermediate<C, FT> {
-                id: object::new(ctx),
-                transfer_cap: option::some(transfer_cap),
-                commission: ask_commission,
-                buyer,
+            let trade_intermediate = TradeIntermediate<C, FT> {
                 buyer_safe: buyer_safe_id,
-                paid: bid_offer,
+                buyer,
+                commission: ask_commission,
+                id: object::new(ctx),
+                paid: balance::split(coin::balance_mut(wallet), lowest_ask_price),
+                transfer_cap: option::some(transfer_cap),
+            };
+            let trade_intermediate_id = object::id(&trade_intermediate);
+            share_object(trade_intermediate);
+
+            event::emit(TradeFilledEvent {
+                buyer_safe: buyer_safe_id,
+                buyer,
+                nft,
+                price: lowest_ask_price,
+                seller_safe,
+                seller,
+                trade_intermediate: option::some(trade_intermediate_id),
             });
 
             transfer_bid_commission(&mut bid_commission, ctx);
             option::destroy_none(bid_commission);
         } else {
+            event::emit(BidCreatedEvent {
+                owner: buyer,
+                orderbook: object::id(book),
+                price,
+            });
+
+            // take the amount that the sender wants to create a bid with from their
+            // wallet
+            let bid_offer = balance::split(coin::balance_mut(wallet), price);
+
             let order = Bid {
                 offer: bid_offer,
                 owner: buyer,
@@ -840,6 +872,12 @@ module nft_protocol::ob {
     ) {
         let sender = tx_context::sender(ctx);
 
+        event::emit(BidClosedEvent {
+            owner: sender,
+            orderbook: object::id(book),
+            price: bid_price_level,
+        });
+
         let bids = &mut book.bids;
 
         assert!(
@@ -859,8 +897,6 @@ module nft_protocol::ob {
 
             index = index + 1;
         };
-
-
         assert!(index < bids_count, err::order_owner_must_be_sender());
 
         let Bid { offer, owner: _owner, commission, safe: _safe } =
@@ -925,26 +961,46 @@ module nft_protocol::ob {
                 safe: buyer_safe_id,
                 commission: bid_commission,
             } = bid;
+            let paid = balance::value(&bid_offer);
+
+            let nft = safe::transfer_cap_nft(&transfer_cap);
 
             // we cannot transfer the NFT straight away because we don't know
             // the buyers safe at the point of sending the tx
 
             // see also `finish_trade` entry point
-            share_object(TradeIntermediate<C, FT> {
+            let trade_intermediate = TradeIntermediate<C, FT> {
                 id: object::new(ctx),
                 transfer_cap: option::some(transfer_cap),
                 commission: ask_commission,
                 buyer,
                 buyer_safe: buyer_safe_id,
                 paid: bid_offer,
+            };
+            let trade_intermediate_id = object::id(&trade_intermediate);
+            share_object(trade_intermediate);
+
+            event::emit(TradeFilledEvent {
+                buyer_safe: buyer_safe_id,
+                buyer,
+                nft,
+                price: paid,
+                seller_safe: object::id(seller_safe),
+                seller,
+                trade_intermediate: option::some(trade_intermediate_id),
             });
 
             transfer_bid_commission(&mut bid_commission, ctx);
             option::destroy_none(bid_commission);
         } else {
-            let id = object::new(ctx);
+            event::emit(AskCreatedEvent {
+                price,
+                orderbook: object::id(book),
+                nft: safe::transfer_cap_nft(&transfer_cap),
+                owner: seller
+            });
+
             let ask = Ask {
-                id,
                 price,
                 owner: seller,
                 transfer_cap,
@@ -962,7 +1018,7 @@ module nft_protocol::ob {
                     price,
                     vector::singleton(ask),
                 );
-            }
+            };
         }
     }
 
@@ -976,7 +1032,6 @@ module nft_protocol::ob {
 
         let Ask {
             owner,
-            id,
             price: _,
             transfer_cap,
             commission: _,
@@ -986,9 +1041,15 @@ module nft_protocol::ob {
             nft_id,
         );
 
+        event::emit(AskClosedEvent {
+            price: nft_price_level,
+            orderbook: object::id(book),
+            nft: nft_id,
+            owner: sender
+        });
+
         assert!(owner == sender, err::order_owner_must_be_sender());
 
-        object::delete(id);
         transfer(transfer_cap, sender);
     }
 
@@ -1005,7 +1066,6 @@ module nft_protocol::ob {
         let buyer = tx_context::sender(ctx);
 
         let Ask {
-            id,
             transfer_cap,
             owner: _,
             price: _,
@@ -1015,10 +1075,18 @@ module nft_protocol::ob {
             price,
             nft_id,
         );
-        object::delete(id);
+
+        event::emit(TradeFilledEvent {
+            buyer_safe: object::id(buyer_safe),
+            buyer,
+            nft: nft_id,
+            price,
+            seller_safe: object::id(seller_safe),
+            seller: tx_context::sender(ctx),
+            trade_intermediate: option::none(),
+        });
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
-
         settle_funds_with_royalties<C, FT>(
             &mut bid_offer,
             buyer,
@@ -1051,9 +1119,8 @@ module nft_protocol::ob {
         let buyer = tx_context::sender(ctx);
 
         let Ask {
-            id,
             transfer_cap,
-            owner: _,
+            owner: seller,
             price: _,
             commission: maybe_commission,
         } = remove_ask(
@@ -1061,10 +1128,18 @@ module nft_protocol::ob {
             price,
             nft_id,
         );
-        object::delete(id);
+
+        event::emit(TradeFilledEvent {
+            buyer_safe: object::id(buyer_safe),
+            buyer,
+            nft: nft_id,
+            price,
+            seller_safe: object::id(seller_safe),
+            seller,
+            trade_intermediate: option::none(),
+        });
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
-
         settle_funds_no_royalties<C, FT>(
             &mut bid_offer,
             buyer,

@@ -423,8 +423,18 @@ module nft_protocol::test_utils {
     ) {
         let buyer = tx_context::sender(ctx(scenario));
         let buyer_safe = user_safe(scenario, buyer);
-        let wallet = coin::mint_for_testing<SUI>(price, ctx(scenario));
         let ob: Orderbook<C, SUI> = test_scenario::take_shared(scenario);
+        let asks = ob::borrow_asks(&ob);
+        let amount = if (originmate::crit_bit_u64::is_empty(asks)) {
+            // no asks, create a bid with the given price
+            price
+        } else {
+            // we will execute at the min ask price, so don't put into the
+            // wallet more than that
+            let min_ask = originmate::crit_bit_u64::min_key(asks);
+            sui::math::min(price, min_ask)
+        };
+        let wallet = coin::mint_for_testing<SUI>(amount, ctx(scenario));
         test_scenario::next_tx(scenario, buyer);
 
         ob::create_bid(

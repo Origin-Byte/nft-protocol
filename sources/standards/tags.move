@@ -7,6 +7,7 @@ module nft_protocol::tags {
     // wallet can always query this domain instead of having to query all domains
     // and figure out which ones are tags or not.
     use sui::bag::{Self, Bag};
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::utils::{Self, Marker};
@@ -80,7 +81,8 @@ module nft_protocol::tags {
 
     // === TagDomain ===
 
-    struct TagDomain has store {
+    struct TagDomain has key, store {
+        id: UID,
         bag: Bag,
     }
 
@@ -88,7 +90,7 @@ module nft_protocol::tags {
     struct Witness has drop {}
 
     public fun empty(ctx: &mut TxContext): TagDomain {
-        TagDomain { bag: bag::new(ctx) }
+        TagDomain { id: object::new(ctx), bag: bag::new(ctx) }
     }
 
     public fun has_tag<T: store + drop>(domain: &TagDomain): bool {

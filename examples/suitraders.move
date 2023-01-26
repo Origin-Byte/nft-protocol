@@ -11,7 +11,7 @@ module nft_protocol::suitraders {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -31,7 +31,7 @@ module nft_protocol::suitraders {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx))
+            creators::from_address(tx_context::sender(ctx), ctx)
         );
 
         // Register custom domains
@@ -40,18 +40,21 @@ module nft_protocol::suitraders {
             &mut mint_cap,
             string::utf8(b"Suitraders"),
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
+            ctx,
         );
 
         display::add_collection_url_domain(
             &mut collection,
             &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx,
         );
 
         display::add_collection_symbol_domain(
             &mut collection,
             &mut mint_cap,
-            string::utf8(b"SUITR")
+            string::utf8(b"SUITR"),
+            ctx,
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
@@ -69,9 +72,9 @@ module nft_protocol::suitraders {
         );
 
         let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
+            nft_protocol::listing::create_warehouse(&mut listing, ctx);
 
-        nft_protocol::fixed_price::create_market_on_listing<sui::sui::SUI>(
+        nft_protocol::fixed_price::init_venue<sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -79,10 +82,7 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
-
-        nft_protocol::dutch_auction::create_market_on_listing<sui::sui::SUI>(
+        nft_protocol::dutch_auction::init_venue<sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -119,7 +119,7 @@ module nft_protocol::suitraders {
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         _mint_cap: &MintCap<SUITRADERS>,
-        inventory: &mut Inventory,
+        warehouse: &mut Warehouse,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUITRADERS, Witness>(
@@ -146,6 +146,6 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        inventory::deposit_nft(inventory, nft);
+        warehouse::deposit_nft(warehouse, nft);
     }
 }
