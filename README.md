@@ -40,7 +40,7 @@ To deploy an NFT collection you will need to create a SUI [Move](https://docs.su
 We provide an example on how to build such collection in the examples folder. Additionally below follows an example of an NFT Collection, the SUIMARINES!
 
 ```move
-module gutenberg::suimarines {
+module nft_protocol::suimarines {
     use std::string::{Self, String};
 
     use sui::url;
@@ -53,7 +53,7 @@ module gutenberg::suimarines {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection, MintCap};
 
@@ -96,11 +96,8 @@ module gutenberg::suimarines {
             string::utf8(b"SUIM")
         );
 
-        let royalty = royalty::new(ctx);
-        royalty::add_proportional_royalty(
-            &mut royalty,
-            nft_protocol::royalty_strategy_bps::new(100),
-        );
+        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
+        royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         let tags = tags::empty(ctx);
@@ -134,7 +131,7 @@ module gutenberg::suimarines {
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         _mint_cap: &MintCap<SUIMARINES>,
-        warehouse: &mut Warehouse,
+        inventory: &mut Inventory,
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<SUIMARINES, Witness>(
@@ -161,7 +158,7 @@ module gutenberg::suimarines {
             ctx,
         );
 
-        warehouse::deposit_nft(warehouse, nft);
+        inventory::deposit_nft(inventory, nft);
     }
 }
 ```
@@ -171,6 +168,6 @@ and in your `Move.toml`, define the following dependency:
 ```toml
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
-# v0.19.0
-rev = "b3923a1ba8ee4ea7757a8155c780bc2e8786dc18"
+# v0.20.0
+rev = "06ddf96d151227b989210d5771b02b198b85c2fe"
 ```
