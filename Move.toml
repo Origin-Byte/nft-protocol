@@ -1,6 +1,6 @@
 [package]
 name = "NftProtocol"
-version = "0.20.0"
+version = "0.20.1"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -14,4 +14,4 @@ git = "https://github.com/Origin-Byte/originmate.git"
 rev = "6f599cffa5199edf8dedbdbbe6e4d2a04b576e83"
 
 [addresses]
-nft_protocol = "0x"
+nft_protocol = "0x0"

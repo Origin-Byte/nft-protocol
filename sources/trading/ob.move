@@ -806,6 +806,10 @@ module nft_protocol::ob {
             } = ask;
             let nft = safe::transfer_cap_nft(&transfer_cap);
             let seller_safe = safe::transfer_cap_safe(&transfer_cap);
+            assert!(
+                seller_safe != buyer_safe_id,
+                err::cannot_trade_with_self(),
+            );
 
             // see also `finish_trade` entry point
             let trade_intermediate = TradeIntermediate<C, FT> {
@@ -961,6 +965,10 @@ module nft_protocol::ob {
                 safe: buyer_safe_id,
                 commission: bid_commission,
             } = bid;
+            assert!(
+                buyer_safe_id != object::id(seller_safe),
+                err::cannot_trade_with_self(),
+            );
             let paid = balance::value(&bid_offer);
 
             let nft = safe::transfer_cap_nft(&transfer_cap);

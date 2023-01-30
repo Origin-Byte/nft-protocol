@@ -150,6 +150,10 @@ module nft_protocol::err {
         return Prefix + 409
     }
 
+    public fun cannot_trade_with_self(): u64 {
+        return Prefix + 410
+    }
+
     // === Allowlist ===
 
     public fun authority_not_allowlisted(): u64 {
