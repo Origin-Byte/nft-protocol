@@ -6,6 +6,15 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.1] - 2023-01-30
+
+### Fixed
+
+- In orderbook, it was possible to create an ask or a bid which would require
+  that the `finish_trade` function be called with buyer and seller safe as the
+  same object.
+  This is not possible anymore as such tx would result in an error.
+
 ## [0.20.0] - 2023-01-26
 
 ### Added
@@ -32,6 +41,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Royalties event when `TradePayment` is created.
 
 ### Changed
+
 - Updated Sui dep to `0.23.0`
 - Renamed `Inventory` to `Warehouse`
 
