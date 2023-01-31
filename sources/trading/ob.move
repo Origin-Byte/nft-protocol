@@ -153,8 +153,8 @@ module nft_protocol::ob {
 
     struct OrderbookCreatedEvent has copy, drop {
         orderbook: ID,
-        collection_otw: String,
-        token_otw: String,
+        collection_type: String,
+        fungible_token_type: String,
     }
 
     struct AskCreatedEvent has copy, drop {
@@ -590,8 +590,8 @@ module nft_protocol::ob {
 
         event::emit(OrderbookCreatedEvent {
             orderbook: object::uid_to_inner(&id),
-            collection_otw: type_name::into_string(type_name::get<C>()),
-            token_otw: type_name::into_string(type_name::get<C>()),
+            collection_type: type_name::into_string(type_name::get<C>()),
+            fungible_token_type: type_name::into_string(type_name::get<C>()),
         });
 
         Orderbook<C, FT> {
