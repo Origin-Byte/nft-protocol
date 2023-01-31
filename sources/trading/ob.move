@@ -19,7 +19,6 @@
 module nft_protocol::ob {
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
-    // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
     // TODO: do we allow anyone to create an OB for any collection?
     // TODO: settings to skip royalty settlement (witness protected)
 
@@ -183,6 +182,7 @@ module nft_protocol::ob {
     /// If the NFT was bought directly (`buy_nft` or `buy_generic_nft`), then
     /// the property `trade_intermediate` is `None`.
     struct TradeFilledEvent has copy, drop {
+        orderbook: ID,
         buyer_safe: ID,
         buyer: address,
         nft: ID,
@@ -824,6 +824,7 @@ module nft_protocol::ob {
             share_object(trade_intermediate);
 
             event::emit(TradeFilledEvent {
+                orderbook: object::id(book),
                 buyer_safe: buyer_safe_id,
                 buyer,
                 nft,
@@ -989,6 +990,7 @@ module nft_protocol::ob {
             share_object(trade_intermediate);
 
             event::emit(TradeFilledEvent {
+                orderbook: object::id(book),
                 buyer_safe: buyer_safe_id,
                 buyer,
                 nft,
@@ -1085,6 +1087,7 @@ module nft_protocol::ob {
         );
 
         event::emit(TradeFilledEvent {
+            orderbook: object::id(book),
             buyer_safe: object::id(buyer_safe),
             buyer,
             nft: nft_id,
@@ -1138,6 +1141,7 @@ module nft_protocol::ob {
         );
 
         event::emit(TradeFilledEvent {
+            orderbook: object::id(book),
             buyer_safe: object::id(buyer_safe),
             buyer,
             nft: nft_id,
