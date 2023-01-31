@@ -7,17 +7,9 @@
 module nft_protocol::example_free_for_all {
 
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
-    use sui::transfer::{transfer, share_object};
-    use sui::tx_context::TxContext;
+    use sui::transfer;
 
     struct Witness has drop {}
-
-    fun init(ctx: &mut TxContext) {
-        init_(ctx)
-    }
-    public fun init_(ctx: &mut TxContext) {
-        share_object(transfer_allowlist::create(Witness {}, ctx));
-    }
 
     /// Only the creator is allowed to insert their collection.
     ///
@@ -45,7 +37,7 @@ module nft_protocol::example_free_for_all {
     fun it_inserts_collection() {
         let scenario = test_scenario::begin(USER);
 
-        init_(ctx(&mut scenario));
+        transfer_allowlist::init_allowlist(Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -57,7 +49,7 @@ module nft_protocol::example_free_for_all {
 
         insert_collection(&col_cap, &mut wl);
 
-        transfer(col_cap, USER);
+        transfer::transfer(col_cap, USER);
         test_scenario::return_shared(wl);
         test_scenario::end(scenario);
     }

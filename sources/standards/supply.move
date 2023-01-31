@@ -70,7 +70,7 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is already regulated.
-    public entry fun regulate<C>(
+    public fun regulate<C>(
         witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         max: u64,
@@ -85,7 +85,7 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is unregulated or supply is non-zero or frozen.
-    public entry fun deregulate<C>(
+    public fun deregulate<C>(
         _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
     ) {
@@ -101,7 +101,7 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is unregulated or supply was already frozen.
-    public entry fun freeze_supply<C>(
+    public fun freeze_supply<C>(
         _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
     ) {

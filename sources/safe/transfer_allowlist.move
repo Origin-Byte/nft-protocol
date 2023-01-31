@@ -23,10 +23,12 @@
 module nft_protocol::transfer_allowlist {
     use nft_protocol::utils;
     use nft_protocol::err;
+
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
-    use sui::object;
-    use sui::object::UID;
+
+    use sui::transfer;
+    use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
@@ -57,6 +59,7 @@ module nft_protocol::transfer_allowlist {
         id: UID,
     }
 
+    /// Creates a new `Allowlist`
     public fun create<Admin: drop>(
         _witness: Admin,
         ctx: &mut TxContext,
@@ -67,6 +70,15 @@ module nft_protocol::transfer_allowlist {
             collections: vec_set::empty(),
             authorities: option::none(),
         }
+    }
+
+    /// Creates and shares a new `Allowlist`
+    public entry fun init_allowlist<Admin: drop>(
+        witness: Admin,
+        ctx: &mut TxContext,
+    ) {
+        let allowlist = create(witness, ctx);
+        transfer::share_object(allowlist);
     }
 
     /// See the docs for struct `CollectionControlCap`.

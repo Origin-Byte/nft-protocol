@@ -173,7 +173,7 @@ module nft_protocol::flyweight_archetype {
         if (is_regulated(archetype)) {
             let supply = supply::supply(borrow_supply(archetype));
             let mint_cap = mint_cap::from_unregulated(
-                &mint_cap, supply, ctx,
+                mint_cap, supply, ctx,
             );
             flyweight_mint_cap::from_regulated(mint_cap, archetype_id, ctx)
         } else {
