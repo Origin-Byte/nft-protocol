@@ -349,4 +349,11 @@ module nft_protocol::nft {
     public fun assert_no_domain<C, D: key + store>(nft: &Nft<C>) {
         assert!(!has_domain<C, D>(nft), EEXISTING_DOMAIN);
     }
+
+    // === Test helpers ===
+
+    #[test_only]
+    public fun test_mint<C>(owner: address, ctx: &mut TxContext): Nft<C> {
+        new_(owner, ctx)
+    }
 }

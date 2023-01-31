@@ -28,21 +28,13 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
 
-        utils::create_collection_and_allowlist_with_type(
-            &Foo {},
-            Witness {},
-            CREATOR,
-            &mut scenario,
-        );
-
         test_scenario::next_tx(&mut scenario, SELLER);
 
         let (seller_safe_id, seller_owner_cap_id) = utils::create_safe(
             &mut scenario, SELLER
         );
 
-        let nft_id = utils::mint_and_deposit_nft<Foo, Witness>(
-            &Witness {},
+        let nft_id = utils::mint_and_deposit_nft<Foo>(
             &mut scenario,
             SELLER,
         );
