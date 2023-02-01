@@ -93,21 +93,23 @@ module nft_protocol::inventory {
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     ///
+    /// `Inventory` may not change the logical owner of an `Nft` when
+    /// redeeming as this would allow royalties to be trivially bypassed.
+    ///
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty or if `Factory` has a regulated supply
     /// whose supply was exceeded.
     public fun redeem_nft<C>(
         inventory: &mut Inventory<C>,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
         if (is_warehouse(inventory)) {
             let warehouse = borrow_warehouse_mut(inventory);
-            warehouse::redeem_nft(warehouse, owner)
+            warehouse::redeem_nft(warehouse)
         } else {
             let factory = borrow_factory_mut(inventory);
-            factory::redeem_nft(factory, owner, ctx)
+            factory::redeem_nft(factory, tx_context::sender(ctx), ctx)
         }
     }
 
@@ -115,6 +117,9 @@ module nft_protocol::inventory {
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
+    ///
+    /// `Inventory` may not change the logical owner of an `Nft` when
+    /// redeeming as this would allow royalties to be trivially bypassed.
     ///
     /// #### Panics
     ///
@@ -125,7 +130,7 @@ module nft_protocol::inventory {
         owner: address,
         ctx: &mut TxContext,
     ) {
-        let nft = redeem_nft(inventory, owner, ctx);
+        let nft = redeem_nft(inventory, ctx);
         transfer::transfer(nft, owner);
     }
 

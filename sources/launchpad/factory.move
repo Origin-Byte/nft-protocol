@@ -7,7 +7,7 @@ module nft_protocol::factory {
 
     use nft_protocol::nft::Nft;
     use nft_protocol::collection::Collection;
-    use nft_protocol::templates as registry;
+    use nft_protocol::templates;
     use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
     use nft_protocol::mint_cap::{RegulatedMintCap, UnregulatedMintCap};
 
@@ -32,13 +32,13 @@ module nft_protocol::factory {
     ///
     /// - Archetype `RegistryDomain` is not registered
     /// - `Archetype` does not exist
-    fun new_regulated<C>(
+    public fun from_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
         collection: &mut Collection<C>,
         template_id: ID,
         ctx: &mut TxContext,
     ): Factory<C> {
-        let mint_cap = registry::delegate(
+        let mint_cap = templates::delegate_regulated(
             mint_cap, collection, template_id, ctx,
         );
 
@@ -55,7 +55,7 @@ module nft_protocol::factory {
         template_id: ID,
         ctx: &mut TxContext,
     ): Factory<C> {
-        let mint_cap = registry::delegate_unregulated(
+        let mint_cap = templates::delegate_unregulated(
             mint_cap, collection, template_id, ctx,
         );
 

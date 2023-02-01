@@ -26,6 +26,7 @@ module nft_protocol::test_display {
         let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_display_domain(
+            witness::from_witness(&Foo {}),
             &mut nft,
             string::utf8(b"Suimarines-234"),
             string::utf8(b"Collection of Suimarines"),
@@ -70,6 +71,7 @@ module nft_protocol::test_display {
         let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_url_domain(
+            witness::from_witness(&Foo {}),
             &mut nft,
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
             ctx(&mut scenario),
@@ -112,6 +114,7 @@ module nft_protocol::test_display {
         let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_symbol_domain(
+            witness::from_witness(&Foo {}),
             &mut nft,
             string::utf8(b"SUIM-234"),
             ctx
@@ -160,6 +163,7 @@ module nft_protocol::test_display {
         );
 
         display::add_attributes_domain(
+            witness::from_witness(&Foo {}),
             &mut nft,
             attributes,
             ctx

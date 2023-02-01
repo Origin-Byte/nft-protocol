@@ -179,23 +179,23 @@ module nft_protocol::loose_mint_cap {
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        // Owner must be transaction sender otherwise `nft::add_domain` will
-        // panic
-        let sender = tx_context::sender(ctx);
-        let nft = if (is_regulated(mint_cap)) {
+        let pointer = pointer(mint_cap.archetype_id, ctx);
+
+        if (is_regulated(mint_cap)) {
             let mint_cap = borrow_regulated_mut(mint_cap);
-            nft::new_regulated(mint_cap, sender, ctx)
+            let nft = nft::new_regulated(mint_cap, owner, ctx);
+
+            nft::add_domain_with_regulated(mint_cap, &mut nft, pointer);
+
+            nft
         } else {
             let mint_cap = borrow_unregulated(mint_cap);
-            nft::new_unregulated(mint_cap, sender, ctx)
-        };
+            let nft = nft::new_unregulated(mint_cap, owner, ctx);
 
-        let pointer = pointer(mint_cap.template_id, ctx);
-        nft::add_domain(&mut nft, pointer, ctx);
+            nft::add_domain_with_unregulated(mint_cap, &mut nft, pointer);
 
-        nft::change_logical_owner_internal(&mut nft, owner);
-
-        nft
+            nft
+        }
     }
 
     /// Mints `Nft` from `LooseMintCap` and transfer to transaction sender

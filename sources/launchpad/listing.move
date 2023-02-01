@@ -294,12 +294,6 @@ module nft_protocol::listing {
         // If there the listing is not attached to a marketplace
         // then if does not make sense to pay fees.
         mkt::assert_marketplace_admin(marketplace, ctx);
-
-        assert!(
-            obox::is_empty(&listing.custom_fee),
-            err::generic_box_full(),
-        );
-
         obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
 

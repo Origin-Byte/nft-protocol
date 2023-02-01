@@ -110,12 +110,16 @@ module nft_protocol::footbytes {
     ) {
         let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
 
-        display::add_display_domain(
-            &mut nft, name, description, ctx,
+        nft::add_domain_with_mint_cap(
+            mint_cap,
+            &mut nft,
+            display::new_display_domain(name, description, ctx),
         );
 
-        display::add_url_domain(
-            &mut nft, url::new_unsafe_from_bytes(url), ctx,
+        nft::add_domain_with_mint_cap(
+            mint_cap,
+            &mut nft,
+            display::new_url_domain(url::new_unsafe_from_bytes(url), ctx),
         );
 
         let template = template::new_regulated(nft, supply, ctx);

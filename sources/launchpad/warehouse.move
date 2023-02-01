@@ -11,7 +11,7 @@ module nft_protocol::warehouse {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
-    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::nft::Nft;
 
     /// `Warehouse` does not have NFTs left to withdraw
     ///
@@ -26,10 +26,9 @@ module nft_protocol::warehouse {
 
     /// `Warehouse` object
     struct Warehouse<phantom C> has key, store {
+        /// `Warehouse` ID
         id: UID,
-        // NFTs that are currently on sale. When a `NftCertificate` is sold,
-        // its corresponding NFT ID will be flushed from `nfts` and will be
-        // added to `queue`.
+        /// NFTs that are currently on sale
         nfts: vector<ID>,
     }
 
@@ -65,25 +64,28 @@ module nft_protocol::warehouse {
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
     ///
+    /// `Warehouse` may not change the logical owner of an `Nft` when
+    /// redeeming as this would allow royalties to be trivially bypassed.
+    ///
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty
     public fun redeem_nft<C>(
         warehouse: &mut Warehouse<C>,
-        owner: address,
     ): Nft<C> {
         let nfts = &mut warehouse.nfts;
         assert!(!vector::is_empty(nfts), EEMPTY);
 
-        let nft = dof::remove(&mut warehouse.id, vector::pop_back(nfts));
-        nft::change_logical_owner_internal(&mut nft, owner);
-        nft
+        dof::remove(&mut warehouse.id, vector::pop_back(nfts))
     }
 
     /// Redeems specific NFT from `Warehouse` and transfers to sender
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
+    ///
+    /// `Warehouse` may not change the logical owner of an `Nft` when
+    /// redeeming as this would allow royalties to be trivially bypassed.
     ///
     /// #### Usage
     ///
@@ -95,7 +97,7 @@ module nft_protocol::warehouse {
         ctx: &mut TxContext,
     ) {
         let sender = tx_context::sender(ctx);
-        let nft = redeem_nft<C>(warehouse, sender);
+        let nft = redeem_nft<C>(warehouse);
         transfer::transfer(nft, sender);
     }
 

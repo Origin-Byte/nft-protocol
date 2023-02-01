@@ -133,24 +133,26 @@ module nft_protocol::suitraders {
     ) {
         let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
 
-        display::add_display_domain(
+        nft::add_domain_with_mint_cap(
+            mint_cap,
             &mut nft,
-            name,
-            description,
-            ctx,
+            display::new_display_domain(name, description, ctx),
         );
 
-        display::add_url_domain(
+        nft::add_domain_with_mint_cap(
+            mint_cap,
             &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
+            display::new_url_domain(url::new_unsafe_from_bytes(url), ctx),
         );
 
-        display::add_attributes_domain_from_vec(
+        nft::add_domain_with_mint_cap(
+            mint_cap,
             &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
+            display::new_attributes_domain_from_vec(
+                attribute_keys,
+                attribute_values,
+                ctx,
+            ),
         );
 
         warehouse::deposit_nft(warehouse, nft);

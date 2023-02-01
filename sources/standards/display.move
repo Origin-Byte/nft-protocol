@@ -90,12 +90,15 @@ module nft_protocol::display {
     }
 
     public fun add_display_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         name: String,
         description: String,
         ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, new_display_domain(name, description, ctx), ctx);
+        nft::add_domain(
+            witness, nft, new_display_domain(name, description, ctx),
+        );
     }
 
     public fun add_collection_display_domain<C>(
@@ -160,11 +163,14 @@ module nft_protocol::display {
     }
 
     public fun add_url_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         url: Url,
         ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, new_url_domain(url, ctx), ctx);
+        nft::add_domain(
+            witness, nft, new_url_domain(url, ctx),
+        );
     }
 
     public fun add_collection_url_domain<C>(
@@ -231,11 +237,14 @@ module nft_protocol::display {
     }
 
     public fun add_symbol_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         symbol: String,
         ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, new_symbol_domain(symbol, ctx), ctx);
+        nft::add_domain(
+            witness, nft, new_symbol_domain(symbol, ctx),
+        );
     }
 
     public fun add_collection_symbol_domain<C>(
@@ -279,6 +288,15 @@ module nft_protocol::display {
         AttributesDomain { id: object::new(ctx), map }
     }
 
+    public fun new_attributes_domain_from_vec(
+        keys: vector<String>,
+        values: vector<String>,
+        ctx: &mut TxContext,
+    ): AttributesDomain {
+        let map = utils::from_vec_to_map<String, String>(keys, values);
+        new_attributes_domain(map, ctx)
+    }
+
     // ====== Interoperability ===
 
     public fun display_attribute<C>(nft: &Nft<C>): &AttributesDomain {
@@ -293,21 +311,27 @@ module nft_protocol::display {
     }
 
     public fun add_attributes_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         map: VecMap<String, String>,
         ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, new_attributes_domain(map, ctx), ctx);
+        nft::add_domain(
+            witness, nft, new_attributes_domain(map, ctx),
+        );
     }
 
     public fun add_attributes_domain_from_vec<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         keys: vector<String>,
         values: vector<String>,
         ctx: &mut TxContext,
     ) {
-        let map =  utils::from_vec_to_map<String, String>(keys, values);
-
-        nft::add_domain(nft, new_attributes_domain(map, ctx), ctx);
+        nft::add_domain(
+            witness,
+            nft,
+            new_attributes_domain_from_vec(keys, values, ctx),
+        );
     }
 }
