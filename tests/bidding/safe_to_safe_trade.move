@@ -15,7 +15,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use nft_protocol::bidding;
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
-    use nft_protocol::transfer_allowlist::{Allowlist};
+    use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::test_utils::{Self as utils};
     use nft_protocol::collection::{Self, Collection};
@@ -35,6 +35,13 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     #[test]
     fun it_works() {
         let scenario = test_scenario::begin(SELLER);
+
+        utils::create_collection_and_allowlist_with_type(
+            &Foo {},
+            &Witness {},
+            CREATOR,
+            &mut scenario,
+        );
 
         let (seller_safe_id, seller_owner_cap_id) = utils::create_safe(
             &mut scenario, SELLER
@@ -99,7 +106,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
         let (col_id, mint_cap_id, _) = utils::create_collection_and_allowlist_with_type(
             &Foo {},
-            Witness {},
+            &Witness {},
             CREATOR,
             &mut scenario,
         );

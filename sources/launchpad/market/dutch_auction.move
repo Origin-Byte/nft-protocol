@@ -28,6 +28,8 @@ module nft_protocol::dutch_auction {
     use nft_protocol::inventory;
     use nft_protocol::market_whitelist::{Self, Certificate};
 
+    const U64_MAX: u64 = 18446744073709551615;
+
     struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
         /// The minimum price at which NFTs can be sold
@@ -225,7 +227,7 @@ module nft_protocol::dutch_auction {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        // TODO: Consider an entrepoint to be called by the Marketplace instead
+        // TODO: Consider an entrypoint to be called by the Marketplace instead
         // of the listing admin
         listing::assert_listing_admin(listing, ctx);
 
@@ -233,10 +235,16 @@ module nft_protocol::dutch_auction {
         let venue = listing::borrow_venue(listing, venue_id);
         let market = venue::borrow_market<DutchAuctionMarket<FT>>(venue);
         let inventory_id = market.inventory_id;
-        // TODO: Not guaranteed to be some
-        let nfts_to_sell = option::destroy_some(
-            listing::supply<C>(listing, inventory_id)
-        );
+        let supply = listing::supply<C>(listing, inventory_id);
+
+        // Auction could be drawing from an inventory with unregulated supply
+        let nfts_to_sell = if (option::is_some(&supply)) {
+            option::destroy_some(supply)
+        } else {
+            // NFTs sold will be ultimately limited by the amount of bids
+            // therefore it is safe to return maximum number.
+            U64_MAX
+        };
 
         // Determine matching orders
         let venue =
@@ -245,27 +253,23 @@ module nft_protocol::dutch_auction {
             );
         let market = venue::borrow_market_mut(venue);
 
-        let (fill_price, bids_to_fill) = conclude_auction<FT>(
-            market,
-            // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
-            // Investigate whether this logic should be paginated
-            nfts_to_sell
-        );
+        // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
+        // Investigate whether this logic should be paginated
+        let (fill_price, bids_to_fill) =
+            conclude_auction<FT>(market, nfts_to_sell);
 
         // Transfer NFTs to matching orders
-        let inventory =
-            listing::inventory_internal_mut<
-                C, DutchAuctionMarket<FT>, Witness
-            >(
-                Witness {}, listing, venue_id, inventory_id
-            );
+        let inventory = listing::inventory_internal_mut<
+            C, DutchAuctionMarket<FT>, Witness
+        >(
+            Witness {}, listing, venue_id, inventory_id
+        );
 
         let total_funds = balance::zero<FT>();
         while (!vector::is_empty(&bids_to_fill)) {
             let Bid {amount, owner} = vector::pop_back(&mut bids_to_fill);
 
-            let filled_funds =
-                balance::split(&mut amount, (fill_price as u64));
+            let filled_funds = balance::split(&mut amount, fill_price);
 
             balance::join<FT>(&mut total_funds, filled_funds);
 

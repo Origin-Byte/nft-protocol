@@ -926,9 +926,9 @@ module nft_protocol::test_safe {
             &Witness {}, ctx(scenario),
         );
 
-        let wl = transfer_allowlist::create(Witness {}, ctx(scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(scenario));
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap,
             &mut wl,
         );
