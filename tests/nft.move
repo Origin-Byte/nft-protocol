@@ -75,7 +75,7 @@ module nft_protocol::test_nft {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370001, location = nft_protocol::nft)]
+    #[expected_failure(abort_code = nft::EEXISTING_DOMAIN)]
     fun fails_adding_duplicate_domain() {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);

@@ -60,8 +60,8 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Creates a new `Allowlist`
-    public fun create<Admin: drop>(
-        _witness: Admin,
+    public fun create<Admin>(
+        _witness: &Admin,
         ctx: &mut TxContext,
     ): Allowlist {
         Allowlist {
@@ -73,8 +73,8 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Creates and shares a new `Allowlist`
-    public entry fun init_allowlist<Admin: drop>(
-        witness: Admin,
+    public fun init_allowlist<Admin>(
+        witness: &Admin,
         ctx: &mut TxContext,
     ) {
         let allowlist = create(witness, ctx);
@@ -99,8 +99,8 @@ module nft_protocol::transfer_allowlist {
     /// collection to the allowlist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the allowlist owner a way to combat spam.
-    public fun insert_collection<Admin: drop, C>(
-        _allowlist_witness: Admin,
+    public fun insert_collection<Admin, C>(
+        _allowlist_witness: &Admin,
         _authority: &CollectionControlCap<C>,
         list: &mut Allowlist,
     ) {

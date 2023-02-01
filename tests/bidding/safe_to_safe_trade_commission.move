@@ -4,7 +4,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::test_utils::{Self as utils};
-    use nft_protocol::transfer_allowlist::{Allowlist};
+    use nft_protocol::transfer_allowlist::Allowlist;
     use sui::coin::{Self, Coin};
     use sui::object::ID;
     use sui::sui::SUI;
@@ -27,6 +27,13 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
     #[test]
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
+
+        utils::create_collection_and_allowlist_with_type(
+            &Foo {},
+            &Witness {},
+            CREATOR,
+            &mut scenario,
+        );
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
