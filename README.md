@@ -1,4 +1,4 @@
-- Sui v0.23.0
+- Sui v0.24.0
 
 Checkout our:
 - Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5db59b623554ef931b23c07ed4f7d577942bd52d)
