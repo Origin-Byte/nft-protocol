@@ -24,31 +24,27 @@ module nft_protocol::err {
 
     // === Supply ===
 
-    public fun supply_policy_mismatch(): u64 {
+    public fun supply_regulated(): u64 {
         return Prefix + 100
     }
 
-    public fun supply_is_not_zero(): u64 {
+    public fun supply_not_regulated(): u64 {
         return Prefix + 101
     }
 
-    public fun supply_is_limited(): u64 {
+    public fun supply_is_not_zero(): u64 {
         return Prefix + 102
     }
 
-    public fun supply_is_unlimited(): u64 {
-        return Prefix + 103
-    }
-
-    public fun frozen_supply(): u64 {
+    public fun supply_frozen(): u64 {
         return Prefix + 104
     }
 
-    public fun max_supply_cannot_be_below_current_supply(): u64 {
+    public fun supply_not_frozen(): u64 {
         return Prefix + 105
     }
 
-    public fun current_supply_cannot_be_negative(): u64 {
+    public fun max_supply_cannot_be_below_current_supply(): u64 {
         return Prefix + 106
     }
 
@@ -60,38 +56,6 @@ module nft_protocol::err {
 
     public fun wrong_marketplace_admin(): u64 {
         return Prefix + 201
-    }
-
-    public fun listing_not_live(): u64 {
-        return Prefix + 202
-    }
-
-    public fun nft_sale_incompleted(): u64 {
-        return Prefix + 203
-    }
-
-    public fun nft_redemption_incompleted(): u64 {
-        return Prefix + 204
-    }
-
-    public fun sale_is_not_whitelisted(): u64 {
-        return Prefix + 205
-    }
-
-    public fun sale_is_whitelisted(): u64 {
-        return Prefix + 206
-    }
-
-    public fun incorrect_whitelist_certificate(): u64 {
-        return Prefix + 207
-    }
-
-    public fun undefined_nft_id(): u64 {
-        return Prefix + 208
-    }
-
-    public fun no_nfts_left(): u64 {
-        return Prefix + 209
     }
 
     public fun marketplace_listing_mismatch(): u64 {
@@ -112,22 +76,6 @@ module nft_protocol::err {
 
     public fun has_custom_fee_policy(): u64 {
         return Prefix + 214
-    }
-
-    public fun listing_not_approved(): u64 {
-        return Prefix + 215
-    }
-
-    public fun undefined_inventory(): u64 {
-        return Prefix + 216
-    }
-
-    public fun undefined_market(): u64 {
-        return Prefix + 217
-    }
-
-    public fun incorrect_nft_certificate(): u64 {
-        return Prefix + 218
     }
 
     public fun listing_already_attached_to_marketplace(): u64 {
@@ -222,6 +170,22 @@ module nft_protocol::err {
         return Prefix + 601
     }
 
+    public fun multisig_signers_must_not_be_empty(): u64 {
+        return Prefix + 602
+    }
+
+    public fun multisig_already_used(): u64 {
+        return Prefix + 603
+    }
+
+    public fun multisig_not_enough_signatures(): u64 {
+        return Prefix + 604
+    }
+
+    public fun multisig_not_enough_signers_weight(): u64 {
+        return Prefix + 605
+    }
+
     // === Trading ===
 
     public fun sender_not_owner(): u64 {
@@ -232,7 +196,7 @@ module nft_protocol::err {
         return Prefix + 701
     }
 
-    // === RoyaltyDomain ===
+    // === Domains ===
 
     public fun address_not_attributed(): u64 {
         return Prefix + 800
@@ -248,6 +212,10 @@ module nft_protocol::err {
 
     public fun share_attribution_already_exists(): u64 {
         return Prefix + 803
+    }
+
+    public fun collection_does_not_have_plugin(): u64 {
+        return Prefix + 804
     }
 
     // === Generic ===

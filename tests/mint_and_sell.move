@@ -1,155 +1,139 @@
 #[test_only]
 module nft_protocol::mint_and_sell {
-    use std::string;
-    use std::vector;
-
-    use sui::url;
+    use sui::coin;
+    use sui::object;
     use sui::sui::SUI;
-    use sui::tx_context;
     use sui::transfer;
-    use sui::test_scenario::{Self, ctx};
+    use sui::test_scenario::{Self, Scenario, ctx};
 
-    use nft_protocol::nft;
-    use nft_protocol::tags;
-    use nft_protocol::royalty;
-    use nft_protocol::display;
-    use nft_protocol::flat_fee;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::fixed_price;
     use nft_protocol::collection;
-    use nft_protocol::creators;
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::marketplace::{Self, Marketplace};
-    use nft_protocol::inventory;
+    use nft_protocol::listing;
+    use nft_protocol::warehouse;
+
+    use nft_protocol::test_listing;
 
     struct Witness has drop {}
 
-    struct Foo has drop {}
-
-    struct DomainA has store {}
+    struct COLLECTION has drop {}
 
     const OWNER: address = @0xA1C05;
     const CREATOR: address = @0xA1C05;
     const MARKETPLACE: address = @0xA1C20;
 
-    #[test]
-    public fun it_works() {
-        // 1. Create collection and add domains
-        let scenario = test_scenario::begin(CREATOR);
-
+    fun init_collection(scenario: &mut Scenario) {
         let (mint_cap, collection) = collection::create(
-            &Foo {}, ctx(&mut scenario),
+            &COLLECTION {}, ctx(scenario),
         );
-
-        collection::add_domain(
-            &mut collection,
-            &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx(&mut scenario)))
-        );
-
-        // Register custom domains
-        display::add_collection_display_domain(
-            &mut collection,
-            &mut mint_cap,
-            string::utf8(b"Suimarines"),
-            string::utf8(b"A unique NFT collection of Suimarines on Sui"),
-        );
-
-        display::add_collection_url_domain(
-            &mut collection,
-            &mut mint_cap,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-        );
-
-        display::add_collection_symbol_domain(
-            &mut collection,
-            &mut mint_cap,
-            string::utf8(b"SUIM")
-        );
-
-        let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
-        royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
-
-        let tags = tags::empty(ctx(&mut scenario));
-        tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
 
         transfer::share_object(collection);
         transfer::transfer(mint_cap, CREATOR);
+    }
 
-        // 2. Create marketplace and add Listing
-        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+    #[test]
+    public fun listing_proxy_mint() {
+        // 1. Create collection
+        let scenario = test_scenario::begin(CREATOR);
+        init_collection(&mut scenario);
 
-        marketplace::init_marketplace(
-            MARKETPLACE,
-            MARKETPLACE,
-            flat_fee::new(0, ctx(&mut scenario)),
-            ctx(&mut scenario),
+        let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
+
+        // 2. Create `Warehouse`
+        let inventory_id = listing::create_warehouse(
+            &mut listing, ctx(&mut scenario)
+        );
+        let venue_id = fixed_price::create_venue<SUI>(
+            &mut listing, inventory_id, false, 100, ctx(&mut scenario)
+        );
+        listing::sale_on(&mut listing, venue_id, ctx(&mut scenario));
+
+        // 3. Mint NFT to listing `Warehouse`
+        let nft = nft::new<COLLECTION, Witness>(
+            &Witness {}, MARKETPLACE, ctx(&mut scenario),
         );
 
-        test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let marketplace = test_scenario::take_shared<Marketplace>(&scenario);
+        let nft_id = object::id(&nft);
+        listing::add_nft(&mut listing, inventory_id, nft, ctx(&mut scenario));
 
-        listing::init_listing(
-            CREATOR,
-            CREATOR,
-            ctx(&mut scenario),
-        );
-
-        // TODO: Add link marketplace to listing
-
-        test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let listing = test_scenario::take_shared<Listing>(&scenario);
-
-        // 3. Create inventory and mint NFT to it
+        // 5. Buy the NFT
         test_scenario::next_tx(&mut scenario, CREATOR);
-        let inventory = inventory::new(ctx(&mut scenario));
 
-        let nft = nft::new<Foo, Witness>(
-            &Witness {},
-            tx_context::sender(ctx(&mut scenario)),
+        let wallet = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
+        fixed_price::buy_nft<COLLECTION, SUI>(
+            &mut listing,
+            venue_id,
+            &mut wallet,
             ctx(&mut scenario),
         );
 
-        display::add_display_domain(
-            &mut nft,
-            string::utf8(b"Foo"),
-            string::utf8(b"A wild Foo appears"),
-            ctx(&mut scenario),
+        // 6. Verify NFT was bought
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let bought_nft = test_scenario::take_from_address<Nft<COLLECTION>>(
+            &scenario, CREATOR
         );
-
-        display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-            ctx(&mut scenario),
-        );
-
-        let attribute_keys = vector::empty();
-        let attribute_values = vector::empty();
-
-        display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx(&mut scenario),
-        );
-
-        inventory::deposit_nft(&mut inventory, nft);
-
-        // 4. Init Market in Marketplace Listing
-        fixed_price::create_market_on_inventory<SUI>(
-            &mut inventory,
-            false,
-            100,
-            ctx(&mut scenario),
-        );
-
-        listing::add_inventory(&mut listing, inventory, ctx(&mut scenario));
+        assert!(nft_id == object::id(&bought_nft), 0);
+        test_scenario::return_to_address(CREATOR, bought_nft);
 
         // Return objects and end test
-        test_scenario::return_shared(marketplace);
+        transfer::transfer(wallet, CREATOR);
         test_scenario::return_shared(listing);
+        test_scenario::end(scenario);
+    }
 
+    #[test]
+    public fun inventory_proxy_mint() {
+        // 1. Create collection and add domains
+        let scenario = test_scenario::begin(CREATOR);
+        init_collection(&mut scenario);
+
+        let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
+
+        // 2. Create `Warehouse`
+        let warehouse = warehouse::new(ctx(&mut scenario));
+
+        // 3. Mint NFT to `Warehouse`
+        let nft = nft::new<COLLECTION, Witness>(
+            &Witness {}, MARKETPLACE, ctx(&mut scenario),
+        );
+
+        let nft_id = object::id(&nft);
+        warehouse::deposit_nft(&mut warehouse, nft);
+
+        // 4. Insert `Warehouse` into `Listing` and create market
+        let inventory_id = object::id(&warehouse);
+        listing::add_warehouse(&mut listing, warehouse, ctx(&mut scenario));
+
+        let venue_id = fixed_price::create_venue<SUI>(
+            &mut listing, inventory_id, false, 100, ctx(&mut scenario)
+        );
+
+        listing::sale_on(&mut listing, venue_id, ctx(&mut scenario));
+
+        // 5. Buy the NFT
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let wallet = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
+        fixed_price::buy_nft<COLLECTION, SUI>(
+            &mut listing,
+            venue_id,
+            &mut wallet,
+            ctx(&mut scenario),
+        );
+
+        // 6. Verify NFT was bought
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let bought_nft = test_scenario::take_from_address<Nft<COLLECTION>>(
+            &scenario, CREATOR
+        );
+        assert!(nft_id == object::id(&bought_nft), 0);
+        test_scenario::return_to_address(CREATOR, bought_nft);
+
+        // Return objects and end test
+        transfer::transfer(wallet, CREATOR);
+        test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
 }

@@ -8,9 +8,37 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ## [0.20.0] - 2023-01-26
 
+### Added
+
+- `PluginDomain` which collects type names of witness structs.
+  These then serve to authorize a function in a "base" contract (the one that is deployed with the one-time-witness type.)
+  The function returns the original witness type (of the same module as the OTW) in exchange for a witness of another smart contract (a plugin) if that plugin's witness is present in the `PluginDomain`.
+- `Multisig` is a utility struct which enables smart contracts to authorize
+  actions signed by predefined set of accounts.
+
 ### Changed
 
+- Adding a creator now accepts a mutable reference to the collection instead of
+  the `CreatorDomain`.
+  This is because getting the reference to the `CreatorDomain` required a `&mut TxContext`.
+  The same reference was required in the `add_creator` function.
+- Orderbook event `AskCreatedEvent`/`BidCreatedEvent` are emitted when
+  creating a new position in orderbook.
+- Orderbook event `AskClosedEvent`/`BidClosedEvent` are emitted when
+  closing a position in orderbook.
+- Orderbook event `TradeFilledEvent` is emitted when a trade is filled.
+  That is, either on `create_bid`/`create_ask` when the trade is immediately
+  filled, or on `buy_nft`/`buy_generic_nft`.
+- Royalties event when `TradePayment` is created.
+
+### Changed
 - Updated Sui dep to `0.23.0`
+- Renamed `Inventory` to `Warehouse`
+
+### Fixed
+
+- When creating a bid higher than the lowest ask, the bid is now filled with
+  the lowest ask price. Before, it was filled with the bid price.
 
 ## [0.19.1] - 2023-01-23
 
@@ -23,6 +51,11 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Changed
 
 - Updated Sui dep to `0.22.0`
+
+### Removed
+
+- `CreatorsDomain` no longer has `is_frozen` flag as it needs to be
+  reconstructed when edited, and it can be dropped when no longer needed.
 
 ## [0.18.0] - 2023-01-13
 

@@ -19,6 +19,7 @@ module nft_protocol::royalty {
     use sui::tx_context::{Self, TxContext};
     use sui::bag::{Self, Bag};
     use sui::vec_map::{Self, VecMap};
+    use sui::object::{Self, UID};
 
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
@@ -28,8 +29,6 @@ module nft_protocol::royalty {
     use nft_protocol::royalty_strategy_constant::{
         Self, ConstantRoyaltyStrategy
     };
-
-    const BPS: u16 = 10_000;
 
     // === RoyaltyDomain ===
 
@@ -42,7 +41,7 @@ module nft_protocol::royalty {
     /// to shareholders, as a result, it relies on trusted price execution.
     ///
     /// The usage example shows how to derive the owed royalties from the
-    /// example sollection, `Suimarines`, which uses `TradePayment` as the
+    /// example collection, `Suimarines`, which uses `TradePayment` as the
     /// price oracle, but is also responsible for deconstructing it. For more
     /// information read [royalties](./royalties.html).
     ///
@@ -66,7 +65,9 @@ module nft_protocol::royalty {
     ///     }
     /// }
     /// ```
-    struct RoyaltyDomain has store {
+    struct RoyaltyDomain has key, store {
+        /// `RoyaltyDomain` ID
+        id: UID,
         /// Royalty strategies
         strategies: Bag,
         /// Aggregates received royalties across different coins
@@ -89,7 +90,7 @@ module nft_protocol::royalty {
     /// `RoyaltyDomain` object.
     public fun from_address(who: address, ctx: &mut TxContext): RoyaltyDomain {
         let shares = vec_map::empty();
-        vec_map::insert(&mut shares, who, BPS);
+        vec_map::insert(&mut shares, who, utils::bps());
 
         from_shares(shares, ctx)
     }
@@ -108,6 +109,7 @@ module nft_protocol::royalty {
     ): RoyaltyDomain {
         assert_total_shares(&royalty_shares_bps);
         RoyaltyDomain {
+            id: object::new(ctx),
             strategies: bag::new(ctx),
             aggregations: bag::new(ctx),
             royalty_shares_bps,
@@ -212,7 +214,7 @@ module nft_protocol::royalty {
         assert_empty(domain);
 
         let shares = vec_map::empty();
-        vec_map::insert(&mut shares, who, BPS);
+        vec_map::insert(&mut shares, who, utils::bps());
 
         domain.royalty_shares_bps = shares;
     }
@@ -467,7 +469,7 @@ module nft_protocol::royalty {
         // balance * share_of_royalty_bps / BPS
         let total = fixed_point32::create_from_rational(
             balance::value(aggregate),
-            (BPS as u64)
+            (utils::bps() as u64)
         );
 
         let i = 0;
@@ -553,6 +555,6 @@ module nft_protocol::royalty {
             i = i + 1;
         };
 
-        assert!(bps_total == BPS, err::invalid_total_share_of_royalties());
+        assert!(bps_total == utils::bps(), err::invalid_total_share_of_royalties());
     }
 }
