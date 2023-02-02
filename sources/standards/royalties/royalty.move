@@ -17,7 +17,6 @@ module nft_protocol::royalty {
     use sui::transfer;
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
-    // use sui::bag::{Self, Bag};
     use sui::dynamic_field as df;
     use sui::vec_map::{Self, VecMap};
     use sui::object::{Self, UID};
