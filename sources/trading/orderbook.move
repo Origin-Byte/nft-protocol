@@ -16,7 +16,7 @@
 /// # Other resources
 /// - https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook
 /// - https://origin-byte.github.io/ob.html
-module nft_protocol::ob {
+module nft_protocol::orderbook {
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
     // TODO: do we allow anyone to create an OB for any collection?

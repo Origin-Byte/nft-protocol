@@ -1,6 +1,6 @@
 #[test_only]
 module nft_protocol::test_ob_witness_protected_actions {
-    use nft_protocol::ob::{Self, Orderbook};
+    use nft_protocol::orderbook::{Self as ob, Orderbook};
     use nft_protocol::safe;
     use nft_protocol::test_utils::{Self as test_ob, Foo};
     use nft_protocol::transfer_allowlist::Allowlist;
@@ -38,7 +38,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::orderbook)]
     fun it_protects_buy_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
@@ -122,7 +122,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::orderbook)]
     fun it_protects_create_ask() {
         let scenario = test_scenario::begin(CREATOR);
         let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
@@ -197,7 +197,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::orderbook)]
     fun it_protects_create_bid() {
         let scenario = test_scenario::begin(CREATOR);
         create_col_wl_ob_nft_safes(&mut scenario);
@@ -262,7 +262,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::orderbook)]
     fun it_protects_cancel_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -340,7 +340,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::orderbook)]
     fun it_protects_cancel_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -412,7 +412,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::orderbook)]
     fun it_protects_create_bid_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -430,7 +430,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370304, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370304, location = nft_protocol::orderbook)]
     fun it_protects_create_ask_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 

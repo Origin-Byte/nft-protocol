@@ -1,4 +1,4 @@
-module nft_protocol::football {
+module nft_protocol::footbytes {
     use std::string::{Self, String};
 
     use sui::url;
@@ -11,21 +11,21 @@ module nft_protocol::football {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::flyweight_archetype;
-    use nft_protocol::flyweight_registry;
+    use nft_protocol::template;
+    use nft_protocol::templates;
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
-    struct FOOTBALL has drop {}
+    struct FOOTBYTES has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: FOOTBALL, ctx: &mut TxContext) {
+    fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness(&witness);
 
@@ -74,7 +74,7 @@ module nft_protocol::football {
             tags,
         );
 
-        flyweight_registry::init_registry<FOOTBALL>(
+        templates::init_templates<FOOTBYTES>(
             delegated_witness,
             &mut collection,
             ctx,
@@ -85,8 +85,8 @@ module nft_protocol::football {
     }
 
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<FOOTBALL, FT>,
-        collection: &mut Collection<FOOTBALL>,
+        payment: &mut TradePayment<FOOTBYTES, FT>,
+        collection: &mut Collection<FOOTBYTES>,
         ctx: &mut TxContext,
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
@@ -99,12 +99,12 @@ module nft_protocol::football {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_nft_archetype(
+    public entry fun mint_nft_template(
         name: String,
         description: String,
         url: vector<u8>,
-        collection: &mut Collection<FOOTBALL>,
-        mint_cap: &MintCap<FOOTBALL>,
+        collection: &mut Collection<FOOTBYTES>,
+        mint_cap: &MintCap<FOOTBYTES>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
@@ -118,7 +118,7 @@ module nft_protocol::football {
             &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
-        let archetype = flyweight_archetype::new_regulated(nft, supply, ctx);
-        flyweight_registry::add_collection_archetype(mint_cap, collection, archetype);
+        let template = template::new_regulated(nft, supply, ctx);
+        templates::add_collection_template(mint_cap, collection, template);
     }
 }

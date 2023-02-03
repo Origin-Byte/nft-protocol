@@ -1,4 +1,4 @@
-module nft_protocol::flyweight_mint_cap {
+module nft_protocol::loose_mint_cap {
     use std::option::{Self, Option};
 
     use sui::transfer;
@@ -11,135 +11,135 @@ module nft_protocol::flyweight_mint_cap {
     use nft_protocol::supply;
     use nft_protocol::mint_cap::{Self, RegulatedMintCap, UnregulatedMintCap};
 
-    friend nft_protocol::flyweight_archetype;
+    friend nft_protocol::template;
 
     // === PointerDomain ===
 
     struct PointerDomain has key, store {
         /// `PointerDomain` ID
         id: UID,
-        /// `Archetype` ID that this NFT is a loose representation of
-        archetype_id: ID,
+        /// `Template` ID that this NFT is a loose representation of
+        template_id: ID,
     }
 
-    /// Creates a new `Pointer` to the given `Archetype`
-    fun pointer(archetype_id: ID, ctx: &mut TxContext): PointerDomain {
+    /// Creates a new `Pointer` to the given `Template`
+    fun pointer(template_id: ID, ctx: &mut TxContext): PointerDomain {
         PointerDomain {
             id: object::new(ctx),
-            archetype_id,
+            template_id,
         }
     }
 
-    /// Return `ID` of `Archetype` associated with this pointer
-    public fun archetype_id(pointer: &PointerDomain): ID {
-        pointer.archetype_id
+    /// Return `ID` of `Template` associated with this pointer
+    public fun template_id(pointer: &PointerDomain): ID {
+        pointer.template_id
     }
 
-    // === ArchetypeMintCap ===
+    // === LooseMintCap ===
 
-    /// `ArchetypeMintCap` object
+    /// `LooseMintCap` object
     ///
-    /// `ArchetypeMintCap` ensures that supply policy on `Collection` and
-    /// `Archetype` are not violated.
-    struct ArchetypeMintCap<phantom C> has key, store {
-        /// `ArchetypeMintCap` ID
+    /// `LooseMintCap` ensures that supply policy on `Collection` and
+    /// `Template` are not violated.
+    struct LooseMintCap<phantom C> has key, store {
+        /// `LooseMintCap` ID
         id: UID,
-        /// `Archetype` ID for which this `ArchetypeMintCap` is allowed to mint
+        /// `Template` ID for which this `LooseMintCap` is allowed to mint
         /// NFTs
-        archetype_id: ID,
+        template_id: ID,
     }
 
-    /// Create `ArchetypeMintCap` with unregulated supply
+    /// Create `LooseMintCap` with unregulated supply
     ///
     /// #### Safety
     ///
-    /// Neither `Collection` nor `Archetype` have regulated supply.
+    /// Neither `Collection` nor `Template` have regulated supply.
     public(friend) fun from_unregulated<C>(
         mint_cap: UnregulatedMintCap<C>,
-        archetype_id: ID,
+        template_id: ID,
         ctx: &mut TxContext,
-    ): ArchetypeMintCap<C> {
-        let archetype_mint_cap = ArchetypeMintCap {
+    ): LooseMintCap<C> {
+        let template_mint_cap = LooseMintCap {
             id: object::new(ctx),
-            archetype_id
+            template_id
         };
 
         df::add(
-            &mut archetype_mint_cap.id,
+            &mut template_mint_cap.id,
             utils::marker<UnregulatedMintCap<C>>(),
             mint_cap,
         );
 
-        archetype_mint_cap
+        template_mint_cap
     }
 
-    /// Create `ArchetypeMintCap` with unregulated supply
+    /// Create `LooseMintCap` with unregulated supply
     ///
     /// #### Safety
     ///
-    /// Either `Collection` or `Archetype` must have regulated supply, such
+    /// Either `Collection` or `Template` must have regulated supply, such
     /// that `RegulatedMintCap` does not violate either.
     public(friend) fun from_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
-        archetype_id: ID,
+        template_id: ID,
         ctx: &mut TxContext,
-    ): ArchetypeMintCap<C> {
-        let archetype_mint_cap = ArchetypeMintCap {
+    ): LooseMintCap<C> {
+        let template_mint_cap = LooseMintCap {
             id: object::new(ctx),
-            archetype_id
+            template_id
         };
 
         df::add(
-            &mut archetype_mint_cap.id,
+            &mut template_mint_cap.id,
             utils::marker<RegulatedMintCap<C>>(),
             mint_cap,
         );
 
-        archetype_mint_cap
+        template_mint_cap
     }
 
     // === Getters ===
 
-    /// Borrows `RegulatedMintCap` from `ArchetypeMintCap`
+    /// Borrows `RegulatedMintCap` from `LooseMintCap`
     ///
     /// #### Panics
     ///
-    /// Panics if `ArchetypeMintCap` is unregulated
+    /// Panics if `LooseMintCap` is unregulated
     fun borrow_regulated<C>(
-        mint_cap: &ArchetypeMintCap<C>,
+        mint_cap: &LooseMintCap<C>,
     ): &RegulatedMintCap<C> {
         df::borrow(&mint_cap.id, utils::marker<RegulatedMintCap<C>>())
     }
 
-    /// Mutably borrows `RegulatedMintCap` from `ArchetypeMintCap`
+    /// Mutably borrows `RegulatedMintCap` from `LooseMintCap`
     ///
     /// #### Panics
     ///
-    /// Panics if `ArchetypeMintCap` is unregulated
+    /// Panics if `LooseMintCap` is unregulated
     fun borrow_regulated_mut<C>(
-        mint_cap: &mut ArchetypeMintCap<C>,
+        mint_cap: &mut LooseMintCap<C>,
     ): &mut RegulatedMintCap<C> {
         df::borrow_mut(&mut mint_cap.id, utils::marker<RegulatedMintCap<C>>())
     }
 
-    /// Borrows `RegulatedMintCap` from `ArchetypeMintCap`
+    /// Borrows `RegulatedMintCap` from `LooseMintCap`
     ///
     /// #### Panics
     ///
-    /// Panics if `ArchetypeMintCap` is regulated
+    /// Panics if `LooseMintCap` is regulated
     fun borrow_unregulated<C>(
-        mint_cap: &ArchetypeMintCap<C>,
+        mint_cap: &LooseMintCap<C>,
     ): &UnregulatedMintCap<C> {
         df::borrow(&mint_cap.id, utils::marker<UnregulatedMintCap<C>>())
     }
 
-    /// Mutably borrows `RegulatedMintCap` from `ArchetypeMintCap`
+    /// Mutably borrows `RegulatedMintCap` from `LooseMintCap`
     ///
     /// #### Panics
     ///
-    /// Panics if `ArchetypeMintCap` is regulated
+    /// Panics if `LooseMintCap` is regulated
     fun borrow_unregulated_mut<C>(
-        mint_cap: &mut ArchetypeMintCap<C>,
+        mint_cap: &mut LooseMintCap<C>,
     ): &mut UnregulatedMintCap<C> {
         df::borrow_mut(
             &mut mint_cap.id,
@@ -147,19 +147,19 @@ module nft_protocol::flyweight_mint_cap {
         )
     }
 
-    /// Returns whether `ArchetypeMintCap` is eligible to mint NFTs of the
+    /// Returns whether `LooseMintCap` is eligible to mint NFTs of the
     /// given type
-    public fun is_regulated<C>(mint_cap: &ArchetypeMintCap<C>): bool {
+    public fun is_regulated<C>(mint_cap: &LooseMintCap<C>): bool {
         df::exists_with_type<Marker<RegulatedMintCap<C>>, RegulatedMintCap<C>>(
             &mint_cap.id,
             utils::marker<RegulatedMintCap<C>>(),
         )
     }
 
-    /// Returns the remaining supply available to `ArchetypeMintCap`
+    /// Returns the remaining supply available to `LooseMintCap`
     ///
     /// If factory is unregulated then none will be returned.
-    public fun supply<C>(mint_cap: &ArchetypeMintCap<C>): Option<u64> {
+    public fun supply<C>(mint_cap: &LooseMintCap<C>): Option<u64> {
         if (is_regulated(mint_cap)) {
             let mint_cap = borrow_regulated(mint_cap);
             let supply = mint_cap::borrow_supply(mint_cap);
@@ -169,13 +169,13 @@ module nft_protocol::flyweight_mint_cap {
         }
     }
 
-    /// Mints `Nft` from `ArchetypeMintCap`
+    /// Mints `Nft` from `LooseMintCap`
     ///
     /// #### Panics
     ///
     /// Panics if supply was exceeded.
     public fun mint_nft<C>(
-        mint_cap: &mut ArchetypeMintCap<C>,
+        mint_cap: &mut LooseMintCap<C>,
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
@@ -190,7 +190,7 @@ module nft_protocol::flyweight_mint_cap {
             nft::new_unregulated(mint_cap, sender, ctx)
         };
 
-        let pointer = pointer(mint_cap.archetype_id, ctx);
+        let pointer = pointer(mint_cap.template_id, ctx);
         nft::add_domain(&mut nft, pointer, ctx);
 
         nft::change_logical_owner_internal(&mut nft, owner);
@@ -198,13 +198,13 @@ module nft_protocol::flyweight_mint_cap {
         nft
     }
 
-    /// Mints `Nft` from `ArchetypeMintCap` and transfer to transaction sender
+    /// Mints `Nft` from `LooseMintCap` and transfer to transaction sender
     ///
     /// #### Panics
     ///
     /// Panics if supply was exceeded.
     public entry fun mint_nft_and_transfer<C>(
-        mint_cap: &mut ArchetypeMintCap<C>,
+        mint_cap: &mut LooseMintCap<C>,
         ctx: &mut TxContext,
     ) {
         let sender = tx_context::sender(ctx);

@@ -12,17 +12,16 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Introduced `DelegatedWitness` pattern
 - Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
-
-### Added
-
-- Introduced `DelegatedWitness` pattern
-- Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
 ### Changed
 
 - Renamed `CollectionMintEvent` to `MintCollectionEvent` to be consistent with
   `MintNftEvent`.
 - `TagsDomain` now uses dynamic fields instead of `Bag`.
 - `RoyaltyDomain` now uses dynamic fields instead of `Bag`.
+- Renamed `flyweight` standards to `loose` standards. `archetype::Archetype` is
+  no `template::Template` and `registry::RegistryDomain` is
+  now `templates::TemplatesDomain`
+- Renamed orderbook module `nft_protocol::ob` to `nft_protocol::orderbook`
 
 ## [0.21.0] - 2023-02-02
 

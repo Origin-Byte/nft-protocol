@@ -3,7 +3,7 @@ module nft_protocol::test_ob_cancel_position {
     use nft_protocol::safe::{TransferCap};
     use nft_protocol::test_utils as test_ob;
     use sui::sui::SUI;
-    use nft_protocol::ob::{Self, Orderbook};
+    use nft_protocol::orderbook::{Self as ob, Orderbook};
     use sui::coin;
     use sui::test_scenario;
     use sui::transfer::transfer;
@@ -18,7 +18,7 @@ module nft_protocol::test_ob_cancel_position {
     const COMMISSION_SUI: u64 = 10;
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_non_existing_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -37,7 +37,7 @@ module nft_protocol::test_ob_cancel_position {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_someone_elses_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -223,7 +223,7 @@ module nft_protocol::test_ob_cancel_position {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_non_existing_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -240,7 +240,7 @@ module nft_protocol::test_ob_cancel_position {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370302, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370302, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_someone_elses_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
