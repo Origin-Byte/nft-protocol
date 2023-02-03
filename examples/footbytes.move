@@ -1,4 +1,4 @@
-module nft_protocol::football {
+module nft_protocol::footbytes {
     use std::string::{Self, String};
 
     use sui::url;
@@ -18,14 +18,14 @@ module nft_protocol::football {
     use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
-    struct FOOTBALL has drop {}
+    struct FOOTBYTES has drop {}
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: FOOTBALL, ctx: &mut TxContext) {
+    fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
         let delegated_witness = nft_protocol::witness::from_witness(&witness);
 
@@ -74,7 +74,7 @@ module nft_protocol::football {
             tags,
         );
 
-        templates::init_templates<FOOTBALL>(
+        templates::init_templates<FOOTBYTES>(
             delegated_witness,
             &mut collection,
             ctx,
@@ -85,8 +85,8 @@ module nft_protocol::football {
     }
 
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<FOOTBALL, FT>,
-        collection: &mut Collection<FOOTBALL>,
+        payment: &mut TradePayment<FOOTBYTES, FT>,
+        collection: &mut Collection<FOOTBYTES>,
         ctx: &mut TxContext,
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
@@ -103,8 +103,8 @@ module nft_protocol::football {
         name: String,
         description: String,
         url: vector<u8>,
-        collection: &mut Collection<FOOTBALL>,
-        mint_cap: &MintCap<FOOTBALL>,
+        collection: &mut Collection<FOOTBYTES>,
+        mint_cap: &MintCap<FOOTBYTES>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
