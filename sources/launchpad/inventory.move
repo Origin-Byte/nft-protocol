@@ -135,16 +135,11 @@ module nft_protocol::inventory {
     public fun is_empty<C>(inventory: &Inventory<C>): bool {
         let supply = supply(inventory);
         if (option::is_some(&supply)) {
-            let supply = option::destroy_some(supply);
-            if (supply == 0) {
-                false
-            } else {
-                true
-            }
+            option::destroy_some(supply) == 0
         } else {
             option::destroy_none(supply);
             // None is only returned for factories with unregulated supplies
-            true
+            false
         }
     }
 

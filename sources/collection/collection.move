@@ -70,7 +70,7 @@ module nft_protocol::collection {
     /// }
     /// ```
     public fun create<C>(
-        witness: &C,
+        _witness: &C,
         ctx: &mut TxContext,
     ): (MintCap<C>, Collection<C>) {
         let id = object::new(ctx);
@@ -88,11 +88,12 @@ module nft_protocol::collection {
     /// Creates a shared `Collection<C>` and corresponding `MintCap<C>`
     public fun init_collection<C>(
         witness: &C,
+        owner: address,
         ctx: &mut TxContext,
-    ): MintCap<C> {
+    ) {
         let (mint_cap, collection) = create(witness, ctx);
         transfer::share_object(collection);
-        mint_cap
+        transfer::transfer(mint_cap, owner);
     }
 
     // === Domain Functions ===
@@ -221,23 +222,5 @@ module nft_protocol::collection {
         collection: &Collection<C>
     ) {
         assert!(!has_domain<C, D>(collection), EEXISTING_DOMAIN);
-    }
-
-    // === Test only helpers ===
-
-    #[test_only]
-    public fun dummy_collection<C>(
-        witness: &C,
-        creator: address,
-        scenario: &mut sui::test_scenario::Scenario,
-    ): (MintCap<C>, Collection<C>) {
-        sui::test_scenario::next_tx(scenario, creator);
-
-        let (cap, col) = create<C>(
-            witness,
-            sui::test_scenario::ctx(scenario),
-        );
-
-        (cap, col)
     }
 }

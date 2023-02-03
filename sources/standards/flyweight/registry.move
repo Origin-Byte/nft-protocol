@@ -40,7 +40,7 @@ module nft_protocol::flyweight_registry {
     }
 
     /// Create a `RegistryDomain` object and register on `Collection`
-    public entry fun init_registry<C>(
+    public fun init_registry<C>(
         witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,

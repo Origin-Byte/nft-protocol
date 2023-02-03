@@ -35,11 +35,11 @@ module nft_protocol::test_transfer_allowlist {
         );
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap,
             &mut wl,
         );
@@ -66,11 +66,11 @@ module nft_protocol::test_transfer_allowlist {
         );
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection(
-            Witness2 {},
+            &Witness2 {},
             &col_cap,
             &mut wl,
         );
@@ -90,11 +90,11 @@ module nft_protocol::test_transfer_allowlist {
         );
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap,
             &mut wl,
         );
@@ -118,16 +118,16 @@ module nft_protocol::test_transfer_allowlist {
         );
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap1,
             &mut wl,
         );
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap2,
             &mut wl,
         );
@@ -141,7 +141,7 @@ module nft_protocol::test_transfer_allowlist {
         assert!(transfer_allowlist::can_be_transferred<Bar, Witness>(Witness {}, &wl), 0);
 
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap1,
             &mut wl,
         );
@@ -166,11 +166,11 @@ module nft_protocol::test_transfer_allowlist {
         );
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap,
             &mut wl,
         );
@@ -202,11 +202,11 @@ module nft_protocol::test_transfer_allowlist {
         );
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap,
             &mut wl,
         );
@@ -232,7 +232,7 @@ module nft_protocol::test_transfer_allowlist {
         let scenario = test_scenario::begin(ADMIN);
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         transfer_allowlist::insert_authority<Witness2, Witness2>(Witness2 {}, &mut wl);
 
@@ -246,7 +246,7 @@ module nft_protocol::test_transfer_allowlist {
         let scenario = test_scenario::begin(ADMIN);
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         transfer_allowlist::insert_authority<Witness, Witness2>(Witness {}, &mut wl);
         transfer_allowlist::remove_authority<Witness2, Witness2>(Witness2 {}, &mut wl);
@@ -265,11 +265,11 @@ module nft_protocol::test_transfer_allowlist {
         );
 
         test_scenario::next_tx(&mut scenario, ADMIN);
-        let wl = transfer_allowlist::create(Witness {}, ctx(&mut scenario));
+        let wl = transfer_allowlist::create(&Witness {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection(
-            Witness {},
+            &Witness {},
             &col_cap,
             &mut wl,
         );

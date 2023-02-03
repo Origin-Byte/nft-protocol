@@ -132,13 +132,16 @@ module nft_protocol::mint_cap {
     /// unregulated, therefore it is safe to create arbitrary
     /// `RegulatedMintCap`.
     public fun from_unregulated<C>(
-        mint_cap: &UnregulatedMintCap<C>,
+        mint_cap: UnregulatedMintCap<C>,
         supply: u64,
         ctx: &mut TxContext,
     ): RegulatedMintCap<C> {
+        let collection_id = unregulated_collection_id(&mint_cap);
+        delete_unregulated(mint_cap);
+
         RegulatedMintCap {
             id: object::new(ctx),
-            collection_id: unregulated_collection_id(mint_cap),
+            collection_id,
             supply: supply::new(supply, true),
         }
     }

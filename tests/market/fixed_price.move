@@ -9,7 +9,6 @@ module nft_protocol::test_fixed_price {
     use nft_protocol::nft;
     use nft_protocol::venue;
     use nft_protocol::warehouse;
-    use nft_protocol::collection;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::fixed_price;
@@ -107,16 +106,13 @@ module nft_protocol::test_fixed_price {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let mint_cap = collection::init_collection(
-            &COLLECTION {}, ctx(&mut scenario),
-        );
         let (warehouse_id, venue_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new(&mint_cap, CREATOR, ctx(&mut scenario)),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
@@ -175,16 +171,13 @@ module nft_protocol::test_fixed_price {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
 
-        let mint_cap = collection::init_collection(
-            &COLLECTION {}, ctx(&mut scenario),
-        );
         let (warehouse_id, venue_id) =
             init_market(&mut listing, 10, true, &mut scenario);
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new(&mint_cap, CREATOR, ctx(&mut scenario)),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
