@@ -12,12 +12,23 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Introduced `DelegatedWitness` pattern
 - Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
+
+### Added
+
+- Introduced `DelegatedWitness` pattern
+- Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
 ### Changed
 
 - Renamed `CollectionMintEvent` to `MintCollectionEvent` to be consistent with
   `MintNftEvent`.
 - `TagsDomain` now uses dynamic fields instead of `Bag`.
 - `RoyaltyDomain` now uses dynamic fields instead of `Bag`.
+
+## [0.21.0] - 2023-02-02
+
+### Changed
+
+- Updated Sui dep to `0.24.0`
 
 ## [0.20.3] - 2023-01-31
 
