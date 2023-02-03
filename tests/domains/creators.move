@@ -3,7 +3,7 @@ module nft_protocol::test_creators {
 
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::creators::{Self, CreatorsDomain};
+    use nft_protocol::creators;
     use nft_protocol::collection::{Self, Collection, MintCap};
     use nft_protocol::test_utils::create_collection_and_allowlist_with_type;
 
@@ -18,7 +18,7 @@ module nft_protocol::test_creators {
         let scenario = test_scenario::begin(CREATOR);
 
         let (col_id, cap_id, _wl_id) = create_collection_and_allowlist_with_type(
-            Foo {},
+            &Foo {},
             Witness {},
             CREATOR,
             &mut scenario,
@@ -34,14 +34,13 @@ module nft_protocol::test_creators {
             &scenario, CREATOR, cap_id
         );
 
-        let attribution = creators::from_address(CREATOR, ctx(&mut scenario));
-
-        creators::add_creators_domain(
-            &mut collection, &mut mint_cap, attribution
+        collection::add_domain(
+            &mut collection,
+            &mut mint_cap,
+            creators::from_address(&Foo {}, CREATOR, ctx(&mut scenario)),
         );
 
-        // If domain does not exist this function call will fail
-        collection::borrow_domain<Foo, CreatorsDomain>(&collection);
+        creators::assert_domain(&collection);
 
         test_scenario::return_shared(collection);
         test_scenario::return_to_address(CREATOR, mint_cap);
