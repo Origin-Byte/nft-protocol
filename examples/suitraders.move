@@ -31,7 +31,7 @@ module nft_protocol::suitraders {
         collection::add_domain(
             &mut collection,
             &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx), ctx)
+            creators::from_address(&witness, tx_context::sender(ctx), ctx),
         );
 
         // Register custom domains

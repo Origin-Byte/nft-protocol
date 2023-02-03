@@ -36,7 +36,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         let scenario = test_scenario::begin(CREATOR);
 
         utils::create_collection_and_allowlist_with_type(
-            Foo {},
+            &Foo {},
             Witness {},
             CREATOR,
             &mut scenario,
@@ -107,7 +107,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         let scenario = test_scenario::begin(CREATOR);
 
         let (col_id, mint_cap_id, _) = utils::create_collection_and_allowlist_with_type(
-            Foo {},
+            &Foo {},
             Witness {},
             CREATOR,
             &mut scenario,

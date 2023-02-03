@@ -156,8 +156,7 @@ module nft_protocol::collection {
     ///
     /// ##### Panics
     ///
-    /// Panics if `MintCap` does not match `Collection` or domain `D` already
-    /// exists.
+    /// Panics if domain `D` already exists.
     ///
     /// ##### Usage
     ///
@@ -167,12 +166,10 @@ module nft_protocol::collection {
     /// ```
     public fun add_domain<C, D: key + store>(
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<C>,
         domain: D,
     ) {
-        assert_mint_cap(mint_cap, collection);
         assert_no_domain<C, D>(collection);
-
         dof::add(&mut collection.id, utils::marker<D>(), domain);
     }
 
@@ -226,21 +223,6 @@ module nft_protocol::collection {
         collection: &Collection<C>
     ) {
         assert!(!has_domain<C, D>(collection), err::domain_already_defined());
-    }
-
-    /// Assert that `MintCap` is associated with `Collection`
-    ///
-    /// ##### Panics
-    ///
-    /// Panics if `MintCap` is not associated with the `Collection`.
-    public fun assert_mint_cap<C>(
-        cap: &MintCap<C>,
-        collection: &Collection<C>
-    ) {
-        assert!(
-            cap.collection_id == object::id(collection),
-            err::mint_cap_mismatch()
-        );
     }
 
     // === Test only helpers ===
