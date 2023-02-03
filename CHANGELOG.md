@@ -13,6 +13,10 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Introduced `DelegatedWitness` pattern
 - Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
 
+### Added
+
+- Introduced `DelegatedWitness` pattern
+- Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
 ### Changed
 
 - Renamed `CollectionMintEvent` to `MintCollectionEvent` to be consistent with

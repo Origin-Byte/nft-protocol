@@ -29,8 +29,10 @@ module nft_protocol::test_fixed_price {
         is_whitelisted: bool,
         scenario: &mut Scenario,
     ): (ID, ID) {
-        let inventory_id = listing::create_warehouse(listing, ctx(scenario));
-        let venue_id = fixed_price::create_venue<SUI>(
+        let inventory_id = listing::create_warehouse<COLLECTION>(
+            listing, ctx(scenario),
+        );
+        let venue_id = fixed_price::create_venue<COLLECTION, SUI>(
             listing, inventory_id, is_whitelisted, price, ctx(scenario)
         );
 
@@ -110,9 +112,7 @@ module nft_protocol::test_fixed_price {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new<COLLECTION, Witness>(
-                &Witness {}, CREATOR, ctx(&mut scenario)
-            ),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
@@ -177,9 +177,7 @@ module nft_protocol::test_fixed_price {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new<COLLECTION, Witness>(
-                &Witness {}, CREATOR, ctx(&mut scenario)
-            ),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 

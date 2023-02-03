@@ -33,8 +33,10 @@ module nft_protocol::test_dutch_auction {
         is_whitelisted: bool,
         scenario: &mut Scenario,
     ): (ID, ID) {
-        let inventory_id = listing::create_warehouse(listing, ctx(scenario));
-        let venue_id = dutch_auction::create_venue<SUI>(
+        let inventory_id = listing::create_warehouse<COLLECTION>(
+            listing, ctx(scenario)
+        );
+        let venue_id = dutch_auction::create_venue<COLLECTION, SUI>(
             listing, inventory_id, is_whitelisted, reserve_price, ctx(scenario)
         );
 
@@ -575,21 +577,18 @@ module nft_protocol::test_dutch_auction {
 
         let (warehouse_id, venue_id) =
             init_market(&mut listing, 10, false, &mut scenario);
+
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new<COLLECTION, Witness>(
-                &Witness {}, CREATOR, ctx(&mut scenario)
-            ),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new<COLLECTION, Witness>(
-                &Witness {}, CREATOR, ctx(&mut scenario)
-            ),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
@@ -682,18 +681,14 @@ module nft_protocol::test_dutch_auction {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new<COLLECTION, Witness>(
-                &Witness {}, CREATOR, ctx(&mut scenario)
-            ),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::new<COLLECTION, Witness>(
-                &Witness {}, CREATOR, ctx(&mut scenario)
-            ),
+            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
             ctx(&mut scenario)
         );
 

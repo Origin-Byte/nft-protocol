@@ -13,7 +13,7 @@ module nft_protocol::tags {
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
 
     // === Tags ===
 
@@ -145,10 +145,10 @@ module nft_protocol::tags {
     }
 
     public fun add_collection_tag_domain<C>(
+        witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         tags: TagDomain,
     ) {
-        collection::add_domain(collection, mint_cap, tags);
+        collection::add_domain(witness, collection, tags);
     }
 }

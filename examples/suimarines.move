@@ -13,7 +13,8 @@ module nft_protocol::suimarines {
     use nft_protocol::creators;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -24,46 +25,45 @@ module nft_protocol::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(
-            &witness, ctx,
-        );
+        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let delegated_witness = nft_protocol::witness::from_witness(&witness);
 
         collection::add_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             creators::from_address(&witness, tx_context::sender(ctx), ctx),
         );
 
         // Register custom domains
         display::add_collection_display_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
             ctx,
         );
 
         display::add_collection_url_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
             ctx,
         );
 
         display::add_collection_symbol_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             string::utf8(b"SUIM"),
             ctx,
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
+        royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
+        tags::add_collection_tag_domain(delegated_witness, &mut collection, tags);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
@@ -91,13 +91,11 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        _mint_cap: &MintCap<SUIMARINES>,
-        warehouse: &mut Warehouse,
+        mint_cap: &MintCap<SUIMARINES>,
+        warehouse: &mut Warehouse<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUIMARINES, Witness>(
-            &Witness {}, tx_context::sender(ctx), ctx
-        );
+        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft,
