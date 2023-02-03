@@ -20,6 +20,12 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - `TagsDomain` now uses dynamic fields instead of `Bag`.
 - `RoyaltyDomain` now uses dynamic fields instead of `Bag`.
 
+## [0.21.0] - 2023-02-02
+
+### Changed
+
+- Updated Sui dep to `0.24.0`
+
 ## [0.20.3] - 2023-01-31
 
 ### Added
