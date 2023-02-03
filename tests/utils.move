@@ -2,7 +2,7 @@
 module nft_protocol::test_utils {
     use nft_protocol::collection;
     use nft_protocol::nft;
-    use nft_protocol::ob::{Self, Orderbook};
+    use nft_protocol::orderbook::{Self as ob, Orderbook};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use originmate::box::{Self, Box};

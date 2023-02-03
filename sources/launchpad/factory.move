@@ -7,8 +7,8 @@ module nft_protocol::factory {
 
     use nft_protocol::nft::Nft;
     use nft_protocol::collection::Collection;
-    use nft_protocol::flyweight_registry as registry;
-    use nft_protocol::flyweight_mint_cap::{Self, ArchetypeMintCap};
+    use nft_protocol::templates as registry;
+    use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
     use nft_protocol::mint_cap::{RegulatedMintCap, UnregulatedMintCap};
 
     /// `Factory` is an inventory that can mint loose NFTs
@@ -17,10 +17,10 @@ module nft_protocol::factory {
     struct Factory<phantom C> has key, store {
         /// `Factory` ID
         id: UID,
-        /// `ArchetypeMintCap` responsible for generating `PointerDomain` and
+        /// `LooseMintCap` responsible for generating `PointerDomain` and
         /// maintianing supply invariants on `Collection` and `Archetype`
         /// levels.
-        mint_cap: ArchetypeMintCap<C>,
+        mint_cap: LooseMintCap<C>,
     }
 
     /// Creates a new `Factory`
@@ -35,11 +35,11 @@ module nft_protocol::factory {
     fun new_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
         collection: &mut Collection<C>,
-        archetype_id: ID,
+        template_id: ID,
         ctx: &mut TxContext,
     ): Factory<C> {
         let mint_cap = registry::delegate(
-            mint_cap, collection, archetype_id, ctx,
+            mint_cap, collection, template_id, ctx,
         );
 
         Factory { id: object::new(ctx), mint_cap }
@@ -52,25 +52,25 @@ module nft_protocol::factory {
     public fun from_unregulated<C>(
         mint_cap: UnregulatedMintCap<C>,
         collection: &mut Collection<C>,
-        archetype_id: ID,
+        template_id: ID,
         ctx: &mut TxContext,
     ): Factory<C> {
         let mint_cap = registry::delegate_unregulated(
-            mint_cap, collection, archetype_id, ctx,
+            mint_cap, collection, template_id, ctx,
         );
 
         Factory { id: object::new(ctx), mint_cap }
     }
 
-    /// Borrow `ArchetypeMintCap`
-    fun borrow_mint_cap<C>(factory: &Factory<C>): &ArchetypeMintCap<C> {
+    /// Borrow `LooseMintCap`
+    fun borrow_mint_cap<C>(factory: &Factory<C>): &LooseMintCap<C> {
         &factory.mint_cap
     }
 
-    /// Mutably borrow `ArchetypeMintCap`
+    /// Mutably borrow `LooseMintCap`
     fun borrow_mint_cap_mut<C>(
         factory: &mut Factory<C>,
-    ): &mut ArchetypeMintCap<C> {
+    ): &mut LooseMintCap<C> {
         &mut factory.mint_cap
     }
 
@@ -88,7 +88,7 @@ module nft_protocol::factory {
         ctx: &mut TxContext,
     ): Nft<C> {
         let mint_cap = borrow_mint_cap_mut(factory);
-        flyweight_mint_cap::mint_nft(mint_cap, owner, ctx)
+        loose_mint_cap::mint_nft(mint_cap, owner, ctx)
     }
 
     /// Returns the remaining supply available to `Factory`
@@ -96,6 +96,6 @@ module nft_protocol::factory {
     /// If factory is unregulated then none will be returned.
     public fun supply<C>(factory: &Factory<C>): Option<u64> {
         let mint_cap = borrow_mint_cap(factory);
-        flyweight_mint_cap::supply(mint_cap)
+        loose_mint_cap::supply(mint_cap)
     }
 }

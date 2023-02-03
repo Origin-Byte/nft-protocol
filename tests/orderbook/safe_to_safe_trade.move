@@ -82,7 +82,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370410, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370410, location = nft_protocol::orderbook)]
     fun it_fails_if_buyer_safe_eq_seller_safe() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -106,7 +106,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370410, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370410, location = nft_protocol::orderbook)]
     fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
         let scenario = test_scenario::begin(CREATOR);
 

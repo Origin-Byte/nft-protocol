@@ -26,7 +26,7 @@ module nft_protocol::nft {
     // TODO: Remove this after refactoring NFT permissions to allow
     // DelegatedWitness
     friend nft_protocol::warehouse;
-    friend nft_protocol::flyweight_mint_cap;
+    friend nft_protocol::loose_mint_cap;
 
     /// Domain not defined
     ///

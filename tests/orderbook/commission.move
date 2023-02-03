@@ -10,7 +10,7 @@ module nft_protocol::test_ob_commission {
     const CREATOR: address = @0xA1C05;
 
     #[test]
-    #[expected_failure(abort_code = 13370701, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370701, location = nft_protocol::orderbook)]
     fun it_cannot_create_ask_with_commission_greater_than_requested_tokens() {
         let scenario = test_scenario::begin(CREATOR);
 
