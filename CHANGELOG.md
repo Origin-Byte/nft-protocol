@@ -12,6 +12,25 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Introduced `DelegatedWitness` pattern
 - Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
+### Changed
+
+- Renamed `CollectionMintEvent` to `MintCollectionEvent` to be consistent with
+  `MintNftEvent`.
+- `TagsDomain` now uses dynamic fields instead of `Bag`.
+- `RoyaltyDomain` now uses dynamic fields instead of `Bag`.
+
+## [0.20.3] - 2023-01-31
+
+### Added
+
+- Orderbook's `CreateAskEvent` and `CreateBidEvent` now contain safe ID.
+- Emitting event `OrderbookCreatedEvent` when an orderbook is created.
+
+## [0.20.2] - 2023-01-31
+
+### Added
+
+- Orderbook's `TradeFilledEvent` now contains orderbook ID.
 
 ## [0.20.1] - 2023-01-30
 
