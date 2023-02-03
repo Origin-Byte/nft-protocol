@@ -51,7 +51,7 @@ module nft_protocol::collection {
     }
 
     /// Event signalling that a `Collection` was minted
-    struct CollectionMintEvent has copy, drop {
+    struct MintCollectionEvent has copy, drop {
         /// ID of the `Collection` that was minted
         collection_id: ID,
         /// Type name of `Collection<C>` one-time witness `C`
@@ -77,7 +77,7 @@ module nft_protocol::collection {
     ): (MintCap<C>, Collection<C>) {
         let id = object::new(ctx);
 
-        event::emit(CollectionMintEvent {
+        event::emit(MintCollectionEvent {
             collection_id: object::uid_to_inner(&id),
             type_name: type_name::get<C>(),
         });

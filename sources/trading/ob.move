@@ -19,7 +19,6 @@
 module nft_protocol::ob {
     // TODO: protocol toll
     // TODO: eviction of lowest bid/highest ask on OOM
-    // TODO: emit events (https://github.com/Origin-Byte/nft-protocol/issues/150)
     // TODO: do we allow anyone to create an OB for any collection?
     // TODO: settings to skip royalty settlement (witness protected)
 
@@ -37,9 +36,14 @@ module nft_protocol::ob {
         settle_funds_with_royalties,
         transfer_bid_commission,
     };
+
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+
+    use std::ascii::String;
     use std::option::{Self, Option};
+    use std::type_name;
     use std::vector;
+
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event;
@@ -147,31 +151,39 @@ module nft_protocol::ob {
 
     // === Events ===
 
+    struct OrderbookCreatedEvent has copy, drop {
+        orderbook: ID,
+        collection_type: String,
+        fungible_token_type: String,
+    }
+
     struct AskCreatedEvent has copy, drop {
         nft: ID,
         orderbook: ID,
-        price: u64,
         owner: address,
+        price: u64,
+        safe: ID,
     }
 
     /// When de-listed, not when sold!
     struct AskClosedEvent has copy, drop {
         nft: ID,
         orderbook: ID,
-        price: u64,
         owner: address,
+        price: u64,
     }
 
     struct BidCreatedEvent has copy, drop {
-        owner: address,
         orderbook: ID,
+        owner: address,
         price: u64,
+        safe: ID,
     }
 
     /// When de-listed, not when bought!
     struct BidClosedEvent has copy, drop {
-        owner: address,
         orderbook: ID,
+        owner: address,
         price: u64,
     }
 
@@ -186,6 +198,7 @@ module nft_protocol::ob {
         buyer_safe: ID,
         buyer: address,
         nft: ID,
+        orderbook: ID,
         price: u64,
         seller_safe: ID,
         seller: address,
@@ -575,6 +588,12 @@ module nft_protocol::ob {
     ): Orderbook<C, FT> {
         let id = object::new(ctx);
 
+        event::emit(OrderbookCreatedEvent {
+            orderbook: object::uid_to_inner(&id),
+            collection_type: type_name::into_string(type_name::get<C>()),
+            fungible_token_type: type_name::into_string(type_name::get<C>()),
+        });
+
         Orderbook<C, FT> {
             id,
             protected_actions,
@@ -824,6 +843,7 @@ module nft_protocol::ob {
             share_object(trade_intermediate);
 
             event::emit(TradeFilledEvent {
+                orderbook: object::id(book),
                 buyer_safe: buyer_safe_id,
                 buyer,
                 nft,
@@ -837,9 +857,10 @@ module nft_protocol::ob {
             option::destroy_none(bid_commission);
         } else {
             event::emit(BidCreatedEvent {
-                owner: buyer,
                 orderbook: object::id(book),
+                owner: buyer,
                 price,
+                safe: buyer_safe_id,
             });
 
             // take the amount that the sender wants to create a bid with from their
@@ -934,6 +955,7 @@ module nft_protocol::ob {
         safe::assert_transfer_cap_exclusive(&transfer_cap);
 
         let seller = tx_context::sender(ctx);
+        let seller_safe_id = object::id(seller_safe);
 
         let bids = &mut book.bids;
 
@@ -966,7 +988,7 @@ module nft_protocol::ob {
                 commission: bid_commission,
             } = bid;
             assert!(
-                buyer_safe_id != object::id(seller_safe),
+                buyer_safe_id != seller_safe_id,
                 err::cannot_trade_with_self(),
             );
             let paid = balance::value(&bid_offer);
@@ -989,11 +1011,12 @@ module nft_protocol::ob {
             share_object(trade_intermediate);
 
             event::emit(TradeFilledEvent {
+                orderbook: object::id(book),
                 buyer_safe: buyer_safe_id,
                 buyer,
                 nft,
                 price: paid,
-                seller_safe: object::id(seller_safe),
+                seller_safe: seller_safe_id,
                 seller,
                 trade_intermediate: option::some(trade_intermediate_id),
             });
@@ -1002,10 +1025,11 @@ module nft_protocol::ob {
             option::destroy_none(bid_commission);
         } else {
             event::emit(AskCreatedEvent {
-                price,
-                orderbook: object::id(book),
                 nft: safe::transfer_cap_nft(&transfer_cap),
-                owner: seller
+                orderbook: object::id(book),
+                owner: seller,
+                price,
+                safe: seller_safe_id,
             });
 
             let ask = Ask {
@@ -1085,6 +1109,7 @@ module nft_protocol::ob {
         );
 
         event::emit(TradeFilledEvent {
+            orderbook: object::id(book),
             buyer_safe: object::id(buyer_safe),
             buyer,
             nft: nft_id,
@@ -1138,6 +1163,7 @@ module nft_protocol::ob {
         );
 
         event::emit(TradeFilledEvent {
+            orderbook: object::id(book),
             buyer_safe: object::id(buyer_safe),
             buyer,
             nft: nft_id,
