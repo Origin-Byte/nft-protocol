@@ -19,7 +19,7 @@ module nft_protocol::fixed_price {
 
     use nft_protocol::venue;
     use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::warehouse;
+    use nft_protocol::inventory;
     use nft_protocol::market_whitelist::{Self, Certificate};
 
     struct FixedPriceMarket<phantom FT> has key, store {
@@ -58,25 +58,25 @@ module nft_protocol::fixed_price {
     }
 
     /// Initializes a `Venue` with `FixedPriceMarket<FT>`
-    public entry fun init_venue<FT>(
+    public entry fun init_venue<C, FT>(
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ) {
-        create_venue<FT>(listing, inventory_id, is_whitelisted, price, ctx);
+        create_venue<C, FT>(listing, inventory_id, is_whitelisted, price, ctx);
     }
 
     /// Creates a `Venue` with `FixedPriceMarket<FT>`
-    public fun create_venue<FT>(
+    public fun create_venue<C, FT>(
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
         price: u64,
         ctx: &mut TxContext,
     ): ID {
-        listing::assert_inventory(listing, inventory_id);
+        listing::assert_inventory<C>(listing, inventory_id);
 
         let market = new<FT>(inventory_id, price, ctx);
         listing::create_venue(listing, market, is_whitelisted, ctx)
@@ -140,12 +140,12 @@ module nft_protocol::fixed_price {
 
         let inventory_id = market.inventory_id;
         let inventory =
-            listing::inventory_internal_mut<FixedPriceMarket<FT>, Witness>(
+            listing::inventory_internal_mut<C, FixedPriceMarket<FT>, Witness>(
                 Witness {}, listing, venue_id, inventory_id
             );
 
-        let nft = warehouse::redeem_nft<C>(inventory);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        let owner = tx_context::sender(ctx);
+        inventory::redeem_nft_and_transfer(inventory, owner, ctx);
 
         listing::pay(listing, funds, 1);
     }

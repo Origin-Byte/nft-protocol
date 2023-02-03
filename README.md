@@ -1,6 +1,7 @@
 - Sui v0.24.0
 
 Checkout our:
+
 - Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5db59b623554ef931b23c07ed4f7d577942bd52d)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)
@@ -17,11 +18,11 @@ on-chain market infrastructure.
 The ecosystem is partitioned into three critical components:
 
 - The NFT standard, encompassing the core `Nft`, `Collection`, and `Safe` types,
-controlling the lifecycle and properties of each NFT.
+  controlling the lifecycle and properties of each NFT.
 - Primary markets, encompassing `Marketplace`, `Listing`, and numerous markets which
-control the initial minting of NFTs.
+  control the initial minting of NFTs.
 - Secondary markets, encompassing principally the `Orderbook` which allows you
-to trade existing NFTs.
+  to trade existing NFTs.
 
 # Install
 

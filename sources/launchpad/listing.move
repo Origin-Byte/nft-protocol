@@ -37,11 +37,13 @@ module nft_protocol::listing {
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
+    use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::err;
     use nft_protocol::utils;
     use nft_protocol::nft::Nft;
-    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::warehouse;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::venue::{Self, Venue};
@@ -52,13 +54,7 @@ module nft_protocol::listing {
     /// Call `Listing::init_venue` to initialize a `Venue`
     const EUNDEFINED_VENUE: u64 = 1;
 
-    /// `Warehouse` was not defined on `Listing`
-    ///
-    /// Initialize `Warehouse` using `Listing::init_warehouse` or insert one
-    /// using `Listing::add_warehouse`.
-    const EUNDEFINED_WAREHOUSE: u64 = 2;
-
-    /// `Warehouse` or `Facotry` was not defined on `Listing`
+    /// `Warehouse` or `Factory` was not defined on `Listing`
     ///
     /// Initialize `Warehouse` using `Listing::init_warehouse` or insert one
     /// using `Listing::add_warehouse`.
@@ -77,8 +73,8 @@ module nft_protocol::listing {
         proceeds: Proceeds,
         /// Main object that holds all venues part of the listing
         venues: ObjectTable<ID, Venue>,
-        /// Main object that holds all warehouses part of the listing
-        warehouses: ObjectTable<ID, Warehouse>,
+        /// Main object that holds all inventories part of the listing
+        inventories: ObjectBag,
         /// Field with Object Box holding a Custom Fee implementation if any.
         /// In case this box is empty the calculation will applied on the
         /// default fee object in the associated Marketplace
@@ -123,7 +119,7 @@ module nft_protocol::listing {
             receiver,
             proceeds: proceeds::empty(ctx),
             venues: object_table::new(ctx),
-            warehouses: object_table::new(ctx),
+            inventories: object_bag::new(ctx),
             custom_fee: obox::empty(ctx),
         }
     }
@@ -176,29 +172,35 @@ module nft_protocol::listing {
 
     /// Initializes an empty `Warehouse` on `Listing`
     ///
+    /// Function transparently wraps `Warehouse` in `Inventory`, therefore, the
+    /// returned ID is that of the `Inventory` not the `Warehouse`.
+    ///
     /// #### Panics
     ///
     /// Panics if transaction sender is not listing admin.
-    public entry fun init_warehouse(
+    public entry fun init_warehouse<C>(
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
-        create_warehouse(listing, ctx);
+        create_warehouse<C>(listing, ctx);
     }
 
     /// Creates an empty `Warehouse` on `Listing` and returns it's ID
     ///
+    /// Function transparently wraps `Warehouse` in `Inventory`, therefore, the
+    /// returned ID is that of the `Inventory` not the `Warehouse`.
+    ///
     /// #### Panics
     ///
     /// Panics if transaction sender is not listing admin.
-    public fun create_warehouse(
+    public fun create_warehouse<C>(
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
-        let warehouse = warehouse::new(ctx);
-        let warehouse_id = object::id(&warehouse);
-        add_warehouse(listing, warehouse, ctx);
-        warehouse_id
+        let inventory = inventory::from_warehouse<C>(warehouse::new(ctx), ctx);
+        let inventory_id = object::id(&inventory);
+        add_inventory(listing, inventory, ctx);
+        inventory_id
     }
 
     public fun pay<FT>(
@@ -327,34 +329,40 @@ module nft_protocol::listing {
     ///
     /// #### Panics
     ///
-    /// Panics if the warehouse with the given ID does not exist or transaction
-    /// sender is not the listing admin.
+    /// - `Inventory` with the given ID does not exist
+    /// - `Inventory` with the given ID is not a `Warehouse`
+    /// - Transaction sender is not the listing admin
     public entry fun add_nft<C>(
         listing: &mut Listing,
-        warehouse_id: ID,
+        inventory_id: ID,
         nft: Nft<C>,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
-        let warehouse = borrow_warehouse_mut(listing, warehouse_id);
-        warehouse::deposit_nft(warehouse, nft);
+        let inventory = borrow_inventory_mut(listing, inventory_id);
+        inventory::deposit_nft(inventory, nft);
     }
 
-    /// Adds `Warehouse` to `Listing`
+    /// Adds `Inventory` to `Listing`
+    ///
+    /// `Inventory` is a type-erased wrapper around `Warehouse` or `Factory`.
+    ///
+    /// To create a new inventory call `inventory::from_warehouse` or
+    /// `inventory::from_factory`.
     ///
     /// #### Panics
     ///
     /// Panics if transaction sender is not the listing admin
-    public entry fun add_warehouse(
+    public entry fun add_inventory<C>(
         listing: &mut Listing,
-        warehouse: Warehouse,
+        inventory: Inventory<C>,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
 
-        let warehouse_id = object::id(&warehouse);
-        object_table::add(&mut listing.warehouses, warehouse_id, warehouse);
+        let inventory_id = object::id(&inventory);
+        object_bag::add(&mut listing.inventories, inventory_id, inventory);
     }
 
     /// Set market's live status to `true` therefore making the NFT sale live.
@@ -513,38 +521,41 @@ module nft_protocol::listing {
         venue
     }
 
-    /// Returns whether `Warehouse` with given ID exists
-    public fun contains_warehouse(
+    /// Returns whether `Inventory` with given ID exists
+    public fun contains_inventory<C>(
         listing: &Listing,
-        warehouse_id: ID,
+        inventory_id: ID,
     ): bool {
-        object_table::contains(&listing.warehouses, warehouse_id)
+        object_bag::contains_with_type<ID, Inventory<C>>(
+            &listing.inventories,
+            inventory_id,
+        )
     }
 
-    /// Borrow the Listing's `Warehouse`
+    /// Borrow the listing's `Inventory`
     ///
     /// #### Panics
     ///
-    /// Panics if warehouse does not exist.
-    public fun borrow_warehouse(
+    /// Panics if `Inventory` does not exist.
+    public fun borrow_inventory<C>(
         listing: &Listing,
-        warehouse_id: ID,
-    ): &Warehouse {
-        assert_warehouse(listing, warehouse_id);
-        object_table::borrow(&listing.warehouses, warehouse_id)
+        inventory_id: ID,
+    ): &Inventory<C> {
+        assert_inventory<C>(listing, inventory_id);
+        object_bag::borrow(&listing.inventories, inventory_id)
     }
 
-    /// Mutably borrow the Listing's `Warehouse`
+    /// Mutably borrow the listing's `Inventory`
     ///
     /// #### Panics
     ///
-    /// Panics if warehouse does not exist.
-    fun borrow_warehouse_mut(
+    /// Panics if `Inventory` does not exist.
+    fun borrow_inventory_mut<C>(
         listing: &mut Listing,
         inventory_id: ID,
-    ): &mut Warehouse {
-        assert_warehouse(listing, inventory_id);
-        object_table::borrow_mut(&mut listing.warehouses, inventory_id)
+    ): &mut Inventory<C> {
+        assert_inventory<C>(listing, inventory_id);
+        object_bag::borrow_mut(&mut listing.inventories, inventory_id)
     }
 
     /// Mutably borrow a `Warehouse`
@@ -555,15 +566,14 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if witness does not originate from the same module as market.
-    public fun inventory_internal_mut<Market: store, Witness: drop>(
+    public fun inventory_internal_mut<C, Market: store, Witness: drop>(
         witness: Witness,
         listing: &mut Listing,
         venue_id: ID,
         inventory_id: ID,
-    ): &mut Warehouse {
+    ): &mut Inventory<C> {
         venue_internal_mut<Market, Witness>(witness, listing, venue_id);
-        // ID may be of a `Warehouse` or `Factory`
-        borrow_warehouse_mut(listing, inventory_id)
+        borrow_inventory_mut(listing, inventory_id)
     }
 
     /// Returns how many NFTs can be withdrawn
@@ -573,10 +583,13 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if `Warehouse` or `Listing` with the ID does not exist
-    public fun supply(listing: &Listing, inventory_id: ID): Option<u64> {
-        assert_inventory(listing, inventory_id);
-        let warehouse = borrow_warehouse(listing, inventory_id);
-        option::some(warehouse::size(warehouse))
+    public fun supply<C>(
+        listing: &Listing,
+        inventory_id: ID,
+    ): Option<u64> {
+        assert_inventory<C>(listing, inventory_id);
+        let inventory = borrow_inventory<C>(listing, inventory_id);
+        inventory::supply(inventory)
     }
 
     // === Assertions ===
@@ -623,12 +636,11 @@ module nft_protocol::listing {
         assert!(contains_venue(listing, venue_id), EUNDEFINED_VENUE);
     }
 
-    public fun assert_warehouse(listing: &Listing, warehouse_id: ID) {
-        assert!(contains_warehouse(listing, warehouse_id), EUNDEFINED_WAREHOUSE);
-    }
-
-    public fun assert_inventory(listing: &Listing, inventory_id: ID) {
+    public fun assert_inventory<C>(listing: &Listing, inventory_id: ID) {
         // Inventory can be either `Warehouse` or `Factory`
-        assert!(contains_warehouse(listing, inventory_id), EUNDEFINED_INVENTORY);
+        assert!(
+            contains_inventory<C>(listing, inventory_id),
+            EUNDEFINED_INVENTORY,
+        );
     }
 }

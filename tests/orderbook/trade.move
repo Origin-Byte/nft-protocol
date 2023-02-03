@@ -1,7 +1,7 @@
 #[test_only]
 module nft_protocol::test_ob_trade {
     use originmate::crit_bit_u64 as crit_bit;
-    use nft_protocol::ob::{Self, Orderbook};
+    use nft_protocol::orderbook::{Self as ob, Orderbook};
     use nft_protocol::safe;
     use nft_protocol::test_utils::{Self as test_ob};
     use std::option;
@@ -285,7 +285,7 @@ module nft_protocol::test_ob_trade {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::ob)]
+    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
     fun it_fails_if_nft_does_not_exist() {
         let scenario = test_scenario::begin(CREATOR);
 

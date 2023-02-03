@@ -17,15 +17,15 @@ module nft_protocol::royalty {
     use sui::transfer;
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
-    use sui::bag::{Self, Bag};
+    use sui::dynamic_field as df;
     use sui::vec_map::{Self, VecMap};
     use sui::object::{Self, UID};
 
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::creators;
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::royalty_strategy_constant::{
         Self, ConstantRoyaltyStrategy
     };
@@ -69,9 +69,9 @@ module nft_protocol::royalty {
         /// `RoyaltyDomain` ID
         id: UID,
         /// Royalty strategies
-        strategies: Bag,
+        strategies: UID,
         /// Aggregates received royalties across different coins
-        aggregations: Bag,
+        aggregations: UID,
         /// Royalty share received by addresses
         royalty_shares_bps: VecMap<address, u16>,
     }
@@ -110,8 +110,8 @@ module nft_protocol::royalty {
         assert_total_shares(&royalty_shares_bps);
         RoyaltyDomain {
             id: object::new(ctx),
-            strategies: bag::new(ctx),
-            aggregations: bag::new(ctx),
+            strategies: object::new(ctx),
+            aggregations: object::new(ctx),
             royalty_shares_bps,
         }
     }
@@ -279,7 +279,7 @@ module nft_protocol::royalty {
         domain: &mut RoyaltyDomain,
         strategy: Strategy,
     ) {
-        bag::add(
+        df::add(
             &mut domain.strategies,
             utils::marker<Strategy>(),
             strategy,
@@ -297,14 +297,14 @@ module nft_protocol::royalty {
     public fun remove_strategy<Strategy: drop + store>(
         domain: &mut RoyaltyDomain,
     ): Strategy {
-        bag::remove(&mut domain.strategies, utils::marker<Strategy>())
+        df::remove(&mut domain.strategies, utils::marker<Strategy>())
     }
 
     /// Check whether a royalty strategy is defined
     public fun contains_strategy<Strategy: drop + store>(
         domain: &RoyaltyDomain,
     ): bool {
-        bag::contains_with_type<Marker<Strategy>, Strategy>(
+        df::exists_with_type<Marker<Strategy>, Strategy>(
             &domain.strategies, utils::marker<Strategy>()
         )
     }
@@ -317,7 +317,7 @@ module nft_protocol::royalty {
     public fun borrow_strategy<Strategy: drop + store>(
         domain: &RoyaltyDomain,
     ): &Strategy {
-        bag::borrow(
+        df::borrow(
             &domain.strategies,
             utils::marker<Strategy>(),
         )
@@ -331,7 +331,7 @@ module nft_protocol::royalty {
     public fun borrow_strategy_mut<Strategy: drop + store>(
         domain: &mut RoyaltyDomain,
     ): &mut Strategy {
-        bag::borrow_mut(&mut domain.strategies, utils::marker<Strategy>())
+        df::borrow_mut(&mut domain.strategies, utils::marker<Strategy>())
     }
 
     // === Standard royalty domains ===
@@ -414,17 +414,17 @@ module nft_protocol::royalty {
 
         let b = balance::split(source, amount);
 
-        if (!bag::contains_with_type<Marker<Balance<FT>>, Balance<FT>>(
+        if (!df::exists_with_type<Marker<Balance<FT>>, Balance<FT>>(
             aggregations, utils::marker<Balance<FT>>()
         )) {
-            bag::add(
+            df::add(
                 aggregations,
                 utils::marker<Balance<FT>>(),
                 balance::zero<FT>(),
             );
         };
 
-        let aggregate = bag::borrow_mut(
+        let aggregate = df::borrow_mut(
             aggregations,
             utils::marker<Balance<FT>>()
         );
@@ -448,7 +448,7 @@ module nft_protocol::royalty {
             collection::borrow_domain_mut(Witness {}, collection);
 
         let shares = &domain.royalty_shares_bps;
-        let aggregate: &mut Balance<FT> = bag::borrow_mut(
+        let aggregate: &mut Balance<FT> = df::borrow_mut(
             &mut domain.aggregations,
             utils::marker<Balance<FT>>(),
         );
@@ -509,23 +509,19 @@ module nft_protocol::royalty {
     ///
     /// Requires that `CreatorsDomain` is defined and sender is a creator
     public fun royalty_domain_mut<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        ctx: &mut TxContext,
     ): &mut RoyaltyDomain {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
-
         collection::borrow_domain_mut(Witness {}, collection)
     }
 
     /// Registers `RoyaltyDomain` on the given `Collection`
     public fun add_royalty_domain<C>(
+        witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         domain: RoyaltyDomain,
     ) {
-        collection::add_domain(collection, mint_cap, domain);
+        collection::add_domain(witness, collection, domain);
     }
 
     // === Utils ===

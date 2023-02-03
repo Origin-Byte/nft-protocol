@@ -8,12 +8,16 @@
 /// Regulated policies are enforced by
 module nft_protocol::supply_domain {
     use sui::transfer;
-    use sui::object::{Self, ID, UID};
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::mint_cap::{
+        Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
+    };
     use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::witness::Witness as DelegatedWitness;
 
     friend nft_protocol::warehouse;
 
@@ -66,14 +70,14 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is already regulated.
-    public entry fun regulate<C>(
+    public fun regulate<C>(
+        witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         max: u64,
         frozen: bool,
         ctx: &mut TxContext,
     ) {
-        collection::add_domain(collection, mint_cap, new<C>(max, frozen, ctx));
+        collection::add_domain(witness, collection, new<C>(max, frozen, ctx));
     }
 
     /// Deregulate the supply of `Collection`
@@ -81,9 +85,9 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is unregulated or supply is non-zero or frozen.
-    public entry fun deregulate<C>(
+    public fun deregulate<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        _mint_cap: &MintCap<C>,
     ) {
         supply::assert_not_frozen(supply(collection));
         let SupplyDomain<C> { id, supply } =
@@ -97,9 +101,9 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is unregulated or supply was already frozen.
-    public entry fun freeze_supply<C>(
+    public fun freeze_supply<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        _mint_cap: &MintCap<C>,
     ) {
         supply::freeze_supply(supply_mut(collection))
     }
@@ -118,18 +122,14 @@ module nft_protocol::supply_domain {
     /// Panics if collection is unregulated, supply is not frozen, or if there
     /// is no excess supply to delegate a supply of `value`.
     public fun delegate<C>(
+        mint_cap: &MintCap<C>,
         collection: &mut Collection<C>,
-        _mint_cap: &MintCap<C>,
         value: u64,
         ctx: &mut TxContext,
     ): RegulatedMintCap<C> {
         let collection_id = object::id(collection);
-        let supply = supply_mut(collection);
-        RegulatedMintCap {
-            id: object::new(ctx),
-            collection_id,
-            supply: supply::extend(supply, value)
-        }
+        let supply = supply::extend(supply_mut(collection), value);
+        mint_cap::new_regulated(mint_cap, collection_id, supply, ctx)
     }
 
     /// Delegate partial `DelegatedSupply<C>` for use in composing an
@@ -146,12 +146,12 @@ module nft_protocol::supply_domain {
     /// Panics if collection is unregulated, supply is not frozen, or if there
     /// is no excess supply to delegate a supply of `value`.
     public entry fun delegate_and_transfer<C>(
-        collection: &mut Collection<C>,
         mint_cap: &MintCap<C>,
+        collection: &mut Collection<C>,
         value: u64,
         ctx: &mut TxContext,
     ) {
-        let delegated = delegate(collection, mint_cap, value, ctx);
+        let delegated = delegate(mint_cap, collection, value, ctx);
         transfer::transfer(delegated, tx_context::sender(ctx));
     }
 
@@ -168,9 +168,43 @@ module nft_protocol::supply_domain {
         delegated: RegulatedMintCap<C>,
     ) {
         let supply = supply_mut(collection);
-        let RegulatedMintCap<C> { id, collection_id: _, supply: delegated } = delegated;
-        object::delete(id);
+        let delegated = mint_cap::delete_regulated(delegated);
         supply::merge(supply, delegated);
+    }
+
+    /// Delegate unregulated mint permission for use in composing a `Factory`.
+    ///
+    /// Requires that collection supply is unregulated, therefore must not be
+    /// called if you intend to register a `SupplyDomain` in the future.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if collection is regulated.
+    public fun delegate_unregulated<C>(
+        mint_cap: &MintCap<C>,
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ): UnregulatedMintCap<C> {
+        let collection_id = object::id(collection);
+        mint_cap::new_unregulated(mint_cap, collection_id, ctx)
+    }
+
+    /// Delegate unregulated mint permission for use in composing a `Factory`
+    /// and transfer to transaction sender.
+    ///
+    /// Requires that collection supply is unregulated, therefore must not be
+    /// called if you intend to register a `SupplyDomain` in the future.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if collection is regulated.
+    public entry fun delegate_unregulated_and_transfer<C>(
+        mint_cap: &MintCap<C>,
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ) {
+        let delegated = delegate_unregulated(mint_cap, collection, ctx);
+        transfer::transfer(delegated, tx_context::sender(ctx));
     }
 
     /// Increases maximum supply
@@ -236,39 +270,5 @@ module nft_protocol::supply_domain {
     /// Assert that the `Collection` supply is not regulated
     public fun assert_unregulated<C>(collection: &Collection<C>) {
         assert!(!is_regulated(collection), err::supply_regulated());
-    }
-
-    // === RegulatedMintCap ===
-
-    /// `RegulatedMintCap<C>` delegates the capability to it's owner to mint
-    /// `Nft<C>` from collections with regulated supply.
-    struct RegulatedMintCap<phantom C> has key, store {
-        /// `RegulatedMintCap` ID
-        id: UID,
-        /// ID of the `Collection` that `RegulatedMintCap` controls
-        ///
-        /// Intended for discovery.
-        collection_id: ID,
-        /// Supply that `RegulatedMintCap` is entitled to mint
-        supply: Supply,
-    }
-
-    public fun delegated_supply<C>(delegated: &RegulatedMintCap<C>): &Supply {
-        &delegated.supply
-    }
-
-    /// Increments the delegated supply of `Inventory`
-    ///
-    /// This endpoint must be called before a new `Nft` object is created to
-    /// ensure that global supply tracking remains consistent.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if delegated supply is exceeded.
-    public entry fun mint_supply<C>(
-        delegated: &mut RegulatedMintCap<C>,
-        value: u64,
-    ) {
-        supply::increment(&mut delegated.supply, value);
     }
 }
