@@ -14,7 +14,7 @@ module nft_protocol::nft {
     use sui::dynamic_object_field as dof;
     use sui::object::{Self, ID, UID};
     use sui::transfer;
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::utils::{Self, Marker};
@@ -33,8 +33,11 @@ module nft_protocol::nft {
     /// Call `collection::borrow` to borrow domain
     const EEXISTING_DOMAIN: u64 = 2;
 
+    /// Transaction sender not logical owner
+    const EINVALID_SENDER: u64 = 3;
+
     /// Invalid transfer authority
-    const EINVALID_AUTHORITY: u64 = 3;
+    const EINVALID_AUTHORITY: u64 = 4;
 
     /// `Nft` object
     ///
@@ -112,6 +115,10 @@ module nft_protocol::nft {
     /// `RegulatedMintCap` may only be created by
     /// `supply_domain::delegate_regulated`.
     ///
+    /// Contrary to minting NFTs using [new](#new), the logical owner is set to
+    /// the transaction sender as `RegulatedMintCap` does not have the ability
+    /// to add domains to NFTs not belonging to the transaction sender.
+    ///
     /// See [new](#new) for usage information.
     ///
     /// #### Panics
@@ -119,11 +126,11 @@ module nft_protocol::nft {
     /// Panics if supply is exceeded.
     public fun new_regulated<C>(
         mint_cap: &mut RegulatedMintCap<C>,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
         mint_cap::increment_supply(mint_cap, 1);
-        new_(owner, ctx)
+        // See documentation note
+        new_(tx_context::sender(ctx), ctx)
     }
 
     /// Create a new `Nft` using `UnregulatedMintCap`
@@ -131,13 +138,17 @@ module nft_protocol::nft {
     /// `UnregulatedMintCap` may only be created by
     /// `supply_domain::delegate_unregulated`.
     ///
+    /// Contrary to minting NFTs using [new](#new), the logical owner is set to
+    /// the transaction sender as `RegulatedMintCap` does not have the ability
+    /// to add domains to NFTs not belonging to the transaction sender.
+    ///
     /// See [new](#new) for usage information.
     public fun new_unregulated<C>(
         _mint_cap: &UnregulatedMintCap<C>,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        new_(owner, ctx)
+        // See documentation note
+        new_(tx_context::sender(ctx), ctx)
     }
 
     // === Domain Functions ===
@@ -277,14 +288,21 @@ module nft_protocol::nft {
     /// Same as [add_domain](#add_domain) but uses `RegulatedMintCap` to
     /// authenticate the operation.
     ///
+    /// Additionally requires that the transaction sender is the logical owner
+    /// of the NFT. Prevent entities delegated the sole right to mint NFTs from
+    /// modifying the properties of existing NFTs.
+    ///
     /// #### Panics
     ///
-    /// Panics if domain `D` already exists.
+    /// Panics transaction sender is not logical owner or if domain `D` already
+    /// exists.
     public fun add_domain_with_regulated<C, D: key + store>(
         _mint_cap: &RegulatedMintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
+        ctx: &mut TxContext,
     ) {
+        assert_logical_owner(nft, ctx);
         add_domain_(nft, domain)
     }
 
@@ -293,14 +311,21 @@ module nft_protocol::nft {
     /// Same as [add_domain](#add_domain) but uses `UnregulatedMintCap` to
     /// authenticate the operation.
     ///
+    /// Additionally requires that the transaction sender is the logical owner
+    /// of the NFT. Prevent entities delegated the sole right to mint NFTs from
+    /// modifying the properties of existing NFTs.
+    ///
     /// #### Panics
     ///
-    /// Panics if domain `D` already exists.
+    /// Panics transaction sender is not logical owner or if domain `D` already
+    /// exists.
     public fun add_domain_with_unregulated<C, D: key + store>(
         _mint_cap: &UnregulatedMintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
+        ctx: &mut TxContext,
     ) {
+        assert_logical_owner(nft, ctx);
         add_domain_(nft, domain)
     }
 
@@ -395,6 +420,18 @@ module nft_protocol::nft {
     /// Panics if domain, `D`, exists on `Nft`.
     public fun assert_no_domain<C, D: key + store>(nft: &Nft<C>) {
         assert!(!has_domain<C, D>(nft), EEXISTING_DOMAIN);
+    }
+
+    /// Asserts that transaction sender is the logical owner of the Nft
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not logical owner.
+    public fun assert_logical_owner<C>(nft: &Nft<C>, ctx: &mut TxContext) {
+        assert!(
+            tx_context::sender(ctx) == nft.logical_owner,
+            EINVALID_SENDER
+        );
     }
 
     // === Test helpers ===

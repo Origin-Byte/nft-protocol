@@ -84,11 +84,10 @@ module nft_protocol::factory {
     /// Panics if supply was exceeded.
     public fun redeem_nft<C>(
         factory: &mut Factory<C>,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
         let mint_cap = borrow_mint_cap_mut(factory);
-        loose_mint_cap::mint_nft(mint_cap, owner, ctx)
+        loose_mint_cap::mint_nft(mint_cap, ctx)
     }
 
     /// Returns the remaining supply available to `Factory`

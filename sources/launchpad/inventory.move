@@ -109,8 +109,10 @@ module nft_protocol::inventory {
             warehouse::redeem_nft(warehouse)
         } else {
             let factory = borrow_factory_mut(inventory);
-            factory::redeem_nft(factory, tx_context::sender(ctx), ctx)
+            factory::redeem_nft(factory, ctx)
         }
+
+        // TODO: Change owner?
     }
 
     /// Redeems NFT from `Inventory`

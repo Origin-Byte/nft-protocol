@@ -12,7 +12,9 @@ module nft_protocol::modify {
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::witness::{Self, WitnessGenerator};
+    use nft_protocol::witness::{
+        Self, WitnessGenerator,
+    };
 
     /// `ModifyDomain` was not defined on `Collection`
     ///
@@ -77,7 +79,7 @@ module nft_protocol::modify {
     ) {
         let domain = new(witness, ctx);
         collection::add_domain(
-            witness::from_witness(witness),
+            witness::from_collection_witness(witness),
             collection,
             domain,
         );

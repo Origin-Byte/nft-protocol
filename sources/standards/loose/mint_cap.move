@@ -176,23 +176,22 @@ module nft_protocol::loose_mint_cap {
     /// Panics if supply was exceeded.
     public fun mint_nft<C>(
         mint_cap: &mut LooseMintCap<C>,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        let pointer = pointer(mint_cap.archetype_id, ctx);
+        let pointer = pointer(mint_cap.template_id, ctx);
 
         if (is_regulated(mint_cap)) {
             let mint_cap = borrow_regulated_mut(mint_cap);
-            let nft = nft::new_regulated(mint_cap, owner, ctx);
+            let nft = nft::new_regulated(mint_cap, ctx);
 
-            nft::add_domain_with_regulated(mint_cap, &mut nft, pointer);
+            nft::add_domain_with_regulated(mint_cap, &mut nft, pointer, ctx);
 
             nft
         } else {
             let mint_cap = borrow_unregulated(mint_cap);
-            let nft = nft::new_unregulated(mint_cap, owner, ctx);
+            let nft = nft::new_unregulated(mint_cap, ctx);
 
-            nft::add_domain_with_unregulated(mint_cap, &mut nft, pointer);
+            nft::add_domain_with_unregulated(mint_cap, &mut nft, pointer, ctx);
 
             nft
         }
@@ -207,8 +206,7 @@ module nft_protocol::loose_mint_cap {
         mint_cap: &mut LooseMintCap<C>,
         ctx: &mut TxContext,
     ) {
-        let sender = tx_context::sender(ctx);
-        let nft = mint_nft(mint_cap, sender, ctx);
-        transfer::transfer(nft, sender);
+        let nft = mint_nft(mint_cap, ctx);
+        transfer::transfer(nft, tx_context::sender(ctx));
     }
 }
