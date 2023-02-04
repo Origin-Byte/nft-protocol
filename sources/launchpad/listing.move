@@ -42,11 +42,15 @@ module nft_protocol::listing {
     use nft_protocol::err;
     use nft_protocol::utils;
     use nft_protocol::nft::Nft;
+    use nft_protocol::collection::Collection;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::warehouse;
+    use nft_protocol::creators;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::venue::{Self, Venue};
+    use nft_protocol::witness::Witness as DelegatedWitness;
+
     use originmate::object_box::{Self as obox, ObjectBox};
 
     /// `Venue` was not defined on `Listing`
@@ -172,17 +176,19 @@ module nft_protocol::listing {
 
     /// Initializes an empty `Warehouse` on `Listing`
     ///
-    /// Function transparently wraps `Warehouse` in `Inventory`, therefore, the
-    /// returned ID is that of the `Inventory` not the `Warehouse`.
+    /// Requires that transaction sender is collection creator registered in
+    /// `CreatorsDomain`.
     ///
     /// #### Panics
     ///
-    /// Panics if transaction sender is not listing admin.
+    /// Panics if transaction sender is not listing admin or creator.
     public entry fun init_warehouse<C>(
         listing: &mut Listing,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ) {
-        create_warehouse<C>(listing, ctx);
+        let witness = creators::delegate(collection, ctx);
+        create_warehouse<C>(witness, listing, ctx);
     }
 
     /// Creates an empty `Warehouse` on `Listing` and returns it's ID
@@ -194,10 +200,12 @@ module nft_protocol::listing {
     ///
     /// Panics if transaction sender is not listing admin.
     public fun create_warehouse<C>(
+        witness: DelegatedWitness<C>,
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
-        let inventory = inventory::from_warehouse<C>(warehouse::new(ctx), ctx);
+        let inventory =
+            inventory::from_warehouse<C>(witness, warehouse::new(ctx), ctx);
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
         inventory_id

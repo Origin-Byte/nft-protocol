@@ -145,7 +145,7 @@ module nft_protocol::fixed_price {
             );
 
         let owner = tx_context::sender(ctx);
-        inventory::redeem_nft_and_transfer(inventory, owner, ctx);
+        inventory::transfer(inventory, owner, ctx);
 
         listing::pay(listing, funds, 1);
     }

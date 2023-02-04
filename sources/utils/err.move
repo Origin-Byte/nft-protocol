@@ -135,16 +135,6 @@ module nft_protocol::err {
         return Prefix + 410
     }
 
-    // === Allowlist ===
-
-    public fun authority_not_allowlisted(): u64 {
-        return Prefix + 500
-    }
-
-    public fun sender_not_allowlist_admin(): u64 {
-        return Prefix + 502
-    }
-
     // === Utils ===
 
     public fun witness_source_mismatch(): u64 {
@@ -153,22 +143,6 @@ module nft_protocol::err {
 
     public fun must_be_witness(): u64 {
         return Prefix + 601
-    }
-
-    public fun multisig_signers_must_not_be_empty(): u64 {
-        return Prefix + 602
-    }
-
-    public fun multisig_already_used(): u64 {
-        return Prefix + 603
-    }
-
-    public fun multisig_not_enough_signatures(): u64 {
-        return Prefix + 604
-    }
-
-    public fun multisig_not_enough_signers_weight(): u64 {
-        return Prefix + 605
     }
 
     // === Trading ===

@@ -148,7 +148,7 @@ module nft_protocol::creators {
     /// Panics if transaction sender was not a creator or `CreatorsDomain` was
     /// not registered on the `Collection`.
     public fun delegate<C>(
-        collection: &mut Collection<C>,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ): DelegatedWitness<C> {
         let domain = creators_domain(collection);

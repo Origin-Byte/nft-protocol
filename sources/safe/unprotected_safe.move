@@ -233,7 +233,6 @@ module nft_protocol::unprotected_safe {
         safe: &mut UnprotectedSafe,
     ) {
         let nft = get_nft_for_transfer_<T>(transfer_cap, safe);
-
         nft::transfer(nft, recipient, authority, allowlist);
     }
 
@@ -266,7 +265,6 @@ module nft_protocol::unprotected_safe {
         ctx: &mut TxContext,
     ) {
         let nft = get_nft_for_transfer_<T>(transfer_cap, source);
-
         nft::change_logical_owner(&mut nft, recipient, authority, allowlist);
         deposit_nft(nft, target, ctx);
     }

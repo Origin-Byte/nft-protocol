@@ -23,6 +23,8 @@ module nft_protocol::nft {
         Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
     };
 
+    friend nft_protocol::inventory;
+
     /// Domain not defined
     ///
     /// Call `collection::add_domain` to add domains
@@ -35,9 +37,6 @@ module nft_protocol::nft {
 
     /// Transaction sender not logical owner
     const EINVALID_SENDER: u64 = 3;
-
-    /// Invalid transfer authority
-    const EINVALID_AUTHORITY: u64 = 4;
 
     /// `Nft` object
     ///
@@ -363,12 +362,12 @@ module nft_protocol::nft {
 
     /// Transfer the `Nft` to `recipient` while changing the `logical_owner`
     ///
-    /// If the authority was allowlisted by the creator, we transfer
-    /// the NFT to the recipient address.
+    /// Requires that `Auth` is registered as an authority on `Allowlist`.
     ///
     /// #### Panics
     ///
-    /// Panics if authority token, `Auth`, was not defined on `Allowlist`.
+    /// Panics if authority token, `Auth`, or collection was not defined on
+    /// `Allowlist`.
     public fun transfer<C, Auth: drop>(
         nft: Nft<C>,
         recipient: address,
@@ -385,19 +384,16 @@ module nft_protocol::nft {
     ///
     /// #### Panics
     ///
-    /// Panics if authority token, `Auth`, was not defined on `Allowlist`.
+    /// Panics if authority token, `Auth`, or collection was not defined on
+    /// `Allowlist`.
     public fun change_logical_owner<C, Auth: drop>(
         nft: &mut Nft<C>,
         recipient: address,
-        authority: Auth,
+        _authority: Auth,
         allowlist: &Allowlist,
     ) {
-        assert!(
-            transfer_allowlist::can_be_transferred<C, Auth>(
-                authority, allowlist,
-            ),
-            EINVALID_AUTHORITY,
-        );
+        transfer_allowlist::assert_collection<C>(allowlist);
+        transfer_allowlist::assert_authority<Auth>(allowlist);
 
         nft.logical_owner = recipient;
     }
@@ -437,6 +433,7 @@ module nft_protocol::nft {
     // === Test helpers ===
 
     #[test_only]
+    /// Create `Nft` without access to `MintCap` or derivatives
     public fun test_mint<C>(owner: address, ctx: &mut TxContext): Nft<C> {
         new_(owner, ctx)
     }
