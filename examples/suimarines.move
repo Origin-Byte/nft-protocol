@@ -31,7 +31,9 @@ module nft_protocol::suimarines {
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_address(&witness, tx_context::sender(ctx), ctx),
+            creators::from_address<SUIMARINES, Witness>(
+                &Witness {}, tx_context::sender(ctx), ctx,
+            ),
         );
 
         // Register custom domains

@@ -12,6 +12,7 @@ module nft_protocol::test_dutch_auction {
     use originmate::crit_bit_u64 as crit_bit;
 
     use nft_protocol::nft;
+    use nft_protocol::witness;
     use nft_protocol::proceeds;
     use nft_protocol::venue;
     use nft_protocol::listing::{Self, Listing};
@@ -34,7 +35,7 @@ module nft_protocol::test_dutch_auction {
         scenario: &mut Scenario,
     ): (ID, ID) {
         let inventory_id = listing::create_warehouse<COLLECTION>(
-            listing, ctx(scenario)
+            witness::from_witness(&Witness {}), listing, ctx(scenario)
         );
         let venue_id = dutch_auction::create_venue<COLLECTION, SUI>(
             listing, inventory_id, is_whitelisted, reserve_price, ctx(scenario)

@@ -25,7 +25,7 @@ module nft_protocol::test_tags {
         tags::add_tag(&mut tags, tags::profile_picture());
 
         tags::add_tag_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut nft,
             tags,
         );
@@ -53,7 +53,7 @@ module nft_protocol::test_tags {
         tags::add_tag(&mut tags, tags::game_asset());
 
         tags::add_collection_tag_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut collection,
             tags,
         );

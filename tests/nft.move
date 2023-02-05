@@ -50,7 +50,7 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(OWNER, ctx);
 
         nft::add_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
@@ -70,7 +70,7 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(OWNER, ctx);
 
         nft::add_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
@@ -92,14 +92,14 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(OWNER, ctx);
 
         nft::add_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
 
         // This second call will fail
         nft::add_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
@@ -117,7 +117,7 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(OWNER, ctx);
 
         nft::add_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut nft,
             DomainA { id: object::new(ctx) },
         );

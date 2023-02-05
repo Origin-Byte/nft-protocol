@@ -8,6 +8,7 @@ module nft_protocol::test_fixed_price {
 
     use nft_protocol::nft;
     use nft_protocol::venue;
+    use nft_protocol::witness;
     use nft_protocol::warehouse;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
@@ -30,7 +31,7 @@ module nft_protocol::test_fixed_price {
         scenario: &mut Scenario,
     ): (ID, ID) {
         let inventory_id = listing::create_warehouse<COLLECTION>(
-            listing, ctx(scenario),
+            witness::from_witness(&Witness {}), listing, ctx(scenario),
         );
         let venue_id = fixed_price::create_venue<COLLECTION, SUI>(
             listing, inventory_id, is_whitelisted, price, ctx(scenario)

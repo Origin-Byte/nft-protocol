@@ -32,7 +32,9 @@ module nft_protocol::footbytes {
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_address(&witness, tx_context::sender(ctx), ctx),
+            creators::from_address<FOOTBYTES, Witness>(
+                &Witness {}, tx_context::sender(ctx), ctx,
+            ),
         );
 
         // Register custom domains

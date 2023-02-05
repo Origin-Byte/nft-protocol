@@ -81,8 +81,8 @@ module nft_protocol::creators {
     ///
     /// Only the single `Creator` will ever be able to modify `Collection`
     /// domains.
-    public fun from_address<C>(
-        witness: &C,
+    public fun from_address<C, W>(
+        witness: &W,
         who: address,
         ctx: &mut TxContext,
     ): CreatorsDomain<C> {
@@ -95,14 +95,14 @@ module nft_protocol::creators {
     /// Creates a `CreatorsDomain` with multiple creators
     ///
     /// Each attributed creator will be able to modify `Collection` domains.
-    public fun from_creators<C>(
-        witness: &C,
+    public fun from_creators<C, W>(
+        witness: &W,
         creators: VecSet<address>,
         ctx: &mut TxContext,
     ): CreatorsDomain<C> {
         CreatorsDomain {
             id: object::new(ctx),
-            generator: witness::generator(witness),
+            generator: witness::generator<C, W>(witness),
             creators,
         }
     }

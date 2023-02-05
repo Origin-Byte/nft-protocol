@@ -11,6 +11,7 @@ module nft_protocol::suitraders {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
+    use nft_protocol::witness;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
@@ -31,7 +32,9 @@ module nft_protocol::suitraders {
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_address(&witness, tx_context::sender(ctx), ctx),
+            creators::from_address<SUITRADERS, Witness>(
+                &Witness {}, tx_context::sender(ctx), ctx,
+            ),
         );
 
         // Register custom domains
@@ -80,7 +83,7 @@ module nft_protocol::suitraders {
         );
 
         let inventory_id = nft_protocol::listing::create_warehouse<SUITRADERS>(
-            &mut listing, ctx
+            witness::from_witness(&Witness {}), &mut listing, ctx
         );
 
         nft_protocol::fixed_price::init_venue<SUITRADERS, sui::sui::SUI>(

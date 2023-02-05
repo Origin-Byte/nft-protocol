@@ -44,7 +44,7 @@ module nft_protocol::plugins {
     struct Witness has drop {}
 
     /// Creates a new `PluginDomain` object
-    fun new<C>(witness: &C, ctx: &mut TxContext): PluginDomain<C> {
+    fun new<C, W>(witness: &W, ctx: &mut TxContext): PluginDomain<C> {
         PluginDomain {
             id: object::new(ctx),
             generator: witness::generator(witness),
@@ -146,12 +146,12 @@ module nft_protocol::plugins {
     /// #### Panics
     ///
     /// Panics if `CreatorsDomain` already exists.
-    public fun add_plugin_domain<C>(
-        witness: &C,
+    public fun add_plugin_domain<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let domain = new(witness, ctx);
+        let domain = new<C, W>(witness, ctx);
         collection::add_domain(
             witness::from_witness(witness),
             collection,

@@ -33,7 +33,7 @@ module nft_protocol::modify {
     }
 
     /// Creates a new `ModifyDomain`
-    fun new<C>(witness: &C, ctx: &mut TxContext): ModifyDomain<C> {
+    fun new<C, W>(witness: &W, ctx: &mut TxContext): ModifyDomain<C> {
         ModifyDomain {
             id: object::new(ctx),
             generator: witness::generator(witness),
@@ -72,14 +72,14 @@ module nft_protocol::modify {
     /// #### Panics
     ///
     /// Panics if `ModifyDomain` already exists.
-    public fun add_modify_domain<C>(
-        witness: &C,
+    public fun add_modify_domain<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let domain = new(witness, ctx);
+        let domain = new<C, W>(witness, ctx);
         collection::add_domain(
-            witness::from_collection_witness(witness),
+            witness::from_witness(witness),
             collection,
             domain,
         );

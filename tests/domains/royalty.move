@@ -8,6 +8,7 @@ module nft_protocol::test_royalty {
     use nft_protocol::royalty::{Self, RoyaltyDomain};
 
     struct Foo has drop {}
+    struct Witness has drop {}
 
     const CREATOR: address = @0xA1C04;
 
@@ -22,7 +23,7 @@ module nft_protocol::test_royalty {
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_constant_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut collection,
             royalty,
         );
