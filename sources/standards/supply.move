@@ -11,7 +11,6 @@ module nft_protocol::supply_domain {
     use sui::object;
     use sui::tx_context::TxContext;
 
-    use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::{
         Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
@@ -20,6 +19,12 @@ module nft_protocol::supply_domain {
     use nft_protocol::witness::Witness as DelegatedWitness;
 
     friend nft_protocol::warehouse;
+
+    /// The `Collection` supply was not defined as regulated
+    const ESUPPLY_NOT_REGULATED: u64 = 1;
+
+    /// The `Collection` supply was not defined as unregulated
+    const ESUPPLY_REGULATED: u64 = 2;
 
     struct SupplyDomain<phantom C> has store {
         supply: Supply,
@@ -265,11 +270,11 @@ module nft_protocol::supply_domain {
 
     /// Assert that the `Collection` supply is regulated
     public fun assert_regulated<C>(collection: &Collection<C>) {
-        assert!(is_regulated(collection), err::supply_not_regulated());
+        assert!(is_regulated(collection), ESUPPLY_NOT_REGULATED);
     }
 
     /// Assert that the `Collection` supply is not regulated
     public fun assert_unregulated<C>(collection: &Collection<C>) {
-        assert!(!is_regulated(collection), err::supply_regulated());
+        assert!(!is_regulated(collection), ESUPPLY_REGULATED);
     }
 }

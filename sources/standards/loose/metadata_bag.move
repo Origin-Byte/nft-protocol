@@ -20,7 +20,7 @@ module nft_protocol::metadata_bag {
     ///
     /// Call `metadata_bag::add_metadata` to add an `Metadata` to
     /// `MetadataBagDomain`.
-    const EUNDEFINED_ARCHETYPE: u64 = 2;
+    const EUNDEFINED_METADATA: u64 = 2;
 
     struct Witness has drop {}
 
@@ -215,7 +215,7 @@ module nft_protocol::metadata_bag {
     ) {
         assert!(
             contains_metadata<C>(metadata_bag, metadata_id),
-            EUNDEFINED_ARCHETYPE
+            EUNDEFINED_METADATA
         );
     }
 }

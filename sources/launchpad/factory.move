@@ -1,6 +1,6 @@
 /// Module of `Factory` type
 module nft_protocol::factory {
-    use std::option::Option;
+    use std::option::{Self, Option};
 
     use sui::object::{Self, ID, UID};
     use sui::tx_context::TxContext;
@@ -8,6 +8,8 @@ module nft_protocol::factory {
     use nft_protocol::nft::Nft;
     use nft_protocol::collection::Collection;
     use nft_protocol::metadata_bag;
+    use nft_protocol::supply_domain;
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
     use nft_protocol::mint_cap::{RegulatedMintCap, UnregulatedMintCap};
 
@@ -18,20 +20,54 @@ module nft_protocol::factory {
         /// `Factory` ID
         id: UID,
         /// `LooseMintCap` responsible for generating `PointerDomain` and
-        /// maintianing supply invariants on `Collection` and `Archetype`
+        /// maintianing supply invariants on `Collection` and `Template`
         /// levels.
         mint_cap: LooseMintCap<C>,
+    }
+
+    /// Create a new `Factory`
+    ///
+    /// Optional `supply` argument defined if `Factory` supply is limited or
+    /// not. `Factory` object exist 1-to-1 with an NFT template and therefore
+    /// the collection level supply is limited by both the supply of the
+    /// `Collection` and `Template` if either is regulated.
+    ///
+    /// #### Panics
+    ///
+    /// - Template `TemplatesDomain` is not registered
+    /// - `Template` does not exist
+    public fun new<C>(
+        mint_cap: &MintCap<C>,
+        collection: &mut Collection<C>,
+        template_id: ID,
+        supply: Option<u64>,
+        ctx: &mut TxContext
+    ): Factory<C> {
+        let factory: Factory<C>;
+
+        if (option::is_none(&supply)) {
+            let cap = supply_domain::delegate_unregulated(mint_cap, collection, ctx);
+
+            factory = from_unregulated(cap, collection, template_id, ctx);
+        } else {
+            // TODO: This should not be the global supply but the template supply
+            let cap = supply_domain::delegate(mint_cap, collection, *option::borrow(&supply), ctx);
+
+            factory = from_regulated(cap, collection, template_id, ctx);
+        };
+
+        factory
     }
 
     /// Creates a new `Factory`
     ///
     /// `Factory` supply is limited by both the supply of the `Collection`
-    /// and `Archetype` if either is regulated.
+    /// and `Template` if either is regulated.
     ///
     /// #### Panics
     ///
-    /// - Archetype `RegistryDomain` is not registered
-    /// - `Archetype` does not exist
+    /// - Template `TemplatesDomain` is not registered
+    /// - `Template` does not exist
     public fun from_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
         collection: &mut Collection<C>,

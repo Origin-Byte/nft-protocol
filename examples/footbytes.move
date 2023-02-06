@@ -1,19 +1,15 @@
 module nft_protocol::footbytes {
     use std::string::{Self, String};
+    use std::option::{Self, Option};
 
     use sui::url;
-    use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
-    use nft_protocol::tags;
-    use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::creators;
     use nft_protocol::metadata;
-    use nft_protocol::metadata_bag;
-    use nft_protocol::royalties::{Self, TradePayment};
+    use nft_protocol::metadata_bag::{Self, MetadataBagDomain};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
 
@@ -28,15 +24,6 @@ module nft_protocol::footbytes {
     fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
 
-        collection::add_domain(
-            &Witness {},
-            &mut collection,
-            creators::from_address<FOOTBYTES, Witness>(
-                &Witness {}, tx_context::sender(ctx),
-            ),
-        );
-
-        // Register custom domains
         display::add_collection_display_domain(
             &Witness {},
             &mut collection,
@@ -44,66 +31,33 @@ module nft_protocol::footbytes {
             string::utf8(b"A NFT collection of football player collectibles"),
         );
 
-        display::add_collection_url_domain(
-            &Witness {},
-            &mut collection,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-        );
-
-        display::add_collection_symbol_domain(
-            &Witness {},
-            &mut collection,
-            string::utf8(b"FOOT"),
-        );
-
-        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
-        royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(
-            &Witness {},
-            &mut collection,
-            royalty,
-        );
-
-        let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(
-            &Witness {},
-            &mut collection,
-            tags,
-        );
-
-        metadata_bag::init_metadata_bag<FOOTBYTES, Witness>(
-            &Witness {},
-            &mut collection,
-            ctx,
-        );
+        let metadata_bag = metadata_bag::new_metadata_bag<FOOTBYTES>(ctx);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
+        transfer::transfer(metadata_bag, tx_context::sender(ctx));
         transfer::share_object(collection);
     }
 
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<FOOTBYTES, FT>,
+    /// Register `MetadataBagDomain` with `Collection`
+    public entry fun add_metadata_domain(
+        _mint_cap: &MintCap<FOOTBYTES>,
         collection: &mut Collection<FOOTBYTES>,
-        ctx: &mut TxContext,
+        metadata_bag: MetadataBagDomain<FOOTBYTES>,
     ) {
-        let b = royalties::balance_mut(Witness {}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
+        collection::add_domain(&Witness {}, collection, metadata_bag);
     }
 
+    /// Add template to `MetadataBagDomain`
+    ///
+    /// Later register `MetadataBagDomain` with `Collection` using
+    /// `add_metadata_domain`.
     public entry fun mint_nft_template(
         name: String,
         description: String,
         url: vector<u8>,
-        collection: &mut Collection<FOOTBYTES>,
         mint_cap: &MintCap<FOOTBYTES>,
-        supply: u64,
+        supply: Option<u64>,
+        metadata_bag: &mut MetadataBagDomain<FOOTBYTES>,
         ctx: &mut TxContext,
     ) {
         let url = url::new_unsafe_from_bytes(url);
@@ -116,7 +70,12 @@ module nft_protocol::footbytes {
 
         display::add_url_domain(&Witness {}, &mut nft, url);
 
-        let metadata = metadata::new_regulated(nft, supply, ctx);
-        metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);
+        let metadata = if (option::is_none(&supply)) {
+            metadata::new_regulated(nft, option::destroy_some(supply), ctx)
+        } else {
+            metadata::new_unregulated(nft, ctx)
+        };
+
+        metadata_bag::add_metadata(mint_cap, metadata_bag, metadata);
     }
 }

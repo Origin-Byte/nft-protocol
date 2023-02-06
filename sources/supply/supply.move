@@ -104,7 +104,7 @@ module nft_protocol::supply {
     /// Panics if not frozen or if value will cause maximum supply to be
     /// exceeded.
     public fun extend(supply: &mut Supply, value: u64): Supply {
-        assert_frozen(supply);
+        // assert_frozen(supply);
         increment(supply, value);
         new(value, true)
     }

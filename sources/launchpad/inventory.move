@@ -69,7 +69,7 @@ module nft_protocol::inventory {
             &Witness {}, witness, &mut allowlist,
         );
 
-         Inventory { id: inventory_id, allowlist }
+        Inventory { id: inventory_id, allowlist }
     }
 
     /// Deposits NFT to `Inventory`

@@ -15,13 +15,13 @@ module nft_protocol::metadata {
     ///
     /// Create an `metadata` using `metadata::new_regulated` to create a
     /// regulated `Metadata`.
-    const EUNREGULATED_ARCHETYPE: u64 = 1;
+    const EUNREGULATED_METADATA: u64 = 1;
 
     /// `Metadata` supply is regulated
     ///
     /// Create an `metadata` using `metadata::new_unregulated` to create an
     /// unregulated `Metadata`.
-    const EREGULATED_ARCHETYPE: u64 = 2;
+    const EREGULATED_METADATA: u64 = 2;
 
     /// `Metadata` object
     struct Metadata<phantom C> has key, store {
@@ -203,11 +203,11 @@ module nft_protocol::metadata {
 
     /// Asserts that `Metadata` has a regulated supply
     public fun assert_regulated<C>(metadata: &Metadata<C>) {
-        assert!(is_regulated(metadata), EUNREGULATED_ARCHETYPE);
+        assert!(is_regulated(metadata), EUNREGULATED_METADATA);
     }
 
     /// Asserts that `Metadata` has a regulated supply
     public fun assert_unregulated<C>(metadata: &Metadata<C>) {
-        assert!(!is_regulated(metadata), EREGULATED_ARCHETYPE);
+        assert!(!is_regulated(metadata), EREGULATED_METADATA);
     }
 }

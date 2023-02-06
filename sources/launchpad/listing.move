@@ -43,9 +43,10 @@ module nft_protocol::listing {
     use nft_protocol::utils;
     use nft_protocol::nft::Nft;
     use nft_protocol::collection::Collection;
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::factory::Factory;
+    use nft_protocol::factory::{Self, Factory};
     use nft_protocol::creators;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
@@ -207,8 +208,73 @@ module nft_protocol::listing {
     ): ID {
         let inventory =
             inventory::from_warehouse(witness, warehouse::new(ctx), ctx);
+
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
+
+        inventory_id
+    }
+
+    /// Initializes an empty `Factory` on `Listing`
+    ///
+    /// Requires that transaction sender is collection creator registered in
+    /// `CreatorsDomain`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not listing admin or creator.
+    public entry fun init_factory<C>(
+        mint_cap: &MintCap<C>,
+        collection: &mut Collection<C>,
+        template_id: ID,
+        supply: Option<u64>,
+        listing: &mut Listing,
+        ctx: &mut TxContext,
+    ) {
+        let witness = creators::delegate(collection, ctx);
+
+        create_factory<C>(
+            witness,
+            mint_cap,
+            collection,
+            template_id,
+            supply,
+            listing,
+            ctx,
+        );
+    }
+
+    /// Creates an empty `Factory` on `Listing` and returns it's ID
+    ///
+    /// Function transparently wraps `Factory` in `Inventory`, therefore, the
+    /// returned ID is that of the `Inventory` not the `Factory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not listing admin.
+    public fun create_factory<C>(
+        witness: DelegatedWitness<C>,
+        mint_cap: &MintCap<C>,
+        collection: &mut Collection<C>,
+        template_id: ID,
+        supply: Option<u64>,
+        listing: &mut Listing,
+        ctx: &mut TxContext,
+    ): ID {
+        let factory = factory::new(
+            mint_cap,
+            collection,
+            template_id,
+            supply,
+            ctx
+        );
+
+        let inventory =
+            inventory::from_factory(witness, factory, ctx);
+
+        let inventory_id = object::id(&inventory);
+        add_inventory(listing, inventory, ctx);
+
         inventory_id
     }
 
