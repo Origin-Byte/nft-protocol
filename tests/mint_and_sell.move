@@ -15,9 +15,8 @@ module nft_protocol::mint_and_sell {
 
     use nft_protocol::test_listing;
 
-    struct Witness has drop {}
-
     struct COLLECTION has drop {}
+    struct Witness has drop {}
 
     const OWNER: address = @0xA1C05;
     const CREATOR: address = @0xA1C05;
