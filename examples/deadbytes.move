@@ -78,11 +78,6 @@ module nft_protocol::deadbytes {
         let blueprint = c_nft::new_blueprint(ctx);
         c_nft::add_parent_child_relationship<Avatar>(
             &mut blueprint,
-            c_nft::new_child_node<Skin>(1, 1, ctx), // limit, order, ctx
-            ctx
-        );
-        c_nft::add_parent_child_relationship<Avatar>(
-            &mut blueprint,
             c_nft::new_child_node<Hat>(1, 1, ctx), // limit, order, ctx
             ctx
         );
@@ -94,6 +89,11 @@ module nft_protocol::deadbytes {
         c_nft::add_parent_child_relationship<Avatar>(
             &mut blueprint,
             c_nft::new_child_node<Gun>(1, 1, ctx), // limit, order, ctx
+            ctx
+        );
+        c_nft::add_parent_child_relationship<Gun>(
+            &mut blueprint,
+            c_nft::new_child_node<Skin>(1, 1, ctx), // limit, order, ctx
             ctx
         );
 
