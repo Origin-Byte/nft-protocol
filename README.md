@@ -2,7 +2,7 @@
 
 Checkout our:
 
-- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5db59b623554ef931b23c07ed4f7d577942bd52d)
+- Devnet contract on the [Sui Explorer](https://explorer.sui.io/object/0x481c2e6a9961a67aced2f1b9d4094d4ba2badc98?network=devnet)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)
 
