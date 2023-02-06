@@ -6,13 +6,14 @@ module nft_protocol::tags {
     // TODO: Consider if we should add a wrapper domain Tags {bag} such that
     // wallet can always query this domain instead of having to query all domains
     // and figure out which ones are tags or not.
-    use sui::bag::{Self, Bag};
-    use sui::tx_context::{Self, TxContext};
+    use sui::dynamic_field as df;
+    use sui::object::{Self, UID};
+    use sui::tx_context::TxContext;
 
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::creators;
+    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::collection::{Self, Collection};
 
     // === Tags ===
 
@@ -80,19 +81,20 @@ module nft_protocol::tags {
 
     // === TagDomain ===
 
-    struct TagDomain has store {
-        bag: Bag,
+    struct TagDomain has key, store {
+        id: UID,
     }
 
+    /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
     public fun empty(ctx: &mut TxContext): TagDomain {
-        TagDomain { bag: bag::new(ctx) }
+        TagDomain { id: object::new(ctx) }
     }
 
     public fun has_tag<T: store + drop>(domain: &TagDomain): bool {
         utils::assert_same_module_as_witness<T, Witness>();
-        bag::contains_with_type<Marker<T>, T>(&domain.bag, utils::marker<T>())
+        df::exists_with_type<Marker<T>, T>(&domain.id, utils::marker<T>())
     }
 
     /// Adds tag to `TagDomain`
@@ -101,7 +103,7 @@ module nft_protocol::tags {
         tag: T,
     ) {
         utils::assert_same_module_as_witness<T, Witness>();
-        bag::add(&mut domain.bag, utils::marker<T>(), tag)
+        df::add(&mut domain.id, utils::marker<T>(), tag)
     }
 
     /// Removes tag from `TagDomain`
@@ -109,10 +111,10 @@ module nft_protocol::tags {
         domain: &mut TagDomain,
     ) {
         utils::assert_same_module_as_witness<T, Witness>();
-        let _: T = bag::remove(&mut domain.bag, utils::marker<T>());
+        let _: T = df::remove(&mut domain.id, utils::marker<T>());
     }
 
-    /// ====== Interoperability ===
+    // ====== Interoperability ===
 
     public fun tag_domain<C>(
         nft: &Nft<C>,
@@ -128,29 +130,25 @@ module nft_protocol::tags {
 
     /// Requires that sender is a creator
     public fun collection_tag_domain_mut<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        ctx: &mut TxContext,
     ): &mut TagDomain {
-        creators::assert_collection_has_creator(
-            collection, tx_context::sender(ctx)
-        );
-
         collection::borrow_domain_mut(Witness {}, collection)
     }
 
     public fun add_tag_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         tags: TagDomain,
-        ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, tags, ctx);
+        nft::add_domain(witness, nft, tags);
     }
 
     public fun add_collection_tag_domain<C>(
+        witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         tags: TagDomain,
     ) {
-        collection::add_domain(collection, mint_cap, tags);
+        collection::add_domain(witness, collection, tags);
     }
 }

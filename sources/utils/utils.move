@@ -16,6 +16,10 @@ module nft_protocol::utils {
         Marker<T> {}
     }
 
+    public fun bps(): u16 {
+        10_000
+    }
+
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
     ///
@@ -84,5 +88,24 @@ module nft_protocol::utils {
         };
 
         map
+    }
+
+    /// T mustn't be exported by nft-protocol to avoid unexpected bugs
+    public fun assert_not_nft_protocol_type<T>() {
+        let (t_pkg, _, _) = get_package_module_type<T>();
+        assert!(t_pkg != nft_protocol_package_id(), err::generic_nft_must_not_be_protocol_type());
+    }
+
+    /// Returns true if T is of type `nft_protocol::nft::Nft`
+    public fun is_nft_protocol_nft_type<T>(): bool {
+        let (t_pkg, t_module, t) = get_package_module_type<T>();
+        t_pkg == nft_protocol_package_id() &&
+            t_module == string::utf8(b"nft") &&
+            string::sub_string(&t, 0, 3) == string::utf8(b"Nft")
+    }
+
+    public fun nft_protocol_package_id(): String {
+        let (nft_pkg, _, _) = get_package_module_type<Marker<sui::object::ID>>();
+        nft_pkg
     }
 }

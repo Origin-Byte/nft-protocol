@@ -10,12 +10,24 @@ module nft_protocol::collection {
     use std::type_name::{Self, TypeName};
 
     use sui::event;
+    use sui::transfer;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
-    use sui::bag::{Self, Bag};
+    use sui::dynamic_object_field as dof;
 
-    use nft_protocol::err;
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::utils::{Self, Marker};
+    use nft_protocol::witness::Witness as DelegatedWitness;
+
+    /// Domain not defined
+    ///
+    /// Call `collection::add_domain` to add domains
+    const EUNDEFINED_DOMAIN: u64 = 1;
+
+    /// Domain already defined
+    ///
+    /// Call `collection::borrow` to borrow domain
+    const EEXISTING_DOMAIN: u64 = 2;
 
     /// NFT `Collection` object
     ///
@@ -34,26 +46,10 @@ module nft_protocol::collection {
     struct Collection<phantom C> has key, store {
         /// `Collection` ID
         id: UID,
-        /// Main storage object for collection domains
-        domains: Bag,
-    }
-
-    /// `MintCap<C>` delegates the capability to it's owner to mint `Nft<C>`.
-    /// There is only one `MintCap` per `Collection<C>`.
-    ///
-    /// This pattern is useful as `MintCap` can be made shared allowing users
-    /// to mint NFTs themselves, such as in a name service application.
-    struct MintCap<phantom C> has key, store {
-        /// `MintCap` ID
-        id: UID,
-        /// ID of the `Collection` that `MintCap` controls.
-        ///
-        /// Intended for discoverability.
-        collection_id: ID,
     }
 
     /// Event signalling that a `Collection` was minted
-    struct CollectionMintEvent has copy, drop {
+    struct MintCollectionEvent has copy, drop {
         /// ID of the `Collection` that was minted
         collection_id: ID,
         /// Type name of `Collection<C>` one-time witness `C`
@@ -64,7 +60,7 @@ module nft_protocol::collection {
 
     /// Creates a `Collection<C>` and corresponding `MintCap<C>`
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// ```
     /// struct FOOTBALL has drop {}
@@ -79,37 +75,46 @@ module nft_protocol::collection {
     ): (MintCap<C>, Collection<C>) {
         let id = object::new(ctx);
 
-        event::emit(CollectionMintEvent {
+        event::emit(MintCollectionEvent {
             collection_id: object::uid_to_inner(&id),
             type_name: type_name::get<C>(),
         });
 
-        let cap = MintCap {
-            id: object::new(ctx),
-            collection_id: object::uid_to_inner(&id),
-        };
-        let col = Collection { id, domains: bag::new(ctx) };
+        let cap = mint_cap::new(object::uid_to_inner(&id), ctx);
 
-        (cap, col)
+        (cap, Collection { id })
+    }
+
+    /// Creates a shared `Collection<C>` and corresponding `MintCap<C>`
+    public fun init_collection<C>(
+        witness: &C,
+        owner: address,
+        ctx: &mut TxContext,
+    ) {
+        let (mint_cap, collection) = create(witness, ctx);
+        transfer::share_object(collection);
+        transfer::transfer(mint_cap, owner);
     }
 
     // === Domain Functions ===
 
     /// Check whether `Collection` has a domain of type `D`
-    public fun has_domain<C, D: store>(collection: &Collection<C>): bool {
-        bag::contains_with_type<Marker<D>, D>(
-            &collection.domains, utils::marker<D>()
-        )
+    public fun has_domain<C, D: key + store>(
+        collection: &Collection<C>,
+    ): bool {
+        dof::exists_with_type<Marker<D>, D>(&collection.id, utils::marker<D>())
     }
 
     /// Borrow domain of type `D` from `Nft`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if domain of type `D` is not present on the `Nft`
-    public fun borrow_domain<C, D: store>(collection: &Collection<C>): &D {
+    public fun borrow_domain<C, D: key + store>(
+        collection: &Collection<C>
+    ): &D {
         assert_domain<C, D>(collection);
-        bag::borrow<Marker<D>, D>(&collection.domains, utils::marker<D>())
+        dof::borrow(&collection.id, utils::marker<D>())
     }
 
     /// Mutably borrow domain of type `D` from `Collection`
@@ -118,7 +123,7 @@ module nft_protocol::collection {
     /// instantiated it. In other words, witness `W` must be defined in the
     /// same module as domain `D`.
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// ```
     /// module nft_protocol::display {
@@ -137,128 +142,85 @@ module nft_protocol::collection {
     /// }
     /// ```
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics when module attempts to mutably borrow a domain it did not
     /// define itself or if domain of type `D` is not present on the `Nft`. See
     /// [nft::borrow_domain_mut](./nft.html#borrow_domain_mut).
     /// ```
-    public fun borrow_domain_mut<C, D: store, W: drop>(
+    public fun borrow_domain_mut<C, D: key + store, W: drop>(
         _witness: W,
         collection: &mut Collection<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<D, W>();
         assert_domain<C, D>(collection);
 
-        bag::borrow_mut<Marker<D>, D>(
-            &mut collection.domains, utils::marker<D>()
-        )
+        dof::borrow_mut(&mut collection.id, utils::marker<D>())
     }
 
     /// Adds domain of type `D` to `Collection`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
-    /// Panics if `MintCap` does not match `Collection` or domain `D` already
-    /// exists.
+    /// Panics if domain `D` already exists.
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// ```
     /// let display_domain = display::new_display_domain(name, description);
     /// collection::add_domain(&mut nft, mint_cap, display_domain);
     /// ```
-    public fun add_domain<C, D: store>(
+    public fun add_domain<C, D: key + store>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         domain: D,
     ) {
-        assert_mint_cap(mint_cap, collection);
         assert_no_domain<C, D>(collection);
-
-        bag::add(&mut collection.domains, utils::marker<D>(), domain);
+        dof::add(&mut collection.id, utils::marker<D>(), domain);
     }
 
     /// Removes domain of type `D` from `Collection`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics when module attempts to remove a domain it did not define
     /// itself or if domain of type `D` is not present on the `Collection`. See
     /// [borrow_domain_mut](#borrow_domain_mut).
     ///
-    /// ##### Usage
+    /// #### Usage
     ///
     /// ```
     /// let display_domain: DisplayDomain = collection::remove_domain(Witness {}, &mut nft);
     /// ```
-    public fun remove_domain<C, W: drop, D: store>(
+    public fun remove_domain<C, W: drop, D: key + store>(
         _witness: W,
         collection: &mut Collection<C>,
     ): D {
         utils::assert_same_module_as_witness<W, D>();
         assert_domain<C, D>(collection);
 
-        bag::remove(&mut collection.domains, utils::marker<D>())
-    }
-
-    // === MintCap ===
-
-    /// Returns ID of `Collection` associated with `MintCap`
-    public fun collection_id<C>(mint: &MintCap<C>): ID {
-        mint.collection_id
+        dof::remove(&mut collection.id, utils::marker<D>())
     }
 
     // === Assertions ===
 
     /// Assert that domain `D` exists on `Collection`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if domain, `D`, does not exist on `Collection`.
-    public fun assert_domain<C, D: store>(collection: &Collection<C>) {
-        assert!(has_domain<C, D>(collection), err::undefined_domain());
+    public fun assert_domain<C, D: key + store>(collection: &Collection<C>) {
+        assert!(has_domain<C, D>(collection), EUNDEFINED_DOMAIN);
     }
 
     /// Assert that domain `D` does not exist on `Collection`
     ///
-    /// ##### Panics
+    /// #### Panics
     ///
     /// Panics if domain, `D`, does exists on `Collection`.
-    public fun assert_no_domain<C, D: store>(collection: &Collection<C>) {
-        assert!(!has_domain<C, D>(collection), err::domain_already_defined());
-    }
-
-    /// Assert that `MintCap` is associated with `Collection`
-    ///
-    /// ##### Panics
-    ///
-    /// Panics if `MintCap` is not associated with the `Collection`.
-    public fun assert_mint_cap<C>(
-        cap: &MintCap<C>,
+    public fun assert_no_domain<C, D: key + store>(
         collection: &Collection<C>
     ) {
-        assert!(
-            cap.collection_id == object::id(collection),
-            err::mint_cap_mismatch()
-        );
-    }
-
-    // === Test only helpers ===
-
-    #[test_only]
-    public fun dummy_collection<C>(
-        witness: &C,
-        creator: address,
-        scenario: &mut sui::test_scenario::Scenario,
-    ): (MintCap<C>, Collection<C>) {
-        sui::test_scenario::next_tx(scenario, creator);
-
-        let (cap, col) = create<C>(
-            witness,
-            sui::test_scenario::ctx(scenario),
-        );
-
-        (cap, col)
+        assert!(!has_domain<C, D>(collection), EEXISTING_DOMAIN);
     }
 }

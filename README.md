@@ -1,7 +1,8 @@
-- Sui v0.20.0
+- Sui v0.24.0
 
 Checkout our:
-- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5037cd2fe5af081c7f88ecfc8c40fa39c6c77957)
+
+- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5db59b623554ef931b23c07ed4f7d577942bd52d)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)
 
@@ -17,11 +18,11 @@ on-chain market infrastructure.
 The ecosystem is partitioned into three critical components:
 
 - The NFT standard, encompassing the core `Nft`, `Collection`, and `Safe` types,
-controlling the lifecycle and properties of each NFT.
+  controlling the lifecycle and properties of each NFT.
 - Primary markets, encompassing `Marketplace`, `Listing`, and numerous markets which
-control the initial minting of NFTs.
+  control the initial minting of NFTs.
 - Secondary markets, encompassing principally the `Orderbook` which allows you
-to trade existing NFTs.
+  to trade existing NFTs.
 
 # Install
 
@@ -40,7 +41,7 @@ To deploy an NFT collection you will need to create a SUI [Move](https://docs.su
 We provide an example on how to build such collection in the examples folder. Additionally below follows an example of an NFT Collection, the SUIMARINES!
 
 ```move
-module gutenberg::suimarines {
+module nft_protocol::suimarines {
     use std::string::{Self, String};
 
     use sui::url;
@@ -96,11 +97,8 @@ module gutenberg::suimarines {
             string::utf8(b"SUIM")
         );
 
-        let royalty = royalty::new(ctx);
-        royalty::add_proportional_royalty(
-            &mut royalty,
-            nft_protocol::royalty_strategy_bps::new(100),
-        );
+        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
+        royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         let tags = tags::empty(ctx);
@@ -171,6 +169,6 @@ and in your `Move.toml`, define the following dependency:
 ```toml
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
-# v0.16.0
-rev = "484ffaca16d561d8123c14138770fa99fe5591af"
+# v0.20.0
+rev = "06ddf96d151227b989210d5771b02b198b85c2fe"
 ```

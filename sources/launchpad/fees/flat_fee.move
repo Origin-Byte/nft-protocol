@@ -8,9 +8,9 @@ module nft_protocol::flat_fee {
 
     use nft_protocol::err;
     use nft_protocol::proceeds;
-    use nft_protocol::object_box;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
+    use originmate::object_box;
 
     struct FlatFee has key, store {
         id: UID,
@@ -40,7 +40,7 @@ module nft_protocol::flat_fee {
         listing::assert_correct_admin(marketplace, listing, ctx);
 
         let (proceeds_value, listing_receiver) = {
-            let proceeds = listing::proceeds(listing);
+            let proceeds = listing::borrow_proceeds(listing);
             let listing_receiver = listing::receiver(listing);
             let proceeds_value = proceeds::balance<FT>(proceeds);
             (proceeds_value, listing_receiver)
@@ -62,7 +62,7 @@ module nft_protocol::flat_fee {
         let fee = balance::value(proceeds_value) * policy.rate_bps;
 
         proceeds::collect_with_fees<FT>(
-            listing::proceeds_mut(listing),
+            listing::borrow_proceeds_mut(listing),
             fee,
             mkt::receiver(marketplace),
             listing_receiver,

@@ -10,10 +10,12 @@ module nft_protocol::suitraders {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
+    use nft_protocol::witness;
     use nft_protocol::creators;
-    use nft_protocol::inventory::{Self, Inventory};
+    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -24,46 +26,55 @@ module nft_protocol::suitraders {
     struct Witness has drop {}
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(
-            &witness, ctx,
-        );
+        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx))
+            creators::from_address<SUITRADERS, Witness>(
+                &Witness {}, tx_context::sender(ctx), ctx,
+            ),
         );
 
         // Register custom domains
         display::add_collection_display_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             string::utf8(b"Suitraders"),
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
+            ctx,
         );
 
         display::add_collection_url_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx,
         );
 
         display::add_collection_symbol_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
-            string::utf8(b"SUITR")
+            string::utf8(b"SUITR"),
+            ctx,
         );
 
-        let royalty = royalty::new(ctx);
-        royalty::add_proportional_royalty(
-            &mut royalty,
-            nft_protocol::royalty_strategy_bps::new(100),
+        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
+        royalty::add_proportional_royalty(&mut royalty, 100);
+        royalty::add_royalty_domain(
+            delegated_witness,
+            &mut collection,
+            royalty,
         );
-        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
+        tags::add_collection_tag_domain(
+            delegated_witness,
+            &mut collection,
+            tags,
+        );
 
         let listing = nft_protocol::listing::new(
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
@@ -71,10 +82,11 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
+        let inventory_id = nft_protocol::listing::create_warehouse<SUITRADERS>(
+            delegated_witness, &mut listing, ctx
+        );
 
-        nft_protocol::fixed_price::create_market_on_listing<sui::sui::SUI>(
+        nft_protocol::fixed_price::init_venue<SUITRADERS, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -82,10 +94,7 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::listing::create_inventory(&mut listing, ctx);
-
-        nft_protocol::dutch_auction::create_market_on_listing<sui::sui::SUI>(
+        nft_protocol::dutch_auction::init_venue<SUITRADERS, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -121,34 +130,26 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        _mint_cap: &MintCap<SUITRADERS>,
-        inventory: &mut Inventory,
+        mint_cap: &MintCap<SUITRADERS>,
+        warehouse: &mut Warehouse<SUITRADERS>,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUITRADERS, Witness>(
-            &Witness {}, tx_context::sender(ctx), ctx
-        );
+        let nft =
+            nft::new(&Witness {}, mint_cap, tx_context::sender(ctx), ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
-            &mut nft,
-            name,
-            description,
-            ctx,
+            delegated_witness, &mut nft, name, description, ctx,
         );
 
         display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
+            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
         display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
+            delegated_witness, &mut nft, attribute_keys, attribute_values, ctx,
         );
 
-        inventory::deposit_nft(inventory, nft);
+        warehouse::deposit_nft(warehouse, nft);
     }
 }

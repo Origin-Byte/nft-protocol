@@ -2,33 +2,32 @@
 module nft_protocol::test_display {
     use std::string;
 
-    use sui::transfer::transfer;
+    use sui::transfer;
     use sui::url;
     use sui::vec_map;
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::collection::{Self, Collection, MintCap};
-    use nft_protocol::test_utils::create_collection_and_allowlist_with_type;
+    use nft_protocol::witness;
+    use nft_protocol::collection;
     use nft_protocol::display::{
         Self, DisplayDomain, UrlDomain, SymbolDomain, AttributesDomain
     };
 
-    struct Witness has drop {}
     struct Foo has drop {}
+    struct Witness has drop {}
 
-    const OWNER: address = @0xA1C05;
-    const FAKE_OWNER: address = @0xA1C11;
     const CREATOR: address = @0xA1C04;
 
     #[test]
     fun add_nft_display() {
-        let scenario = test_scenario::begin(OWNER);
+        let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new(&Witness {}, OWNER, ctx);
+        let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_display_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             string::utf8(b"Suimarines-234"),
             string::utf8(b"Collection of Suimarines"),
@@ -38,8 +37,7 @@ module nft_protocol::test_display {
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, DisplayDomain>(&nft);
 
-        transfer(nft, OWNER);
-
+        transfer::transfer(nft, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -47,57 +45,43 @@ module nft_protocol::test_display {
     fun add_collection_display() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_allowlist_with_type(
-            Foo {},
-            Witness {},
-            CREATOR,
-            &mut scenario,
-        );
-
-        test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let collection = test_scenario::take_shared_by_id<Collection<Foo>>(
-            &scenario, col_id
-        );
-
-        let mint_cap = test_scenario::take_from_address_by_id<MintCap<Foo>>(
-            &scenario, CREATOR, cap_id
-        );
+        let (mint_cap, collection) =
+            collection::create(&Foo {}, ctx(&mut scenario));
 
         display::add_collection_display_domain(
+            witness::from_witness(&Witness {}),
             &mut collection,
-            &mint_cap,
             string::utf8(b"Suimarines-234"),
             string::utf8(b"Collection of Suimarines"),
+            ctx(&mut scenario)
         );
 
         // If domain does not exist this function call will fail
         collection::borrow_domain<Foo, DisplayDomain>(&collection);
 
-        test_scenario::return_shared(collection);
-        test_scenario::return_to_address(CREATOR, mint_cap);
-
+        transfer::share_object(collection);
+        transfer::transfer(mint_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
     #[test]
     fun add_nft_url() {
-        let scenario = test_scenario::begin(OWNER);
+        let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new(&Witness {}, OWNER, ctx);
+        let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_url_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-            ctx
+            ctx(&mut scenario),
         );
 
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, UrlDomain>(&nft);
 
-        transfer(nft, OWNER);
-
+        transfer::transfer(nft, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -105,46 +89,33 @@ module nft_protocol::test_display {
     fun add_collection_url() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_allowlist_with_type(
-            Foo {},
-            Witness {},
-            CREATOR,
-            &mut scenario,
-        );
-
-        test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let collection = test_scenario::take_shared_by_id<Collection<Foo>>(
-            &scenario, col_id
-        );
-
-        let mint_cap = test_scenario::take_from_address_by_id<MintCap<Foo>>(
-            &scenario, CREATOR, cap_id
-        );
+        let (mint_cap, collection) =
+            collection::create(&Foo {}, ctx(&mut scenario));
 
         display::add_collection_url_domain(
+            witness::from_witness(&Witness {}),
             &mut collection,
-            &mint_cap,
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ctx(&mut scenario)
         );
 
         // If domain does not exist this function call will fail
         collection::borrow_domain<Foo, UrlDomain>(&collection);
 
-        test_scenario::return_shared(collection);
-        test_scenario::return_to_address(CREATOR, mint_cap);
-
+        transfer::share_object(collection);
+        transfer::transfer(mint_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
     #[test]
     fun add_nft_symbol() {
-        let scenario = test_scenario::begin(OWNER);
+        let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new(&Witness {}, OWNER, ctx);
+        let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_symbol_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             string::utf8(b"SUIM-234"),
             ctx
@@ -153,8 +124,7 @@ module nft_protocol::test_display {
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, SymbolDomain>(&nft);
 
-        transfer(nft, OWNER);
-
+        transfer::transfer(nft, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -162,44 +132,30 @@ module nft_protocol::test_display {
     fun add_collection_symbol() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (col_id, cap_id, _wl_id) = create_collection_and_allowlist_with_type(
-            Foo {},
-            Witness {},
-            CREATOR,
-            &mut scenario,
-        );
-
-        test_scenario::next_tx(&mut scenario, CREATOR);
-
-        let collection = test_scenario::take_shared_by_id<Collection<Foo>>(
-            &scenario, col_id
-        );
-
-        let mint_cap = test_scenario::take_from_address_by_id<MintCap<Foo>>(
-            &scenario, CREATOR, cap_id
-        );
+        let (mint_cap, collection) =
+            collection::create(&Foo {}, ctx(&mut scenario));
 
         display::add_collection_symbol_domain(
+            witness::from_witness(&Witness {}),
             &mut collection,
-            &mint_cap,
             string::utf8(b"SUIM"),
+            ctx(&mut scenario)
         );
 
         // If domain does not exist this function call will fail
         collection::borrow_domain<Foo, SymbolDomain>(&collection);
 
-        test_scenario::return_shared(collection);
-        test_scenario::return_to_address(CREATOR, mint_cap);
-
+        transfer::share_object(collection);
+        transfer::transfer(mint_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
     #[test]
     fun add_attributes() {
-        let scenario = test_scenario::begin(OWNER);
+        let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::new(&Witness {}, OWNER, ctx);
+        let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         let attributes = vec_map::empty();
         vec_map::insert(
@@ -208,6 +164,7 @@ module nft_protocol::test_display {
         );
 
         display::add_attributes_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             attributes,
             ctx
@@ -216,8 +173,7 @@ module nft_protocol::test_display {
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, AttributesDomain>(&nft);
 
-        transfer(nft, OWNER);
-
+        transfer::transfer(nft, CREATOR);
         test_scenario::end(scenario);
     }
 }

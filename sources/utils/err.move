@@ -1,54 +1,31 @@
 /// Exports error functions. All errors in this smart contract have a prefix
 /// which distinguishes them from errors in other packages.
 module nft_protocol::err {
-
     const Prefix: u64 = 13370000;
-
-    // === NFT & Collection ===
-
-    public fun undefined_domain(): u64 {
-        return Prefix + 000
-    }
-
-    public fun domain_already_defined(): u64 {
-        return Prefix + 001
-    }
-
-    public fun not_nft_owner(): u64 {
-        return Prefix + 002
-    }
-
-    public fun mint_cap_mismatch(): u64 {
-        return Prefix + 003
-    }
 
     // === Supply ===
 
-    public fun supply_policy_mismatch(): u64 {
+    public fun supply_regulated(): u64 {
         return Prefix + 100
     }
 
-    public fun supply_is_not_zero(): u64 {
+    public fun supply_not_regulated(): u64 {
         return Prefix + 101
     }
 
-    public fun supply_is_limited(): u64 {
+    public fun supply_is_not_zero(): u64 {
         return Prefix + 102
     }
 
-    public fun supply_is_unlimited(): u64 {
-        return Prefix + 103
-    }
-
-    public fun frozen_supply(): u64 {
+    public fun supply_frozen(): u64 {
         return Prefix + 104
     }
 
-    public fun max_supply_cannot_be_below_current_supply(): u64 {
+    public fun supply_not_frozen(): u64 {
         return Prefix + 105
     }
 
-    public fun current_supply_cannot_be_negative(): u64 {
+    public fun max_supply_cannot_be_below_current_supply(): u64 {
         return Prefix + 106
     }
 
@@ -60,38 +37,6 @@ module nft_protocol::err {
 
     public fun wrong_marketplace_admin(): u64 {
         return Prefix + 201
-    }
-
-    public fun listing_not_live(): u64 {
-        return Prefix + 202
-    }
-
-    public fun nft_sale_incompleted(): u64 {
-        return Prefix + 203
-    }
-
-    public fun nft_redemption_incompleted(): u64 {
-        return Prefix + 204
-    }
-
-    public fun sale_is_not_whitelisted(): u64 {
-        return Prefix + 205
-    }
-
-    public fun sale_is_whitelisted(): u64 {
-        return Prefix + 206
-    }
-
-    public fun incorrect_whitelist_certificate(): u64 {
-        return Prefix + 207
-    }
-
-    public fun undefined_nft_id(): u64 {
-        return Prefix + 208
-    }
-
-    public fun no_nfts_left(): u64 {
-        return Prefix + 209
     }
 
     public fun marketplace_listing_mismatch(): u64 {
@@ -112,22 +57,6 @@ module nft_protocol::err {
 
     public fun has_custom_fee_policy(): u64 {
         return Prefix + 214
-    }
-
-    public fun listing_not_approved(): u64 {
-        return Prefix + 215
-    }
-
-    public fun undefined_inventory(): u64 {
-        return Prefix + 216
-    }
-
-    public fun undefined_market(): u64 {
-        return Prefix + 217
-    }
-
-    public fun incorrect_nft_certificate(): u64 {
-        return Prefix + 218
     }
 
     public fun listing_already_attached_to_marketplace(): u64 {
@@ -186,7 +115,7 @@ module nft_protocol::err {
         return Prefix + 405
     }
 
-    public fun nft_not_exlusively_listed(): u64 {
+    public fun nft_not_exclusively_listed(): u64 {
         return Prefix + 406
     }
 
@@ -198,14 +127,12 @@ module nft_protocol::err {
         return Prefix + 408
     }
 
-    // === Allowlist ===
-
-    public fun authority_not_allowlisted(): u64 {
-        return Prefix + 500
+    public fun nft_is_generic(): u64 {
+        return Prefix + 409
     }
 
-    public fun sender_not_allowlist_admin(): u64 {
-        return Prefix + 502
+    public fun cannot_trade_with_self(): u64 {
+        return Prefix + 410
     }
 
     // === Utils ===
@@ -228,7 +155,7 @@ module nft_protocol::err {
         return Prefix + 701
     }
 
-    // === AttributionDomain ===
+    // === Domains ===
 
     public fun address_not_attributed(): u64 {
         return Prefix + 800
@@ -242,17 +169,7 @@ module nft_protocol::err {
         return Prefix + 802
     }
 
-    // === Generic ===
-
-    public fun generic_bag_full(): u64 {
-        return Prefix + 900
-    }
-
-    public fun generic_box_full(): u64 {
-        return Prefix + 901
-    }
-
-    public fun missing_dynamic_field(): u64 {
-        return Prefix + 902
+    public fun share_attribution_already_exists(): u64 {
+        return Prefix + 803
     }
 }

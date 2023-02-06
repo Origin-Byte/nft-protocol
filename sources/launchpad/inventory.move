@@ -1,219 +1,254 @@
-/// Module representing the Nft bookeeping Inventories of `Slot`s.
+/// Module of `Inventory` type, a type-erased wrapper around `Warehouse` and
+/// `Factory`.
 ///
-/// Listings can have multiple concurrent markets, repsented
-/// through `markets: ObjectBag`, allowing NFT creators to perform tiered sales.
-/// An example of this would be an Gaming NFT creator separating the sale
-/// based on NFT rarity and emit whitelist tokens to different users for
-/// different rarities depending on the user's game score.
-///
-/// The Slot object is agnostic to the Market mechanism and instead decides to
-/// outsource this logic to generic `Market` objects. This way developers can
-/// come up with their plug-and-play market primitives, of which some examples
-/// are Dutch Auctions, Sealed-Bid Auctions, etc.
-///
-/// Each market has a dedicated inventory, which tracks which NFTs are on
-/// the shelves still to be sold, and which NFTs have been sold via Certificates
-/// but are still waiting to be redeemed.
+/// Additionally, `Inventory` is responsible for providing a safe interface to
+/// change the logical owner of NFTs redeemed from it.
 module nft_protocol::inventory {
-    use std::vector;
+    use std::option::{Self, Option};
 
     use sui::transfer;
-    use sui::dynamic_object_field as dof;
-    use sui::tx_context::{Self, TxContext};
-    use sui::vec_map::{Self, VecMap};
-    use sui::object::{Self, ID , UID};
-    use sui::object_bag::{Self, ObjectBag};
+    use sui::object::{Self, UID};
+    use sui::tx_context::TxContext;
+    use sui::dynamic_field as df;
 
-    use nft_protocol::nft::Nft;
-    use nft_protocol::err;
+    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::utils::{Self, Marker};
+    use nft_protocol::factory::{Self, Factory};
+    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
+    use nft_protocol::witness::Witness as DelegatedWitness;
 
-    friend nft_protocol::listing;
+    /// `Inventory` is not a `Warehouse`
+    ///
+    /// Call `from_warehouse` to create an `Inventory` from `Warehouse`
+    const ENOT_WAREHOUSE: u64 = 1;
 
-    // The `Inventory` of a sale performs the bookeeping of all the NFTs that
-    // are currently on sale as well as the NFTs whose certificates have been
-    // sold and currently waiting to be redeemed
-    struct Inventory has key, store {
+    /// `Inventory` is not a `Factory`
+    ///
+    /// Call `from_factory` to create an `Inventory` from `Factory`
+    const ENOT_FACTORY: u64 = 2;
+
+    struct Witness has drop {}
+
+    /// A type-erased wrapper around `Warehouse` and `Factory`
+    struct Inventory<phantom C> has key, store {
+        /// `Inventory` ID
         id: UID,
-        /// Track which markets are live
-        live: VecMap<ID, bool>,
-        /// Track which markets are whitelisted
-        whitelisted: VecMap<ID, bool>,
-        /// Vector of all markets outlets that, each outles holding IDs
-        /// owned by the inventory
-        markets: ObjectBag,
-        // NFTs that are currently on sale. When a `NftCertificate` is sold,
-        // its corresponding NFT ID will be flushed from `nfts` and will be
-        // added to `queue`.
-        nfts_on_sale: vector<ID>,
+        /// Internal `Inventory` `Allowlist` for changing `Nft` owners
+        allowlist: Allowlist,
     }
 
-    public fun new(
+    /// Create a new `Inventory` from a `Warehouse`
+    public fun from_warehouse<C>(
+        witness: DelegatedWitness<C>,
+        warehouse: Warehouse<C>,
         ctx: &mut TxContext,
-    ): Inventory {
-        Inventory {
-            id: object::new(ctx),
-            live: vec_map::empty(),
-            whitelisted: vec_map::empty(),
-            markets: object_bag::new(ctx),
-            nfts_on_sale: vector::empty(),
-        }
-    }
+    ): Inventory<C> {
+        let inventory_id = object::new(ctx);
+        df::add(&mut inventory_id, utils::marker<Warehouse<C>>(), warehouse);
 
-    /// Creates a `Inventory` and transfers to transaction sender
-    public entry fun init_inventory(ctx: &mut TxContext) {
-        let inventory = new(ctx);
-        transfer::transfer(inventory, tx_context::sender(ctx));
-    }
-
-    /// Adds a new market to `Inventory` allowing NFTs deposited to the
-    /// inventory to be sold.
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
-    public entry fun add_market<Market: key + store>(
-        inventory: &mut Inventory,
-        is_whitelisted: bool,
-        market: Market,
-    ) {
-        let market_id = object::id(&market);
-
-        vec_map::insert(&mut inventory.live, market_id, false);
-        vec_map::insert(&mut inventory.whitelisted, market_id, is_whitelisted);
-
-        object_bag::add<ID, Market>(
-            &mut inventory.markets,
-            market_id,
-            market,
+        let allowlist = transfer_allowlist::create(&Witness {}, ctx);
+        transfer_allowlist::insert_collection(
+            &Witness {}, witness, &mut allowlist,
         );
+
+        Inventory { id: inventory_id, allowlist }
     }
 
-    /// Adds NFT as a dynamic child object with its ID as key and
-    /// adds an NFT's ID to the `nfts` field in `Inventory` object.
-    ///
-    /// This should only be callable when Inventory is private and not
-    /// owned by the Slot. The function call will fail otherwise, because
-    /// one would have to refer to the Slot, the parent shared object, in order
-    /// for the bytecode verifier not to fail.
+    /// Create a new `Inventory` from a `Factory`
+    public fun from_factory<C>(
+        witness: DelegatedWitness<C>,
+        factory: Factory<C>,
+        ctx: &mut TxContext,
+    ): Inventory<C> {
+        let inventory_id = object::new(ctx);
+        df::add(&mut inventory_id, utils::marker<Factory<C>>(), factory);
+
+        let allowlist = transfer_allowlist::create(&Witness {}, ctx);
+        transfer_allowlist::insert_collection(
+            &Witness {}, witness, &mut allowlist,
+        );
+
+         Inventory { id: inventory_id, allowlist }
+    }
+
+    /// Deposits NFT to `Inventory`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is not a `Warehouse`.
     public entry fun deposit_nft<C>(
-        inventory: &mut Inventory,
+        inventory: &mut Inventory<C>,
         nft: Nft<C>,
     ) {
-        let nft_id = object::id(&nft);
-        vector::push_back(&mut inventory.nfts_on_sale, nft_id);
-
-        dof::add(&mut inventory.id, nft_id, nft);
+        let warehouse = borrow_warehouse_mut(inventory);
+        warehouse::deposit_nft(warehouse, nft);
     }
 
     /// Redeems NFT from `Inventory`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
+    ///
+    /// Requires `Allowlist` authority token. See
+    /// [transfer](nft.html#transfer).
+    ///
+    /// #### Panics
+    ///
+    /// Panics if no supply is available or authority token was invalid.
     public fun redeem_nft<C>(
-        inventory: &mut Inventory,
+        inventory: &mut Inventory<C>,
+        owner: address,
+        ctx: &mut TxContext,
     ): Nft<C> {
-        let nfts = &mut inventory.nfts_on_sale;
-        assert!(!vector::is_empty(nfts), err::no_nfts_left());
+        let nft = if (is_warehouse(inventory)) {
+            let warehouse = borrow_warehouse_mut(inventory);
+            warehouse::redeem_nft(warehouse)
+        } else {
+            let factory = borrow_factory_mut(inventory);
+            factory::redeem_nft(factory, ctx)
+        };
 
-        dof::remove(&mut inventory.id, vector::pop_back(nfts))
+        nft::change_logical_owner(
+            &mut nft,
+            owner,
+            Witness {}, // Any Auth will work
+            &inventory.allowlist
+        );
+
+        nft
     }
 
-    /// Set market's live status
-    public entry fun set_live(
-        inventory: &mut Inventory,
-        market_id: ID,
-        is_live: bool,
-    ) {
-        *vec_map::get_mut(&mut inventory.live, &market_id) = is_live;
-    }
-
-    /// Set market's whitelist status
-    public entry fun set_whitelisted(
-        inventory: &mut Inventory,
-        market_id: ID,
-        is_whitelisted: bool,
-    ) {
-        *vec_map::get_mut(&mut inventory.whitelisted, &market_id) =
-            is_whitelisted;
-    }
-
-    // === Getter Functions ===
-
-    /// Check how many `nfts` there are to sell
-    public fun length(inventory: &Inventory): u64 {
-        vector::length(&inventory.nfts_on_sale)
-    }
-
-    /// Get the market's `live` status
-    public fun is_live(inventory: &Inventory, market_id: &ID): bool {
-        *vec_map::get(&inventory.live, market_id)
-    }
-
-    public fun is_empty(inventory: &Inventory): bool {
-        vector::is_empty(&inventory.nfts_on_sale)
-    }
-
-    public fun is_whitelisted(inventory: &Inventory, market_id: &ID): bool {
-        *vec_map::get(&inventory.whitelisted, market_id)
-    }
-
-    /// Get the `Inventory` markets
-    public fun markets(inventory: &Inventory): &ObjectBag {
-        &inventory.markets
-    }
-
-    /// Get specific `Inventory` market
-    public fun market<Market: key + store>(
-        inventory: &Inventory,
-        market_id: ID,
-    ): &Market {
-        assert_market<Market>(inventory, market_id);
-        object_bag::borrow<ID, Market>(&inventory.markets, market_id)
-    }
-
-    /// Get specific `Inventory` market mutably
+    /// Redeems NFT from `Inventory`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
-    public fun market_mut<Market: key + store>(
-        inventory: &mut Inventory,
-        market_id: ID,
-    ): &mut Market {
-        assert_market<Market>(inventory, market_id);
-        object_bag::borrow_mut<ID, Market>(&mut inventory.markets, market_id)
+    ///
+    /// Requires `Allowlist` authority token. See
+    /// [transfer_with_auth](nft.html#transfer_with_auth).
+    ///
+    /// #### Panics
+    ///
+    /// Panics if no supply is available or authority token was invalid.
+    public entry fun transfer<C>(
+        inventory: &mut Inventory<C>,
+        owner: address,
+        ctx: &mut TxContext,
+    ) {
+        let nft = redeem_nft(inventory, owner, ctx);
+        transfer::transfer(nft, owner);
+    }
+
+    // === Getters ===
+
+    /// Returns whether `Inventory` has any remaining supply
+    public fun is_empty<C>(inventory: &Inventory<C>): bool {
+        let supply = supply(inventory);
+        if (option::is_some(&supply)) {
+            option::destroy_some(supply) == 0
+        } else {
+            option::destroy_none(supply);
+            // None is only returned for factories with unregulated supplies
+            false
+        }
+    }
+
+    /// Returns the available supply in `Inventory`
+    ///
+    /// If the `Inventory` is a `Factory` with unregulated supply then none
+    /// will be returned.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if supply was exceeded.
+    public fun supply<C>(inventory: &Inventory<C>): Option<u64> {
+        if (is_warehouse(inventory)) {
+            let warehouse = borrow_warehouse(inventory);
+            option::some(warehouse::supply(warehouse))
+        } else {
+            let factory = borrow_factory(inventory);
+            factory::supply(factory)
+        }
+    }
+
+    /// Returns whether `Inventory` is a `Warehouse`
+    public fun is_warehouse<C>(inventory: &Inventory<C>): bool {
+        df::exists_with_type<Marker<Warehouse<C>>, Warehouse<C>>(
+            &inventory.id, utils::marker<Warehouse<C>>()
+        )
+    }
+
+    /// Returns whether `Inventory` is a `Factory`
+    public fun is_factory<C>(inventory: &Inventory<C>): bool {
+        df::exists_with_type<Marker<Factory<C>>, Factory<C>>(
+            &inventory.id, utils::marker<Factory<C>>()
+        )
+    }
+
+    /// Borrows `Inventory` as `Warehouse`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is a `Factory`
+    public fun borrow_warehouse<C>(inventory: &Inventory<C>): &Warehouse<C> {
+        assert_warehouse(inventory);
+        df::borrow(&inventory.id, utils::marker<Warehouse<C>>())
+    }
+
+    /// Mutably borrows `Inventory` as `Warehouse`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is a `Factory`
+    fun borrow_warehouse_mut<C>(
+        inventory: &mut Inventory<C>,
+    ): &mut Warehouse<C> {
+        assert_warehouse(inventory);
+        df::borrow_mut(&mut inventory.id, utils::marker<Warehouse<C>>())
+    }
+
+    /// Borrows `Inventory` as `Factory`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is a `Warehouse`
+    public fun borrow_factory<C>(inventory: &Inventory<C>): &Factory<C> {
+        assert_factory(inventory);
+        df::borrow(&inventory.id, utils::marker<Factory<C>>())
+    }
+
+    /// Mutably borrows `Inventory` as `Factory`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is a `Warehouse`
+    public fun borrow_factory_mut<C>(
+        inventory: &mut Inventory<C>,
+    ): &mut Factory<C> {
+        assert_factory(inventory);
+        df::borrow_mut(&mut inventory.id, utils::marker<Factory<C>>())
     }
 
     // === Assertions ===
 
-    public fun assert_is_live(inventory: &Inventory, market_id: &ID) {
-        assert!(is_live(inventory, market_id), err::listing_not_live());
+    /// Asserts that `Inventory` is a `Warehouse`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is not a `Warehouse`
+    public fun assert_warehouse<C>(inventory: &Inventory<C>) {
+        assert!(is_warehouse(inventory), ENOT_WAREHOUSE);
     }
 
-    public fun assert_is_whitelisted(inventory: &Inventory, market_id: &ID) {
-        assert!(
-            is_whitelisted(inventory, market_id),
-            err::sale_is_not_whitelisted()
-        );
-    }
-
-    public fun assert_is_not_whitelisted(inventory: &Inventory, market_id: &ID) {
-        assert!(
-            !is_whitelisted(inventory, market_id),
-            err::sale_is_whitelisted()
-        );
-    }
-
-    public fun assert_market<Market: key + store>(
-        inventory: &Inventory,
-        market_id: ID,
-    ) {
-        assert!(
-            object_bag::contains_with_type<ID, Market>(
-                &inventory.markets, market_id
-            ),
-            err::undefined_market(),
-        );
+    /// Asserts that `Inventory` is a `Factory`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` is not a `Factory`
+    public fun assert_factory<C>(inventory: &Inventory<C>) {
+        assert!(is_factory(inventory), ENOT_FACTORY);
     }
 }
