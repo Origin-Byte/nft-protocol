@@ -6,15 +6,16 @@ module nft_protocol::c_url {
     use sui::tx_context::TxContext;
 
     use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::witness::Witness as DelegatedWitness;
 
-    friend nft_protocol::c_nft;
+    friend nft_protocol::composable_nft;
 
     // TODO: Perhaps use the plugin pattern here?
     struct Witness has drop {}
 
     /// === CUrlDomain ===
 
-    struct CUrlDomain has store {
+    struct CUrlDomain has key, store {
         urls: vector<Url>,
     }
 
@@ -47,10 +48,11 @@ module nft_protocol::c_url {
     }
 
     public fun add_url_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         urls: vector<Url>,
         ctx: &mut TxContext
     ) {
-        nft::add_domain(nft, new_c_url_domain(urls), ctx);
+        nft::add_domain(witness, nft, new_c_url_domain(urls));
     }
 }
