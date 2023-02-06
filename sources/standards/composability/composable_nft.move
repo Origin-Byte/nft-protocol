@@ -9,13 +9,13 @@ module nft_protocol::composable_nft {
     // TODO: some endpoint for reorder_children
     use std::type_name::{Self, TypeName};
 
-    use sui::object::{Self, UID};
-    use sui::tx_context::TxContext;
+    use sui::transfer;
     use sui::vec_set::{Self, VecSet};
+    use sui::object::{Self, ID, UID};
+    use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
 
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::object_vec::{Self, ObjectVec};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness::Witness as DelegatedWitness;
 
@@ -173,7 +173,7 @@ module nft_protocol::composable_nft {
         // A nested structure is preferred over a simple ObjectTable as it
         // reduces the amount of average iterations required in read/write
         // operations
-        table: ObjectTable<TypeName, ObjectVec<Nft<T>>>
+        table: ObjectTable<TypeName, ObjectTable<ID, Nft<T>>>
     }
 
     public entry fun compose<T, Parent: store, Child: store>(
@@ -214,13 +214,13 @@ module nft_protocol::composable_nft {
             &nfts.table, type_name::get<Child>()
         );
 
-        // If there is no ObjectVec for this type, then it needs
+        // If there is no ObjectTable for this type, then it needs
         // to create one.
         if (!has_type) {
             object_table::add(
                 &mut nfts.table,
                 type_name::get<Child>(),
-                object_vec::new<Nft<T>>(ctx)
+                object_table::new<ID, Nft<T>>(ctx)
             );
         };
 
@@ -228,15 +228,35 @@ module nft_protocol::composable_nft {
 
         // Assert that composition is within the limits
         assert!(
-            object_vec::length(nft_vec) <= child_node.limit,
+            object_table::length(nft_vec) <= child_node.limit,
             0
         );
 
-        object_vec::add(nft_vec, child_nft);
+        object_table::add(nft_vec, object::id(&child_nft), child_nft);
     }
 
-    // TODO
-    public entry fun decompose() {}
+    public entry fun decompose<T, Child: store>(
+        parent_nft: &mut Nft<T>,
+        child_nft: &Nft<T>,
+        ctx: &mut TxContext,
+    ) {
+        // Confirm that child NFT is of type `Child`
+        nft::assert_domain<T, Type<Child>>(child_nft);
+        let child_nft_id = object::id(child_nft);
+
+        let child_type = type_name::get<Child>();
+        let nfts = nft::borrow_domain_mut<T, Nfts<T>, Witness>(Witness {}, parent_nft);
+
+        let nfts_of_child_type = object_table::borrow_mut<TypeName, ObjectTable<ID, Nft<T>>>(
+            &mut nfts.table,
+            child_type
+        );
+
+        // TODO: Remove object table if empty
+        let child_nft = object_table::remove<ID, Nft<T>>(nfts_of_child_type, child_nft_id);
+
+        transfer::transfer(child_nft, tx_context::sender(ctx));
+    }
 
     public fun has_child_<Parent: store>(
         child: &ChildNode,
