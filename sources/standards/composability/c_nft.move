@@ -203,8 +203,6 @@ module nft_protocol::c_nft {
             child_type,
         );
 
-
-
         let nfts = nft::borrow_domain_mut<T, Nfts<T>, Witness>(
             Witness {}, parent_nft
         );
