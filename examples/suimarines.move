@@ -26,7 +26,7 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&witness);
+        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
 
         collection::add_domain(
             delegated_witness,
@@ -98,27 +98,18 @@ module nft_protocol::suimarines {
         ctx: &mut TxContext,
     ) {
         let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
+        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
 
-        nft::add_domain_with_mint_cap(
-            mint_cap,
-            &mut nft,
-            display::new_display_domain(name, description, ctx),
+        display::add_display_domain(
+            delegated_witness, &mut nft, name, description, ctx,
         );
 
-        nft::add_domain_with_mint_cap(
-            mint_cap,
-            &mut nft,
-            display::new_url_domain(url::new_unsafe_from_bytes(url), ctx),
+        display::add_url_domain(
+            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
-        nft::add_domain_with_mint_cap(
-            mint_cap,
-            &mut nft,
-            display::new_attributes_domain_from_vec(
-                attribute_keys,
-                attribute_values,
-                ctx,
-            ),
+        display::add_attributes_domain_from_vec(
+            delegated_witness, &mut nft, attribute_keys, attribute_values, ctx,
         );
 
         warehouse::deposit_nft(warehouse, nft);
