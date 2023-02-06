@@ -1,4 +1,4 @@
-module nft_protocol::c_nft {
+module nft_protocol::composable_nft {
     // TODO: Limit configurations (i.e. how many weapon NFTs can be attached to Avatar NFT)
     // TODO: Grouping of types into taxonomies can make the structuring of the
     // type system easier as it would more closely resemble the business logic.
@@ -16,7 +16,8 @@ module nft_protocol::c_nft {
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::object_vec::{Self, ObjectVec};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::witness::Witness as DelegatedWitness;
 
     struct Witness has drop {}
 
@@ -92,10 +93,11 @@ module nft_protocol::c_nft {
     }
 
     public fun add_type_domain<C, T: drop + store>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         ctx: &mut TxContext
     ) {
-        nft::add_domain(nft, new_type<T>(ctx), ctx);
+        nft::add_domain(witness, nft, new_type<T>(ctx));
     }
 
     /// ====== Blueprint ===
@@ -152,11 +154,11 @@ module nft_protocol::c_nft {
 
     /// Registers `Blueprint` on the given `Collection`
     public fun add_blueprint_domain<C>(
+        witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         domain: Blueprint,
     ) {
-        collection::add_domain(collection, mint_cap, domain);
+        collection::add_domain(witness, collection, domain);
     }
 
     /// ====== Nfts Domain ===
@@ -186,8 +188,8 @@ module nft_protocol::c_nft {
         let blueprint = collection::borrow_domain<T, Blueprint>(collection);
 
         // Assert that types match NFTs
-        nft::assert_domain<T, Parent>(parent_nft);
-        nft::assert_domain<T, Child>(&child_nft);
+        nft::assert_domain<T, Type<Parent>>(parent_nft);
+        nft::assert_domain<T, Type<Child>>(&child_nft);
 
         // Assert if Parent and Child have link
         assert!(has_child_with_type<Parent, Child>(blueprint), 0);
@@ -292,9 +294,10 @@ module nft_protocol::c_nft {
     }
 
     fun add_nfts_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, new_nfts_domain<C>(ctx), ctx);
+        nft::add_domain(witness, nft, new_nfts_domain<C>(ctx));
     }
 }
