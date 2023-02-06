@@ -10,6 +10,7 @@ module nft_protocol::footbytes {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
+    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::template;
     use nft_protocol::templates;
@@ -27,7 +28,7 @@ module nft_protocol::footbytes {
 
     fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
+        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
             delegated_witness,
@@ -110,8 +111,9 @@ module nft_protocol::footbytes {
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
+        let nft =
+            nft::new(&Witness {}, mint_cap, tx_context::sender(ctx), ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
             delegated_witness, &mut nft, name, description, ctx,

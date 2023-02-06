@@ -89,21 +89,30 @@ module nft_protocol::nft {
 
     /// Create a new `Nft`
     ///
+    /// This operation is authorized using a `MintCap` but also requires that
+    /// it is called inside the original contract.
+    /// This restriction is imposed in order to allow `MintCap` to be shared
+    /// and provide a protected API for minting NFTs.
+    /// If you want to delegate minting of NFTs outside of the defining
+    /// contract, see [new_regulated](#new_regulated) or
+    /// [new_unregulated](#new_unregulated).
+    ///
     /// #### Usage
     ///
     /// ```
     /// struct SUIMARINES has drop {}
     ///
     /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-    ///
     ///     let nft = nft::new(&witness, tx_context::sender(ctx), ctx);
     /// }
     /// ```
-    public fun new<C>(
+    public fun new<C, W>(
+        _witness: &W,
         _mint_cap: &MintCap<C>,
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
+        utils::assert_same_module_as_witness<C, W>();
         new_(owner, ctx)
     }
 

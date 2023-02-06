@@ -10,6 +10,7 @@ module nft_protocol::suimarines {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
+    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
@@ -26,7 +27,7 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
+        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
             delegated_witness,
@@ -97,8 +98,9 @@ module nft_protocol::suimarines {
         warehouse: &mut Warehouse<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&Witness {});
+        let nft =
+            nft::new(&Witness {}, mint_cap, tx_context::sender(ctx), ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
             delegated_witness, &mut nft, name, description, ctx,
