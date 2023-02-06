@@ -23,8 +23,6 @@ module nft_protocol::nft {
         Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
     };
 
-    friend nft_protocol::inventory;
-
     /// Domain not defined
     ///
     /// Call `collection::add_domain` to add domains
