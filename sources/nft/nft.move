@@ -281,11 +281,13 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
-    public fun add_domain_with_mint_cap<C, D: key + store>(
+    public fun add_domain_with_mint_cap<C, D: key + store, W>(
+        _witness: &W,
         _mint_cap: &MintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
     ) {
+        utils::assert_same_module_as_witness<W, C>();
         add_domain_(nft, domain)
     }
 

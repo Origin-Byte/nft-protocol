@@ -5,6 +5,7 @@
 /// Basically any collection which adds itself to this allowlist is saying:
 /// we're ok with anyone transferring NFTs.
 module nft_protocol::example_free_for_all {
+    use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::witness;
@@ -30,9 +31,10 @@ module nft_protocol::example_free_for_all {
         );
 
         transfer_allowlist::insert_collection_with_cap(
-            &Witness {}, col_cap, &mut wl,
+            &Witness {}, &col_cap, &mut wl,
         );
 
+        transfer::transfer(col_cap, USER);
         test_scenario::return_shared(wl);
         test_scenario::end(scenario);
     }

@@ -106,13 +106,6 @@ module nft_protocol::transfer_allowlist {
         CollectionControlCap { id: object::new(ctx) }
     }
 
-    public entry fun delete_collection_cap<C>(
-        collection_cap: CollectionControlCap<C>,
-    ) {
-        let CollectionControlCap { id } = collection_cap;
-        object::delete(id);
-    }
-
     public fun insert_collection<C, Admin>(
         _allowlist_witness: &Admin,
         _collection_witness: DelegatedWitness<C>,
@@ -131,14 +124,12 @@ module nft_protocol::transfer_allowlist {
     /// collection to give the allowlist owner a way to combat spam.
     public fun insert_collection_with_cap<C, Admin>(
         _allowlist_witness: &Admin,
-        authority: CollectionControlCap<C>,
+        _authority: &CollectionControlCap<C>,
         list: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(list);
 
         vec_set::insert(&mut list.collections, type_name::get<C>());
-
-        delete_collection_cap(authority);
     }
 
     /// Any collection is allowed to remove itself from any allowlist at any
@@ -205,6 +196,13 @@ module nft_protocol::transfer_allowlist {
         );
     }
 
+    /// Checks whether given authority witness is in the allowlist, and also
+    /// whether given collection witness (C) is in the allowlist.
+    public fun can_be_transferred<C, Auth>(allowlist: &Allowlist): bool {
+        contains_authority<Auth>(allowlist) &&
+            contains_collection<C>(allowlist)
+    }
+
     /// Returns whether `Allowlist` contains collection `C`
     public fun contains_collection<C>(allowlist: &Allowlist): bool {
         vec_set::contains(&allowlist.collections, &type_name::get<C>())
@@ -225,13 +223,6 @@ module nft_protocol::transfer_allowlist {
     /// Returns whether `Allowlist` requires an authority to transfer
     public fun requires_authority(allowlist: &Allowlist): bool {
         option::is_some(&allowlist.authorities)
-    }
-
-    /// Checks whether given authority witness is in the allowlist, and also
-    /// whether given collection witness (C) is in the allowlist.
-    public fun can_be_transferred<C, Auth>(allowlist: &Allowlist): bool {
-        contains_authority<Auth>(allowlist) &&
-            contains_collection<C>(allowlist)
     }
 
     // === Assertions ===

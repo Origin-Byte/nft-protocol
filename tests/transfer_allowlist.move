@@ -35,14 +35,12 @@ module nft_protocol::test_transfer_allowlist {
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap,
+            &col_cap,
             &mut wl,
         );
 
         transfer_allowlist::assert_transferable<Foo, Witness>(&wl);
         assert!(!transfer_allowlist::can_be_transferred<Bar, Witness>(&wl), 0);
-
-        let col_cap = create_collection_cap<Foo>(&mut scenario);
 
         transfer_allowlist::remove_itself(&col_cap, &mut wl);
 
@@ -66,11 +64,12 @@ module nft_protocol::test_transfer_allowlist {
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection_with_cap(
             &Witness2 {},
-            col_cap,
+            &col_cap,
             &mut wl,
         );
 
         transfer(wl, ADMIN);
+        transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -87,13 +86,14 @@ module nft_protocol::test_transfer_allowlist {
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap,
+            &col_cap,
             &mut wl,
         );
 
         transfer_allowlist::remove_collection<Witness2, Foo>(Witness2 {}, &mut wl);
 
         transfer(wl, ADMIN);
+        transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -110,12 +110,12 @@ module nft_protocol::test_transfer_allowlist {
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap1,
+            &col_cap1,
             &mut wl,
         );
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap2,
+            &col_cap2,
             &mut wl,
         );
 
@@ -127,11 +127,9 @@ module nft_protocol::test_transfer_allowlist {
         assert!(!transfer_allowlist::can_be_transferred<Foo, Witness>(&wl), 0);
         transfer_allowlist::assert_transferable<Bar, Witness>(&wl);
 
-        let col_cap1 = create_collection_cap<Foo>(&mut scenario);
-
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap1,
+            &col_cap1,
             &mut wl,
         );
 
@@ -141,6 +139,8 @@ module nft_protocol::test_transfer_allowlist {
         assert!(!transfer_allowlist::can_be_transferred<Bar, Witness>(&wl), 0);
 
         transfer(wl, ADMIN);
+        transfer(col_cap1, CREATOR);
+        transfer(col_cap2, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -156,7 +156,7 @@ module nft_protocol::test_transfer_allowlist {
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap,
+            &col_cap,
             &mut wl,
         );
 
@@ -174,6 +174,7 @@ module nft_protocol::test_transfer_allowlist {
         assert!(!transfer_allowlist::can_be_transferred<Bar, Witness2>(&wl), 0);
 
         transfer(wl, ADMIN);
+        transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -189,7 +190,7 @@ module nft_protocol::test_transfer_allowlist {
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap,
+            &col_cap,
             &mut wl,
         );
 
@@ -204,6 +205,7 @@ module nft_protocol::test_transfer_allowlist {
         assert!(!transfer_allowlist::can_be_transferred<Foo, Witness2>(&wl), 0);
 
         transfer(wl, ADMIN);
+        transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -249,13 +251,14 @@ module nft_protocol::test_transfer_allowlist {
         test_scenario::next_tx(&mut scenario, CREATOR);
         transfer_allowlist::insert_collection_with_cap(
             &Witness {},
-            col_cap,
+            &col_cap,
             &mut wl,
         );
 
         transfer_allowlist::clear_collections(Witness2 {}, &mut wl);
 
         transfer(wl, ADMIN);
+        transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 }
