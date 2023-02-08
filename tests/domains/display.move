@@ -15,6 +15,7 @@ module nft_protocol::test_display {
     };
 
     struct Foo has drop {}
+    struct Witness has drop {}
 
     const CREATOR: address = @0xA1C04;
 
@@ -26,6 +27,7 @@ module nft_protocol::test_display {
         let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_display_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             string::utf8(b"Suimarines-234"),
             string::utf8(b"Collection of Suimarines"),
@@ -47,7 +49,7 @@ module nft_protocol::test_display {
             collection::create(&Foo {}, ctx(&mut scenario));
 
         display::add_collection_display_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut collection,
             string::utf8(b"Suimarines-234"),
             string::utf8(b"Collection of Suimarines"),
@@ -70,6 +72,7 @@ module nft_protocol::test_display {
         let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_url_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
             ctx(&mut scenario),
@@ -90,7 +93,7 @@ module nft_protocol::test_display {
             collection::create(&Foo {}, ctx(&mut scenario));
 
         display::add_collection_url_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut collection,
             url::new_unsafe_from_bytes(b"https://originbyte.io/"),
             ctx(&mut scenario)
@@ -112,6 +115,7 @@ module nft_protocol::test_display {
         let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
         display::add_symbol_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             string::utf8(b"SUIM-234"),
             ctx
@@ -132,7 +136,7 @@ module nft_protocol::test_display {
             collection::create(&Foo {}, ctx(&mut scenario));
 
         display::add_collection_symbol_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut collection,
             string::utf8(b"SUIM"),
             ctx(&mut scenario)
@@ -160,6 +164,7 @@ module nft_protocol::test_display {
         );
 
         display::add_attributes_domain(
+            witness::from_witness(&Witness {}),
             &mut nft,
             attributes,
             ctx

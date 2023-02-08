@@ -8,6 +8,7 @@ module nft_protocol::test_creators {
     use nft_protocol::collection;
 
     struct Foo has drop {}
+    struct Witness has drop {}
 
     const CREATOR: address = @0xA1C04;
 
@@ -19,9 +20,11 @@ module nft_protocol::test_creators {
             collection::create(&Foo {}, ctx(&mut scenario));
 
         collection::add_domain(
-            witness::from_witness(&Foo {}),
+            witness::from_witness(&Witness {}),
             &mut collection,
-            creators::from_address(&Foo {}, CREATOR, ctx(&mut scenario)),
+            creators::from_address<Foo, Witness>(
+                &Witness {}, CREATOR, ctx(&mut scenario),
+            ),
         );
         creators::assert_domain(&collection);
 

@@ -170,7 +170,7 @@ module nft_protocol::templates {
     ///
     /// Panics if template `TemplatesDomain` is not registered on `Collection`
     /// or `Template` does not exist.
-    public fun delegate<C>(
+    public fun delegate_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
         collection: &mut Collection<C>,
         template_id: ID,

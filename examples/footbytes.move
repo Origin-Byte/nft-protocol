@@ -10,6 +10,7 @@ module nft_protocol::footbytes {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
+    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::template;
     use nft_protocol::templates;
@@ -27,12 +28,14 @@ module nft_protocol::footbytes {
 
     fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&witness);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_address(&witness, tx_context::sender(ctx), ctx),
+            creators::from_address<FOOTBYTES, Witness>(
+                &Witness {}, tx_context::sender(ctx), ctx,
+            ),
         );
 
         // Register custom domains
@@ -108,14 +111,15 @@ module nft_protocol::footbytes {
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
+        let nft = nft::from_mint_cap(mint_cap, tx_context::sender(ctx), ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
-            &mut nft, name, description, ctx,
+            delegated_witness, &mut nft, name, description, ctx,
         );
 
         display::add_url_domain(
-            &mut nft, url::new_unsafe_from_bytes(url), ctx,
+            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
         let template = template::new_regulated(nft, supply, ctx);

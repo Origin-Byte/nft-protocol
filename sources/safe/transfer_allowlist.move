@@ -21,9 +21,6 @@
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
 module nft_protocol::transfer_allowlist {
-    use nft_protocol::utils;
-    use nft_protocol::err;
-
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
@@ -31,6 +28,26 @@ module nft_protocol::transfer_allowlist {
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
+
+    use nft_protocol::witness::Witness as DelegatedWitness;
+
+    /// Invalid admin
+    ///
+    /// Create new `Allowlist` using `create` with desired admin.
+    const EINVALID_ADMIN: u64 = 1;
+
+    /// Invalid collection
+    ///
+    /// Call `insert_collection` to insert a collection.
+    const EINVALID_COLLECTION: u64 = 2;
+
+    /// Invalid transfer authority
+    ///
+    /// Call `insert_authority` to insert an authority.
+    const EINVALID_AUTHORITY: u64 = 3;
+
+    /// `Allowlist` requires an authority to be provided
+    const EREQUIRES_AUTHORITTY: u64 = 4;
 
     struct Allowlist has key, store {
         id: UID,
@@ -82,14 +99,20 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// See the docs for struct `CollectionControlCap`.
-    public fun create_collection_cap<C, W>(
-        _witness: &W,
+    public fun create_collection_cap<C>(
+        _witness: DelegatedWitness<C>,
         ctx: &mut TxContext,
     ): CollectionControlCap<C> {
-        utils::assert_same_module_as_witness<C, W>();
-        CollectionControlCap {
-            id: object::new(ctx),
-        }
+        CollectionControlCap { id: object::new(ctx) }
+    }
+
+    public fun insert_collection<C, Admin>(
+        _allowlist_witness: &Admin,
+        _collection_witness: DelegatedWitness<C>,
+        list: &mut Allowlist,
+    ) {
+        assert_admin_witness<Admin>(list);
+        vec_set::insert(&mut list.collections, type_name::get<C>());
     }
 
     /// To add a collection to the list, we need a confirmation by both the
@@ -99,7 +122,7 @@ module nft_protocol::transfer_allowlist {
     /// collection to the allowlist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the allowlist owner a way to combat spam.
-    public fun insert_collection<Admin, C>(
+    public fun insert_collection_with_cap<C, Admin>(
         _allowlist_witness: &Admin,
         _authority: &CollectionControlCap<C>,
         list: &mut Allowlist,
@@ -175,28 +198,78 @@ module nft_protocol::transfer_allowlist {
 
     /// Checks whether given authority witness is in the allowlist, and also
     /// whether given collection witness (C) is in the allowlist.
-    public fun can_be_transferred<C, Auth: drop>(
-        _authority_witness: Auth,
-        allowlist: &Allowlist,
-    ): bool {
-        let applies_to_collection =
-            vec_set::contains(&allowlist.collections, &type_name::get<C>());
-
-        if (option::is_none(&allowlist.authorities)) {
-            return applies_to_collection
-        };
-
-        let e = option::borrow(&allowlist.authorities);
-
-        applies_to_collection && vec_set::contains(e, &type_name::get<Auth>())
+    public fun can_be_transferred<C, Auth>(allowlist: &Allowlist): bool {
+        contains_authority<Auth>(allowlist) &&
+            contains_collection<C>(allowlist)
     }
 
-    fun assert_admin_witness<Admin>(
-        list: &Allowlist,
-    ) {
+    /// Returns whether `Allowlist` contains collection `C`
+    public fun contains_collection<C>(allowlist: &Allowlist): bool {
+        vec_set::contains(&allowlist.collections, &type_name::get<C>())
+    }
+
+    /// Returns whether `Allowlist` contains authority `Auth`
+    public fun contains_authority<Auth>(allowlist: &Allowlist): bool {
+        if (option::is_none(&allowlist.authorities)) {
+            // If no authorities are defined this effectively means that all
+            // authorities are registered.
+            true
+        } else {
+            let e = option::borrow(&allowlist.authorities);
+            vec_set::contains(e, &type_name::get<Auth>())
+        }
+    }
+
+    /// Returns whether `Allowlist` requires an authority to transfer
+    public fun requires_authority(allowlist: &Allowlist): bool {
+        option::is_some(&allowlist.authorities)
+    }
+
+    // === Assertions ===
+
+    /// Asserts that witness is admin of `Allowlist`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if admin is mismatched
+    fun assert_admin_witness<Admin>(list: &Allowlist) {
         assert!(
             type_name::get<Admin>() == list.admin_witness,
-            err::sender_not_allowlist_admin(),
+            EINVALID_ADMIN,
         );
+    }
+
+    /// Assert that `Nft<C>` may be transferred using this `Allowlist`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft<C>` may not be transferred.
+    public fun assert_collection<C>(allowlist: &Allowlist) {
+        assert!(
+            contains_collection<C>(allowlist), EINVALID_COLLECTION,
+        );
+    }
+
+    /// Assert that `Auth` may be used to transfer using this `Allowlist`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft<C>` may not be transferred.
+    public fun assert_authority<Auth>(allowlist: &Allowlist) {
+        assert!(
+            contains_authority<Auth>(allowlist), EINVALID_AUTHORITY,
+        );
+    }
+
+    /// Assert that `Nft<C>` is transferrable and `Auth` may be used to
+    /// transfer using this `Allowlist`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if neither `Nft<C>` is not transferrable or `Auth` is not a
+    /// valid authority.
+    public fun assert_transferable<C, Auth>(allowlist: &Allowlist) {
+        assert_collection<C>(allowlist);
+        assert_authority<Auth>(allowlist);
     }
 }

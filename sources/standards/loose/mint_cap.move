@@ -176,26 +176,25 @@ module nft_protocol::loose_mint_cap {
     /// Panics if supply was exceeded.
     public fun mint_nft<C>(
         mint_cap: &mut LooseMintCap<C>,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        // Owner must be transaction sender otherwise `nft::add_domain` will
-        // panic
-        let sender = tx_context::sender(ctx);
-        let nft = if (is_regulated(mint_cap)) {
+        let pointer = pointer(mint_cap.template_id, ctx);
+
+        if (is_regulated(mint_cap)) {
             let mint_cap = borrow_regulated_mut(mint_cap);
-            nft::new_regulated(mint_cap, sender, ctx)
+            let nft = nft::from_regulated(mint_cap, ctx);
+
+            nft::add_domain_with_regulated(mint_cap, &mut nft, pointer, ctx);
+
+            nft
         } else {
             let mint_cap = borrow_unregulated(mint_cap);
-            nft::new_unregulated(mint_cap, sender, ctx)
-        };
+            let nft = nft::from_unregulated(mint_cap, ctx);
 
-        let pointer = pointer(mint_cap.template_id, ctx);
-        nft::add_domain(&mut nft, pointer, ctx);
+            nft::add_domain_with_unregulated(mint_cap, &mut nft, pointer, ctx);
 
-        nft::change_logical_owner_internal(&mut nft, owner);
-
-        nft
+            nft
+        }
     }
 
     /// Mints `Nft` from `LooseMintCap` and transfer to transaction sender
@@ -207,8 +206,7 @@ module nft_protocol::loose_mint_cap {
         mint_cap: &mut LooseMintCap<C>,
         ctx: &mut TxContext,
     ) {
-        let sender = tx_context::sender(ctx);
-        let nft = mint_nft(mint_cap, sender, ctx);
-        transfer::transfer(nft, sender);
+        let nft = mint_nft(mint_cap, ctx);
+        transfer::transfer(nft, tx_context::sender(ctx));
     }
 }

@@ -137,11 +137,11 @@ module nft_protocol::tags {
     }
 
     public fun add_tag_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         tags: TagDomain,
-        ctx: &mut TxContext,
     ) {
-        nft::add_domain(nft, tags, ctx);
+        nft::add_domain(witness, nft, tags);
     }
 
     public fun add_collection_tag_domain<C>(

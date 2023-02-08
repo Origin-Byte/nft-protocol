@@ -10,6 +10,7 @@ module nft_protocol::suimarines {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
+    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
@@ -26,12 +27,14 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&witness);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_address(&witness, tx_context::sender(ctx), ctx),
+            creators::from_address<SUIMARINES, Witness>(
+                &Witness {}, tx_context::sender(ctx), ctx,
+            ),
         );
 
         // Register custom domains
@@ -95,26 +98,19 @@ module nft_protocol::suimarines {
         warehouse: &mut Warehouse<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
+        let nft = nft::from_mint_cap(mint_cap, tx_context::sender(ctx), ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
-            &mut nft,
-            name,
-            description,
-            ctx,
+            delegated_witness, &mut nft, name, description, ctx,
         );
 
         display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
+            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
         display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
+            delegated_witness, &mut nft, attribute_keys, attribute_values, ctx,
         );
 
         warehouse::deposit_nft(warehouse, nft);

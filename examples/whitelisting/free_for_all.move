@@ -8,8 +8,8 @@ module nft_protocol::example_free_for_all {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
+    use nft_protocol::witness;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
-
 
     const USER: address = @0xA1C04;
 
@@ -26,11 +26,11 @@ module nft_protocol::example_free_for_all {
 
         let wl: Allowlist = test_scenario::take_shared(&scenario);
 
-        let col_cap = transfer_allowlist::create_collection_cap<Foo, Witness>(
-            &Witness {}, ctx(&mut scenario),
+        let col_cap = transfer_allowlist::create_collection_cap<Foo>(
+            witness::from_witness(&Witness {}), ctx(&mut scenario),
         );
 
-        transfer_allowlist::insert_collection(
+        transfer_allowlist::insert_collection_with_cap(
             &Witness {}, &col_cap, &mut wl,
         );
 
