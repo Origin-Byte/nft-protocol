@@ -11,8 +11,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Added
 
 - `orderbook::list_nft` and `orderbook::list_nft_with_commission` endpoints.
-  These allow the client to skip the creation of transfer caps and instead
-  provide `OwnerCap` to `Safe` directly to the orderbook contract.
+  These allow the client to skip the creation of transfer caps and instead provide `OwnerCap` to `Safe` directly to the orderbook contract.
 
 ## [0.22.0] - 2023-02-02
 
