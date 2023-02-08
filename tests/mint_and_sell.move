@@ -35,7 +35,9 @@ module nft_protocol::mint_and_sell {
 
         // 2. Create `Warehouse`
         let inventory_id = listing::create_warehouse<COLLECTION>(
-            witness::from_witness(&Witness {}), &mut listing, ctx(&mut scenario)
+            witness::from_witness(&Witness {}),
+            &mut listing,
+            ctx(&mut scenario),
         );
         let venue_id = fixed_price::create_venue<COLLECTION, SUI>(
             &mut listing, inventory_id, false, 100, ctx(&mut scenario)
@@ -44,7 +46,7 @@ module nft_protocol::mint_and_sell {
 
         // 3. Mint NFT to listing `Warehouse`
         let nft =
-            nft::new(&Witness {}, &mint_cap, MARKETPLACE, ctx(&mut scenario));
+            nft::from_mint_cap(&mint_cap, MARKETPLACE, ctx(&mut scenario));
 
         let nft_id = object::id(&nft);
         listing::add_nft(&mut listing, inventory_id, nft, ctx(&mut scenario));
@@ -91,7 +93,7 @@ module nft_protocol::mint_and_sell {
 
         // 3. Mint NFT to `Warehouse`
         let nft =
-            nft::new(&Witness {}, &mint_cap, MARKETPLACE, ctx(&mut scenario));
+            nft::from_mint_cap(&mint_cap, MARKETPLACE, ctx(&mut scenario));
 
         let nft_id = object::id(&nft);
         warehouse::deposit_nft(&mut warehouse, nft);

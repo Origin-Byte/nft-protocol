@@ -134,8 +134,7 @@ module nft_protocol::suitraders {
         warehouse: &mut Warehouse<SUITRADERS>,
         ctx: &mut TxContext,
     ) {
-        let nft =
-            nft::new(&Witness {}, mint_cap, tx_context::sender(ctx), ctx);
+        let nft = nft::from_mint_cap(mint_cap, tx_context::sender(ctx), ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(

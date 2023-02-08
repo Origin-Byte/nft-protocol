@@ -182,14 +182,14 @@ module nft_protocol::loose_mint_cap {
 
         if (is_regulated(mint_cap)) {
             let mint_cap = borrow_regulated_mut(mint_cap);
-            let nft = nft::new_regulated(mint_cap, ctx);
+            let nft = nft::from_regulated(mint_cap, ctx);
 
             nft::add_domain_with_regulated(mint_cap, &mut nft, pointer, ctx);
 
             nft
         } else {
             let mint_cap = borrow_unregulated(mint_cap);
-            let nft = nft::new_unregulated(mint_cap, ctx);
+            let nft = nft::from_unregulated(mint_cap, ctx);
 
             nft::add_domain_with_unregulated(mint_cap, &mut nft, pointer, ctx);
 

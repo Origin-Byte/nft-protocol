@@ -87,32 +87,33 @@ module nft_protocol::nft {
         }
     }
 
-    /// Create a new `Nft`
-    ///
-    /// This operation is authorized using a `MintCap` but also requires that
-    /// it is called inside the original contract.
-    /// This restriction is imposed in order to allow `MintCap` to be shared
-    /// and provide a protected API for minting NFTs.
-    /// If you want to delegate minting of NFTs outside of the defining
-    /// contract, see [new_regulated](#new_regulated) or
-    /// [new_unregulated](#new_unregulated).
+    /// Create a new `Nft` using `MintCap`
     ///
     /// #### Usage
     ///
     /// ```
+    /// struct Witness has drop {}
     /// struct SUIMARINES has drop {}
     ///
     /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-    ///     let nft = nft::new(&witness, tx_context::sender(ctx), ctx);
+    ///     let nft = nft::new(&Witness {}, tx_context::sender(ctx), ctx);
     /// }
     /// ```
     public fun new<C, W>(
         _witness: &W,
-        _mint_cap: &MintCap<C>,
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
         utils::assert_same_module_as_witness<C, W>();
+        new_(owner, ctx)
+    }
+
+    /// Create a new `Nft` using `MintCap`
+    public fun from_mint_cap<C>(
+        _mint_cap: &MintCap<C>,
+        owner: address,
+        ctx: &mut TxContext,
+    ): Nft<C> {
         new_(owner, ctx)
     }
 
@@ -130,7 +131,7 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if supply is exceeded.
-    public fun new_regulated<C>(
+    public fun from_regulated<C>(
         mint_cap: &mut RegulatedMintCap<C>,
         ctx: &mut TxContext,
     ): Nft<C> {
@@ -149,7 +150,7 @@ module nft_protocol::nft {
     /// to add domains to NFTs not belonging to the transaction sender.
     ///
     /// See [new](#new) for usage information.
-    public fun new_unregulated<C>(
+    public fun from_unregulated<C>(
         _mint_cap: &UnregulatedMintCap<C>,
         ctx: &mut TxContext,
     ): Nft<C> {
@@ -282,7 +283,6 @@ module nft_protocol::nft {
     ///
     /// Panics if domain `D` already exists.
     public fun add_domain_with_mint_cap<C, D: key + store, W>(
-        _witness: &W,
         _mint_cap: &MintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
