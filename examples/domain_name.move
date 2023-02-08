@@ -13,7 +13,7 @@ module nft_protocol::domain_name {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness;
     use nft_protocol::display;
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::mint_cap;
     use nft_protocol::collection::{Self, Collection};
 
     /// Provided domain was already registered
@@ -53,7 +53,6 @@ module nft_protocol::domain_name {
     ///
     /// Panics if domain was already registered
     fun add_registration(
-        mint_cap: &MintCap<DOMAINNAME>,
         registry: &mut RegistryDomain,
         domain: String,
         description: String,
@@ -66,7 +65,6 @@ module nft_protocol::domain_name {
 
         let nft = nft::new(
             &Witness {},
-            mint_cap,
             tx_context::sender(ctx),
             ctx,
         );
@@ -157,8 +155,8 @@ module nft_protocol::domain_name {
             registry_domain(ctx),
         );
 
-        // Share `MintCap` to allow any user to register domains at will
-        transfer::share_object(mint_cap);
+        // Delete `MintCap` to force all mints to happen via `register_domain`
+        mint_cap::delete_mint_cap(mint_cap);
         transfer::share_object(collection);
     }
 
@@ -168,7 +166,6 @@ module nft_protocol::domain_name {
     ///
     /// Panics if domain was already registered
     public entry fun register_domain(
-        mint_cap: &MintCap<DOMAINNAME>,
         collection: &mut Collection<DOMAINNAME>,
         domain: String,
         description: String,
@@ -179,9 +176,7 @@ module nft_protocol::domain_name {
         let registry_domain: &mut RegistryDomain =
             collection::borrow_domain_mut(Witness {}, collection);
 
-        let nft = add_registration(
-            mint_cap, registry_domain, domain, description, ctx,
-        );
+        let nft = add_registration(registry_domain, domain, description, ctx);
 
         nft::add_domain(
             delegated_witness, &mut nft, record_domain(ctx),

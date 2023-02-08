@@ -52,6 +52,12 @@ module nft_protocol::mint_cap {
         mint.collection_id
     }
 
+    /// Delete a `MintCap`
+    public entry fun delete_mint_cap<C>(mint: MintCap<C>) {
+        let MintCap { id, collection_id: _ } = mint;
+        object::delete(id);
+    }
+
     // === UnregulatedMintCap ===
 
     /// `UnregulatedMintCap` delegates the capability to it's owner to mint
