@@ -10,7 +10,6 @@ module nft_protocol::composable_nft {
     use std::type_name::{Self, TypeName};
 
     use sui::transfer;
-    use sui::vec_set::{Self, VecSet};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
@@ -27,26 +26,21 @@ module nft_protocol::composable_nft {
     /// To be used by ParentNode
     struct ChildNode has key, store {
         id: UID,
-        // Childr type
+        // Child type
         type: TypeName,
         // Amount of times child NFT of a the type given
         // can be attached to a given Parent NFT
         limit: u64,
-        // Represents the layer in which the child NFT is stacked,
-        // for rendering purposes.
-        order: u64,
     }
 
     public fun new_child_node<Child>(
         limit: u64,
-        order: u64,
         ctx: &mut TxContext,
     ): ChildNode {
         ChildNode {
             id: object::new(ctx),
             type: type_name::get<Child>(),
             limit: limit,
-            order: order,
         }
     }
 
@@ -56,9 +50,6 @@ module nft_protocol::composable_nft {
     struct ParentNode has key, store {
         id: UID,
         children: ObjectTable<TypeName, ChildNode>,
-        // Orders are redundantly represented here for
-        // the purpose of ownership test
-        orders: VecSet<u64>,
     }
 
     public fun new_parent_node(
@@ -67,7 +58,6 @@ module nft_protocol::composable_nft {
         ParentNode {
             id: object::new(ctx),
             children: object_table::new(ctx),
-            orders: vec_set::empty(),
         }
     }
 
@@ -142,8 +132,7 @@ module nft_protocol::composable_nft {
             );
         };
 
-        assert!(!has_child_<Parent>(&child_node, blueprint), 0);
-        assert!(!has_order<Parent>(child_node.order, blueprint), 0);
+        assert!(!has_child<Parent>(&child_node, blueprint), 0);
 
         let parent_node = object_table::borrow_mut(
             &mut blueprint.nodes, parent_type
@@ -258,7 +247,7 @@ module nft_protocol::composable_nft {
         transfer::transfer(child_nft, tx_context::sender(ctx));
     }
 
-    public fun has_child_<Parent: store>(
+    public fun has_child<Parent: store>(
         child: &ChildNode,
         blueprint: &Blueprint,
     ): bool {
@@ -282,19 +271,6 @@ module nft_protocol::composable_nft {
         );
 
         object_table::contains(&parent_node.children, child_type)
-    }
-
-    public fun has_order<Parent: store>(
-        order: u64,
-        blueprint: &Blueprint,
-    ): bool {
-        let parent_type = type_name::get<Parent>();
-
-        let parent_node = object_table::borrow(
-            &blueprint.nodes, parent_type
-        );
-
-        vec_set::contains(&parent_node.orders, &order)
     }
 
     /// Creates a new `Nfts` with name and description

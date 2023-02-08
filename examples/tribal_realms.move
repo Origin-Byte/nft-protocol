@@ -88,22 +88,22 @@ module nft_protocol::tribal_realms {
         let blueprint = c_nft::new_blueprint(ctx);
         c_nft::add_parent_child_relationship<Avatar>(
             &mut blueprint,
-            c_nft::new_child_node<Hat>(1, 1, ctx), // limit, order, ctx
+            c_nft::new_child_node<Hat>(1, ctx), // limit, ctx
             ctx
         );
         c_nft::add_parent_child_relationship<Avatar>(
             &mut blueprint,
-            c_nft::new_child_node<Glasses>(1, 1, ctx), // limit, order, ctx
+            c_nft::new_child_node<Glasses>(1, ctx), // limit, ctx
             ctx
         );
         c_nft::add_parent_child_relationship<Avatar>(
             &mut blueprint,
-            c_nft::new_child_node<Gun>(1, 1, ctx), // limit, order, ctx
+            c_nft::new_child_node<Gun>(1, ctx), // limit, ctx
             ctx
         );
         c_nft::add_parent_child_relationship<Gun>(
             &mut blueprint,
-            c_nft::new_child_node<Skin>(1, 1, ctx), // limit, order, ctx
+            c_nft::new_child_node<Skin>(1, ctx), // limit, ctx
             ctx
         );
 
