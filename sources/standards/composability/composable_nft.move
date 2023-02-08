@@ -13,7 +13,9 @@ module nft_protocol::composable_nft {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
+    use sui::bag::{Self, Bag};
 
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness::Witness as DelegatedWitness;
@@ -22,50 +24,53 @@ module nft_protocol::composable_nft {
 
     /// ====== ChildNode ===
 
-    /// Defines a Child type in the context of a composability node.
-    /// To be used by ParentNode
-    struct ChildNode has key, store {
-        id: UID,
-        // Child type
-        type: TypeName,
-        // Amount of times child NFT of a the type given
-        // can be attached to a given Parent NFT
+    /// Defines the properties of a child NFT in the context of type-limited
+    /// composability
+    struct ChildNode has store {
+        // Amount of times the child NFT can be attached
         limit: u64,
+        // TODO: ChildNode generic about parametrization types
+        // Rendering order of the child NFT
+        order: u64,
     }
 
-    public fun new_child_node<Child>(
-        limit: u64,
-        ctx: &mut TxContext,
-    ): ChildNode {
-        ChildNode {
-            id: object::new(ctx),
-            type: type_name::get<Child>(),
-            limit: limit,
-        }
+    /// Create a new `ChildNode`
+    fun new_child_node(limit: u64, order: u64): ChildNode {
+        ChildNode { limit, order }
     }
 
     /// ====== ParentNode ===
 
-    /// Defines which child NFTs can be attached to the Parent NFT.
-    struct ParentNode has key, store {
-        id: UID,
-        children: ObjectTable<TypeName, ChildNode>,
+    /// Defines which child NFTs can be attached to the root NFT
+    struct ParentNode has store {
+        children: Bag,
     }
 
+    /// Create a new parent node which defines which child NFT nodes can be
+    /// attached to it
     public fun new_parent_node(
         ctx: &mut TxContext
     ): ParentNode {
-        ParentNode {
-            id: object::new(ctx),
-            children: object_table::new(ctx),
-        }
+        ParentNode { children: bag::new(ctx) }
     }
 
-    public fun add_child(
+    /// Define a new child node
+    public fun add_child<Child>(
         parent_node: &mut ParentNode,
-        child: ChildNode,
+        limit: u64,
+        order: u64,
     ) {
-        object_table::add(&mut parent_node.children, child.type, child);
+        let child = new_child_node(limit, order);
+        bag::add(&mut parent_node.children, utils::marker<Child>(), child);
+    }
+
+    /// Borrows `ChildNode` from `ParentNode`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `ChildNode` was not registered.
+    public fun borrow_child<Child>(parent_node: &ParentNode): &ChildNode {
+        bag::borrow(&parent_node.children, utils::marker<Child>())
     }
 
     /// ====== Type ===
@@ -99,7 +104,7 @@ module nft_protocol::composable_nft {
         id: UID,
         // ObjectTable with index TypeName as the type of the Parent,
         // and the value as ParentNode which contains all the children info
-        nodes: ObjectTable<TypeName, ParentNode>,
+        nodes: Bag,
     }
 
     public fun new_blueprint(
@@ -107,38 +112,38 @@ module nft_protocol::composable_nft {
     ): Blueprint {
         Blueprint {
             id: object::new(ctx),
-            nodes: object_table::new<TypeName, ParentNode>(ctx),
+            nodes: bag::new(ctx),
         }
     }
 
-    public entry fun add_parent_child_relationship<Parent: store>(
+    /// Adds parent child relationship to `Blueprint`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if parent child relationship already exists
+    public entry fun add_relationship<Parent, Child>(
         blueprint: &mut Blueprint,
-        child_node: ChildNode,
+        limit: u64,
+        order: u64,
         ctx: &mut TxContext,
     ) {
-        let parent_type = type_name::get<Parent>();
+        let parent_key = utils::marker<Parent>();
 
-        let has_parent = object_table::contains(
-            &blueprint.nodes, parent_type
-        );
-
-        // If it doesn't have an ObjectVec yet for this type,
-        // then it needs to create one.
-        if (!has_parent) {
-            object_table::add(
+        if (!has_parent<Parent>(blueprint)) {
+            bag::add(
                 &mut blueprint.nodes,
-                parent_type,
+                parent_key,
                 new_parent_node(ctx),
             );
         };
 
-        assert!(!has_child<Parent>(&child_node, blueprint), 0);
+        assert!(!has_child<Parent, Child>(blueprint), 0);
 
-        let parent_node = object_table::borrow_mut(
-            &mut blueprint.nodes, parent_type
+        let parent_node = bag::borrow_mut(
+            &mut blueprint.nodes, parent_key
         );
 
-        add_child(parent_node, child_node);
+        add_child<Child>(parent_node, limit, order);
     }
 
     /// Registers `Blueprint` on the given `Collection`
@@ -148,6 +153,15 @@ module nft_protocol::composable_nft {
         domain: Blueprint,
     ) {
         collection::add_domain(witness, collection, domain);
+    }
+
+    /// Borrows `ParentNode` from `Blueprint`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `ParentNode` was not registered.
+    public fun borrow_parent<Parent>(blueprint: &Blueprint): &ParentNode {
+        bag::borrow(&blueprint.nodes, utils::marker<Parent>())
     }
 
     /// ====== Nfts Domain ===
@@ -171,7 +185,6 @@ module nft_protocol::composable_nft {
         collection: &Collection<T>,
         ctx: &mut TxContext,
     ) {
-        let parent_type = type_name::get<Parent>();
         let child_type = type_name::get<Child>();
 
         let blueprint = collection::borrow_domain<T, Blueprint>(collection);
@@ -184,15 +197,8 @@ module nft_protocol::composable_nft {
         assert!(has_child_with_type<Parent, Child>(blueprint), 0);
 
         // Assert that it can compose within the limit
-        let parent_node = object_table::borrow(
-            &blueprint.nodes,
-            parent_type,
-        );
-
-        let child_node = object_table::borrow(
-            &parent_node.children,
-            child_type,
-        );
+        let parent_node = borrow_parent<Parent>(blueprint);
+        let child_node = borrow_child<Child>(parent_node);
 
         let nfts = nft::borrow_domain_mut<T, Nfts<T>, Witness>(
             Witness {}, parent_nft
@@ -247,30 +253,22 @@ module nft_protocol::composable_nft {
         transfer::transfer(child_nft, tx_context::sender(ctx));
     }
 
-    public fun has_child<Parent: store>(
-        child: &ChildNode,
-        blueprint: &Blueprint,
-    ): bool {
-        let parent_type = type_name::get<Parent>();
-
-        let parent_node = object_table::borrow(
-            &blueprint.nodes, parent_type
-        );
-
-        object_table::contains(&parent_node.children, child.type)
+    public fun has_parent<Parent>(blueprint: &Blueprint): bool {
+        bag::contains(&blueprint.nodes, utils::marker<Parent>())
     }
 
-    public fun has_child_with_type<Parent: store, Child: store>(
+    public fun has_child<Parent, Child>(blueprint: &Blueprint): bool {
+        let parent_node = borrow_parent<Parent>(blueprint);
+        bag::contains(&parent_node.children, utils::marker<Child>())
+    }
+
+    public fun has_child_with_type<Parent, Child>(
         blueprint: &Blueprint,
     ): bool {
-        let parent_type = type_name::get<Parent>();
-        let child_type = type_name::get<Parent>();
-
-        let parent_node = object_table::borrow(
-            &blueprint.nodes, parent_type
-        );
-
-        object_table::contains(&parent_node.children, child_type)
+        let parent_node = borrow_parent<Parent>(blueprint);
+        bag::contains_with_type<Marker<Child>, ChildNode>(
+            &parent_node.children, utils::marker<Child>(),
+        )
     }
 
     /// Creates a new `Nfts` with name and description
