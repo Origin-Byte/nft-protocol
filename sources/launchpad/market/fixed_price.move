@@ -1,4 +1,4 @@
-/// Module of a fixed price sale market.
+/// Module of `FixedPriceMarket`
 ///
 /// It implements a fixed price sale configuration, where all NFTs in the
 /// inventory get sold at a fixed price.
