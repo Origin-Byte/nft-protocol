@@ -1,6 +1,7 @@
 module nft_protocol::obiwan {
     use std::string::{Self, String};
 
+    use sui::url;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -42,6 +43,7 @@ module nft_protocol::obiwan {
         mint_nft(
             string::utf8(b"Leia"),
             string::utf8(b"Obiwan you're my only hope!"),
+            b"https://nuno-bucket-1.s3.amazonaws.com/suimarines/images/1.png",
             ctx,
         );
 
@@ -52,17 +54,19 @@ module nft_protocol::obiwan {
     public entry fun mint_nft(
         name: String,
         description: String,
+        url: vector<u8>,
         ctx: &mut TxContext,
     ) {
         let sender = tx_context::sender(ctx);
         let nft = nft::new(&Witness {}, sender, ctx);
+        let delegated_witness = witness::from_witness<OBIWAN, Witness>(&Witness {});
 
         display::add_display_domain(
-            witness::from_witness<OBIWAN, Witness>(&Witness {}),
-            &mut nft,
-            name,
-            description,
-            ctx,
+            delegated_witness, &mut nft, name, description, ctx,
+        );
+
+        display::add_url_domain(
+            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
         );
 
         transfer::transfer(nft, sender);
