@@ -174,7 +174,7 @@ module nft_protocol::nft {
     // === Domain Functions ===
 
     /// Check whether `Nft` has a domain of type `D`
-    public fun has_domain<C, D: key + store>(nft: &Nft<C>): bool {
+    public fun has_domain<C, D: store>(nft: &Nft<C>): bool {
         df::exists_with_type<Marker<D>, D>(&nft.id, utils::marker<D>())
     }
 
@@ -183,7 +183,7 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain of type `D` is not present on the `Nft`
-    public fun borrow_domain<C, D: key + store>(nft: &Nft<C>): &D {
+    public fun borrow_domain<C, D: store>(nft: &Nft<C>): &D {
         assert_domain<C, D>(nft);
         df::borrow(&nft.id, utils::marker<D>())
     }
@@ -237,7 +237,7 @@ module nft_protocol::nft {
     ///     }
     /// }
     /// ```
-    public fun borrow_domain_mut<C, D: key + store, W: drop>(
+    public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
         nft: &mut Nft<C>,
     ): &mut D {
@@ -252,7 +252,7 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
-    fun add_domain_<C, D: key + store>(
+    fun add_domain_<C, D: store>(
         nft: &mut Nft<C>,
         domain: D,
     ) {
@@ -279,7 +279,7 @@ module nft_protocol::nft {
     ///     ctx,
     /// );
     /// ```
-    public fun add_domain<C, D: key + store>(
+    public fun add_domain<C, D: store>(
         _witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         domain: D,
@@ -295,7 +295,7 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
-    public fun add_domain_with_mint_cap<C, D: key + store, W>(
+    public fun add_domain_with_mint_cap<C, D: store, W>(
         _mint_cap: &MintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
@@ -317,7 +317,7 @@ module nft_protocol::nft {
     ///
     /// Panics transaction sender is not logical owner or if domain `D` already
     /// exists.
-    public fun add_domain_with_regulated<C, D: key + store>(
+    public fun add_domain_with_regulated<C, D: store>(
         _mint_cap: &RegulatedMintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
@@ -340,7 +340,7 @@ module nft_protocol::nft {
     ///
     /// Panics transaction sender is not logical owner or if domain `D` already
     /// exists.
-    public fun add_domain_with_unregulated<C, D: key + store>(
+    public fun add_domain_with_unregulated<C, D: store>(
         _mint_cap: &UnregulatedMintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
@@ -363,7 +363,7 @@ module nft_protocol::nft {
     /// ```
     /// let display_domain: DisplayDomain = nft::remove_domain(Witness {}, &mut nft);
     /// ```
-    public fun remove_domain<C, W: drop, D: key + store>(
+    public fun remove_domain<C, W: drop, D: store>(
         _witness: W,
         nft: &mut Nft<C>,
     ): D {
@@ -373,7 +373,7 @@ module nft_protocol::nft {
         df::remove(&mut nft.id, utils::marker<D>())
     }
 
-    // === Getters ===
+    // === Static Properties ===
 
     /// Returns `Nft` name
     public fun name<C>(nft: &Nft<C>): &String {
@@ -385,14 +385,36 @@ module nft_protocol::nft {
         &nft.url
     }
 
-    /// Returns the logical owner of the `Nft`
-    public fun logical_owner<C>(
-        nft: &Nft<C>,
-    ): address {
-        nft.logical_owner
+    /// Sets `Nft` static name
+    ///
+    /// Caution when changing properties of loose NFTs as the changes will
+    /// not be propagated to the template.
+    public fun set_name<C>(
+        _witness: DelegatedWitness<C>,
+        nft: &mut Nft<C>,
+        name: String,
+    ) {
+        nft.name = name
+    }
+
+    /// Sets `Nft` static URL
+    ///
+    /// Caution when changing properties of loose NFTs as the changes will
+    /// not be propagated to the template.
+    public fun set_url<C>(
+        _witness: DelegatedWitness<C>,
+        nft: &mut Nft<C>,
+        url: Url,
+    ) {
+        nft.url = url
     }
 
     // === Ownership Functions ===
+
+    /// Returns the logical owner of the `Nft`
+    public fun logical_owner<C>(nft: &Nft<C>): address {
+        nft.logical_owner
+    }
 
     /// Transfer the `Nft` to `recipient` while changing the `logical_owner`
     ///
@@ -439,7 +461,7 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain, `D`, does not exist on `Nft`.
-    public fun assert_domain<C, D: key + store>(nft: &Nft<C>) {
+    public fun assert_domain<C, D: store>(nft: &Nft<C>) {
         assert!(has_domain<C, D>(nft), EUNDEFINED_DOMAIN);
     }
 
@@ -448,7 +470,7 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain, `D`, exists on `Nft`.
-    public fun assert_no_domain<C, D: key + store>(nft: &Nft<C>) {
+    public fun assert_no_domain<C, D: store>(nft: &Nft<C>) {
         assert!(!has_domain<C, D>(nft), EEXISTING_DOMAIN);
     }
 

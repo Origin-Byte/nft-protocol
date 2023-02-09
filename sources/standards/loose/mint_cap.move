@@ -17,19 +17,14 @@ module nft_protocol::loose_mint_cap {
 
     // === PointerDomain ===
 
-    struct PointerDomain has key, store {
-        /// `PointerDomain` ID
-        id: UID,
+    struct PointerDomain has store {
         /// `Template` ID that this NFT is a loose representation of
         template_id: ID,
     }
 
     /// Creates a new `Pointer` to the given `Template`
-    fun pointer(template_id: ID, ctx: &mut TxContext): PointerDomain {
-        PointerDomain {
-            id: object::new(ctx),
-            template_id,
-        }
+    fun pointer(template_id: ID): PointerDomain {
+        PointerDomain { template_id }
     }
 
     /// Return `ID` of `Template` associated with this pointer
@@ -202,7 +197,7 @@ module nft_protocol::loose_mint_cap {
         mint_cap: &mut LooseMintCap<C>,
         ctx: &mut TxContext,
     ): Nft<C> {
-        let pointer = pointer(mint_cap.template_id, ctx);
+        let pointer = pointer(mint_cap.template_id);
         let name = *name(mint_cap);
         let url = *url(mint_cap);
 

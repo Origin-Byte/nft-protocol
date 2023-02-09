@@ -13,7 +13,7 @@ module nft_protocol::collection {
     use sui::transfer;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
-    use sui::dynamic_object_field as dof;
+    use sui::dynamic_field as df;
 
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::utils::{Self, Marker};
@@ -99,10 +99,10 @@ module nft_protocol::collection {
     // === Domain Functions ===
 
     /// Check whether `Collection` has a domain of type `D`
-    public fun has_domain<C, D: key + store>(
+    public fun has_domain<C, D: store>(
         collection: &Collection<C>,
     ): bool {
-        dof::exists_with_type<Marker<D>, D>(&collection.id, utils::marker<D>())
+        df::exists_with_type<Marker<D>, D>(&collection.id, utils::marker<D>())
     }
 
     /// Borrow domain of type `D` from `Nft`
@@ -110,11 +110,11 @@ module nft_protocol::collection {
     /// #### Panics
     ///
     /// Panics if domain of type `D` is not present on the `Nft`
-    public fun borrow_domain<C, D: key + store>(
+    public fun borrow_domain<C, D: store>(
         collection: &Collection<C>
     ): &D {
         assert_domain<C, D>(collection);
-        dof::borrow(&collection.id, utils::marker<D>())
+        df::borrow(&collection.id, utils::marker<D>())
     }
 
     /// Mutably borrow domain of type `D` from `Collection`
@@ -148,14 +148,14 @@ module nft_protocol::collection {
     /// define itself or if domain of type `D` is not present on the `Nft`. See
     /// [nft::borrow_domain_mut](./nft.html#borrow_domain_mut).
     /// ```
-    public fun borrow_domain_mut<C, D: key + store, W: drop>(
+    public fun borrow_domain_mut<C, D: store, W: drop>(
         _witness: W,
         collection: &mut Collection<C>,
     ): &mut D {
         utils::assert_same_module_as_witness<D, W>();
         assert_domain<C, D>(collection);
 
-        dof::borrow_mut(&mut collection.id, utils::marker<D>())
+        df::borrow_mut(&mut collection.id, utils::marker<D>())
     }
 
     /// Adds domain of type `D` to `Collection`
@@ -170,13 +170,13 @@ module nft_protocol::collection {
     /// let display_domain = display::new_display_domain(name, description);
     /// collection::add_domain(&mut nft, mint_cap, display_domain);
     /// ```
-    public fun add_domain<C, D: key + store>(
+    public fun add_domain<C, D: store>(
         _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         domain: D,
     ) {
         assert_no_domain<C, D>(collection);
-        dof::add(&mut collection.id, utils::marker<D>(), domain);
+        df::add(&mut collection.id, utils::marker<D>(), domain);
     }
 
     /// Removes domain of type `D` from `Collection`
@@ -192,14 +192,14 @@ module nft_protocol::collection {
     /// ```
     /// let display_domain: DisplayDomain = collection::remove_domain(Witness {}, &mut nft);
     /// ```
-    public fun remove_domain<C, W: drop, D: key + store>(
+    public fun remove_domain<C, W: drop, D: store>(
         _witness: W,
         collection: &mut Collection<C>,
     ): D {
         utils::assert_same_module_as_witness<W, D>();
         assert_domain<C, D>(collection);
 
-        dof::remove(&mut collection.id, utils::marker<D>())
+        df::remove(&mut collection.id, utils::marker<D>())
     }
 
     // === Assertions ===
@@ -209,7 +209,7 @@ module nft_protocol::collection {
     /// #### Panics
     ///
     /// Panics if domain, `D`, does not exist on `Collection`.
-    public fun assert_domain<C, D: key + store>(collection: &Collection<C>) {
+    public fun assert_domain<C, D: store>(collection: &Collection<C>) {
         assert!(has_domain<C, D>(collection), EUNDEFINED_DOMAIN);
     }
 
@@ -218,7 +218,7 @@ module nft_protocol::collection {
     /// #### Panics
     ///
     /// Panics if domain, `D`, does exists on `Collection`.
-    public fun assert_no_domain<C, D: key + store>(
+    public fun assert_no_domain<C, D: store>(
         collection: &Collection<C>
     ) {
         assert!(!has_domain<C, D>(collection), EEXISTING_DOMAIN);

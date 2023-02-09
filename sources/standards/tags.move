@@ -81,7 +81,7 @@ module nft_protocol::tags {
 
     // === TagDomain ===
 
-    struct TagDomain has key, store {
+    struct TagDomain has store {
         id: UID,
     }
 

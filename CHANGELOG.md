@@ -10,8 +10,14 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Added
 
+- Added static `name` and `url` fields to `Nft` for better integration with explorer.
 - `orderbook::list_nft` and `orderbook::list_nft_with_commission` endpoints.
   These allow the client to skip the creation of transfer caps and instead provide `OwnerCap` to `Safe` directly to the orderbook contract.
+
+### Changed
+
+- `Collection` and `Nft` were reverted to use dynamic fields instead of dynamic object fields.
+- Migrated all domains not requiring `key` property after loosening `key` requirement on `Nft` and `Collection` domains.
 
 ## [0.22.0] - 2023-02-02
 
