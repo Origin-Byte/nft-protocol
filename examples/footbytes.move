@@ -105,13 +105,13 @@ module nft_protocol::footbytes {
     public entry fun mint_nft_template(
         name: String,
         description: String,
-        url: String,
+        url: vector<u8>,
         collection: &mut Collection<FOOTBYTES>,
         mint_cap: &MintCap<FOOTBYTES>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let url = url::new_unsafe_from_bytes(*string::bytes(&url));
+        let url = url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(
             mint_cap, name, url, tx_context::sender(ctx), ctx,

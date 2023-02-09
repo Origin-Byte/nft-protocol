@@ -91,14 +91,14 @@ module nft_protocol::suimarines {
     public entry fun mint_nft(
         name: String,
         description: String,
-        url: String,
+        url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         mint_cap: &MintCap<SUIMARINES>,
         warehouse: &mut Warehouse<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
-        let url = url::new_unsafe_from_bytes(*string::bytes(&url));
+        let url = url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(
             mint_cap, name, url, tx_context::sender(ctx), ctx,
