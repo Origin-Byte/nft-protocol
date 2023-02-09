@@ -339,6 +339,25 @@ module nft_protocol::orderbook {
         )
     }
 
+    /// Creates exclusive transfer cap and then calls [`create_ask`].
+    public entry fun list_nft<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        requested_tokens: u64,
+        nft: ID,
+        owner_cap: &safe::OwnerCap,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        let transfer_cap = safe::create_exclusive_transfer_cap(
+            nft,
+            owner_cap,
+            seller_safe,
+            ctx,
+        );
+
+        create_ask(book, requested_tokens, transfer_cap, seller_safe, ctx)
+    }
+
     /// Same as [`create_ask`] but protected by
     /// [collection witness](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#witness-protected-actions).
     public fun create_ask_protected<W: drop, C, FT>(
@@ -379,6 +398,36 @@ module nft_protocol::orderbook {
             requested_tokens,
             option::some(commission),
             transfer_cap,
+            seller_safe,
+            ctx,
+        )
+    }
+
+    /// Creates exclusive transfer cap and then calls
+    /// [`create_ask_with_commission`].
+    public entry fun list_nft_with_commission<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        requested_tokens: u64,
+        nft: ID,
+        owner_cap: &safe::OwnerCap,
+        beneficiary: address,
+        commission: u64,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        let transfer_cap = safe::create_exclusive_transfer_cap(
+            nft,
+            owner_cap,
+            seller_safe,
+            ctx,
+        );
+
+        create_ask_with_commission(
+            book,
+            requested_tokens,
+            transfer_cap,
+            beneficiary,
+            commission,
             seller_safe,
             ctx,
         )
