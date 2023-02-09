@@ -8,8 +8,10 @@
 /// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
 /// easily display your NFT.
 module nft_protocol::nft {
+    use std::string::{Self, String};
     use std::type_name::{Self, TypeName};
 
+    use sui::url::{Self, Url};
     use sui::event;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
@@ -52,6 +54,10 @@ module nft_protocol::nft {
     struct Nft<phantom C> has key, store {
         /// `Nft` ID
         id: UID,
+        /// `Nft` name
+        name: String,
+        /// `Nft` URL
+        url: Url,
         /// Represents the logical owner of an NFT
         ///
         /// It allows for the traceability of the owner of an NFT even when the
@@ -71,7 +77,9 @@ module nft_protocol::nft {
 
     /// Create a new `Nft`
     fun new_<C>(
-        owner: address,
+        name: String,
+        url: Url,
+        logical_owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
         let id = object::new(ctx);
@@ -81,10 +89,7 @@ module nft_protocol::nft {
             type_name: type_name::get<C>(),
         });
 
-        Nft {
-            id,
-            logical_owner: owner,
-        }
+        Nft { id, name, url, logical_owner }
     }
 
     /// Create a new `Nft` using `MintCap`
@@ -101,20 +106,24 @@ module nft_protocol::nft {
     /// ```
     public fun new<C, W>(
         _witness: &W,
+        name: String,
+        url: Url,
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
         utils::assert_same_module_as_witness<C, W>();
-        new_(owner, ctx)
+        new_(name, url, owner, ctx)
     }
 
     /// Create a new `Nft` using `MintCap`
     public fun from_mint_cap<C>(
         _mint_cap: &MintCap<C>,
+        name: String,
+        url: Url,
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        new_(owner, ctx)
+        new_(name, url, owner, ctx)
     }
 
     /// Create a new `Nft` using `RegulatedMintCap`
@@ -133,11 +142,13 @@ module nft_protocol::nft {
     /// Panics if supply is exceeded.
     public fun from_regulated<C>(
         mint_cap: &mut RegulatedMintCap<C>,
+        name: String,
+        url: Url,
         ctx: &mut TxContext,
     ): Nft<C> {
         mint_cap::increment_supply(mint_cap, 1);
         // See documentation note
-        new_(tx_context::sender(ctx), ctx)
+        new_(name, url, tx_context::sender(ctx), ctx)
     }
 
     /// Create a new `Nft` using `UnregulatedMintCap`
@@ -152,10 +163,12 @@ module nft_protocol::nft {
     /// See [new](#new) for usage information.
     public fun from_unregulated<C>(
         _mint_cap: &UnregulatedMintCap<C>,
+        name: String,
+        url: Url,
         ctx: &mut TxContext,
     ): Nft<C> {
         // See documentation note
-        new_(tx_context::sender(ctx), ctx)
+        new_(name, url, tx_context::sender(ctx), ctx)
     }
 
     // === Domain Functions ===
@@ -360,7 +373,17 @@ module nft_protocol::nft {
         df::remove(&mut nft.id, utils::marker<D>())
     }
 
-    // === Ownership Functions ===
+    // === Getters ===
+
+    /// Returns `Nft` name
+    public fun name<C>(nft: &Nft<C>): &String {
+        &nft.name
+    }
+
+    /// Returns `Nft` name
+    public fun url<C>(nft: &Nft<C>): &Url {
+        &nft.url
+    }
 
     /// Returns the logical owner of the `Nft`
     public fun logical_owner<C>(
@@ -368,6 +391,8 @@ module nft_protocol::nft {
     ): address {
         nft.logical_owner
     }
+
+    // === Ownership Functions ===
 
     /// Transfer the `Nft` to `recipient` while changing the `logical_owner`
     ///
@@ -444,6 +469,6 @@ module nft_protocol::nft {
     #[test_only]
     /// Create `Nft` without access to `MintCap` or derivatives
     public fun test_mint<C>(owner: address, ctx: &mut TxContext): Nft<C> {
-        new_(owner, ctx)
+        new_(string::utf8(b""), url::new_unsafe_from_bytes(b""), owner, ctx)
     }
 }

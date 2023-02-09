@@ -105,13 +105,17 @@ module nft_protocol::footbytes {
     public entry fun mint_nft_template(
         name: String,
         description: String,
-        url: vector<u8>,
+        url: String,
         collection: &mut Collection<FOOTBYTES>,
         mint_cap: &MintCap<FOOTBYTES>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::from_mint_cap(mint_cap, tx_context::sender(ctx), ctx);
+        let url = url::new_unsafe_from_bytes(*string::bytes(&url));
+
+        let nft = nft::from_mint_cap(
+            mint_cap, name, url, tx_context::sender(ctx), ctx,
+        );
         let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
@@ -119,7 +123,7 @@ module nft_protocol::footbytes {
         );
 
         display::add_url_domain(
-            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
+            delegated_witness, &mut nft, url, ctx,
         );
 
         let template = template::new_regulated(nft, supply, ctx);

@@ -1,6 +1,8 @@
 module nft_protocol::loose_mint_cap {
+    use std::string::String;
     use std::option::{Self, Option};
 
+    use sui::url::Url;
     use sui::transfer;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
@@ -44,6 +46,10 @@ module nft_protocol::loose_mint_cap {
     struct LooseMintCap<phantom C> has key, store {
         /// `LooseMintCap` ID
         id: UID,
+        /// `Nft` name
+        name: String,
+        /// `Nft` URL
+        url: Url,
         /// `Template` ID for which this `LooseMintCap` is allowed to mint
         /// NFTs
         template_id: ID,
@@ -57,10 +63,14 @@ module nft_protocol::loose_mint_cap {
     public(friend) fun from_unregulated<C>(
         mint_cap: UnregulatedMintCap<C>,
         template_id: ID,
+        name: String,
+        url: Url,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
         let template_mint_cap = LooseMintCap {
             id: object::new(ctx),
+            name,
+            url,
             template_id
         };
 
@@ -82,10 +92,14 @@ module nft_protocol::loose_mint_cap {
     public(friend) fun from_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
         template_id: ID,
+        name: String,
+        url: Url,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
         let template_mint_cap = LooseMintCap {
             id: object::new(ctx),
+            name,
+            url,
             template_id
         };
 
@@ -99,6 +113,16 @@ module nft_protocol::loose_mint_cap {
     }
 
     // === Getters ===
+
+    /// Get loose `Nft` name
+    public fun name<C>(mint_cap: &LooseMintCap<C>): &String {
+        &mint_cap.name
+    }
+
+    /// Get loose `Nft` URL
+    public fun url<C>(mint_cap: &LooseMintCap<C>): &Url {
+        &mint_cap.url
+    }
 
     /// Borrows `RegulatedMintCap` from `LooseMintCap`
     ///
@@ -179,17 +203,19 @@ module nft_protocol::loose_mint_cap {
         ctx: &mut TxContext,
     ): Nft<C> {
         let pointer = pointer(mint_cap.template_id, ctx);
+        let name = *name(mint_cap);
+        let url = *url(mint_cap);
 
         if (is_regulated(mint_cap)) {
             let mint_cap = borrow_regulated_mut(mint_cap);
-            let nft = nft::from_regulated(mint_cap, ctx);
+            let nft = nft::from_regulated(mint_cap, name, url, ctx);
 
             nft::add_domain_with_regulated(mint_cap, &mut nft, pointer, ctx);
 
             nft
         } else {
             let mint_cap = borrow_unregulated(mint_cap);
-            let nft = nft::from_unregulated(mint_cap, ctx);
+            let nft = nft::from_unregulated(mint_cap, name, url, ctx);
 
             nft::add_domain_with_unregulated(mint_cap, &mut nft, pointer, ctx);
 

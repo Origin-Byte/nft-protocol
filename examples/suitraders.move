@@ -127,14 +127,18 @@ module nft_protocol::suitraders {
     public entry fun mint_nft(
         name: String,
         description: String,
-        url: vector<u8>,
+        url: String,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
         mint_cap: &MintCap<SUITRADERS>,
         warehouse: &mut Warehouse<SUITRADERS>,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::from_mint_cap(mint_cap, tx_context::sender(ctx), ctx);
+        let url = url::new_unsafe_from_bytes(*string::bytes(&url));
+
+        let nft = nft::from_mint_cap(
+            mint_cap, name, url, tx_context::sender(ctx), ctx,
+        );
         let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
@@ -142,7 +146,7 @@ module nft_protocol::suitraders {
         );
 
         display::add_url_domain(
-            delegated_witness, &mut nft, url::new_unsafe_from_bytes(url), ctx,
+            delegated_witness, &mut nft, url, ctx,
         );
 
         display::add_attributes_domain_from_vec(

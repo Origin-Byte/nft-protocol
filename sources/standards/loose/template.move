@@ -5,7 +5,7 @@ module nft_protocol::template {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::utils;
-    use nft_protocol::nft::Nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::mint_cap::{Self, RegulatedMintCap, UnregulatedMintCap};
 
@@ -98,6 +98,11 @@ module nft_protocol::template {
         )
     }
 
+    /// Returns the `Template` `Nft`
+    public fun borrow_template<C>(template: &Template<C>): &Nft<C> {
+        &template.template
+    }
+
     /// Returns the `Template` supply
     ///
     /// #### Panics
@@ -152,9 +157,14 @@ module nft_protocol::template {
             );
         };
 
+        let template_id = object::id(template);
+        let nft = borrow_template(template);
+
         loose_mint_cap::from_regulated(
             mint_cap,
-            object::id(template),
+            template_id,
+            *nft::name(nft),
+            *nft::url(nft),
             ctx,
         )
     }
@@ -170,14 +180,22 @@ module nft_protocol::template {
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
         let template_id = object::id(template);
+        let nft = borrow_template(template);
+        let name = *nft::name(nft);
+        let url = *nft::url(nft);
+
         if (is_regulated(template)) {
             let supply = supply::supply(borrow_supply(template));
             let mint_cap = mint_cap::from_unregulated(
                 mint_cap, supply, ctx,
             );
-            loose_mint_cap::from_regulated(mint_cap, template_id, ctx)
+            loose_mint_cap::from_regulated(
+                mint_cap, template_id, name, url, ctx,
+            )
         } else {
-            loose_mint_cap::from_unregulated(mint_cap, template_id, ctx)
+            loose_mint_cap::from_unregulated(
+                mint_cap, template_id, name, url, ctx,
+            )
         }
     }
 
