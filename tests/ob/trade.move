@@ -1,13 +1,14 @@
 #[test_only]
 module nft_protocol::test_ob_trade {
-    use originmate::crit_bit_u64 as crit_bit;
     use nft_protocol::ob::{Self, Orderbook};
-    use nft_protocol::safe;
     use nft_protocol::test_utils::{Self as test_ob};
+    use nft_protocol::safe;
+    use originmate::crit_bit_u64 as crit_bit;
     use std::option;
     use sui::object::ID;
     use sui::sui::SUI;
     use sui::test_scenario::{Self, Scenario};
+    use sui::transfer::transfer;
 
     const BUYER1: address = @0xA1C07;
     const BUYER2: address = @0xA1C06;
@@ -301,6 +302,37 @@ module nft_protocol::test_ob_trade {
             SELLER1,
             90,
         );
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_lists_nft() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_allowlist(&mut scenario);
+        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_scenario::next_tx(&mut scenario, SELLER1);
+        test_ob::create_safe(&mut scenario, SELLER1);
+        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER1);
+        test_scenario::next_tx(&mut scenario, SELLER1);
+
+        let (owner_cap, seller_safe) =
+            test_ob::owner_cap_and_safe(&scenario, SELLER1);
+        let ob: Orderbook<test_ob::Foo, SUI> =
+            test_scenario::take_shared(&scenario);
+        ob::list_nft(
+            &mut ob,
+            100,
+            nft_id,
+            &owner_cap,
+            &mut seller_safe,
+            test_scenario::ctx(&mut scenario),
+        );
+
+        test_scenario::return_shared(ob);
+        test_scenario::return_shared(seller_safe);
+        transfer(owner_cap, SELLER1);
 
         test_scenario::end(scenario);
     }
