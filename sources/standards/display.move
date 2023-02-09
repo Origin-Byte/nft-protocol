@@ -11,13 +11,13 @@ module nft_protocol::display {
 
     use sui::url::Url;
     use sui::object::{Self, UID};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::utils;
-    use nft_protocol::creators;
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::collection::{Self, Collection};
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
@@ -51,14 +51,10 @@ module nft_protocol::display {
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
     public fun set_name<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         name: String,
-        ctx: &mut TxContext,
     ) {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
-
         let domain: &mut DisplayDomain =
             collection::borrow_domain_mut(Witness {}, collection);
 
@@ -69,14 +65,10 @@ module nft_protocol::display {
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
     public fun set_description<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         description: String,
-        ctx: &mut TxContext,
     ) {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
-
         let domain: &mut DisplayDomain =
             collection::borrow_domain_mut(Witness {}, collection);
 
@@ -107,14 +99,14 @@ module nft_protocol::display {
     }
 
     public fun add_collection_display_domain<C>(
+        witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         name: String,
         description: String,
         ctx: &mut TxContext,
     ) {
         collection::add_domain(
-            collection, mint_cap, new_display_domain(name, description, ctx)
+            witness, collection, new_display_domain(name, description, ctx)
         );
     }
 
@@ -139,14 +131,10 @@ module nft_protocol::display {
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
     public fun set_url<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         url: Url,
-        ctx: &mut TxContext,
     ) {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
-
         let domain: &mut UrlDomain =
             collection::borrow_domain_mut(Witness {}, collection);
 
@@ -180,12 +168,12 @@ module nft_protocol::display {
     }
 
     public fun add_collection_url_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         url: Url,
         ctx: &mut TxContext,
     ) {
-        collection::add_domain(nft, mint_cap, new_url_domain(url, ctx));
+        collection::add_domain(witness, nft, new_url_domain(url, ctx));
     }
 
     // === SymbolDomain ===
@@ -212,14 +200,10 @@ module nft_protocol::display {
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
     public fun set_symbol<C>(
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         symbol: String,
-        ctx: &mut TxContext,
     ) {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
-
         let domain: &mut SymbolDomain =
             collection::borrow_domain_mut(Witness {}, collection);
 
@@ -255,12 +239,12 @@ module nft_protocol::display {
     }
 
     public fun add_collection_symbol_domain<C>(
+        witness: DelegatedWitness<C>,
         nft: &mut Collection<C>,
-        mint_cap: &MintCap<C>,
         symbol: String,
         ctx: &mut TxContext,
     ) {
-        collection::add_domain(nft, mint_cap, new_symbol_domain(symbol, ctx));
+        collection::add_domain(witness, nft, new_symbol_domain(symbol, ctx));
     }
 
     // === AttributesDomain ===
@@ -302,13 +286,9 @@ module nft_protocol::display {
     }
 
     public fun display_attribute_mut<C>(
+        _witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
-        collection: &mut Collection<C>,
-        ctx: &mut TxContext,
     ): &mut AttributesDomain {
-        creators::assert_collection_has_creator(
-            collection, &tx_context::sender(ctx)
-        );
         nft::borrow_domain_mut(Witness {}, nft)
     }
 

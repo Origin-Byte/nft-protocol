@@ -23,10 +23,12 @@
 module nft_protocol::transfer_allowlist {
     use nft_protocol::utils;
     use nft_protocol::err;
+
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
-    use sui::object;
-    use sui::object::UID;
+
+    use sui::transfer;
+    use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
@@ -57,8 +59,9 @@ module nft_protocol::transfer_allowlist {
         id: UID,
     }
 
-    public fun create<Admin: drop>(
-        _witness: Admin,
+    /// Creates a new `Allowlist`
+    public fun create<Admin>(
+        _witness: &Admin,
         ctx: &mut TxContext,
     ): Allowlist {
         Allowlist {
@@ -67,6 +70,15 @@ module nft_protocol::transfer_allowlist {
             collections: vec_set::empty(),
             authorities: option::none(),
         }
+    }
+
+    /// Creates and shares a new `Allowlist`
+    public fun init_allowlist<Admin>(
+        witness: &Admin,
+        ctx: &mut TxContext,
+    ) {
+        let allowlist = create(witness, ctx);
+        transfer::share_object(allowlist);
     }
 
     /// See the docs for struct `CollectionControlCap`.
@@ -87,8 +99,8 @@ module nft_protocol::transfer_allowlist {
     /// collection to the allowlist, they can reexport this function in their
     /// module without the witness protection. However, we opt for witness
     /// collection to give the allowlist owner a way to combat spam.
-    public fun insert_collection<Admin: drop, C>(
-        _allowlist_witness: Admin,
+    public fun insert_collection<Admin, C>(
+        _allowlist_witness: &Admin,
         _authority: &CollectionControlCap<C>,
         list: &mut Allowlist,
     ) {

@@ -80,4 +80,50 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
         test_scenario::end(scenario);
     }
+
+    #[test]
+    #[expected_failure(abort_code = 13370410, location = nft_protocol::orderbook)]
+    fun it_fails_if_buyer_safe_eq_seller_safe() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_allowlist(&mut scenario);
+
+        test_ob::create_ob<test_ob::Foo>(&mut scenario);
+
+        test_ob::create_safe(&mut scenario, SELLER);
+        let nft_id = test_ob::create_and_deposit_nft(
+            &mut scenario,
+            SELLER,
+        );
+        test_ob::create_ask<test_ob::Foo>(
+            &mut scenario,
+            nft_id,
+            OFFER_SUI,
+        );
+        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 13370410, location = nft_protocol::orderbook)]
+    fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_ob<Box<bool>>(&mut scenario);
+        test_ob::create_safe(&mut scenario, SELLER);
+        let nft_id = test_ob::create_and_deposit_generic_nft(
+            &mut scenario,
+            SELLER,
+        );
+        test_ob::create_ask<Box<bool>>(
+            &mut scenario,
+            nft_id,
+            OFFER_SUI,
+        );
+
+        test_ob::create_bid<Box<bool>>(&mut scenario, OFFER_SUI);
+
+        test_scenario::end(scenario);
+    }
 }

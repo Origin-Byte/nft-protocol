@@ -6,14 +6,6 @@ module nft_protocol::err {
 
     // === NFT & Collection ===
 
-    public fun undefined_domain(): u64 {
-        return Prefix + 000
-    }
-
-    public fun domain_already_defined(): u64 {
-        return Prefix + 001
-    }
-
     public fun not_nft_owner(): u64 {
         return Prefix + 002
     }
@@ -148,6 +140,10 @@ module nft_protocol::err {
 
     public fun nft_is_generic(): u64 {
         return Prefix + 409
+    }
+
+    public fun cannot_trade_with_self(): u64 {
+        return Prefix + 410
     }
 
     // === Allowlist ===

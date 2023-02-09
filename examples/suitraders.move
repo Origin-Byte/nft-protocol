@@ -13,7 +13,8 @@ module nft_protocol::suitraders {
     use nft_protocol::creators;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -24,46 +25,53 @@ module nft_protocol::suitraders {
     struct Witness has drop {}
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(
-            &witness, ctx,
-        );
+        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let delegated_witness = nft_protocol::witness::from_witness(&witness);
 
         collection::add_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx), ctx)
+            creators::from_address(&witness, tx_context::sender(ctx), ctx),
         );
 
         // Register custom domains
         display::add_collection_display_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             string::utf8(b"Suitraders"),
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
             ctx,
         );
 
         display::add_collection_url_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
             ctx,
         );
 
         display::add_collection_symbol_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             string::utf8(b"SUITR"),
             ctx,
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
+        royalty::add_royalty_domain(
+            delegated_witness,
+            &mut collection,
+            royalty,
+        );
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
+        tags::add_collection_tag_domain(
+            delegated_witness,
+            &mut collection,
+            tags,
+        );
 
         let listing = nft_protocol::listing::new(
             @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
@@ -71,10 +79,11 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id =
-            nft_protocol::listing::create_warehouse(&mut listing, ctx);
+        let inventory_id = nft_protocol::listing::create_warehouse<SUITRADERS>(
+            &mut listing, ctx
+        );
 
-        nft_protocol::fixed_price::init_venue<sui::sui::SUI>(
+        nft_protocol::fixed_price::init_venue<SUITRADERS, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -82,7 +91,7 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_venue<sui::sui::SUI>(
+        nft_protocol::dutch_auction::init_venue<SUITRADERS, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -118,13 +127,11 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<String>,
         attribute_values: vector<String>,
-        _mint_cap: &MintCap<SUITRADERS>,
-        warehouse: &mut Warehouse,
+        mint_cap: &MintCap<SUITRADERS>,
+        warehouse: &mut Warehouse<SUITRADERS>,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new<SUITRADERS, Witness>(
-            &Witness {}, tx_context::sender(ctx), ctx
-        );
+        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
 
         display::add_display_domain(
             &mut nft,

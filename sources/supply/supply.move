@@ -32,6 +32,11 @@ module nft_protocol::supply {
         supply.current
     }
 
+    /// Return remaining supply
+    public fun supply(supply: &Supply): u64 {
+        supply.max - supply.current
+    }
+
     /// Increases maximum supply
     ///
     /// #### Panics
