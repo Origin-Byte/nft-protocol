@@ -11,7 +11,7 @@ module nft_protocol::nft {
     use std::type_name::{Self, TypeName};
 
     use sui::event;
-    use sui::dynamic_object_field as dof;
+    use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
@@ -162,7 +162,7 @@ module nft_protocol::nft {
 
     /// Check whether `Nft` has a domain of type `D`
     public fun has_domain<C, D: key + store>(nft: &Nft<C>): bool {
-        dof::exists_with_type<Marker<D>, D>(&nft.id, utils::marker<D>())
+        df::exists_with_type<Marker<D>, D>(&nft.id, utils::marker<D>())
     }
 
     /// Borrow domain of type `D` from `Nft`
@@ -172,7 +172,7 @@ module nft_protocol::nft {
     /// Panics if domain of type `D` is not present on the `Nft`
     public fun borrow_domain<C, D: key + store>(nft: &Nft<C>): &D {
         assert_domain<C, D>(nft);
-        dof::borrow(&nft.id, utils::marker<D>())
+        df::borrow(&nft.id, utils::marker<D>())
     }
 
     /// Mutably borrow domain of type `D` from `Nft`
@@ -231,7 +231,7 @@ module nft_protocol::nft {
         utils::assert_same_module_as_witness<D, W>();
         assert_domain<C, D>(nft);
 
-        dof::borrow_mut(&mut nft.id, utils::marker<D>())
+        df::borrow_mut(&mut nft.id, utils::marker<D>())
     }
 
     /// Adds domain of type `D` to `Nft`
@@ -244,7 +244,7 @@ module nft_protocol::nft {
         domain: D,
     ) {
         assert_no_domain<C, D>(nft);
-        dof::add(&mut nft.id, utils::marker<D>(), domain);
+        df::add(&mut nft.id, utils::marker<D>(), domain);
     }
 
     /// Adds domain of type `D` to `Nft`
@@ -357,7 +357,7 @@ module nft_protocol::nft {
         utils::assert_same_module_as_witness<W, D>();
         assert_domain<C, D>(nft);
 
-        dof::remove(&mut nft.id, utils::marker<D>())
+        df::remove(&mut nft.id, utils::marker<D>())
     }
 
     // === Ownership Functions ===
