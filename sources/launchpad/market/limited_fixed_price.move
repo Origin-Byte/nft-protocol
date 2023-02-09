@@ -1,26 +1,43 @@
-/// Module of a fixed price sale market.
+/// Module of `LimitedFixedPriceMarket`
+///
+/// `LimitedFixedPriceMarket` functions as a `FixedPriceMarket` but allows
+/// limiting the amount of NFTs that an address is allowed to buy from it.
 ///
 /// It implements a fixed price sale configuration, where all NFTs in the
 /// inventory get sold at a fixed price.
 ///
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
-module nft_protocol::fixed_price {
+module nft_protocol::limited_fixed_price {
     use sui::balance;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
+    use sui::dynamic_field as df;
 
     use nft_protocol::venue;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::inventory;
     use nft_protocol::market_whitelist::{Self, Certificate};
 
+    /// Limit of NFTs withdrawn from the market was exceeded
+    ///
+    /// Call `limited_fixed_price::set_limit` to increase limit.
+    const EEXCEEDED_LIMIT: u64 = 1;
+
+    /// Tried to decrease limit
+    ///
+    /// `limited_fixed_price::set_limit` may only be used to increase limit.
+    const EDECREASED_LIMIT: u64 = 2;
+
     /// Fixed price market object
-    struct FixedPriceMarket<phantom FT> has key, store {
-        /// `FixedPriceMarket` ID
+    struct LimitedFixedPriceMarket<phantom FT> has key, store {
+        /// `LimitedFixedPriceMarket` ID
         id: UID,
+        /// Limit of how many NFTs each account is allowed to buy from this
+        /// market
+        limit: u64,
         /// Fixed price denominated in fungible-token, `FT`
         price: u64,
         /// `Warehouse` or `Factory` that the market will redeem from
@@ -32,7 +49,7 @@ module nft_protocol::fixed_price {
 
     // === Init functions ===
 
-    /// Create a new `FixedPriceMarket<FT>`
+    /// Create a new `LimitedFixedPriceMarket<FT>`
     ///
     /// Price is denominated in fungible token, `FT`, such as SUI.
     ///
@@ -40,17 +57,19 @@ module nft_protocol::fixed_price {
     /// this market will be inserted into.
     public fun new<FT>(
         inventory_id: ID,
+        limit: u64,
         price: u64,
         ctx: &mut TxContext,
-    ): FixedPriceMarket<FT> {
-        FixedPriceMarket {
+    ): LimitedFixedPriceMarket<FT> {
+        LimitedFixedPriceMarket {
             id: object::new(ctx),
+            limit,
             price,
             inventory_id,
         }
     }
 
-    /// Creates a `FixedPriceMarket<FT>` and transfers to transaction sender
+    /// Creates a `LimitedFixedPriceMarket<FT>` and transfers to transaction sender
     ///
     /// Price is denominated in fungible token, `FT`, such as SUI.
     ///
@@ -61,14 +80,15 @@ module nft_protocol::fixed_price {
     /// `venue::init_venue` for later use in a launchpad listing.
     public entry fun init_market<FT>(
         inventory_id: ID,
+        limit: u64,
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let market = new<FT>(inventory_id, price, ctx);
+        let market = new<FT>(inventory_id, limit, price, ctx);
         transfer::transfer(market, tx_context::sender(ctx));
     }
 
-    /// Initializes a `Venue` with `FixedPriceMarket<FT>`
+    /// Initializes a `Venue` with `LimitedFixedPriceMarket<FT>`
     ///
     /// Price is denominated in fungible token, `FT`, such as SUI.
     ///
@@ -86,13 +106,16 @@ module nft_protocol::fixed_price {
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
+        limit: u64,
         price: u64,
         ctx: &mut TxContext,
     ) {
-        create_venue<C, FT>(listing, inventory_id, is_whitelisted, price, ctx);
+        create_venue<C, FT>(
+            listing, inventory_id, is_whitelisted, limit, price, ctx,
+        );
     }
 
-    /// Creates a `Venue` with `FixedPriceMarket<FT>`
+    /// Creates a `Venue` with `LimitedFixedPriceMarket<FT>`
     ///
     /// Price is denominated in fungible token, `FT`, such as SUI.
     ///
@@ -110,13 +133,47 @@ module nft_protocol::fixed_price {
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
+        limit: u64,
         price: u64,
         ctx: &mut TxContext,
     ): ID {
         listing::assert_inventory<C>(listing, inventory_id);
 
-        let market = new<FT>(inventory_id, price, ctx);
+        let market = new<FT>(inventory_id, limit, price, ctx);
         listing::create_venue(listing, market, is_whitelisted, ctx)
+    }
+
+    /// Returns how many NFTs the given address bought from the market
+    public fun borrow_count<FT>(
+        market: &LimitedFixedPriceMarket<FT>,
+        who: address,
+    ): u64 {
+        if (df::exists_(&market.id, who)) {
+            *df::borrow(&market.id, who)
+        } else {
+            0
+        }
+    }
+
+    /// Increments count while enforcing market limit
+    ///
+    /// #### Panics
+    ///
+    /// Panics if limit is violated
+    public fun increment_count<FT>(
+        market: &mut LimitedFixedPriceMarket<FT>,
+        who: address
+    ) {
+        if (df::exists_(&market.id, who)) {
+            let count = df::borrow_mut(&mut market.id, who);
+            *count = *count + 1;
+
+            assert_limit(market, *count);
+        } else {
+            df::add(&mut market.id, who, 1);
+
+            assert_limit(market, 1);
+        };
     }
 
     // === Entrypoints ===
@@ -175,25 +232,62 @@ module nft_protocol::fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let venue = listing::borrow_venue(listing, venue_id);
+        let venue = listing::venue_internal_mut<
+            LimitedFixedPriceMarket<FT>, Witness
+        >(
+            Witness {}, listing, venue_id
+        );
         let market =
-            venue::borrow_market<FixedPriceMarket<FT>>(venue);
+            venue::borrow_market_mut<LimitedFixedPriceMarket<FT>>(venue);
+
+        let owner = tx_context::sender(ctx);
+        increment_count(market, owner);
 
         let funds = balance::split(coin::balance_mut(wallet), market.price);
 
         let inventory_id = market.inventory_id;
-        let inventory =
-            listing::inventory_internal_mut<C, FixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, venue_id, inventory_id
-            );
+        let inventory = listing::inventory_internal_mut<
+            C, LimitedFixedPriceMarket<FT>, Witness
+        >(
+            Witness {}, listing, venue_id, inventory_id
+        );
 
-        let owner = tx_context::sender(ctx);
         inventory::transfer(inventory, owner, ctx);
 
         listing::pay(listing, funds, 1);
     }
 
     // === Modifier Functions ===
+
+    /// Change market limit
+    ///
+    /// Limit can only be increased.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not `Listing` admin or if limit was
+    /// decreased.
+    public entry fun set_limit<FT>(
+        listing: &mut Listing,
+        venue_id: ID,
+        new_limit: u64,
+        ctx: &mut TxContext,
+    ) {
+        listing::assert_listing_admin(listing, ctx);
+
+        let venue = listing::venue_internal_mut<
+            LimitedFixedPriceMarket<FT>, Witness
+        >(
+            Witness {}, listing, venue_id
+        );
+
+        let market =
+            venue::borrow_market_mut<LimitedFixedPriceMarket<FT>>(venue);
+
+        assert!(new_limit >= market.limit, EDECREASED_LIMIT);
+
+        market.limit = new_limit;
+    }
 
     /// Change market price
     ///
@@ -208,21 +302,41 @@ module nft_protocol::fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let venue =
-            listing::venue_internal_mut<FixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let venue = listing::venue_internal_mut<
+            LimitedFixedPriceMarket<FT>, Witness
+        >(
+            Witness {}, listing, venue_id
+        );
 
         let market =
-            venue::borrow_market_mut<FixedPriceMarket<FT>>(venue);
+            venue::borrow_market_mut<LimitedFixedPriceMarket<FT>>(venue);
 
         market.price = new_price;
     }
 
     // === Getter Functions ===
 
+    /// Return market limit
+    public fun limit<FT>(market: &LimitedFixedPriceMarket<FT>): u64 {
+        market.limit
+    }
+
     /// Return market price
-    public fun price<FT>(market: &FixedPriceMarket<FT>): u64 {
+    public fun price<FT>(market: &LimitedFixedPriceMarket<FT>): u64 {
         market.price
+    }
+
+    // === Assertions ===
+
+    /// Asserts that limit does not violate market limit
+    ///
+    /// #### Panics
+    ///
+    /// Panics if limit is greater than market limit.
+    public fun assert_limit<FT>(
+        market: &LimitedFixedPriceMarket<FT>,
+        limit: u64,
+    ) {
+        assert!(limit <= market.limit, EEXCEEDED_LIMIT)
     }
 }
