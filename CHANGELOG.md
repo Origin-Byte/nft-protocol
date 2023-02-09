@@ -11,6 +11,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Added
 
 - Added static `name` and `url` fields to `Nft` for better integration with explorer.
+- Added `LimitedFixedPriceMarket`
 - `orderbook::list_nft` and `orderbook::list_nft_with_commission` endpoints.
   These allow the client to skip the creation of transfer caps and instead provide `OwnerCap` to `Safe` directly to the orderbook contract.
 
