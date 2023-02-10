@@ -9,12 +9,14 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::limited_fixed_price {
+    use std::option;
+
     use sui::balance;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
-    use sui::dynamic_field as df;
+    use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::venue;
     use nft_protocol::listing::{Self, Listing};
@@ -42,6 +44,8 @@ module nft_protocol::limited_fixed_price {
         price: u64,
         /// `Warehouse` or `Factory` that the market will redeem from
         inventory_id: ID,
+        /// Stores the withdraw count for each address
+        addresses: VecMap<address, u64>,
     }
 
     /// Witness used to authenticate witness protected endpoints
@@ -66,6 +70,7 @@ module nft_protocol::limited_fixed_price {
             limit,
             price,
             inventory_id,
+            addresses: vec_map::empty(),
         }
     }
 
@@ -148,8 +153,12 @@ module nft_protocol::limited_fixed_price {
         market: &LimitedFixedPriceMarket<FT>,
         who: address,
     ): u64 {
-        if (df::exists_(&market.id, who)) {
-            *df::borrow(&market.id, who)
+        let idx_opt = vec_map::get_idx_opt(&market.addresses, &who);
+        if (option::is_some(&idx_opt)) {
+            let idx = option::destroy_some(idx_opt);
+            let (_, count) =
+                vec_map::get_entry_by_idx(&market.addresses, idx);
+            *count
         } else {
             0
         }
@@ -164,14 +173,15 @@ module nft_protocol::limited_fixed_price {
         market: &mut LimitedFixedPriceMarket<FT>,
         who: address
     ) {
-        if (df::exists_(&market.id, who)) {
-            let count = df::borrow_mut(&mut market.id, who);
+        let idx_opt = vec_map::get_idx_opt(&market.addresses, &who);
+        if (option::is_some(&idx_opt)) {
+            let idx = option::destroy_some(idx_opt);
+            let (_, count) =
+                vec_map::get_entry_by_idx_mut(&mut market.addresses, idx);
             *count = *count + 1;
-
             assert_limit(market, *count);
         } else {
-            df::add(&mut market.id, who, 1);
-
+            vec_map::insert(&mut market.addresses, who, 1);
             assert_limit(market, 1);
         };
     }
