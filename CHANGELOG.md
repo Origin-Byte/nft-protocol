@@ -19,6 +19,10 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - `Collection` and `Nft` were reverted to use dynamic fields instead of dynamic object fields.
 - Migrated all domains not requiring `key` property after loosening `key` requirement on `Nft` and `Collection` domains.
 
+### Fixed
+
+- Orderbook recipient was wrong when trading in orderbook.
+
 ## [0.22.0] - 2023-02-02
 
 ### Added
