@@ -45,8 +45,7 @@ module nft_protocol::mint_and_sell {
         listing::sale_on(&mut listing, venue_id, ctx(&mut scenario));
 
         // 3. Mint NFT to listing `Warehouse`
-        let nft =
-            nft::from_mint_cap(&mint_cap, MARKETPLACE, ctx(&mut scenario));
+        let nft = nft::test_mint<COLLECTION>(MARKETPLACE, ctx(&mut scenario));
 
         let nft_id = object::id(&nft);
         listing::add_nft(&mut listing, inventory_id, nft, ctx(&mut scenario));
@@ -92,8 +91,7 @@ module nft_protocol::mint_and_sell {
         let warehouse = warehouse::new(ctx(&mut scenario));
 
         // 3. Mint NFT to `Warehouse`
-        let nft =
-            nft::from_mint_cap(&mint_cap, MARKETPLACE, ctx(&mut scenario));
+        let nft = nft::test_mint<COLLECTION>(MARKETPLACE, ctx(&mut scenario));
 
         let nft_id = object::id(&nft);
         warehouse::deposit_nft(&mut warehouse, nft);

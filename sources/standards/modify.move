@@ -7,7 +7,6 @@
 /// An alternative is delegating a `RegulatedMintCap` with zero supply
 /// which will allow users or contracts to register domains on
 module nft_protocol::modify {
-    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft::{Self, Nft};
@@ -25,19 +24,14 @@ module nft_protocol::modify {
     const EINVALID_LOGICAL_OWNER: u64 = 2;
 
     /// `ModifyDomain` object
-    struct ModifyDomain<phantom C> has key, store {
-        /// `ModifyDomain` ID
-        id: UID,
+    struct ModifyDomain<phantom C> has store {
         /// Generator responsible for issuing delegated witnesses
         generator: WitnessGenerator<C>,
     }
 
     /// Creates a new `ModifyDomain`
-    fun new<C, W>(witness: &W, ctx: &mut TxContext): ModifyDomain<C> {
-        ModifyDomain {
-            id: object::new(ctx),
-            generator: witness::generator(witness),
-        }
+    fun new<C, W>(witness: &W): ModifyDomain<C> {
+        ModifyDomain { generator: witness::generator(witness) }
     }
 
     /// Adds domain of type `D` to `Nft`
@@ -49,7 +43,7 @@ module nft_protocol::modify {
     /// - Transaction sender is not logical owner of the NFT
     /// - `ModifyDomain` was not registered on `Collection`
     /// - Domain `D` already exists on the `Nft`
-    public fun add_domain<C, D: key + store>(
+    public fun add_domain<C, D: store>(
         collection: &Collection<C>,
         nft: &mut Nft<C>,
         domain: D,
@@ -75,9 +69,8 @@ module nft_protocol::modify {
     public fun add_modify_domain<C, W>(
         witness: &W,
         collection: &mut Collection<C>,
-        ctx: &mut TxContext,
     ) {
-        let domain = new<C, W>(witness, ctx);
+        let domain = new<C, W>(witness);
         collection::add_domain(
             witness::from_witness(witness),
             collection,

@@ -22,9 +22,7 @@ module nft_protocol::test_creators {
         collection::add_domain(
             witness::from_witness(&Witness {}),
             &mut collection,
-            creators::from_address<Foo, Witness>(
-                &Witness {}, CREATOR, ctx(&mut scenario),
-            ),
+            creators::from_address<Foo, Witness>(&Witness {}, CREATOR),
         );
         creators::assert_domain(&collection);
 

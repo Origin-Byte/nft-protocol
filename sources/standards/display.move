@@ -10,8 +10,6 @@ module nft_protocol::display {
     use std::option::{Self, Option};
 
     use sui::url::Url;
-    use sui::object::{Self, UID};
-    use sui::tx_context::TxContext;
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::utils;
@@ -22,8 +20,7 @@ module nft_protocol::display {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    struct DisplayDomain has key, store {
-        id: UID,
+    struct DisplayDomain has store {
         name: String,
         description: String,
     }
@@ -42,9 +39,8 @@ module nft_protocol::display {
     public fun new_display_domain(
         name: String,
         description: String,
-        ctx: &mut TxContext,
     ): DisplayDomain {
-        DisplayDomain { id: object::new(ctx), name, description }
+        DisplayDomain { name, description }
     }
 
     /// Sets name of `DisplayDomain`
@@ -94,10 +90,9 @@ module nft_protocol::display {
         nft: &mut Nft<C>,
         name: String,
         description: String,
-        ctx: &mut TxContext,
     ) {
         nft::add_domain(
-            witness, nft, new_display_domain(name, description, ctx),
+            witness, nft, new_display_domain(name, description),
         );
     }
 
@@ -106,17 +101,15 @@ module nft_protocol::display {
         collection: &mut Collection<C>,
         name: String,
         description: String,
-        ctx: &mut TxContext,
     ) {
         collection::add_domain(
-            witness, collection, new_display_domain(name, description, ctx)
+            witness, collection, new_display_domain(name, description)
         );
     }
 
     // === UrlDomain ===
 
-    struct UrlDomain has key, store {
-        id: UID,
+    struct UrlDomain has store {
         url: Url,
     }
 
@@ -126,8 +119,8 @@ module nft_protocol::display {
     }
 
     /// Creates new `UrlDomain` with a URL
-    public fun new_url_domain(url: Url, ctx: &mut TxContext,): UrlDomain {
-        UrlDomain { id: object::new(ctx), url }
+    public fun new_url_domain(url: Url): UrlDomain {
+        UrlDomain { url }
     }
 
     /// Sets name of `UrlDomain`
@@ -166,26 +159,21 @@ module nft_protocol::display {
         witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         url: Url,
-        ctx: &mut TxContext,
     ) {
-        nft::add_domain(
-            witness, nft, new_url_domain(url, ctx),
-        );
+        nft::add_domain(witness, nft, new_url_domain(url));
     }
 
     public fun add_collection_url_domain<C>(
         witness: DelegatedWitness<C>,
         nft: &mut Collection<C>,
         url: Url,
-        ctx: &mut TxContext,
     ) {
-        collection::add_domain(witness, nft, new_url_domain(url, ctx));
+        collection::add_domain(witness, nft, new_url_domain(url));
     }
 
     // === SymbolDomain ===
 
-    struct SymbolDomain has key, store {
-        id: UID,
+    struct SymbolDomain has store {
         symbol: String,
     }
 
@@ -195,11 +183,8 @@ module nft_protocol::display {
     }
 
     /// Creates new `SymbolDomain` with a symbol
-    public fun new_symbol_domain(
-        symbol: String,
-        ctx: &mut TxContext,
-    ): SymbolDomain {
-        SymbolDomain { id: object::new(ctx), symbol }
+    public fun new_symbol_domain(symbol: String): SymbolDomain {
+        SymbolDomain { symbol }
     }
 
     /// Sets name of `DisplayDomain`
@@ -240,26 +225,21 @@ module nft_protocol::display {
         witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         symbol: String,
-        ctx: &mut TxContext,
     ) {
-        nft::add_domain(
-            witness, nft, new_symbol_domain(symbol, ctx),
-        );
+        nft::add_domain(witness, nft, new_symbol_domain(symbol));
     }
 
     public fun add_collection_symbol_domain<C>(
         witness: DelegatedWitness<C>,
         nft: &mut Collection<C>,
         symbol: String,
-        ctx: &mut TxContext,
     ) {
-        collection::add_domain(witness, nft, new_symbol_domain(symbol, ctx));
+        collection::add_domain(witness, nft, new_symbol_domain(symbol));
     }
 
     // === AttributesDomain ===
 
-    struct AttributesDomain has key, store {
-        id: UID,
+    struct AttributesDomain has store {
         map: VecMap<String, String>,
     }
 
@@ -283,18 +263,16 @@ module nft_protocol::display {
     /// Creates new `Attributes` with a keys and values
     public fun new_attributes_domain(
         map: VecMap<String, String>,
-        ctx: &mut TxContext,
     ): AttributesDomain {
-        AttributesDomain { id: object::new(ctx), map }
+        AttributesDomain { map }
     }
 
     public fun new_attributes_domain_from_vec(
         keys: vector<String>,
         values: vector<String>,
-        ctx: &mut TxContext,
     ): AttributesDomain {
         let map = utils::from_vec_to_map<String, String>(keys, values);
-        new_attributes_domain(map, ctx)
+        new_attributes_domain(map)
     }
 
     // ====== Interoperability ===
@@ -314,10 +292,9 @@ module nft_protocol::display {
         witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         map: VecMap<String, String>,
-        ctx: &mut TxContext,
     ) {
         nft::add_domain(
-            witness, nft, new_attributes_domain(map, ctx),
+            witness, nft, new_attributes_domain(map),
         );
     }
 
@@ -326,12 +303,11 @@ module nft_protocol::display {
         nft: &mut Nft<C>,
         keys: vector<String>,
         values: vector<String>,
-        ctx: &mut TxContext,
     ) {
         nft::add_domain(
             witness,
             nft,
-            new_attributes_domain_from_vec(keys, values, ctx),
+            new_attributes_domain_from_vec(keys, values),
         );
     }
 }
