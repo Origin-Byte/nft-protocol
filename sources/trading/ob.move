@@ -139,6 +139,7 @@ module nft_protocol::ob {
         ///
         /// https://github.com/MystenLabs/sui/issues/2083
         transfer_cap: Option<TransferCap>,
+        seller: address,
         buyer: address,
         buyer_safe: ID,
         paid: Balance<FT>,
@@ -840,7 +841,7 @@ module nft_protocol::ob {
             let Ask {
                 id,
                 price: _,
-                owner: _,
+                owner: seller,
                 transfer_cap,
                 commission: ask_commission,
             } = ask;
@@ -852,6 +853,7 @@ module nft_protocol::ob {
                 transfer_cap: option::some(transfer_cap),
                 commission: ask_commission,
                 buyer,
+                seller,
                 buyer_safe: buyer_safe_id,
                 paid: bid_offer,
             });
@@ -983,6 +985,7 @@ module nft_protocol::ob {
                 id: object::new(ctx),
                 transfer_cap: option::some(transfer_cap),
                 commission: ask_commission,
+                seller,
                 buyer,
                 buyer_safe: buyer_safe_id,
                 paid: bid_offer,
@@ -1056,7 +1059,7 @@ module nft_protocol::ob {
         let Ask {
             id,
             transfer_cap,
-            owner: _,
+            owner: seller,
             price: _,
             commission: maybe_commission,
         } = remove_ask(
@@ -1070,7 +1073,7 @@ module nft_protocol::ob {
 
         settle_funds_with_royalties<C, FT>(
             &mut bid_offer,
-            buyer,
+            seller,
             &mut maybe_commission,
             ctx,
         );
@@ -1097,12 +1100,10 @@ module nft_protocol::ob {
         buyer_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        let buyer = tx_context::sender(ctx);
-
         let Ask {
             id,
             transfer_cap,
-            owner: _,
+            owner: seller,
             price: _,
             commission: maybe_commission,
         } = remove_ask(
@@ -1116,7 +1117,7 @@ module nft_protocol::ob {
 
         settle_funds_no_royalties<C, FT>(
             &mut bid_offer,
-            buyer,
+            seller,
             &mut maybe_commission,
             ctx,
         );
@@ -1142,6 +1143,7 @@ module nft_protocol::ob {
             id: _,
             transfer_cap,
             paid,
+            seller,
             buyer,
             buyer_safe: expected_buyer_safe_id,
             commission: maybe_commission,
@@ -1158,7 +1160,7 @@ module nft_protocol::ob {
 
         settle_funds_with_royalties<C, FT>(
             paid,
-            *buyer,
+            *seller,
             maybe_commission,
             ctx,
         );
@@ -1184,7 +1186,8 @@ module nft_protocol::ob {
             id: _,
             transfer_cap,
             paid,
-            buyer,
+            seller,
+            buyer: _,
             buyer_safe: expected_buyer_safe_id,
             commission: maybe_commission,
         } = trade;
@@ -1200,7 +1203,7 @@ module nft_protocol::ob {
 
         settle_funds_no_royalties<C, FT>(
             paid,
-            *buyer,
+            *seller,
             maybe_commission,
             ctx,
         );

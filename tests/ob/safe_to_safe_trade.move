@@ -9,6 +9,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     use originmate::box::Box;
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
+    use nft_protocol::royalties;
     use sui::test_scenario;
 
     const BUYER: address = @0xA1C06;
@@ -45,6 +46,12 @@ module nft_protocol::test_ob_safe_to_safe_trade {
             SELLER,
         );
 
+        test_scenario::next_tx(&mut scenario, SELLER);
+        let payment_for_seller: royalties::TradePayment<test_ob::Foo, SUI> =
+            test_scenario::take_shared(&mut scenario);
+        assert!(royalties::beneficiary(&payment_for_seller) == SELLER, 0);
+        test_scenario::return_shared(payment_for_seller);
+
         test_scenario::end(scenario);
     }
 
@@ -73,7 +80,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
             SELLER,
         );
 
-        test_scenario::next_tx(&mut scenario, BUYER);
+        test_scenario::next_tx(&mut scenario, SELLER);
         let offer: Coin<SUI> = test_scenario::take_from_sender(&mut scenario);
         assert!(coin::value(&offer) == OFFER_SUI, 0);
         test_scenario::return_to_sender(&mut scenario, offer);

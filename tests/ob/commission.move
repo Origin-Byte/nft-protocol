@@ -4,13 +4,17 @@ module nft_protocol::test_ob_commission {
     // funds are wrapped in the right way
 
     use nft_protocol::ob::{Self, Orderbook};
+    use nft_protocol::royalties;
     use nft_protocol::test_utils as test_ob;
     use sui::sui::SUI;
     use sui::test_scenario;
     use sui::transfer::transfer;
 
+    const BUYER: address = @0xA1C07;
     const SELLER: address = @0xA1C06;
     const CREATOR: address = @0xA1C05;
+
+    const OFFER_SUI: u64 = 100;
 
     #[test]
     #[expected_failure(abort_code = 13370701, location = nft_protocol::ob)]
@@ -27,10 +31,54 @@ module nft_protocol::test_ob_commission {
         test_ob::create_ask_with_commission(
             &mut scenario,
             nft_id,
-            100,
+            OFFER_SUI,
             CREATOR,
-            101,
+            OFFER_SUI + 1,
         );
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_works() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_allowlist(&mut scenario);
+        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_scenario::next_tx(&mut scenario, SELLER);
+        test_ob::create_safe(&mut scenario, SELLER);
+        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        test_scenario::next_tx(&mut scenario, SELLER);
+
+        test_ob::create_ask_with_commission(
+            &mut scenario,
+            nft_id,
+            OFFER_SUI,
+            CREATOR,
+            10,
+        );
+
+
+        test_ob::create_safe(&mut scenario, BUYER);
+        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::finish_trade(
+            &mut scenario,
+            nft_id,
+            BUYER,
+            SELLER,
+        );
+
+        test_scenario::next_tx(&mut scenario, SELLER);
+        let payment_for_commission: royalties::TradePayment<test_ob::Foo, SUI> =
+            test_scenario::take_shared(&mut scenario);
+        assert!(royalties::beneficiary(&payment_for_commission) == CREATOR, 0);
+
+        let payment_for_seller: royalties::TradePayment<test_ob::Foo, SUI> =
+            test_scenario::take_shared(&mut scenario);
+        assert!(royalties::beneficiary(&payment_for_seller) == SELLER, 0);
+
+        test_scenario::return_shared(payment_for_commission);
+        test_scenario::return_shared(payment_for_seller);
 
         test_scenario::end(scenario);
     }
