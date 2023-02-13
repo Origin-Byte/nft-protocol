@@ -1,12 +1,12 @@
 module nft_protocol::footbytes {
     use std::string::{Self, String};
 
-    use sui::url;
     use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
+    use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
@@ -44,7 +44,7 @@ module nft_protocol::footbytes {
             string::utf8(b"A NFT collection of football player collectibles"),
         );
 
-        display::add_collection_url_domain(
+        url::add_collection_url_domain(
             &Witness {},
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
@@ -106,7 +106,7 @@ module nft_protocol::footbytes {
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let url = url::new_unsafe_from_bytes(url);
+        let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
@@ -114,7 +114,7 @@ module nft_protocol::footbytes {
             &Witness {}, &mut nft, name, description,
         );
 
-        display::add_url_domain(&Witness {}, &mut nft, url);
+        url::add_url_domain(&Witness {}, &mut nft, url);
 
         let metadata = metadata::new_regulated(nft, supply, ctx);
         metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);

@@ -1,17 +1,19 @@
 module nft_protocol::suitraders {
+    use std::ascii;
     use std::string::{Self, String};
 
-    use sui::url;
     use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft;
+    use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::witness;
     use nft_protocol::creators;
+    use nft_protocol::attributes;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
@@ -45,7 +47,7 @@ module nft_protocol::suitraders {
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
         );
 
-        display::add_collection_url_domain(
+        url::add_collection_url_domain(
             &Witness {},
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
@@ -125,13 +127,13 @@ module nft_protocol::suitraders {
         name: String,
         description: String,
         url: vector<u8>,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
+        attribute_keys: vector<ascii::String>,
+        attribute_values: vector<ascii::String>,
         mint_cap: &MintCap<SUITRADERS>,
         warehouse: &mut Warehouse<SUITRADERS>,
         ctx: &mut TxContext,
     ) {
-        let url = url::new_unsafe_from_bytes(url);
+        let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
@@ -139,9 +141,9 @@ module nft_protocol::suitraders {
             &Witness {}, &mut nft, name, description,
         );
 
-        display::add_url_domain(&Witness {}, &mut nft, url);
+        url::add_url_domain(&Witness {}, &mut nft, url);
 
-        display::add_attributes_domain_from_vec(
+        attributes::add_domain_from_vec(
             &Witness {}, &mut nft, attribute_keys, attribute_values,
         );
 
