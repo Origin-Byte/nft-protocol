@@ -7,22 +7,22 @@ module nft_protocol::composable_nft {
     // TODO: Ideally we would allow for multiple NFTs to be composed together in a single
     // transaction
     // TODO: some endpoint for reorder_children
+    use std::option;
     use std::type_name::{Self, TypeName};
 
     use sui::transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
-    use sui::bag::{Self, Bag};
+    use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness::Witness as DelegatedWitness;
 
     struct Witness has drop {}
 
-    /// ====== ChildNode ===
+    /// === ChildNode ===
 
     /// Defines the properties of a child NFT in the context of type-limited
     /// composability
@@ -39,41 +39,7 @@ module nft_protocol::composable_nft {
         ChildNode { limit, order }
     }
 
-    /// ====== ParentNode ===
-
-    /// Defines which child NFTs can be attached to the root NFT
-    struct ParentNode has store {
-        children: Bag,
-    }
-
-    /// Create a new parent node which defines which child NFT nodes can be
-    /// attached to it
-    public fun new_parent_node(
-        ctx: &mut TxContext
-    ): ParentNode {
-        ParentNode { children: bag::new(ctx) }
-    }
-
-    /// Define a new child node
-    public fun add_child<Child>(
-        parent_node: &mut ParentNode,
-        limit: u64,
-        order: u64,
-    ) {
-        let child = new_child_node(limit, order);
-        bag::add(&mut parent_node.children, utils::marker<Child>(), child);
-    }
-
-    /// Borrows `ChildNode` from `ParentNode`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `ChildNode` was not registered.
-    public fun borrow_child<Child>(parent_node: &ParentNode): &ChildNode {
-        bag::borrow(&parent_node.children, utils::marker<Child>())
-    }
-
-    /// ====== Type ===
+    /// === Type ===
 
     struct Type<phantom T> has key, store {
         id: UID,
@@ -95,24 +61,20 @@ module nft_protocol::composable_nft {
         nft::add_domain(witness, nft, new_type<T>(ctx));
     }
 
-    /// ====== Blueprint ===
+    /// === Blueprint ===
 
     /// Domain held in the Collection object, blueprinting all the composability
     /// between types. It contains a ObjectTable with all the nodes of the
     /// composability flattened.
-    struct Blueprint has key, store {
+    struct Blueprint<phantom T> has store {
         id: UID,
-        // ObjectTable with index TypeName as the type of the Parent,
-        // and the value as ParentNode which contains all the children info
-        nodes: Bag,
+        nodes: VecMap<TypeName, ChildNode>,
     }
 
-    public fun new_blueprint(
-        ctx: &mut TxContext
-    ): Blueprint {
+    public fun new_blueprint<Parent>(ctx: &mut TxContext): Blueprint<Parent> {
         Blueprint {
             id: object::new(ctx),
-            nodes: bag::new(ctx),
+            nodes: vec_map::empty(),
         }
     }
 
@@ -122,53 +84,45 @@ module nft_protocol::composable_nft {
     ///
     /// Panics if parent child relationship already exists
     public entry fun add_relationship<Parent, Child>(
-        blueprint: &mut Blueprint,
+        blueprint: &mut Blueprint<Parent>,
         limit: u64,
         order: u64,
-        ctx: &mut TxContext,
     ) {
-        let parent_key = utils::marker<Parent>();
-
-        if (!has_parent<Parent>(blueprint)) {
-            bag::add(
-                &mut blueprint.nodes,
-                parent_key,
-                new_parent_node(ctx),
-            );
-        };
-
         assert!(!has_child<Parent, Child>(blueprint), 0);
 
-        let parent_node = bag::borrow_mut(
-            &mut blueprint.nodes, parent_key
-        );
+        let child = new_child_node(limit, order);
+        let child_type = type_name::get<Child>();
+        vec_map::insert(&mut blueprint.nodes, child_type, child);
+    }
 
-        add_child<Child>(parent_node, limit, order);
+    public fun borrow_child<Parent>(
+        blueprint: &Blueprint<Parent>,
+        child_type: &TypeName,
+    ): &ChildNode {
+        vec_map::get(&blueprint.nodes, child_type)
+    }
+
+    fun borrow_child_mut<Parent>(
+        blueprint: &mut Blueprint<Parent>,
+        child_type: &TypeName,
+    ): &mut ChildNode {
+        vec_map::get_mut(&mut blueprint.nodes, child_type)
     }
 
     /// Registers `Blueprint` on the given `Collection`
-    public fun add_blueprint_domain<C>(
+    public fun add_blueprint_domain<C, Parent>(
         witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
-        domain: Blueprint,
+        domain: Blueprint<Parent>,
     ) {
         collection::add_domain(witness, collection, domain);
     }
 
-    /// Borrows `ParentNode` from `Blueprint`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `ParentNode` was not registered.
-    public fun borrow_parent<Parent>(blueprint: &Blueprint): &ParentNode {
-        bag::borrow(&blueprint.nodes, utils::marker<Parent>())
-    }
-
-    /// ====== Nfts Domain ===
+    /// === Nfts Domain ===
 
     /// Domain to be owned by the parent Nft.
     /// Allows the parent Nft to hold Child Nfts
-    struct Nfts<phantom T> has key, store {
+    struct Nfts<phantom C> has key, store {
         id: UID,
         // A 2-rank tensor represented by a 2-nested object vector, where
         // the outer vector is indexed by object TypeName, and the inner vector
@@ -176,114 +130,120 @@ module nft_protocol::composable_nft {
         // A nested structure is preferred over a simple ObjectTable as it
         // reduces the amount of average iterations required in read/write
         // operations
-        table: ObjectTable<TypeName, ObjectTable<ID, Nft<T>>>
+        table: VecMap<TypeName, ObjectTable<ID, Nft<C>>>
     }
 
-    public entry fun compose<T, Parent: store, Child: store>(
-        parent_nft: &mut Nft<T>,
-        child_nft: Nft<T>,
-        collection: &Collection<T>,
+    /// Mutably borrow entry of children
+    ///
+    /// Creates a new entry if one does not already exist.
+    ///
+    /// Endpoint is unprotected and relies on safe access to `Nfts`.
+    public fun borrow_composed_mut<C>(
+        nfts: &mut Nfts<C>,
+        parent_type: &TypeName,
+        ctx: &mut TxContext,
+    ): &mut ObjectTable<ID, Nft<C>> {
+        let idx_opt = vec_map::get_idx_opt(&nfts.table, parent_type);
+
+        let idx = if (option::is_some(&idx_opt)) {
+            option::destroy_some(idx_opt)
+        } else {
+            let idx = vec_map::size(&nfts.table);
+            vec_map::insert(
+                &mut nfts.table,
+                *parent_type,
+                object_table::new<ID, Nft<C>>(ctx),
+            );
+            idx
+        };
+
+        let (_, entry) =
+            vec_map::get_entry_by_idx_mut(&mut nfts.table, idx);
+        entry
+    }
+
+    /// Mutably borrow entry of children
+    ///
+    /// Endpoint is unprotected and relies on safe access to `Nfts`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if entry does not exist
+    public fun try_borrow_composed_mut<C>(
+        nfts: &mut Nfts<C>,
+        parent_type: &TypeName,
+    ): &mut ObjectTable<ID, Nft<C>> {
+        vec_map::get_mut(&mut nfts.table, parent_type)
+    }
+
+    public entry fun compose<C, Parent: store, Child: store>(
+        parent_nft: &mut Nft<C>,
+        child_nft: Nft<C>,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let child_type = type_name::get<Child>();
-
-        let blueprint = collection::borrow_domain<T, Blueprint>(collection);
+        let blueprint: &Blueprint<Parent> =
+            collection::borrow_domain(collection);
 
         // Assert that types match NFTs
-        nft::assert_domain<T, Type<Parent>>(parent_nft);
-        nft::assert_domain<T, Type<Child>>(&child_nft);
+        nft::assert_domain<C, Type<Parent>>(parent_nft);
+        nft::assert_domain<C, Type<Child>>(&child_nft);
 
-        // Assert if Parent and Child have link
-        assert!(has_child_with_type<Parent, Child>(blueprint), 0);
+        // Assert if Parent and Child are composable
+        assert!(has_child<Parent, Child>(blueprint), 0);
 
-        // Assert that it can compose within the limit
-        let parent_node = borrow_parent<Parent>(blueprint);
-        let child_node = borrow_child<Child>(parent_node);
-
-        let nfts = nft::borrow_domain_mut<T, Nfts<T>, Witness>(
+        let nfts = nft::borrow_domain_mut<C, Nfts<C>, Witness>(
             Witness {}, parent_nft
         );
 
-        // Add ObjectVec<Nft<T>> to Nfts<T> if not there
-        let has_type = object_table::contains(
-            &nfts.table, type_name::get<Child>()
-        );
+        let parent_type = type_name::get<Parent>();
+        let nft_vec = borrow_composed_mut(nfts, &parent_type, ctx);
 
-        // If there is no ObjectTable for this type, then it needs
-        // to create one.
-        if (!has_type) {
-            object_table::add(
-                &mut nfts.table,
-                type_name::get<Child>(),
-                object_table::new<ID, Nft<T>>(ctx)
-            );
-        };
+        // Asserts that type is composable
+        let child_type = type_name::get<Child>();
+        let child_node = borrow_child<Parent>(blueprint, &child_type);
 
-        let nft_vec = object_table::borrow_mut(&mut nfts.table, child_type);
-
-        // Assert that composition is within the limits
-        assert!(
-            object_table::length(nft_vec) <= child_node.limit,
-            0
-        );
+        assert!(object_table::length(nft_vec) <= child_node.limit, 0);
 
         object_table::add(nft_vec, object::id(&child_nft), child_nft);
     }
 
-    public entry fun decompose<T, Child: store>(
-        parent_nft: &mut Nft<T>,
-        child_nft: &Nft<T>,
+    /// Decomposes NFT with given ID from parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no NFT with given ID composed
+    public entry fun decompose<C, Parent, Child>(
+        parent_nft: &mut Nft<C>,
+        child_nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        // Confirm that child NFT is of type `Child`
-        nft::assert_domain<T, Type<Child>>(child_nft);
-        let child_nft_id = object::id(child_nft);
+        let nfts: &mut Nfts<C> =
+            nft::borrow_domain_mut(Witness {}, parent_nft);
 
-        let child_type = type_name::get<Child>();
-        let nfts = nft::borrow_domain_mut<T, Nfts<T>, Witness>(Witness {}, parent_nft);
-
-        let nfts_of_child_type = object_table::borrow_mut<TypeName, ObjectTable<ID, Nft<T>>>(
-            &mut nfts.table,
-            child_type
-        );
+        let parent_type = type_name::get<Parent>();
+        let nft_vec = try_borrow_composed_mut(nfts, &parent_type);
 
         // TODO: Remove object table if empty
-        let child_nft = object_table::remove<ID, Nft<T>>(nfts_of_child_type, child_nft_id);
+        let child_nft = object_table::remove(nft_vec, child_nft_id);
 
         transfer::transfer(child_nft, tx_context::sender(ctx));
     }
 
-    public fun has_parent<Parent>(blueprint: &Blueprint): bool {
-        bag::contains(&blueprint.nodes, utils::marker<Parent>())
+    public fun has_child<Parent, Child>(blueprint: &Blueprint<Parent>): bool {
+        let child_type = type_name::get<Child>();
+        vec_map::contains(&blueprint.nodes, &child_type)
     }
 
-    public fun has_child<Parent, Child>(blueprint: &Blueprint): bool {
-        let parent_node = borrow_parent<Parent>(blueprint);
-        bag::contains(&parent_node.children, utils::marker<Child>())
-    }
-
-    public fun has_child_with_type<Parent, Child>(
-        blueprint: &Blueprint,
-    ): bool {
-        let parent_node = borrow_parent<Parent>(blueprint);
-        bag::contains_with_type<Marker<Child>, ChildNode>(
-            &parent_node.children, utils::marker<Child>(),
-        )
-    }
-
-    /// Creates a new `Nfts` with name and description
-    public fun new_nfts_domain<C>(
-        ctx: &mut TxContext,
-    ): Nfts<C> {
-        Nfts<C> {
+    /// Creates new `Nfts` domain
+    public fun new_nfts_domain<C>(ctx: &mut TxContext): Nfts<C> {
+        Nfts {
             id: object::new(ctx),
-            table: object_table::new(ctx),
+            table: vec_map::empty(),
         }
     }
 
-    public fun nfts_domain<C>(
-        nft: &Nft<C>,
-    ): &Nfts<C> {
+    public fun nfts_domain<C>(nft: &Nft<C>): &Nfts<C> {
         nft::borrow_domain(nft)
     }
 

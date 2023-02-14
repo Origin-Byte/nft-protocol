@@ -79,31 +79,34 @@ module nft_protocol::tribal_realms {
             tags,
         );
 
-        // Composability
-        let blueprint = c_nft::new_blueprint(ctx);
+        // === Avatar composability ===
+
+        let blueprint = c_nft::new_blueprint<Avatar>(ctx);
         c_nft::add_relationship<Avatar, Hat>(
             &mut blueprint,
             1, // limit
             1, // order
-            ctx
         );
         c_nft::add_relationship<Avatar, Glasses>(
             &mut blueprint,
             1, // limit
             1, // order
-            ctx
         );
         c_nft::add_relationship<Avatar, Gun>(
             &mut blueprint,
             1, // limit
             1, // order
-            ctx
         );
+
+        c_nft::add_blueprint_domain(delegated_witness, &mut collection, blueprint);
+
+        // === Gun composability ===
+
+        let blueprint = c_nft::new_blueprint<Gun>(ctx);
         c_nft::add_relationship<Gun, Skin>(
             &mut blueprint,
             1, // limit
             1, // order
-            ctx
         );
 
         c_nft::add_blueprint_domain(delegated_witness, &mut collection, blueprint);
