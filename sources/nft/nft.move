@@ -270,8 +270,6 @@ module nft_protocol::nft {
 
     /// Adds domain of type `D` to `Nft`
     ///
-    /// `Witness` can be obtained from `MintCap`.
-    ///
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
