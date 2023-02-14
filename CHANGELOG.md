@@ -10,6 +10,12 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Added
 
+- Helper endpoints in orderbook which allow marketplaces to perform actions in a single tx.
+  The marketplaces can now
+  - `deposit_and_list_nft` (and with commission)
+  - `create_safe_and_deposit_and_list_nft` (and with commission)
+  - `create_safe_and_buy_nft`
+  - `create_safe_and_buy_generic_nft`
 - Added static `name` and `url` fields to `Nft` for better integration with explorer.
 - Added `LimitedFixedPriceMarket`
 - `orderbook::list_nft` and `orderbook::list_nft_with_commission` endpoints.
