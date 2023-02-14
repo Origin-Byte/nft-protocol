@@ -110,9 +110,7 @@ module nft_protocol::footbytes {
     ) {
         let url = url::new_unsafe_from_bytes(url);
 
-        let nft = nft::from_mint_cap(
-            mint_cap, name, url, tx_context::sender(ctx), ctx,
-        );
+        let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
