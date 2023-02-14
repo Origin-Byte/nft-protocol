@@ -12,10 +12,11 @@ module nft_protocol::suimarines {
     use nft_protocol::display;
     use nft_protocol::witness;
     use nft_protocol::creators;
+    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -26,6 +27,8 @@ module nft_protocol::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
+
         let (mint_cap, collection) = collection::create(&witness, ctx);
         let delegated_witness = witness::from_witness(&Witness {});
 
@@ -33,7 +36,7 @@ module nft_protocol::suimarines {
             delegated_witness,
             &mut collection,
             creators::from_address<SUIMARINES, Witness>(
-                &Witness {}, tx_context::sender(ctx),
+                &Witness {}, sender,
             ),
         );
 
@@ -57,7 +60,7 @@ module nft_protocol::suimarines {
             string::utf8(b"SUIM"),
         );
 
-        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
+        let royalty = royalty::from_address(sender, ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);
 
@@ -65,7 +68,12 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(delegated_witness, &mut collection, tags);
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
+        let allowlist_cap = transfer_allowlist::create_collection_cap<SUIMARINES>(
+            witness::from_witness(&Witness {}), ctx,
+        );
+
+        transfer::transfer(mint_cap, sender);
+        transfer::transfer(allowlist_cap, sender);
         transfer::share_object(collection);
     }
 
