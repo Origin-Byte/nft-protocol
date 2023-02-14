@@ -332,6 +332,51 @@ module nft_protocol::ob {
         create_ask(book, requested_tokens, transfer_cap, seller_safe, ctx)
     }
 
+    /// 1. Deposits an NFT to safe
+    /// 2. Calls [`list_nft`]
+    ///
+    /// The type `T` in case of OB collections is `Nft<C>`.
+    /// In case of generic collections `C == T`.
+    ///
+    /// This endpoint is useful mainly for generic collections, because NFTs
+    /// of OB _usually_ live in a safe in the first place.
+    public entry fun deposit_and_list_nft<T: key + store, C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft: T,
+        requested_tokens: u64,
+        owner_cap: &safe::OwnerCap,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        let nft_id = object::id(&nft);
+        safe::deposit_generic_nft_privileged(nft, owner_cap, seller_safe, ctx);
+        list_nft(book, requested_tokens, nft_id, owner_cap, seller_safe, ctx)
+    }
+
+    /// 1. Creates a new safe for the sender
+    /// 2. Calls [`deposit_and_list_nft`]
+    public entry fun create_safe_and_deposit_and_list_nft<T: key + store, C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft: T,
+        requested_tokens: u64,
+        ctx: &mut TxContext,
+    ) {
+        let seller = tx_context::sender(ctx);
+        let (seller_safe, owner_cap) = safe::new(ctx);
+
+        deposit_and_list_nft(
+            book,
+            nft,
+            requested_tokens,
+            &owner_cap,
+            &mut seller_safe,
+            ctx,
+        );
+
+        transfer(owner_cap, seller);
+        share_object(seller_safe);
+    }
+
     /// Same as [`create_ask`] but protected by
     /// [collection witness](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#witness-protected-actions).
     public fun create_ask_protected<W: drop, C, FT>(
@@ -377,8 +422,8 @@ module nft_protocol::ob {
         )
     }
 
-    /// Creates exclusive transfer cap and then calls
-    /// [`create_ask_with_commission`].
+    /// Same as [`list_nft`] but with a
+    /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
     public entry fun list_nft_with_commission<C, FT>(
         book: &mut Orderbook<C, FT>,
         requested_tokens: u64,
@@ -405,6 +450,60 @@ module nft_protocol::ob {
             seller_safe,
             ctx,
         )
+    }
+
+    /// Same as [`deposit_and_list_nft_with`] but with a
+    /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
+    public entry fun deposit_and_list_nft_with_commission<T: key + store, C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft: T,
+        requested_tokens: u64,
+        owner_cap: &safe::OwnerCap,
+        beneficiary: address,
+        commission: u64,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        let nft_id = object::id(&nft);
+        safe::deposit_generic_nft_privileged(nft, owner_cap, seller_safe, ctx);
+        list_nft_with_commission(
+            book,
+            requested_tokens,
+            nft_id,
+            owner_cap,
+            beneficiary,
+            commission,
+            seller_safe,
+            ctx,
+        )
+    }
+
+    /// Same as [`create_safe_and_deposit_and_list_nft`] but with a
+    /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
+    public entry fun create_safe_and_deposit_and_list_nft_with_commission<T: key + store, C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft: T,
+        requested_tokens: u64,
+        beneficiary: address,
+        commission: u64,
+        ctx: &mut TxContext,
+    ) {
+        let seller = tx_context::sender(ctx);
+        let (seller_safe, owner_cap) = safe::new(ctx);
+
+        deposit_and_list_nft_with_commission(
+            book,
+            nft,
+            requested_tokens,
+            &owner_cap,
+            beneficiary,
+            commission,
+            &mut seller_safe,
+            ctx,
+        );
+
+        transfer(owner_cap, seller);
+        share_object(seller_safe);
     }
 
     /// Same as [`create_ask_protected`] but with a
@@ -508,6 +607,30 @@ module nft_protocol::ob {
         )
     }
 
+    /// 1. Creates a new [`Safe`] for the sender
+    /// 2. Buys the NFT into this new safe
+    /// 3. Shares the safe and gives the owner cap to sender
+    public entry fun create_safe_and_buy_nft<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft_id: ID,
+        price: u64,
+        wallet: &mut Coin<FT>,
+        seller_safe: &mut Safe,
+        allowlist: &Allowlist,
+        ctx: &mut TxContext,
+    ) {
+        let buyer = tx_context::sender(ctx);
+        let (buyer_safe, owner_cap) = safe::new(ctx);
+
+        assert!(!book.protected_actions.buy_nft, err::action_not_public());
+        buy_nft_<C, FT>(
+            book, nft_id, price, wallet, seller_safe, &mut buyer_safe, allowlist, ctx
+        );
+
+        transfer(owner_cap, buyer);
+        share_object(buyer_safe);
+    }
+
     /// Similar to [`buy_nft`] except that this is meant for generic
     /// collections, ie. those which aren't native to our protocol.
     public entry fun buy_generic_nft<C: key + store, FT>(
@@ -523,6 +646,29 @@ module nft_protocol::ob {
         buy_generic_nft_<C, FT>(
             book, nft_id, price, wallet, seller_safe, buyer_safe, ctx
         )
+    }
+
+    /// 1. Creates a new [`Safe`] for the sender
+    /// 2. Buys the NFT into this new safe
+    /// 3. Shares the safe and gives the owner cap to sender
+    public entry fun create_safe_and_buy_generic_nft<C: key + store, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft_id: ID,
+        price: u64,
+        wallet: &mut Coin<FT>,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        let buyer = tx_context::sender(ctx);
+        let (buyer_safe, owner_cap) = safe::new(ctx);
+
+        assert!(!book.protected_actions.buy_nft, err::action_not_public());
+        buy_generic_nft_<C, FT>(
+            book, nft_id, price, wallet, seller_safe, &mut buyer_safe, ctx
+        );
+
+        transfer(owner_cap, buyer);
+        share_object(buyer_safe);
     }
 
     /// Same as [`buy_nft`] but protected by
