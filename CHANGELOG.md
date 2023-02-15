@@ -10,6 +10,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Added
 
+- `TransferAllowlistDomain` which keeps track of shared object IDs of type `Allowlist`.
 - Helper endpoints in orderbook which allow marketplaces to perform actions in a single tx.
   The marketplaces can now
   - `deposit_and_list_nft` (and with commission)

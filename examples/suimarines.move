@@ -17,6 +17,7 @@ module nft_protocol::suimarines {
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::transfer_allowlist_domain;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -70,6 +71,12 @@ module nft_protocol::suimarines {
 
         let allowlist_cap = transfer_allowlist::create_collection_cap<SUIMARINES>(
             witness::from_witness(&Witness {}), ctx,
+        );
+
+        collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            transfer_allowlist_domain::empty(),
         );
 
         transfer::transfer(mint_cap, sender);
