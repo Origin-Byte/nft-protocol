@@ -94,6 +94,10 @@ module nft_protocol::nft {
 
     /// Create a new `Nft` using `MintCap`
     ///
+    /// Requires witness of collection contract as this function should only
+    /// be used by functions defined within that contract due to the potential
+    /// to violate correctness guarantees in other parts of the codebase.
+    ///
     /// #### Usage
     ///
     /// ```
@@ -116,14 +120,18 @@ module nft_protocol::nft {
     }
 
     /// Create a new `Nft` using `MintCap`
+    ///
+    /// Contrary to minting NFTs using [new](#new), the logical owner is set to
+    /// the transaction sender as `MintCap` does not have the ability to add
+    /// domains to NFTs not belonging to the transaction sender.
     public fun from_mint_cap<C>(
         _mint_cap: &MintCap<C>,
         name: String,
         url: Url,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        new_(name, url, owner, ctx)
+        // See documentation note
+        new_(name, url, tx_context::sender(ctx), ctx)
     }
 
     /// Create a new `Nft` using `RegulatedMintCap`
@@ -262,8 +270,6 @@ module nft_protocol::nft {
 
     /// Adds domain of type `D` to `Nft`
     ///
-    /// `Witness` can be obtained from `MintCap`.
-    ///
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
@@ -292,15 +298,21 @@ module nft_protocol::nft {
     /// Same as [add_domain](#add_domain) but uses `MintCap` to
     /// authenticate the operation.
     ///
+    /// Requires that transaction sender is the logical owner of the NFT.
+    /// Prevents entities delegated the sole right ot mint NFTs from
+    /// registering arbitrary domains on existing NFTs.
+    ///
     /// #### Panics
     ///
-    /// Panics if domain `D` already exists.
-    public fun add_domain_with_mint_cap<C, D: store, W>(
+    /// Panics transaction sender is not logical owner or if domain `D` already
+    /// exists.
+    public fun add_domain_with_mint_cap<C, D: store>(
         _mint_cap: &MintCap<C>,
         nft: &mut Nft<C>,
         domain: D,
+        ctx: &mut TxContext,
     ) {
-        utils::assert_same_module_as_witness<W, C>();
+        assert_logical_owner(nft, ctx);
         add_domain_(nft, domain)
     }
 
@@ -309,9 +321,9 @@ module nft_protocol::nft {
     /// Same as [add_domain](#add_domain) but uses `RegulatedMintCap` to
     /// authenticate the operation.
     ///
-    /// Additionally requires that the transaction sender is the logical owner
-    /// of the NFT. Prevent entities delegated the sole right to mint NFTs from
-    /// modifying the properties of existing NFTs.
+    /// Requires that transaction sender is the logical owner of the NFT.
+    /// Prevents entities delegated the sole right ot mint NFTs from
+    /// registering arbitrary domains on existing NFTs.
     ///
     /// #### Panics
     ///
@@ -332,9 +344,9 @@ module nft_protocol::nft {
     /// Same as [add_domain](#add_domain) but uses `UnregulatedMintCap` to
     /// authenticate the operation.
     ///
-    /// Additionally requires that the transaction sender is the logical owner
-    /// of the NFT. Prevent entities delegated the sole right to mint NFTs from
-    /// modifying the properties of existing NFTs.
+    /// Requires that transaction sender is the logical owner of the NFT.
+    /// Prevents entities delegated the sole right ot mint NFTs from
+    /// registering arbitrary domains on existing NFTs.
     ///
     /// #### Panics
     ///
