@@ -137,7 +137,7 @@ module nft_protocol::transfer_allowlist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public fun remove_itself<C>(
+    public entry fun remove_itself<C>(
         _authority: &CollectionControlCap<C>,
         list: &mut Allowlist,
     ) {

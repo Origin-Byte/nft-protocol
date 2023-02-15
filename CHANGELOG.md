@@ -17,6 +17,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 
+- `transfer_allowlist::remove_itself` is now an entry function.
 - `Collection` and `Nft` were reverted to use dynamic fields instead of dynamic object fields.
 - Migrated all domains not requiring `key` property after loosening `key` requirement on `Nft` and `Collection` domains.
 
