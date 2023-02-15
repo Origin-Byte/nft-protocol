@@ -68,12 +68,15 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(delegated_witness, &mut collection, tags);
 
-        let allowlist_cap = transfer_allowlist::create_collection_cap<SUIMARINES>(
-            witness::from_witness(&Witness {}), ctx,
+        let allowlist = transfer_allowlist::create(&Witness {}, ctx);
+        transfer_allowlist::insert_collection<SUIMARINES, Witness>(
+            &Witness {},
+            witness::from_witness(&Witness {}),
+            &mut allowlist,
         );
 
         transfer::transfer(mint_cap, sender);
-        transfer::transfer(allowlist_cap, sender);
+        transfer::share_object(allowlist);
         transfer::share_object(collection);
     }
 
