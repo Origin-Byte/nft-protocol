@@ -66,12 +66,12 @@ module nft_protocol::svg {
     // === Interoperability ===
 
     /// Returns whether `SvgDomain` is registered on `Nft`
-    public fun has<C>(nft: &Nft<C>): bool {
+    public fun has_domain<C>(nft: &Nft<C>): bool {
         nft::has_domain<C, SvgDomain>(nft)
     }
 
     /// Returns whether `SvgDomain` is registered on `Collection`
-    public fun has_collection<C>(collection: &Collection<C>): bool {
+    public fun has_domain_collection<C>(collection: &Collection<C>): bool {
         collection::has_domain<C, SvgDomain>(collection)
     }
 
@@ -131,12 +131,12 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` domain already exists
-    public fun add<C>(
+    public fun add_domain<C>(
         witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         svg: vector<u8>,
     ) {
-        assert!(!has(nft), EEXISTING_SVG_DOMAIN);
+        assert!(!has_domain(nft), EEXISTING_SVG_DOMAIN);
         nft::add_domain(witness, nft, new(svg));
     }
 
@@ -145,12 +145,12 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` domain already exists
-    public fun add_collection<C>(
+    public fun add_domain_collection<C>(
         witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         svg: vector<u8>,
     ) {
-        assert!(!has_collection(collection), EEXISTING_SVG_DOMAIN);
+        assert!(!has_domain_collection(collection), EEXISTING_SVG_DOMAIN);
         collection::add_domain(witness, collection, new(svg));
     }
 
@@ -162,7 +162,7 @@ module nft_protocol::svg {
     ///
     /// Panics if `SvgDomain` is not registered
     public fun assert_svg<C>(nft: &Nft<C>) {
-        assert!(has(nft), EUNDEFINED_SVG_DOMAIN);
+        assert!(has_domain(nft), EUNDEFINED_SVG_DOMAIN);
     }
 
     /// Asserts that `SvgDomain` is registered on `Nft`
@@ -171,6 +171,6 @@ module nft_protocol::svg {
     ///
     /// Panics if `SvgDomain` is not registered
     public fun assert_collection_svg<C>(collection: &Collection<C>) {
-        assert!(has_collection(collection), EUNDEFINED_SVG_DOMAIN);
+        assert!(has_domain_collection(collection), EUNDEFINED_SVG_DOMAIN);
     }
 }
