@@ -25,6 +25,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 
+- Updated to Devnet 0.26.0
 - `transfer_allowlist::remove_itself` is now an entry function.
 - Revamped NFT domain permissions and control over them
 - `Collection` and `Nft` were reverted to use dynamic fields instead of dynamic object fields.
