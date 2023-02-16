@@ -6,7 +6,7 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.23.0] - 2023-02-16
 
 ### Added
 
@@ -25,7 +25,9 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 
+- Updated to Devnet 0.26.0
 - `transfer_allowlist::remove_itself` is now an entry function.
+- Revamped NFT domain permissions and control over them
 - `Collection` and `Nft` were reverted to use dynamic fields instead of dynamic object fields.
 - Migrated all domains not requiring `key` property after loosening `key` requirement on `Nft` and `Collection` domains.
 
