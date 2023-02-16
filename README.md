@@ -1,10 +1,6 @@
-<p align="center">
-    <a href="https://originbyte.io/">
-        <img src="/Origin-Byte/nft-protocol/raw/main/assets/logo.svg" alt="OriginByte">
-    </a>
-    <h3 align="center">OriginByte</h3>
-    A new approach to NFTs.
-</p>
+# [![Bevy](assets/logo.svg)](https://originbyte.io)
+
+A new approach to NFTs.
 
 Origin-Byte is an ecosystem of tools, standards, and smart contracts designed to make life easier for Web3 Game Developers and NFT creators.
 From simple artwork to complex gaming assets, we want to help you reach the public, and provide on-chain market infrastructure.
