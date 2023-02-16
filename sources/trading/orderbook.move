@@ -583,10 +583,8 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.cancel_ask, err::action_not_public());
-        transfer(
-            cancel_ask_(book, nft_price_level, nft_id, ctx),
-            tx_context::sender(ctx),
-        );
+        let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
+        transfer(cap, tx_context::sender(ctx));
     }
 
     /// Same as [`cancel_ask`] but protected by
@@ -599,11 +597,8 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
-
-        transfer(
-            cancel_ask_(book, nft_price_level, nft_id, ctx),
-            tx_context::sender(ctx),
-        );
+        let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
+        transfer(cap, tx_context::sender(ctx));
     }
 
     /// Same as [`cancel_ask`] but the [`TransferCap`] is burned instead of
@@ -616,8 +611,30 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.cancel_ask, err::action_not_public());
-        let cap = cancel_ask_(book, nft_price_level, nft_id, ctx);
+        let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
         safe::burn_transfer_cap(cap, seller_safe);
+    }
+
+    // === Edit listing ===
+
+    /// Removes the old ask and creates a new one with the same NFT.
+    /// Two events are emitted at least:
+    /// Firstly, we always emit `AskRemovedEvent` for the old ask.
+    /// Then either `AskCreatedEvent` or `TradeFilledEvent`.
+    /// Depends on whether the ask is filled immediately or not.
+    public entry fun edit_ask<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        old_price: u64,
+        nft_id: ID,
+        new_price: u64,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        assert!(!book.protected_actions.cancel_ask, err::action_not_public());
+        assert!(!book.protected_actions.create_ask, err::action_not_public());
+
+        let (cap, commission) = cancel_ask_(book, old_price, nft_id, ctx);
+        create_ask_(book, new_price, commission, cap, seller_safe, ctx);
     }
 
     // === Buy NFT ===
@@ -1277,14 +1294,14 @@ module nft_protocol::orderbook {
         nft_price_level: u64,
         nft_id: ID,
         ctx: &mut TxContext,
-    ): TransferCap {
+    ): (TransferCap, Option<AskCommission>) {
         let sender = tx_context::sender(ctx);
 
         let Ask {
             owner,
             price: _,
             transfer_cap,
-            commission: _,
+            commission,
         } = remove_ask(
             &mut book.asks,
             nft_price_level,
@@ -1300,7 +1317,7 @@ module nft_protocol::orderbook {
 
         assert!(owner == sender, err::order_owner_must_be_sender());
 
-        transfer_cap
+        (transfer_cap, commission)
     }
 
     fun buy_nft_<C, FT>(
