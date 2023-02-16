@@ -583,7 +583,10 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.cancel_ask, err::action_not_public());
-        cancel_ask_(book, nft_price_level, nft_id, ctx)
+        transfer(
+            cancel_ask_(book, nft_price_level, nft_id, ctx),
+            tx_context::sender(ctx),
+        );
     }
 
     /// Same as [`cancel_ask`] but protected by
@@ -597,7 +600,24 @@ module nft_protocol::orderbook {
     ) {
         utils::assert_same_module_as_witness<C, W>();
 
-        cancel_ask_(book, nft_price_level, nft_id, ctx)
+        transfer(
+            cancel_ask_(book, nft_price_level, nft_id, ctx),
+            tx_context::sender(ctx),
+        );
+    }
+
+    /// Same as [`cancel_ask`] but the [`TransferCap`] is burned instead of
+    /// transferred back to the tx sender.
+    public entry fun cancel_ask_and_discard_transfer_cap<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nft_price_level: u64,
+        nft_id: ID,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        assert!(!book.protected_actions.cancel_ask, err::action_not_public());
+        let cap = cancel_ask_(book, nft_price_level, nft_id, ctx);
+        safe::burn_transfer_cap(cap, seller_safe);
     }
 
     // === Buy NFT ===
@@ -1257,7 +1277,7 @@ module nft_protocol::orderbook {
         nft_price_level: u64,
         nft_id: ID,
         ctx: &mut TxContext,
-    ) {
+    ): TransferCap {
         let sender = tx_context::sender(ctx);
 
         let Ask {
@@ -1280,7 +1300,7 @@ module nft_protocol::orderbook {
 
         assert!(owner == sender, err::order_owner_must_be_sender());
 
-        transfer(transfer_cap, sender);
+        transfer_cap
     }
 
     fun buy_nft_<C, FT>(
