@@ -10,9 +10,7 @@
 module nft_protocol::plugins {
     use std::type_name::{Self, TypeName};
 
-    use sui::object::{Self, UID};
     use sui::vec_set::{Self, VecSet};
-    use sui::tx_context::TxContext;
 
     use nft_protocol::witness::{
         Self, WitnessGenerator, Witness as DelegatedWitness
@@ -31,9 +29,7 @@ module nft_protocol::plugins {
 
     // === PluginDomain ===
 
-    struct PluginDomain<phantom C> has key, store {
-        /// `PluginDomain` ID
-        id: UID,
+    struct PluginDomain<phantom C> has store {
         /// Generator responsible for issuing delegated witnesses
         generator: WitnessGenerator<C>,
         /// Witnesses that have the ability to mutate standard domains
@@ -44,9 +40,8 @@ module nft_protocol::plugins {
     struct Witness has drop {}
 
     /// Creates a new `PluginDomain` object
-    fun new<C>(witness: &C, ctx: &mut TxContext): PluginDomain<C> {
+    fun new<C, W>(witness: &W): PluginDomain<C> {
         PluginDomain {
-            id: object::new(ctx),
             generator: witness::generator(witness),
             packages: vec_set::empty(),
         }
@@ -146,12 +141,11 @@ module nft_protocol::plugins {
     /// #### Panics
     ///
     /// Panics if `CreatorsDomain` already exists.
-    public fun add_plugin_domain<C>(
-        witness: &C,
+    public fun add_plugin_domain<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
-        ctx: &mut TxContext,
     ) {
-        let domain = new(witness, ctx);
+        let domain = new<C, W>(witness);
         collection::add_domain(
             witness::from_witness(witness),
             collection,

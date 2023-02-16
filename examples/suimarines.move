@@ -10,11 +10,14 @@ module nft_protocol::suimarines {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
+    use nft_protocol::witness;
     use nft_protocol::creators;
+    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::transfer_allowlist_domain;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -25,13 +28,17 @@ module nft_protocol::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
+
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&witness);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_address(&witness, tx_context::sender(ctx), ctx),
+            creators::from_address<SUIMARINES, Witness>(
+                &Witness {}, sender,
+            ),
         );
 
         // Register custom domains
@@ -40,24 +47,21 @@ module nft_protocol::suimarines {
             &mut collection,
             string::utf8(b"Suimarines"),
             string::utf8(b"A unique NFT collection of Suimarines on Sui"),
-            ctx,
         );
 
         display::add_collection_url_domain(
             delegated_witness,
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-            ctx,
         );
 
         display::add_collection_symbol_domain(
             delegated_witness,
             &mut collection,
             string::utf8(b"SUIM"),
-            ctx,
         );
 
-        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
+        let royalty = royalty::from_address(sender, ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);
 
@@ -65,7 +69,21 @@ module nft_protocol::suimarines {
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(delegated_witness, &mut collection, tags);
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
+        let allowlist = transfer_allowlist::create(&Witness {}, ctx);
+        transfer_allowlist::insert_collection<SUIMARINES, Witness>(
+            &Witness {},
+            witness::from_witness(&Witness {}),
+            &mut allowlist,
+        );
+
+        collection::add_domain(
+            delegated_witness,
+            &mut collection,
+            transfer_allowlist_domain::empty(),
+        );
+
+        transfer::transfer(mint_cap, sender);
+        transfer::share_object(allowlist);
         transfer::share_object(collection);
     }
 
@@ -95,26 +113,19 @@ module nft_protocol::suimarines {
         warehouse: &mut Warehouse<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
+        let url = url::new_unsafe_from_bytes(url);
+
+        let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
-            &mut nft,
-            name,
-            description,
-            ctx,
+            delegated_witness, &mut nft, name, description,
         );
 
-        display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
-        );
+        display::add_url_domain(delegated_witness, &mut nft, url);
 
         display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
+            delegated_witness, &mut nft, attribute_keys, attribute_values,
         );
 
         warehouse::deposit_nft(warehouse, nft);

@@ -127,7 +127,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
         let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain<Foo>(
-            witness::from_witness(&Foo {}), &mut collection, royalty
+            witness::from_witness(&Witness {}), &mut collection, royalty,
         );
 
         // If domain does not exist this function call will fail

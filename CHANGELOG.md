@@ -6,12 +6,43 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2023-02-16
+
+### Added
+
+- `TransferAllowlistDomain` which keeps track of shared object IDs of type `Allowlist`.
+- Helper endpoints in orderbook which allow marketplaces to perform actions in a single tx.
+  The marketplaces can now
+  - `deposit_and_list_nft` (and with commission)
+  - `create_safe_and_deposit_and_list_nft` (and with commission)
+  - `create_safe_and_buy_nft`
+  - `create_safe_and_buy_generic_nft`
+  - `cancel_ask_and_discard_transfer_cap`
+  - `edit_ask`
+- Added static `name` and `url` fields to `Nft` for better integration with explorer.
+- Added `LimitedFixedPriceMarket`
+- `orderbook::list_nft` and `orderbook::list_nft_with_commission` endpoints.
+  These allow the client to skip the creation of transfer caps and instead provide `OwnerCap` to `Safe` directly to the orderbook contract.
+
+### Changed
+
+- Updated to Devnet 0.26.0
+- `transfer_allowlist::remove_itself` is now an entry function.
+- Revamped NFT domain permissions and control over them
+- `Collection` and `Nft` were reverted to use dynamic fields instead of dynamic object fields.
+- Migrated all domains not requiring `key` property after loosening `key` requirement on `Nft` and `Collection` domains.
+
+### Fixed
+
+- Orderbook recipient was wrong when trading in orderbook.
+
 ## [0.22.0] - 2023-02-02
 
 ### Added
 
 - Introduced `DelegatedWitness` pattern
 - Refactored `CreatorsDomain` to support `DelegatedWitness` and introduced `PluginDomain`
+
 ### Changed
 
 - Renamed `CollectionMintEvent` to `MintCollectionEvent` to be consistent with

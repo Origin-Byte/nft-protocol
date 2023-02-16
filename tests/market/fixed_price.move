@@ -2,12 +2,15 @@
 module nft_protocol::test_fixed_price {
     use sui::sui::SUI;
     use sui::coin;
+    use sui::balance;
     use sui::transfer;
     use sui::object::ID;
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::venue;
+    use nft_protocol::witness;
+    use nft_protocol::proceeds;
     use nft_protocol::warehouse;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
@@ -30,7 +33,7 @@ module nft_protocol::test_fixed_price {
         scenario: &mut Scenario,
     ): (ID, ID) {
         let inventory_id = listing::create_warehouse<COLLECTION>(
-            listing, ctx(scenario),
+            witness::from_witness(&Witness {}), listing, ctx(scenario),
         );
         let venue_id = fixed_price::create_venue<COLLECTION, SUI>(
             listing, inventory_id, is_whitelisted, price, ctx(scenario)
@@ -121,6 +124,7 @@ module nft_protocol::test_fixed_price {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(15, ctx(&mut scenario));
+
         fixed_price::buy_nft<COLLECTION, SUI>(
             &mut listing,
             venue_id,
@@ -128,11 +132,26 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario),
         );
 
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        // Check wallet balances
         assert!(coin::value(&wallet) == 5, 0);
 
-        transfer::transfer(wallet, BUYER);
-        test_scenario::next_tx(&mut scenario, BUYER);
+        // Nft should have sold at 10
+        let proceeds = listing::borrow_proceeds(&listing);
+        assert!(proceeds::total(proceeds) == 1, 0);
+        assert!(balance::value(proceeds::balance<SUI>(proceeds)) == 10, 0);
 
+        // Check NFT was transferred with correct logical owner
+        let nft = test_scenario::take_from_address<Nft<COLLECTION>>(
+            &scenario, BUYER
+        );
+
+        assert!(nft::logical_owner(&nft) == BUYER, 0);
+
+        test_scenario::return_to_address(BUYER, nft);
+
+        transfer::transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }

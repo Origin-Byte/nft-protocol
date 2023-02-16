@@ -42,11 +42,16 @@ module nft_protocol::listing {
     use nft_protocol::err;
     use nft_protocol::utils;
     use nft_protocol::nft::Nft;
+    use nft_protocol::collection::Collection;
     use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::warehouse;
+    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::factory::Factory;
+    use nft_protocol::creators;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::venue::{Self, Venue};
+    use nft_protocol::witness::Witness as DelegatedWitness;
+
     use originmate::object_box::{Self as obox, ObjectBox};
 
     /// `Venue` was not defined on `Listing`
@@ -172,17 +177,19 @@ module nft_protocol::listing {
 
     /// Initializes an empty `Warehouse` on `Listing`
     ///
-    /// Function transparently wraps `Warehouse` in `Inventory`, therefore, the
-    /// returned ID is that of the `Inventory` not the `Warehouse`.
+    /// Requires that transaction sender is collection creator registered in
+    /// `CreatorsDomain`.
     ///
     /// #### Panics
     ///
-    /// Panics if transaction sender is not listing admin.
+    /// Panics if transaction sender is not listing admin or creator.
     public entry fun init_warehouse<C>(
         listing: &mut Listing,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ) {
-        create_warehouse<C>(listing, ctx);
+        let witness = creators::delegate(collection, ctx);
+        create_warehouse<C>(witness, listing, ctx);
     }
 
     /// Creates an empty `Warehouse` on `Listing` and returns it's ID
@@ -194,10 +201,12 @@ module nft_protocol::listing {
     ///
     /// Panics if transaction sender is not listing admin.
     public fun create_warehouse<C>(
+        witness: DelegatedWitness<C>,
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
-        let inventory = inventory::from_warehouse<C>(warehouse::new(ctx), ctx);
+        let inventory =
+            inventory::from_warehouse(witness, warehouse::new(ctx), ctx);
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
         inventory_id
@@ -294,12 +303,6 @@ module nft_protocol::listing {
         // If there the listing is not attached to a marketplace
         // then if does not make sense to pay fees.
         mkt::assert_marketplace_admin(marketplace, ctx);
-
-        assert!(
-            obox::is_empty(&listing.custom_fee),
-            err::generic_box_full(),
-        );
-
         obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
 
@@ -363,6 +366,84 @@ module nft_protocol::listing {
 
         let inventory_id = object::id(&inventory);
         object_bag::add(&mut listing.inventories, inventory_id, inventory);
+    }
+
+    /// Adds `Warehouse` to `Listing`
+    ///
+    /// Function transparently wraps `Warehouse` in `Inventory`, therefore, the
+    /// returned ID is that of the `Inventory` not the `Warehouse`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not listing admin or creator registered
+    /// in `CreatorsDomain`.
+    public entry fun add_warehouse<C>(
+        listing: &mut Listing,
+        collection: &Collection<C>,
+        warehouse: Warehouse<C>,
+        ctx: &mut TxContext,
+    ) {
+        let witness = creators::delegate(collection, ctx);
+        insert_warehouse(witness, listing, warehouse, ctx);
+    }
+
+    /// Adds `Warehouse` to `Listing` and returns it's ID
+    ///
+    /// Function transparently wraps `Warehouse` in `Inventory`, therefore, the
+    /// returned ID is that of the `Inventory` not the `Warehouse`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not listing admin.
+    public fun insert_warehouse<C>(
+        witness: DelegatedWitness<C>,
+        listing: &mut Listing,
+        warehouse: Warehouse<C>,
+        ctx: &mut TxContext,
+    ): ID {
+        let inventory = inventory::from_warehouse(witness, warehouse, ctx);
+        let inventory_id = object::id(&inventory);
+        add_inventory(listing, inventory, ctx);
+        inventory_id
+    }
+
+    /// Adds `Factory` to `Listing`
+    ///
+    /// Function transparently wraps `Factory` in `Inventory`, therefore, the
+    /// returned ID is that of the `Inventory` not the `Factory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not listing admin or creator registered
+    /// in `CreatorsDomain`.
+    public entry fun add_factory<C>(
+        listing: &mut Listing,
+        collection: &Collection<C>,
+        factory: Factory<C>,
+        ctx: &mut TxContext,
+    ) {
+        let witness = creators::delegate(collection, ctx);
+        insert_factory(witness, listing, factory, ctx);
+    }
+
+    /// Adds `Factory` to `Listing` and returns it's ID
+    ///
+    /// Function transparently wraps `Factory` in `Inventory`, therefore, the
+    /// returned ID is that of the `Inventory` not the `Factory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not listing admin.
+    public fun insert_factory<C>(
+        witness: DelegatedWitness<C>,
+        listing: &mut Listing,
+        factory: Factory<C>,
+        ctx: &mut TxContext,
+    ): ID {
+        let inventory = inventory::from_factory(witness, factory, ctx);
+        let inventory_id = object::id(&inventory);
+        add_inventory(listing, inventory, ctx);
+        inventory_id
     }
 
     /// Set market's live status to `true` therefore making the NFT sale live.

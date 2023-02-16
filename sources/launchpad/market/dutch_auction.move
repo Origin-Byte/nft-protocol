@@ -267,13 +267,13 @@ module nft_protocol::dutch_auction {
 
         let total_funds = balance::zero<FT>();
         while (!vector::is_empty(&bids_to_fill)) {
-            let Bid {amount, owner} = vector::pop_back(&mut bids_to_fill);
+            let Bid { amount, owner } = vector::pop_back(&mut bids_to_fill);
 
             let filled_funds = balance::split(&mut amount, fill_price);
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            inventory::redeem_nft_and_transfer(inventory, owner, ctx);
+            inventory::transfer(inventory, owner, ctx);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);
@@ -321,7 +321,7 @@ module nft_protocol::dutch_auction {
         wallet: &mut Coin<FT>,
         price: u64,
         quantity: u64,
-        bidder: address,
+        owner: address,
     ) {
         assert!(
             price >= auction.reserve_price,
@@ -344,7 +344,7 @@ module nft_protocol::dutch_auction {
         let index = 0;
         while (quantity > index) {
             let amount = balance::split(coin::balance_mut(wallet), price);
-            vector::push_back(price_level, Bid { amount, owner: bidder });
+            vector::push_back(price_level, Bid { amount, owner });
             index = index + 1;
         }
     }

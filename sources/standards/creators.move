@@ -3,7 +3,6 @@
 /// `CreatorsDomain` tracks all collection creators, used to authenticate
 /// mutable operations on other OriginByte standard domains.
 module nft_protocol::creators {
-    use sui::object::{Self, UID};
     use sui::vec_set::{Self, VecSet};
     use sui::tx_context::{Self, TxContext};
 
@@ -33,33 +32,7 @@ module nft_protocol::creators {
     /// `CreatorsDomain` can additionally be frozen which will cause
     /// `assert_collection_has_creator` to always fail, therefore, allowing
     /// creators to lock in their NFT collection.
-    ///
-    /// ```
-    /// module nft_protocol::display {
-    ///     use nft_protocol::witness::Witness as DelegatedWitness;
-    ///
-    ///     struct SUIMARINES has drop {}
-    ///     struct Witness has drop {}
-    ///
-    ///     struct DisplayDomain {
-    ///         id: UID,
-    ///         name: String,
-    ///     } has key, store
-    ///
-    ///     public fun set_name<C>(
-    ///         _witness: &DelegatedWitness<C>,
-    ///         collection: &mut Collection<C>,
-    ///         name: String,
-    ///     ) {
-    ///         let domain: &mut DisplayDomain =
-    ///             collection::borrow_domain_mut(Witness {}, collection);
-    ///
-    ///         domain.name = name;
-    ///     }
-    /// }
-    struct CreatorsDomain<phantom C> has key, store {
-        /// `CreatorsDomain` ID
-        id: UID,
+    struct CreatorsDomain<phantom C> has store {
         /// Generator responsible for issuing delegated witnesses
         generator: WitnessGenerator<C>,
         /// Creators that have the ability to mutate standard domains
@@ -73,36 +46,33 @@ module nft_protocol::creators {
     ///
     /// By not attributing any `Creators`, nobody will ever be able to modify
     /// `Collection` domains.
-    public fun empty<C>(witness: &C, ctx: &mut TxContext): CreatorsDomain<C> {
-        from_creators(witness, vec_set::empty(), ctx)
+    public fun empty<C>(witness: &C): CreatorsDomain<C> {
+        from_creators(witness, vec_set::empty())
     }
 
     /// Creates a `CreatorsDomain` object with only one creator
     ///
     /// Only the single `Creator` will ever be able to modify `Collection`
     /// domains.
-    public fun from_address<C>(
-        witness: &C,
+    public fun from_address<C, W>(
+        witness: &W,
         who: address,
-        ctx: &mut TxContext,
     ): CreatorsDomain<C> {
         let creators = vec_set::empty();
         vec_set::insert(&mut creators, who);
 
-        from_creators(witness, creators, ctx)
+        from_creators(witness, creators)
     }
 
     /// Creates a `CreatorsDomain` with multiple creators
     ///
     /// Each attributed creator will be able to modify `Collection` domains.
-    public fun from_creators<C>(
-        witness: &C,
+    public fun from_creators<C, W>(
+        witness: &W,
         creators: VecSet<address>,
-        ctx: &mut TxContext,
     ): CreatorsDomain<C> {
         CreatorsDomain {
-            id: object::new(ctx),
-            generator: witness::generator(witness),
+            generator: witness::generator<C, W>(witness),
             creators,
         }
     }
@@ -148,7 +118,7 @@ module nft_protocol::creators {
     /// Panics if transaction sender was not a creator or `CreatorsDomain` was
     /// not registered on the `Collection`.
     public fun delegate<C>(
-        collection: &mut Collection<C>,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ): DelegatedWitness<C> {
         let domain = creators_domain(collection);

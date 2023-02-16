@@ -1,6 +1,8 @@
 module nft_protocol::loose_mint_cap {
+    use std::string::String;
     use std::option::{Self, Option};
 
+    use sui::url::Url;
     use sui::transfer;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
@@ -15,19 +17,14 @@ module nft_protocol::loose_mint_cap {
 
     // === PointerDomain ===
 
-    struct PointerDomain has key, store {
-        /// `PointerDomain` ID
-        id: UID,
+    struct PointerDomain has store {
         /// `Template` ID that this NFT is a loose representation of
         template_id: ID,
     }
 
     /// Creates a new `Pointer` to the given `Template`
-    fun pointer(template_id: ID, ctx: &mut TxContext): PointerDomain {
-        PointerDomain {
-            id: object::new(ctx),
-            template_id,
-        }
+    fun pointer(template_id: ID): PointerDomain {
+        PointerDomain { template_id }
     }
 
     /// Return `ID` of `Template` associated with this pointer
@@ -44,6 +41,10 @@ module nft_protocol::loose_mint_cap {
     struct LooseMintCap<phantom C> has key, store {
         /// `LooseMintCap` ID
         id: UID,
+        /// `Nft` name
+        name: String,
+        /// `Nft` URL
+        url: Url,
         /// `Template` ID for which this `LooseMintCap` is allowed to mint
         /// NFTs
         template_id: ID,
@@ -57,10 +58,14 @@ module nft_protocol::loose_mint_cap {
     public(friend) fun from_unregulated<C>(
         mint_cap: UnregulatedMintCap<C>,
         template_id: ID,
+        name: String,
+        url: Url,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
         let template_mint_cap = LooseMintCap {
             id: object::new(ctx),
+            name,
+            url,
             template_id
         };
 
@@ -82,10 +87,14 @@ module nft_protocol::loose_mint_cap {
     public(friend) fun from_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
         template_id: ID,
+        name: String,
+        url: Url,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
         let template_mint_cap = LooseMintCap {
             id: object::new(ctx),
+            name,
+            url,
             template_id
         };
 
@@ -99,6 +108,16 @@ module nft_protocol::loose_mint_cap {
     }
 
     // === Getters ===
+
+    /// Get loose `Nft` name
+    public fun name<C>(mint_cap: &LooseMintCap<C>): &String {
+        &mint_cap.name
+    }
+
+    /// Get loose `Nft` URL
+    public fun url<C>(mint_cap: &LooseMintCap<C>): &Url {
+        &mint_cap.url
+    }
 
     /// Borrows `RegulatedMintCap` from `LooseMintCap`
     ///
@@ -176,26 +195,27 @@ module nft_protocol::loose_mint_cap {
     /// Panics if supply was exceeded.
     public fun mint_nft<C>(
         mint_cap: &mut LooseMintCap<C>,
-        owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        // Owner must be transaction sender otherwise `nft::add_domain` will
-        // panic
-        let sender = tx_context::sender(ctx);
-        let nft = if (is_regulated(mint_cap)) {
+        let pointer = pointer(mint_cap.template_id);
+        let name = *name(mint_cap);
+        let url = *url(mint_cap);
+
+        if (is_regulated(mint_cap)) {
             let mint_cap = borrow_regulated_mut(mint_cap);
-            nft::new_regulated(mint_cap, sender, ctx)
+            let nft = nft::from_regulated(mint_cap, name, url, ctx);
+
+            nft::add_domain_with_regulated(mint_cap, &mut nft, pointer, ctx);
+
+            nft
         } else {
             let mint_cap = borrow_unregulated(mint_cap);
-            nft::new_unregulated(mint_cap, sender, ctx)
-        };
+            let nft = nft::from_unregulated(mint_cap, name, url, ctx);
 
-        let pointer = pointer(mint_cap.template_id, ctx);
-        nft::add_domain(&mut nft, pointer, ctx);
+            nft::add_domain_with_unregulated(mint_cap, &mut nft, pointer, ctx);
 
-        nft::change_logical_owner_internal(&mut nft, owner);
-
-        nft
+            nft
+        }
     }
 
     /// Mints `Nft` from `LooseMintCap` and transfer to transaction sender
@@ -207,8 +227,7 @@ module nft_protocol::loose_mint_cap {
         mint_cap: &mut LooseMintCap<C>,
         ctx: &mut TxContext,
     ) {
-        let sender = tx_context::sender(ctx);
-        let nft = mint_nft(mint_cap, sender, ctx);
-        transfer::transfer(nft, sender);
+        let nft = mint_nft(mint_cap, ctx);
+        transfer::transfer(nft, tx_context::sender(ctx));
     }
 }
