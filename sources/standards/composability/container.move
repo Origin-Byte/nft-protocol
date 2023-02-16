@@ -69,10 +69,39 @@ module nft_protocol::container {
         }
     }
 
+    /// Returns whether NFT with given ID is composed within provided
+    /// `ContainerDomain`
+    public fun has(container: &ContainerDomain, nft_id: ID): bool {
+        dof::exists_(&container.id, nft_id)
+    }
+
+    /// Borrows `Nft` from `ContainerDomain`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft` was not composed within the `ContainerDomain`.
+    public fun borrow<C>(container: &ContainerDomain, nft_id: ID): &Nft<C> {
+        assert_composed(container, nft_id);
+        dof::borrow(&container.id, nft_id)
+    }
+
+    /// Mutably borrows `Nft` from `ContainerDomain`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft` was not composed within the `ContainerDomain`.
+    public fun borrow_mut<C>(
+        container: &mut ContainerDomain,
+        nft_id: ID,
+    ): &mut Nft<C> {
+        assert_composed(container, nft_id);
+        dof::borrow_mut(&mut container.id, nft_id)
+    }
+
     // === Interoperability ===
 
     /// Returns whether `ContainerDomain` is registered on `Nft`
-    public fun has<C>(nft: &Nft<C>): bool {
+    public fun has_domain<C>(nft: &Nft<C>): bool {
         nft::has_domain<C, ContainerDomain>(nft)
     }
 
@@ -81,19 +110,41 @@ module nft_protocol::container {
     /// #### Panics
     ///
     /// Panics if `ContainerDomain` is not registered on the `Nft`
-    public fun borrow<C>(nft: &Nft<C>): &ContainerDomain {
+    public fun borrow_domain<C>(nft: &Nft<C>): &ContainerDomain {
         assert_container(nft);
         nft::borrow_domain<C, ContainerDomain>(nft)
     }
 
     /// Mutably borrows `ContainerDomain` from `Nft`
     ///
+    /// `ContainerDomain` is a safe to expose a mutable reference to.
+    ///
     /// #### Panics
     ///
     /// Panics if `ContainerDomain` is not registered on the `Nft`
-    fun borrow_mut<C>(nft: &mut Nft<C>): &mut ContainerDomain {
+    public fun borrow_domain_mut<C>(nft: &mut Nft<C>): &mut ContainerDomain {
         assert_container(nft);
         nft::borrow_domain_mut(Witness {}, nft)
+    }
+
+    /// Borrows composed NFT with given ID from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `ContainerDomain` is not registered or NFT is not composed.
+    public fun borrow_nft<C>(nft: &Nft<C>, nft_id: ID): &Nft<C> {
+        let container = borrow_domain(nft);
+        borrow(container, nft_id)
+    }
+
+    /// Mutably borrows composed NFT with given ID from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `ContainerDomain` is not registered or NFT is not composed.
+    public fun borrow_nft_mut<C>(nft: &mut Nft<C>, nft_id: ID): &Nft<C> {
+        let container = borrow_domain_mut(nft);
+        borrow_mut(container, nft_id)
     }
 
     /// Composes child NFT into parent NFT
@@ -101,12 +152,12 @@ module nft_protocol::container {
     /// #### Panics
     ///
     /// Panics if `ContainerDomain` is not registered on the parent `Nft`.
-    public entry fun compose<C, Auth: drop>(
+    public fun compose<C, Auth: drop>(
         _authority: Auth,
         parent_nft: &mut Nft<C>,
         child_nft: Nft<C>,
     ) {
-        let container_domain = borrow_mut(parent_nft);
+        let container_domain = borrow_domain_mut(parent_nft);
 
         // Identify index of authority that this `Nft` should be composed using
         let authority_type = type_name::get<Auth>();
@@ -132,12 +183,12 @@ module nft_protocol::container {
     ///
     /// Panics if `ContainerDomain` is not registered on the parent `Nft` or
     /// child `Nft` does not exist.
-    public entry fun decompose<C, Auth: drop>(
+    public fun decompose<C, Auth: drop>(
         _authority: Auth,
         parent_nft: &mut Nft<C>,
         child_nft_id: ID,
     ): Nft<C> {
-        let container_domain = borrow_mut(parent_nft);
+        let container_domain = borrow_domain_mut(parent_nft);
 
         // Identify index of authority that this `Nft` should be composed using
         // let authority_type = type_name::get<Auth>();
@@ -161,6 +212,15 @@ module nft_protocol::container {
     ///
     /// Panics if `ContainerDomain` is not registered
     public fun assert_container<C>(nft: &Nft<C>) {
-        assert!(has(nft), EUNDEFINED_DOMAIN);
+        assert!(has_domain(nft), EUNDEFINED_DOMAIN);
+    }
+
+    /// Assert that NFT with given ID is composed within the `ContainerDomain`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if NFT is not composed.
+    public fun assert_composed(container: &ContainerDomain, nft_id: ID) {
+        assert!(has(container, nft_id), EUNDEFINED_NFT)
     }
 }
