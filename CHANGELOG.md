@@ -17,6 +17,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   - `create_safe_and_buy_nft`
   - `create_safe_and_buy_generic_nft`
   - `cancel_ask_and_discard_transfer_cap`
+  - `edit_ask`
 - Added static `name` and `url` fields to `Nft` for better integration with explorer.
 - Added `LimitedFixedPriceMarket`
 - `orderbook::list_nft` and `orderbook::list_nft_with_commission` endpoints.
