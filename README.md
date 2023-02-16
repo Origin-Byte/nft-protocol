@@ -2,7 +2,7 @@
 
 Checkout our:
 
-- Contract on the [Sui Explorer](https://explorer.sui.io/object/0x5db59b623554ef931b23c07ed4f7d577942bd52d)
+- Devnet contract on the [Sui Explorer](https://explorer.sui.io/object/0xde886c0410106e811bc4a67957fed77e456831d2?network=devnet)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)
 
@@ -169,6 +169,6 @@ and in your `Move.toml`, define the following dependency:
 ```toml
 [dependencies.NftProtocol]
 git = "https://github.com/Origin-Byte/nft-protocol.git"
-# v0.20.0
-rev = "06ddf96d151227b989210d5771b02b198b85c2fe"
+# v0.22.0
+rev = "7a19d30aa84faa335d722832f869c4f08a8c487a"
 ```
