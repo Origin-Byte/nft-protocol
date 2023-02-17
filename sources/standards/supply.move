@@ -8,7 +8,7 @@
 /// Regulated policies are enforced by
 module nft_protocol::supply_domain {
     use sui::transfer;
-    use sui::object::{Self, UID};
+    use sui::object;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::err;
@@ -21,17 +21,13 @@ module nft_protocol::supply_domain {
 
     friend nft_protocol::warehouse;
 
-    struct SupplyDomain<phantom C> has key, store {
-        id: UID,
+    struct SupplyDomain<phantom C> has store {
         supply: Supply,
     }
 
     /// Creates a `SupplyDomain`
-    fun new<C>(max: u64, frozen: bool, ctx: &mut TxContext): SupplyDomain<C> {
-        SupplyDomain {
-            id: object::new(ctx),
-            supply: supply::new(max, frozen),
-        }
+    fun new<C>(max: u64, frozen: bool): SupplyDomain<C> {
+        SupplyDomain { supply: supply::new(max, frozen) }
     }
 
     /// Witness used to authenticate witness protected endpoints
@@ -75,9 +71,8 @@ module nft_protocol::supply_domain {
         collection: &mut Collection<C>,
         max: u64,
         frozen: bool,
-        ctx: &mut TxContext,
     ) {
-        collection::add_domain(witness, collection, new<C>(max, frozen, ctx));
+        collection::add_domain(witness, collection, new<C>(max, frozen));
     }
 
     /// Deregulate the supply of `Collection`
@@ -90,10 +85,9 @@ module nft_protocol::supply_domain {
         collection: &mut Collection<C>,
     ) {
         supply::assert_not_frozen(supply(collection));
-        let SupplyDomain<C> { id, supply } =
+        let SupplyDomain<C> { supply } =
             collection::remove_domain(Witness {}, collection);
         supply::assert_zero(&supply);
-        object::delete(id);
     }
 
     /// Freeze the supply of `Collection`

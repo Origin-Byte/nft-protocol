@@ -10,6 +10,7 @@ module nft_protocol::footbytes {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
+    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::template;
     use nft_protocol::templates;
@@ -27,12 +28,14 @@ module nft_protocol::footbytes {
 
     fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = nft_protocol::witness::from_witness(&witness);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            creators::from_address(&witness, tx_context::sender(ctx), ctx),
+            creators::from_address<FOOTBYTES, Witness>(
+                &Witness {}, tx_context::sender(ctx),
+            ),
         );
 
         // Register custom domains
@@ -41,21 +44,18 @@ module nft_protocol::footbytes {
             &mut collection,
             string::utf8(b"Football digital stickers"),
             string::utf8(b"A NFT collection of football player collectibles"),
-            ctx,
         );
 
         display::add_collection_url_domain(
             delegated_witness,
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-            ctx,
         );
 
         display::add_collection_symbol_domain(
             delegated_witness,
             &mut collection,
             string::utf8(b"FOOT"),
-            ctx
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
@@ -108,15 +108,16 @@ module nft_protocol::footbytes {
         supply: u64,
         ctx: &mut TxContext,
     ) {
-        let nft = nft::new(mint_cap, tx_context::sender(ctx), ctx);
+        let url = url::new_unsafe_from_bytes(url);
+
+        let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
-            &mut nft, name, description, ctx,
+            delegated_witness, &mut nft, name, description,
         );
 
-        display::add_url_domain(
-            &mut nft, url::new_unsafe_from_bytes(url), ctx,
-        );
+        display::add_url_domain(delegated_witness, &mut nft, url);
 
         let template = template::new_regulated(nft, supply, ctx);
         templates::add_collection_template(mint_cap, collection, template);

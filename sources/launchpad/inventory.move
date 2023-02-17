@@ -1,18 +1,22 @@
 /// Module of `Inventory` type, a type-erased wrapper around `Warehouse` and
-/// `Factory`
+/// `Factory`.
+///
+/// Additionally, `Inventory` is responsible for providing a safe interface to
+/// change the logical owner of NFTs redeemed from it.
 module nft_protocol::inventory {
     use std::option::{Self, Option};
 
     use sui::transfer;
-    use sui::tx_context;
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
 
-    use nft_protocol::nft::Nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::factory::{Self, Factory};
     use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
+    use nft_protocol::witness::Witness as DelegatedWitness;
 
     /// `Inventory` is not a `Warehouse`
     ///
@@ -24,52 +28,48 @@ module nft_protocol::inventory {
     /// Call `from_factory` to create an `Inventory` from `Factory`
     const ENOT_FACTORY: u64 = 2;
 
+    struct Witness has drop {}
+
     /// A type-erased wrapper around `Warehouse` and `Factory`
     struct Inventory<phantom C> has key, store {
         /// `Inventory` ID
         id: UID,
+        /// Internal `Inventory` `Allowlist` for changing `Nft` owners
+        allowlist: Allowlist,
     }
 
     /// Create a new `Inventory` from a `Warehouse`
     public fun from_warehouse<C>(
+        witness: DelegatedWitness<C>,
         warehouse: Warehouse<C>,
         ctx: &mut TxContext,
     ): Inventory<C> {
         let inventory_id = object::new(ctx);
         df::add(&mut inventory_id, utils::marker<Warehouse<C>>(), warehouse);
 
-        Inventory { id: inventory_id }
-    }
+        let allowlist = transfer_allowlist::create(&Witness {}, ctx);
+        transfer_allowlist::insert_collection(
+            &Witness {}, witness, &mut allowlist,
+        );
 
-    /// Create a new `Inventory` from a `Warehouse` and transfer to transaction
-    /// sender
-    public entry fun init_from_warehouse<C>(
-        warehouse: Warehouse<C>,
-        ctx: &mut TxContext,
-    ) {
-        let inventory = from_warehouse(warehouse, ctx);
-        transfer::transfer(inventory, tx_context::sender(ctx));
+        Inventory { id: inventory_id, allowlist }
     }
 
     /// Create a new `Inventory` from a `Factory`
     public fun from_factory<C>(
+        witness: DelegatedWitness<C>,
         factory: Factory<C>,
         ctx: &mut TxContext,
     ): Inventory<C> {
         let inventory_id = object::new(ctx);
         df::add(&mut inventory_id, utils::marker<Factory<C>>(), factory);
 
-        Inventory { id: inventory_id }
-    }
+        let allowlist = transfer_allowlist::create(&Witness {}, ctx);
+        transfer_allowlist::insert_collection(
+            &Witness {}, witness, &mut allowlist,
+        );
 
-    /// Create a new `Inventory` from a `Factory` and transfer to transaction
-    /// sender
-    public entry fun init_from_factory<C>(
-        factory: Factory<C>,
-        ctx: &mut TxContext,
-    ) {
-        let inventory = from_factory(factory, ctx);
-        transfer::transfer(inventory, tx_context::sender(ctx));
+         Inventory { id: inventory_id, allowlist }
     }
 
     /// Deposits NFT to `Inventory`
@@ -93,22 +93,33 @@ module nft_protocol::inventory {
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     ///
+    /// Requires `Allowlist` authority token. See
+    /// [transfer](nft.html#transfer).
+    ///
     /// #### Panics
     ///
-    /// Panics if `Warehouse` is empty or if `Factory` has a regulated supply
-    /// whose supply was exceeded.
+    /// Panics if no supply is available or authority token was invalid.
     public fun redeem_nft<C>(
         inventory: &mut Inventory<C>,
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        if (is_warehouse(inventory)) {
+        let nft = if (is_warehouse(inventory)) {
             let warehouse = borrow_warehouse_mut(inventory);
-            warehouse::redeem_nft(warehouse, owner)
+            warehouse::redeem_nft(warehouse)
         } else {
             let factory = borrow_factory_mut(inventory);
-            factory::redeem_nft(factory, owner, ctx)
-        }
+            factory::redeem_nft(factory, ctx)
+        };
+
+        nft::change_logical_owner(
+            &mut nft,
+            owner,
+            Witness {}, // Any Auth will work
+            &inventory.allowlist
+        );
+
+        nft
     }
 
     /// Redeems NFT from `Inventory`
@@ -116,11 +127,13 @@ module nft_protocol::inventory {
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     ///
+    /// Requires `Allowlist` authority token. See
+    /// [transfer_with_auth](nft.html#transfer_with_auth).
+    ///
     /// #### Panics
     ///
-    /// Panics if `Warehouse` is empty or if `Factory` has a regulated supply
-    /// whose supply was exceeded.
-    public entry fun redeem_nft_and_transfer<C>(
+    /// Panics if no supply is available or authority token was invalid.
+    public entry fun transfer<C>(
         inventory: &mut Inventory<C>,
         owner: address,
         ctx: &mut TxContext,

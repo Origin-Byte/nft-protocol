@@ -1,18 +1,7 @@
 /// Exports error functions. All errors in this smart contract have a prefix
 /// which distinguishes them from errors in other packages.
 module nft_protocol::err {
-
     const Prefix: u64 = 13370000;
-
-    // === NFT & Collection ===
-
-    public fun not_nft_owner(): u64 {
-        return Prefix + 002
-    }
-
-    public fun mint_cap_mismatch(): u64 {
-        return Prefix + 003
-    }
 
     // === Supply ===
 
@@ -146,16 +135,6 @@ module nft_protocol::err {
         return Prefix + 410
     }
 
-    // === Allowlist ===
-
-    public fun authority_not_allowlisted(): u64 {
-        return Prefix + 500
-    }
-
-    public fun sender_not_allowlist_admin(): u64 {
-        return Prefix + 502
-    }
-
     // === Utils ===
 
     public fun witness_source_mismatch(): u64 {
@@ -164,22 +143,6 @@ module nft_protocol::err {
 
     public fun must_be_witness(): u64 {
         return Prefix + 601
-    }
-
-    public fun multisig_signers_must_not_be_empty(): u64 {
-        return Prefix + 602
-    }
-
-    public fun multisig_already_used(): u64 {
-        return Prefix + 603
-    }
-
-    public fun multisig_not_enough_signatures(): u64 {
-        return Prefix + 604
-    }
-
-    public fun multisig_not_enough_signers_weight(): u64 {
-        return Prefix + 605
     }
 
     // === Trading ===
@@ -208,23 +171,5 @@ module nft_protocol::err {
 
     public fun share_attribution_already_exists(): u64 {
         return Prefix + 803
-    }
-
-    public fun collection_does_not_have_plugin(): u64 {
-        return Prefix + 804
-    }
-
-    // === Generic ===
-
-    public fun generic_bag_full(): u64 {
-        return Prefix + 900
-    }
-
-    public fun generic_box_full(): u64 {
-        return Prefix + 901
-    }
-
-    public fun missing_dynamic_field(): u64 {
-        return Prefix + 902
     }
 }

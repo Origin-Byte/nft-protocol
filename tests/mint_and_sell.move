@@ -6,12 +6,12 @@ module nft_protocol::mint_and_sell {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
+    use nft_protocol::witness;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::fixed_price;
     use nft_protocol::collection;
     use nft_protocol::listing;
     use nft_protocol::warehouse;
-    use nft_protocol::inventory;
 
     use nft_protocol::test_listing;
 
@@ -35,7 +35,9 @@ module nft_protocol::mint_and_sell {
 
         // 2. Create `Warehouse`
         let inventory_id = listing::create_warehouse<COLLECTION>(
-            &mut listing, ctx(&mut scenario)
+            witness::from_witness(&Witness {}),
+            &mut listing,
+            ctx(&mut scenario),
         );
         let venue_id = fixed_price::create_venue<COLLECTION, SUI>(
             &mut listing, inventory_id, false, 100, ctx(&mut scenario)
@@ -43,7 +45,7 @@ module nft_protocol::mint_and_sell {
         listing::sale_on(&mut listing, venue_id, ctx(&mut scenario));
 
         // 3. Mint NFT to listing `Warehouse`
-        let nft = nft::new(&mint_cap, MARKETPLACE, ctx(&mut scenario));
+        let nft = nft::test_mint<COLLECTION>(MARKETPLACE, ctx(&mut scenario));
 
         let nft_id = object::id(&nft);
         listing::add_nft(&mut listing, inventory_id, nft, ctx(&mut scenario));
@@ -89,15 +91,20 @@ module nft_protocol::mint_and_sell {
         let warehouse = warehouse::new(ctx(&mut scenario));
 
         // 3. Mint NFT to `Warehouse`
-        let nft = nft::new(&mint_cap, MARKETPLACE, ctx(&mut scenario));
+        let nft = nft::test_mint<COLLECTION>(MARKETPLACE, ctx(&mut scenario));
 
         let nft_id = object::id(&nft);
         warehouse::deposit_nft(&mut warehouse, nft);
 
         // 4. Insert `Warehouse` into `Listing` and create market
-        let inventory = inventory::from_warehouse(warehouse, ctx(&mut scenario));
-        let inventory_id = object::id(&inventory);
-        listing::add_inventory(&mut listing, inventory, ctx(&mut scenario));
+        //
+        // For an entry function equivalent use `listing::add_warehouse`
+        let inventory_id = listing::insert_warehouse(
+            witness::from_witness(&Witness {}),
+            &mut listing,
+            warehouse,
+            ctx(&mut scenario)
+        );
 
         let venue_id = fixed_price::create_venue<COLLECTION, SUI>(
             &mut listing, inventory_id, false, 100, ctx(&mut scenario)

@@ -1,5 +1,6 @@
 #[test_only]
 module nft_protocol::test_safe {
+    use nft_protocol::witness;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
@@ -11,6 +12,7 @@ module nft_protocol::test_safe {
     use originmate::box;
 
     struct Foo {}
+
     struct Witness has drop {}
 
     const USER: address = @0xA1C04;
@@ -922,17 +924,13 @@ module nft_protocol::test_safe {
     }
 
     fun dummy_allowlist(scenario: &mut Scenario): Allowlist {
-        let col_cap = transfer_allowlist::create_collection_cap<Foo, Witness>(
-            &Witness {}, ctx(scenario),
-        );
-
         let wl = transfer_allowlist::create(&Witness {}, ctx(scenario));
+
         transfer_allowlist::insert_collection(
             &Witness {},
-            &col_cap,
+            witness::from_witness<Foo, Witness>(&Witness {}),
             &mut wl,
         );
-        transfer(col_cap, USER);
 
         wl
     }

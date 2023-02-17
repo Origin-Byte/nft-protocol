@@ -65,9 +65,7 @@ module nft_protocol::royalty {
     ///     }
     /// }
     /// ```
-    struct RoyaltyDomain has key, store {
-        /// `RoyaltyDomain` ID
-        id: UID,
+    struct RoyaltyDomain has store {
         /// Royalty strategies
         strategies: UID,
         /// Aggregates received royalties across different coins
@@ -109,7 +107,6 @@ module nft_protocol::royalty {
     ): RoyaltyDomain {
         assert_total_shares(&royalty_shares_bps);
         RoyaltyDomain {
-            id: object::new(ctx),
             strategies: object::new(ctx),
             aggregations: object::new(ctx),
             royalty_shares_bps,
