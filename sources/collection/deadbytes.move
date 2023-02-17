@@ -11,9 +11,11 @@ module nft_protocol::deadbytes {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
-    use nft_protocol::collection::{Self, Collection, MintCap};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::witness;
 
     /// One time witness is only instantiated in the init method
     struct DEADBYTES has drop {}
@@ -27,45 +29,41 @@ module nft_protocol::deadbytes {
         let (mint_cap, collection) = collection::create(
             &witness, ctx,
         );
-
+        let delegated_witness = witness::from_witness(&Witness {});
         collection::add_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
-            creators::from_address(tx_context::sender(ctx),
-            ctx)
+            creators::from_address<DEADBYTES, Witness>(&Witness {}, tx_context::sender(ctx)            )
         );
 
         // Register custom domains
         display::add_collection_display_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
             string::utf8(b"DeadBytes"),
-            string::utf8(b"A unique NFT collection of DeadBytes on Sui"),
-            ctx
+            string::utf8(b"A unique NFT collection of DeadBytes on Sui")
         );
 
         display::add_collection_url_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
-            ctx
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/")
         );
 
         display::add_collection_symbol_domain(
+            delegated_witness,
             &mut collection,
-            &mut mint_cap,
-            string::utf8(b"SUIM"),
-            ctx
+            string::utf8(b"SUIM")
         );
 
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
 
-        royalty::add_royalty_domain(&mut collection, &mut mint_cap, royalty);
+        royalty::add_royalty_domain(delegated_witness, &mut collection, royalty);
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&mut collection, &mut mint_cap, tags);
+        tags::add_collection_tag_domain(delegated_witness, &mut collection, tags);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
@@ -87,42 +85,42 @@ module nft_protocol::deadbytes {
         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
-    public entry fun mint_nft(
-        name: String,
-        description: String,
-        url: vector<u8>,
-        attribute_keys: vector<String>,
-        attribute_values: vector<String>,
-        _mint_cap: &MintCap<DEADBYTES>,
-        warehouse: &mut Warehouse,
-        ctx: &mut TxContext,
-    ) {
-        let nft = nft::new<DEADBYTES, Witness>(
-            &Witness {}, tx_context::sender(ctx), ctx
-        );
+    // public entry fun mint_nft(
+    //     name: String,
+    //     description: String,
+    //     url: vector<u8>,
+    //     attribute_keys: vector<String>,
+    //     attribute_values: vector<String>,
+    //     _mint_cap: &MintCap<DEADBYTES>,
+    //     warehouse: &mut Warehouse,
+    //     ctx: &mut TxContext,
+    // ) {
+    //     let nft = nft::new<DEADBYTES, Witness>(
+    //         &Witness {}, tx_context::sender(ctx), ctx
+    //     );
 
-        display::add_display_domain(
-            &mut nft,
-            name,
-            description,
-            ctx,
-        );
+    //     display::add_display_domain(
+    //         &mut nft,
+    //         name,
+    //         description,
+    //         ctx,
+    //     );
 
-        display::add_url_domain(
-            &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
-        );
+    //     display::add_url_domain(
+    //         &mut nft,
+    //         url::new_unsafe_from_bytes(url),
+    //         ctx,
+    //     );
 
-        display::add_attributes_domain_from_vec(
-            &mut nft,
-            attribute_keys,
-            attribute_values,
-            ctx,
-        );
+    //     display::add_attributes_domain_from_vec(
+    //         &mut nft,
+    //         attribute_keys,
+    //         attribute_values,
+    //         ctx,
+    //     );
 
-        warehouse::deposit_nft(warehouse, nft);
-    }
+    //     warehouse::deposit_nft(warehouse, nft);
+    // }
 
     public entry fun airdrop(
         name: String,
@@ -135,27 +133,27 @@ module nft_protocol::deadbytes {
         ctx: &mut TxContext,
     ) {
         let nft = nft::new<DEADBYTES, Witness>(
-            &Witness {}, tx_context::sender(ctx), ctx
+            &Witness {}, name, url::new_unsafe_from_bytes(url), tx_context::sender(ctx), ctx
         );
+        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
+            delegated_witness,
             &mut nft,
             name,
-            description,
-            ctx,
+            description
         );
 
         display::add_url_domain(
+            delegated_witness,
             &mut nft,
-            url::new_unsafe_from_bytes(url),
-            ctx,
+            url::new_unsafe_from_bytes(url)
         );
-
         display::add_attributes_domain_from_vec(
+            delegated_witness,
             &mut nft,
             attribute_keys,
-            attribute_values,
-            ctx,
+            attribute_values
         );
 
         transfer::transfer(nft, receiver);
