@@ -8,10 +8,10 @@
 /// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
 /// easily display your NFT.
 module nft_protocol::nft {
-    use std::string::{Self, String};
+    use std::string::String;
     use std::type_name::{Self, TypeName};
 
-    use sui::url::{Self, Url};
+    use sui::url::Url;
     use sui::event;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
@@ -503,6 +503,6 @@ module nft_protocol::nft {
     #[test_only]
     /// Create `Nft` without access to `MintCap` or derivatives
     public fun test_mint<C>(owner: address, ctx: &mut TxContext): Nft<C> {
-        new_(string::utf8(b""), url::new_unsafe_from_bytes(b""), owner, ctx)
+        new_(std::string::utf8(b""), sui::url::new_unsafe_from_bytes(b""), owner, ctx)
     }
 }
