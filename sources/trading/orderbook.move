@@ -248,6 +248,19 @@ module nft_protocol::orderbook {
         create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
 
+    /// Same as [`create_bid`] but creates a new safe for the sender first
+    public entry fun create_safe_and_bid<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        price: u64,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        let (buyer_safe, owner_cap) = safe::new(ctx);
+        create_bid<C, FT>(book, &mut buyer_safe, price, wallet, ctx);
+        share_object(buyer_safe);
+        transfer(owner_cap, tx_context::sender(ctx));
+    }
+
     /// Same as [`create_bid`] but with a
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
     public entry fun create_bid_with_commission<C, FT>(
@@ -290,6 +303,30 @@ module nft_protocol::orderbook {
         create_bid_<C, FT>(
             book, buyer_safe, price, option::some(commission), wallet, ctx,
         )
+    }
+
+    /// Same as [`create_safe_and_bid`] but with a
+    /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
+    public entry fun create_safe_and_bid_with_commission<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        price: u64,
+        beneficiary: address,
+        commission_ft: u64,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        let (buyer_safe, owner_cap) = safe::new(ctx);
+        create_bid_with_commission(
+            book,
+            &mut buyer_safe,
+            price,
+            beneficiary,
+            commission_ft,
+            wallet,
+            ctx,
+        );
+        share_object(buyer_safe);
+        transfer(owner_cap, tx_context::sender(ctx));
     }
 
     // === Cancel bid ===
@@ -635,6 +672,21 @@ module nft_protocol::orderbook {
 
         let (cap, commission) = cancel_ask_(book, old_price, nft_id, ctx);
         create_ask_(book, new_price, commission, cap, seller_safe, ctx);
+    }
+
+    /// Cancels the old bid and creates a new one with new price.
+    public entry fun edit_bid<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        buyer_safe: &mut Safe,
+        old_price: u64,
+        new_price: u64,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(!book.protected_actions.cancel_bid, err::action_not_public());
+        assert!(!book.protected_actions.create_bid, err::action_not_public());
+
+        edit_bid_(book, buyer_safe, old_price, new_price, wallet, ctx);
     }
 
     // === Buy NFT ===
@@ -1123,12 +1175,12 @@ module nft_protocol::orderbook {
         }
     }
 
-    fun cancel_bid_<C, FT>(
+    fun cancel_bid_except_commission_<C, FT>(
         book: &mut Orderbook<C, FT>,
         bid_price_level: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Option<BidCommission<FT>> {
         let sender = tx_context::sender(ctx);
 
         event::emit(BidClosedEvent {
@@ -1166,6 +1218,18 @@ module nft_protocol::orderbook {
             offer,
         );
 
+        commission
+    }
+
+    fun cancel_bid_<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        bid_price_level: u64,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        let commission =
+            cancel_bid_except_commission_(book, bid_price_level, wallet, ctx);
+
         if (option::is_some(&commission)) {
             let (cut, _beneficiary) =
                 destroy_bid_commission(option::extract(&mut commission));
@@ -1175,6 +1239,20 @@ module nft_protocol::orderbook {
             );
         };
         option::destroy_none(commission);
+    }
+
+    fun edit_bid_<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        buyer_safe: &mut Safe,
+        old_price: u64,
+        new_price: u64,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        let commission =
+            cancel_bid_except_commission_(book, old_price, wallet, ctx);
+
+        create_bid_(book, buyer_safe, new_price, commission, wallet, ctx);
     }
 
     fun create_ask_<C, FT>(
