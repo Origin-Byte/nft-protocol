@@ -52,20 +52,30 @@ module nft_protocol::orderbook {
 
     // === Errors ===
 
+    /// A protected action was called without a witness.
+    /// This action can only be called from an implementation in the collection
+    /// smart contract.
     const EACTION_NOT_PUBLIC: u64 = 0;
 
+    /// # of nfts and # of requested prices must match
     const EINPUT_LENGTH_MISMATCH: u64 = 1;
 
+    /// Cannot make sell commission higher than listed price
     const ECOMMISSION_TOO_HIGH: u64 = 2;
 
+    /// Must list at least one NFT
     const EEMPTY_INPUT: u64 = 3;
 
+    /// The NFT lives in a safe which also wanted to buy it
     const ECANNOT_TRADE_WITH_SELF: u64 = 4;
 
+    /// User doesn't own this order
     const EORDER_OWNER_MUST_BE_SENDER: u64 = 5;
 
+    /// Expected different safe
     const ESAFE_ID_MISMATCH: u64 = 6;
 
+    /// No order matches the given price level or ownership level
     const EORDER_DOES_NOT_EXIST: u64 = 7;
 
     // === Structs ===
