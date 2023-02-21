@@ -1428,7 +1428,7 @@ module nft_protocol::orderbook {
             nft: nft_id,
             price,
             seller_safe: object::id(seller_safe),
-            seller: tx_context::sender(ctx),
+            seller,
             trade_intermediate: option::none(),
         });
 

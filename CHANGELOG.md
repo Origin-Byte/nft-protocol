@@ -16,6 +16,10 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   - `create_safe_and_bid`
   - `create_safe_and_bid_with_commission`
 
+### Fixed
+
+- Wrong `seller` field in `TradeFilledEvent` when calling the `buy_nft` endpoint
+
 ## [0.23.0] - 2023-02-16
 
 ### Added
