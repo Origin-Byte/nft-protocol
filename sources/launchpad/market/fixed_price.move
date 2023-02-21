@@ -240,7 +240,7 @@ module nft_protocol::fixed_price {
     ///
     /// - If `Venue` does not exist, is not live, or is not whitelisted
     /// - If whitelist `Certificate` was not issued for given market
-    public entry fun create_safe_buy_whitelisted_nft<C, FT>(
+    public entry fun create_safe_and_buy_whitelisted_nft<C, FT>(
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
