@@ -17,7 +17,7 @@ module nft_protocol::test_ob_commission {
     const OFFER_SUI: u64 = 100;
 
     #[test]
-    #[expected_failure(abort_code = 13370701, location = nft_protocol::orderbook)]
+    #[expected_failure(abort_code = 2, location = nft_protocol::orderbook)]
     fun it_cannot_create_ask_with_commission_greater_than_requested_tokens() {
         let scenario = test_scenario::begin(CREATOR);
 

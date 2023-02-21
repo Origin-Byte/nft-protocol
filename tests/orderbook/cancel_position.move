@@ -18,7 +18,7 @@ module nft_protocol::test_ob_cancel_position {
     const COMMISSION_SUI: u64 = 10;
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
+    #[expected_failure(abort_code = 7, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_non_existing_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -37,7 +37,7 @@ module nft_protocol::test_ob_cancel_position {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
+    #[expected_failure(abort_code = 7, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_someone_elses_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -223,7 +223,7 @@ module nft_protocol::test_ob_cancel_position {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
+    #[expected_failure(abort_code = 7, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_non_existing_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -240,7 +240,7 @@ module nft_protocol::test_ob_cancel_position {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370302, location = nft_protocol::orderbook)]
+    #[expected_failure(abort_code = 5, location = nft_protocol::orderbook)]
     fun it_cannot_cancel_someone_elses_bid() {
         let scenario = test_scenario::begin(CREATOR);
 

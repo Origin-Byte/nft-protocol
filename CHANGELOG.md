@@ -15,10 +15,15 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   - `edit_bid`
   - `create_safe_and_bid`
   - `create_safe_and_bid_with_commission`
+  - `list_multiple_nfts`
 
 ### Fixed
 
 - Wrong `seller` field in `TradeFilledEvent` when calling the `buy_nft` endpoint
+
+### Changed
+
+- Moved errors from `err` module into `orderbook` module where they are expressed as constants.
 
 ## [0.23.0] - 2023-02-16
 
