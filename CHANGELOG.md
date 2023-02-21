@@ -16,6 +16,12 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   - `create_safe_and_bid`
   - `create_safe_and_bid_with_commission`
   - `list_multiple_nfts`
+- Helper endpoints in launchpad which allow marketplaces to perform actions in a single tx.
+  The marketplaces can now
+  - `create_safe_and_buy_whitelisted_nft`
+  - `create_safe_and_buy_nft`
+  - `buy_nft_into_safe`
+  - `buy_whitelisted_nft_into_safe`
 
 ### Fixed
 
