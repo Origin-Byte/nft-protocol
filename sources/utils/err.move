@@ -85,10 +85,6 @@ module nft_protocol::err {
         return Prefix + 303
     }
 
-    public fun action_not_public(): u64 {
-        return Prefix + 304
-    }
-
     // === Safe ===
 
     public fun safe_cap_mismatch(): u64 {
@@ -149,10 +145,6 @@ module nft_protocol::err {
 
     public fun sender_not_owner(): u64 {
         return Prefix + 700
-    }
-
-    public fun commission_too_high(): u64 {
-        return Prefix + 701
     }
 
     // === Domains ===

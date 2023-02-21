@@ -286,7 +286,7 @@ module nft_protocol::test_ob_trade {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370301, location = nft_protocol::orderbook)]
+    #[expected_failure(abort_code = 7, location = nft_protocol::orderbook)]
     fun it_fails_if_nft_does_not_exist() {
         let scenario = test_scenario::begin(CREATOR);
 
