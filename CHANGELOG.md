@@ -31,6 +31,12 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 - Moved errors from `err` module into `orderbook` module where they are expressed as constants.
 
+## [0.23.1] - 2023-02-18
+
+### Changed
+
+- Updated to Devnet 0.26.1
+
 ## [0.23.0] - 2023-02-16
 
 ### Added
