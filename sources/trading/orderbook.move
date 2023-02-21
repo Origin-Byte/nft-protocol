@@ -22,7 +22,6 @@ module nft_protocol::orderbook {
     // TODO: do we allow anyone to create an OB for any collection?
     // TODO: settings to skip royalty settlement (witness protected)
 
-    use nft_protocol::err;
     use nft_protocol::safe::{Self, Safe, TransferCap};
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils;
@@ -50,6 +49,36 @@ module nft_protocol::orderbook {
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
+
+    // === Errors ===
+
+    /// A protected action was called without a witness.
+    /// This action can only be called from an implementation in the collection
+    /// smart contract.
+    const EACTION_NOT_PUBLIC: u64 = 0;
+
+    /// # of nfts and # of requested prices must match
+    const EINPUT_LENGTH_MISMATCH: u64 = 1;
+
+    /// Cannot make sell commission higher than listed price
+    const ECOMMISSION_TOO_HIGH: u64 = 2;
+
+    /// Must list at least one NFT
+    const EEMPTY_INPUT: u64 = 3;
+
+    /// The NFT lives in a safe which also wanted to buy it
+    const ECANNOT_TRADE_WITH_SELF: u64 = 4;
+
+    /// User doesn't own this order
+    const EORDER_OWNER_MUST_BE_SENDER: u64 = 5;
+
+    /// Expected different safe
+    const ESAFE_ID_MISMATCH: u64 = 6;
+
+    /// No order matches the given price level or ownership level
+    const EORDER_DOES_NOT_EXIST: u64 = 7;
+
+    // === Structs ===
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
@@ -229,7 +258,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.create_bid, err::action_not_public());
+        assert!(!book.protected_actions.create_bid, EACTION_NOT_PUBLIC);
         create_bid_<C, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
     }
 
@@ -272,7 +301,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.create_bid, err::action_not_public());
+        assert!(!book.protected_actions.create_bid, EACTION_NOT_PUBLIC);
         let commission = new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
@@ -339,7 +368,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.cancel_bid, err::action_not_public());
+        assert!(!book.protected_actions.cancel_bid, EACTION_NOT_PUBLIC);
         cancel_bid_(book, bid_price_level, wallet, ctx)
     }
 
@@ -371,7 +400,7 @@ module nft_protocol::orderbook {
         seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.create_ask, err::action_not_public());
+        assert!(!book.protected_actions.create_ask, EACTION_NOT_PUBLIC);
         create_ask_<C, FT>(
             book, requested_tokens, option::none(), transfer_cap, seller_safe, ctx
         )
@@ -394,6 +423,38 @@ module nft_protocol::orderbook {
         );
 
         create_ask(book, requested_tokens, transfer_cap, seller_safe, ctx)
+    }
+
+    /// Provide list of NFTs and corresponding prices (index # match.)
+    ///
+    /// The NFTs must be deposited in the seller's safe.
+    ///
+    /// #### Panics
+    /// * If `nfts` and `prices` have different lengths
+    /// * If `nfts` is empty
+    public entry fun list_multiple_nfts<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nfts: vector<ID>,
+        prices: vector<u64>,
+        owner_cap: &safe::OwnerCap,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        assert!(
+            vector::length(&nfts) == vector::length(&prices),
+            EINPUT_LENGTH_MISMATCH,
+        );
+        assert!(vector::length(&nfts) > 0, EEMPTY_INPUT);
+
+        let i = 0;
+        while (i < vector::length(&nfts)) {
+            let nft = vector::borrow(&nfts, i);
+            let price = vector::borrow(&prices, i);
+
+            list_nft(book, *price, *nft, owner_cap, seller_safe, ctx);
+
+            i = i + 1;
+        }
     }
 
     /// 1. Deposits an NFT to safe
@@ -469,8 +530,8 @@ module nft_protocol::orderbook {
         seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.create_ask, err::action_not_public());
-        assert!(commission < requested_tokens, err::commission_too_high());
+        assert!(!book.protected_actions.create_ask, EACTION_NOT_PUBLIC);
+        assert!(commission < requested_tokens, ECOMMISSION_TOO_HIGH);
 
         let commission = new_ask_commission(
             beneficiary,
@@ -586,7 +647,7 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<C, W>();
-        assert!(commission < requested_tokens, err::commission_too_high());
+        assert!(commission < requested_tokens, ECOMMISSION_TOO_HIGH);
 
         let commission = new_ask_commission(
             beneficiary,
@@ -619,7 +680,7 @@ module nft_protocol::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.cancel_ask, err::action_not_public());
+        assert!(!book.protected_actions.cancel_ask, EACTION_NOT_PUBLIC);
         let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
         transfer(cap, tx_context::sender(ctx));
     }
@@ -647,7 +708,7 @@ module nft_protocol::orderbook {
         seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.cancel_ask, err::action_not_public());
+        assert!(!book.protected_actions.cancel_ask, EACTION_NOT_PUBLIC);
         let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
         safe::burn_transfer_cap(cap, seller_safe);
     }
@@ -667,8 +728,8 @@ module nft_protocol::orderbook {
         seller_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.cancel_ask, err::action_not_public());
-        assert!(!book.protected_actions.create_ask, err::action_not_public());
+        assert!(!book.protected_actions.cancel_ask, EACTION_NOT_PUBLIC);
+        assert!(!book.protected_actions.create_ask, EACTION_NOT_PUBLIC);
 
         let (cap, commission) = cancel_ask_(book, old_price, nft_id, ctx);
         create_ask_(book, new_price, commission, cap, seller_safe, ctx);
@@ -683,8 +744,8 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.cancel_bid, err::action_not_public());
-        assert!(!book.protected_actions.create_bid, err::action_not_public());
+        assert!(!book.protected_actions.cancel_bid, EACTION_NOT_PUBLIC);
+        assert!(!book.protected_actions.create_bid, EACTION_NOT_PUBLIC);
 
         edit_bid_(book, buyer_safe, old_price, new_price, wallet, ctx);
     }
@@ -717,7 +778,7 @@ module nft_protocol::orderbook {
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.buy_nft, err::action_not_public());
+        assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_nft_<C, FT>(
             book, nft_id, price, wallet, seller_safe, buyer_safe, allowlist, ctx
         )
@@ -738,7 +799,7 @@ module nft_protocol::orderbook {
         let buyer = tx_context::sender(ctx);
         let (buyer_safe, owner_cap) = safe::new(ctx);
 
-        assert!(!book.protected_actions.buy_nft, err::action_not_public());
+        assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_nft_<C, FT>(
             book, nft_id, price, wallet, seller_safe, &mut buyer_safe, allowlist, ctx
         );
@@ -758,7 +819,7 @@ module nft_protocol::orderbook {
         buyer_safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
-        assert!(!book.protected_actions.buy_nft, err::action_not_public());
+        assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_generic_nft_<C, FT>(
             book, nft_id, price, wallet, seller_safe, buyer_safe, ctx
         )
@@ -778,7 +839,7 @@ module nft_protocol::orderbook {
         let buyer = tx_context::sender(ctx);
         let (buyer_safe, owner_cap) = safe::new(ctx);
 
-        assert!(!book.protected_actions.buy_nft, err::action_not_public());
+        assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_generic_nft_<C, FT>(
             book, nft_id, price, wallet, seller_safe, &mut buyer_safe, ctx
         );
@@ -1112,7 +1173,7 @@ module nft_protocol::orderbook {
             let seller_safe = safe::transfer_cap_safe(&transfer_cap);
             assert!(
                 seller_safe != buyer_safe_id,
-                err::cannot_trade_with_self(),
+                ECANNOT_TRADE_WITH_SELF,
             );
 
             // see also `finish_trade` entry point
@@ -1193,7 +1254,7 @@ module nft_protocol::orderbook {
 
         assert!(
             crit_bit::has_key(bids, bid_price_level),
-            err::order_does_not_exist()
+            EORDER_DOES_NOT_EXIST
         );
 
         let price_level = crit_bit::borrow_mut(bids, bid_price_level);
@@ -1208,7 +1269,7 @@ module nft_protocol::orderbook {
 
             index = index + 1;
         };
-        assert!(index < bids_count, err::order_owner_must_be_sender());
+        assert!(index < bids_count, EORDER_OWNER_MUST_BE_SENDER);
 
         let Bid { offer, owner: _owner, commission, safe: _safe } =
             vector::remove(price_level, index);
@@ -1301,7 +1362,7 @@ module nft_protocol::orderbook {
             } = bid;
             assert!(
                 buyer_safe_id != seller_safe_id,
-                err::cannot_trade_with_self(),
+                ECANNOT_TRADE_WITH_SELF,
             );
             let paid = balance::value(&bid_offer);
 
@@ -1393,7 +1454,7 @@ module nft_protocol::orderbook {
             owner: sender
         });
 
-        assert!(owner == sender, err::order_owner_must_be_sender());
+        assert!(owner == sender, EORDER_OWNER_MUST_BE_SENDER);
 
         (transfer_cap, commission)
     }
@@ -1527,7 +1588,7 @@ module nft_protocol::orderbook {
         safe::assert_transfer_cap_exclusive(&transfer_cap);
         assert!(
             *expected_buyer_safe_id == object::id(buyer_safe),
-            err::safe_id_mismatch(),
+            ESAFE_ID_MISMATCH,
         );
 
         settle_funds_with_royalties<C, FT>(
@@ -1570,7 +1631,7 @@ module nft_protocol::orderbook {
         safe::assert_transfer_cap_exclusive(&transfer_cap);
         assert!(
             *expected_buyer_safe_id == object::id(buyer_safe),
-            err::safe_id_mismatch(),
+            ESAFE_ID_MISMATCH,
         );
 
         settle_funds_no_royalties<C, FT>(
@@ -1593,7 +1654,7 @@ module nft_protocol::orderbook {
     fun remove_ask(asks: &mut CBTree<vector<Ask>>, price: u64, nft_id: ID): Ask {
         assert!(
             crit_bit::has_key(asks, price),
-            err::order_does_not_exist()
+            EORDER_DOES_NOT_EXIST
         );
 
         let price_level = crit_bit::borrow_mut(asks, price);
@@ -1610,7 +1671,7 @@ module nft_protocol::orderbook {
             index = index + 1;
         };
 
-        assert!(index < asks_count, err::order_does_not_exist());
+        assert!(index < asks_count, EORDER_DOES_NOT_EXIST);
 
         vector::remove(price_level, index)
     }
