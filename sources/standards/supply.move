@@ -66,8 +66,8 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is already regulated.
-    public fun regulate<C>(
-        witness: DelegatedWitness<C>,
+    public fun regulate<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
         max: u64,
         frozen: bool,

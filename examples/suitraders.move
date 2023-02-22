@@ -30,7 +30,7 @@ module nft_protocol::suitraders {
         let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             creators::from_address<SUITRADERS, Witness>(
                 &Witness {}, tx_context::sender(ctx),
@@ -39,20 +39,20 @@ module nft_protocol::suitraders {
 
         // Register custom domains
         display::add_collection_display_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             string::utf8(b"Suitraders"),
             string::utf8(b"A unique NFT collection of Suitraders on Sui"),
         );
 
         display::add_collection_url_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         display::add_collection_symbol_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             string::utf8(b"SUITR"),
         );
@@ -60,7 +60,7 @@ module nft_protocol::suitraders {
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             royalty,
         );
@@ -68,7 +68,7 @@ module nft_protocol::suitraders {
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             tags,
         );
@@ -134,16 +134,15 @@ module nft_protocol::suitraders {
         let url = url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
-            delegated_witness, &mut nft, name, description,
+            &Witness {}, &mut nft, name, description,
         );
 
-        display::add_url_domain(delegated_witness, &mut nft, url);
+        display::add_url_domain(&Witness {}, &mut nft, url);
 
         display::add_attributes_domain_from_vec(
-            delegated_witness, &mut nft, attribute_keys, attribute_values,
+            &Witness {}, &mut nft, attribute_keys, attribute_values,
         );
 
         warehouse::deposit_nft(warehouse, nft);

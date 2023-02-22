@@ -10,7 +10,6 @@ module nft_protocol::footbytes {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::template;
     use nft_protocol::templates;
@@ -28,10 +27,9 @@ module nft_protocol::footbytes {
 
     fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
 
         collection::add_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             creators::from_address<FOOTBYTES, Witness>(
                 &Witness {}, tx_context::sender(ctx),
@@ -40,20 +38,20 @@ module nft_protocol::footbytes {
 
         // Register custom domains
         display::add_collection_display_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             string::utf8(b"Football digital stickers"),
             string::utf8(b"A NFT collection of football player collectibles"),
         );
 
         display::add_collection_url_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         display::add_collection_symbol_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             string::utf8(b"FOOT"),
         );
@@ -61,7 +59,7 @@ module nft_protocol::footbytes {
         let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             royalty,
         );
@@ -69,13 +67,13 @@ module nft_protocol::footbytes {
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(
-            delegated_witness,
+            &Witness {},
             &mut collection,
             tags,
         );
 
-        templates::init_templates<FOOTBYTES>(
-            delegated_witness,
+        templates::init_templates<FOOTBYTES, Witness>(
+            &Witness {},
             &mut collection,
             ctx,
         );
@@ -111,13 +109,12 @@ module nft_protocol::footbytes {
         let url = url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_display_domain(
-            delegated_witness, &mut nft, name, description,
+            &Witness {}, &mut nft, name, description,
         );
 
-        display::add_url_domain(delegated_witness, &mut nft, url);
+        display::add_url_domain(&Witness {}, &mut nft, url);
 
         let template = template::new_regulated(nft, supply, ctx);
         templates::add_collection_template(mint_cap, collection, template);

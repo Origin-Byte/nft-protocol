@@ -12,6 +12,7 @@ module nft_protocol::display {
     use sui::url::Url;
     use sui::vec_map::{Self, VecMap};
 
+    use nft_protocol::witness;
     use nft_protocol::utils;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness::Witness as DelegatedWitness;
@@ -20,7 +21,7 @@ module nft_protocol::display {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    struct DisplayDomain has store {
+    struct DisplayDomain has drop, store {
         name: String,
         description: String,
     }
@@ -85,8 +86,8 @@ module nft_protocol::display {
         collection::borrow_domain(nft)
     }
 
-    public fun add_display_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_display_domain<C, W>(
+        witness: &W,
         nft: &mut Nft<C>,
         name: String,
         description: String,
@@ -96,8 +97,8 @@ module nft_protocol::display {
         );
     }
 
-    public fun add_collection_display_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_collection_display_domain<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
         name: String,
         description: String,
@@ -105,6 +106,20 @@ module nft_protocol::display {
         collection::add_domain(
             witness, collection, new_display_domain(name, description)
         );
+    }
+
+    public fun remove_display_domain<C, W>(
+        witness: &W,
+        nft: &mut Nft<C>,
+    ): DisplayDomain {
+        remove_display_domain_delegated(witness::from_witness(witness), nft)
+    }
+
+    public fun remove_display_domain_delegated<C>(
+        _witness: DelegatedWitness<C>,
+        nft: &mut Nft<C>,
+    ): DisplayDomain {
+        nft::remove_domain<C, Witness, DisplayDomain>(Witness {}, nft)
     }
 
     // === UrlDomain ===
@@ -155,16 +170,16 @@ module nft_protocol::display {
         option::some(*url(collection::borrow_domain<C, UrlDomain>(nft)))
     }
 
-    public fun add_url_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_url_domain<C, W>(
+        witness: &W,
         nft: &mut Nft<C>,
         url: Url,
     ) {
         nft::add_domain(witness, nft, new_url_domain(url));
     }
 
-    public fun add_collection_url_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_collection_url_domain<C, W>(
+        witness: &W,
         nft: &mut Collection<C>,
         url: Url,
     ) {
@@ -221,16 +236,16 @@ module nft_protocol::display {
         option::some(*symbol(collection::borrow_domain<C, SymbolDomain>(nft)))
     }
 
-    public fun add_symbol_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_symbol_domain<C, W>(
+        witness: &W,
         nft: &mut Nft<C>,
         symbol: String,
     ) {
         nft::add_domain(witness, nft, new_symbol_domain(symbol));
     }
 
-    public fun add_collection_symbol_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_collection_symbol_domain<C, W>(
+        witness: &W,
         nft: &mut Collection<C>,
         symbol: String,
     ) {
@@ -288,8 +303,8 @@ module nft_protocol::display {
         nft::borrow_domain_mut(Witness {}, nft)
     }
 
-    public fun add_attributes_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_attributes_domain<C, W>(
+        witness: &W,
         nft: &mut Nft<C>,
         map: VecMap<String, String>,
     ) {
@@ -298,16 +313,14 @@ module nft_protocol::display {
         );
     }
 
-    public fun add_attributes_domain_from_vec<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_attributes_domain_from_vec<C, W>(
+        witness: &W,
         nft: &mut Nft<C>,
         keys: vector<String>,
         values: vector<String>,
     ) {
         nft::add_domain(
-            witness,
-            nft,
-            new_attributes_domain_from_vec(keys, values),
+            witness, nft, new_attributes_domain_from_vec(keys, values),
         );
     }
 }

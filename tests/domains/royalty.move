@@ -3,7 +3,6 @@ module nft_protocol::test_royalty {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::witness;
     use nft_protocol::collection;
     use nft_protocol::royalty::{Self, RoyaltyDomain};
 
@@ -23,7 +22,7 @@ module nft_protocol::test_royalty {
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_constant_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(
-            witness::from_witness(&Witness {}),
+            &Witness {},
             &mut collection,
             royalty,
         );
