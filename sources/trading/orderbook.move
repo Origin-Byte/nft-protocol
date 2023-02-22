@@ -577,6 +577,54 @@ module nft_protocol::orderbook {
         )
     }
 
+    /// Same as [`list_multiple_nfts`] but with a
+    /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
+    ///
+    /// The commission is a vector which is associated with the NFTs by index.
+    ///
+    /// #### Panics
+    /// If the commissions length does not match the NFTs length.
+    public entry fun list_multiple_nfts_with_commission<C, FT>(
+        book: &mut Orderbook<C, FT>,
+        nfts: vector<ID>,
+        prices: vector<u64>,
+        beneficiary: address,
+        commissions: vector<u64>,
+        owner_cap: &safe::OwnerCap,
+        seller_safe: &mut Safe,
+        ctx: &mut TxContext,
+    ) {
+        assert!(
+            vector::length(&nfts) == vector::length(&prices),
+            EINPUT_LENGTH_MISMATCH,
+        );
+        assert!(
+            vector::length(&nfts) == vector::length(&commissions),
+            EINPUT_LENGTH_MISMATCH,
+        );
+        assert!(vector::length(&nfts) > 0, EEMPTY_INPUT);
+
+        let i = 0;
+        while (i < vector::length(&nfts)) {
+            let nft = vector::borrow(&nfts, i);
+            let price = vector::borrow(&prices, i);
+            let commission = vector::borrow(&commissions, i);
+
+            list_nft_with_commission(
+                book,
+                *price,
+                *nft,
+                owner_cap,
+                beneficiary,
+                *commission,
+                seller_safe,
+                ctx,
+            );
+
+            i = i + 1;
+        }
+    }
+
     /// Same as [`deposit_and_list_nft_with`] but with a
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
     public entry fun deposit_and_list_nft_with_commission<T: key + store, C, FT>(
