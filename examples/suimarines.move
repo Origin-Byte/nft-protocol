@@ -1,10 +1,11 @@
 module nft_protocol::suimarines {
     use std::string::{Self, String};
 
-    use sui::url;
     use sui::balance;
+    use sui::object;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
+    use sui::url;
 
     use nft_protocol::nft;
     use nft_protocol::tags;
@@ -79,7 +80,7 @@ module nft_protocol::suimarines {
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            transfer_allowlist_domain::empty(),
+            transfer_allowlist_domain::from_id(object::id(&allowlist)),
         );
 
         transfer::transfer(mint_cap, sender);
