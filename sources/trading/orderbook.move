@@ -579,6 +579,11 @@ module nft_protocol::orderbook {
 
     /// Same as [`list_multiple_nfts`] but with a
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
+    ///
+    /// The commission is a vector which is associated with the NFTs by index.
+    ///
+    /// #### Panics
+    /// If the commissions length does not match the NFTs length.
     public entry fun list_multiple_nfts_with_commission<C, FT>(
         book: &mut Orderbook<C, FT>,
         nfts: vector<ID>,
