@@ -9,7 +9,7 @@
 module nft_protocol::supply_domain {
     use sui::transfer;
     use sui::object;
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
 
     use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection};
@@ -147,10 +147,11 @@ module nft_protocol::supply_domain {
         mint_cap: &MintCap<C>,
         collection: &mut Collection<C>,
         value: u64,
+        receiver: address,
         ctx: &mut TxContext,
     ) {
         let delegated = delegate(mint_cap, collection, value, ctx);
-        transfer::transfer(delegated, tx_context::sender(ctx));
+        transfer::transfer(delegated, receiver);
     }
 
     /// Merge delegated `RegulatedMintCap`
@@ -201,10 +202,11 @@ module nft_protocol::supply_domain {
     public entry fun delegate_unregulated_and_transfer<C>(
         mint_cap: &MintCap<C>,
         collection: &Collection<C>,
+        receiver: address,
         ctx: &mut TxContext,
     ) {
         let delegated = delegate_unregulated(mint_cap, collection, ctx);
-        transfer::transfer(delegated, tx_context::sender(ctx));
+        transfer::transfer(delegated, receiver);
     }
 
     /// Increases maximum supply
