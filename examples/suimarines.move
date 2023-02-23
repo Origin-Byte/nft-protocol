@@ -13,7 +13,7 @@ module nft_protocol::suimarines {
     use nft_protocol::display;
     use nft_protocol::witness;
     use nft_protocol::creators;
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
@@ -125,6 +125,10 @@ module nft_protocol::suimarines {
 
         display::add_attributes_domain_from_vec(
             &Witness {}, &mut nft, attribute_keys, attribute_values,
+        );
+
+        display::add_collection_id_domain(
+            delegated_witness, &mut nft, mint_cap::collection_id(mint_cap),
         );
 
         warehouse::deposit_nft(warehouse, nft);
