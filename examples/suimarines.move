@@ -2,7 +2,6 @@ module nft_protocol::suimarines {
     use std::string::{Self, String};
 
     use sui::balance;
-    use sui::object;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::url;
