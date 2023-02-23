@@ -72,6 +72,7 @@ module nft_protocol::supply_domain {
         max: u64,
         frozen: bool,
     ) {
+        assert_unregulated(collection);
         collection::add_domain(witness, collection, new<C>(max, frozen));
     }
 
@@ -121,6 +122,8 @@ module nft_protocol::supply_domain {
         value: u64,
         ctx: &mut TxContext,
     ): RegulatedMintCap<C> {
+        assert_regulated(collection);
+
         let collection_id = object::id(collection);
         let supply = supply::extend(supply_mut(collection), value);
         mint_cap::new_regulated(mint_cap, collection_id, supply, ctx)
@@ -179,6 +182,8 @@ module nft_protocol::supply_domain {
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ): UnregulatedMintCap<C> {
+        assert_unregulated(collection);
+
         let collection_id = object::id(collection);
         mint_cap::new_unregulated(mint_cap, collection_id, ctx)
     }
