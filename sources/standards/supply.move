@@ -180,7 +180,7 @@ module nft_protocol::supply_domain {
     /// Panics if collection is regulated.
     public fun delegate_unregulated<C>(
         mint_cap: &MintCap<C>,
-        collection: &mut Collection<C>,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ): UnregulatedMintCap<C> {
         assert_unregulated(collection);
@@ -200,7 +200,7 @@ module nft_protocol::supply_domain {
     /// Panics if collection is regulated.
     public entry fun delegate_unregulated_and_transfer<C>(
         mint_cap: &MintCap<C>,
-        collection: &mut Collection<C>,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ) {
         let delegated = delegate_unregulated(mint_cap, collection, ctx);
