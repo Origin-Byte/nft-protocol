@@ -40,6 +40,7 @@ module nft_protocol::supply_domain {
     /// Panics if `SupplyDomain` is not registered on `Collection`.
     public fun supply<C>(collection: &Collection<C>): &Supply {
         assert_regulated(collection);
+
         let domain: &SupplyDomain<C> = collection::borrow_domain(collection);
         &domain.supply
     }
@@ -51,6 +52,7 @@ module nft_protocol::supply_domain {
     /// Panics if `SupplyDomain` is not registered on `Collection`.
     fun supply_mut<C>(collection: &mut Collection<C>): &mut Supply {
         assert_regulated(collection);
+
         let domain: &mut SupplyDomain<C> =
             collection::borrow_domain_mut(Witness {}, collection);
         &mut domain.supply
@@ -86,6 +88,7 @@ module nft_protocol::supply_domain {
         collection: &mut Collection<C>,
     ) {
         supply::assert_not_frozen(supply(collection));
+
         let SupplyDomain<C> { supply } =
             collection::remove_domain(Witness {}, collection);
         supply::assert_zero(&supply);
@@ -122,8 +125,6 @@ module nft_protocol::supply_domain {
         value: u64,
         ctx: &mut TxContext,
     ): RegulatedMintCap<C> {
-        assert_regulated(collection);
-
         let collection_id = object::id(collection);
         let supply = supply::extend(supply_mut(collection), value);
         mint_cap::new_regulated(mint_cap, collection_id, supply, ctx)
