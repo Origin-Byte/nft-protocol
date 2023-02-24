@@ -88,7 +88,6 @@ module nft_protocol::supply_domain {
         collection: &mut Collection<C>,
     ) {
         supply::assert_not_frozen(supply(collection));
-
         let SupplyDomain<C> { supply } =
             collection::remove_domain(Witness {}, collection);
         supply::assert_zero(&supply);
