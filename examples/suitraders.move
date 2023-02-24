@@ -146,7 +146,7 @@ module nft_protocol::suitraders {
         );
 
         display::add_collection_id_domain(
-            delegated_witness, &mut nft, mint_cap::collection_id(mint_cap),
+            &Witness {}, &mut nft, mint_cap::collection_id(mint_cap),
         );
 
         warehouse::deposit_nft(warehouse, nft);

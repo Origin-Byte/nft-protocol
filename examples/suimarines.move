@@ -1,6 +1,7 @@
 module nft_protocol::suimarines {
     use std::string::{Self, String};
 
+    use sui::object;
     use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
@@ -127,7 +128,7 @@ module nft_protocol::suimarines {
         );
 
         display::add_collection_id_domain(
-            delegated_witness, &mut nft, mint_cap::collection_id(mint_cap),
+            &Witness {}, &mut nft, mint_cap::collection_id(mint_cap),
         );
 
         warehouse::deposit_nft(warehouse, nft);

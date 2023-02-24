@@ -363,8 +363,8 @@ module nft_protocol::display {
         nft::borrow_domain(nft)
     }
 
-    public fun add_collection_id_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_collection_id_domain<C, W>(
+        witness: &W,
         nft: &mut Nft<C>,
         collection_id: ID,
     ) {
