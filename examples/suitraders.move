@@ -15,7 +15,7 @@ module nft_protocol::suitraders {
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::mint_cap::{Self, MintCap};
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -143,6 +143,10 @@ module nft_protocol::suitraders {
 
         display::add_attributes_domain_from_vec(
             &Witness {}, &mut nft, attribute_keys, attribute_values,
+        );
+
+        display::add_collection_id_domain(
+            &Witness {}, &mut nft, mint_cap::collection_id(mint_cap),
         );
 
         warehouse::deposit_nft(warehouse, nft);

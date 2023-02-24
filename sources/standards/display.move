@@ -10,6 +10,7 @@ module nft_protocol::display {
     use std::option::{Self, Option};
 
     use sui::url::Url;
+    use sui::object::ID;
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::witness;
@@ -321,6 +322,54 @@ module nft_protocol::display {
     ) {
         nft::add_domain(
             witness, nft, new_attributes_domain_from_vec(keys, values),
+        );
+    }
+
+    struct CollectionIdDomain has store {
+        collection_id: ID,
+    }
+
+    /// Gets name of `CollectionIdDomain`
+    public fun collection_id(domain: &CollectionIdDomain): &ID {
+        &domain.collection_id
+    }
+
+    /// Creates a new `CollectionIdDomain` with name
+    public fun new_collection_id_domain(
+        collection_id: ID,
+    ): CollectionIdDomain {
+        CollectionIdDomain { collection_id }
+    }
+
+    /// Sets name of `CollectionIdDomain`
+    ///
+    /// Requires that `AttributionDomain` is defined and sender is a creator
+    public fun set_collection_id<C>(
+        _witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
+        collection_id: ID,
+    ) {
+        let domain: &mut CollectionIdDomain =
+            collection::borrow_domain_mut(Witness {}, collection);
+
+        domain.collection_id = collection_id;
+    }
+
+    // ====== Interoperability ===
+
+    public fun collection_id_domain<C>(
+        nft: &Nft<C>,
+    ): &CollectionIdDomain {
+        nft::borrow_domain(nft)
+    }
+
+    public fun add_collection_id_domain<C, W>(
+        witness: &W,
+        nft: &mut Nft<C>,
+        collection_id: ID,
+    ) {
+        nft::add_domain(
+            witness, nft, new_collection_id_domain(collection_id),
         );
     }
 }
