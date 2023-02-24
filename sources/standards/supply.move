@@ -9,7 +9,7 @@
 module nft_protocol::supply_domain {
     use sui::transfer;
     use sui::object;
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
 
     use nft_protocol::err;
     use nft_protocol::collection::{Self, Collection};
@@ -40,6 +40,7 @@ module nft_protocol::supply_domain {
     /// Panics if `SupplyDomain` is not registered on `Collection`.
     public fun supply<C>(collection: &Collection<C>): &Supply {
         assert_regulated(collection);
+
         let domain: &SupplyDomain<C> = collection::borrow_domain(collection);
         &domain.supply
     }
@@ -51,6 +52,7 @@ module nft_protocol::supply_domain {
     /// Panics if `SupplyDomain` is not registered on `Collection`.
     fun supply_mut<C>(collection: &mut Collection<C>): &mut Supply {
         assert_regulated(collection);
+
         let domain: &mut SupplyDomain<C> =
             collection::borrow_domain_mut(Witness {}, collection);
         &mut domain.supply
@@ -72,6 +74,7 @@ module nft_protocol::supply_domain {
         max: u64,
         frozen: bool,
     ) {
+        assert_unregulated(collection);
         collection::add_domain(witness, collection, new<C>(max, frozen));
     }
 
@@ -85,6 +88,7 @@ module nft_protocol::supply_domain {
         collection: &mut Collection<C>,
     ) {
         supply::assert_not_frozen(supply(collection));
+
         let SupplyDomain<C> { supply } =
             collection::remove_domain(Witness {}, collection);
         supply::assert_zero(&supply);
@@ -143,10 +147,11 @@ module nft_protocol::supply_domain {
         mint_cap: &MintCap<C>,
         collection: &mut Collection<C>,
         value: u64,
+        receiver: address,
         ctx: &mut TxContext,
     ) {
         let delegated = delegate(mint_cap, collection, value, ctx);
-        transfer::transfer(delegated, tx_context::sender(ctx));
+        transfer::transfer(delegated, receiver);
     }
 
     /// Merge delegated `RegulatedMintCap`
@@ -176,9 +181,11 @@ module nft_protocol::supply_domain {
     /// Panics if collection is regulated.
     public fun delegate_unregulated<C>(
         mint_cap: &MintCap<C>,
-        collection: &mut Collection<C>,
+        collection: &Collection<C>,
         ctx: &mut TxContext,
     ): UnregulatedMintCap<C> {
+        assert_unregulated(collection);
+
         let collection_id = object::id(collection);
         mint_cap::new_unregulated(mint_cap, collection_id, ctx)
     }
@@ -194,11 +201,12 @@ module nft_protocol::supply_domain {
     /// Panics if collection is regulated.
     public entry fun delegate_unregulated_and_transfer<C>(
         mint_cap: &MintCap<C>,
-        collection: &mut Collection<C>,
+        collection: &Collection<C>,
+        receiver: address,
         ctx: &mut TxContext,
     ) {
         let delegated = delegate_unregulated(mint_cap, collection, ctx);
-        transfer::transfer(delegated, tx_context::sender(ctx));
+        transfer::transfer(delegated, receiver);
     }
 
     /// Increases maximum supply
