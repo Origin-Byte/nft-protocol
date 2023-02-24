@@ -55,7 +55,7 @@ module nft_protocol::free_for_all_allowlist {
             collection::create(&Foo {}, ctx(&mut scenario));
 
         collection::add_domain(
-            witness::from_witness(&Witness {}),
+            &Witness {},
             &mut collection,
             transfer_allowlist_domain::empty(),
         );

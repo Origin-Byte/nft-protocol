@@ -4,7 +4,6 @@ module nft_protocol::test_tags {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::nft;
-    use nft_protocol::witness;
     use nft_protocol::collection;
     use nft_protocol::tags::{Self, TagDomain};
 
@@ -25,7 +24,7 @@ module nft_protocol::test_tags {
         tags::add_tag(&mut tags, tags::profile_picture());
 
         tags::add_tag_domain(
-            witness::from_witness(&Witness {}),
+            &Witness {},
             &mut nft,
             tags,
         );
@@ -53,7 +52,7 @@ module nft_protocol::test_tags {
         tags::add_tag(&mut tags, tags::game_asset());
 
         tags::add_collection_tag_domain(
-            witness::from_witness(&Witness {}),
+            &Witness {},
             &mut collection,
             tags,
         );
