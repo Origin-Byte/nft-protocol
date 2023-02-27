@@ -76,7 +76,7 @@ module nft_protocol::nft {
     }
 
     /// Create a new `Nft`
-    fun new_<C>(
+    public fun new_<C>(
         name: String,
         url: Url,
         logical_owner: address,
