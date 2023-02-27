@@ -15,5 +15,6 @@ if [ -z "${GAS}" ]; then
 else
     sui client publish \
         --gas "${GAS}" \
-        --gas-budget "${budget}" .
+        --gas-budget "${budget}"
+        --skip-dependency-verification .
 fi
