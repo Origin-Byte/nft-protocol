@@ -10,7 +10,6 @@ module nft_protocol::footbytes {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::template;
     use nft_protocol::templates;

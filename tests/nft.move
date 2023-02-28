@@ -10,7 +10,6 @@ module nft_protocol::fake_witness {
 
 #[test_only]
 module nft_protocol::test_nft {
-    use nft_protocol::witness;
     use nft_protocol::fake_witness::{Self, FakeWitness};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::utils;
