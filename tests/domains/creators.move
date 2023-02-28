@@ -3,7 +3,6 @@ module nft_protocol::test_creators {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::collection;
 
@@ -20,7 +19,7 @@ module nft_protocol::test_creators {
             collection::create(&Foo {}, ctx(&mut scenario));
 
         collection::add_domain(
-            witness::from_witness(&Witness {}),
+            &Witness {},
             &mut collection,
             creators::from_address<Foo, Witness>(&Witness {}, CREATOR),
         );

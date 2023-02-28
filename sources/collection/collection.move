@@ -15,6 +15,7 @@ module nft_protocol::collection {
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
 
+    use nft_protocol::witness;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::witness::Witness as DelegatedWitness;
@@ -160,17 +161,30 @@ module nft_protocol::collection {
 
     /// Adds domain of type `D` to `Collection`
     ///
+    /// Helper method that can be simply used without knowing what a delegated
+    /// witness is.
+    ///
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
+    public fun add_domain<C, W, D: store>(
+        witness: &W,
+        collection: &mut Collection<C>,
+        domain: D,
+    ) {
+        add_domain_delegated(
+            witness::from_witness(witness),
+            collection,
+            domain,
+        )
+    }
+
+    /// Adds domain of type `D` to `Collection`
     ///
-    /// #### Usage
+    /// #### Panics
     ///
-    /// ```
-    /// let display_domain = display::new_display_domain(name, description);
-    /// collection::add_domain(&mut nft, mint_cap, display_domain);
-    /// ```
-    public fun add_domain<C, D: store>(
+    /// Panics if domain `D` already exists.
+    public fun add_domain_delegated<C, D: store>(
         _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         domain: D,

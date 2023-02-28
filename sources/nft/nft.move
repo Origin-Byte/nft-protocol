@@ -18,7 +18,7 @@ module nft_protocol::nft {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use nft_protocol::mint_cap::{
@@ -270,22 +270,30 @@ module nft_protocol::nft {
 
     /// Adds domain of type `D` to `Nft`
     ///
+    /// Helper method that can be simply used without knowing what a delegated
+    /// witness is.
+    ///
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
+    public fun add_domain<C, W, D: store>(
+        witness: &W,
+        nft: &mut Nft<C>,
+        domain: D,
+    ) {
+        add_domain_delegated(
+            witness::from_witness(witness),
+            nft,
+            domain,
+        )
+    }
+
+    /// Adds domain of type `D` to `Nft`
     ///
-    /// #### Usage
+    /// #### Panics
     ///
-    /// ```
-    /// nft::add_domain(
-    ///     // Delegated witness constructed from one-time collection witness
-    ///     witness::from_witness(&Witness {}),
-    ///     &mut nft,
-    ///     display::new_display_domain(name, description),
-    ///     ctx,
-    /// );
-    /// ```
-    public fun add_domain<C, D: store>(
+    /// Panics if domain `D` already exists.
+    public fun add_domain_delegated<C, D: store>(
         _witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         domain: D,
@@ -383,6 +391,16 @@ module nft_protocol::nft {
         assert_domain<C, D>(nft);
 
         df::remove(&mut nft.id, utils::marker<D>())
+    }
+
+    /// Burns an `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if any domains are still registered on the `Nft`.
+    public entry fun burn<C>(nft: Nft<C>) {
+        let Nft { id, name: _, url: _, logical_owner: _ } = nft;
+        object::delete(id);
     }
 
     // === Static Properties ===

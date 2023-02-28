@@ -6,6 +6,31 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2023-02-24
+
+### Added
+
+- Helper endpoints in orderbook which allow marketplaces to perform actions in a single tx.
+  The marketplaces can now
+  - `edit_bid`
+  - `create_safe_and_bid`
+  - `create_safe_and_bid_with_commission`
+  - `list_multiple_nfts`
+  - `list_multiple_nfts_with_commission`
+- Helper endpoints in launchpad which allow marketplaces to perform actions in a single tx.
+  The marketplaces can now
+  - `create_safe_and_buy_whitelisted_nft`
+  - `create_safe_and_buy_nft`
+  - `buy_nft_into_safe`
+  - `buy_whitelisted_nft_into_safe`
+
+### Fixed
+
+- Wrong `seller` field in `TradeFilledEvent` when calling the `buy_nft` endpoint
+
+### Changed
+
+- Moved errors from `err` module into `orderbook` module where they are expressed as constants.
 ## [0.24.0] - 2023-02-22
 
 ### Changed

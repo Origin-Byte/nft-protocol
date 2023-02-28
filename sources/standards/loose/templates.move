@@ -7,7 +7,6 @@ module nft_protocol::templates {
     use nft_protocol::mint_cap::{
         MintCap, RegulatedMintCap, UnregulatedMintCap,
     };
-    use nft_protocol::witness::Witness as DelegatedWitness;
 
     use nft_protocol::template::{Self, Template};
     use nft_protocol::loose_mint_cap::LooseMintCap;
@@ -40,8 +39,8 @@ module nft_protocol::templates {
     }
 
     /// Create a `TemplatesDomain` object and register on `Collection`
-    public fun init_templates<C>(
-        witness: DelegatedWitness<C>,
+    public fun init_templates<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
@@ -114,8 +113,8 @@ module nft_protocol::templates {
     }
 
     /// Add `TemplatesDomain` to `Collection`
-    public fun add_registry<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_registry<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
         registry: TemplatesDomain<C>,
     ) {

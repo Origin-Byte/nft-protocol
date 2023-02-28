@@ -15,13 +15,15 @@ module nft_protocol::limited_fixed_price {
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
+    use sui::transfer::{transfer, share_object};
     use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::venue;
-    use nft_protocol::listing::{Self, Listing};
     use nft_protocol::inventory;
+    use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
+    use nft_protocol::nft::Nft;
+    use nft_protocol::safe;
+    use nft_protocol::venue;
 
     /// Limit of NFTs withdrawn from the market was exceeded
     ///
@@ -90,7 +92,7 @@ module nft_protocol::limited_fixed_price {
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(inventory_id, limit, price, ctx);
-        transfer::transfer(market, tx_context::sender(ctx));
+        transfer(market, tx_context::sender(ctx));
     }
 
     /// Initializes a `Venue` with `LimitedFixedPriceMarket<FT>`
@@ -204,7 +206,48 @@ module nft_protocol::limited_fixed_price {
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
 
-        buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        transfer(nft, tx_context::sender(ctx));
+    }
+
+    /// Buy NFT for non-whitelisted sale
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` does not exist, is not live, or is whitelisted or
+    /// wallet does not have the necessary funds.
+    public entry fun buy_nft_into_safe<C, FT>(
+        listing: &mut Listing,
+        venue_id: ID,
+        wallet: &mut Coin<FT>,
+        buyer_safe: &mut safe::Safe,
+        ctx: &mut TxContext,
+    ) {
+        let venue = listing::borrow_venue(listing, venue_id);
+        venue::assert_is_live(venue);
+        venue::assert_is_not_whitelisted(venue);
+
+        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        safe::deposit_nft(nft, buyer_safe, ctx);
+    }
+
+    /// Buy NFT for non-whitelisted sale.
+    /// Deposits the NFT to a safe and transfers the ownership to the buyer.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` does not exist, is not live, or is whitelisted or
+    /// wallet does not have the necessary funds.
+    public entry fun create_safe_and_buy_nft<C, FT>(
+        listing: &mut Listing,
+        venue_id: ID,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        let (buyer_safe, owner_cap) = safe::new(ctx);
+        buy_nft_into_safe<C, FT>(listing, venue_id, wallet, &mut buyer_safe, ctx);
+        transfer(owner_cap, tx_context::sender(ctx));
+        share_object(buyer_safe);
     }
 
     /// Buy NFT for whitelisted sale
@@ -227,7 +270,61 @@ module nft_protocol::limited_fixed_price {
 
         market_whitelist::burn(whitelist_token);
 
-        buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        transfer(nft, tx_context::sender(ctx));
+    }
+
+    /// Buy NFT for whitelisted sale
+    /// Deposits the NFT to a safe and transfers the ownership to the buyer.
+    ///
+    /// #### Panics
+    ///
+    /// - If `Venue` does not exist, is not live, or is not whitelisted
+    /// - If whitelist `Certificate` was not issued for given market
+    public entry fun buy_whitelisted_nft_into_safe<C, FT>(
+        listing: &mut Listing,
+        venue_id: ID,
+        wallet: &mut Coin<FT>,
+        safe: &mut safe::Safe,
+        whitelist_token: Certificate,
+        ctx: &mut TxContext,
+    ) {
+        let venue = listing::borrow_venue(listing, venue_id);
+        venue::assert_is_live(venue);
+        venue::assert_is_whitelisted(venue);
+        market_whitelist::assert_certificate(&whitelist_token, venue_id);
+
+        market_whitelist::burn(whitelist_token);
+
+        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        safe::deposit_nft(nft, safe, ctx);
+    }
+
+    /// Buy NFT for whitelisted sale
+    /// Deposits the NFT to a safe and transfers the ownership to the buyer.
+    ///
+    /// #### Panics
+    ///
+    /// - If `Venue` does not exist, is not live, or is not whitelisted
+    /// - If whitelist `Certificate` was not issued for given market
+    public entry fun create_safe_and_buy_whitelisted_nft<C, FT>(
+        listing: &mut Listing,
+        venue_id: ID,
+        wallet: &mut Coin<FT>,
+        whitelist_token: Certificate,
+        ctx: &mut TxContext,
+    ) {
+        let (buyer_safe, owner_cap) = safe::new(ctx);
+        buy_whitelisted_nft_into_safe<C, FT>(
+            listing,
+            venue_id,
+            wallet,
+            &mut buyer_safe,
+            whitelist_token,
+            ctx,
+        );
+        transfer(owner_cap, tx_context::sender(ctx));
+        share_object(buyer_safe);
     }
 
     /// Internal method to buy NFT
@@ -241,7 +338,7 @@ module nft_protocol::limited_fixed_price {
         venue_id: ID,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Nft<C> {
         let venue = listing::venue_internal_mut<
             LimitedFixedPriceMarket<FT>, Witness
         >(
@@ -262,9 +359,11 @@ module nft_protocol::limited_fixed_price {
             Witness {}, listing, venue_id, inventory_id
         );
 
-        inventory::transfer(inventory, owner, ctx);
+        let nft = inventory::redeem_nft(inventory, owner, ctx);
 
         listing::pay(listing, funds, 1);
+
+        nft
     }
 
     // === Modifier Functions ===
