@@ -91,6 +91,10 @@ module nft_protocol::bidding {
         share_object(bid);
     }
 
+    public fun share<FT>(bid: Bid<FT>) {
+        share_object(bid);
+    }
+
     /// Entry function to sell an NFT with an open `bid`.
     ///
     /// It performs the following:
