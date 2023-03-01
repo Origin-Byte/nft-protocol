@@ -60,7 +60,9 @@ module nft_protocol::bidding {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        create_bid_(nft, buyers_safe, price, option::none(), wallet, ctx);
+        let bid =
+            new_bid(nft, buyers_safe, price, option::none(), wallet, ctx);
+        share_object(bid);
     }
 
     /// Payable entry function to create a bid for an NFT.
@@ -84,7 +86,9 @@ module nft_protocol::bidding {
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
-        create_bid_(nft, buyers_safe, price, option::some(commission), wallet, ctx);
+        let bid =
+            new_bid(nft, buyers_safe, price, option::some(commission), wallet, ctx);
+        share_object(bid);
     }
 
     /// Entry function to sell an NFT with an open `bid`.
@@ -204,14 +208,14 @@ module nft_protocol::bidding {
 
     /// Sends funds Balance<FT> from `wallet` to the `bid` and
     /// shares object `bid.`
-    fun create_bid_<FT>(
+    public fun new_bid<FT>(
         nft: ID,
         buyers_safe: ID,
         price: u64,
         commission: Option<BidCommission<FT>>,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Bid<FT> {
         let offer = balance::split(coin::balance_mut(wallet), price);
         let buyer = tx_context::sender(ctx);
 
@@ -224,13 +228,14 @@ module nft_protocol::bidding {
             commission,
         };
         let bid_id = object::id(&bid);
-        share_object(bid);
 
         emit(BidCreated<FT> {
             id: bid_id,
             for_nft: nft,
             price
         });
+
+        bid
     }
 
     /// Function to sell an NFT with an open `bid`.
