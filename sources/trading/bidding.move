@@ -38,14 +38,17 @@ module nft_protocol::bidding {
 
     struct BidCreatedEvent<phantom FT> has copy, drop {
         id: ID,
-        for_nft: ID,
+        nft: ID,
         price: u64,
+        buyer: address,
+        buyer_safe: ID,
     }
 
     /// Bid was closed by the user, no sell happened
     struct BidClosedEvent<phantom FT> has copy, drop {
         id: ID,
         nft: ID,
+        buyer: address,
     }
 
     /// NFT was sold
@@ -54,8 +57,8 @@ module nft_protocol::bidding {
         nft: ID,
         price: u64,
         seller: address,
+        buyer: address,
     }
-
 
     /// Payable entry function to create a bid for an NFT.
     ///
@@ -244,8 +247,10 @@ module nft_protocol::bidding {
 
         emit(BidCreatedEvent<FT> {
             id: bid_id,
-            for_nft: nft,
-            price
+            nft: nft,
+            price,
+            buyer,
+            buyer_safe: buyers_safe,
         });
 
         bid
@@ -299,6 +304,7 @@ module nft_protocol::bidding {
             nft: nft_id,
             price,
             seller: tx_context::sender(ctx),
+            buyer: bid.buyer,
         });
     }
 
@@ -341,6 +347,7 @@ module nft_protocol::bidding {
             nft: nft_id,
             price,
             seller: tx_context::sender(ctx),
+            buyer: bid.buyer,
         });
     }
 
@@ -363,6 +370,7 @@ module nft_protocol::bidding {
         emit(BidClosedEvent<FT> {
             id: object::id(bid),
             nft: bid.nft,
+            buyer: sender,
         });
     }
 }
