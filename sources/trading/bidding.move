@@ -1,7 +1,9 @@
 /// Bidding module that allows users to bid for any given NFT in a safe,
 /// giving NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
+    use std::ascii::String;
     use std::option::{Self, Option};
+    use std::type_name;
 
     use sui::event::emit;
     use sui::coin::{Self, Coin};
@@ -36,28 +38,31 @@ module nft_protocol::bidding {
         commission: Option<BidCommission<FT>>,
     }
 
-    struct BidCreatedEvent<phantom FT> has copy, drop {
+    struct BidCreatedEvent has copy, drop {
         id: ID,
         nft: ID,
         price: u64,
         buyer: address,
         buyer_safe: ID,
+        ft: String,
     }
 
     /// Bid was closed by the user, no sell happened
-    struct BidClosedEvent<phantom FT> has copy, drop {
+    struct BidClosedEvent has copy, drop {
         id: ID,
         nft: ID,
         buyer: address,
+        ft: String,
     }
 
     /// NFT was sold
-    struct BidMatchedEvent<phantom FT> has copy, drop {
+    struct BidMatchedEvent has copy, drop {
         id: ID,
         nft: ID,
         price: u64,
         seller: address,
         buyer: address,
+        ft: String,
     }
 
     /// Payable entry function to create a bid for an NFT.
@@ -245,12 +250,13 @@ module nft_protocol::bidding {
         };
         let bid_id = object::id(&bid);
 
-        emit(BidCreatedEvent<FT> {
+        emit(BidCreatedEvent {
             id: bid_id,
             nft: nft,
             price,
             buyer,
             buyer_safe: buyers_safe,
+            ft: *type_name::borrow_string(&type_name::get<FT>())
         });
 
         bid
@@ -299,12 +305,13 @@ module nft_protocol::bidding {
 
         transfer_bid_commission(&mut bid.commission, ctx);
 
-        emit(BidMatchedEvent<FT> {
+        emit(BidMatchedEvent {
             id: object::id(bid),
             nft: nft_id,
             price,
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
+            ft: *type_name::borrow_string(&type_name::get<FT>()),
         });
     }
 
@@ -342,12 +349,13 @@ module nft_protocol::bidding {
 
         transfer_bid_commission(&mut bid.commission, ctx);
 
-        emit(BidMatchedEvent<FT> {
+        emit(BidMatchedEvent {
             id: object::id(bid),
             nft: nft_id,
             price,
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
+            ft: *type_name::borrow_string(&type_name::get<FT>())
         });
     }
 
@@ -367,10 +375,11 @@ module nft_protocol::bidding {
 
         transfer(offer, sender);
 
-        emit(BidClosedEvent<FT> {
+        emit(BidClosedEvent {
             id: object::id(bid),
             nft: bid.nft,
             buyer: sender,
+            ft: *type_name::borrow_string(&type_name::get<FT>()),
         });
     }
 }
