@@ -62,6 +62,7 @@ module nft_protocol::limited_fixed_price {
         nft: ID,
         price: u64,
         ft: String,
+        buyer: address,
     }
 
     // === Init functions ===
@@ -377,6 +378,7 @@ module nft_protocol::limited_fixed_price {
             nft: object::id(&nft),
             price: market_price,
             ft: *type_name::borrow_string(&type_name::get<FT>()),
+            buyer: owner,
         });
 
         listing::pay(listing, funds, 1);
