@@ -17,6 +17,7 @@ module nft_protocol::bidding {
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::trading::{
         AskCommission,
+        bid_commission_amount,
         BidCommission,
         destroy_bid_commission,
         new_ask_commission,
@@ -42,6 +43,7 @@ module nft_protocol::bidding {
         id: ID,
         nft: ID,
         price: u64,
+        commission: u64,
         buyer: address,
         buyer_safe: ID,
         ft: String,
@@ -240,6 +242,12 @@ module nft_protocol::bidding {
         let offer = balance::split(coin::balance_mut(wallet), price);
         let buyer = tx_context::sender(ctx);
 
+        let commission_amount = if(option::is_some(&commission)) {
+            bid_commission_amount(option::borrow(&commission))
+        } else {
+            0
+        };
+
         let bid = Bid<FT> {
             id: object::new(ctx),
             nft,
@@ -256,7 +264,8 @@ module nft_protocol::bidding {
             price,
             buyer,
             buyer_safe: buyers_safe,
-            ft: *type_name::borrow_string(&type_name::get<FT>())
+            ft: *type_name::borrow_string(&type_name::get<FT>()),
+            commission: commission_amount,
         });
 
         bid
