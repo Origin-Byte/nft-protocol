@@ -42,11 +42,20 @@ module nft_protocol::bidding {
         price: u64,
     }
 
+    /// Bid was closed by the user, no sell happened
     struct BidClosedEvent<phantom FT> has copy, drop {
         id: ID,
-        /// Either sold or canceled
-        sold: bool,
+        nft: ID,
     }
+
+    /// NFT was sold
+    struct BidMatchedEvent<phantom FT> has copy, drop {
+        id: ID,
+        nft: ID,
+        price: u64,
+        seller: address,
+    }
+
 
     /// Payable entry function to create a bid for an NFT.
     ///
@@ -264,6 +273,7 @@ module nft_protocol::bidding {
 
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
 
+        let price = balance::value(&bid.offer);
         settle_funds_with_royalties<C, FT>(
             &mut bid.offer,
             tx_context::sender(ctx),
@@ -284,7 +294,12 @@ module nft_protocol::bidding {
 
         transfer_bid_commission(&mut bid.commission, ctx);
 
-        emit(BidClosedEvent<FT> { id: nft_id, sold: true });
+        emit(BidMatchedEvent<FT> {
+            id: object::id(bid),
+            nft: nft_id,
+            price,
+            seller: tx_context::sender(ctx),
+        });
     }
 
     /// Similar to [`sell_nft_`] except that this is meant for generic
@@ -303,6 +318,7 @@ module nft_protocol::bidding {
 
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
 
+        let price = balance::value(&bid.offer);
         settle_funds_no_royalties<C, FT>(
             &mut bid.offer,
             tx_context::sender(ctx),
@@ -320,7 +336,12 @@ module nft_protocol::bidding {
 
         transfer_bid_commission(&mut bid.commission, ctx);
 
-        emit(BidClosedEvent<FT> { id: nft_id, sold: true });
+        emit(BidMatchedEvent<FT> {
+            id: object::id(bid),
+            nft: nft_id,
+            price,
+            seller: tx_context::sender(ctx),
+        });
     }
 
     fun close_bid_<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
@@ -338,5 +359,10 @@ module nft_protocol::bidding {
         };
 
         transfer(offer, sender);
+
+        emit(BidClosedEvent<FT> {
+            id: object::id(bid),
+            nft: bid.nft,
+        });
     }
 }
