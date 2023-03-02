@@ -36,13 +36,13 @@ module nft_protocol::bidding {
         commission: Option<BidCommission<FT>>,
     }
 
-    struct BidCreated<phantom FT> has copy, drop {
+    struct BidCreatedEvent<phantom FT> has copy, drop {
         id: ID,
         for_nft: ID,
         price: u64,
     }
 
-    struct BidClosed<phantom FT> has copy, drop {
+    struct BidClosedEvent<phantom FT> has copy, drop {
         id: ID,
         /// Either sold or canceled
         sold: bool,
@@ -233,7 +233,7 @@ module nft_protocol::bidding {
         };
         let bid_id = object::id(&bid);
 
-        emit(BidCreated<FT> {
+        emit(BidCreatedEvent<FT> {
             id: bid_id,
             for_nft: nft,
             price
@@ -284,7 +284,7 @@ module nft_protocol::bidding {
 
         transfer_bid_commission(&mut bid.commission, ctx);
 
-        emit(BidClosed<FT> { id: nft_id, sold: true });
+        emit(BidClosedEvent<FT> { id: nft_id, sold: true });
     }
 
     /// Similar to [`sell_nft_`] except that this is meant for generic
@@ -320,7 +320,7 @@ module nft_protocol::bidding {
 
         transfer_bid_commission(&mut bid.commission, ctx);
 
-        emit(BidClosed<FT> { id: nft_id, sold: true });
+        emit(BidClosedEvent<FT> { id: nft_id, sold: true });
     }
 
     fun close_bid_<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
