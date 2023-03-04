@@ -480,6 +480,8 @@ module nft_protocol::nft {
     ///
     /// Creator can allow certain contracts to change the logical owner of an NFT.
     ///
+    /// This function is a no-op if the `logical_owner` is already `recipient`.
+    ///
     /// #### Panics
     ///
     /// Panics if authority token, `Auth`, or collection was not defined on
@@ -490,6 +492,11 @@ module nft_protocol::nft {
         _authority: Auth,
         allowlist: &Allowlist,
     ) {
+        // no-op
+        if (nft.logical_owner == recipient) {
+            return
+        };
+
         transfer_allowlist::assert_collection<C>(allowlist);
         transfer_allowlist::assert_authority<Auth>(allowlist);
 
