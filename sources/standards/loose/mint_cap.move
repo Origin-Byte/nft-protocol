@@ -13,7 +13,7 @@ module nft_protocol::loose_mint_cap {
     use nft_protocol::supply;
     use nft_protocol::mint_cap::{Self, RegulatedMintCap, UnregulatedMintCap};
 
-    friend nft_protocol::template;
+    friend nft_protocol::metadata;
 
     // === PointerDomain ===
 
