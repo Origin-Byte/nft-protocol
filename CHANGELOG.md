@@ -21,6 +21,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - `NftSoldEvent` emitted from `limited_fixed_price` launchpad market module.
 - `NftSoldEvent` emitted from `fixed_price` launchpad market module.
 - `ChangeLogicalOwnerEvent` emitted when logical owner of an NFT is changed.
+- `MintNftEvent` now contains `logical_owner` field.
 
 ## [0.25.0] - 2023-02-24
 

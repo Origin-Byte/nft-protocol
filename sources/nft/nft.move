@@ -73,6 +73,8 @@ module nft_protocol::nft {
         ///
         /// Intended to allow users to filter by collections of interest.
         type_name: TypeName,
+        /// Assigned address which owns the NFT
+        logical_owner: address,
     }
 
     struct ChangeLogicalOwnerEvent has copy, drop {
@@ -96,6 +98,7 @@ module nft_protocol::nft {
         event::emit(MintNftEvent {
             nft_id: object::uid_to_inner(&id),
             type_name: type_name::get<C>(),
+            logical_owner,
         });
 
         Nft { id, name, url, logical_owner }
