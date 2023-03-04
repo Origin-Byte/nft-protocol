@@ -73,6 +73,17 @@ module nft_protocol::nft {
         ///
         /// Intended to allow users to filter by collections of interest.
         type_name: TypeName,
+        /// Assigned address which owns the NFT
+        logical_owner: address,
+    }
+
+    struct ChangeLogicalOwnerEvent has copy, drop {
+        /// ID of the `Nft` that had its logical owner changed
+        nft_id: ID,
+        /// The address of the previous logical owner
+        old_logical_owner: address,
+        /// The address of the new logical owner
+        new_logical_owner: address,
     }
 
     /// Create a new `Nft`
@@ -87,6 +98,7 @@ module nft_protocol::nft {
         event::emit(MintNftEvent {
             nft_id: object::uid_to_inner(&id),
             type_name: type_name::get<C>(),
+            logical_owner,
         });
 
         Nft { id, name, url, logical_owner }
@@ -468,6 +480,8 @@ module nft_protocol::nft {
     ///
     /// Creator can allow certain contracts to change the logical owner of an NFT.
     ///
+    /// This function is a no-op if the `logical_owner` is already `recipient`.
+    ///
     /// #### Panics
     ///
     /// Panics if authority token, `Auth`, or collection was not defined on
@@ -478,8 +492,19 @@ module nft_protocol::nft {
         _authority: Auth,
         allowlist: &Allowlist,
     ) {
+        // no-op
+        if (nft.logical_owner == recipient) {
+            return
+        };
+
         transfer_allowlist::assert_collection<C>(allowlist);
         transfer_allowlist::assert_authority<Auth>(allowlist);
+
+        event::emit(ChangeLogicalOwnerEvent {
+            nft_id: object::id(nft),
+            old_logical_owner: nft.logical_owner,
+            new_logical_owner: recipient,
+        });
 
         nft.logical_owner = recipient;
     }
