@@ -75,6 +75,15 @@ module nft_protocol::nft {
         type_name: TypeName,
     }
 
+    struct ChangeLogicalOwnerEvent has copy, drop {
+        /// ID of the `Nft` that had its logical owner changed
+        nft_id: ID,
+        /// The address of the previous logical owner
+        old_logical_owner: address,
+        /// The address of the new logical owner
+        new_logical_owner: address,
+    }
+
     /// Create a new `Nft`
     fun new_<C>(
         name: String,
@@ -480,6 +489,12 @@ module nft_protocol::nft {
     ) {
         transfer_allowlist::assert_collection<C>(allowlist);
         transfer_allowlist::assert_authority<Auth>(allowlist);
+
+        event::emit(ChangeLogicalOwnerEvent {
+            nft_id: object::id(nft),
+            old_logical_owner: nft.logical_owner,
+            new_logical_owner: recipient,
+        });
 
         nft.logical_owner = recipient;
     }
