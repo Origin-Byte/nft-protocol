@@ -18,6 +18,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Added
 
 - `BidMatchedEvent` emitted when an NFT is sold.
+- `NftSoldEvent` emitted from `limited_fixed_price` launchpad market module.
+- `NftSoldEvent` emitted from `fixed_price` launchpad market module.
 
 ## [0.25.0] - 2023-02-24
 
