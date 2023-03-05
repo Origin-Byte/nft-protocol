@@ -14,6 +14,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   The generic is problematic for the client as it can then query only for event type knowing the fungible token in advance.
 - `BidClosed` event renamed to `BidClosedEvent`, again generic removed and new fields added.
   Additionally, this event is now used only for cancelling a bid.
+- Renamed `template::Template` to `metadata::Metadata` and `templates::TemplatesDomain` to `metadata_bag::MetadataBagDomain`
 
 ### Added
 

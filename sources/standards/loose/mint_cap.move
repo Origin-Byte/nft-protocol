@@ -13,23 +13,23 @@ module nft_protocol::loose_mint_cap {
     use nft_protocol::supply;
     use nft_protocol::mint_cap::{Self, RegulatedMintCap, UnregulatedMintCap};
 
-    friend nft_protocol::template;
+    friend nft_protocol::metadata;
 
     // === PointerDomain ===
 
     struct PointerDomain has store {
-        /// `Template` ID that this NFT is a loose representation of
-        template_id: ID,
+        /// `Metadata` ID that this NFT is a loose representation of
+        metadata_id: ID,
     }
 
-    /// Creates a new `Pointer` to the given `Template`
-    fun pointer(template_id: ID): PointerDomain {
-        PointerDomain { template_id }
+    /// Creates a new `Pointer` to the given `Metadata`
+    fun pointer(metadata_id: ID): PointerDomain {
+        PointerDomain { metadata_id }
     }
 
-    /// Return `ID` of `Template` associated with this pointer
-    public fun template_id(pointer: &PointerDomain): ID {
-        pointer.template_id
+    /// Return `ID` of `Metadata` associated with this pointer
+    public fun metadata_id(pointer: &PointerDomain): ID {
+        pointer.metadata_id
     }
 
     // === LooseMintCap ===
@@ -37,7 +37,7 @@ module nft_protocol::loose_mint_cap {
     /// `LooseMintCap` object
     ///
     /// `LooseMintCap` ensures that supply policy on `Collection` and
-    /// `Template` are not violated.
+    /// `Metadata` are not violated.
     struct LooseMintCap<phantom C> has key, store {
         /// `LooseMintCap` ID
         id: UID,
@@ -45,66 +45,66 @@ module nft_protocol::loose_mint_cap {
         name: String,
         /// `Nft` URL
         url: Url,
-        /// `Template` ID for which this `LooseMintCap` is allowed to mint
+        /// `Metadata` ID for which this `LooseMintCap` is allowed to mint
         /// NFTs
-        template_id: ID,
+        metadata_id: ID,
     }
 
     /// Create `LooseMintCap` with unregulated supply
     ///
     /// #### Safety
     ///
-    /// Neither `Collection` nor `Template` have regulated supply.
+    /// Neither `Collection` nor `Metadata` have regulated supply.
     public(friend) fun from_unregulated<C>(
         mint_cap: UnregulatedMintCap<C>,
-        template_id: ID,
+        metadata_id: ID,
         name: String,
         url: Url,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
-        let template_mint_cap = LooseMintCap {
+        let metadata_mint_cap = LooseMintCap {
             id: object::new(ctx),
             name,
             url,
-            template_id
+            metadata_id
         };
 
         df::add(
-            &mut template_mint_cap.id,
+            &mut metadata_mint_cap.id,
             utils::marker<UnregulatedMintCap<C>>(),
             mint_cap,
         );
 
-        template_mint_cap
+        metadata_mint_cap
     }
 
     /// Create `LooseMintCap` with unregulated supply
     ///
     /// #### Safety
     ///
-    /// Either `Collection` or `Template` must have regulated supply, such
+    /// Either `Collection` or `Metadata` must have regulated supply, such
     /// that `RegulatedMintCap` does not violate either.
     public(friend) fun from_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
-        template_id: ID,
+        metadata_id: ID,
         name: String,
         url: Url,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
-        let template_mint_cap = LooseMintCap {
+        let metadata_mint_cap = LooseMintCap {
             id: object::new(ctx),
             name,
             url,
-            template_id
+            metadata_id
         };
 
         df::add(
-            &mut template_mint_cap.id,
+            &mut metadata_mint_cap.id,
             utils::marker<RegulatedMintCap<C>>(),
             mint_cap,
         );
 
-        template_mint_cap
+        metadata_mint_cap
     }
 
     // === Getters ===
@@ -197,7 +197,7 @@ module nft_protocol::loose_mint_cap {
         mint_cap: &mut LooseMintCap<C>,
         ctx: &mut TxContext,
     ): Nft<C> {
-        let pointer = pointer(mint_cap.template_id);
+        let pointer = pointer(mint_cap.metadata_id);
         let name = *name(mint_cap);
         let url = *url(mint_cap);
 
