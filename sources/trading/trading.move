@@ -146,4 +146,10 @@ module nft_protocol::trading {
             );
         };
     }
+
+    // === Getters ===
+
+    public fun bid_commission_amount<FT>(bid: &BidCommission<FT>): u64 {
+        balance::value(&bid.cut)
+    }
 }

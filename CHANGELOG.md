@@ -6,6 +6,23 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- `BidCreated` renamed to `BidCreatedEvent`, generic removed and new fields added.
+  The generic is problematic for the client as it can then query only for event type knowing the fungible token in advance.
+- `BidClosed` event renamed to `BidClosedEvent`, again generic removed and new fields added.
+  Additionally, this event is now used only for cancelling a bid.
+
+### Added
+
+- `BidMatchedEvent` emitted when an NFT is sold.
+- `NftSoldEvent` emitted from `limited_fixed_price` launchpad market module.
+- `NftSoldEvent` emitted from `fixed_price` launchpad market module.
+- `ChangeLogicalOwnerEvent` emitted when logical owner of an NFT is changed.
+- `MintNftEvent` now contains `logical_owner` field.
+
 ## [0.25.0] - 2023-02-24
 
 ### Added
@@ -31,6 +48,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Changed
 
 - Moved errors from `err` module into `orderbook` module where they are expressed as constants.
+
 ## [0.24.0] - 2023-02-22
 
 ### Changed

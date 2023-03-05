@@ -6,8 +6,12 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::fixed_price {
+    use std::ascii::String;
+    use std::type_name;
+
     use sui::balance;
     use sui::coin::{Self, Coin};
+    use sui::event;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
@@ -31,6 +35,15 @@ module nft_protocol::fixed_price {
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
+
+    // === Events ===
+
+    struct NftSoldEvent has copy, drop {
+        nft: ID,
+        price: u64,
+        ft: String,
+        buyer: address,
+    }
 
     // === Init functions ===
 
@@ -275,8 +288,9 @@ module nft_protocol::fixed_price {
         let venue = listing::borrow_venue(listing, venue_id);
         let market =
             venue::borrow_market<FixedPriceMarket<FT>>(venue);
+        let market_price = market.price;
 
-        let funds = balance::split(coin::balance_mut(wallet), market.price);
+        let funds = balance::split(coin::balance_mut(wallet), market_price);
 
         let inventory_id = market.inventory_id;
         let inventory =
@@ -286,6 +300,13 @@ module nft_protocol::fixed_price {
 
         let owner = tx_context::sender(ctx);
         let nft = inventory::redeem_nft(inventory, owner, ctx);
+
+        event::emit(NftSoldEvent {
+            nft: object::id(&nft),
+            price: market_price,
+            ft: *type_name::borrow_string(&type_name::get<FT>()),
+            buyer: owner,
+        });
 
         listing::pay(listing, funds, 1);
 
