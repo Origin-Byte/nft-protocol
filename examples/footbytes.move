@@ -72,7 +72,7 @@ module nft_protocol::footbytes {
             tags,
         );
 
-        metadata_bag::init_templates<FOOTBYTES, Witness>(
+        metadata_bag::init_metadata_bag<FOOTBYTES, Witness>(
             &Witness {},
             &mut collection,
             ctx,
@@ -116,7 +116,7 @@ module nft_protocol::footbytes {
 
         display::add_url_domain(&Witness {}, &mut nft, url);
 
-        let template = metadata::new_regulated(nft, supply, ctx);
-        metadata_bag::add_collection_template(mint_cap, collection, template);
+        let metadata = metadata::new_regulated(nft, supply, ctx);
+        metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);
     }
 }

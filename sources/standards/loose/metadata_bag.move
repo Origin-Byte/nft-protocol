@@ -13,12 +13,12 @@ module nft_protocol::metadata_bag {
 
     /// `MetadataBagDomain` not registered on `Collection`
     ///
-    /// Call `templates::init_templates` on the `Collection`.
-    const EUNDEFINED_ARCHETYPE_REGISTRY: u64 = 1;
+    /// Call `metadata_bag::init_metadata_bag` on the `Collection`.
+    const EUNDEFINED_METADATA_IN_BAG: u64 = 1;
 
     /// `Metadata` with the given is was not registered on `MetadataBagDomain`
     ///
-    /// Call `templates::add_template` to add an `Metadata` to
+    /// Call `metadata_bag::add_metadata` to add an `Metadata` to
     /// `MetadataBagDomain`.
     const EUNDEFINED_ARCHETYPE: u64 = 2;
 
@@ -31,7 +31,7 @@ module nft_protocol::metadata_bag {
     }
 
     /// Create a `MetadataBagDomain` object
-    public fun new_templates<C>(ctx: &mut TxContext): MetadataBagDomain<C> {
+    public fun new_metadata_bag<C>(ctx: &mut TxContext): MetadataBagDomain<C> {
         MetadataBagDomain<C> {
             id: object::new(ctx),
             table: object_table::new<ID, Metadata<C>>(ctx),
@@ -39,21 +39,21 @@ module nft_protocol::metadata_bag {
     }
 
     /// Create a `MetadataBagDomain` object and register on `Collection`
-    public fun init_templates<C, W>(
+    public fun init_metadata_bag<C, W>(
         witness: &W,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let registry = new_templates<C>(ctx);
-        collection::add_domain(witness, collection, registry);
+        let metadata_bag = new_metadata_bag<C>(ctx);
+        collection::add_domain(witness, collection, metadata_bag);
     }
 
     /// Returns whether `Metadata` with `ID` is registered on `MetadataBagDomain`
-    public fun contains_template<C>(
-        registry: &MetadataBagDomain<C>,
-        template_id: ID,
+    public fun contains_metadata<C>(
+        metadata_bag: &MetadataBagDomain<C>,
+        metadata_id: ID,
     ): bool {
-        object_table::contains(&registry.table, template_id)
+        object_table::contains(&metadata_bag.table, metadata_id)
     }
 
     /// Borrows `Metadata` from `MetadataBagDomain`
@@ -61,12 +61,12 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Metadata` does not exist on `MetadataBagDomain`.
-    public fun borrow_template<C>(
-        registry: &MetadataBagDomain<C>,
-        template_id: ID,
+    public fun borrow_metadata<C>(
+        metadata_bag: &MetadataBagDomain<C>,
+        metadata_id: ID,
     ): &Metadata<C> {
-        assert_template(registry, template_id);
-        object_table::borrow(&registry.table, template_id)
+        assert_metadata(metadata_bag, metadata_id);
+        object_table::borrow(&metadata_bag.table, metadata_id)
     }
 
     /// Mutably borrows `Metadata` from `MetadataBagDomain`
@@ -74,34 +74,34 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Metadata` does not exist on `MetadataBagDomain`.
-    fun borrow_template_mut<C>(
-        registry: &mut MetadataBagDomain<C>,
-        template_id: ID,
+    fun borrow_metadata_mut<C>(
+        metadata_bag: &mut MetadataBagDomain<C>,
+        metadata_id: ID,
     ): &mut Metadata<C> {
-        assert_template(registry, template_id);
-        object_table::borrow_mut(&mut registry.table, template_id)
+        assert_metadata(metadata_bag, metadata_id);
+        object_table::borrow_mut(&mut metadata_bag.table, metadata_id)
     }
 
     /// Add `Metadata` to `MetadataBagDomain`
-    public entry fun add_template<C>(
+    public entry fun add_metadata<C>(
         _mint_cap: &MintCap<C>,
-        registry: &mut MetadataBagDomain<C>,
+        metadata_bag: &mut MetadataBagDomain<C>,
         metadata: Metadata<C>,
     ) {
         object_table::add<ID, Metadata<C>>(
-            &mut registry.table,
+            &mut metadata_bag.table,
             object::id(&metadata),
             metadata,
         );
     }
 
     /// Freeze `Metadata` supply in `Collection`
-    public entry fun freeze_template_supply<C>(
+    public entry fun freeze_metadata_supply<C>(
         collection: &mut Collection<C>,
-        template_id: ID,
+        metadata_id: ID,
     ) {
-        let registry = borrow_registry_mut(collection);
-        let metadata = borrow_template_mut(registry, template_id);
+        let metadata_bag = borrow_metadata_bag_mut(collection);
+        let metadata = borrow_metadata_mut(metadata_bag, metadata_id);
         metadata::freeze_supply(metadata);
     }
 
@@ -113,12 +113,12 @@ module nft_protocol::metadata_bag {
     }
 
     /// Add `MetadataBagDomain` to `Collection`
-    public fun add_registry<C, W>(
+    public fun add_metadata_bag<C, W>(
         witness: &W,
         collection: &mut Collection<C>,
-        registry: MetadataBagDomain<C>,
+        metadata_bag: MetadataBagDomain<C>,
     ) {
-        collection::add_domain(witness, collection, registry);
+        collection::add_domain(witness, collection, metadata_bag);
     }
 
     /// Borrows `MetadataBagDomain` from `Collection`
@@ -126,7 +126,7 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Collection` does not have a `MetadataBagDomain`.
-    public fun borrow_registry<C>(collection: &Collection<C>): &MetadataBagDomain<C> {
+    public fun borrow_metagada_bag<C>(collection: &Collection<C>): &MetadataBagDomain<C> {
         assert_archetypal(collection);
         collection::borrow_domain(collection)
     }
@@ -136,7 +136,7 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Collection` does not have a `MetadataBagDomain`.
-    fun borrow_registry_mut<C>(collection: &mut Collection<C>): &mut MetadataBagDomain<C> {
+    fun borrow_metadata_bag_mut<C>(collection: &mut Collection<C>): &mut MetadataBagDomain<C> {
         assert_archetypal(collection);
         collection::borrow_domain_mut(Witness {}, collection)
     }
@@ -146,14 +146,14 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Collection` does not have a `MetadataBagDomain`.
-    public entry fun add_collection_template<C>(
+    public entry fun add_metadata_to_collection<C>(
         _mint_cap: &MintCap<C>,
         collection: &mut Collection<C>,
         metadata: Metadata<C>,
     ) {
-        let registry = borrow_registry_mut(collection);
+        let metadata_bag = borrow_metadata_bag_mut(collection);
         object_table::add(
-            &mut registry.table,
+            &mut metadata_bag.table,
             object::id(&metadata),
             metadata,
         );
@@ -172,11 +172,11 @@ module nft_protocol::metadata_bag {
     public fun delegate_regulated<C>(
         mint_cap: RegulatedMintCap<C>,
         collection: &mut Collection<C>,
-        template_id: ID,
+        metadata_id: ID,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
-        let registry = borrow_registry_mut(collection);
-        let metadata = borrow_template_mut(registry, template_id);
+        let metadata_bag = borrow_metadata_bag_mut(collection);
+        let metadata = borrow_metadata_mut(metadata_bag, metadata_id);
         metadata::delegate_regulated(mint_cap, metadata, ctx)
     }
 
@@ -193,11 +193,11 @@ module nft_protocol::metadata_bag {
     public fun delegate_unregulated<C>(
         mint_cap: UnregulatedMintCap<C>,
         collection: &mut Collection<C>,
-        template_id: ID,
+        metadata_id: ID,
         ctx: &mut TxContext,
     ): LooseMintCap<C> {
-        let registry = borrow_registry_mut(collection);
-        let metadata = borrow_template_mut(registry, template_id);
+        let metadata_bag = borrow_metadata_bag_mut(collection);
+        let metadata = borrow_metadata_mut(metadata_bag, metadata_id);
         metadata::delegate_unregulated(mint_cap, metadata, ctx)
     }
 
@@ -205,16 +205,16 @@ module nft_protocol::metadata_bag {
 
     /// Asserts that `Collection` has a defined `MetadataBagDomain`
     public fun assert_archetypal<C>(collection: &Collection<C>) {
-        assert!(is_archetypal(collection), EUNDEFINED_ARCHETYPE_REGISTRY);
+        assert!(is_archetypal(collection), EUNDEFINED_METADATA_IN_BAG);
     }
 
     /// Asserts that `Metadata` with `ID` is registered on `MetadataBagDomain`
-    public fun assert_template<C>(
-        registry: &MetadataBagDomain<C>,
-        template_id: ID,
+    public fun assert_metadata<C>(
+        metadata_bag: &MetadataBagDomain<C>,
+        metadata_id: ID,
     ) {
         assert!(
-            contains_template<C>(registry, template_id),
+            contains_metadata<C>(metadata_bag, metadata_id),
             EUNDEFINED_ARCHETYPE
         );
     }
