@@ -213,11 +213,11 @@ module nft_protocol::composable_svg {
     ///
     /// Panics if `SvgDomain` domain already exists
     public fun add_domain<C>(
-        witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
     ) {
         assert!(!has_domain(nft), EEXISTING_SVG_DOMAIN);
-        nft::add_domain(witness, nft, new());
+        nft::add_domain(&Witness {}, nft, new());
     }
 
     // === Assertions ===

@@ -132,12 +132,12 @@ module nft_protocol::svg {
     ///
     /// Panics if `SvgDomain` domain already exists
     public fun add_domain<C>(
-        witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         svg: vector<u8>,
     ) {
         assert!(!has_domain(nft), EEXISTING_SVG_DOMAIN);
-        nft::add_domain(witness, nft, new(svg));
+        nft::add_domain(&Witness {}, nft, new(svg));
     }
 
     /// Adds `SvgDomain` to `Collection`
@@ -146,12 +146,12 @@ module nft_protocol::svg {
     ///
     /// Panics if `SvgDomain` domain already exists
     public fun add_domain_collection<C>(
-        witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         svg: vector<u8>,
     ) {
         assert!(!has_domain_collection(collection), EEXISTING_SVG_DOMAIN);
-        collection::add_domain(witness, collection, new(svg));
+        collection::add_domain(&Witness {}, collection, new(svg));
     }
 
     // === Assertions ===
