@@ -146,11 +146,7 @@ module nft_protocol::plugins {
         collection: &mut Collection<C>,
     ) {
         let domain = new<C, W>(witness);
-        collection::add_domain(
-            witness::from_witness(witness),
-            collection,
-            domain,
-        );
+        collection::add_domain(witness, collection, domain);
     }
 
     // === Assertions ===

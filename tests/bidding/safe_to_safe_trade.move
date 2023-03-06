@@ -11,7 +11,6 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
     use sui::tx_context::TxContext;
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use nft_protocol::witness;
     use nft_protocol::bidding;
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
@@ -126,8 +125,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
         let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
         royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain<Foo>(
-            witness::from_witness(&Witness {}), &mut collection, royalty,
+        royalty::add_royalty_domain<Foo, Witness>(
+            &Witness {}, &mut collection, royalty,
         );
 
         // If domain does not exist this function call will fail

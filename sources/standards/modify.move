@@ -52,7 +52,7 @@ module nft_protocol::modify {
         assert_owner(nft, ctx);
         let modify_domain = borrow_modify_domain(collection);
 
-        nft::add_domain(
+        nft::add_domain_delegated(
             witness::delegate(&modify_domain.generator),
             nft,
             domain,
@@ -71,11 +71,7 @@ module nft_protocol::modify {
         collection: &mut Collection<C>,
     ) {
         let domain = new<C, W>(witness);
-        collection::add_domain(
-            witness::from_witness(witness),
-            collection,
-            domain,
-        );
+        collection::add_domain(witness, collection, domain);
     }
 
     /// Borrows `ModifyDomain` from `Collection`

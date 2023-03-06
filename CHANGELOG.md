@@ -8,14 +8,73 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ## Unreleased
 
+### Changed
+
+- `BidCreated` renamed to `BidCreatedEvent`, generic removed and new fields added.
+  The generic is problematic for the client as it can then query only for event type knowing the fungible token in advance.
+- `BidClosed` event renamed to `BidClosedEvent`, again generic removed and new fields added.
+  Additionally, this event is now used only for cancelling a bid.
+- Renamed `template::Template` to `metadata::Metadata` and `templates::TemplatesDomain` to `metadata_bag::MetadataBagDomain`
+
 ### Added
 
+- `BidMatchedEvent` emitted when an NFT is sold.
+- `NftSoldEvent` emitted from `limited_fixed_price` launchpad market module.
+- `NftSoldEvent` emitted from `fixed_price` launchpad market module.
+- `ChangeLogicalOwnerEvent` emitted when logical owner of an NFT is changed.
+- `MintNftEvent` now contains `logical_owner` field.
+
+## [0.25.0] - 2023-02-24
+
+### Added
+
+- Helper endpoints in orderbook which allow marketplaces to perform actions in a single tx.
+  The marketplaces can now
+  - `edit_bid`
+  - `create_safe_and_bid`
+  - `create_safe_and_bid_with_commission`
+  - `list_multiple_nfts`
+  - `list_multiple_nfts_with_commission`
+- Helper endpoints in launchpad which allow marketplaces to perform actions in a single tx.
+  The marketplaces can now
+  - `create_safe_and_buy_whitelisted_nft`
+  - `create_safe_and_buy_nft`
+  - `buy_nft_into_safe`
+  - `buy_whitelisted_nft_into_safe`
+
+### Fixed
+
+- Wrong `seller` field in `TradeFilledEvent` when calling the `buy_nft` endpoint
+
+### Changed
+
+- Moved errors from `err` module into `orderbook` module where they are expressed as constants.
+
+## [0.24.0] - 2023-02-22
+
+### Changed
+
+- Updated to Devnet 0.27.0
+
+## [0.23.1] - 2023-02-18
+
+### Changed
+
+- Updated to Devnet 0.26.1
+
+## [0.23.0] - 2023-02-16
+
+### Added
+
+- `TransferAllowlistDomain` which keeps track of shared object IDs of type `Allowlist`.
 - Helper endpoints in orderbook which allow marketplaces to perform actions in a single tx.
   The marketplaces can now
   - `deposit_and_list_nft` (and with commission)
   - `create_safe_and_deposit_and_list_nft` (and with commission)
   - `create_safe_and_buy_nft`
   - `create_safe_and_buy_generic_nft`
+  - `cancel_ask_and_discard_transfer_cap`
+  - `edit_ask`
 - Added static `name` and `url` fields to `Nft` for better integration with explorer.
 - Added `LimitedFixedPriceMarket`
 - `orderbook::list_nft` and `orderbook::list_nft_with_commission` endpoints.
@@ -23,7 +82,9 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 
+- Updated to Devnet 0.26.0
 - `transfer_allowlist::remove_itself` is now an entry function.
+- Revamped NFT domain permissions and control over them
 - `Collection` and `Nft` were reverted to use dynamic fields instead of dynamic object fields.
 - Migrated all domains not requiring `key` property after loosening `key` requirement on `Nft` and `Collection` domains.
 

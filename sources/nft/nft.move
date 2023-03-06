@@ -8,17 +8,17 @@
 /// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
 /// easily display your NFT.
 module nft_protocol::nft {
-    use std::string::{Self, String};
+    use std::string::String;
     use std::type_name::{Self, TypeName};
 
-    use sui::url::{Self, Url};
+    use sui::url::Url;
     use sui::event;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use nft_protocol::mint_cap::{
@@ -73,6 +73,17 @@ module nft_protocol::nft {
         ///
         /// Intended to allow users to filter by collections of interest.
         type_name: TypeName,
+        /// Assigned address which owns the NFT
+        logical_owner: address,
+    }
+
+    struct ChangeLogicalOwnerEvent has copy, drop {
+        /// ID of the `Nft` that had its logical owner changed
+        nft_id: ID,
+        /// The address of the previous logical owner
+        old_logical_owner: address,
+        /// The address of the new logical owner
+        new_logical_owner: address,
     }
 
     /// Create a new `Nft`
@@ -87,6 +98,7 @@ module nft_protocol::nft {
         event::emit(MintNftEvent {
             nft_id: object::uid_to_inner(&id),
             type_name: type_name::get<C>(),
+            logical_owner,
         });
 
         Nft { id, name, url, logical_owner }
@@ -270,22 +282,30 @@ module nft_protocol::nft {
 
     /// Adds domain of type `D` to `Nft`
     ///
+    /// Helper method that can be simply used without knowing what a delegated
+    /// witness is.
+    ///
     /// #### Panics
     ///
     /// Panics if domain `D` already exists.
+    public fun add_domain<C, W, D: store>(
+        witness: &W,
+        nft: &mut Nft<C>,
+        domain: D,
+    ) {
+        add_domain_delegated(
+            witness::from_witness(witness),
+            nft,
+            domain,
+        )
+    }
+
+    /// Adds domain of type `D` to `Nft`
     ///
-    /// #### Usage
+    /// #### Panics
     ///
-    /// ```
-    /// nft::add_domain(
-    ///     // Delegated witness constructed from one-time collection witness
-    ///     witness::from_witness(&Witness {}),
-    ///     &mut nft,
-    ///     display::new_display_domain(name, description),
-    ///     ctx,
-    /// );
-    /// ```
-    public fun add_domain<C, D: store>(
+    /// Panics if domain `D` already exists.
+    public fun add_domain_delegated<C, D: store>(
         _witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
         domain: D,
@@ -385,6 +405,16 @@ module nft_protocol::nft {
         df::remove(&mut nft.id, utils::marker<D>())
     }
 
+    /// Burns an `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if any domains are still registered on the `Nft`.
+    public entry fun burn<C>(nft: Nft<C>) {
+        let Nft { id, name: _, url: _, logical_owner: _ } = nft;
+        object::delete(id);
+    }
+
     // === Static Properties ===
 
     /// Returns `Nft` name
@@ -450,6 +480,8 @@ module nft_protocol::nft {
     ///
     /// Creator can allow certain contracts to change the logical owner of an NFT.
     ///
+    /// This function is a no-op if the `logical_owner` is already `recipient`.
+    ///
     /// #### Panics
     ///
     /// Panics if authority token, `Auth`, or collection was not defined on
@@ -460,8 +492,19 @@ module nft_protocol::nft {
         _authority: Auth,
         allowlist: &Allowlist,
     ) {
+        // no-op
+        if (nft.logical_owner == recipient) {
+            return
+        };
+
         transfer_allowlist::assert_collection<C>(allowlist);
         transfer_allowlist::assert_authority<Auth>(allowlist);
+
+        event::emit(ChangeLogicalOwnerEvent {
+            nft_id: object::id(nft),
+            old_logical_owner: nft.logical_owner,
+            new_logical_owner: recipient,
+        });
 
         nft.logical_owner = recipient;
     }
@@ -503,6 +546,6 @@ module nft_protocol::nft {
     #[test_only]
     /// Create `Nft` without access to `MintCap` or derivatives
     public fun test_mint<C>(owner: address, ctx: &mut TxContext): Nft<C> {
-        new_(string::utf8(b""), url::new_unsafe_from_bytes(b""), owner, ctx)
+        new_(std::string::utf8(b""), sui::url::new_unsafe_from_bytes(b""), owner, ctx)
     }
 }

@@ -136,16 +136,16 @@ module nft_protocol::tags {
         collection::borrow_domain_mut(Witness {}, collection)
     }
 
-    public fun add_tag_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_tag_domain<C, W>(
+        witness: &W,
         nft: &mut Nft<C>,
         tags: TagDomain,
     ) {
         nft::add_domain(witness, nft, tags);
     }
 
-    public fun add_collection_tag_domain<C>(
-        witness: DelegatedWitness<C>,
+    public fun add_collection_tag_domain<C, W>(
+        witness: &W,
         collection: &mut Collection<C>,
         tags: TagDomain,
     ) {
