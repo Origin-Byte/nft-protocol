@@ -2,7 +2,7 @@
 ///
 /// `ComposableSvgDomain` does not itself compose NFTs but serves as a display
 /// standard provider for NFTs which register `SvgDomain` and are composed
-/// within `ContainerDomain`.
+/// within `NftBagDomain`.
 module nft_protocol::composable_svg {
     use std::ascii::{Self, String};
     use std::vector;
@@ -11,7 +11,7 @@ module nft_protocol::composable_svg {
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::svg;
-    use nft_protocol::container;
+    use nft_protocol::nft_bag;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness::Witness as DelegatedWitness;
 
@@ -27,7 +27,7 @@ module nft_protocol::composable_svg {
 
     /// `ComposableSvgDomain` did not compose NFT with given ID
     ///
-    /// Call `container::deregister` with an NFT ID that exists.
+    /// Call `nft_bag::deregister` with an NFT ID that exists.
     const EUNDEFINED_NFT: u64 = 3;
 
     /// Domain for providing composed SVG data
@@ -80,14 +80,14 @@ module nft_protocol::composable_svg {
     /// #### Panics
     ///
     /// - `ComposableSvgDomain` doesn't exist
-    /// - `ContainerDomain` doesn't exist
+    /// - `NftBagDomain` doesn't exist
     /// - NFT was of a different collection type
     /// - NFT wasn't composed
     public entry fun register<C>(parent_nft: &mut Nft<C>, child_nft_id: ID) {
-        let container_domain = container::borrow_domain_mut(parent_nft);
+        let nft_bag_domain = nft_bag::borrow_domain_mut(parent_nft);
 
         // Assert that child NFT exists and it has `SvgDomain`
-        let child_nft = container::borrow<C>(container_domain, child_nft_id);
+        let child_nft = nft_bag::borrow<C>(nft_bag_domain, child_nft_id);
         svg::assert_svg(child_nft);
 
         let domain = borrow_domain_mut(parent_nft);
@@ -115,13 +115,13 @@ module nft_protocol::composable_svg {
 
     /// Regenerates composed SVG data
     ///
-    /// NFTs which were removed from `ContainerDomain` or whose `SvgDomain`
+    /// NFTs which were removed from `NftBagDomain` or whose `SvgDomain`
     /// was unregistered will be skipped.
     ///
     /// #### Panics
     ///
     /// - `ComposableSvgDomain` is not registered
-    /// - `ContainerDomain` is not registered
+    /// - `NftBagDomain` is not registered
     public entry fun regenerate<C>(nft: &mut Nft<C>) {
         let composable_svg_domain = borrow_domain(nft);
 
@@ -149,15 +149,15 @@ module nft_protocol::composable_svg {
 
         // Serialize NFT tags
         let nfts = borrow_nfts(composable_svg_domain);
-        let container = container::borrow_domain(nft);
+        let nft_bag = nft_bag::borrow_domain(nft);
 
         let idx = 0;
         let size = vector::length(nfts);
         while (idx < size) {
             let nft_id = vector::borrow(nfts, idx);
 
-            if (container::has(container, *nft_id)) {
-                let nft = container::borrow<C>(container, *nft_id);
+            if (nft_bag::has(nft_bag, *nft_id)) {
+                let nft = nft_bag::borrow<C>(nft_bag, *nft_id);
                 if (svg::has_domain(nft)) {
                     let nft_svg = svg::borrow_svg(nft);
 
