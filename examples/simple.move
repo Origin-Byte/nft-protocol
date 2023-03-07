@@ -34,6 +34,13 @@ module nft_protocol::example_simple {
             )
         );
 
+        nft_protocol::supply_domain::regulate(
+            &Witness {},
+            &mut collection,
+            1000,
+            true
+        );
+
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);
     }
