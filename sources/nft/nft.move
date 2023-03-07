@@ -2,7 +2,7 @@
 ///
 /// OriginByte's NFT protocol brings dynamism, composability and extendability
 /// to NFTs. The current design allows creators to create NFTs with custom
-/// domain-specific fields, with their own bespoke behaviour.
+/// domain-specific fields, with their own bespoke behavior.
 ///
 /// OriginByte provides a set of standard domains which implement common NFT
 /// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
@@ -10,7 +10,7 @@
 module nft_protocol::nft {
     use std::ascii;
     use std::string;
-    use std::type_name::{Self, TypeName};
+    use std::type_name;
 
     use sui::url::Url;
     use sui::event;
@@ -73,7 +73,7 @@ module nft_protocol::nft {
         /// Type name of `Nft<C>` one-time witness `C`
         ///
         /// Intended to allow users to filter by collections of interest.
-        type_name: TypeName,
+        nft_type: ascii::String,
         /// Assigned address which owns the NFT
         logical_owner: address,
     }
@@ -100,7 +100,7 @@ module nft_protocol::nft {
 
         event::emit(MintNftEvent {
             nft_id: object::uid_to_inner(&id),
-            type_name: type_name::get<C>(),
+            nft_type: type_name::into_string(type_name::get<C>()),
             logical_owner,
         });
 

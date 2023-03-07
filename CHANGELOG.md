@@ -17,6 +17,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Renamed `template::Template` to `metadata::Metadata` and `templates::TemplatesDomain` to `metadata_bag::MetadataBagDomain`
 - `OrderbookCreatedEvent` property `fungible_token_type` renamed to `ft_type` to be consistent with other events.
 - `BidCreatedEvent`, `BidClosedEvent` and `BidMatchedEvent` property `ft` renamed to `ft_type` to be consistent with other events.
+- `MintNftEvent` property `object_type` of type `TypeName` changed to `nft_type` of type `String`.
 
 ### Added
 
