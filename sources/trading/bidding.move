@@ -46,7 +46,7 @@ module nft_protocol::bidding {
         commission: u64,
         buyer: address,
         buyer_safe: ID,
-        ft: String,
+        ft_type: String,
     }
 
     /// Bid was closed by the user, no sell happened
@@ -54,7 +54,7 @@ module nft_protocol::bidding {
         id: ID,
         nft: ID,
         buyer: address,
-        ft: String,
+        ft_type: String,
     }
 
     /// NFT was sold
@@ -64,7 +64,7 @@ module nft_protocol::bidding {
         price: u64,
         seller: address,
         buyer: address,
-        ft: String,
+        ft_type: String,
     }
 
     /// Payable entry function to create a bid for an NFT.
@@ -264,7 +264,7 @@ module nft_protocol::bidding {
             price,
             buyer,
             buyer_safe: buyers_safe,
-            ft: *type_name::borrow_string(&type_name::get<FT>()),
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
             commission: commission_amount,
         });
 
@@ -320,7 +320,7 @@ module nft_protocol::bidding {
             price,
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
-            ft: *type_name::borrow_string(&type_name::get<FT>()),
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
         });
     }
 
@@ -364,7 +364,7 @@ module nft_protocol::bidding {
             price,
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
-            ft: *type_name::borrow_string(&type_name::get<FT>())
+            ft_type: *type_name::borrow_string(&type_name::get<FT>())
         });
     }
 
@@ -388,7 +388,7 @@ module nft_protocol::bidding {
             id: object::id(bid),
             nft: bid.nft,
             buyer: sender,
-            ft: *type_name::borrow_string(&type_name::get<FT>()),
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
         });
     }
 }
