@@ -31,6 +31,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   It contains old and new logical owner, NFT ID and NFT collection type.
 - `MintNftEvent` now contains `logical_owner` field.
 - Composable standard with domains `nft_bag::NftBagDomain` and `svg::ComposableSvgDomain`
+- All orderbook events now export `ft_type` and `nft_type` fields.
 
 ### Fixed
 
