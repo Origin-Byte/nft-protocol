@@ -18,7 +18,7 @@ The ecosystem is partitioned into three critical components:
 
 ## Resources
 
-- Devnet contract on the [Sui Explorer](https://explorer.sui.io/object/0x52f6dee1b2a9b63d448e1e3956199a1625c63a3c?network=devnet)
+- Devnet contract on the [Sui Explorer](https://explorer.sui.io/object/0xa65aa1bd2efc45942ea9cde3ffce71d64864b23d?network=devnet)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)
 

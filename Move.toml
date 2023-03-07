@@ -5,13 +5,13 @@ version = "0.25.0"
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework"
-# devnet-0.27.0
-rev = "598f106ef5fbdfbe1b644236f0caf46c94f4d1b7"
+# devnet-0.27.1
+rev = "157ac72030d014f17d76cefe81f3915b4afab2c9"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
-# devnet-0.27.0
-rev = "ef4e6b505f3fb1546944b770c78091b1ac47e392"
+# devnet-0.27.1
+rev = "66d48cfd3966d4c2591ab6e42495e0308687234b"
 
 [addresses]
-nft_protocol = "0x52f6dee1b2a9b63d448e1e3956199a1625c63a3c"
+nft_protocol = "0xa65aa1bd2efc45942ea9cde3ffce71d64864b23d"
