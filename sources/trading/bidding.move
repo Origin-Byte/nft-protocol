@@ -65,6 +65,7 @@ module nft_protocol::bidding {
         seller: address,
         buyer: address,
         ft_type: String,
+        nft_type: String,
     }
 
     /// Payable entry function to create a bid for an NFT.
@@ -321,6 +322,7 @@ module nft_protocol::bidding {
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
+            nft_type: *type_name::borrow_string(&type_name::get<C>()),
         });
     }
 
@@ -364,7 +366,8 @@ module nft_protocol::bidding {
             price,
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
-            ft_type: *type_name::borrow_string(&type_name::get<FT>())
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
+            nft_type: *type_name::borrow_string(&type_name::get<C>()),
         });
     }
 

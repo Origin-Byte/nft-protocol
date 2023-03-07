@@ -41,7 +41,8 @@ module nft_protocol::fixed_price {
     struct NftSoldEvent has copy, drop {
         nft: ID,
         price: u64,
-        ft: String,
+        ft_type: String,
+        nft_type: String,
         buyer: address,
     }
 
@@ -304,7 +305,8 @@ module nft_protocol::fixed_price {
         event::emit(NftSoldEvent {
             nft: object::id(&nft),
             price: market_price,
-            ft: *type_name::borrow_string(&type_name::get<FT>()),
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
+            nft_type: *type_name::borrow_string(&type_name::get<C>()),
             buyer: owner,
         });
 
