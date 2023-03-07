@@ -2,14 +2,15 @@
 ///
 /// OriginByte's NFT protocol brings dynamism, composability and extendability
 /// to NFTs. The current design allows creators to create NFTs with custom
-/// domain-specific fields, with their own bespoke behaviour.
+/// domain-specific fields, with their own bespoke behavior.
 ///
 /// OriginByte provides a set of standard domains which implement common NFT
 /// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
 /// easily display your NFT.
 module nft_protocol::nft {
-    use std::string::String;
-    use std::type_name::{Self, TypeName};
+    use std::ascii;
+    use std::string;
+    use std::type_name;
 
     use sui::url::Url;
     use sui::event;
@@ -55,7 +56,7 @@ module nft_protocol::nft {
         /// `Nft` ID
         id: UID,
         /// `Nft` name
-        name: String,
+        name: string::String,
         /// `Nft` URL
         url: Url,
         /// Represents the logical owner of an NFT
@@ -72,7 +73,7 @@ module nft_protocol::nft {
         /// Type name of `Nft<C>` one-time witness `C`
         ///
         /// Intended to allow users to filter by collections of interest.
-        type_name: TypeName,
+        nft_type: ascii::String,
         /// Assigned address which owns the NFT
         logical_owner: address,
     }
@@ -84,11 +85,13 @@ module nft_protocol::nft {
         old_logical_owner: address,
         /// The address of the new logical owner
         new_logical_owner: address,
+        /// The `TypeName` string of the inner `C` generic of `Nft<C>`.
+        nft_type: ascii::String,
     }
 
     /// Create a new `Nft`
     fun new_<C>(
-        name: String,
+        name: string::String,
         url: Url,
         logical_owner: address,
         ctx: &mut TxContext,
@@ -97,7 +100,7 @@ module nft_protocol::nft {
 
         event::emit(MintNftEvent {
             nft_id: object::uid_to_inner(&id),
-            type_name: type_name::get<C>(),
+            nft_type: type_name::into_string(type_name::get<C>()),
             logical_owner,
         });
 
@@ -122,7 +125,7 @@ module nft_protocol::nft {
     /// ```
     public fun new<C, W>(
         _witness: &W,
-        name: String,
+        name: string::String,
         url: Url,
         owner: address,
         ctx: &mut TxContext,
@@ -138,7 +141,7 @@ module nft_protocol::nft {
     /// domains to NFTs not belonging to the transaction sender.
     public fun from_mint_cap<C>(
         _mint_cap: &MintCap<C>,
-        name: String,
+        name: string::String,
         url: Url,
         ctx: &mut TxContext,
     ): Nft<C> {
@@ -162,7 +165,7 @@ module nft_protocol::nft {
     /// Panics if supply is exceeded.
     public fun from_regulated<C>(
         mint_cap: &mut RegulatedMintCap<C>,
-        name: String,
+        name: string::String,
         url: Url,
         ctx: &mut TxContext,
     ): Nft<C> {
@@ -183,7 +186,7 @@ module nft_protocol::nft {
     /// See [new](#new) for usage information.
     public fun from_unregulated<C>(
         _mint_cap: &UnregulatedMintCap<C>,
-        name: String,
+        name: string::String,
         url: Url,
         ctx: &mut TxContext,
     ): Nft<C> {
@@ -223,7 +226,7 @@ module nft_protocol::nft {
     ///
     ///     struct DisplayDomain {
     ///         id: UID,
-    ///         name: String,
+    ///         name: string::String,
     ///     } has key, store
     ///
     ///     public fun domain_mut(nft: &mut Nft<C>): &mut DisplayDomain {
@@ -418,7 +421,7 @@ module nft_protocol::nft {
     // === Static Properties ===
 
     /// Returns `Nft` name
-    public fun name<C>(nft: &Nft<C>): &String {
+    public fun name<C>(nft: &Nft<C>): &string::String {
         &nft.name
     }
 
@@ -434,7 +437,7 @@ module nft_protocol::nft {
     public fun set_name<C>(
         _witness: DelegatedWitness<C>,
         nft: &mut Nft<C>,
-        name: String,
+        name: string::String,
     ) {
         nft.name = name
     }
@@ -504,6 +507,7 @@ module nft_protocol::nft {
             nft_id: object::id(nft),
             old_logical_owner: nft.logical_owner,
             new_logical_owner: recipient,
+            nft_type: type_name::into_string(type_name::get<C>()),
         });
 
         nft.logical_owner = recipient;
