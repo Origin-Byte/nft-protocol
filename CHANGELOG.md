@@ -15,6 +15,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - `BidClosed` event renamed to `BidClosedEvent`, again generic removed and new fields added.
   Additionally, this event is now used only for cancelling a bid.
 - Renamed `template::Template` to `metadata::Metadata` and `templates::TemplatesDomain` to `metadata_bag::MetadataBagDomain`
+- `OrderbookCreatedEvent` property `fungible_token_type` renamed to `ft_type` to be consistent with other events.
+- `BidCreatedEvent`, `BidClosedEvent` and `BidMatchedEvent` property `ft` renamed to `ft_type` to be consistent with other events.
 
 ### Added
 
@@ -22,8 +24,13 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - `NftSoldEvent` emitted from `limited_fixed_price` launchpad market module.
 - `NftSoldEvent` emitted from `fixed_price` launchpad market module.
 - `ChangeLogicalOwnerEvent` emitted when logical owner of an NFT is changed.
+  It contains old and new logical owner, NFT ID and NFT collection type.
 - `MintNftEvent` now contains `logical_owner` field.
 - Composable standard with domains `nft_bag::NftBagDomain` and `svg::ComposableSvgDomain`
+
+### Fixed
+
+- `OrderbookCreatedEvent` exported collection type instead of FT type.
 
 ## [0.25.0] - 2023-02-24
 
