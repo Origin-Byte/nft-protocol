@@ -32,6 +32,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - `MintNftEvent` now contains `logical_owner` field.
 - Composable standard with domains `nft_bag::NftBagDomain` and `svg::ComposableSvgDomain`
 - All orderbook events now export `ft_type` and `nft_type` fields.
+- Added `total_deposited` field to `Warehouse`
 
 ### Fixed
 
