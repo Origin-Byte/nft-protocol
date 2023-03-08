@@ -27,6 +27,18 @@ module nft_protocol::bidding {
         transfer_bid_commission,
     };
 
+    /// === Errors ===
+
+    /// When a bid is closed or matched, the balance is set to zero.
+    ///
+    /// It cannot be attempted to be closed or matched again.
+    const EBID_ALREADY_CLOSED: u64 = 0;
+
+    /// When a bid is created, the price cannot be zero.
+    const EPRICE_CANNOT_BE_ZERO: u64 = 0;
+
+    /// === Structs ===
+
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
@@ -40,7 +52,7 @@ module nft_protocol::bidding {
     }
 
     struct BidCreatedEvent has copy, drop {
-        id: ID,
+        bid: ID,
         nft: ID,
         price: u64,
         commission: u64,
@@ -51,15 +63,16 @@ module nft_protocol::bidding {
 
     /// Bid was closed by the user, no sell happened
     struct BidClosedEvent has copy, drop {
-        id: ID,
+        bid: ID,
         nft: ID,
         buyer: address,
+        price: u64,
         ft_type: String,
     }
 
     /// NFT was sold
     struct BidMatchedEvent has copy, drop {
-        id: ID,
+        bid: ID,
         nft: ID,
         price: u64,
         seller: address,
@@ -67,6 +80,8 @@ module nft_protocol::bidding {
         ft_type: String,
         nft_type: String,
     }
+
+    /// === Entry points ===
 
     /// Payable entry function to create a bid for an NFT.
     ///
@@ -108,10 +123,6 @@ module nft_protocol::bidding {
         );
         let bid =
             new_bid(nft, buyers_safe, price, option::some(commission), wallet, ctx);
-        share_object(bid);
-    }
-
-    public fun share<FT>(bid: Bid<FT>) {
         share_object(bid);
     }
 
@@ -230,6 +241,12 @@ module nft_protocol::bidding {
         close_bid_(bid, ctx);
     }
 
+    /// === Helpers ===
+
+    public fun share<FT>(bid: Bid<FT>) {
+        share_object(bid);
+    }
+
     /// Sends funds Balance<FT> from `wallet` to the `bid` and
     /// shares object `bid.`
     public fun new_bid<FT>(
@@ -240,6 +257,8 @@ module nft_protocol::bidding {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Bid<FT> {
+        assert!(price != 0, EPRICE_CANNOT_BE_ZERO);
+
         let offer = balance::split(coin::balance_mut(wallet), price);
         let buyer = tx_context::sender(ctx);
 
@@ -260,7 +279,7 @@ module nft_protocol::bidding {
         let bid_id = object::id(&bid);
 
         emit(BidCreatedEvent {
-            id: bid_id,
+            bid: bid_id,
             nft: nft,
             price,
             buyer,
@@ -271,6 +290,8 @@ module nft_protocol::bidding {
 
         bid
     }
+
+    /// === Privates ===
 
     /// Function to sell an NFT with an open `bid`.
     ///
@@ -295,6 +316,7 @@ module nft_protocol::bidding {
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
 
         let price = balance::value(&bid.offer);
+        assert!(price != 0, EBID_ALREADY_CLOSED);
         settle_funds_with_royalties<C, FT>(
             &mut bid.offer,
             tx_context::sender(ctx),
@@ -316,7 +338,7 @@ module nft_protocol::bidding {
         transfer_bid_commission(&mut bid.commission, ctx);
 
         emit(BidMatchedEvent {
-            id: object::id(bid),
+            bid: object::id(bid),
             nft: nft_id,
             price,
             seller: tx_context::sender(ctx),
@@ -361,7 +383,7 @@ module nft_protocol::bidding {
         transfer_bid_commission(&mut bid.commission, ctx);
 
         emit(BidMatchedEvent {
-            id: object::id(bid),
+            bid: object::id(bid),
             nft: nft_id,
             price,
             seller: tx_context::sender(ctx),
@@ -376,6 +398,7 @@ module nft_protocol::bidding {
         assert!(bid.buyer == sender, err::sender_not_owner());
 
         let total = balance::value(&bid.offer);
+        assert!(total != 0, EBID_ALREADY_CLOSED);
         let offer = coin::take(&mut bid.offer, total, ctx);
 
         if (option::is_some(&bid.commission)) {
@@ -388,9 +411,10 @@ module nft_protocol::bidding {
         transfer(offer, sender);
 
         emit(BidClosedEvent {
-            id: object::id(bid),
+            bid: object::id(bid),
             nft: bid.nft,
             buyer: sender,
+            price: total,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
         });
     }

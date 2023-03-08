@@ -220,6 +220,7 @@ module nft_protocol::orderbook {
     struct BidClosedEvent has copy, drop {
         orderbook: ID,
         owner: address,
+        safe: ID,
         price: u64,
         nft_type: String,
         ft_type: String,
@@ -1306,14 +1307,6 @@ module nft_protocol::orderbook {
     ): Option<BidCommission<FT>> {
         let sender = tx_context::sender(ctx);
 
-        event::emit(BidClosedEvent {
-            owner: sender,
-            orderbook: object::id(book),
-            price: bid_price_level,
-            nft_type: type_name::into_string(type_name::get<C>()),
-            ft_type: type_name::into_string(type_name::get<FT>()),
-        });
-
         let bids = &mut book.bids;
 
         assert!(
@@ -1335,8 +1328,17 @@ module nft_protocol::orderbook {
         };
         assert!(index < bids_count, EORDER_OWNER_MUST_BE_SENDER);
 
-        let Bid { offer, owner: _owner, commission, safe: _safe } =
+        let Bid { offer, owner: _owner, commission, safe } =
             vector::remove(price_level, index);
+
+        event::emit(BidClosedEvent {
+            owner: sender,
+            safe,
+            orderbook: object::id(book),
+            price: bid_price_level,
+            nft_type: type_name::into_string(type_name::get<C>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
 
         balance::join(
             coin::balance_mut(wallet),
