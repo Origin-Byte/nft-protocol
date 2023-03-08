@@ -18,6 +18,10 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
     const OFFER_SUI: u64 = 100;
 
+    struct FakeCollection has drop {}
+    // Witness for fake collection
+    struct Witness has drop {}
+
     #[test]
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
@@ -131,6 +135,34 @@ module nft_protocol::test_ob_safe_to_safe_trade {
 
         test_ob::create_bid<Box<bool>>(&mut scenario, OFFER_SUI);
 
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 0, location = nft_protocol::unprotected_safe)]
+    fun if_fails_if_seller_spoofs_collection_type() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        test_ob::create_collection_and_allowlist_with_type(
+            &FakeCollection {},
+            &Witness {},
+            CREATOR,
+            &mut scenario,
+        );
+
+        test_ob::create_ob<test_ob::Foo>(&mut scenario);
+
+        test_ob::create_safe(&mut scenario, SELLER);
+        let nft_id = test_ob::create_and_deposit_nft_with_type<FakeCollection>(
+            &mut scenario,
+            SELLER,
+        );
+
+        test_ob::create_ask<test_ob::Foo>(
+            &mut scenario,
+            nft_id,
+            OFFER_SUI,
+        );
         test_scenario::end(scenario);
     }
 }
