@@ -26,6 +26,8 @@
 /// Those are not guarded with allowlist.
 /// They can be freely transferred between users and safes.
 module nft_protocol::unprotected_safe {
+    use std::type_name::{Self, TypeName};
+
     use nft_protocol::err;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_allowlist::Allowlist;
@@ -37,6 +39,11 @@ module nft_protocol::unprotected_safe {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_object_field::{Self as dof};
+
+    // === Errors ===
+
+    /// NFT type is not what the user expected
+    const ENFT_TYPE_MISMATCH: u64 = 0;
 
     struct UnprotectedSafe has key, store {
         id: UID,
@@ -63,6 +70,10 @@ module nft_protocol::unprotected_safe {
         ///
         /// This has implications on how the NFT is transferred.
         is_generic: bool,
+        /// What's the NFT type.
+        ///
+        /// If it's not generic, it will contain the `Nft<C>` wrapper.
+        object_type: TypeName,
     }
 
     /// Whoever owns this object can perform some admin actions against the
@@ -92,6 +103,10 @@ module nft_protocol::unprotected_safe {
         ///
         /// This has implications on how the NFT is transferred.
         is_generic: bool,
+        /// What's the NFT type.
+        ///
+        /// If it's not generic, it will contain the `Nft<C>` wrapper.
+        object_type: TypeName,
     }
 
     struct DepositEvent has copy, drop {
@@ -164,6 +179,7 @@ module nft_protocol::unprotected_safe {
             safe: safe_id,
             version: ref.version,
             is_generic: ref.is_generic,
+            object_type: ref.object_type,
         }
     }
 
@@ -194,6 +210,7 @@ module nft_protocol::unprotected_safe {
             safe: safe_id,
             version: ref.version,
             is_generic: ref.is_generic,
+            object_type: ref.object_type,
         }
     }
 
@@ -299,6 +316,7 @@ module nft_protocol::unprotected_safe {
             safe: _,
             version,
             is_generic: _,
+            object_type: _,
         } = transfer_cap;
         object::delete(id);
 
@@ -354,6 +372,7 @@ module nft_protocol::unprotected_safe {
             transfer_cap_counter: 0,
             is_exclusively_listed: false,
             is_generic,
+            object_type: type_name::get<T>(),
         });
 
         dof::add(&mut safe.id, nft_id, nft);
@@ -400,6 +419,7 @@ module nft_protocol::unprotected_safe {
             version: _,
             is_exclusive: _,
             is_generic: _,
+            object_type: _,
         } = transfer_cap;
         object::delete(id);
 
@@ -408,8 +428,16 @@ module nft_protocol::unprotected_safe {
 
     // === Getters ===
 
+    public fun borrow_nft<C>(nft: ID, safe: &UnprotectedSafe): &Nft<C> {
+        dof::borrow<ID, Nft<C>>(&safe.id, nft)
+    }
+
     public fun has_nft<C>(nft: ID, safe: &UnprotectedSafe): bool {
         dof::exists_with_type<ID, Nft<C>>(&safe.id, nft)
+    }
+
+    public fun borrow_generic_nft<C: key + store>(nft: ID, safe: &UnprotectedSafe): &C {
+        dof::borrow<ID, C>(&safe.id, nft)
     }
 
     public fun has_generic_nft<T: key + store>(nft: ID, safe: &UnprotectedSafe): bool {
@@ -426,6 +454,10 @@ module nft_protocol::unprotected_safe {
 
     public fun transfer_cap_nft(cap: &TransferCap): ID {
         cap.nft
+    }
+
+    public fun transfer_cap_object_type(cap: &TransferCap): TypeName {
+        cap.object_type
     }
 
     public fun transfer_cap_version(cap: &TransferCap): ID {
@@ -474,6 +506,22 @@ module nft_protocol::unprotected_safe {
 
     public fun assert_transfer_cap_of_native_nft(cap: &TransferCap) {
         assert!(!cap.is_generic, err::nft_is_generic());
+    }
+
+    /// Checks that the transfer cap is issued for an NFT of type `Nft<C>`
+    public fun assert_nft_type<C>(cap: &TransferCap) {
+        assert!(
+            cap.object_type == type_name::get<Nft<C>>(),
+            ENFT_TYPE_MISMATCH,
+        );
+    }
+
+    /// Checks that the transfer cap is issued for an NFT of type `C`
+    public fun assert_generic_nft_type<C>(cap: &TransferCap) {
+        assert!(
+            cap.object_type == type_name::get<C>(),
+            ENFT_TYPE_MISMATCH,
+        );
     }
 
     fun assert_version_match(ref: &NftRef, cap: &TransferCap) {
