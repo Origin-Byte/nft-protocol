@@ -1,5 +1,6 @@
 module nft_protocol::suimarines {
     use std::string::{Self, String};
+    use std::vector;
 
     use sui::object;
     use sui::balance;
@@ -7,7 +8,7 @@ module nft_protocol::suimarines {
     use sui::tx_context::{Self, TxContext};
     use sui::url;
 
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
@@ -19,6 +20,11 @@ module nft_protocol::suimarines {
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_allowlist_domain;
+
+    const EWrongDescriptionLength: u64 = 1;
+    const EWrongUrlLength: u64 = 2;
+    const EWrongAttributeKeysLength: u64 = 3;
+    const EWrongAttributeValuesLength: u64 = 4;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -113,6 +119,62 @@ module nft_protocol::suimarines {
         warehouse: &mut Warehouse<SUIMARINES>,
         ctx: &mut TxContext,
     ) {
+        let nft = mint(
+            name,
+            description,
+            url,
+            attribute_keys,
+            attribute_values,
+            mint_cap,
+            ctx,
+        );
+
+        warehouse::deposit_nft(warehouse, nft);
+    }
+
+    public entry fun batch_mint_nft(
+        name: vector<String>,
+        description: vector<String>,
+        url: vector<vector<u8>>,
+        attribute_keys: vector<vector<String>>,
+        attribute_values: vector<vector<String>>,
+        mint_cap: &MintCap<SUIMARINES>,
+        warehouse: &mut Warehouse<SUIMARINES>,
+        ctx: &mut TxContext,
+    ) {
+        let len = vector::length(&name);
+
+        assert!(vector::length(&description) == len, EWrongDescriptionLength);
+        assert!(vector::length(&url) == len, EWrongUrlLength);
+        assert!(vector::length(&attribute_keys) == len, EWrongAttributeKeysLength);
+        assert!(vector::length(&attribute_values) == len, EWrongAttributeValuesLength);
+
+        while (len > 0) {
+            let nft = mint(
+                vector::pop_back(&mut name),
+                vector::pop_back(&mut description),
+                vector::pop_back(&mut url),
+                vector::pop_back(&mut attribute_keys),
+                vector::pop_back(&mut attribute_values),
+                mint_cap,
+                ctx,
+            );
+
+            warehouse::deposit_nft(warehouse, nft);
+
+            len = len - 1;
+        };
+    }
+
+    fun mint(
+        name: String,
+        description: String,
+        url: vector<u8>,
+        attribute_keys: vector<String>,
+        attribute_values: vector<String>,
+        mint_cap: &MintCap<SUIMARINES>,
+        ctx: &mut TxContext,
+    ): Nft<SUIMARINES> {
         let url = url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
@@ -131,6 +193,6 @@ module nft_protocol::suimarines {
             &Witness {}, &mut nft, mint_cap::collection_id(mint_cap),
         );
 
-        warehouse::deposit_nft(warehouse, nft);
+        nft
     }
 }
