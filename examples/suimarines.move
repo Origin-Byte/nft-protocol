@@ -21,10 +21,10 @@ module nft_protocol::suimarines {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_allowlist_domain;
 
-    const EWrongDescriptionLength: u64 = 1;
-    const EWrongUrlLength: u64 = 2;
-    const EWrongAttributeKeysLength: u64 = 3;
-    const EWrongAttributeValuesLength: u64 = 4;
+    const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
+    const EWRONG_URL_LENGTH: u64 = 2;
+    const EWRONG_ATTRIBUTE_KEYS_LENGTH: u64 = 3;
+    const EWRONG_ATTRIBUTE_VALUES_LENGTH: u64 = 4;
 
     /// One time witness is only instantiated in the init method
     struct SUIMARINES has drop {}
@@ -144,10 +144,10 @@ module nft_protocol::suimarines {
     ) {
         let len = vector::length(&name);
 
-        assert!(vector::length(&description) == len, EWrongDescriptionLength);
-        assert!(vector::length(&url) == len, EWrongUrlLength);
-        assert!(vector::length(&attribute_keys) == len, EWrongAttributeKeysLength);
-        assert!(vector::length(&attribute_values) == len, EWrongAttributeValuesLength);
+        assert!(vector::length(&description) == len, EWRONG_DESCRIPTION_LENGTH);
+        assert!(vector::length(&url) == len, EWRONG_URL_LENGTH);
+        assert!(vector::length(&attribute_keys) == len, EWRONG_ATTRIBUTE_KEYS_LENGTH);
+        assert!(vector::length(&attribute_values) == len, EWRONG_ATTRIBUTE_VALUES_LENGTH);
 
         while (len > 0) {
             let nft = mint(
