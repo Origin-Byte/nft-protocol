@@ -5,7 +5,7 @@
 /// different composability schemes.
 module nft_protocol::nft_bag {
     use std::vector;
-    use std::option;
+    use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
     use sui::dynamic_object_field as dof;
@@ -35,14 +35,6 @@ module nft_protocol::nft_bag {
     ///
     /// Call `container::decompose` with the correct authority.
     const EINVALID_AUTHORITY: u64 = 4;
-
-    /// `NftRef` allows indexing composed NFTs within `NftBagDomain`
-    struct NftRef has store {
-        /// Type name of the witness authorized to withdraw the NFT
-        witness: TypeName,
-        /// ID of the NFT stored as a dynamic object field
-        nft_id: ID,
-    }
 
     /// `NftBagDomain` object
     struct NftBagDomain has store {
@@ -105,11 +97,24 @@ module nft_protocol::nft_bag {
         nft::has_domain<C, NftBagDomain>(nft)
     }
 
+    /// Register `NftBagDomain` on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `NftBagDomain` is already registered on the `Nft`.
+    public fun add_domain<C, W: drop>(
+        witness: &W,
+        nft: &mut Nft<C>,
+        ctx: &mut TxContext,
+    ) {
+        nft::add_domain(witness, nft, new(ctx))
+    }
+
     /// Borrows `NftBagDomain` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `NftBagDomain` is not registered on the `Nft`
+    /// Panics if `NftBagDomain` is not registered on the `Nft`.
     public fun borrow_domain<C>(nft: &Nft<C>): &NftBagDomain {
         assert_container(nft);
         nft::borrow_domain<C, NftBagDomain>(nft)
@@ -121,7 +126,7 @@ module nft_protocol::nft_bag {
     ///
     /// #### Panics
     ///
-    /// Panics if `NftBagDomain` is not registered on the `Nft`
+    /// Panics if `NftBagDomain` is not registered on the `Nft`.
     public fun borrow_domain_mut<C>(nft: &mut Nft<C>): &mut NftBagDomain {
         assert_container(nft);
         nft::borrow_domain_mut(Witness {}, nft)
@@ -147,61 +152,129 @@ module nft_protocol::nft_bag {
         borrow_mut(container, nft_id)
     }
 
+    /// Get index of authority
+    fun get_authority_idx(
+        authority_type: &TypeName,
+        domain: &NftBagDomain,
+    ): Option<u64> {
+        let (has_authority, idx_opt) =
+            vector::index_of(&domain.authorities, authority_type);
+
+        if (has_authority) {
+            option::some(idx_opt)
+        } else {
+            option::none()
+        }
+    }
+
+    /// Get index of authority or inserts a new one if it did not already exist
+    fun get_or_insert_authority_idx(
+        authority_type: TypeName,
+        domain: &mut NftBagDomain,
+    ): u64 {
+        let idx_opt = get_authority_idx(&authority_type, domain);
+
+        if (option::is_some(&idx_opt)) {
+            option::destroy_some(idx_opt)
+        } else {
+            let idx = vector::length(&domain.authorities);
+            vector::push_back(&mut domain.authorities, authority_type);
+            idx
+        }
+    }
+
+    /// Composes child NFT into `NftBagDomain`
+    public fun compose<C, Auth: drop>(
+        _authority: Auth,
+        domain: &mut NftBagDomain,
+        child_nft: Nft<C>,
+    ) {
+        let authority_type = type_name::get<Auth>();
+        let idx = get_or_insert_authority_idx(authority_type, domain);
+
+        let nft_id = object::id(&child_nft);
+        vec_map::insert(&mut domain.nfts, nft_id, idx);
+        dof::add(&mut domain.id, nft_id, child_nft);
+    }
+
     /// Composes child NFT into parent NFT
     ///
     /// #### Panics
     ///
-    /// Panics if `NftBagDomain` is not registered on the parent `Nft`.
-    public fun compose<C, Auth: drop>(
-        _authority: Auth,
+    /// Panics if `NftBagDomain` is not registered on the parent `Nft`
+    public fun compose_nft<C, Auth: drop>(
+        authority: Auth,
         parent_nft: &mut Nft<C>,
         child_nft: Nft<C>,
     ) {
-        let container_domain = borrow_domain_mut(parent_nft);
-
-        // Identify index of authority that this `Nft` should be composed using
-        let authority_type = type_name::get<Auth>();
-        let (has_authority, idx_opt) =
-            vector::index_of(&container_domain.authorities, &authority_type);
-
-        let idx = if (has_authority) {
-            idx_opt
-        } else {
-            let idx = vector::length(&container_domain.authorities);
-            vector::push_back(&mut container_domain.authorities, authority_type);
-            idx
-        };
-
-        let nft_id = object::id(&child_nft);
-        vec_map::insert(&mut container_domain.nfts, nft_id, idx);
-        dof::add(&mut container_domain.id, nft_id, child_nft);
+        let domain = borrow_domain_mut(parent_nft);
+        compose(authority, domain, child_nft);
     }
 
-    /// Deomposes child NFT from parent NFT
+    /// Decomposes child NFT from `NftBagDomain`
     ///
     /// #### Panics
     ///
-    /// Panics if `NftBagDomain` is not registered on the parent `Nft` or
-    /// child `Nft` does not exist.
+    /// Panics if child `Nft` does not exist.
     public fun decompose<C, Auth: drop>(
         _authority: Auth,
-        parent_nft: &mut Nft<C>,
+        domain: &mut NftBagDomain,
         child_nft_id: ID,
     ): Nft<C> {
-        let container_domain = borrow_domain_mut(parent_nft);
-
         // Identify index of authority that this `Nft` should be composed using
         // let authority_type = type_name::get<Auth>();
         let idx_opt =
-            vec_map::get_idx_opt(&container_domain.nfts, &child_nft_id);
+            vec_map::get_idx_opt(&domain.nfts, &child_nft_id);
         assert!(option::is_some(&idx_opt), EUNDEFINED_NFT);
         let idx = option::destroy_some(idx_opt);
 
-        let authority = vector::borrow(&container_domain.authorities, idx);
+        let authority = vector::borrow(&domain.authorities, idx);
         let authority_type = type_name::get<Auth>();
         assert!(authority == &authority_type, EINVALID_AUTHORITY);
 
-        dof::remove(&mut container_domain.id, child_nft_id)
+        dof::remove(&mut domain.id, child_nft_id)
+    }
+
+    /// Decomposes child NFT from parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `NftBagDomain` is not registered on the parent `Nft`
+    public fun decompose_nft<C, Auth: drop>(
+        authority: Auth,
+        parent_nft: &mut Nft<C>,
+        child_nft_id: ID,
+    ): Nft<C> {
+        let domain = borrow_domain_mut(parent_nft);
+        decompose(authority, domain, child_nft_id)
+    }
+
+    /// Counts how many NFTs are registered under the given authority
+    public fun count<Auth>(domain: &NftBagDomain): u64 {
+        let authority_type = type_name::get<Auth>();
+
+        let authority_idx = get_authority_idx(&authority_type, domain);
+        if (option::is_none(&authority_idx)) {
+            return 0
+        };
+
+        let count = 0;
+        let authority_idx = option::destroy_some(authority_idx);
+
+        let idx = 0;
+        let size = vec_map::size(&domain.nfts);
+        while (idx < size) {
+            let (_, nft_authority_idx) =
+                vec_map::get_entry_by_idx(&domain.nfts, idx);
+
+            if (nft_authority_idx == &authority_idx) {
+                count = count + 1;
+            };
+
+            idx = idx + 1;
+        };
+
+        count
     }
 
     // === Assertions ===
