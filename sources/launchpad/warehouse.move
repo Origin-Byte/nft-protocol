@@ -30,6 +30,9 @@ module nft_protocol::warehouse {
         id: UID,
         /// NFTs that are currently on sale
         nfts: vector<ID>,
+        // By subtracting `warehouse.total_deposited` to the length of `warehouse.nfts`
+        // one can get total redeemed
+        total_deposited: u64,
     }
 
     /// Create a new `Warehouse`
@@ -37,6 +40,7 @@ module nft_protocol::warehouse {
         Warehouse {
             id: object::new(ctx),
             nfts: vector::empty(),
+            total_deposited: 0,
         }
     }
 
@@ -55,6 +59,7 @@ module nft_protocol::warehouse {
     ) {
         let nft_id = object::id(&nft);
         vector::push_back(&mut warehouse.nfts, nft_id);
+        warehouse.total_deposited = warehouse.total_deposited + 1;
 
         dof::add(&mut warehouse.id, nft_id, nft);
     }
@@ -108,7 +113,7 @@ module nft_protocol::warehouse {
     /// Panics if `Warehouse` is not empty
     public entry fun destroy<C>(warehouse: Warehouse<C>) {
         assert_is_empty(&warehouse);
-        let Warehouse { id, nfts: _ } = warehouse;
+        let Warehouse { id, nfts: _, total_deposited: _ } = warehouse;
         object::delete(id);
     }
 
@@ -122,6 +127,16 @@ module nft_protocol::warehouse {
     /// Return whether there are any `Nft` in the `Warehouse`
     public fun is_empty<C>(warehouse: &Warehouse<C>): bool {
         vector::is_empty(&warehouse.nfts)
+    }
+
+    /// Return cumulated amount of `Nft`s deposited in the `Warehouse`
+    public fun total_deposited<C>(warehouse: &Warehouse<C>): u64 {
+        warehouse.total_deposited
+    }
+
+    /// Return cumulated amount of `Nft`s redeemed in the `Warehouse`
+    public fun total_redeemed<C>(warehouse: &Warehouse<C>): u64 {
+        warehouse.total_deposited - vector::length(&warehouse.nfts)
     }
 
     // === Assertions ===
