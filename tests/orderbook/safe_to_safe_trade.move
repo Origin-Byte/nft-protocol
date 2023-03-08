@@ -139,7 +139,7 @@ module nft_protocol::test_ob_safe_to_safe_trade {
     }
 
     #[test]
-    #[expected_failure(abort_code = 8, location = nft_protocol::orderbook)]
+    #[expected_failure(abort_code = 0, location = nft_protocol::unprotected_safe)]
     fun if_fails_if_seller_spoofs_collection_type() {
         let scenario = test_scenario::begin(CREATOR);
 

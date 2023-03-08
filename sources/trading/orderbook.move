@@ -78,9 +78,6 @@ module nft_protocol::orderbook {
     /// No order matches the given price level or ownership level
     const EORDER_DOES_NOT_EXIST: u64 = 7;
 
-    /// The transfer cap's NFT type does not correspond to the orderbook type
-    const ETRANSFER_CAP_ORDERBOOK_MISMATCH: u64 = 8;
-
     // === Structs ===
 
     /// Witness used to authenticate witness protected endpoints
@@ -1377,6 +1374,12 @@ module nft_protocol::orderbook {
     ) {
         safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
         safe::assert_transfer_cap_exclusive(&transfer_cap);
+
+        if (safe::transfer_cap_is_nft_generic(&transfer_cap)) {
+            safe::assert_generic_nft_type<C>(&transfer_cap);
+        } else {
+            safe::assert_nft_type<C>(&transfer_cap);
+        };
 
         let seller = tx_context::sender(ctx);
         let seller_safe_id = object::id(seller_safe);
