@@ -47,7 +47,7 @@ module nft_protocol::unprotected_safe {
 
     /// Keeps info about an NFT which enables us to issue transfer caps etc.
     struct NftRef has store, copy, drop {
-        /// Is generated anew every time a counter is incremented from zero to
+        /// Is generated a new every time a counter is incremented from zero to
         /// one.
         ///
         /// We don't use monotonically increasing integer so that we can remove

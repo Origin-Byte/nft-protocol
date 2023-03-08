@@ -78,6 +78,9 @@ module nft_protocol::orderbook {
     /// No order matches the given price level or ownership level
     const EORDER_DOES_NOT_EXIST: u64 = 7;
 
+    /// The transfer cap's NFT type does not correspond to the orderbook type
+    const ETRANSFER_CAP_ORDERBOOK_MISMATCH: u64 = 8;
+
     // === Structs ===
 
     /// Witness used to authenticate witness protected endpoints
