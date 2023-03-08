@@ -7,7 +7,6 @@ module nft_protocol::tribal_realms {
 
     use nft_protocol::nft;
     use nft_protocol::display;
-    use nft_protocol::witness;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::composable_nft::{Self as c_nft};
@@ -30,7 +29,6 @@ module nft_protocol::tribal_realms {
 
     fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
 
         display::add_collection_display_domain(
             &Witness {},
@@ -41,35 +39,39 @@ module nft_protocol::tribal_realms {
 
         // === Avatar composability ===
 
-        let blueprint = c_nft::new_blueprint<Avatar>(ctx);
+        let avatar_blueprint = c_nft::new_blueprint<Avatar>(ctx);
         c_nft::add_relationship<Avatar, Hat>(
-            &mut blueprint,
+            &mut avatar_blueprint,
             1, // limit
             1, // order
         );
         c_nft::add_relationship<Avatar, Glasses>(
-            &mut blueprint,
+            &mut avatar_blueprint,
             1, // limit
             1, // order
         );
         c_nft::add_relationship<Avatar, Gun>(
-            &mut blueprint,
+            &mut avatar_blueprint,
             1, // limit
             1, // order
         );
 
-        c_nft::add_blueprint_domain(delegated_witness, &mut collection, blueprint);
+        c_nft::add_blueprint_domain(
+            &Witness {}, &mut collection, avatar_blueprint,
+        );
 
         // === Gun composability ===
 
-        let blueprint = c_nft::new_blueprint<Gun>(ctx);
+        let gun_blueprint = c_nft::new_blueprint<Gun>(ctx);
         c_nft::add_relationship<Gun, Skin>(
-            &mut blueprint,
+            &mut gun_blueprint,
             1, // limit
             1, // order
         );
 
-        c_nft::add_blueprint_domain(delegated_witness, &mut collection, blueprint);
+        c_nft::add_blueprint_domain(
+            &Witness {}, &mut collection, gun_blueprint,
+        );
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::share_object(collection);

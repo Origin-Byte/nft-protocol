@@ -11,7 +11,6 @@ module nft_protocol::composable_nft {
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::nft_bag;
 
     /// Parent and child types are not composable
@@ -53,18 +52,26 @@ module nft_protocol::composable_nft {
 
     // === Type ===
 
-    /// NFT type market
+    /// NFT type domain
+    ///
+    /// Used to mark the NFT as a certain type
     struct Type<phantom T> has store {}
 
+    /// Creates a new `Type`
     public fun new_type<T>(): Type<T> {
         Type {}
     }
 
-    public fun add_type_domain<C, W, T>(
+    /// Registers `Type` as a domain on the `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if NFT is already marked as the type
+    public fun add_type_domain<C, W, Type>(
         witness: &W,
         nft: &mut Nft<C>,
     ) {
-        nft::add_domain(witness, nft, new_type<T>());
+        nft::add_domain(witness, nft, new_type<Type>());
     }
 
     // === Blueprint ===
@@ -89,7 +96,7 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if parent child relationship already exists
-    public entry fun add_relationship<Parent, Child>(
+    public fun add_relationship<Parent, Child>(
         blueprint: &mut Blueprint<Parent>,
         limit: u64,
         order: u64,
@@ -142,12 +149,16 @@ module nft_protocol::composable_nft {
     }
 
     /// Registers `Blueprint` on the given `Collection`
-    public fun add_blueprint_domain<C, Parent>(
-        witness: DelegatedWitness<C>,
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Blueprint` is already registered on the `Collection`.
+    public fun add_blueprint_domain<C, W, Parent>(
+        witness: &W,
         collection: &mut Collection<C>,
         domain: Blueprint<Parent>,
     ) {
-        collection::add_domain_delegated(witness, collection, domain);
+        collection::add_domain(witness, collection, domain);
     }
 
     /// Compose child NFT into parent NFT
@@ -191,7 +202,7 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if there is no NFT with given ID composed
-    public entry fun decompose<C, Parent, Child>(
+    public fun decompose<C, Parent, Child>(
         parent_nft: &mut Nft<C>,
         child_nft_id: ID,
     ): Nft<C> {
@@ -205,7 +216,7 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if there is no NFT with given ID composed
-    public entry fun decompose_and_transfer<C, Parent, Child>(
+    public fun decompose_and_transfer<C, Parent, Child>(
         parent_nft: &mut Nft<C>,
         child_nft_id: ID,
         ctx: &mut TxContext,
