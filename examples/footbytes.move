@@ -11,8 +11,8 @@ module nft_protocol::footbytes {
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::creators;
-    use nft_protocol::template;
-    use nft_protocol::templates;
+    use nft_protocol::metadata;
+    use nft_protocol::metadata_bag;
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
@@ -72,7 +72,7 @@ module nft_protocol::footbytes {
             tags,
         );
 
-        templates::init_templates<FOOTBYTES, Witness>(
+        metadata_bag::init_metadata_bag<FOOTBYTES, Witness>(
             &Witness {},
             &mut collection,
             ctx,
@@ -116,7 +116,7 @@ module nft_protocol::footbytes {
 
         display::add_url_domain(&Witness {}, &mut nft, url);
 
-        let template = template::new_regulated(nft, supply, ctx);
-        templates::add_collection_template(mint_cap, collection, template);
+        let metadata = metadata::new_regulated(nft, supply, ctx);
+        metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);
     }
 }

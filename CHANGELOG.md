@@ -6,6 +6,38 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- `BidCreated` renamed to `BidCreatedEvent`, generic removed and new fields added.
+  The generic is problematic for the client as it can then query only for event type knowing the fungible token in advance.
+- `BidClosed` event renamed to `BidClosedEvent`, again generic removed and new fields added.
+  Additionally, this event is now used only for cancelling a bid.
+- Renamed `template::Template` to `metadata::Metadata` and `templates::TemplatesDomain` to `metadata_bag::MetadataBagDomain`
+- `OrderbookCreatedEvent` property `fungible_token_type` renamed to `ft_type` to be consistent with other events.
+- `BidCreatedEvent`, `BidClosedEvent` and `BidMatchedEvent` property `ft` renamed to `ft_type` to be consistent with other events.
+- `BidMatchedEvent` now contains property `nft_type`.
+- `MintNftEvent` property `object_type` of type `TypeName` changed to `nft_type` of type `String`.
+
+### Added
+
+- `BidMatchedEvent` emitted when an NFT is sold.
+- `NftSoldEvent` emitted from `limited_fixed_price` launchpad market module.
+  It contains among others properties `nft_type` and `ft_type`.
+- `NftSoldEvent` emitted from `fixed_price` launchpad market module.
+  It contains among others properties `nft_type` and `ft_type`.
+- `ChangeLogicalOwnerEvent` emitted when logical owner of an NFT is changed.
+  It contains old and new logical owner, NFT ID and NFT collection type.
+- `MintNftEvent` now contains `logical_owner` field.
+- Composable standard with domains `nft_bag::NftBagDomain` and `svg::ComposableSvgDomain`
+- All orderbook events now export `ft_type` and `nft_type` fields.
+- Added `total_deposited` field to `Warehouse`
+
+### Fixed
+
+- `OrderbookCreatedEvent` exported collection type instead of FT type.
+
 ## [0.25.0] - 2023-02-24
 
 ### Added
@@ -31,6 +63,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 ### Changed
 
 - Moved errors from `err` module into `orderbook` module where they are expressed as constants.
+
 ## [0.24.0] - 2023-02-22
 
 ### Changed

@@ -365,8 +365,16 @@ module nft_protocol::safe {
         &safe.inner
     }
 
+    public fun borrow_nft<C>(nft: ID, safe: &Safe): &Nft<C> {
+        unprotected_safe::borrow_nft<C>(nft, &safe.inner)
+    }
+
     public fun has_nft<C>(nft: ID, safe: &Safe): bool {
         unprotected_safe::has_nft<C>(nft, &safe.inner)
+    }
+
+    public fun borrow_generic_nft<C: key + store>(nft: ID, safe: &Safe): &C {
+        unprotected_safe::borrow_generic_nft<C>(nft, &safe.inner)
     }
 
     public fun has_generic_nft<T: key + store>(nft: ID, safe: &Safe): bool {
@@ -395,6 +403,10 @@ module nft_protocol::safe {
 
     public fun transfer_cap_is_nft_generic(cap: &TransferCap): bool {
         unprotected_safe::transfer_cap_is_nft_generic(&cap.inner)
+    }
+
+    public fun transfer_cap_object_type(cap: &TransferCap): TypeName {
+        unprotected_safe::transfer_cap_object_type(&cap.inner)
     }
 
     public fun are_all_deposits_enabled(safe: &Safe): bool {
@@ -429,6 +441,16 @@ module nft_protocol::safe {
 
     public fun assert_transfer_cap_of_native_nft(cap: &TransferCap) {
         unprotected_safe::assert_transfer_cap_of_native_nft(&cap.inner)
+    }
+
+    /// Checks that the transfer cap is issued for an NFT of type `Nft<C>`
+    public fun assert_nft_type<C>(cap: &TransferCap) {
+        unprotected_safe::assert_nft_type<C>(&cap.inner)
+    }
+
+    /// Checks that the transfer cap is issued for an NFT of type `C`
+    public fun assert_generic_nft_type<C>(cap: &TransferCap) {
+        unprotected_safe::assert_generic_nft_type<C>(&cap.inner)
     }
 
     public fun assert_can_deposit<T>(safe: &Safe) {

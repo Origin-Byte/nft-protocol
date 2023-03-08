@@ -9,13 +9,16 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::limited_fixed_price {
+    use std::ascii::String;
     use std::option;
+    use std::type_name;
 
     use sui::balance;
     use sui::coin::{Self, Coin};
+    use sui::event;
     use sui::object::{Self, ID, UID};
-    use sui::tx_context::{Self, TxContext};
     use sui::transfer::{transfer, share_object};
+    use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::inventory;
@@ -52,6 +55,16 @@ module nft_protocol::limited_fixed_price {
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
+
+    // === Events ===
+
+    struct NftSoldEvent has copy, drop {
+        nft: ID,
+        price: u64,
+        ft_type: String,
+        nft_type: String,
+        buyer: address,
+    }
 
     // === Init functions ===
 
@@ -346,11 +359,12 @@ module nft_protocol::limited_fixed_price {
         );
         let market =
             venue::borrow_market_mut<LimitedFixedPriceMarket<FT>>(venue);
+        let market_price = market.price;
 
         let owner = tx_context::sender(ctx);
         increment_count(market, owner);
 
-        let funds = balance::split(coin::balance_mut(wallet), market.price);
+        let funds = balance::split(coin::balance_mut(wallet), market_price);
 
         let inventory_id = market.inventory_id;
         let inventory = listing::inventory_internal_mut<
@@ -360,6 +374,14 @@ module nft_protocol::limited_fixed_price {
         );
 
         let nft = inventory::redeem_nft(inventory, owner, ctx);
+
+        event::emit(NftSoldEvent {
+            nft: object::id(&nft),
+            price: market_price,
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
+            nft_type: *type_name::borrow_string(&type_name::get<C>()),
+            buyer: owner,
+        });
 
         listing::pay(listing, funds, 1);
 

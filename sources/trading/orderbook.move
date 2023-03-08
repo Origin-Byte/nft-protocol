@@ -183,8 +183,8 @@ module nft_protocol::orderbook {
 
     struct OrderbookCreatedEvent has copy, drop {
         orderbook: ID,
-        collection_type: String,
-        fungible_token_type: String,
+        nft_type: String,
+        ft_type: String,
     }
 
     struct AskCreatedEvent has copy, drop {
@@ -193,6 +193,8 @@ module nft_protocol::orderbook {
         owner: address,
         price: u64,
         safe: ID,
+        nft_type: String,
+        ft_type: String,
     }
 
     /// When de-listed, not when sold!
@@ -201,6 +203,8 @@ module nft_protocol::orderbook {
         orderbook: ID,
         owner: address,
         price: u64,
+        nft_type: String,
+        ft_type: String,
     }
 
     struct BidCreatedEvent has copy, drop {
@@ -208,13 +212,18 @@ module nft_protocol::orderbook {
         owner: address,
         price: u64,
         safe: ID,
+        nft_type: String,
+        ft_type: String,
     }
 
     /// When de-listed, not when bought!
     struct BidClosedEvent has copy, drop {
         orderbook: ID,
         owner: address,
+        safe: ID,
         price: u64,
+        nft_type: String,
+        ft_type: String,
     }
 
     /// Either an ask is created and immediately matched with a bid, or a bid
@@ -237,6 +246,8 @@ module nft_protocol::orderbook {
         ///
         /// Is `Some` if the NFT was bought via `create_bid` or `create_ask`.
         trade_intermediate: Option<ID>,
+        nft_type: String,
+        ft_type: String,
     }
 
     // === Create bid ===
@@ -984,8 +995,8 @@ module nft_protocol::orderbook {
 
         event::emit(OrderbookCreatedEvent {
             orderbook: object::uid_to_inner(&id),
-            collection_type: type_name::into_string(type_name::get<C>()),
-            fungible_token_type: type_name::into_string(type_name::get<C>()),
+            nft_type: type_name::into_string(type_name::get<C>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
         Orderbook<C, FT> {
@@ -1246,6 +1257,8 @@ module nft_protocol::orderbook {
                 seller_safe,
                 seller,
                 trade_intermediate: option::some(trade_intermediate_id),
+                nft_type: type_name::into_string(type_name::get<C>()),
+                ft_type: type_name::into_string(type_name::get<FT>()),
             });
 
             transfer_bid_commission(&mut bid_commission, ctx);
@@ -1256,6 +1269,8 @@ module nft_protocol::orderbook {
                 owner: buyer,
                 price,
                 safe: buyer_safe_id,
+                nft_type: type_name::into_string(type_name::get<C>()),
+                ft_type: type_name::into_string(type_name::get<FT>()),
             });
 
             // take the amount that the sender wants to create a bid with from their
@@ -1292,12 +1307,6 @@ module nft_protocol::orderbook {
     ): Option<BidCommission<FT>> {
         let sender = tx_context::sender(ctx);
 
-        event::emit(BidClosedEvent {
-            owner: sender,
-            orderbook: object::id(book),
-            price: bid_price_level,
-        });
-
         let bids = &mut book.bids;
 
         assert!(
@@ -1319,8 +1328,17 @@ module nft_protocol::orderbook {
         };
         assert!(index < bids_count, EORDER_OWNER_MUST_BE_SENDER);
 
-        let Bid { offer, owner: _owner, commission, safe: _safe } =
+        let Bid { offer, owner: _owner, commission, safe } =
             vector::remove(price_level, index);
+
+        event::emit(BidClosedEvent {
+            owner: sender,
+            safe,
+            orderbook: object::id(book),
+            price: bid_price_level,
+            nft_type: type_name::into_string(type_name::get<C>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
 
         balance::join(
             coin::balance_mut(wallet),
@@ -1374,6 +1392,12 @@ module nft_protocol::orderbook {
     ) {
         safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
         safe::assert_transfer_cap_exclusive(&transfer_cap);
+
+        if (safe::transfer_cap_is_nft_generic(&transfer_cap)) {
+            safe::assert_generic_nft_type<C>(&transfer_cap);
+        } else {
+            safe::assert_nft_type<C>(&transfer_cap);
+        };
 
         let seller = tx_context::sender(ctx);
         let seller_safe_id = object::id(seller_safe);
@@ -1441,6 +1465,8 @@ module nft_protocol::orderbook {
                 seller_safe: seller_safe_id,
                 seller,
                 trade_intermediate: option::some(trade_intermediate_id),
+                nft_type: type_name::into_string(type_name::get<C>()),
+                ft_type: type_name::into_string(type_name::get<FT>()),
             });
 
             transfer_bid_commission(&mut bid_commission, ctx);
@@ -1452,6 +1478,8 @@ module nft_protocol::orderbook {
                 owner: seller,
                 price,
                 safe: seller_safe_id,
+                nft_type: type_name::into_string(type_name::get<C>()),
+                ft_type: type_name::into_string(type_name::get<FT>()),
             });
 
             let ask = Ask {
@@ -1499,7 +1527,9 @@ module nft_protocol::orderbook {
             price: nft_price_level,
             orderbook: object::id(book),
             nft: nft_id,
-            owner: sender
+            owner: sender,
+            nft_type: type_name::into_string(type_name::get<C>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
         assert!(owner == sender, EORDER_OWNER_MUST_BE_SENDER);
@@ -1539,6 +1569,8 @@ module nft_protocol::orderbook {
             seller_safe: object::id(seller_safe),
             seller,
             trade_intermediate: option::none(),
+            nft_type: type_name::into_string(type_name::get<C>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);
@@ -1593,6 +1625,8 @@ module nft_protocol::orderbook {
             seller_safe: object::id(seller_safe),
             seller,
             trade_intermediate: option::none(),
+            nft_type: type_name::into_string(type_name::get<C>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
         let bid_offer = balance::split(coin::balance_mut(wallet), price);

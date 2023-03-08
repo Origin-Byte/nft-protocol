@@ -51,6 +51,7 @@ module nft_protocol::test_utils {
         creator: address,
         scenario: &mut Scenario,
     ): (ID, ID, ID) {
+
         let (cap, col) = collection::create<C>(coll_type, ctx(scenario));
 
         let col_id = object::id(&col);
@@ -126,6 +127,27 @@ module nft_protocol::test_utils {
         let nft = nft::test_mint(user, ctx(scenario));
         let nft_id = object::id(&nft);
         safe::deposit_nft<Foo>(
+            nft, &mut safe, ctx(scenario),
+        );
+
+        test_scenario::return_shared(safe);
+        transfer(owner_cap, user);
+
+        test_scenario::next_tx(scenario, user);
+
+        nft_id
+    }
+
+    public fun create_and_deposit_nft_with_type<C: drop>(
+        scenario: &mut Scenario,
+        user: address,
+    ): ID {
+        test_scenario::next_tx(scenario, user);
+        let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
+
+        let nft = nft::test_mint(user, ctx(scenario));
+        let nft_id = object::id(&nft);
+        safe::deposit_nft<C>(
             nft, &mut safe, ctx(scenario),
         );
 
