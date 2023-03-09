@@ -47,7 +47,7 @@ module nft_protocol::unprotected_safe {
     /// NFT type is not what the user expected
     const ENFT_TYPE_MISMATCH: u64 = 0;
 
-    struct UnprotectedSafe has key, store {
+    struct Safe has key, store {
         id: UID,
         refs: VecMap<ID, NftRef>,
     }
