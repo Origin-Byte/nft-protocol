@@ -2,20 +2,32 @@ module nft_protocol::sui_safe {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
-
-    use nft_protocol::err;
-
     use sui::event;
-    use sui::object::{Self, ID, UID};
-    use sui::transfer::{share_object, transfer};
-    use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
+    use sui::object::{Self, ID, UID};
+    use sui::tx_context::{Self, TxContext};
+    use sui::transfer::{share_object, transfer};
     use sui::dynamic_object_field::{Self as dof};
 
     // === Errors ===
 
     /// NFT type is not what the user expected
     const ENFT_TYPE_MISMATCH: u64 = 0;
+
+    /// Incorrect owner for the given Safe
+    const ESAFE_OWNER_MISMATCH: u64 = 1;
+
+    /// Safe does not containt the NFT
+    const ESAFE_DOES_NOT_CONTAIN_NFT: u64 = 2;
+
+    /// Entity not authotised to transfer the given NFT
+    const EENTITY_NOT_AUTHORISED_FOR_TRANSFER: u64 = 3;
+
+    /// NFT is already exclusively listed
+    const ENFT_ALREADY_EXCLUSIVELY_LISTED: u64 = 4;
+
+    /// NFT is already listed
+    const ENFT_ALREADY_LISTED: u64 = 5;
 
     struct SuiSafe has key, store {
         id: UID,
@@ -270,26 +282,24 @@ module nft_protocol::sui_safe {
     // === Assertions ===
 
     public fun assert_owner_cap(cap: &OwnerCap, safe: &SuiSafe) {
-        assert!(cap.safe == object::id(safe), err::safe_cap_mismatch());
+        assert!(cap.safe == object::id(safe), ESAFE_OWNER_MISMATCH);
     }
 
     public fun assert_has_nft(nft: &ID, safe: &SuiSafe) {
-        assert!(
-            vec_map::contains(&safe.refs, nft), err::safe_does_not_contain_nft()
-        );
+        assert!(vec_map::contains(&safe.refs, nft), ESAFE_DOES_NOT_CONTAIN_NFT);
     }
 
     fun assert_authorised_entity<W>(request: &Request<W>, auth: &TransferAuth) {
-        assert!(check_auth(request, auth), err::entity_not_authorised_for_transfer());
+        assert!(check_auth(request, auth), EENTITY_NOT_AUTHORISED_FOR_TRANSFER);
     }
 
     fun assert_not_exclusively_listed(ref: &NftRef) {
-        assert!(!option::is_some(&ref.exclusive_auth), err::nft_exclusively_listed());
+        assert!(!option::is_some(&ref.exclusive_auth), ENFT_ALREADY_EXCLUSIVELY_LISTED);
     }
 
     fun assert_not_listed(ref: &NftRef) {
-        assert_not_exclusively_listed(ref);
+        assert!(vec_map::size(&ref.auths) == 0, ENFT_ALREADY_LISTED);
 
-        assert!(vec_map::size(&ref.auths) == 0, err::nft_listed())
+        assert_not_exclusively_listed(ref);
     }
 }
