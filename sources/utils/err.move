@@ -131,6 +131,14 @@ module nft_protocol::err {
         return Prefix + 410
     }
 
+    public fun nft_listed(): u64 {
+        return Prefix + 411
+    }
+
+    public fun entity_not_authorised_for_transfer(): u64 {
+        return Prefix + 411
+    }
+
     // === Utils ===
 
     public fun witness_source_mismatch(): u64 {
