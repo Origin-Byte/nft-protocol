@@ -1,8 +1,71 @@
-/// This contract uses the following witnesses:
-/// I: Inner Type of the Safe
-/// E: Entinty Witness of the entity request transfer authorisation
-/// NFT: NFT Type of a given NFT in the Safe
+/// Module of `NftSafe` type.
+///
+/// `NftSafe` is an abstraction meant to hold NFTs in it.
+///
+/// We are defining here an NFT as any owned non-fungible object type that has
+/// `key + store` ability, however in practice the `NftSafe` is generic enough
+/// to hold any object with any degree of fungibility as long as the object type
+/// has the aforementioned abilities and is Single-Writer.
+///
+/// A user that transfers its NFTs to its Safe is able to delegate the power
+/// of transferability.
+///
+/// The ownership model of the `Safe` relies on the object `OwnerCap` whose
+/// holder is the effective owner of the `Safe` and subsequently the owner of
+/// the assets within it.
+///
+/// The `NftSafe` solves for the following problems:
+///
+/// 1. Discoverability:
+///
+/// One typical issue with on-chain trading is that by sending one's assets
+/// to a shared object (the trading primitive), one looses the ability to
+/// see them in their wallet, even though one has still technical ownership
+/// of such assets, until a trade is effectively executed.
+///
+/// By holding NFTs in the `NftSafe`, users can list them for sale and still
+/// be able to see them in their wallets until the point that they're
+/// effectively sold and transferred out.
+///
+/// Instead of transferring the assets to the shared object (trading primitive),
+/// the `NftSafe` registers a `TransferAuth` that allows for the trading primitive
+/// to withdraw the NFT at a later stage when the settlement is executed.
+/// The settlement can occur immediately after the trade execution, in the same
+/// transaction, or at a later stage, it's up to the trading primitive.
+///
+/// `TransferAuth`s are registered in `NftRef`s which function as the `NftSafe`
+/// accounting items. When a transfer occurs, all the `TransferAuth`s for
+/// the respective NFT get cleared.
+///
+/// 2. Isomorphic control over transfers:
+///
+/// Objects with `key + store` ability have access to polymorphic transfer
+/// functions, making these objects freely transferrable. Whilst this is useful
+/// in a great deal of use-cases, creators often want build custom
+/// transferrability rules (e.g. Royalty protection mechanisms, NFT with
+/// expiration dates, among others).
+///
+/// `NftSafe` has a generic inner type `I` which regulates access to the outer
+/// type. We guarantee this by having the parameter `inner_witness: IW` in
+/// the funtion signatures and by calling
+/// `assert_same_module_as_witness<I, IW>()`, where `IW` is a witness struct
+/// defined in the inner safe module.
+///
+/// In effect, this allows creators and developers to create `NftSafe`s
+/// with custom transferrability rules.
+///
+/// 3. Mutable access to NFTs:
+///
+/// The inner safe patter described above also allows for creators and developers
+/// to define custom NFT write access rules. This is a usefule feature for
+/// dynamic NFTs.
+///
+///
+/// This module uses the following witnesses:
+/// I: Inner `NftSafe` type
 /// IW: Inner Witness type
+/// E: Entinty Witness type of the entity requesting transfer authorisation
+/// NFT: NFT type of a given NFT in the `NftSafe`
 module nft_protocol::nft_safe {
     use std::ascii;
     use std::vector;
