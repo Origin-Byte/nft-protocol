@@ -2,13 +2,13 @@
 module nft_protocol::example_simple {
     use std::string::{Self, String};
 
-    use sui::url;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection;
     use nft_protocol::display;
+    use nft_protocol::url;
     use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method
@@ -53,7 +53,7 @@ module nft_protocol::example_simple {
         _mint_cap: &MintCap<EXAMPLE_SIMPLE>,
         ctx: &mut TxContext,
     ) {
-        let url = url::new_unsafe_from_bytes(url);
+        let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft: Nft<EXAMPLE_SIMPLE> = nft::new(
             &Witness {},
@@ -67,7 +67,7 @@ module nft_protocol::example_simple {
             &Witness {}, &mut nft, name, description,
         );
 
-        display::add_url_domain(&Witness {}, &mut nft, url);
+        url::add_url_domain(&Witness {}, &mut nft, url);
 
         transfer::transfer(nft, tx_context::sender(ctx));
     }

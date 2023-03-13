@@ -1,17 +1,19 @@
 #[test_only]
 module nft_protocol::test_display {
+    use std::ascii;
     use std::string;
 
     use sui::transfer;
-    use sui::url;
     use sui::vec_map;
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::nft;
+    use nft_protocol::url;
     use nft_protocol::collection;
-    use nft_protocol::display::{
-        Self, DisplayDomain, UrlDomain, SymbolDomain, AttributesDomain
-    };
+    use nft_protocol::attributes;
+    use nft_protocol::display::{Self, DisplayDomain, SymbolDomain};
+    use nft_protocol::url::UrlDomain;
+    use nft_protocol::attributes::AttributesDomain;
 
     struct Foo has drop {}
     struct Witness has drop {}
@@ -68,10 +70,10 @@ module nft_protocol::test_display {
 
         let nft = nft::test_mint<Foo>(CREATOR, ctx);
 
-        display::add_url_domain(
+        url::add_url_domain(
             &Witness {},
             &mut nft,
-            url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         // If domain does not exist this function call will fail
@@ -88,10 +90,10 @@ module nft_protocol::test_display {
         let (mint_cap, collection) =
             collection::create(&Foo {}, ctx(&mut scenario));
 
-        display::add_collection_url_domain(
+        url::add_collection_url_domain(
             &Witness {},
             &mut collection,
-            url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         // If domain does not exist this function call will fail
@@ -152,11 +154,11 @@ module nft_protocol::test_display {
 
         let attributes = vec_map::empty();
         vec_map::insert(
-            &mut attributes, string::utf8(b"color"),
-            string::utf8(b"yellow"),
+            &mut attributes, ascii::string(b"color"),
+            ascii::string(b"yellow"),
         );
 
-        display::add_attributes_domain(
+        attributes::add_domain(
             &Witness {},
             &mut nft,
             attributes,

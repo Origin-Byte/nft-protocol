@@ -9,6 +9,9 @@ module nft_protocol::utils {
 
     use nft_protocol::err;
 
+    /// Mismatched length of key and value vectors used in `from_vec_to_map`
+    const EMISMATCHED_KEY_VALUE_LENGTHS: u64 = 1;
+
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
 
@@ -70,6 +73,11 @@ module nft_protocol::utils {
         keys: vector<K>,
         values: vector<V>,
     ): VecMap<K, V> {
+        assert!(
+            vector::length(&keys) == vector::length(&values),
+            EMISMATCHED_KEY_VALUE_LENGTHS,
+        );
+
         let i = 0;
         let n = vector::length(&keys);
         let map = vec_map::empty<K, V>();
