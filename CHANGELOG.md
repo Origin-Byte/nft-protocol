@@ -10,6 +10,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 
 ### Changed
 
+- Exposed mutable endpoint for `AttributesDomain`
 - `BidCreated` renamed to `BidCreatedEvent`, generic removed and new fields added.
   The generic is problematic for the client as it can then query only for event type knowing the fungible token in advance.
 - `BidClosed` event renamed to `BidClosedEvent`, again generic removed and new fields added.
