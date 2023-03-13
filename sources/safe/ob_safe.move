@@ -90,11 +90,12 @@ module nft_protocol::origin_byte {
         owner_cap: &OwnerCap,
         nft_id: ID,
         entity_id: &UID,
-        entity_witness: E,
+        // TODO: separate API
+        _entity_witness: E,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        nft_safe::auth_transfer(self, owner_cap, nft_id, entity_id, entity_witness, Witness {});
+        nft_safe::auth_transfer(self, owner_cap, nft_id, entity_id, Witness {});
     }
 
     public fun auth_exclusive_transfer<Auth: drop, E: drop>(
@@ -102,11 +103,12 @@ module nft_protocol::origin_byte {
         owner_cap: &OwnerCap,
         nft_id: ID,
         entity_id: &UID,
-        entity_witness: E,
+        // TODO: separate API
+        _entity_witness: E,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        nft_safe::auth_transfer(self, owner_cap, nft_id, entity_id, entity_witness, Witness {});
+        nft_safe::auth_transfer(self, owner_cap, nft_id, entity_id, Witness {});
     }
 
     /// Transfer an NFT into the `Safe`.
@@ -123,15 +125,15 @@ module nft_protocol::origin_byte {
         nft_id: ID,
         recipient: address,
         entity_id: &UID,
-        entity_witness: E,
+        // TODO: separate API
+        _entity_witness: E,
         authority: Auth,
         allowlist: &Allowlist,
     ) {
-        let nft = nft_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
+        let nft = nft_safe::get_nft<OriginByte, Witness, Nft<C>>(
             self,
             nft_id,
             entity_id,
-            entity_witness,
             Witness {},
         );
 
@@ -147,15 +149,15 @@ module nft_protocol::origin_byte {
         target: &mut NftSafe<OriginByte>,
         nft_id: ID,
         entity_id: &UID,
-        entity_witness: E,
+        // TODO: separate API
+        _entity_witness: E,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        let nft = nft_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
+        let nft = nft_safe::get_nft<OriginByte, Witness, Nft<C>>(
             source,
             nft_id,
             entity_id,
-            entity_witness,
             Witness {},
         );
 
@@ -171,7 +173,8 @@ module nft_protocol::origin_byte {
         owner_cap: &OwnerCap,
         nft_id: ID,
         entity_id: &UID,
-        entity_witness: E,
+        // TODO: separate API
+        _entity_witness: E,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
@@ -180,7 +183,6 @@ module nft_protocol::origin_byte {
             owner_cap,
             nft_id,
             entity_id,
-            entity_witness,
             Witness {}
         );
     }
