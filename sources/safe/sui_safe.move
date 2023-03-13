@@ -224,9 +224,9 @@ module nft_protocol::nft_safe {
     }
 
     /// Transfer an NFT into the `NftSafe`.
-    public fun deposit_nft<I: key + store, IW: drop, T: key + store>(
+    public fun deposit_nft<I: key + store, IW: drop, NFT: key + store>(
         self: &mut NftSafe<I>,
-        nft: T,
+        nft: NFT,
         _inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
@@ -236,7 +236,7 @@ module nft_protocol::nft_safe {
         vec_map::insert(&mut self.refs, nft_id, NftRef {
             auths: vec_map::empty(),
             exclusive_auth: option::none(),
-            object_type: type_name::get<T>(),
+            object_type: type_name::get<NFT>(),
         });
 
         dof::add(&mut self.id, nft_id, nft);
@@ -250,7 +250,7 @@ module nft_protocol::nft_safe {
     }
 
     /// Use a transfer auth to get an NFT out of the `NftSafe`.
-    public fun transfer_nft_to_recipient<I: key + store, IW: drop, E: drop, T: key + store>(
+    public fun transfer_nft_to_recipient<I: key + store, IW: drop, E: drop, NFT: key + store>(
         self: &mut NftSafe<I>,
         nft_id: ID,
         recipient: address,
@@ -260,13 +260,13 @@ module nft_protocol::nft_safe {
     ) {
         utils::assert_same_module_as_witness<I, IW>();
 
-        let nft = get_nft_for_transfer_<I, E, T>(self, nft_id, entity_id, entity_witness);
+        let nft = get_nft_for_transfer_<I, E, NFT>(self, nft_id, entity_id, entity_witness);
 
         transfer(nft, recipient)
     }
 
 
-    public fun transfer_nft_to_safe<I: key + store, IW: drop, E: drop, T: key + store>(
+    public fun transfer_nft_to_safe<I: key + store, IW: drop, E: drop, NFT: key + store>(
         source: &mut NftSafe<I>,
         target: &mut NftSafe<I>,
         nft_id: ID,
@@ -276,21 +276,21 @@ module nft_protocol::nft_safe {
     ) {
         utils::assert_same_module_as_witness<I, IW>();
 
-        let nft = get_nft_for_transfer_<I, E, T>(source, nft_id, entity_id, entity_witness);
+        let nft = get_nft_for_transfer_<I, E, NFT>(source, nft_id, entity_id, entity_witness);
 
         deposit_nft(target, nft, inner_witness);
     }
 
-    public fun get_nft<I: key + store, IW: drop, E: drop, T: key + store>(
+    public fun get_nft<I: key + store, IW: drop, E: drop, NFT: key + store>(
         self: &mut NftSafe<I>,
         nft_id: ID,
         entity_id: &UID,
         entity_witness: E,
         _inner_witness: IW,
-    ): T {
+    ): NFT {
         utils::assert_same_module_as_witness<I, IW>();
 
-        let nft = get_nft_for_transfer_<I, E, T>(
+        let nft = get_nft_for_transfer_<I, E, NFT>(
             self, nft_id, entity_id, entity_witness,
         );
 
@@ -331,12 +331,12 @@ module nft_protocol::nft_safe {
 
     // === Private functions ===
 
-    fun get_nft_for_transfer_<I: key + store, E: drop, T: key + store>(
+    fun get_nft_for_transfer_<I: key + store, E: drop, NFT: key + store>(
         self: &mut NftSafe<I>,
         nft_id: ID,
         entity_id: &UID,
         entity_witness: E,
-    ): T {
+    ): NFT {
         event::emit(
             TransferEvent {
                 safe: object::id(self),
@@ -365,7 +365,7 @@ module nft_protocol::nft_safe {
         );
         assert_has_nft(self, &nft_id);
 
-        dof::remove<ID, T>(&mut self.id, nft_id)
+        dof::remove<ID, NFT>(&mut self.id, nft_id)
     }
 
     fun get_auth_id(auth: &TransferAuth): ID {
