@@ -38,8 +38,6 @@
 /// accounting item, and as a whole the `NftSafe` maintains a coherent accounting
 /// of the NFTs it owns and their respective transfer authorisations
 ///
-/// refs
-///
 /// Transfer authorisations are registered in `NftRef`s which function as the
 /// `NftSafe` accounting items. When a transfer occurs, all the `TransferAuth`s for
 /// the respective NFT get cleared.
