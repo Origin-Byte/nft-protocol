@@ -14,7 +14,7 @@ module nft_protocol::origin_byte {
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_allowlist::Allowlist;
-    use nft_protocol::sui_safe::{Self, SuiSafe, Request, OwnerCap};
+    use nft_protocol::sui_safe::{Self, SuiSafe, OwnerCap};
 
     struct Witness has drop {}
 
@@ -89,28 +89,29 @@ module nft_protocol::origin_byte {
         nft_id: ID,
         owner_cap: &OwnerCap,
         safe: &mut SuiSafe<OriginByte>,
-        request: Request<E>,
-        // TODO: Problem is that orderbook can't get authority witness Auth.. perhaps programmable transactions can help here
+        entity_witness: E,
+        entity_id: &UID,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
         // TODO: We need to perform some assertions with the allowlist
 
-        sui_safe::auth_transfer(nft_id, owner_cap, safe, request, Witness {});
+        sui_safe::auth_transfer(nft_id, owner_cap, safe, entity_witness, entity_id, Witness {});
     }
 
     public fun auth_exclusive_transfer<Auth: drop, E: drop>(
         nft_id: ID,
         owner_cap: &OwnerCap,
         safe: &mut SuiSafe<OriginByte>,
-        request: Request<E>,
+        entity_witness: E,
+        entity_id: &UID,
         // TODO: Problem is that orderbook can't get authority witness Auth.. perhaps programmable transactions can help here
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
         // TODO: We need to perform some assertions with the allowlist
 
-        sui_safe::auth_transfer(nft_id, owner_cap, safe, request, Witness {});
+        sui_safe::auth_transfer(nft_id, owner_cap, safe, entity_witness, entity_id, Witness {});
     }
 
     /// Transfer an NFT into the `Safe`.

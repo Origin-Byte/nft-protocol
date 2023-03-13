@@ -65,10 +65,6 @@ module nft_protocol::sui_safe {
         entity_id: ID,
     }
 
-    struct Request<phantom E> has copy, drop {
-        entity_id: ID,
-    }
-
     /// Whoever owns this object can perform some admin actions against the
     /// `Safe` shared object with the corresponding id.
     struct OwnerCap has key, store {
@@ -113,22 +109,21 @@ module nft_protocol::sui_safe {
     public fun auth_transfer<I: key + store, IW: drop, E: drop>(
         nft_id: ID,
         owner_cap: &OwnerCap,
-        safe: &mut SuiSafe<I>,
-        request: Request<E>,
+        self: &mut SuiSafe<I>,
+        _entity_witness: E,
+        entity_id: &UID,
         _inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
+        assert_owner_cap(owner_cap, self);
+        assert_has_nft(&nft_id, self);
 
-        // TODO: Assert that contract_witness and object ID correspond? How can we even do that?
-        assert_owner_cap(owner_cap, safe);
-        assert_has_nft(&nft_id, safe);
-
-        let ref = vec_map::get_mut(&mut safe.refs, &nft_id);
+        let ref = vec_map::get_mut(&mut self.refs, &nft_id);
         assert_not_exclusively_listed(ref);
 
         let transfer_auth = TransferAuth {
             entity: type_name::get<E>(),
-            entity_id: request.entity_id,
+            entity_id: object::uid_to_inner(entity_id),
         };
 
         vec_map::insert(&mut ref.auths, get_auth_id(&transfer_auth), transfer_auth);
@@ -137,21 +132,22 @@ module nft_protocol::sui_safe {
     public fun auth_exclusive_transfer<I: key + store, IW: drop, E: drop>(
         nft_id: ID,
         owner_cap: &OwnerCap,
-        safe: &mut SuiSafe<I>,
-        request: Request<E>,
+        self: &mut SuiSafe<I>,
+        _entity_witness: E,
+        entity_id: &UID,
         _inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
-        assert_owner_cap(owner_cap, safe);
-        assert_has_nft(&nft_id, safe);
+        assert_owner_cap(owner_cap, self);
+        assert_has_nft(&nft_id, self);
 
-        let ref = vec_map::get_mut(&mut safe.refs, &nft_id);
+        let ref = vec_map::get_mut(&mut self.refs, &nft_id);
         // Assert that there are no transfer authorisations
         assert_not_listed(ref);
 
         let transfer_auth = TransferAuth {
             entity: type_name::get<E>(),
-            entity_id: request.entity_id,
+            entity_id: object::uid_to_inner(entity_id),
         };
 
         option::fill(&mut ref.exclusive_auth, transfer_auth);
@@ -255,7 +251,7 @@ module nft_protocol::sui_safe {
 
         // check if request has auth to transfer
         // This seems to be redundant on the object_id side
-        assert_authorised_entity(&as_request<E>(object::uid_to_inner(entity_id)), &auth);
+        assert_authorised_entity(type_name::get<E>(), object::uid_to_inner(entity_id), &auth);
     }
 
     // === Private functions ===
@@ -287,7 +283,7 @@ module nft_protocol::sui_safe {
 
         // check if request has auth to transfer
         // This seems to be redundant on the object_id side
-        assert_authorised_entity(&as_request<E>(object::uid_to_inner(entity_id)), &auth);
+        assert_authorised_entity(type_name::get<E>(), object::uid_to_inner(entity_id), &auth);
         assert_has_nft(&nft_id, safe);
 
         dof::remove<ID, T>(&mut safe.id, nft_id)
@@ -322,9 +318,13 @@ module nft_protocol::sui_safe {
 
     // // === Getters ===
 
-    public fun check_auth<E: drop>(request: &Request<E>, auth: &TransferAuth): bool {
-        let check_1 = request.entity_id == auth.entity_id;
-        let check_2 = type_name::get<E>() == auth.entity;
+    public fun check_auth(
+        entity_witness: TypeName,
+        entity_id: ID,
+        auth: &TransferAuth
+    ): bool {
+        let check_1 = entity_id == auth.entity_id;
+        let check_2 = entity_witness == auth.entity;
 
         check_1 || check_2
     }
@@ -349,12 +349,6 @@ module nft_protocol::sui_safe {
         ref.object_type
     }
 
-    public fun as_request<E: drop>(entity_id: ID): Request<E> {
-        Request {
-            entity_id,
-        }
-    }
-
     // === Assertions ===
 
     public fun assert_owner_cap<I: key + store>(cap: &OwnerCap, safe: &SuiSafe<I>) {
@@ -365,8 +359,12 @@ module nft_protocol::sui_safe {
         assert!(vec_map::contains(&safe.refs, nft), ESAFE_DOES_NOT_CONTAIN_NFT);
     }
 
-    fun assert_authorised_entity<E: drop>(request: &Request<E>, auth: &TransferAuth) {
-        assert!(check_auth(request, auth), EENTITY_NOT_AUTHORISED_FOR_TRANSFER);
+    fun assert_authorised_entity(
+        entity_witness: TypeName,
+        entity_id: ID,
+        auth: &TransferAuth,
+    ) {
+        assert!(check_auth(entity_witness, entity_id, auth), EENTITY_NOT_AUTHORISED_FOR_TRANSFER);
     }
 
     fun assert_not_exclusively_listed(ref: &NftRef) {
