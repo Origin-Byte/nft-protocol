@@ -14,7 +14,7 @@ module nft_protocol::origin_byte {
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_allowlist::Allowlist;
-    use nft_protocol::sui_safe::{Self, SuiSafe, OwnerCap};
+    use nft_protocol::nft_safe::{Self, NftSafe, OwnerCap};
 
     struct Witness has drop {}
 
@@ -38,7 +38,7 @@ module nft_protocol::origin_byte {
         nft: ID,
     }
 
-    public fun new(ctx: &mut TxContext): (SuiSafe<OriginByte>, OwnerCap) {
+    public fun new(ctx: &mut TxContext): (NftSafe<OriginByte>, OwnerCap) {
         let inner = OriginByte {
             id: object::new(ctx),
             // Note: This may be unsafe, since the caller can inject the wrong
@@ -48,7 +48,7 @@ module nft_protocol::origin_byte {
             collections_with_enabled_deposits: vec_set::empty(),
         };
 
-        sui_safe::new(inner, ctx)
+        nft_safe::new(inner, ctx)
     }
 
     /// Instantiates a new shared object `Safe<OriginByte>` and transfer
@@ -61,7 +61,7 @@ module nft_protocol::origin_byte {
             collections_with_enabled_deposits: vec_set::empty(),
         };
 
-        let (safe, cap) = sui_safe::new(inner, ctx);
+        let (safe, cap) = nft_safe::new(inner, ctx);
 
         share_object(safe);
         transfer(cap, tx_context::sender(ctx));
@@ -79,7 +79,7 @@ module nft_protocol::origin_byte {
             collections_with_enabled_deposits: vec_set::empty(),
         };
 
-        let (safe, cap) = sui_safe::new(inner, ctx);
+        let (safe, cap) = nft_safe::new(inner, ctx);
 
         share_object(safe);
         cap
@@ -88,33 +88,33 @@ module nft_protocol::origin_byte {
     public fun auth_transfer<Auth: drop, E: drop>(
         nft_id: ID,
         owner_cap: &OwnerCap,
-        self: &mut SuiSafe<OriginByte>,
+        self: &mut NftSafe<OriginByte>,
         entity_witness: E,
         entity_id: &UID,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        sui_safe::auth_transfer(nft_id, owner_cap, self, entity_witness, entity_id, Witness {});
+        nft_safe::auth_transfer(nft_id, owner_cap, self, entity_witness, entity_id, Witness {});
     }
 
     public fun auth_exclusive_transfer<Auth: drop, E: drop>(
         nft_id: ID,
         owner_cap: &OwnerCap,
-        self: &mut SuiSafe<OriginByte>,
+        self: &mut NftSafe<OriginByte>,
         entity_witness: E,
         entity_id: &UID,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        sui_safe::auth_transfer(nft_id, owner_cap, self, entity_witness, entity_id, Witness {});
+        nft_safe::auth_transfer(nft_id, owner_cap, self, entity_witness, entity_id, Witness {});
     }
 
     /// Transfer an NFT into the `Safe`.
     public fun deposit_nft<T: key + store>(
         nft: T,
-        self: &mut SuiSafe<OriginByte>,
+        self: &mut NftSafe<OriginByte>,
     ) {
-        sui_safe::deposit_nft(nft, self, Witness {});
+        nft_safe::deposit_nft(nft, self, Witness {});
     }
 
     /// Use a transfer auth to get an NFT out of the `Safe`.
@@ -123,11 +123,11 @@ module nft_protocol::origin_byte {
         entity_id: &UID,
         nft_id: ID,
         recipient: address,
-        self: &mut SuiSafe<OriginByte>,
+        self: &mut NftSafe<OriginByte>,
         authority: Auth,
         allowlist: &Allowlist,
     ) {
-        let nft = sui_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
+        let nft = nft_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
             entity_witness,
             entity_id,
             nft_id,
@@ -146,12 +146,12 @@ module nft_protocol::origin_byte {
         entity_witness: E,
         entity_id: &UID,
         nft_id: ID,
-        source: &mut SuiSafe<OriginByte>,
-        target: &mut SuiSafe<OriginByte>,
+        source: &mut NftSafe<OriginByte>,
+        target: &mut NftSafe<OriginByte>,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        let nft = sui_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
+        let nft = nft_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
             entity_witness,
             entity_id,
             nft_id,
@@ -171,11 +171,11 @@ module nft_protocol::origin_byte {
         entity_id: &UID,
         nft_id: ID,
         owner_cap: &OwnerCap,
-        self: &mut SuiSafe<OriginByte>,
+        self: &mut NftSafe<OriginByte>,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        sui_safe::delist_nft(
+        nft_safe::delist_nft(
             entity_witness,
             entity_id,
             nft_id,
@@ -189,20 +189,20 @@ module nft_protocol::origin_byte {
     // // === Getters ===
 
     // TODO: We need to be consistent, do we use T or C?
-    public fun borrow_nft<C: key + store>(nft_id: ID, self: &SuiSafe<OriginByte>): &C {
-        sui_safe::borrow_nft(nft_id, self)
+    public fun borrow_nft<C: key + store>(nft_id: ID, self: &NftSafe<OriginByte>): &C {
+        nft_safe::borrow_nft(nft_id, self)
     }
 
-    public fun has_nft<T: key + store>(nft_id: ID, self: &SuiSafe<OriginByte>): bool {
-        sui_safe::has_nft<OriginByte, T>(nft_id, self)
+    public fun has_nft<T: key + store>(nft_id: ID, self: &NftSafe<OriginByte>): bool {
+        nft_safe::has_nft<OriginByte, T>(nft_id, self)
     }
 
     // Getter for OwnerCap's Safe ID
     public fun owner_cap_safe(cap: &OwnerCap): ID {
-        sui_safe::owner_cap_safe(cap)
+        nft_safe::owner_cap_safe(cap)
     }
 
-    public fun nft_object_type(nft_id: ID, self: &SuiSafe<OriginByte>): TypeName {
-        sui_safe::nft_object_type(nft_id, self)
+    public fun nft_object_type(nft_id: ID, self: &NftSafe<OriginByte>): TypeName {
+        nft_safe::nft_object_type(nft_id, self)
     }
 }

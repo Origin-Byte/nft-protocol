@@ -3,7 +3,7 @@
 /// E: Entinty Witness of the entity request transfer authorisation
 /// NFT: NFT Type of a given NFT in the Safe
 /// IW: Inner Witness type
-module nft_protocol::sui_safe {
+module nft_protocol::nft_safe {
     use std::ascii;
     use std::vector;
     use std::option::{Self, Option};
@@ -40,7 +40,7 @@ module nft_protocol::sui_safe {
     const ENFT_ALREADY_LISTED: u64 = 5;
 
 
-    struct SuiSafe<I: key + store> has key, store {
+    struct NftSafe<I: key + store> has key, store {
         id: UID,
         /// Accounting for deposited NFTs. Each NFT in the object bag is
         /// represented in this map.
@@ -77,8 +77,8 @@ module nft_protocol::sui_safe {
         nft: ID,
     }
 
-    public fun new<I: key + store>(inner: I, ctx: &mut TxContext): (SuiSafe<I>, OwnerCap) {
-        let safe = SuiSafe {
+    public fun new<I: key + store>(inner: I, ctx: &mut TxContext): (NftSafe<I>, OwnerCap) {
+        let safe = NftSafe {
             id: object::new(ctx),
             refs: vec_map::empty(),
             inner,
@@ -104,7 +104,7 @@ module nft_protocol::sui_safe {
     public fun auth_transfer<I: key + store, IW: drop, E: drop>(
         nft_id: ID,
         owner_cap: &OwnerCap,
-        self: &mut SuiSafe<I>,
+        self: &mut NftSafe<I>,
         _entity_witness: E,
         entity_id: &UID,
         _inner_witness: IW,
@@ -127,7 +127,7 @@ module nft_protocol::sui_safe {
     public fun auth_exclusive_transfer<I: key + store, IW: drop, E: drop>(
         nft_id: ID,
         owner_cap: &OwnerCap,
-        self: &mut SuiSafe<I>,
+        self: &mut NftSafe<I>,
         _entity_witness: E,
         entity_id: &UID,
         _inner_witness: IW,
@@ -151,7 +151,7 @@ module nft_protocol::sui_safe {
     /// Transfer an NFT into the `Safe`.
     public fun deposit_nft<I: key + store, IW: drop, T: key + store>(
         nft: T,
-        self: &mut SuiSafe<I>,
+        self: &mut NftSafe<I>,
         _inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
@@ -180,7 +180,7 @@ module nft_protocol::sui_safe {
         entity_id: &UID,
         nft_id: ID,
         recipient: address,
-        self: &mut SuiSafe<I>,
+        self: &mut NftSafe<I>,
         _inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
@@ -195,8 +195,8 @@ module nft_protocol::sui_safe {
         entity_witness: E,
         entity_id: &UID,
         nft_id: ID,
-        source: &mut SuiSafe<I>,
-        target: &mut SuiSafe<I>,
+        source: &mut NftSafe<I>,
+        target: &mut NftSafe<I>,
         inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
@@ -210,7 +210,7 @@ module nft_protocol::sui_safe {
         entity_witness: E,
         entity_id: &UID,
         nft_id: ID,
-        self: &mut SuiSafe<I>,
+        self: &mut NftSafe<I>,
         _inner_witness: IW,
     ): T {
         utils::assert_same_module_as_witness<I, IW>();
@@ -225,7 +225,7 @@ module nft_protocol::sui_safe {
         entity_id: &UID,
         nft_id: ID,
         owner_cap: &OwnerCap,
-        self: &mut SuiSafe<I>,
+        self: &mut NftSafe<I>,
         _inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
@@ -255,7 +255,7 @@ module nft_protocol::sui_safe {
         entity_witness: E,
         entity_id: &UID,
         nft_id: ID,
-        self: &mut SuiSafe<I>,
+        self: &mut NftSafe<I>,
     ): T {
         event::emit(
             TransferEvent {
@@ -324,11 +324,11 @@ module nft_protocol::sui_safe {
         check_1 || check_2
     }
 
-    public fun borrow_nft<I: key + store, NFT: key + store>(nft_id: ID, self: &SuiSafe<I>): &NFT {
+    public fun borrow_nft<I: key + store, NFT: key + store>(nft_id: ID, self: &NftSafe<I>): &NFT {
         dof::borrow<ID, NFT>(&self.id, nft_id)
     }
 
-    public fun has_nft<I: key + store, NFT: key + store>(nft_id: ID, self: &SuiSafe<I>): bool {
+    public fun has_nft<I: key + store, NFT: key + store>(nft_id: ID, self: &NftSafe<I>): bool {
         dof::exists_with_type<ID, NFT>(&self.id, nft_id)
     }
 
@@ -337,18 +337,18 @@ module nft_protocol::sui_safe {
         cap.safe
     }
 
-    public fun nft_object_type<I: key + store>(nft_id: ID, self: &SuiSafe<I>): TypeName {
+    public fun nft_object_type<I: key + store>(nft_id: ID, self: &NftSafe<I>): TypeName {
         let ref = vec_map::get(&self.refs, &nft_id);
         ref.object_type
     }
 
     // === Assertions ===
 
-    public fun assert_owner_cap<I: key + store>(cap: &OwnerCap, self: &SuiSafe<I>) {
+    public fun assert_owner_cap<I: key + store>(cap: &OwnerCap, self: &NftSafe<I>) {
         assert!(cap.safe == object::id(self), ESAFE_OWNER_MISMATCH);
     }
 
-    public fun assert_has_nft<I: key + store>(nft: &ID, self: &SuiSafe<I>) {
+    public fun assert_has_nft<I: key + store>(nft: &ID, self: &NftSafe<I>) {
         assert!(vec_map::contains(&self.refs, nft), ESAFE_DOES_NOT_CONTAIN_NFT);
     }
 
