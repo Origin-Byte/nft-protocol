@@ -123,7 +123,8 @@ module nft_protocol::origin_byte {
 
     /// Use a transfer auth to get an NFT out of the `Safe`.
     public fun transfer_nft_to_recipient<Auth: drop, E: drop, C: key + store>(
-        request: Request<E>,
+        entity_witness: E,
+        entity_id: &UID,
         nft_id: ID,
         recipient: address,
         safe: &mut SuiSafe<OriginByte>,
@@ -134,7 +135,8 @@ module nft_protocol::origin_byte {
         // TODO: We need to perform some assertions with the allowlist
 
         let nft = sui_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
-            request,
+            entity_witness,
+            entity_id,
             nft_id,
             safe,
             Witness {},
@@ -148,7 +150,8 @@ module nft_protocol::origin_byte {
 
 
     public fun transfer_nft_to_safe<Auth: drop, E: drop, C: key + store>(
-        request: Request<E>,
+        entity_witness: E,
+        entity_id: &UID,
         nft_id: ID,
         source: &mut SuiSafe<OriginByte>,
         target: &mut SuiSafe<OriginByte>,
@@ -159,7 +162,8 @@ module nft_protocol::origin_byte {
         // TODO: We need to perform some assertions with the allowlist
 
         let nft = sui_safe::get_nft<OriginByte, Witness, E, Nft<C>>(
-            request,
+            entity_witness,
+            entity_id,
             nft_id,
             source,
             Witness {},
@@ -174,7 +178,8 @@ module nft_protocol::origin_byte {
 
     // TODO: To make it entry function we can't use Request
     public fun delist_nft<Auth: drop, E: drop>(
-        request: Request<E>,
+        entity_witness: E,
+        entity_id: &UID,
         nft_id: ID,
         owner_cap: &OwnerCap,
         safe: &mut SuiSafe<OriginByte>,
@@ -183,8 +188,14 @@ module nft_protocol::origin_byte {
         _allowlist: &Allowlist,
     ) {
         // TODO: We need to perform some assertions with the allowlist
-
-        sui_safe::delist_nft(request, nft_id, owner_cap, safe, Witness {});
+        sui_safe::delist_nft(
+            entity_witness,
+            entity_id,
+            nft_id,
+            owner_cap,
+            safe,
+            Witness {}
+        );
 
     }
 
