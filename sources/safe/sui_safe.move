@@ -48,15 +48,14 @@ module nft_protocol::sui_safe {
         inner: I,
     }
 
-    struct NftRef has store, copy, drop {
+    struct NftRef has store, drop {
         // Auth ID from hash of entity typename and entity ID if any.
         auths: VecMap<ID, TransferAuth>,
         exclusive_auth: Option<TransferAuth>,
         object_type: TypeName,
     }
 
-    // TODO: Consider removing copy from TransferAuth and NftRef
-    struct TransferAuth has store, copy, drop {
+    struct TransferAuth has store, drop {
         entity: TypeName,
         entity_id: ID,
     }
