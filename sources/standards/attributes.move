@@ -66,28 +66,28 @@ module nft_protocol::attributes {
         new(map)
     }
 
-    /// Returns value map of attributes
-    public fun attributes(domain: &AttributesDomain): &VecMap<String, String> {
+    /// Borrows underlying attribute map of `AttributesDomain`
+    public fun borrow_attributes(
+        domain: &AttributesDomain,
+    ): &VecMap<String, String> {
         &domain.map
     }
 
-    /// Gets keys of attributes
-    public fun keys(domain: &AttributesDomain): vector<String> {
-        let (keys, _) = vec_map::into_keys_values(domain.map);
-        keys
-    }
-
-    /// Gets values of attributes
-    public fun values(domain: &AttributesDomain): vector<String> {
-        let (_, values) = vec_map::into_keys_values(domain.map);
-        values
+    /// Mutably borrows underlying attribute map of `AttributesDomain`
+    ///
+    /// Endpoint is unprotected as it relies on safetly obtaining a mutable
+    /// reference to `AttributesDomain`.
+    public fun borrow_attributes_mut(
+        domain: &mut AttributesDomain,
+    ): &mut VecMap<String, String> {
+        &mut domain.map
     }
 
     /// Serializes attributes as URL parameters
     public fun as_url_parameters(domain: &AttributesDomain): vector<u8> {
         let parameters = vector::empty<u8>();
 
-        let attributes = attributes(domain);
+        let attributes = borrow_attributes(domain);
         let size = vec_map::size(attributes);
 
         // Check if we even expect URL parameters
@@ -136,7 +136,10 @@ module nft_protocol::attributes {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` is not registered on the `Nft`
-    fun borrow_domain_mut<C>(nft: &mut Nft<C>): &mut AttributesDomain {
+    public fun borrow_domain_mut<C>(
+        _witness: DelegatedWitness<C>,
+        nft: &mut Nft<C>,
+    ): &mut AttributesDomain {
         assert_attributes(nft);
         nft::borrow_domain_mut(Witness {}, nft)
     }
