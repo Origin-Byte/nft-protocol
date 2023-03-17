@@ -72,7 +72,6 @@
 /// E: Entinty Witness type of the entity requesting transfer authorisation
 /// NFT: NFT type of a given NFT in the `NftSafe`
 module nft_protocol::nft_safe {
-    use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
     use sui::event;
@@ -80,7 +79,7 @@ module nft_protocol::nft_safe {
     use sui::vec_set::{Self, VecSet};
     use sui::vec_map::{Self, VecMap};
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{share_object, transfer};
+    use sui::transfer::share_object;
     use sui::dynamic_object_field::{Self as dof};
 
     use nft_protocol::utils;
@@ -88,22 +87,28 @@ module nft_protocol::nft_safe {
     // === Errors ===
 
     /// NFT type is not what the user expected
-    const ENFT_TYPE_MISMATCH: u64 = 0;
+    const ENftTypeMismatch: u64 = 0;
 
     /// Incorrect owner for the given Safe
-    const ESAFE_OWNER_MISMATCH: u64 = 1;
+    const ESafeOwnerMismatch: u64 = 1;
 
     /// Safe does not containt the NFT
-    const ESAFE_DOES_NOT_CONTAIN_NFT: u64 = 2;
+    const ESafeDoesNotContainNft: u64 = 2;
 
     /// Entity not authotised to transfer the given NFT
-    const EENTITY_NOT_AUTHORISED_FOR_TRANSFER: u64 = 3;
+    const EEntityNotAuthorisedForTransfer: u64 = 3;
 
     /// NFT is already exclusively listed
-    const ENFT_ALREADY_EXCLUSIVELY_LISTED: u64 = 4;
+    const ENftAlreadyExclusivelyListed: u64 = 4;
 
     /// NFT is already listed
-    const ENFT_ALREADY_LISTED: u64 = 5;
+    const ENftAlreadyListed: u64 = 5;
+
+    /// The logic requires that no NFTs are stored in the safe.
+    const EMustBeEmpty: u64 = 5;
+
+    /// ID provided does not match NftSafe ID
+    const ESafeIdMismatch: u64 = 6;
 
 
     struct NftSafe<I: key + store> has key, store {
@@ -114,13 +119,17 @@ module nft_protocol::nft_safe {
         inner: I,
     }
 
+    /// Holds info about NFT listing which is used to determine if an entity
+    /// is allowed to redeem the NFT.
     struct NftRef has store, drop {
-        auths: VecSet<ID>,
-        // Certain trading primitives, such as orderbooks, require exclusive
-        // auths, since heuristic transfer access to NFTs would render these
-        // primivies unusable. When traders interact with an orderbook, they
-        // expect NFTs sold it in to be available for transfer.
-        exclusive_auth: Option<ID>,
+        /// Entities which can use their `&UID` to redeem the NFT.
+        listed_with: VecSet<ID>,
+        /// If set to true, then `listed_with` must have length of 1.
+        /// Certain trading primitives, such as orderbooks, require exclusive
+        /// auths, since heuristic transfer access to NFTs would render these
+        /// primivies unusable. When traders interact with an orderbook, they
+        /// expect NFTs sold it in to be available for transfer.
+        is_exclusively_listed: bool,
         object_type: TypeName,
     }
 
@@ -131,6 +140,36 @@ module nft_protocol::nft_safe {
         safe: ID,
     }
 
+    /// A wrapper around transaction information required to produce a
+    /// TransferRequest.
+    struct TransactionInfo {
+        amount: u64,
+        /// We use type reflection to avoid generics
+        currency: TypeName,
+        /// The ID of the Safe the object is being sold from.
+        from: ID,
+    }
+
+    /// A "Hot Potato" forcing the buyer to get a transfer permission
+    /// from the item type (`NFT`) owner on purchase attempt.
+    struct TransferRequest<phantom NFT: key + store> {
+        /// Amount of SUI paid for the item. Can be used to
+        /// calculate the fee / transfer policy enforcement.
+        paid: u64,
+        /// We use type reflection to avoid generics
+        currency: TypeName,
+        /// The ID of the Safe the object is being sold from.
+        /// Can be used by the TransferPolicy implementors to
+        /// create an allowlist of Kiosks which can trade the type.
+        from: ID,
+    }
+
+    /// A unique capability that allows owner of the `NFT` to authorize
+    /// transfers. Can only be created with the `Publisher` object.
+    struct TransferPolicyCap<phantom NFT: key + store> has key, store {
+        id: UID
+    }
+
     struct DepositEvent has copy, drop {
         safe: ID,
         nft: ID,
@@ -139,6 +178,12 @@ module nft_protocol::nft_safe {
     struct TransferEvent has copy, drop {
         safe: ID,
         nft: ID,
+    }
+
+    /// Emitted when a NFT collection witness creates a new `TransferPolicyCap`
+    /// making the discoverability and tracking the supported types easier.
+    struct TransferPolicyCapIssued<phantom T: key + store> has copy, drop {
+        id: ID
     }
 
     public fun new<I: key + store>(
@@ -171,40 +216,57 @@ module nft_protocol::nft_safe {
         cap
     }
 
-    /// Authorises a certain
-    public fun auth_transfer<I: key + store, IW: drop>(
+    /// Multiple entities can have redeem rights for the same NFT.
+    /// Additionally, the owner can remove redeem rights for a specific entity
+    /// at any time.
+    ///
+    /// # Aborts
+    /// * If the NFT has already given exclusive redeem rights.
+    public fun list_nft<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         owner_cap: &OwnerCap,
         nft_id: ID,
-        entity_id: &UID,
+        entity_id: ID,
         _inner_witness: IW,
     ) {
-        utils::assert_same_module_as_witness<I, IW>();
+        utils::assert_same_module<I, IW>();
         assert_owner_cap(self, owner_cap);
         assert_has_nft(self, &nft_id);
 
         let ref = vec_map::get_mut(&mut self.refs, &nft_id);
-        assert_not_exclusively_listed(ref);
+        assert_ref_not_exclusively_listed(ref);
 
-        vec_set::insert(&mut ref.auths, object::uid_to_inner(entity_id));
+        vec_set::insert(&mut ref.listed_with, entity_id);
     }
 
-    public fun auth_exclusive_transfer<I: key + store, IW: drop>(
+    /// One only entity can have exclusive redeem rights for the same NFT.
+    /// Only the same entity can then give up their rights.
+    /// Use carefully, if the entity is malicious, they can lock the NFT.
+    ///
+    /// # Note
+    /// Unlike with `list_nft`, we require that the entity gives us
+    /// their `&UID`.
+    /// This gives the owner some sort of warranty that the implementation of
+    /// the entity took into account the exclusive listing.
+    ///
+    /// # Aborts
+    /// * If the NFT already has given up redeem rights (not necessarily exclusive)
+    public fun exclusively_list_nft<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         owner_cap: &OwnerCap,
         nft_id: ID,
         entity_id: &UID,
         _inner_witness: IW,
     ) {
-        utils::assert_same_module_as_witness<I, IW>();
+        utils::assert_same_module<I, IW>();
         assert_owner_cap(self, owner_cap);
         assert_has_nft(self, &nft_id);
 
         let ref = vec_map::get_mut(&mut self.refs, &nft_id);
-        // Assert that there are no transfer authorisations
         assert_not_listed(ref);
 
-        option::fill(&mut ref.exclusive_auth, object::uid_to_inner(entity_id));
+        vec_set::insert(&mut ref.listed_with, object::uid_to_inner(entity_id));
+        ref.is_exclusively_listed = true;
     }
 
     /// Transfer an NFT into the `NftSafe`.
@@ -213,14 +275,16 @@ module nft_protocol::nft_safe {
         nft: NFT,
         _inner_witness: IW,
     ) {
-        utils::assert_same_module_as_witness<I, IW>();
+        utils::assert_same_module<I, IW>();
 
         let nft_id = object::id(&nft);
+        let object_type = type_name::get<NFT>();
 
+        // aborts if key already exists
         vec_map::insert(&mut self.refs, nft_id, NftRef {
-            auths: vec_set::empty(),
-            exclusive_auth: option::none(),
-            object_type: type_name::get<NFT>(),
+            listed_with: vec_set::empty(),
+            is_exclusively_listed: false,
+            object_type,
         });
 
         dof::add(&mut self.id, nft_id, nft);
@@ -233,109 +297,207 @@ module nft_protocol::nft_safe {
         );
     }
 
-    /// Use a transfer auth to get an NFT out of the `NftSafe`.
-    public fun transfer_nft_to_recipient<I: key + store, IW: drop, NFT: key + store>(
-        self: &mut NftSafe<I>,
-        nft_id: ID,
-        recipient: address,
-        entity_id: &UID,
-        _inner_witness: IW,
-    ) {
-        utils::assert_same_module_as_witness<I, IW>();
-
-        let nft = get_nft_for_transfer_<I, NFT>(self, nft_id, entity_id);
-
-        transfer(nft, recipient)
-    }
-
-
-    public fun transfer_nft_to_safe<I: key + store, IW: drop, NFT: key + store>(
-        source: &mut NftSafe<I>,
-        target: &mut NftSafe<I>,
-        nft_id: ID,
-        entity_id: &UID,
-        inner_witness: IW,
-    ) {
-        utils::assert_same_module_as_witness<I, IW>();
-
-        let nft = get_nft_for_transfer_<I, NFT>(source, nft_id, entity_id);
-
-        deposit_nft(target, nft, inner_witness);
-    }
-
+    /// An entity uses the `&UID` as a token which has been granted a permission
+    /// for transfer of the specific NFT.
+    /// With this token, a transfer can be performed.
     public fun get_nft<I: key + store, IW: drop, NFT: key + store>(
         self: &mut NftSafe<I>,
-        nft_id: ID,
         entity_id: &UID,
+        nft_id: ID,
+        tx_info: TransactionInfo,
         _inner_witness: IW,
     ): NFT {
-        utils::assert_same_module_as_witness<I, IW>();
+        utils::assert_same_module<I, IW>();
+        assert_has_nft(self, &nft_id);
 
-        let nft = get_nft_for_transfer_<I, NFT>(
-            self, nft_id, entity_id,
-        );
+        // NFT is being transferred - destroy the ref
+        let (_, ref) = vec_map::remove(&mut self.refs, &nft_id);
+        // aborts if entity is not included in the set
+        let entity_auth = object::uid_to_inner(entity_id);
+        vec_set::remove(&mut ref.listed_with, &entity_auth);
 
-        nft
+        dof::remove<ID, NFT>(&mut self.id, nft_id)
     }
 
+    /// Get an NFT out of the safe as the owner.
+    public fun get_nft_as_owner<I: key + store, IW: drop, NFT: key + store>(
+        self: &mut NftSafe<I>,
+        owner_cap: &OwnerCap,
+        nft_id: ID,
+        tx_info: TransactionInfo,
+        _inner_witness: IW,
+    ): NFT {
+        utils::assert_same_module<I, IW>();
+        assert_owner_cap(self, owner_cap);
+        assert_has_nft(self, &nft_id);
+
+        // NFT is being transferred - destroy the ref
+        let (_, ref) = vec_map::remove(&mut self.refs, &nft_id);
+        assert_ref_not_exclusively_listed(&ref);
+
+        dof::remove<ID, NFT>(&mut self.id, nft_id)
+    }
+
+    /// An entity uses the `&UID` as a token which has been granted a permission
+    /// for transfer of the specific NFT.
+    /// With this token, a transfer can be performed.
+    public fun get_nft_to_inner_entity<I: key + store, IW: drop, NFT: key + store>(
+        self: &mut NftSafe<I>,
+        nft_id: ID,
+        tx_info: TransactionInfo,
+        _inner_witness: IW,
+    ): NFT {
+        utils::assert_same_module<I, IW>();
+        assert_has_nft(self, &nft_id);
+
+        // NFT is being transferred - destroy the ref
+        let (_, ref) = vec_map::remove(&mut self.refs, &nft_id);
+        // aborts if entity is not included in the set
+        let entity_auth = object::id(&self.inner);
+        vec_set::remove(&mut ref.listed_with, &entity_auth);
+
+        dof::remove<ID, NFT>(&mut self.id, nft_id)
+    }
+
+    /// Removes all access to an NFT.
+    /// An exclusive listing can be canceled only via
+    /// `remove_auth_from_nft_listing`.
+    ///
+    /// # Aborts
+    /// * If the NFT is exclusively listed.
     public fun delist_nft<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         owner_cap: &OwnerCap,
         nft_id: ID,
-        entity_id: &UID,
         _inner_witness: IW,
     ) {
-        utils::assert_same_module_as_witness<I, IW>();
+        utils::assert_same_module<I, IW>();
         assert_owner_cap(self, owner_cap);
         assert_has_nft(self, &nft_id);
 
-        // Get NftRef
         let ref = vec_map::get_mut(&mut self.refs, &nft_id);
-        let auth = object::uid_to_inner(entity_id);
-
-        // Pops transfer authorisation if any
-        // Fails if no authorisation for the given ID
-        if (!option::is_some(&ref.exclusive_auth)) {
-            vec_set::remove(
-                &mut ref.auths, &auth
-            );
-        } else {
-            option::extract(&mut ref.exclusive_auth);
-        };
+        assert_ref_not_exclusively_listed(ref);
+        ref.listed_with = vec_set::empty();
     }
 
-    // === Private functions ===
-
-    fun get_nft_for_transfer_<I: key + store, NFT: key + store>(
+    /// An entity can remove itself from accessing (ie. delist) an NFT.
+    ///
+    /// This method is the only way an exclusive listing can be delisted.
+    ///
+    /// # Aborts
+    /// * If the entity is not listed as an auth for this NFT.
+    public fun remove_entity_from_nft_listing<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         nft_id: ID,
         entity_id: &UID,
-    ): NFT {
-        event::emit(
-            TransferEvent {
-                safe: object::id(self),
-                nft: nft_id,
-            }
-        );
-
-        // This pops the NFT reference, which means that it gets rid of all
-        // transfer auths, which is desired because it avoids lingering auths
-        let (_, ref) = vec_map::remove(&mut self.refs, &nft_id);
-        let auth = object::uid_to_inner(entity_id);
-
-        // Pops transfer authorisation if any
-        // Fails if no authorisation for the given ID
-        if (!option::is_some(&ref.exclusive_auth)) {
-            vec_set::remove(
-                &mut ref.auths, &auth
-            );
-        } else {
-            option::extract(&mut ref.exclusive_auth);
-        };
-
+        _inner_witness: IW,
+    ) {
+        utils::assert_same_module<I, IW>();
         assert_has_nft(self, &nft_id);
 
-        dof::remove<ID, NFT>(&mut self.id, nft_id)
+        let ref = vec_map::get_mut(&mut self.refs, &nft_id);
+        // aborts if the entity is not in the set
+        let entity_auth = object::uid_to_inner(entity_id);
+        vec_set::remove(&mut ref.listed_with, &entity_auth);
+        ref.is_exclusively_listed = false; // no-op unless it was exclusive
+    }
+
+    /// The safe owner can remove an entity from accessing an NFT unless
+    /// it's listed exclusively.
+    /// An exclusive listing can be canceled only via
+    /// `remove_auth_from_nft_listing`.
+    ///
+    /// # Aborts
+    /// * If the NFT is exclusively listed.
+    /// * If the entity is not listed as an auth for this NFT.
+    public fun remove_entity_from_nft_listing_as_owner<I: key + store, IW: drop>(
+        self: &mut NftSafe<I>,
+        owner: &OwnerCap,
+        nft_id: ID,
+        entity_id: &ID,
+        _inner_witness: IW,
+    ) {
+        utils::assert_same_module<I, IW>();
+        assert_owner_cap(self, owner);
+        assert_has_nft(self, &nft_id);
+
+        let ref = vec_map::get_mut(&mut self.refs, &nft_id);
+        assert_ref_not_exclusively_listed(ref);
+        // aborts if the entity is not in the set
+        vec_set::remove(&mut ref.listed_with, entity_id);
+    }
+
+    /// If there are no deposited NFTs in the safe, the safe is destroyed.
+    /// Only works for non-shared safes.
+    public fun destroy_empty<I: key + store, IW: drop>(
+        self: NftSafe<I>,
+        owner_cap: OwnerCap,
+        _inner_witness: IW,
+    ): I {
+        utils::assert_same_module<I, IW>();
+        assert_owner_cap(&self, &owner_cap);
+        assert!(vec_map::is_empty(&self.refs), EMustBeEmpty);
+
+        let NftSafe { id, refs, inner } = self;
+        let OwnerCap { id: cap_id, safe: _ } = owner_cap;
+        vec_map::destroy_empty(refs);
+        object::delete(id);
+        object::delete(cap_id);
+
+        inner
+    }
+
+    // === Transfer Policy functions ===
+
+    /// Register a type in the Kiosk system and receive an `TransferPolicyCap`
+    /// which is required to confirm kiosk deals for the `T`. If there's no
+    /// `TransferPolicyCap` available for use, the type can not be traded in
+    /// kiosks.
+    public fun new_transfer_policy_cap<W: drop, NFT: key + store>(
+        nft_witness: W, ctx: &mut TxContext
+    ): TransferPolicyCap<NFT> {
+        utils::assert_same_module<NFT, W>();
+
+        let id = object::new(ctx);
+        event::emit(TransferPolicyCapIssued<NFT> { id: object::uid_to_inner(&id) });
+        TransferPolicyCap { id }
+    }
+
+    /// Destroy a TransferPolicyCap.
+    /// Can be performed by any party as long as they own it.
+    public fun destroy_transfer_policy_cap<NFT: key + store>(
+        cap: TransferPolicyCap<NFT>
+    ) {
+        let TransferPolicyCap { id } = cap;
+        object::delete(id);
+    }
+
+    public fun get_transfer_request<I: key + store, NFT: key + store>(
+        self: &NftSafe<I>,
+        price: u64,
+        currency: TypeName,
+        from: ID,
+    ): TransferRequest<NFT> {
+
+        TransferRequest<NFT> {
+            paid: price,
+            currency,
+            from: object::id(self),
+        }
+    }
+
+    // TODO: Revisit comment/design
+    /// Allow a `TransferRequest` for the type `NFT`. The call is protected
+    /// by the type constraint, as only the publisher of the `NFT` can get
+    /// `TransferPolicyCap<NFT>`.
+    ///
+    /// Note: unless there's a policy for `NFT` to allow transfers,
+    /// Safe trades will not be possible.
+    public fun allow_transfer<T: key + store>(
+        _cap: &TransferPolicyCap<T>, req: TransferRequest<T>
+    ): (u64, TypeName, ID) {
+        let TransferRequest { paid, currency, from } = req;
+        (paid, currency, from)
     }
 
     // // === Getters ===
@@ -354,6 +516,16 @@ module nft_protocol::nft_safe {
         dof::exists_with_type<ID, NFT>(&self.id, nft_id)
     }
 
+    // Borrow Inner `I` type immutably from `NftSafe<I>`
+    public fun borrow_inner<I: key + store>(self: &NftSafe<I>): &I {
+        &self.inner
+    }
+
+    // Borrow Inner `I` type mutably from `NftSafe<I>`
+    public fun borrow_inner_mut<I: key + store>(self: &mut NftSafe<I>): &mut I {
+        &mut self.inner
+    }
+
     // Getter for OwnerCap's Safe ID
     public fun owner_cap_safe(cap: &OwnerCap): ID {
         cap.safe
@@ -370,20 +542,29 @@ module nft_protocol::nft_safe {
     // === Assertions ===
 
     public fun assert_owner_cap<I: key + store>(self: &NftSafe<I>, cap: &OwnerCap) {
-        assert!(cap.safe == object::id(self), ESAFE_OWNER_MISMATCH);
+        assert!(cap.safe == object::id(self), ESafeOwnerMismatch);
     }
 
     public fun assert_has_nft<I: key + store>(self: &NftSafe<I>, nft: &ID) {
-        assert!(vec_map::contains(&self.refs, nft), ESAFE_DOES_NOT_CONTAIN_NFT);
+        assert!(vec_map::contains(&self.refs, nft), ESafeDoesNotContainNft);
     }
 
-    fun assert_not_exclusively_listed(ref: &NftRef) {
-        assert!(!option::is_some(&ref.exclusive_auth), ENFT_ALREADY_EXCLUSIVELY_LISTED);
+    public fun assert_not_exclusively_listed<I: key + store>(
+        self: &NftSafe<I>, nft: &ID
+    ) {
+        let ref = vec_map::get(&self.refs, nft);
+        assert_ref_not_exclusively_listed(ref);
+    }
+
+    fun assert_ref_not_exclusively_listed(ref: &NftRef) {
+        assert!(!ref.is_exclusively_listed, ENftAlreadyExclusivelyListed);
     }
 
     fun assert_not_listed(ref: &NftRef) {
-        assert!(vec_set::size(&ref.auths) == 0, ENFT_ALREADY_LISTED);
+        assert!(vec_set::size(&ref.listed_with) == 0, ENftAlreadyListed);
+    }
 
-        assert_not_exclusively_listed(ref);
+    public fun assert_id<I: key + store>(safe: &NftSafe<I>, id: ID) {
+        assert!(object::id(safe) == id, ESafeIdMismatch);
     }
 }

@@ -20,6 +20,14 @@ module nft_protocol::utils {
         10_000
     }
 
+    public fun assert_same_module<T, Witness>() {
+        let (package_a, module_a, _) = get_package_module_type<T>();
+        let (package_b, module_b, _) = get_package_module_type<Witness>();
+
+        assert!(package_a == package_b, err::witness_source_mismatch());
+        assert!(module_a == module_b, err::witness_source_mismatch());
+    }
+
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
     ///

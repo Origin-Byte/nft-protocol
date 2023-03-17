@@ -2,7 +2,7 @@
 /// I: Inner Type of the Safe
 /// E: Entinty Witness of the entity request transfer authorisation
 /// C: NFT Type of a given NFT in the Safe
-module nft_protocol::origin_byte {
+module nft_protocol::ob_safe {
     use std::option::{Self, Option};
     use std::type_name::TypeName;
 
@@ -26,6 +26,14 @@ module nft_protocol::origin_byte {
         enable_any_deposit: bool,
         /// Collections which can be deposited into the `Safe`
         collections_with_enabled_deposits: VecSet<TypeName>,
+    }
+
+    struct TransactionInfo {
+        amount: u64,
+        /// We use type reflection to avoid generics
+        currency: TypeName,
+        /// The ID of the Safe the object is being sold from.
+        from: ID,
     }
 
     struct DepositEvent has copy, drop {
@@ -90,12 +98,10 @@ module nft_protocol::origin_byte {
         owner_cap: &OwnerCap,
         nft_id: ID,
         entity_id: &UID,
-        // TODO: separate API
-        _entity_witness: E,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        nft_safe::auth_transfer(self, owner_cap, nft_id, entity_id, Witness {});
+        nft_safe::list_nft(self, owner_cap, nft_id, object::uid_to_inner(entity_id), Witness {});
     }
 
     public fun auth_exclusive_transfer<Auth: drop, E: drop>(
@@ -103,12 +109,10 @@ module nft_protocol::origin_byte {
         owner_cap: &OwnerCap,
         nft_id: ID,
         entity_id: &UID,
-        // TODO: separate API
-        _entity_witness: E,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        nft_safe::auth_transfer(self, owner_cap, nft_id, entity_id, Witness {});
+        nft_safe::exclusively_list_nft(self, owner_cap, nft_id, entity_id, Witness {});
     }
 
     /// Transfer an NFT into the `Safe`.
@@ -120,17 +124,16 @@ module nft_protocol::origin_byte {
     }
 
     /// Use a transfer auth to get an NFT out of the `Safe`.
-    public fun transfer_nft_to_recipient<Auth: drop, E: drop, C: key + store>(
+    public fun delegated_transfer_nft_to_recipient<Auth: drop, E: drop, NFT: key + store>(
         self: &mut NftSafe<OriginByte>,
         nft_id: ID,
         recipient: address,
         entity_id: &UID,
-        // TODO: separate API
-        _entity_witness: E,
+        tx_info: TransactionInfo,
         authority: Auth,
         allowlist: &Allowlist,
     ) {
-        let nft = nft_safe::get_nft<OriginByte, Witness, Nft<C>>(
+        let nft = nft_safe::get_nft<OriginByte, Witness, NFT>(
             self,
             nft_id,
             entity_id,
@@ -138,26 +141,71 @@ module nft_protocol::origin_byte {
         );
 
         // // TODO: Consider deprecating logical owner
-        nft::change_logical_owner(&mut nft, recipient, authority, allowlist);
+        // nft::change_logical_owner(&mut nft, recipient, authority, allowlist);
 
         transfer(nft, recipient)
     }
 
 
-    public fun transfer_nft_to_safe<Auth: drop, E: drop, C: key + store>(
+    public fun delegated_transfer_nft_to_safe<Auth: drop, E: drop, NFT: key + store>(
         source: &mut NftSafe<OriginByte>,
         target: &mut NftSafe<OriginByte>,
         nft_id: ID,
         entity_id: &UID,
-        // TODO: separate API
-        _entity_witness: E,
+        tx_info: TransactionInfo,
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        let nft = nft_safe::get_nft<OriginByte, Witness, Nft<C>>(
+        let nft = nft_safe::get_nft<OriginByte, Witness, NFT>(
             source,
             nft_id,
             entity_id,
+            Witness {},
+        );
+
+        // TODO: Consider deprecating logical owner
+        // TODO: Uncomment this loc
+        // nft::change_logical_owner(&mut nft, option::borrow(&target.inner.owner), authority, allowlist);
+
+        deposit_nft(target, nft);
+    }
+
+    public fun transfer_nft_to_recipient<Auth: drop, NFT: key + store>(
+        self: &mut NftSafe<OriginByte>,
+        owner: &OwnerCap,
+        nft_id: ID,
+        recipient: address,
+        tx_info: TransactionInfo,
+        authority: Auth,
+        allowlist: &Allowlist,
+    ) {
+        let nft = nft_safe::get_nft_as_owner<OriginByte, Witness, NFT>(
+            self,
+            owner,
+            nft_id,
+            Witness {},
+        );
+
+        // TODO: Consider deprecating logical owner
+        // nft::change_logical_owner(&mut nft, recipient, authority, allowlist);
+
+        transfer(nft, recipient)
+    }
+
+
+    public fun transfer_nft_to_safe<Auth: drop, NFT: key + store>(
+        source: &mut NftSafe<OriginByte>,
+        target: &mut NftSafe<OriginByte>,
+        owner: &OwnerCap,
+        nft_id: ID,
+        tx_info: TransactionInfo,
+        _authority: Auth,
+        _allowlist: &Allowlist,
+    ) {
+        let nft = nft_safe::get_nft_as_owner<OriginByte, Witness, NFT>(
+            source,
+            owner,
+            nft_id,
             Witness {},
         );
 
@@ -178,13 +226,26 @@ module nft_protocol::origin_byte {
         _authority: Auth,
         _allowlist: &Allowlist,
     ) {
-        nft_safe::delist_nft(
+        nft_safe::remove_entity_from_nft_listing_as_owner(
             self,
             owner_cap,
             nft_id,
-            entity_id,
+            // NOTE: Should this not be &UID instead of ID?
+            object::uid_as_inner(entity_id),
             Witness {}
         );
+    }
+
+    public fun get_tx_info(
+        amount: u64,
+        currency: TypeName,
+        from: ID,
+    ): TransactionInfo {
+        TransactionInfo {
+            amount,
+            currency,
+            from,
+        }
     }
 
     // // === Getters ===
