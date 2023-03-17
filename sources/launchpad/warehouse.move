@@ -208,6 +208,7 @@ module nft_protocol::warehouse {
         ctx: &mut TxContext,
     ): Nft<C> {
         let supply = supply(warehouse);
+        assert!(supply != 0, EEMPTY);
 
         // Use supply of `Warehouse` as an additional nonce factor
         let nonce = vector::empty();
@@ -303,6 +304,10 @@ module nft_protocol::warehouse {
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
     ): Nft<C> {
+        let supply = supply(warehouse);
+        assert!(supply != 0, EEMPTY);
+
+        // Verify user commitment
         let RedeemCommitment {
             id,
             hashed_sender_commitment,
@@ -311,7 +316,6 @@ module nft_protocol::warehouse {
 
         object::delete(id);
 
-        // Verify user commitment
         let user_commitment = std::hash::sha3_256(user_commitment);
         assert!(
             user_commitment == hashed_sender_commitment,
@@ -320,6 +324,7 @@ module nft_protocol::warehouse {
 
         // Construct randomized index
         let supply = supply(warehouse);
+        assert!(supply != 0, EEMPTY);
 
         vector::append(&mut user_commitment, contract_commitment);
         // Use supply of `Warehouse` as a additional nonce factor
@@ -415,7 +420,6 @@ module nft_protocol::warehouse {
     /// modulo bias.
     fun select(bound: u64, random: &vector<u8>): u64 {
         let random = pseudorandom::u256_from_bytes(random);
-
         let mod  = random % (bound as u256);
         (mod as u64)
     }
