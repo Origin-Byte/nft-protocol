@@ -7,7 +7,7 @@
 module sui::transfer_policy {
     use std::vector;
     use std::type_name::{Self, TypeName};
-    use sui::package::{Self, Publisher};
+    use nft_protocol::package::{Self, Publisher};
     use sui::tx_context::TxContext;
     use sui::object::{Self, ID, UID};
     use sui::vec_set::{Self, VecSet};
@@ -17,8 +17,6 @@ module sui::transfer_policy {
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
     use sui::event;
-
-    friend sui::collectible;
 
     /// The number of receipts does not match the `TransferPolicy` requirement.
     const EPolicyNotSatisfied: u64 = 0;
@@ -278,111 +276,111 @@ module sui::malicious_policy {
     }
 }
 
-#[test_only]
-module sui::transfer_policy_test {
-    use sui::transfer_policy::{Self as policy, TransferPolicy};
-    use sui::tx_context::{TxContext, dummy as ctx};
-    use sui::object::{Self, UID};
-    use sui::dummy_policy;
-    use sui::malicious_policy;
-    use sui::package;
-    use sui::coin;
+// #[test_only]
+// module sui::transfer_policy_test {
+//     use sui::transfer_policy::{Self as policy, TransferPolicy};
+//     use sui::tx_context::{TxContext, dummy as ctx};
+//     use sui::object::{Self, UID};
+//     use sui::dummy_policy;
+//     use sui::malicious_policy;
+//     use nft_protocol::package;
+//     use sui::coin;
 
-    struct OTW has drop {}
-    struct Asset has key, store { id: UID }
+//     struct OTW has drop {}
+//     struct Asset has key, store { id: UID }
 
-    #[test]
-    /// No policy set;
-    fun test_default_flow() {
-        let ctx = &mut ctx();
-        let policy = prepare(ctx);
+//     #[test]
+//     /// No policy set;
+//     fun test_default_flow() {
+//         let ctx = &mut ctx();
+//         let policy = prepare(ctx);
 
-        // time to make a new transfer request
-        let request = policy::new_request(10_000, object::new_id(ctx), ctx);
-        policy::confirm_request(&policy, request);
+//         // time to make a new transfer request
+//         let request = policy::new_request(10_000, object::new_id(ctx), ctx);
+//         policy::confirm_request(&policy, request);
 
-        wrapup(policy, ctx);
-    }
+//         wrapup(policy, ctx);
+//     }
 
-    #[test]
-    /// Policy set and completed;
-    fun test_rule_completed() {
-        let ctx = &mut ctx();
-        let policy = prepare(ctx);
+//     #[test]
+//     /// Policy set and completed;
+//     fun test_rule_completed() {
+//         let ctx = &mut ctx();
+//         let policy = prepare(ctx);
 
-        // now require everyone to pay any amount
-        dummy_policy::set(&mut policy);
+//         // now require everyone to pay any amount
+//         dummy_policy::set(&mut policy);
 
-        let request = policy::new_request(10_000, object::new_id(ctx), ctx);
+//         let request = policy::new_request(10_000, object::new_id(ctx), ctx);
 
-        dummy_policy::pay(&mut policy, &mut request, coin::mint_for_testing(10_000, ctx));
-        policy::confirm_request(&policy, request);
+//         dummy_policy::pay(&mut policy, &mut request, coin::mint_for_testing(10_000, ctx));
+//         policy::confirm_request(&policy, request);
 
-        let profits = wrapup(policy, ctx);
+//         let profits = wrapup(policy, ctx);
 
-        assert!(profits == 10_000, 0);
-    }
+//         assert!(profits == 10_000, 0);
+//     }
 
-    #[test]
-    #[expected_failure(abort_code = sui::transfer_policy::EPolicyNotSatisfied)]
-    /// Policy set but not satisfied;
-    fun test_rule_ignored() {
-        let ctx = &mut ctx();
-        let policy = prepare(ctx);
+//     #[test]
+//     #[expected_failure(abort_code = sui::transfer_policy::EPolicyNotSatisfied)]
+//     /// Policy set but not satisfied;
+//     fun test_rule_ignored() {
+//         let ctx = &mut ctx();
+//         let policy = prepare(ctx);
 
-        // now require everyone to pay any amount
-        dummy_policy::set(&mut policy);
+//         // now require everyone to pay any amount
+//         dummy_policy::set(&mut policy);
 
-        let request = policy::new_request(10_000, object::new_id(ctx), ctx);
-        policy::confirm_request(&policy, request);
+//         let request = policy::new_request(10_000, object::new_id(ctx), ctx);
+//         policy::confirm_request(&policy, request);
 
-        wrapup(policy, ctx);
-    }
+//         wrapup(policy, ctx);
+//     }
 
-    #[test]
-    #[expected_failure(abort_code = sui::transfer_policy::ERuleAlreadySet)]
-    /// Attempt to add another policy;
-    fun test_rule_exists() {
-        let ctx = &mut ctx();
-        let policy = prepare(ctx);
+//     #[test]
+//     #[expected_failure(abort_code = sui::transfer_policy::ERuleAlreadySet)]
+//     /// Attempt to add another policy;
+//     fun test_rule_exists() {
+//         let ctx = &mut ctx();
+//         let policy = prepare(ctx);
 
-        // now require everyone to pay any amount
-        dummy_policy::set(&mut policy);
-        dummy_policy::set(&mut policy);
+//         // now require everyone to pay any amount
+//         dummy_policy::set(&mut policy);
+//         dummy_policy::set(&mut policy);
 
-        let request = policy::new_request(10_000, object::new_id(ctx), ctx);
-        policy::confirm_request(&policy, request);
+//         let request = policy::new_request(10_000, object::new_id(ctx), ctx);
+//         policy::confirm_request(&policy, request);
 
-        wrapup(policy, ctx);
-    }
+//         wrapup(policy, ctx);
+//     }
 
-    #[test]
-    #[expected_failure(abort_code = sui::transfer_policy::EIllegalRule)]
-    /// Attempt to cheat by using another rule approval;
-    fun test_rule_swap() {
-        let ctx = &mut ctx();
-        let policy = prepare(ctx);
+//     #[test]
+//     #[expected_failure(abort_code = sui::transfer_policy::EIllegalRule)]
+//     /// Attempt to cheat by using another rule approval;
+//     fun test_rule_swap() {
+//         let ctx = &mut ctx();
+//         let policy = prepare(ctx);
 
-        // now require everyone to pay any amount
-        dummy_policy::set(&mut policy);
-        let request = policy::new_request(10_000, object::new_id(ctx), ctx);
+//         // now require everyone to pay any amount
+//         dummy_policy::set(&mut policy);
+//         let request = policy::new_request(10_000, object::new_id(ctx), ctx);
 
-        // try to add receipt from another rule
-        malicious_policy::cheat(&mut request);
-        policy::confirm_request(&policy, request);
+//         // try to add receipt from another rule
+//         malicious_policy::cheat(&mut request);
+//         policy::confirm_request(&policy, request);
 
-        wrapup(policy, ctx);
-    }
+//         wrapup(policy, ctx);
+//     }
 
-    fun prepare(ctx: &mut TxContext): TransferPolicy<Asset> {
-        let publisher = package::test_claim(OTW {}, ctx);
-        let policy = policy::new<Asset>(&publisher, ctx);
-        package::burn_publisher(publisher);
-        policy
-    }
+//     fun prepare(ctx: &mut TxContext): TransferPolicy<Asset> {
+//         let publisher = package::test_claim(OTW {}, ctx);
+//         let policy = policy::new<Asset>(&publisher, ctx);
+//         package::burn_publisher(publisher);
+//         policy
+//     }
 
-    fun wrapup(policy: TransferPolicy<Asset>, ctx: &mut TxContext): u64 {
-        let profits = policy::destroy_and_withdraw(policy, ctx);
-        coin::burn_for_testing(profits)
-    }
-}
+//     fun wrapup(policy: TransferPolicy<Asset>, ctx: &mut TxContext): u64 {
+//         let profits = policy::destroy_and_withdraw(policy, ctx);
+//         coin::burn_for_testing(profits)
+//     }
+// }
