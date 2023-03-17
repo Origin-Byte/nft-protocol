@@ -177,17 +177,12 @@ module nft_protocol::dutch_auction {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let venue =
-            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
+        let market =
+            listing::market_internal_mut<DutchAuctionMarket<FT>, Witness>(
                 Witness {}, listing, venue_id
             );
 
-        cancel_bid_(
-            venue::borrow_market_mut(venue),
-            wallet,
-            price,
-            tx_context::sender(ctx)
-        )
+        cancel_bid_(market, wallet, price, tx_context::sender(ctx))
     }
 
     // === Modifier Functions ===
@@ -201,7 +196,7 @@ module nft_protocol::dutch_auction {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        // TODO: Consider an entrepoint to be called by the Marketplace instead of
+        // TODO: Consider an entrypoint to be called by the Marketplace instead of
         // the listing admin
         listing::assert_listing_admin(listing, ctx);
 
@@ -232,8 +227,8 @@ module nft_protocol::dutch_auction {
         listing::assert_listing_admin(listing, ctx);
 
         // Determine how much inventory there is to sell
-        let venue = listing::borrow_venue(listing, venue_id);
-        let market = venue::borrow_market<DutchAuctionMarket<FT>>(venue);
+        let market = listing::borrow_market<DutchAuctionMarket<FT>>(listing, venue_id);
+
         let inventory_id = market.inventory_id;
         let supply = listing::supply<C>(listing, inventory_id);
 
@@ -247,11 +242,10 @@ module nft_protocol::dutch_auction {
         };
 
         // Determine matching orders
-        let venue =
-            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
+        let market =
+            listing::market_internal_mut<DutchAuctionMarket<FT>, Witness>(
                 Witness {}, listing, venue_id
             );
-        let market = venue::borrow_market_mut(venue);
 
         // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
         // Investigate whether this logic should be paginated
@@ -273,7 +267,7 @@ module nft_protocol::dutch_auction {
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            inventory::transfer(inventory, owner, ctx);
+            inventory::redeem_pseudorandom_nft_and_transfer(inventory, owner, ctx);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);
@@ -283,7 +277,7 @@ module nft_protocol::dutch_auction {
             };
         };
 
-        listing::pay<FT>(listing, total_funds, nfts_to_sell);
+        listing::pay(listing, total_funds, nfts_to_sell);
 
         vector::destroy_empty(bids_to_fill);
 

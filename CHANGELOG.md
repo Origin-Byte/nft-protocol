@@ -6,7 +6,7 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.26.0] - 2023-03-17
 
 ### Changed
 
@@ -33,6 +33,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Composable standard with domains `nft_bag::NftBagDomain` and `svg::ComposableSvgDomain`
 - All orderbook events now export `ft_type` and `nft_type` fields.
 - Added `total_deposited` field to `Warehouse`
+- Exposed mutable endpoint for `AttributesDomain`
+- Randomized NFT withdrawal with added functions `listing::buy_pseudorandom_nft`, `listing::buy_random_nft`, `inventory::redeem_random_nft`, `inventory::redeem_pseudorandom_nft`
 
 ### Fixed
 

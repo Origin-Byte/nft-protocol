@@ -1,10 +1,10 @@
 module nft_protocol::tribal_realms {
     use std::string::{Self, String};
 
-    use sui::url;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::url;
     use nft_protocol::nft;
     use nft_protocol::display;
     use nft_protocol::mint_cap::{MintCap};
@@ -85,12 +85,12 @@ module nft_protocol::tribal_realms {
         warehouse: &mut Warehouse<TRIBAL_REALMS>,
         ctx: &mut TxContext,
     ) {
-        let url = url::new_unsafe_from_bytes(url);
+        let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
         display::add_display_domain(&Witness {}, &mut nft, name, description);
-        display::add_url_domain(&Witness {}, &mut nft, url);
+        url::add_url_domain(&Witness {}, &mut nft, url);
 
         c_nft::add_type_domain<TRIBAL_REALMS, Witness, T>(
             &Witness {}, &mut nft,

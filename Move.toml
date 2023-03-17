@@ -11,7 +11,7 @@ rev = "157ac72030d014f17d76cefe81f3915b4afab2c9"
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.27.1
-rev = "66d48cfd3966d4c2591ab6e42495e0308687234b"
+rev = "dfdaaf4d67e0aa79ebdec12f9ef858f76b1011c9"
 
 [addresses]
 nft_protocol = "0xa65aa1bd2efc45942ea9cde3ffce71d64864b23d"

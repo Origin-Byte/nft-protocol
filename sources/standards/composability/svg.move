@@ -27,7 +27,7 @@ module nft_protocol::composable_svg {
 
     /// `ComposableSvgDomain` did not compose NFT with given ID
     ///
-    /// Call `nft_bag::deregister` with an NFT ID that exists.
+    /// Call `composable_svg::deregister` with an NFT ID that exists.
     const EUNDEFINED_NFT: u64 = 3;
 
     /// Domain for providing composed SVG data
@@ -83,7 +83,11 @@ module nft_protocol::composable_svg {
     /// - `NftBagDomain` doesn't exist
     /// - NFT was of a different collection type
     /// - NFT wasn't composed
-    public entry fun register<C>(parent_nft: &mut Nft<C>, child_nft_id: ID) {
+    public fun register<C>(
+        _witness: DelegatedWitness<C>,
+        parent_nft: &mut Nft<C>,
+        child_nft_id: ID,
+    ) {
         let nft_bag_domain = nft_bag::borrow_domain_mut(parent_nft);
 
         // Assert that child NFT exists and it has `SvgDomain`
@@ -104,7 +108,11 @@ module nft_protocol::composable_svg {
     ///
     /// - `ComposableSvgDomain` doesn't exist
     /// - NFT wasn't composed
-    public entry fun deregister<C>(parent_nft: &mut Nft<C>, child_nft_id: ID) {
+    public fun deregister<C>(
+        _witness: DelegatedWitness<C>,
+        parent_nft: &mut Nft<C>,
+        child_nft_id: ID,
+    ) {
         let domain = borrow_domain_mut(parent_nft);
 
         let (has_entry, idx) = vector::index_of(&domain.nfts, &child_nft_id);
