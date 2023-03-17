@@ -346,7 +346,7 @@ module nft_protocol::limited_fixed_price {
         let price = market.price;
         let inventory_id = market.inventory_id;
 
-        listing::buy_nft<C, FT, LimitedFixedPriceMarket<FT>, Witness>(
+        listing::buy_pseudorandom_nft<C, FT, LimitedFixedPriceMarket<FT>, Witness>(
             Witness {},
             listing,
             inventory_id,
