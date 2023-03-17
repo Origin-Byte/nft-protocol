@@ -9,12 +9,9 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::limited_fixed_price {
-    use std::ascii::String;
     use std::option;
-    use std::type_name;
 
     use sui::coin::{Self, Coin};
-    use sui::event;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{transfer, share_object};
     use sui::tx_context::{Self, TxContext};
@@ -55,16 +52,6 @@ module nft_protocol::limited_fixed_price {
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
-
-    // === Events ===
-
-    struct NftSoldEvent has copy, drop {
-        nft: ID,
-        price: u64,
-        ft_type: String,
-        nft_type: String,
-        buyer: address,
-    }
 
     // === Init functions ===
 
