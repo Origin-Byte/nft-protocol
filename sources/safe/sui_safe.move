@@ -137,6 +137,7 @@ module nft_protocol::nft_safe {
 
     public fun new<I: key + store, IW: drop>(
         inner: I,
+        _inner_witness: IW,
         ctx: &mut TxContext
     ): (NftSafe<I>, OwnerCap) {
         utils::assert_same_module_as_witness<I, IW>();
@@ -155,9 +156,13 @@ module nft_protocol::nft_safe {
     }
 
     /// Given object is added to the safe and can be listed from now on.
-    public fun deposit_nft<I: key + store, NFT: key + store>(
-        self: &mut NftSafe<I>, _owner_cap: &OwnerCap, nft: NFT,
+    public fun deposit_nft<I: key + store, IW: drop, NFT: key + store>(
+        self: &mut NftSafe<I>,
+        nft: NFT,
+        _inner_witness: IW,
     ) {
+        utils::assert_same_module_as_witness<I, IW>();
+
         let nft_id = object::id(&nft);
 
         vec_map::insert(&mut self.refs, nft_id, NftRef {
@@ -178,11 +183,12 @@ module nft_protocol::nft_safe {
     public fun auth_transfer<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         owner_cap: &OwnerCap,
-        entity_id: ID,
         nft_id: ID,
+        entity_id: ID,
         _inner_witness: IW,
     ) {
         utils::assert_same_module_as_witness<I, IW>();
+
         assert_owner_cap(self, owner_cap);
         assert_has_nft(self, &nft_id);
 
@@ -255,8 +261,8 @@ module nft_protocol::nft_safe {
     /// finally destroyed in `allow_transfer`.
     public fun get_nft_as_entity<I: key + store, IW: drop, NFT: key + store>(
         self: &mut NftSafe<I>,
-        entity_id: &UID,
         nft_id: ID,
+        entity_id: &UID,
         price: u64,
         _inner_witness: IW,
         ctx: &mut TxContext,
@@ -288,11 +294,13 @@ module nft_protocol::nft_safe {
     ///
     /// # Aborts
     /// * If the entity is not listed as an auth for this NFT.
-    public fun remove_entity_from_nft_listing<I: key + store>(
+    public fun remove_entity_from_nft_listing<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         entity_id: &UID,
         nft_id: &ID,
+        _inner_witness: IW,
     ) {
+        utils::assert_same_module_as_witness<I, IW>();
         assert_has_nft(self, nft_id);
 
         let ref = vec_map::get_mut(&mut self.refs, nft_id);
@@ -310,12 +318,14 @@ module nft_protocol::nft_safe {
     /// # Aborts
     /// * If the NFT is exclusively listed.
     /// * If the entity is not listed as an auth for this NFT.
-    public fun remove_entity_from_nft_listing_as_owner<I: key + store>(
+    public fun remove_entity_from_nft_listing_as_owner<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         owner_cap: &OwnerCap,
         entity_id: &ID,
         nft_id: &ID,
+        _inner_witness: IW,
     ) {
+        utils::assert_same_module_as_witness<I, IW>();
         assert_owner_cap(self, owner_cap);
         assert_has_nft(self, nft_id);
 
@@ -333,11 +343,13 @@ module nft_protocol::nft_safe {
     ///
     /// # Aborts
     /// * If the NFT is exclusively listed.
-   public fun delist_nft<I: key + store>(
+   public fun delist_nft<I: key + store, IW: drop>(
         self: &mut NftSafe<I>,
         owner_cap: &OwnerCap,
         nft_id: &ID,
+        _inner_witness: IW,
     ) {
+        utils::assert_same_module_as_witness<I, IW>();
         assert_owner_cap(self, owner_cap);
         assert_has_nft(self, nft_id);
 
@@ -348,9 +360,10 @@ module nft_protocol::nft_safe {
 
     /// If there are no deposited NFTs in the safe, the safe is destroyed.
     /// Only works for non-shared safes.
-    public fun destroy_empty<I: key + store>(
-        self: NftSafe<I>, owner_cap: OwnerCap, ctx: &mut TxContext,
+    public fun destroy_empty<I: key + store, IW: drop>(
+        self: NftSafe<I>, owner_cap: OwnerCap, _inner_witness: IW, ctx: &mut TxContext,
     ): I {
+        utils::assert_same_module_as_witness<I, IW>();
         assert_owner_cap(&self, &owner_cap);
         assert!(vec_map::is_empty(&self.refs), EMustBeEmpty);
 
