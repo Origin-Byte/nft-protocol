@@ -244,8 +244,59 @@ module nft_protocol::ob_kiosk {
         ref.is_exclusively_listed = true;
     }
 
-    public fun transfer() {}
-    public fun delegated_transfer() {}
+    public fun transfer_delegated<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        entity_id: &UID,
+        royalty_base: u64,
+        // _authority: Auth,
+        // _allowlist: &Allowlist,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        let inner = df::borrow_mut<TypeName, InnerKiosk>(
+            kiosk::uid_mut(source),
+            type_name::get<InnerKiosk>()
+        );
+
+        check_entity_and_pop_ref(inner, object::uid_to_inner(entity_id), nft_id);
+
+        let kiosk_cap_ref = &inner.kiosk_cap;
+        let nft = kiosk::take<T>(
+            source,
+            kiosk_cap_ref,
+            nft_id
+        );
+
+        deposit_(target, nft);
+
+        transfer_policy::new_request(royalty_base, object::id(source), ctx)
+    }
+
+    // TODO: No entity ID, just OwnerCap.
+    public fun tranfer() {}
+
+
+    fun deposit_<T: key + store>(
+        self: &mut Kiosk, nft: T
+    ) {
+        let inner = df::borrow_mut<TypeName, InnerKiosk>(
+            kiosk::uid_mut(self),
+            type_name::get<InnerKiosk>()
+        );
+
+        let nft_id = object::id(&nft);
+
+        // Add NFT reference to the inner kiosk
+        table::add(&mut inner.refs, nft_id, NftRef {
+            auths: vec_set::empty(),
+            is_exclusively_listed: false,
+            listed_for: option::none(),
+        });
+
+        let kiosk_cap_ref = &inner.kiosk_cap;
+        kiosk::place(self, kiosk_cap_ref, nft);
+    }
 
 
 
@@ -273,6 +324,15 @@ module nft_protocol::ob_kiosk {
     fun assert_not_listed(ref: &NftRef) {
         assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
         assert!(option::is_none(&ref.listed_for), ENftAlreadyListed);
+    }
+
+    fun check_entity_and_pop_ref(inner: &mut InnerKiosk, entity_id: ID, nft_id: ID) {
+        // NFT is being transferred - destroy the ref
+        let ref = table::remove(&mut inner.refs, nft_id);
+        let listed_for = *option::borrow(&ref.listed_for);
+
+        // aborts if entity is not included in the map
+        vec_set::contains(&mut ref.auths, &entity_id);
     }
 
 }
