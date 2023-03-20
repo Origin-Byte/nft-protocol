@@ -21,8 +21,14 @@ module nft_protocol::ob_kiosk {
     /// Trying to access an NFT that is not in the kiosk.
     const EMissingNft: u64 = 1;
 
+    /// NFT is already listed exclusively
+    const ENftAlreadyExclusivelyListed: u64 = 2;
+
+    /// NFT is already listed
+    const ENftAlreadyListed: u64 = 3;
+
     /// Trying to withdraw profits and sender is not owner.
-    const EPermissionlessDepositsDisabled: u64 = 3;
+    const EPermissionlessDepositsDisabled: u64 = 4; // TODO: bump
 
 
 
@@ -203,7 +209,12 @@ module nft_protocol::ob_kiosk {
         assert_owner_cap(self, owner_cap);
         assert_has_nft(self, nft_id);
 
-        let ref = vec_map::get_mut(&mut self.refs, &nft_id);
+        let inner = df::borrow_mut<TypeName, InnerKiosk>(
+            kiosk::uid_mut(self),
+            type_name::get<InnerKiosk>()
+        );
+
+        let ref = table::borrow_mut(&mut inner.refs, nft_id);
         assert_ref_not_exclusively_listed(ref);
 
         vec_set::insert(&mut ref.auths, entity_id);
@@ -224,6 +235,22 @@ module nft_protocol::ob_kiosk {
 
     public fun assert_has_nft(self: &Kiosk, nft_id: ID) {
         assert!(kiosk::has_item(self, nft_id), EMissingNft)
+    }
+
+    public fun assert_not_exclusively_listed<I: key + store>(
+        self: &InnerKiosk, nft_id: ID
+    ) {
+        let ref = table::borrow(&self.refs, nft_id);
+        assert_ref_not_exclusively_listed(ref);
+    }
+
+    fun assert_ref_not_exclusively_listed(ref: &NftRef) {
+        assert!(!ref.is_exclusively_listed, ENftAlreadyExclusivelyListed);
+    }
+
+    fun assert_not_listed(ref: &NftRef) {
+        assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
+        assert!(option::is_none(&ref.listed_for), ENftAlreadyListed);
     }
 
 }
