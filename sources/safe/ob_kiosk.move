@@ -30,8 +30,6 @@ module nft_protocol::ob_kiosk {
     /// Trying to withdraw profits and sender is not owner.
     const EPermissionlessDepositsDisabled: u64 = 4; // TODO: bump
 
-
-
     struct OwnerCap has key {
         // We wrap KioskOwnerCap in a key-only object to prevent transfers
         // The easiest way is to add the KioskOwnerCap inside the Kiosk as a dynamic field
