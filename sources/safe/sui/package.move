@@ -1,9 +1,9 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-/// Functions for operating on Move packages from within Move:
-/// - Creating proof-of-publish objects from one-time witnesses
-/// - Administering package upgrades through upgrade policies.
+// NOTE: This is a placeholder, we are temporarily adding this file to this
+// branch to make it easier to import, but will be removed as soon as devnet-0.28.0
+// is released.
 module nft_protocol::package {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{TxContext, sender};
@@ -248,7 +248,7 @@ module nft_protocol::package {
         UpgradeTicket {
             cap: object::id(cap),
             package,
-            policy: cap.policy,
+            policy,
             digest,
         }
     }
@@ -266,48 +266,6 @@ module nft_protocol::package {
 
         cap.package = package;
         cap.version = cap.version + 1;
-    }
-
-    #[test_only]
-    /// Test-only function to claim a Publisher object bypassing OTW check.
-    public fun test_claim<OTW: drop>(_: OTW, ctx: &mut TxContext): Publisher {
-        let type = type_name::get<OTW>();
-
-        Publisher {
-            id: object::new(ctx),
-            package: type_name::get_address(&type),
-            module_name: type_name::get_module(&type),
-        }
-    }
-
-    #[test_only]
-    /// Test-only function to simulate publishing a package at address
-    /// `ID`, to create an `UpgradeCap`.
-    public fun test_publish(package: ID, ctx: &mut TxContext): UpgradeCap {
-        UpgradeCap {
-            id: object::new(ctx),
-            package,
-            version: 1,
-            policy: COMPATIBLE,
-        }
-    }
-
-    #[test_only]
-    /// Test-only function that takes the role of the actual `Upgrade`
-    /// command, converting the ticket for the pending upgrade to a
-    /// receipt for a completed upgrade.
-    public fun test_upgrade(ticket: UpgradeTicket): UpgradeReceipt {
-        let UpgradeTicket { cap, package, policy: _, digest: _ } = ticket;
-
-        // Generate a fake package ID for the upgraded package by
-        // hashing the existing package and cap ID.
-        let data = object::id_to_bytes(&cap);
-        std::vector::append(&mut data, object::id_to_bytes(&package));
-        let package = object::id_from_bytes(sui::hash::blake2b256(&data));
-
-        UpgradeReceipt {
-            cap, package
-        }
     }
 
     fun restrict(cap: &mut UpgradeCap, policy: u8) {

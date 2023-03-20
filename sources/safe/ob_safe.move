@@ -10,7 +10,7 @@ module nft_protocol::ob_safe {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer::{share_object, transfer};
-    use sui::transfer_policy::{Self, TransferRequest};
+    use nft_protocol::transfer_policy::{Self, TransferRequest};
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::transfer_allowlist::Allowlist;

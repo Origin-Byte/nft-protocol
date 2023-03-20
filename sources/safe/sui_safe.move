@@ -37,7 +37,7 @@ module nft_protocol::nft_safe {
     use std::option::{Self, Option};
 
     use sui::dynamic_object_field::{Self as dof};
-    use sui::transfer_policy::{Self, TransferRequest};
+    use nft_protocol::transfer_policy::{Self, TransferRequest};
     use sui::object::{Self, ID, UID};
     use nft_protocol::package::{Self, Publisher};
     use sui::tx_context::TxContext;
