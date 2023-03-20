@@ -220,7 +220,29 @@ module nft_protocol::ob_kiosk {
         vec_set::insert(&mut ref.auths, entity_id);
     }
 
-    public fun auth_exclusive_transfer() {}
+    public fun auth_exclusive_transfer(
+        self: &mut Kiosk,
+        owner_cap: &OwnerCap,
+        nft_id: ID,
+        entity_id: ID,
+        // _authority: Auth,
+        // _allowlist: &Allowlist,
+    ) {
+        assert_owner_cap(self, owner_cap);
+        assert_has_nft(self, nft_id);
+
+        let inner = df::borrow_mut<TypeName, InnerKiosk>(
+            kiosk::uid_mut(self),
+            type_name::get<InnerKiosk>()
+        );
+
+        let ref = table::borrow_mut(&mut inner.refs, nft_id);
+        assert_not_listed(ref);
+
+        vec_set::insert(&mut ref.auths, entity_id);
+
+        ref.is_exclusively_listed = true;
+    }
 
     public fun transfer() {}
     public fun delegated_transfer() {}
