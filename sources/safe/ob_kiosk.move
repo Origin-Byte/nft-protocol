@@ -87,6 +87,16 @@ module nft_protocol::ob_kiosk {
         backup: Option<address>,
         ctx: &mut TxContext
     ): OwnerCap {
+        let (kiosk, owner_cap) = new(backup, ctx);
+
+        transfer::share_object(kiosk);
+        owner_cap
+    }
+
+    public fun new(
+        backup: Option<address>,
+        ctx: &mut TxContext
+    ): (Kiosk, OwnerCap) {
         let (kiosk, kiosk_cap) = kiosk::new(ctx);
 
         let inner_kiosk = InnerKiosk {
@@ -103,8 +113,7 @@ module nft_protocol::ob_kiosk {
 
         let owner_cap = OwnerCap { kiosk: object::id(&kiosk) };
 
-        transfer::share_object(kiosk);
-        owner_cap
+        (kiosk, owner_cap)
     }
 
     /// Unpacks and destroys a Kiosk returning the profits (even if "0").
