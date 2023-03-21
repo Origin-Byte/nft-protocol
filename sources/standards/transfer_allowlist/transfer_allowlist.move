@@ -29,6 +29,7 @@ module nft_protocol::transfer_allowlist {
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
+    use nft_protocol::transfer_policy;
     use nft_protocol::witness::Witness as DelegatedWitness;
 
     /// Invalid admin
@@ -72,9 +73,13 @@ module nft_protocol::transfer_allowlist {
     /// must call `create_collection_cap` with a witness that belongs to the
     /// same contract as the generic `C`.
     /// Additionally, the witness type must be called `Witness`.
+    ///
+    /// TODO: replace with `Publisher`
     struct CollectionControlCap<phantom C> has key, store {
         id: UID,
     }
+
+    struct AllowlistRule has drop {}
 
     /// Creates a new `Allowlist`
     public fun create<Admin>(
@@ -223,6 +228,29 @@ module nft_protocol::transfer_allowlist {
     /// Returns whether `Allowlist` requires an authority to transfer
     public fun requires_authority(allowlist: &Allowlist): bool {
         option::is_some(&allowlist.authorities)
+    }
+
+    /// Registers collection to use `Allowlist` during the transfer.
+    public fun add_policy_rule<C>(
+        policy: &mut transfer_policy::TransferPolicy<C>,
+        cap: &transfer_policy::TransferPolicyCap<C>
+    ) {
+        transfer_policy::add_rule<C, AllowlistRule, bool>(
+            AllowlistRule {}, policy, cap, false,
+        );
+    }
+
+    /// Confirms that the transfer is allowed by the `Allowlist`.
+    /// It adds a signature to the request.
+    /// In the end, if the allowlist rule is included in the transfer policy,
+    /// the transfer request can only be finished if this rule is present.
+    public fun confirm_transfer<C: key + store, Auth: drop>(
+        _authority: Auth,
+        allowlist: &Allowlist,
+        req: &mut transfer_policy::TransferRequest<C>,
+    ) {
+        assert_transferable<C, Auth>(allowlist);
+        transfer_policy::add_receipt<C, AllowlistRule>(AllowlistRule {}, req);
     }
 
     // === Assertions ===
