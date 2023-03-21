@@ -1,17 +1,14 @@
 module nft_protocol::ob_kiosk {
-    use std::option::{Self, Option};
+    use std::option::Option;
     use std::type_name::{Self, TypeName};
 
-    use sui::dynamic_object_field::{Self as dof};
     use sui::dynamic_field::{Self as df};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::table::{Self, Table};
-    use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::package::{Self, Publisher};
     use nft_protocol::transfer_policy::{Self, TransferRequest};
     use nft_protocol::kiosk::{Self, Kiosk, KioskOwnerCap};
 
@@ -275,8 +272,41 @@ module nft_protocol::ob_kiosk {
         request
     }
 
-    // TODO: No entity ID, just OwnerCap.
-    public fun tranfer() {}
+    public fun tranfer<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        owner_cap: &OwnerCap,
+        royalty_base: u64,
+        // _authority: Auth,
+        // _allowlist: &Allowlist,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        assert_owner_cap(source, owner_cap);
+
+        let inner = df::borrow_mut<TypeName, InnerKiosk>(
+            kiosk::uid_mut(source),
+            type_name::get<InnerKiosk>()
+        );
+
+        let ref = pop_ref(inner, nft_id);
+        assert_ref_not_exclusively_listed(&ref);
+
+        let kiosk_cap_ref = &inner.kiosk_cap;
+        let nft = kiosk::take<T>(
+            source,
+            kiosk_cap_ref,
+            nft_id
+        );
+
+        deposit_(target, nft);
+
+        let request = transfer_policy::new_request(
+            royalty_base, object::id(source), ctx
+        );
+
+        request
+    }
 
 
     fun deposit_<T: key + store>(
@@ -332,6 +362,10 @@ module nft_protocol::ob_kiosk {
 
         // aborts if entity is not included in the map
         vec_set::contains(&mut ref.auths, &entity_id);
+    }
+
+    fun pop_ref(inner: &mut InnerKiosk, nft_id: ID): NftRef {
+        table::remove(&mut inner.refs, nft_id)
     }
 
 }
