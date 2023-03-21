@@ -1,5 +1,5 @@
 module nft_protocol::ob_kiosk {
-    use std::option::Option;
+    use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
     use sui::dynamic_field::{Self as df};
@@ -41,7 +41,7 @@ module nft_protocol::ob_kiosk {
     }
 
     struct InnerKiosk has store {
-        kiosk_cap: KioskOwnerCap,
+        kiosk_cap: Option<KioskOwnerCap>,
         owner: address,
         backup: Option<address>,
         permissionless_deposits: bool,
@@ -84,7 +84,7 @@ module nft_protocol::ob_kiosk {
         let (kiosk, kiosk_cap) = kiosk::new(ctx);
 
         let inner_kiosk = InnerKiosk {
-            kiosk_cap,
+            kiosk_cap: option::some(kiosk_cap),
             owner: tx_context::sender(ctx),
             backup,
             permissionless_deposits: false,
@@ -124,10 +124,15 @@ module nft_protocol::ob_kiosk {
             refs,
         } = inner;
 
+        let OwnerCap { kiosk: _, } = cap;
+
         table::drop(refs);
 
+        let kiosk_owner_cap = option::extract(&mut kiosk_cap);
+        option::destroy_none(kiosk_cap);
+
         // Close the kiosk and send profits to the tx sender
-        let profits = kiosk::close_and_withdraw(self, kiosk_cap, ctx);
+        let profits = kiosk::close_and_withdraw(self, kiosk_owner_cap, ctx);
         transfer::transfer(profits, tx_context::sender(ctx));
     }
 
@@ -145,10 +150,7 @@ module nft_protocol::ob_kiosk {
     public entry fun deposit<T: key + store>(
         self: &mut Kiosk, nft: T
     ) {
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(self),
-            type_name::get<InnerKiosk>()
-        );
+        let inner = get_inner_mut(self);
 
         assert!(
             inner.permissionless_deposits, EPermissionlessDepositsDisabled
@@ -162,8 +164,13 @@ module nft_protocol::ob_kiosk {
             is_exclusively_listed: false,
         });
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
-        kiosk::place(self, kiosk_cap_ref, nft);
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
+        kiosk::place(self, &kiosk_cap, nft);
+
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(self);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
     }
 
     /// Place any object into a Kiosk.
@@ -174,10 +181,7 @@ module nft_protocol::ob_kiosk {
         // Check if OwnerCap matches Kiosk
         assert_owner_cap(self, cap);
 
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(self),
-            type_name::get<InnerKiosk>()
-        );
+        let inner = get_inner_mut(self);
 
         let nft_id = object::id(&nft);
 
@@ -187,8 +191,13 @@ module nft_protocol::ob_kiosk {
             is_exclusively_listed: false,
         });
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
-        kiosk::place(self, kiosk_cap_ref, nft);
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
+        kiosk::place(self, &kiosk_cap, nft);
+
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(self);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
     }
 
     // === Withdraw from the Kiosk ===
@@ -249,19 +258,19 @@ module nft_protocol::ob_kiosk {
         // _allowlist: &Allowlist,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(source),
-            type_name::get<InnerKiosk>()
-        );
-
+        let inner = get_inner_mut(source);
         check_entity_and_pop_ref(inner, object::uid_to_inner(entity_id), nft_id);
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
         let nft = kiosk::take<T>(
             source,
-            kiosk_cap_ref,
+            &kiosk_cap,
             nft_id
         );
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(source);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
 
         deposit_(target, nft);
 
@@ -284,20 +293,21 @@ module nft_protocol::ob_kiosk {
     ): TransferRequest<T> {
         assert_owner_cap(source, owner_cap);
 
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(source),
-            type_name::get<InnerKiosk>()
-        );
+        let inner = get_inner_mut(source);
 
         let ref = pop_ref(inner, nft_id);
         assert_ref_not_exclusively_listed(&ref);
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
         let nft = kiosk::take<T>(
             source,
-            kiosk_cap_ref,
+            &kiosk_cap,
             nft_id
         );
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(source);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
 
         deposit_(target, nft);
 
@@ -312,10 +322,7 @@ module nft_protocol::ob_kiosk {
     fun deposit_<T: key + store>(
         self: &mut Kiosk, nft: T
     ) {
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(self),
-            type_name::get<InnerKiosk>()
-        );
+        let inner = get_inner_mut(self);
 
         let nft_id = object::id(&nft);
 
@@ -325,8 +332,12 @@ module nft_protocol::ob_kiosk {
             is_exclusively_listed: false,
         });
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
-        kiosk::place(self, kiosk_cap_ref, nft);
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
+        kiosk::place(self, &kiosk_cap, nft);
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(self);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
     }
 
 
@@ -366,6 +377,20 @@ module nft_protocol::ob_kiosk {
 
     fun pop_ref(inner: &mut InnerKiosk, nft_id: ID): NftRef {
         table::remove(&mut inner.refs, nft_id)
+    }
+
+    fun get_inner_mut(self: &mut Kiosk): &mut InnerKiosk {
+        df::borrow_mut<TypeName, InnerKiosk>(
+            kiosk::uid_mut(self),
+            type_name::get<InnerKiosk>()
+        )
+    }
+
+    fun get_inner(self: &mut Kiosk): &InnerKiosk {
+        df::borrow<TypeName, InnerKiosk>(
+            kiosk::uid_mut(self),
+            type_name::get<InnerKiosk>()
+        )
     }
 
 }
