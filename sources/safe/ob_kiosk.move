@@ -25,7 +25,13 @@ module nft_protocol::ob_kiosk {
     const ENftAlreadyListed: u64 = 3;
 
     /// Trying to withdraw profits and sender is not owner.
-    const EPermissionlessDepositsDisabled: u64 = 4; // TODO: bump
+    const EPermissionlessDepositsDisabled: u64 = 4;
+
+    /// The provided Kiosk is not an OriginByte extension
+    const EKioskNotOriginByteVersion: u64 = 5;
+
+    /// The ID provided does not match the Kiosk
+    const EIncorrectKioskId: u64 = 6;
 
     struct OwnerCap has key {
         // We wrap KioskOwnerCap in a key-only object to prevent transfers
@@ -134,6 +140,11 @@ module nft_protocol::ob_kiosk {
         // Close the kiosk and send profits to the tx sender
         let profits = kiosk::close_and_withdraw(self, kiosk_owner_cap, ctx);
         transfer::transfer(profits, tx_context::sender(ctx));
+    }
+
+    public fun is_ob_kiosk(_self: &Kiosk): bool {
+        // TODO: Implement function
+        true
     }
 
     // === Backup functions ===
@@ -281,7 +292,7 @@ module nft_protocol::ob_kiosk {
         request
     }
 
-    public fun tranfer<T: key + store>(
+    public fun transfer<T: key + store>(
         source: &mut Kiosk,
         target: &mut Kiosk,
         nft_id: ID,
@@ -341,7 +352,6 @@ module nft_protocol::ob_kiosk {
     }
 
 
-
     // === Assertions ===
 
     public fun assert_owner_cap(self: &Kiosk, cap: &OwnerCap) {
@@ -365,6 +375,14 @@ module nft_protocol::ob_kiosk {
 
     fun assert_not_listed(ref: &NftRef) {
         assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
+    }
+
+    public fun assert_is_ob_kiosk(self: &Kiosk) {
+        assert!(is_ob_kiosk(self), EKioskNotOriginByteVersion);
+    }
+
+    public fun assert_kiosk_id(self: &Kiosk, id: ID) {
+        assert!(object::id(self) == id, EIncorrectKioskId);
     }
 
     fun check_entity_and_pop_ref(inner: &mut InnerKiosk, entity_id: ID, nft_id: ID) {
