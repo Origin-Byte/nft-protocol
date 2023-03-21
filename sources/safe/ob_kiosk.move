@@ -268,7 +268,10 @@ module nft_protocol::ob_kiosk {
 
         deposit_(target, nft);
 
-        transfer_policy::new_request(royalty_base, object::id(source), ctx)
+        let req =
+            transfer_policy::new_request(royalty_base, object::id(source), ctx);
+
+        req
     }
 
     // TODO: No entity ID, just OwnerCap.

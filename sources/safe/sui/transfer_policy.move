@@ -34,7 +34,7 @@ module nft_protocol::transfer_policy {
 
     /// A "Hot Potato" forcing the buyer to get a transfer permission
     /// from the item type (`T`) owner on purchase attempt.
-    struct TransferRequest<phantom T: key + store> {
+    struct TransferRequest<phantom T> {
         /// Amount of SUI paid for the item. Can be used to
         /// calculate the fee / transfer policy enforcement.
         paid: u64,
@@ -52,7 +52,7 @@ module nft_protocol::transfer_policy {
 
     /// A unique capability that allows owner of the `T` to authorize
     /// transfers. Can only be created with the `Publisher` object.
-    struct TransferPolicy<phantom T: key + store> has key, store {
+    struct TransferPolicy<phantom T> has key, store {
         id: UID,
         /// The Balance of the `TransferPolicy` which collects `SUI`.
         /// By default, transfer policy does not collect anything , and it's
@@ -65,21 +65,21 @@ module nft_protocol::transfer_policy {
 
     /// A Capability granting the owner permission to add/remove rules as well
     /// as to `withdraw` and `destroy_and_withdraw` the `TransferPolicy`.
-    struct TransferPolicyCap<phantom T: key + store> has key, store {
+    struct TransferPolicyCap<phantom T> has key, store {
         id: UID,
         policy_id: ID
     }
 
     /// Event that is emitted when a publisher creates a new `TransferPolicyCap`
     /// making the discoverability and tracking the supported types easier.
-    struct TransferPolicyCreated<phantom T: key + store> has copy, drop { id: ID }
+    struct TransferPolicyCreated<phantom T> has copy, drop { id: ID }
 
     /// Key to store "Rule" configuration for a specific `TransferPolicy`.
     struct RuleKey<phantom T: drop> has copy, store, drop {}
 
     /// Construct a new `TransferRequest` hot potato which requires an
     /// approving action from the creator to be destroyed / resolved.
-    public fun new_request<T: key + store>(
+    public fun new_request<T>(
         paid: u64, from: ID, ctx: &mut TxContext
     ): TransferRequest<T> {
         TransferRequest {
@@ -91,7 +91,7 @@ module nft_protocol::transfer_policy {
     /// which is required to confirm kiosk deals for the `T`. If there's no
     /// `TransferPolicyCap` available for use, the type can not be traded in
     /// kiosks.
-    public fun new<T: key + store>(
+    public fun new<T>(
         pub: &Publisher, ctx: &mut TxContext
     ): (TransferPolicy<T>, TransferPolicyCap<T>) {
         assert!(package::from_package<T>(pub), 0);
@@ -110,7 +110,7 @@ module nft_protocol::transfer_policy {
     /// type without a `Publisher` object. Is not magical and a similar logic
     /// can be implemented for the regular `new_transfer_policy_cap` call for
     /// wrapped types.
-    public(friend) fun new_protected<T: key + store>(
+    public(friend) fun new_protected<T>(
         ctx: &mut TxContext
     ): (TransferPolicy<T>, TransferPolicyCap<T>) {
         let id = object::new(ctx);
@@ -126,7 +126,7 @@ module nft_protocol::transfer_policy {
 
     /// Withdraw some amount of profits from the `TransferPolicy`. If amount is not
     /// specified, all profits are withdrawn.
-    public fun withdraw<T: key + store>(
+    public fun withdraw<T>(
         self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>, amount: Option<u64>, ctx: &mut TxContext
     ): Coin<SUI> {
         assert!(object::id(self) == cap.policy_id, ENotOwner);
@@ -144,7 +144,7 @@ module nft_protocol::transfer_policy {
 
     /// Destroy a TransferPolicyCap.
     /// Can be performed by any party as long as they own it.
-    public fun destroy_and_withdraw<T: key + store>(
+    public fun destroy_and_withdraw<T>(
         self: TransferPolicy<T>, cap: TransferPolicyCap<T>, ctx: &mut TxContext
     ): Coin<SUI> {
         assert!(object::id(&self) == cap.policy_id, ENotOwner);
@@ -163,7 +163,7 @@ module nft_protocol::transfer_policy {
     ///
     /// Note: unless there's a policy for `T` to allow transfers,
     /// Kiosk trades will not be possible.
-    public fun confirm_request<T: key + store>(
+    public fun confirm_request<T>(
         self: &TransferPolicy<T>, request: TransferRequest<T>
     ): (u64, ID) {
         let TransferRequest { paid, from, receipts, metadata } = request;
@@ -193,7 +193,7 @@ module nft_protocol::transfer_policy {
     ///
     /// Config requires `drop` to allow creators to remove any policy at any moment,
     /// even if graceful unpacking has not been implemented in a "rule module".
-    public fun add_rule<T: key + store, Rule: drop, Config: store + drop>(
+    public fun add_rule<T, Rule: drop, Config: store + drop>(
         _: Rule, policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>, cfg: Config
     ) {
         assert!(object::id(policy) == cap.policy_id, ENotOwner);
@@ -203,14 +203,14 @@ module nft_protocol::transfer_policy {
     }
 
     /// Get the custom Config for the Rule (can be only one per "Rule" type).
-    public fun get_rule<T: key + store, Rule: drop, Config: store + drop>(
+    public fun get_rule<T, Rule: drop, Config: store + drop>(
         _: Rule, policy: &TransferPolicy<T>)
     : &Config {
         df::borrow(&policy.id, RuleKey<Rule> {})
     }
 
     /// Add some `SUI` to the balance of a `TransferPolicy`.
-    public fun add_to_balance<T: key + store, Rule: drop>(
+    public fun add_to_balance<T, Rule: drop>(
         _: Rule, policy: &mut TransferPolicy<T>, coin: Coin<SUI>
     ) {
         assert!(has_rule<T, Rule>(policy), EUnknownRequrement);
@@ -219,19 +219,19 @@ module nft_protocol::transfer_policy {
 
     /// Adds a `Receipt` to the `TransferRequest`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<T: key + store, Rule: drop>(
+    public fun add_receipt<T, Rule: drop>(
         _: Rule, request: &mut TransferRequest<T>
     ) {
         vec_set::insert(&mut request.receipts, type_name::get<Rule>())
     }
 
     /// Check whether a custom rule has been added to the `TransferPolicy`.
-    public fun has_rule<T: key + store, Rule: drop>(policy: &TransferPolicy<T>): bool {
+    public fun has_rule<T, Rule: drop>(policy: &TransferPolicy<T>): bool {
         df::exists_(&policy.id, RuleKey<Rule> {})
     }
 
     /// Remove the Rule from the `TransferPolicy`.
-    public fun remove_rule<T: key + store, Rule: drop, Config: store + drop>(
+    public fun remove_rule<T, Rule: drop, Config: store + drop>(
         policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>
     ) {
         assert!(object::id(policy) == cap.policy_id, ENotOwner);
@@ -241,12 +241,12 @@ module nft_protocol::transfer_policy {
     // === Fields access ===
 
     /// Get the `paid` field of the `TransferRequest`.
-    public fun paid<T: key + store>(self: &TransferRequest<T>): u64 { self.paid }
+    public fun paid<T>(self: &TransferRequest<T>): u64 { self.paid }
 
     /// Get the `from` field of the `TransferRequest`.
-    public fun from<T: key + store>(self: &TransferRequest<T>): ID { self.from }
+    public fun from<T>(self: &TransferRequest<T>): ID { self.from }
 
     /// Get the `metadata_mut` field of the `TransferRequest`.
-    public fun metadata_mut<T: key + store>(self: &mut TransferRequest<T>): &mut Bag { &mut self.metadata }
+    public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut Bag { &mut self.metadata }
 }
 
