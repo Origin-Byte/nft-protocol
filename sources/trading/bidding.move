@@ -14,7 +14,7 @@ module nft_protocol::bidding {
 
     use nft_protocol::err;
     use nft_protocol::ob_kiosk::{Self, OwnerCap};
-    use nft_protocol::kiosk::{Self, Kiosk};
+    use nft_protocol::kiosk::Kiosk;
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::trading::{
         AskCommission,
