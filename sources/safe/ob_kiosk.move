@@ -248,7 +248,7 @@ module nft_protocol::ob_kiosk {
         self: &mut Kiosk,
         owner_cap: &OwnerCap,
         nft_id: ID,
-        entity_id: ID,
+        entity_id: &UID,
         // _authority: Auth,
         // _allowlist: &Allowlist,
     ) {
@@ -263,7 +263,7 @@ module nft_protocol::ob_kiosk {
         let ref = table::borrow_mut(&mut inner.refs, nft_id);
         assert_not_listed(ref);
 
-        vec_set::insert(&mut ref.auths, entity_id);
+        vec_set::insert(&mut ref.auths, object::uid_to_inner(entity_id));
 
         ref.is_exclusively_listed = true;
     }
