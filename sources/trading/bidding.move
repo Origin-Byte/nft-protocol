@@ -13,7 +13,8 @@ module nft_protocol::bidding {
     use sui::transfer::{transfer, share_object};
 
     use nft_protocol::err;
-    use nft_protocol::safe::{Self, Safe, TransferCap};
+    use nft_protocol::ob_kiosk::{Self, OwnerCap};
+    use nft_protocol::kiosk::{Self, Kiosk};
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::trading::{
         AskCommission,
@@ -95,6 +96,7 @@ module nft_protocol::bidding {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
+        // TODO: We could have our kiosk emmit events on bids, perhaps?
         let bid =
             new_bid(nft, buyers_safe, price, option::none(), wallet, ctx);
         share_object(bid);
@@ -135,40 +137,23 @@ module nft_protocol::bidding {
     /// burns `TransferCap`
     /// - Transfers bid commission funds to the address
     /// `bid.commission.beneficiary`
-    public entry fun sell_nft<C, FT>(
+    public entry fun sell_nft<T: key + store, FT>(
         bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
+        owner_cap: &OwnerCap,
+        nft_id: ID,
+        sellers_safe: &mut Kiosk,
+        buyers_safe: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        sell_nft_<C, FT>(
+        sell_nft_<T, FT>(
             bid,
-            transfer_cap,
+            owner_cap,
+            nft_id,
             option::none(),
             sellers_safe,
             buyers_safe,
             allowlist,
-            ctx,
-        );
-    }
-
-    /// Similar to [`sell_nft`] except that this is meant for
-    /// generic collections, ie. those which aren't native to our protocol.
-    public entry fun sell_generic_nft<C: key + store, FT>(
-        bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        sell_generic_nft_<C, FT>(
-            bid,
-            transfer_cap,
-            option::none(),
-            sellers_safe,
-            buyers_safe,
             ctx,
         );
     }
@@ -186,13 +171,14 @@ module nft_protocol::bidding {
     ///
     /// To be called by a intermediate application, for the purpose of
     /// securing a commission for intermediating the process.
-    public entry fun sell_nft_with_commission<C, FT>(
+    public entry fun sell_nft_with_commission<T: key + store, FT>(
         bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
+        owner_cap: &OwnerCap,
+        nft_id: ID,
         beneficiary: address,
         commission_ft: u64,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
+        sellers_safe: &mut Kiosk,
+        buyers_safe: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
@@ -200,38 +186,14 @@ module nft_protocol::bidding {
             beneficiary,
             commission_ft,
         );
-        sell_nft_<C, FT>(
+        sell_nft_<T, FT>(
             bid,
-            transfer_cap,
-            option::some(commission),
+            owner_cap,
+            nft_id,
+            option::none(),
             sellers_safe,
             buyers_safe,
             allowlist,
-            ctx,
-        );
-    }
-
-    /// Similar to [`sell_nft_with_commission`] except that this is meant for
-    /// generic collections, ie. those which aren't native to our protocol.
-    public entry fun sell_generic_nft_with_commission<C: key + store, FT>(
-        bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
-        beneficiary: address,
-        commission_ft: u64,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        let commission = new_ask_commission(
-            beneficiary,
-            commission_ft,
-        );
-        sell_generic_nft_<C, FT>(
-            bid,
-            transfer_cap,
-            option::some(commission),
-            sellers_safe,
-            buyers_safe,
             ctx,
         );
     }
@@ -300,38 +262,39 @@ module nft_protocol::bidding {
     /// next trade amount. It transfers the NFT from `sellers_safe` to
     /// `buyers_safe` and burns `TransferCap`. It then transfers bid
     /// commission funds to address `bid.commission.beneficiary`.
-    fun sell_nft_<C, FT>(
+    fun sell_nft_<T: key + store, FT>(
         bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
+        owner_cap: &OwnerCap,
+        nft_id: ID,
         ask_commission: Option<AskCommission>,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
+        sellers_safe: &mut Kiosk,
+        buyers_safe: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        safe::assert_transfer_cap_of_safe(&transfer_cap, sellers_safe);
-        safe::assert_nft_of_transfer_cap(&bid.nft, &transfer_cap);
-        safe::assert_id(buyers_safe, bid.safe);
-
-        let nft_id = safe::transfer_cap_nft(&transfer_cap);
+        ob_kiosk::assert_owner_cap(sellers_safe, owner_cap);
+        ob_kiosk::assert_is_ob_kiosk(sellers_safe);
+        ob_kiosk::assert_is_ob_kiosk(buyers_safe);
+        ob_kiosk::assert_kiosk_id(buyers_safe, bid.safe);
 
         let price = balance::value(&bid.offer);
         assert!(price != 0, EBID_ALREADY_CLOSED);
-        settle_funds_with_royalties<C, FT>(
-            &mut bid.offer,
-            tx_context::sender(ctx),
-            &mut ask_commission,
-            ctx,
-        );
+        // TODO: Confirm, I don't think commission should pay royalties, these should be linear
+        // settle_funds_with_royalties<C, FT>(
+        //     &mut bid.offer,
+        //     tx_context::sender(ctx),
+        //     &mut ask_commission,
+        //     ctx,
+        // );
         option::destroy_none(ask_commission);
 
-        safe::transfer_nft_to_safe<C, Witness>(
-            transfer_cap,
-            bid.buyer,
-            Witness {},
-            allowlist,
+        // TODO: This is odd, it should not compile because request does not have drop
+        let tx_request = ob_kiosk::transfer<T>(
             sellers_safe,
             buyers_safe,
+            nft_id,
+            owner_cap,
+            price,
             ctx,
         );
 
@@ -344,52 +307,7 @@ module nft_protocol::bidding {
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
-            nft_type: *type_name::borrow_string(&type_name::get<C>()),
-        });
-    }
-
-    /// Similar to [`sell_nft_`] except that this is meant for generic
-    /// collections, ie. those which aren't native to our protocol.
-    fun sell_generic_nft_<C: key + store, FT>(
-        bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
-        ask_commission: Option<AskCommission>,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        safe::assert_transfer_cap_of_safe(&transfer_cap, sellers_safe);
-        safe::assert_nft_of_transfer_cap(&bid.nft, &transfer_cap);
-        safe::assert_id(buyers_safe, bid.safe);
-
-        let nft_id = safe::transfer_cap_nft(&transfer_cap);
-
-        let price = balance::value(&bid.offer);
-        settle_funds_no_royalties<C, FT>(
-            &mut bid.offer,
-            tx_context::sender(ctx),
-            &mut ask_commission,
-            ctx,
-        );
-        option::destroy_none(ask_commission);
-
-        safe::transfer_generic_nft_to_safe<C>(
-            transfer_cap,
-            sellers_safe,
-            buyers_safe,
-            ctx,
-        );
-
-        transfer_bid_commission(&mut bid.commission, ctx);
-
-        emit(BidMatchedEvent {
-            bid: object::id(bid),
-            nft: nft_id,
-            price,
-            seller: tx_context::sender(ctx),
-            buyer: bid.buyer,
-            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
-            nft_type: *type_name::borrow_string(&type_name::get<C>()),
+            nft_type: *type_name::borrow_string(&type_name::get<T>()),
         });
     }
 
