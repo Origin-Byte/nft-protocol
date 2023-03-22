@@ -828,24 +828,14 @@ module nft_protocol::orderbook {
     /// Therefore, orderbook creates [`TradeIntermediate`] which then has to be
     /// permissionlessly resolved via this endpoint.
     public entry fun finish_trade<T: key + store, FT>(
+        book: &Orderbook<T, FT>,
         trade: &mut TradeIntermediate<T, FT>,
         seller_safe: &mut Kiosk,
         buyer_safe: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        finish_trade_<T, FT>(trade, seller_safe, buyer_safe, allowlist, ctx)
-    }
-
-    /// Similar to [`finish_trade`] except that this is meant for generic
-    /// collections, ie. those which aren't native to our protocol.
-    public entry fun finish_trade_of_generic_nft<T: key + store, FT>(
-        trade: &mut TradeIntermediate<T, FT>,
-        seller_safe: &mut Kiosk,
-        buyer_safe: &mut Kiosk,
-        ctx: &mut TxContext,
-    ) {
-        finish_trade_of_generic_nft_<T, FT>(trade, seller_safe, buyer_safe, ctx)
+        finish_trade_<T, FT>(book, trade, seller_safe, buyer_safe, allowlist, ctx)
     }
 
     // === Create orderbook ===
@@ -1479,15 +1469,18 @@ module nft_protocol::orderbook {
     }
 
     fun finish_trade_<T: key + store, FT>(
+        // Note: We need this here to provide &UID
+        book: &Orderbook<T, FT>,
         trade: &mut TradeIntermediate<T, FT>,
         seller_safe: &mut Kiosk,
         buyer_safe: &mut Kiosk,
-        allowlist: &Allowlist,
+        _allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let TradeIntermediate {
             id: _,
-            transfer_cap,
+            nft_id,
+            seller_safe: _,
             paid,
             seller,
             buyer,
@@ -1495,14 +1488,12 @@ module nft_protocol::orderbook {
             commission: maybe_commission,
         } = trade;
 
-        let transfer_cap = option::extract(transfer_cap);
-
-        safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
-        safe::assert_transfer_cap_exclusive(&transfer_cap);
         assert!(
             *expected_buyer_safe_id == object::id(buyer_safe),
             ESAFE_ID_MISMATCH,
         );
+
+        let price = balance::value(paid);
 
         settle_funds_with_royalties<T, FT>(
             paid,
@@ -1511,53 +1502,13 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        safe::transfer_nft_to_safe<T, Witness>(
-            transfer_cap,
-            *buyer,
-            Witness {},
-            allowlist,
+        // TODO: This is odd, it should not compile because request does not have drop
+        let tx_request = ob_kiosk::transfer_delegated<T>(
             seller_safe,
             buyer_safe,
-            ctx,
-        );
-    }
-
-    fun finish_trade_of_generic_nft_<T: key + store, FT>(
-        trade: &mut TradeIntermediate<T, FT>,
-        seller_safe: &mut Kiosk,
-        buyer_safe: &mut Kiosk,
-        ctx: &mut TxContext,
-    ) {
-        let TradeIntermediate {
-            id: _,
-            transfer_cap,
-            paid,
-            seller,
-            buyer: _,
-            buyer_safe: expected_buyer_safe_id,
-            commission: maybe_commission,
-        } = trade;
-
-        let transfer_cap = option::extract(transfer_cap);
-
-        safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
-        safe::assert_transfer_cap_exclusive(&transfer_cap);
-        assert!(
-            *expected_buyer_safe_id == object::id(buyer_safe),
-            ESAFE_ID_MISMATCH,
-        );
-
-        settle_funds_no_royalties<T, FT>(
-            paid,
-            *seller,
-            maybe_commission,
-            ctx,
-        );
-
-        safe::transfer_generic_nft_to_safe<T>(
-            transfer_cap,
-            seller_safe,
-            buyer_safe,
+            *nft_id,
+            &book.id,
+            price,
             ctx,
         );
     }
@@ -1577,7 +1528,7 @@ module nft_protocol::orderbook {
         while (asks_count > index) {
             let ask = vector::borrow(price_level, index);
             // on the same price level, we search for the specified NFT
-            if (nft_id == safe::transfer_cap_nft(&ask.transfer_cap)) {
+            if (nft_id == ask.nft_id) {
                 break
             };
 
