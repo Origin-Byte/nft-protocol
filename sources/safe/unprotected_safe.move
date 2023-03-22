@@ -29,14 +29,12 @@ module nft_protocol::unprotected_safe {
     use std::type_name::{Self, TypeName};
 
     use nft_protocol::err;
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::transfer_allowlist::Allowlist;
-    use nft_protocol::utils;
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
     use sui::event;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{share_object, transfer};
-    use sui::tx_context::{Self, TxContext};
+    use sui::transfer;
+    use sui::tx_context::TxContext;
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_object_field::{Self as dof};
 
@@ -53,23 +51,16 @@ module nft_protocol::unprotected_safe {
     }
 
     /// Keeps info about an NFT which enables us to issue transfer caps etc.
-    struct NftRef has store, copy, drop {
+    struct NftRef has store, drop {
         /// Is generated anew every time a counter is incremented from zero to
         /// one.
         ///
         /// We don't use monotonically increasing integer so that we can remove
         /// withdrawn NFTs from the map.
         version: ID,
-        /// How many transfer caps are there for this version.
-        transfer_cap_counter: u64,
         /// Only one `TransferCap` of the latest version can exist.
         /// An exclusively listed NFT cannot have its `TransferCap` revoked.
         is_exclusively_listed: bool,
-        /// Signalizes whether given NFT is wrapped in our NFT type (nft::Nft)
-        /// or whether it's a 3rd party type.
-        ///
-        /// This has implications on how the NFT is transferred.
-        is_generic: bool,
         /// What's the NFT type.
         ///
         /// If it's not generic, it will contain the `Nft<C>` wrapper.
@@ -79,15 +70,27 @@ module nft_protocol::unprotected_safe {
     /// Whoever owns this object can perform some admin actions against the
     /// `Safe` shared object with the corresponding id.
     struct OwnerCap has key, store {
+        /// `OwnerCap` ID
         id: UID,
+        /// `Safe` ID in which the NFT belonging to this `OwnerCap` is
+        /// deposited
         safe: ID,
+        /// NFT ID that is associated with this `OwnerCap`
+        nft_id: ID,
     }
 
     /// Enables the owner to transfer given NFT out of the `Safe`.
     struct TransferCap has key, store {
+        /// `TransferCap` ID
         id: UID,
+        /// `Safe` ID that can be withdrawn from using this `TransferCap`
         safe: ID,
-        nft: ID,
+        /// ID of `OwnerCap` that was used to create this `TransferCap`
+        owner_cap_id: ID,
+        /// `TransferCap` version
+        ///
+        /// Used to invalidate `TransferCap` should exclusive `TransferCap` be
+        /// created.
         version: ID,
         /// If set to true, only one `TransferCap` can be issued for this NFT.
         /// It also cannot be revoked without burning this object.
@@ -98,14 +101,7 @@ module nft_protocol::unprotected_safe {
         /// If an NFT is listed exclusively, it cannot be revoked without
         /// burning the `TransferCap` first.
         is_exclusive: bool,
-        /// Signalizes whether given NFT is wrapped in our NFT type (nft::Nft)
-        /// or whether it's a 3rd party type.
-        ///
-        /// This has implications on how the NFT is transferred.
-        is_generic: bool,
-        /// What's the NFT type.
-        ///
-        /// If it's not generic, it will contain the `Nft<C>` wrapper.
+        /// NFT type
         object_type: TypeName,
     }
 
@@ -119,234 +115,252 @@ module nft_protocol::unprotected_safe {
         nft: ID,
     }
 
-    public fun new(ctx: &mut TxContext): (UnprotectedSafe, OwnerCap) {
-        let safe = UnprotectedSafe {
+    /// Create a new `UnprotectedSafe`
+    public fun new(ctx: &mut TxContext): UnprotectedSafe {
+        UnprotectedSafe {
             id: object::new(ctx),
             refs: vec_map::empty(),
-        };
-
-        let cap = OwnerCap {
-            id: object::new(ctx),
-            safe: object::id(&safe),
-        };
-
-        (safe, cap)
+        }
     }
 
-    /// Instantiates a new shared object `Safe` and transfer `OwnerCap` to the
-    /// tx sender.
-    public entry fun create_for_sender(ctx: &mut TxContext) {
-        let (safe, cap) = new(ctx);
-        share_object(safe);
-
-        transfer(cap, tx_context::sender(ctx));
+    /// Create a new `UnprotectedSafe` and share it
+    public entry fun init_safe(ctx: &mut TxContext) {
+        transfer::share_object(new(ctx))
     }
 
-    /// Creates a new `Safe` shared object and returns the authority capability
-    /// that grants authority over this safe.
-    public fun create_safe(ctx: &mut TxContext): OwnerCap {
-        let (safe, cap) = new(ctx);
-        share_object(safe);
-
-        cap
-    }
-
-    /// Creates a `TransferCap` which must be claimed atomically.
+    /// Creates a revocable `TransferCap`
     ///
-    /// Otherwise, there's a risk of a race condition as multiple non-exclusive
-    /// transfer caps can be created.
+    /// Multiple non-exclusive transfer caps may be created resulting in a risk
+    /// of a race condition. In order to create an exclusive `TransferCap`,
+    /// call `create_exclusive_transfer_cap`.
+    ///
+    /// To re-list an NFT that has been exclusively listed call
+    /// `burn_transfer_cap` with the exclusive `TransferCap`.
+    ///
+    /// #### Panics
+    ///
+    /// - `OwnerCap` does not match `UnprotectedSafe`
+    /// - `UnprotectedSafe` does not contain NFT
+    /// - NFT is exclusively listed
     public fun create_transfer_cap(
-        nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut UnprotectedSafe,
         ctx: &mut TxContext,
     ): TransferCap {
-        assert_owner_cap(owner_cap, safe);
-        assert_has_nft(&nft, safe);
-
-        let safe_id = object::id(safe);
-        let ref = vec_map::get_mut(&mut safe.refs, &nft);
+        let ref = borrow_ref_from_owner_cap_mut(owner_cap, safe);
         assert_not_exclusively_listed_internal(ref);
-        ref.transfer_cap_counter = ref.transfer_cap_counter + 1;
-        if (ref.transfer_cap_counter == 1) {
-            ref.version = new_id(ctx);
-        };
 
         TransferCap {
             id: object::new(ctx),
             is_exclusive: false,
-            nft: nft,
-            safe: safe_id,
+            owner_cap_id: object::id(owner_cap),
+            safe: object::id(safe),
             version: ref.version,
-            is_generic: ref.is_generic,
             object_type: ref.object_type,
         }
     }
 
-    /// Creates an irrevocable and exclusive transfer cap.
+    /// Creates an irrevocable and exclusive `TransferCap`
+    ///
+    /// Will invalidate all previously issued `TransferCap` assuming that NFT
+    /// is not already exclusively listed.
     ///
     /// Useful for trading contracts which cannot claim an NFT atomically.
+    ///
+    /// To re-list an NFT that has been exclusively listed call
+    /// `burn_transfer_cap` with the exclusive `TransferCap`.
+    ///
+    /// #### Panics
+    ///
+    /// - `OwnerCap` does not match `UnprotectedSafe`
+    /// - `UnprotectedSafe` does not contain NFT
+    /// - NFT is exclusively listed
     public fun create_exclusive_transfer_cap(
-        nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut UnprotectedSafe,
         ctx: &mut TxContext,
     ): TransferCap {
-        assert_owner_cap(owner_cap, safe);
-        assert_has_nft(&nft, safe);
-
-        let safe_id = object::id(safe);
-        let ref = vec_map::get_mut(&mut safe.refs, &nft);
+        let ref = borrow_ref_from_owner_cap_mut(owner_cap, safe);
         assert_not_exclusively_listed_internal(ref);
 
-        ref.transfer_cap_counter = 1;
         ref.is_exclusively_listed = true;
+        // Invalidate all previously issued `TransferCap`
         ref.version = new_id(ctx);
 
         TransferCap {
             id: object::new(ctx),
             is_exclusive: true,
-            nft: nft,
-            safe: safe_id,
+            owner_cap_id: object::id(owner_cap),
+            safe: object::id(safe),
             version: ref.version,
-            is_generic: ref.is_generic,
             object_type: ref.object_type,
         }
     }
 
-    /// Transfer an NFT into the `Safe`.
-    public entry fun deposit_nft<T>(
-        nft: Nft<T>,
-        safe: &mut UnprotectedSafe,
-        ctx: &mut TxContext,
-    ) {
-        let is_generic = false;
-        deposit_nft_(nft, is_generic, safe, ctx);
-    }
-
-    /// Transfer an NFT into the `Safe`.
-    ///
-    /// The type T here can refer to any object, not just the NFT protocol's
-    /// exported NFT type.
-    public entry fun deposit_generic_nft<T: key + store>(
+    /// Transfer an NFT into the `Safe`
+    public fun deposit_nft<T: key + store>(
         nft: T,
         safe: &mut UnprotectedSafe,
         ctx: &mut TxContext,
-    ) {
-        let is_generic = !utils::is_nft_protocol_nft_type<T>();
-        deposit_nft_(nft, is_generic, safe, ctx);
+    ): OwnerCap {
+        // Deposits NFT into a dynamic field whose ID corresponds to the ID of
+        // the `OwnerCap` object.
+        //
+        // Should NFT ever be withdrawn or a new `OwnerCap` issued for the same
+        // NFT (due to a transfer of ownership) then all previous owner
+        // capabilities will be invalidated.
+        let owner_cap_id = object::new(ctx);
+        let nft_id = object::id(&nft);
+
+        let version = object::uid_to_inner(&owner_cap_id);
+        vec_map::insert(&mut safe.refs, version, NftRef {
+            // Use `OwnerCap` ID as the initial version to avoid generating a
+            // new ID.
+            version,
+            is_exclusively_listed: false,
+            object_type: type_name::get<T>(),
+        });
+
+        // Deposit NFT under `OwnerCap` ID
+        dof::add(&mut safe.id, version, nft);
+
+        event::emit(
+            DepositEvent {
+                safe: object::id(safe),
+                nft: nft_id,
+            }
+        );
+
+        OwnerCap {
+            id: owner_cap_id,
+            safe: object::uid_to_inner(&safe.id),
+            nft_id,
+        }
     }
 
-    /// Use a transfer cap to get an NFT out of the `Safe`.
+    /// Withdraw NFT out of `UnprotectedSafe` to an address
     ///
-    /// If the NFT is not exclusively listed, it can happen that the transfer
-    /// cap is no longer valid. The NFT could've been traded or the trading cap
-    /// revoked.
-    public fun transfer_nft_to_recipient<T, Auth: drop>(
-        transfer_cap: TransferCap,
-        recipient: address,
-        authority: Auth,
-        allowlist: &Allowlist,
-        safe: &mut UnprotectedSafe,
-    ) {
-        let nft = get_nft_for_transfer_<T>(transfer_cap, safe);
-
-        nft::transfer(nft, recipient, authority, allowlist);
-    }
-
-    public fun transfer_generic_nft_to_recipient<T: key + store>(
-        transfer_cap: TransferCap,
-        recipient: address,
-        safe: &mut UnprotectedSafe,
-    ) {
-        utils::assert_not_nft_protocol_type<T>();
-
-        let nft = get_generic_nft_for_transfer_<T>(transfer_cap, safe);
-
-        transfer(nft, recipient)
-    }
-
-    /// Use a transfer cap to get an NFT out of source `Safe` and deposit it
-    /// to the target `Safe`. The recipient address should match the owner of
-    /// the target `Safe`.
+    /// Performing this action will invalidate any `OwnerCap` or `TransferCap`.
     ///
-    /// If the NFT is not exclusively listed, it can happen that the transfer
-    /// cap is no longer valid. The NFT could've been traded or the trading cap
-    /// revoked.
-    public fun transfer_nft_to_safe<T, Auth: drop>(
+    /// If the NFT is not exclusively listed, it can happen that the
+    /// `TransferCap` is no longer valid.
+    /// The NFT could have already been traded or the trading cap revoked.
+    public fun withdraw_nft<T: key + store, Auth: drop>(
         transfer_cap: TransferCap,
-        recipient: address,
-        authority: Auth,
+        safe: &mut UnprotectedSafe,
         allowlist: &Allowlist,
+        authority: Auth,
+    ): T {
+        // TODO: Cannot take `T`
+        transfer_allowlist::assert_collection<T>(allowlist);
+        transfer_allowlist::assert_authority<Auth>(allowlist);
+
+        // Assert that `TransferCap` is allowed to withdraw from
+        // `UnprotectedSafe`
+        assert_valid_transfer_cap(&transfer_cap, safe);
+
+        let (_, ref) =
+            vec_map::remove(&mut safe.refs, &transfer_cap.owner_cap_id);
+        assert_version_match(&ref, &transfer_cap);
+
+        let nft = dof::remove<ID, T>(&mut safe.id, transfer_cap.owner_cap_id);
+
+        event::emit(
+            TransferEvent {
+                safe: object::id(safe),
+                nft: object::id(&nft),
+            }
+        );
+
+        burn_transfer_cap(transfer_cap, safe);
+
+        nft
+    }
+
+    /// Transfer NFT out of `UnprotectedSafe` to an address
+    ///
+    /// See `withdraw_nft` for more info.
+    public fun transfer_nft_to_recipient<T: key + store, Auth: drop>(
+        transfer_cap: TransferCap,
+        safe: &mut UnprotectedSafe,
+        allowlist: &Allowlist,
+        authority: Auth,
+        recipient: address,
+    ) {
+        let nft =
+            withdraw_nft<T, Auth>(transfer_cap, safe, allowlist, authority);
+        transfer::transfer(nft, recipient);
+    }
+
+    /// Transfer NFT out of `UnprotectedSafe` to another `UnprotectedSafe`
+    ///
+    /// See `withdraw_nft` for more info.
+    public fun transfer_nft_to_safe<T: key + store, Auth: drop>(
+        transfer_cap: TransferCap,
         source: &mut UnprotectedSafe,
         target: &mut UnprotectedSafe,
+        allowlist: &Allowlist,
+        authority: Auth,
         ctx: &mut TxContext,
-    ) {
-        let nft = get_nft_for_transfer_<T>(transfer_cap, source);
-
-        nft::change_logical_owner(&mut nft, recipient, authority, allowlist);
-        deposit_nft(nft, target, ctx);
+    ): OwnerCap {
+        let nft =
+            withdraw_nft<T, Auth>(transfer_cap, source, allowlist, authority);
+        deposit_nft(nft, target, ctx)
     }
 
-    public fun transfer_generic_nft_to_safe<T: key + store>(
-        transfer_cap: TransferCap,
-        source: &mut UnprotectedSafe,
-        target: &mut UnprotectedSafe,
-        ctx: &mut TxContext,
-    ) {
-        utils::assert_not_nft_protocol_type<T>();
-
-        let nft = get_generic_nft_for_transfer_<T>(transfer_cap, source);
-
-        deposit_generic_nft(nft, target, ctx);
-    }
-
-    /// Destroys given transfer cap. This is mainly useful for exclusively listed
-    /// NFTs.
+    /// Destroys `TransferCap`
+    ///
+    /// Necessary for destroying exclusive `TransferCap` such that future
+    /// transfer capabilities may be issued.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferCap` does not match `UnprotectedSafe`
     public entry fun burn_transfer_cap(
         transfer_cap: TransferCap,
         safe: &mut UnprotectedSafe,
     ) {
-        assert_transfer_cap_of_safe(&transfer_cap, safe);
+        // Check that `TransferCap` is exclusive and latest so that we can
+        // disable the exclusive lock on the NFT.
+        //
+        // Don't need to regenerate version as no other `TransferCap` may exist
+        // when an exclusive `TransferCap` is issued.
+        //
+        // Burning non-exclusive `TransferCap` is a no-op eitherway.
+        let ref = borrow_ref_from_transfer_cap_mut(&transfer_cap, safe);
+        if (transfer_cap.is_exclusive && ref.version == transfer_cap.version) {
+            ref.is_exclusively_listed = false;
+        };
 
         let TransferCap {
             id,
-            is_exclusive: _,
-            nft,
-            safe: _,
+            is_exclusive,
+            owner_cap_id,
+            safe,
             version,
-            is_generic: _,
-            object_type: _,
+            object_type,
         } = transfer_cap;
-        object::delete(id);
 
-        let ref = vec_map::get_mut(&mut safe.refs, &nft);
-        if (ref.version == version) {
-            ref.transfer_cap_counter = ref.transfer_cap_counter - 1;
-            if (ref.transfer_cap_counter == 0) {
-                ref.is_exclusively_listed = false;
-            };
-        }
+        object::delete(id);
     }
 
-    /// Changes the transfer ref version, thereby invalidating all existing
-    /// `TransferCap` objects.
+    /// Invalidates all existing `TransferCap` objects
     ///
-    /// Can happen only if the NFT is not listed exclusively.
+    /// #### Panics
+    ///
+    /// - `OwnerCap` does not match `UnprotectedSafe`
+    /// - `UnprotectedSafe` does not contain NFT
+    /// - NFT is exclusively listed
     public entry fun delist_nft(
         nft: ID,
         owner_cap: &OwnerCap,
         safe: &mut UnprotectedSafe,
         ctx: &mut TxContext,
     ) {
-        assert_owner_cap(owner_cap, safe);
-        assert_has_nft(&nft, safe);
-
-        let ref = vec_map::get_mut(&mut safe.refs, &nft);
+        let ref = borrow_ref_from_owner_cap_mut(owner_cap, safe);
         assert_not_exclusively_listed_internal(ref);
 
         ref.version = new_id(ctx);
-        ref.transfer_cap_counter = 0;
     }
 
     // === Private functions ===
@@ -359,88 +373,29 @@ module nft_protocol::unprotected_safe {
         new_id
     }
 
-    fun deposit_nft_<T: key + store>(
-        nft: T,
-        is_generic: bool,
+    fun borrow_ref_from_owner_cap_mut(
+        owner_cap: &OwnerCap,
         safe: &mut UnprotectedSafe,
-        ctx: &mut TxContext,
-    ) {
-        let nft_id = object::id(&nft);
-
-        vec_map::insert(&mut safe.refs, nft_id, NftRef {
-            version: new_id(ctx),
-            transfer_cap_counter: 0,
-            is_exclusively_listed: false,
-            is_generic,
-            object_type: type_name::get<T>(),
-        });
-
-        dof::add(&mut safe.id, nft_id, nft);
-
-        event::emit(
-            DepositEvent {
-                safe: object::id(safe),
-                nft: nft_id,
-            }
-        );
+    ): &mut NftRef {
+        assert_valid_owner_cap(owner_cap, safe);
+        vec_map::get_mut(&mut safe.refs, &object::id(owner_cap))
     }
 
-    fun get_nft_for_transfer_<T>(
-        transfer_cap: TransferCap,
+    fun borrow_ref_from_transfer_cap_mut(
+        transfer_cap: &TransferCap,
         safe: &mut UnprotectedSafe,
-    ): Nft<T> {
-        get_generic_nft_for_transfer_(transfer_cap, safe)
-    }
-
-    fun get_generic_nft_for_transfer_<T: key + store>(
-        transfer_cap: TransferCap,
-        safe: &mut UnprotectedSafe,
-    ): T {
-        let nft_id = transfer_cap.nft;
-
-        event::emit(
-            TransferEvent {
-                safe: object::id(safe),
-                nft: nft_id,
-            }
-        );
-
-        assert_transfer_cap_of_safe(&transfer_cap, safe);
-        assert_nft_of_transfer_cap(&nft_id, &transfer_cap);
-        assert_has_nft(&nft_id, safe);
-
-        let (_, ref) = vec_map::remove(&mut safe.refs, &nft_id);
-        assert_version_match(&ref, &transfer_cap);
-
-        let TransferCap {
-            id,
-            safe: _,
-            nft: _,
-            version: _,
-            is_exclusive: _,
-            is_generic: _,
-            object_type: _,
-        } = transfer_cap;
-        object::delete(id);
-
-        dof::remove<ID, T>(&mut safe.id, nft_id)
+    ): &mut NftRef {
+        assert_valid_transfer_cap(transfer_cap, safe);
+        vec_map::get_mut(&mut safe.refs, &transfer_cap.owner_cap_id)
     }
 
     // === Getters ===
 
-    public fun borrow_nft<C>(nft: ID, safe: &UnprotectedSafe): &Nft<C> {
-        dof::borrow<ID, Nft<C>>(&safe.id, nft)
-    }
-
-    public fun has_nft<C>(nft: ID, safe: &UnprotectedSafe): bool {
-        dof::exists_with_type<ID, Nft<C>>(&safe.id, nft)
-    }
-
-    public fun borrow_generic_nft<C: key + store>(nft: ID, safe: &UnprotectedSafe): &C {
+    public fun borrow_nft<C: key + store>(nft: ID, safe: &UnprotectedSafe): &C {
         dof::borrow<ID, C>(&safe.id, nft)
     }
 
-    public fun has_generic_nft<T: key + store>(nft: ID, safe: &UnprotectedSafe): bool {
+    public fun has_nft<T: key + store>(nft: ID, safe: &UnprotectedSafe): bool {
         dof::exists_with_type<ID, T>(&safe.id, nft)
     }
 
@@ -452,43 +407,44 @@ module nft_protocol::unprotected_safe {
         cap.safe
     }
 
-    public fun transfer_cap_nft(cap: &TransferCap): ID {
-        cap.nft
-    }
-
     public fun transfer_cap_object_type(cap: &TransferCap): TypeName {
         cap.object_type
-    }
-
-    public fun transfer_cap_version(cap: &TransferCap): ID {
-        cap.version
     }
 
     public fun transfer_cap_is_exclusive(cap: &TransferCap): bool {
         cap.is_exclusive
     }
 
-    public fun transfer_cap_is_nft_generic(cap: &TransferCap): bool {
-        cap.is_generic
-    }
-
     // === Assertions ===
 
-    public fun assert_owner_cap(cap: &OwnerCap, safe: &UnprotectedSafe) {
-        assert!(cap.safe == object::id(safe), err::safe_cap_mismatch());
-    }
-
-    public fun assert_transfer_cap_of_safe(cap: &TransferCap, safe: &UnprotectedSafe) {
-        assert!(cap.safe == object::id(safe), err::safe_cap_mismatch());
-    }
-
-    public fun assert_nft_of_transfer_cap(nft: &ID, cap: &TransferCap) {
-        assert!(&cap.nft == nft, err::transfer_cap_nft_mismatch());
-    }
-
-    public fun assert_has_nft(nft: &ID, safe: &UnprotectedSafe) {
+    /// Asserts that `OwnerCap` is valid for this `UnprotectedSafe` and that
+    /// NFT is still deposited.
+    public fun assert_valid_owner_cap(
+        owner_cap: &OwnerCap,
+        safe: &UnprotectedSafe,
+    ) {
         assert!(
-            vec_map::contains(&safe.refs, nft), err::safe_does_not_contain_nft()
+            &owner_cap.safe == &object::id(safe),
+            err::safe_cap_mismatch(),
+        );
+        assert!(
+            vec_map::contains(&safe.refs, &object::id(owner_cap)),
+            err::safe_does_not_contain_nft(),
+        );
+    }
+
+    /// Assert that `TransferCap` is valid to redeem NFT from `UnprotectedSafe`
+    public fun assert_valid_transfer_cap(
+        transfer_cap: &TransferCap,
+        safe: &UnprotectedSafe,
+    ) {
+        assert!(
+            &transfer_cap.safe == &object::id(safe),
+            err::safe_cap_mismatch(),
+        );
+        assert!(
+            vec_map::contains(&safe.refs, &transfer_cap.owner_cap_id),
+            err::safe_does_not_contain_nft(),
         );
     }
 
@@ -502,26 +458,6 @@ module nft_protocol::unprotected_safe {
 
     public fun assert_transfer_cap_exclusive(cap: &TransferCap) {
         assert!(cap.is_exclusive, err::nft_not_exclusively_listed());
-    }
-
-    public fun assert_transfer_cap_of_native_nft(cap: &TransferCap) {
-        assert!(!cap.is_generic, err::nft_is_generic());
-    }
-
-    /// Checks that the transfer cap is issued for an NFT of type `Nft<C>`
-    public fun assert_nft_type<C>(cap: &TransferCap) {
-        assert!(
-            cap.object_type == type_name::get<Nft<C>>(),
-            ENFT_TYPE_MISMATCH,
-        );
-    }
-
-    /// Checks that the transfer cap is issued for an NFT of type `C`
-    public fun assert_generic_nft_type<C>(cap: &TransferCap) {
-        assert!(
-            cap.object_type == type_name::get<C>(),
-            ENFT_TYPE_MISMATCH,
-        );
     }
 
     fun assert_version_match(ref: &NftRef, cap: &TransferCap) {

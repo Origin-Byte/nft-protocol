@@ -11,7 +11,7 @@ module nft_protocol::inventory {
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
 
-    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::nft::Nft;
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::factory::{Self, Factory};
     use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
@@ -101,22 +101,13 @@ module nft_protocol::inventory {
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        let nft = if (is_warehouse(inventory)) {
+        if (is_warehouse(inventory)) {
             let warehouse = borrow_warehouse_mut(inventory);
             warehouse::redeem_nft(warehouse)
         } else {
             let factory = borrow_factory_mut(inventory);
             factory::redeem_nft(factory, ctx)
-        };
-
-        nft::change_logical_owner(
-            &mut nft,
-            owner,
-            Witness {},
-            &inventory.allowlist
-        );
-
-        nft
+        }
     }
 
     /// Redeems NFT from `Inventory` and transfers to owner
@@ -154,22 +145,13 @@ module nft_protocol::inventory {
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        let nft = if (is_warehouse(inventory)) {
+        if (is_warehouse(inventory)) {
             let warehouse = borrow_warehouse_mut(inventory);
             warehouse::redeem_pseudorandom_nft(warehouse, ctx)
         } else {
             let factory = borrow_factory_mut(inventory);
             factory::redeem_nft(factory, ctx)
-        };
-
-        nft::change_logical_owner(
-            &mut nft,
-            owner,
-            Witness {},
-            &inventory.allowlist
-        );
-
-        nft
+        }
     }
 
     /// Pseudo-randomly redeems NFT from `Inventory` and transfers to owner
@@ -212,7 +194,7 @@ module nft_protocol::inventory {
         owner: address,
         ctx: &mut TxContext,
     ): Nft<C> {
-        let nft = if (is_warehouse(inventory)) {
+        if (is_warehouse(inventory)) {
             let warehouse = borrow_warehouse_mut(inventory);
             warehouse::redeem_random_nft(
                 warehouse, commitment, user_commitment, ctx,
@@ -221,16 +203,7 @@ module nft_protocol::inventory {
             warehouse::destroy_commitment(commitment);
             let factory = borrow_factory_mut(inventory);
             factory::redeem_nft(factory, ctx)
-        };
-
-        nft::change_logical_owner(
-            &mut nft,
-            owner,
-            Witness {},
-            &inventory.allowlist
-        );
-
-        nft
+        }
     }
 
     /// Randomly redeems NFT from `Inventory` and transfers to owner

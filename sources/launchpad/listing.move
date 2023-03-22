@@ -42,7 +42,7 @@ module nft_protocol::listing {
 
     use nft_protocol::err;
     use nft_protocol::utils;
-    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::nft::Nft;
     use nft_protocol::collection::Collection;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
@@ -239,6 +239,7 @@ module nft_protocol::listing {
     /// Buyer is set to the `logical_owner` of the `Nft`.
     public fun emit_sold_event<FT, C>(
         nft: &Nft<C>,
+        buyer: address,
         price: u64,
     ) {
         event::emit(NftSoldEvent {
@@ -246,7 +247,7 @@ module nft_protocol::listing {
             price,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
             nft_type: *type_name::borrow_string(&type_name::get<C>()),
-            buyer: nft::logical_owner(nft),
+            buyer,
         });
     }
 
@@ -261,12 +262,13 @@ module nft_protocol::listing {
     public fun pay_and_emit_sold_event<FT, C>(
         listing: &mut Listing,
         nft: &Nft<C>,
+        buyer: address,
         balance: &mut Balance<FT>,
         price: u64,
     ) {
         let funds = balance::split(balance, price);
         pay(listing, funds, 1);
-        emit_sold_event<FT, C>(nft, price);
+        emit_sold_event<FT, C>(nft, buyer, price);
     }
 
     /// Buys an NFT from an `Inventory`
@@ -297,7 +299,7 @@ module nft_protocol::listing {
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_nft(inventory, owner, ctx);
-        pay_and_emit_sold_event(listing, &nft, balance, price);
+        pay_and_emit_sold_event(listing, &nft, owner, balance, price);
         nft
     }
 
@@ -329,7 +331,7 @@ module nft_protocol::listing {
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_pseudorandom_nft(inventory, owner, ctx);
-        pay_and_emit_sold_event(listing, &nft, balance, price);
+        pay_and_emit_sold_event(listing, &nft, owner, balance, price);
         nft
     }
 
@@ -369,7 +371,7 @@ module nft_protocol::listing {
         let nft = inventory::redeem_random_nft(
             inventory, commitment, user_commitment, owner, ctx,
         );
-        pay_and_emit_sold_event(listing, &nft, balance, price);
+        pay_and_emit_sold_event(listing, &nft, owner, balance, price);
         nft
     }
 
