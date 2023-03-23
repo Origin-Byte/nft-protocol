@@ -4,7 +4,8 @@ module nft_protocol::sui_gods {
     use std::string::{Self, String};
 
     use sui::balance;
-    use nft_protocol::package;
+    use sui::object::UID;
+    use nft_protocol::package::{Self, Publisher};
     use nft_protocol::display;
     use sui::table_vec::TableVec;
     use sui::transfer;
@@ -30,42 +31,6 @@ module nft_protocol::sui_gods {
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
-
-    struct Avatar has key, store {}
-    struct Background has key, store {}
-    struct Clothes has key, store {}
-
-    struct Gun<phantom T> has key, store {
-        id: UID,
-    }
-
-    struct Ar15 has drop {}
-    struct Mp40 has drop {}
-    struct DesertEagle has drop {}
-    struct Colt has drop {}
-
-    GunDisplay<T> {
-        name: ,
-        accuracy: ,
-        recoil: ,
-    }
-
-    GunDisplayAr15 {
-        name: "AR15",
-        accuracy: 75,
-        recoil: 15,
-    }
-
-    GunDisplayAr15 {
-        name: "AR15",
-        accuracy: 75,
-        recoil: 15,
-    }
-
-    public fun mint_gun_metadata<T>(publisher, name, accuracy, recoil) {
-        create_display();
-        activate_display();
-    }
 
     fun init(witness: DEADBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
@@ -114,34 +79,54 @@ module nft_protocol::sui_gods {
             tags,
         );
 
-        let publisher = package::claim<SUIGODS>(SUIGODS {}, ctx);
-
-        let fields = vector::empty();
-        vector::push_back(&mut fields, string::utf8(b"name"));
-        vector::push_back(&mut fields, string::utf8(b"image_url"));
-        vector::push_back(&mut fields, string::utf8(b"description"));
-        vector::push_back(&mut fields, string::utf8(b"url"));
-        vector::push_back(&mut fields, string::utf8(b"project_url"));
-
-        let values = vector::empty();
-        vector::push_back(&mut values, string::utf8(b"{name} (Level: {level})"));
-        vector::push_back(&mut values, string::utf8(b"ipfs://{ipfs}/"));
-        vector::push_back(&mut values, string::utf8(b"A bear. One of many"));
-        vector::push_back(&mut values, string::utf8(b"https://sui-bears-game.xyz/bears/{id}"));
-        vector::push_back(&mut values, string::utf8(b"https://sui-bears-game.xyz/"));
-
-
-        let avatar_display = display::new_with_fields<Avatar>(
-            &publisher,
-            fields,
-            values,
-            ctx,
-        );
-
-        transfer::share_object(avatar_display);
+        let publisher = package::claim<DEADBYTES>(DEADBYTES {}, ctx);
 
         transfer::transfer(mint_cap, tx_context::sender(ctx));
         transfer::transfer(publisher, tx_context::sender(ctx));
         transfer::share_object(collection);
+    }
+
+
+    struct Gun<phantom T> has key, store {
+        id: UID,
+    }
+
+    struct Ar15 has drop {}
+    struct Mp40 has drop {}
+    struct DesertEagle has drop {}
+    struct Colt has drop {}
+
+    // GunDisplay<T> {
+    //     name: ,
+    //     accuracy: ,
+    //     recoil: ,
+    // }
+
+    // GunDisplayAr15 {
+    //     name: "AR15",
+    //     accuracy: 75,
+    //     recoil: 15,
+    // }
+
+    // GunDisplayAr15 {
+    //     name: "AR15",
+    //     accuracy: 75,
+    //     recoil: 15,
+    // }
+
+    public fun mint_gun_metadata<T>(
+        publisher: &Publisher,
+        name: String,
+        accuracy: String,
+        recoil: String,
+    ) {
+        let fields = vector[
+            utf8(b"name"),
+            utf8(b"accuracy"),
+            utf8(b"recoil"),
+        ];
+
+        create_display();
+        activate_display();
     }
 }
