@@ -11,10 +11,7 @@ module nft_protocol::quorum {
     use sui::dynamic_field as df;
     use sui::dynamic_object_field as dof;
 
-    use nft_protocol::witness;
-    use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::mint_cap::MintCap;
 
     const ENOT_AN_ADMIN: u64 = 1;
     const ENOT_A_MEMBER: u64 = 2;
