@@ -7,7 +7,7 @@ module nft_protocol::utils {
 
     use sui::vec_map::{Self, VecMap};
     use sui::table_vec::{Self, TableVec};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
 
     use nft_protocol::err;
 
