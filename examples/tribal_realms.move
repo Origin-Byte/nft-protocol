@@ -6,7 +6,7 @@ module nft_protocol::tribal_realms {
 
     use nft_protocol::url;
     use nft_protocol::nft;
-    use nft_protocol::display;
+    use nft_protocol::display_domain;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::composable_nft::{Self as c_nft};
@@ -30,7 +30,7 @@ module nft_protocol::tribal_realms {
     fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
 
-        display::add_collection_display_domain(
+        display_domain::add_collection_display_domain(
             &Witness {},
             &mut collection,
             string::utf8(b"TribalRealms"),
@@ -89,7 +89,7 @@ module nft_protocol::tribal_realms {
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
-        display::add_display_domain(&Witness {}, &mut nft, name, description);
+        display_domain::add_display_domain(&Witness {}, &mut nft, name, description);
         url::add_url_domain(&Witness {}, &mut nft, url);
 
         c_nft::add_type_domain<TRIBAL_REALMS, Witness, T>(

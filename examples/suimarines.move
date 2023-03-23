@@ -12,7 +12,7 @@ module nft_protocol::suimarines {
     use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
-    use nft_protocol::display;
+    use nft_protocol::display_domain;
     use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::attributes;
@@ -50,7 +50,7 @@ module nft_protocol::suimarines {
         );
 
         // Register custom domains
-        display::add_collection_display_domain(
+        display_domain::add_collection_display_domain(
             &Witness {},
             &mut collection,
             string::utf8(b"Suimarines"),
@@ -63,7 +63,7 @@ module nft_protocol::suimarines {
             sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
-        display::add_collection_symbol_domain(
+        display_domain::add_collection_symbol_domain(
             &Witness {},
             &mut collection,
             string::utf8(b"SUIM"),
@@ -181,7 +181,7 @@ module nft_protocol::suimarines {
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
-        display::add_display_domain(
+        display_domain::add_display_domain(
             &Witness {}, &mut nft, name, description,
         );
 
@@ -191,7 +191,7 @@ module nft_protocol::suimarines {
             &Witness {}, &mut nft, attribute_keys, attribute_values,
         );
 
-        display::add_collection_id_domain(
+        display_domain::add_collection_id_domain(
             &Witness {}, &mut nft, mint_cap::collection_id(mint_cap),
         );
 

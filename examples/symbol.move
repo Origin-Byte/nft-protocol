@@ -10,7 +10,7 @@ module nft_protocol::example_symbol {
 
     use nft_protocol::orderbook;
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::display;
+    use nft_protocol::display_domain;
     use nft_protocol::collection::{Self, Collection};
 
     /// One time witness is only instantiated in the init method
@@ -50,7 +50,7 @@ module nft_protocol::example_symbol {
         collection::add_domain(
             &Witness {},
             &mut collection,
-            display::new_display_domain(
+            display_domain::new_display_domain(
                 string::utf8(b"Symbol"),
                 string::utf8(b"Collection of unique symbols on Sui"),
             )
@@ -88,7 +88,7 @@ module nft_protocol::example_symbol {
 
     /// Extracts `SymbolDomain` by burning `Nft`
     public fun burn_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
-        display::remove_display_domain(&Witness {}, &mut nft);
+        display_domain::remove_display_domain(&Witness {}, &mut nft);
 
         let symbol: SymbolDomain = nft::remove_domain(
             Witness {}, &mut nft,

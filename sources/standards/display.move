@@ -5,7 +5,7 @@
 ///     - UrlDomain (For NFTs and Collections)
 ///     - SymbolDomain (For Collections)
 ///     - Attributes (For NFTs)
-module nft_protocol::display {
+module nft_protocol::display_domain {
     use std::string::String;
     use std::option::{Self, Option};
 

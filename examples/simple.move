@@ -7,7 +7,7 @@ module nft_protocol::example_simple {
 
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection;
-    use nft_protocol::display;
+    use nft_protocol::display_domain;
     use nft_protocol::url;
     use nft_protocol::mint_cap::MintCap;
 
@@ -28,7 +28,7 @@ module nft_protocol::example_simple {
         collection::add_domain(
             &Witness {},
             &mut collection,
-            display::new_display_domain(
+            display_domain::new_display_domain(
                 string::utf8(b"Simple"),
                 string::utf8(b"Simple collection on Sui"),
             )
@@ -63,7 +63,7 @@ module nft_protocol::example_simple {
             ctx,
         );
 
-        display::add_display_domain(
+        display_domain::add_display_domain(
             &Witness {}, &mut nft, name, description,
         );
 
