@@ -35,6 +35,38 @@ module nft_protocol::sui_gods {
     struct Background has key, store {}
     struct Clothes has key, store {}
 
+    struct Gun<phantom T> has key, store {
+        id: UID,
+    }
+
+    struct Ar15 has drop {}
+    struct Mp40 has drop {}
+    struct DesertEagle has drop {}
+    struct Colt has drop {}
+
+    GunDisplay<T> {
+        name: ,
+        accuracy: ,
+        recoil: ,
+    }
+
+    GunDisplayAr15 {
+        name: "AR15",
+        accuracy: 75,
+        recoil: 15,
+    }
+
+    GunDisplayAr15 {
+        name: "AR15",
+        accuracy: 75,
+        recoil: 15,
+    }
+
+    public fun mint_gun_metadata<T>(publisher, name, accuracy, recoil) {
+        create_display();
+        activate_display();
+    }
+
     fun init(witness: DEADBYTES, ctx: &mut TxContext) {
         let (mint_cap, collection) = collection::create(&witness, ctx);
 
