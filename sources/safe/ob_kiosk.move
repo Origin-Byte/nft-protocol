@@ -12,7 +12,7 @@ module nft_protocol::ob_kiosk {
     use sui::vec_set::{Self, VecSet};
 
     use nft_protocol::package::{Self, Publisher};
-    use nft_protocol::transfer_policy::{Self, TransferRequest};
+    use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
     use nft_protocol::kiosk::{Self, Kiosk, KioskOwnerCap};
 
     /// Trying to withdraw profits and sender is not owner.
@@ -62,10 +62,6 @@ module nft_protocol::ob_kiosk {
         /// If set to true, then `listed_with` must have length of 1 and
         /// listed_for must be "none".
         is_exclusively_listed: bool,
-        /// How much is the NFT _publicly_ listed for.
-        ///
-        /// Anyone can come to the safe and buy the NFT for this price.
-        listed_for: Option<u64>,
     }
 
     /// Instantiates a new shared object `Safe<OriginByte>` and transfer
@@ -161,7 +157,6 @@ module nft_protocol::ob_kiosk {
         table::add(&mut inner.refs, nft_id, NftRef {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
-            listed_for: option::none(),
         });
 
         let kiosk_cap_ref = &inner.kiosk_cap;
@@ -187,7 +182,6 @@ module nft_protocol::ob_kiosk {
         table::add(&mut inner.refs, nft_id, NftRef {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
-            listed_for: option::none(),
         });
 
         let kiosk_cap_ref = &inner.kiosk_cap;
@@ -242,16 +236,17 @@ module nft_protocol::ob_kiosk {
         ref.is_exclusively_listed = true;
     }
 
+    /// Returns a builder to the calling entity which the entity then populates
+    /// with trade information of which fungible tokens were paid.
+    ///
+    /// The builder then _must_ be transformed into a hot potato `TransferRequest`
+    /// which is then used by logic that has access to `TransferPolicy`.
     public fun transfer_delegated<T: key + store>(
         source: &mut Kiosk,
         target: &mut Kiosk,
         nft_id: ID,
         entity_id: &UID,
-        royalty_base: u64,
-        // _authority: Auth,
-        // _allowlist: &Allowlist,
-        ctx: &mut TxContext,
-    ): TransferRequest<T> {
+    ): TransferRequestBuilder<T> {
         let inner = df::borrow_mut<TypeName, InnerKiosk>(
             kiosk::uid_mut(source),
             type_name::get<InnerKiosk>()
@@ -268,10 +263,7 @@ module nft_protocol::ob_kiosk {
 
         deposit_(target, nft);
 
-        let req =
-            transfer_policy::new_request(royalty_base, object::id(source), ctx);
-
-        req
+        transfer_policy::builder(object::id(source))
     }
 
     // TODO: No entity ID, just OwnerCap.
@@ -292,7 +284,6 @@ module nft_protocol::ob_kiosk {
         table::add(&mut inner.refs, nft_id, NftRef {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
-            listed_for: option::none(),
         });
 
         let kiosk_cap_ref = &inner.kiosk_cap;
@@ -324,13 +315,11 @@ module nft_protocol::ob_kiosk {
 
     fun assert_not_listed(ref: &NftRef) {
         assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
-        assert!(option::is_none(&ref.listed_for), ENftAlreadyListed);
     }
 
     fun check_entity_and_pop_ref(inner: &mut InnerKiosk, entity_id: ID, nft_id: ID) {
         // NFT is being transferred - destroy the ref
         let ref = table::remove(&mut inner.refs, nft_id);
-        let listed_for = *option::borrow(&ref.listed_for);
 
         // aborts if entity is not included in the map
         vec_set::contains(&mut ref.auths, &entity_id);
