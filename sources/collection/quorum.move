@@ -76,7 +76,9 @@ module nft_protocol::quorum {
             type_name: type_name::get<F>(),
         });
 
-        Quorum { id, admins, members, extendable }
+        let admin_count = vector::length(&admins);
+
+        Quorum { id, admins, members, extendable, admin_count }
     }
 
     public fun init_quorum<F>(
@@ -107,6 +109,7 @@ module nft_protocol::quorum {
             admins: vector[admin],
             members: vector::empty(),
             extendable: false,
+            admin_count: 1,
         }
     }
 
