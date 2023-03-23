@@ -278,4 +278,3 @@ module nft_protocol::transfer_policy {
     /// Get the `from` field of the `TransferRequest`.
     public fun originator<T>(self: &TransferRequest<T>): ID { self.originator }
 }
-

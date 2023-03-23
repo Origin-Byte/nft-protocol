@@ -6,6 +6,7 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::fixed_price {
+    use std::option;
     use std::ascii::String;
     use std::type_name;
 
@@ -20,7 +21,8 @@ module nft_protocol::fixed_price {
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::nft::Nft;
-    use nft_protocol::safe;
+    use nft_protocol::kiosk::Kiosk;
+    use nft_protocol::ob_kiosk::{Self, OwnerCap};
     use nft_protocol::venue;
 
     /// Fixed price market object
@@ -167,7 +169,8 @@ module nft_protocol::fixed_price {
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
-        buyer_safe: &mut safe::Safe,
+        owner_cap: &OwnerCap,
+        buyer_safe: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         let venue = listing::borrow_venue(listing, venue_id);
@@ -175,7 +178,7 @@ module nft_protocol::fixed_price {
         venue::assert_is_not_whitelisted(venue);
 
         let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
-        safe::deposit_nft(nft, buyer_safe, ctx);
+        ob_kiosk::deposit_as_owner(buyer_safe, owner_cap, nft);
     }
 
     /// Buy NFT for non-whitelisted sale.
@@ -191,8 +194,8 @@ module nft_protocol::fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let (buyer_safe, owner_cap) = safe::new(ctx);
-        buy_nft_into_safe<C, FT>(listing, venue_id, wallet, &mut buyer_safe, ctx);
+        let (buyer_safe, owner_cap) = ob_kiosk::new(option::none(), ctx);
+        buy_nft_into_safe<C, FT>(listing, venue_id, wallet, &owner_cap, &mut buyer_safe, ctx);
         transfer(owner_cap, tx_context::sender(ctx));
         share_object(buyer_safe);
     }
@@ -232,7 +235,8 @@ module nft_protocol::fixed_price {
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
-        safe: &mut safe::Safe,
+        owner_cap: &OwnerCap,
+        safe: &mut Kiosk,
         whitelist_token: Certificate,
         ctx: &mut TxContext,
     ) {
@@ -244,7 +248,7 @@ module nft_protocol::fixed_price {
         market_whitelist::burn(whitelist_token);
 
         let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
-        safe::deposit_nft(nft, safe, ctx);
+        ob_kiosk::deposit_as_owner(safe, owner_cap, nft);
     }
 
     /// Buy NFT for whitelisted sale
@@ -261,11 +265,12 @@ module nft_protocol::fixed_price {
         whitelist_token: Certificate,
         ctx: &mut TxContext,
     ) {
-        let (buyer_safe, owner_cap) = safe::new(ctx);
+        let (buyer_safe, owner_cap) = ob_kiosk::new(option::none(), ctx);
         buy_whitelisted_nft_into_safe<C, FT>(
             listing,
             venue_id,
             wallet,
+            &owner_cap,
             &mut buyer_safe,
             whitelist_token,
             ctx,

@@ -2,13 +2,11 @@ module nft_protocol::ob_kiosk {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
-    use sui::dynamic_object_field::{Self as dof};
     use sui::dynamic_field::{Self as df};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::table::{Self, Table};
-    use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
 
     use nft_protocol::package::{Self, Publisher};
@@ -28,7 +26,13 @@ module nft_protocol::ob_kiosk {
     const ENftAlreadyListed: u64 = 3;
 
     /// Trying to withdraw profits and sender is not owner.
-    const EPermissionlessDepositsDisabled: u64 = 4; // TODO: bump
+    const EPermissionlessDepositsDisabled: u64 = 4;
+
+    /// The provided Kiosk is not an OriginByte extension
+    const EKioskNotOriginByteVersion: u64 = 5;
+
+    /// The ID provided does not match the Kiosk
+    const EIncorrectKioskId: u64 = 6;
 
     struct OwnerCap has key {
         // We wrap KioskOwnerCap in a key-only object to prevent transfers
@@ -44,7 +48,7 @@ module nft_protocol::ob_kiosk {
     }
 
     struct InnerKiosk has store {
-        kiosk_cap: KioskOwnerCap,
+        kiosk_cap: Option<KioskOwnerCap>,
         owner: address,
         backup: Option<address>,
         permissionless_deposits: bool,
@@ -64,6 +68,10 @@ module nft_protocol::ob_kiosk {
         is_exclusively_listed: bool,
     }
 
+    struct KioskDfKey has store, copy, drop {
+        type: TypeName,
+    }
+
     /// Instantiates a new shared object `Safe<OriginByte>` and transfer
     /// `OwnerCap` to the tx sender.
     public entry fun create_for_sender(
@@ -80,22 +88,33 @@ module nft_protocol::ob_kiosk {
         backup: Option<address>,
         ctx: &mut TxContext
     ): OwnerCap {
+        let (kiosk, owner_cap) = new(backup, ctx);
+
+        transfer::share_object(kiosk);
+        owner_cap
+    }
+
+    public fun new(
+        backup: Option<address>,
+        ctx: &mut TxContext
+    ): (Kiosk, OwnerCap) {
         let (kiosk, kiosk_cap) = kiosk::new(ctx);
 
         let inner_kiosk = InnerKiosk {
-            kiosk_cap,
+            kiosk_cap: option::some(kiosk_cap),
             owner: tx_context::sender(ctx),
             backup,
             permissionless_deposits: false,
             refs: table::new(ctx),
         };
 
-        df::add(kiosk::uid_mut(&mut kiosk), type_name::get<InnerKiosk>(), inner_kiosk);
+        let df_key = KioskDfKey {type: type_name::get<InnerKiosk>()};
+
+        df::add(kiosk::uid_mut(&mut kiosk), df_key, inner_kiosk);
 
         let owner_cap = OwnerCap { kiosk: object::id(&kiosk) };
 
-        transfer::share_object(kiosk);
-        owner_cap
+        (kiosk, owner_cap)
     }
 
     /// Unpacks and destroys a Kiosk returning the profits (even if "0").
@@ -121,11 +140,21 @@ module nft_protocol::ob_kiosk {
             refs,
         } = inner;
 
+        let OwnerCap { kiosk: _, } = cap;
+
         table::drop(refs);
 
+        let kiosk_owner_cap = option::extract(&mut kiosk_cap);
+        option::destroy_none(kiosk_cap);
+
         // Close the kiosk and send profits to the tx sender
-        let profits = kiosk::close_and_withdraw(self, kiosk_cap, ctx);
+        let profits = kiosk::close_and_withdraw(self, kiosk_owner_cap, ctx);
         transfer::transfer(profits, tx_context::sender(ctx));
+    }
+
+    public fun is_ob_kiosk(_self: &Kiosk): bool {
+        // TODO: Implement function
+        true
     }
 
     // === Backup functions ===
@@ -142,13 +171,10 @@ module nft_protocol::ob_kiosk {
     public entry fun deposit<T: key + store>(
         self: &mut Kiosk, nft: T
     ) {
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(self),
-            type_name::get<InnerKiosk>()
-        );
+        let inner = get_inner_mut(self);
 
         assert!(
-            inner.permissionless_deposits == true, EPermissionlessDepositsDisabled
+            inner.permissionless_deposits, EPermissionlessDepositsDisabled
         );
 
         let nft_id = object::id(&nft);
@@ -159,8 +185,13 @@ module nft_protocol::ob_kiosk {
             is_exclusively_listed: false,
         });
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
-        kiosk::place(self, kiosk_cap_ref, nft);
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
+        kiosk::place(self, &kiosk_cap, nft);
+
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(self);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
     }
 
     /// Place any object into a Kiosk.
@@ -171,10 +202,7 @@ module nft_protocol::ob_kiosk {
         // Check if OwnerCap matches Kiosk
         assert_owner_cap(self, cap);
 
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(self),
-            type_name::get<InnerKiosk>()
-        );
+        let inner = get_inner_mut(self);
 
         let nft_id = object::id(&nft);
 
@@ -184,8 +212,13 @@ module nft_protocol::ob_kiosk {
             is_exclusively_listed: false,
         });
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
-        kiosk::place(self, kiosk_cap_ref, nft);
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
+        kiosk::place(self, &kiosk_cap, nft);
+
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(self);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
     }
 
     // === Withdraw from the Kiosk ===
@@ -216,7 +249,7 @@ module nft_protocol::ob_kiosk {
         self: &mut Kiosk,
         owner_cap: &OwnerCap,
         nft_id: ID,
-        entity_id: ID,
+        entity_id: &UID,
         // _authority: Auth,
         // _allowlist: &Allowlist,
     ) {
@@ -231,7 +264,7 @@ module nft_protocol::ob_kiosk {
         let ref = table::borrow_mut(&mut inner.refs, nft_id);
         assert_not_listed(ref);
 
-        vec_set::insert(&mut ref.auths, entity_id);
+        vec_set::insert(&mut ref.auths, object::uid_to_inner(entity_id));
 
         ref.is_exclusively_listed = true;
     }
@@ -247,36 +280,67 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         entity_id: &UID,
     ): TransferRequestBuilder<T> {
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(source),
-            type_name::get<InnerKiosk>()
-        );
-
+        let inner = get_inner_mut(source);
         check_entity_and_pop_ref(inner, object::uid_to_inner(entity_id), nft_id);
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
         let nft = kiosk::take<T>(
             source,
-            kiosk_cap_ref,
+            &kiosk_cap,
             nft_id
         );
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(source);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
 
         deposit_(target, nft);
 
         transfer_policy::builder(object::id(source))
     }
 
-    // TODO: No entity ID, just OwnerCap.
-    public fun tranfer() {}
+    public fun transfer<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        owner_cap: &OwnerCap,
+        royalty_base: u64,
+        // _authority: Auth,
+        // _allowlist: &Allowlist,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        assert_owner_cap(source, owner_cap);
+
+        let inner = get_inner_mut(source);
+
+        let ref = pop_ref(inner, nft_id);
+        assert_ref_not_exclusively_listed(&ref);
+
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
+        let nft = kiosk::take<T>(
+            source,
+            &kiosk_cap,
+            nft_id
+        );
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(source);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
+
+        deposit_(target, nft);
+
+        let request = transfer_policy::new_request(
+            royalty_base, object::id(source), ctx
+        );
+
+        request
+    }
 
 
     fun deposit_<T: key + store>(
         self: &mut Kiosk, nft: T
     ) {
-        let inner = df::borrow_mut<TypeName, InnerKiosk>(
-            kiosk::uid_mut(self),
-            type_name::get<InnerKiosk>()
-        );
+        let inner = get_inner_mut(self);
 
         let nft_id = object::id(&nft);
 
@@ -286,10 +350,13 @@ module nft_protocol::ob_kiosk {
             is_exclusively_listed: false,
         });
 
-        let kiosk_cap_ref = &inner.kiosk_cap;
-        kiosk::place(self, kiosk_cap_ref, nft);
+        let kiosk_cap = option::extract(&mut inner.kiosk_cap);
+        kiosk::place(self, &kiosk_cap, nft);
+        // TODO: Figure out a more efficient way of doing this. Currently we need to get a
+        // mutable reference again, otherwise we get compile error due to Invalid usage of reference
+        let inner = get_inner_mut(self);
+        option::fill(&mut inner.kiosk_cap, kiosk_cap);
     }
-
 
 
     // === Assertions ===
@@ -317,12 +384,38 @@ module nft_protocol::ob_kiosk {
         assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
     }
 
+    public fun assert_is_ob_kiosk(self: &Kiosk) {
+        assert!(is_ob_kiosk(self), EKioskNotOriginByteVersion);
+    }
+
+    public fun assert_kiosk_id(self: &Kiosk, id: ID) {
+        assert!(object::id(self) == id, EIncorrectKioskId);
+    }
+
     fun check_entity_and_pop_ref(inner: &mut InnerKiosk, entity_id: ID, nft_id: ID) {
         // NFT is being transferred - destroy the ref
         let ref = table::remove(&mut inner.refs, nft_id);
 
         // aborts if entity is not included in the map
         vec_set::contains(&mut ref.auths, &entity_id);
+    }
+
+    fun pop_ref(inner: &mut InnerKiosk, nft_id: ID): NftRef {
+        table::remove(&mut inner.refs, nft_id)
+    }
+
+    fun get_inner_mut(self: &mut Kiosk): &mut InnerKiosk {
+        df::borrow_mut<TypeName, InnerKiosk>(
+            kiosk::uid_mut(self),
+            type_name::get<InnerKiosk>()
+        )
+    }
+
+    fun get_inner(self: &mut Kiosk): &InnerKiosk {
+        df::borrow<TypeName, InnerKiosk>(
+            kiosk::uid_mut(self),
+            type_name::get<InnerKiosk>()
+        )
     }
 
 }
