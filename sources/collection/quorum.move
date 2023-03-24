@@ -26,7 +26,9 @@
 /// functionality that the quorum provides but it can be overwritten by
 /// Quorum extensions to fit specific needs of projects)
 ///
-/// 3. Only Admins can insert Cap objects to Quorums. TODO: explain Admin and Member Locks
+/// 3. Only Admins can insert Cap objects to Quorums. When inserting Cap objects,
+/// admins can decide if these are accessible to Admin-only or if they are also
+/// accessible to Members.
 ///
 /// 4. Delegation: Borrow lending between quorums
 ///
@@ -45,10 +47,10 @@ module nft_protocol::quorum {
     use sui::event;
     use sui::math;
     use sui::transfer;
+    use sui::vec_set::{Self, VecSet};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
-    use sui::dynamic_object_field as dof;
 
     use nft_protocol::mint_cap::MintCap;
 
@@ -58,12 +60,15 @@ module nft_protocol::quorum {
     const EMIN_ADMIN_COUNT_IS_ONE: u64 = 4;
     const EADDRESS_IS_NOT_ADMIN: u64 = 5;
     const EQUORUM_EXTENSION_MISMATCH: u64 = 6;
+    const EINVALID_DELEGATE: u64 = 6;
 
     struct Quorum<phantom F> has key, store {
         id: UID,
         // TODO: Ideally move to TableSet
         admins: vector<address>,
         members: vector<address>,
+        // TODO: quorum delegates
+        delegates: VecSet<ID>,
         admin_count: u64
     }
 
@@ -96,6 +101,14 @@ module nft_protocol::quorum {
         admin: address,
     }
 
+    struct AddDelegate has store, copy, drop {
+        entity: ID,
+    }
+
+    struct RemoveDelegate has store, copy, drop {
+        entity: ID,
+    }
+
     // === Events ===
 
     struct CreateQuorumEvent has copy, drop {
@@ -109,6 +122,7 @@ module nft_protocol::quorum {
         _witness: &F,
         admins: vector<address>,
         members: vector<address>,
+        delegates: VecSet<ID>,
         ctx: &mut TxContext,
     ): Quorum<F> {
         let id = object::new(ctx);
@@ -120,13 +134,14 @@ module nft_protocol::quorum {
 
         let admin_count = vector::length(&admins);
 
-        Quorum { id, admins, members, admin_count }
+        Quorum { id, admins, members, delegates, admin_count }
     }
 
     public fun create_for_extension<F>(
         _witness: &F,
         admins: vector<address>,
         members: vector<address>,
+        delegates: VecSet<ID>,
         ctx: &mut TxContext,
     ): (Quorum<F>, ExtensionToken<F>) {
         let id = object::new(ctx);
@@ -137,9 +152,9 @@ module nft_protocol::quorum {
         });
 
         let admin_count = vector::length(&admins);
-
         let extension_token = ExtensionToken { quorum_id: object::uid_to_inner(&id) };
-        let quorum = Quorum { id, admins, members, admin_count };
+
+        let quorum = Quorum { id, admins, members, delegates, admin_count };
 
         (quorum, extension_token)
     }
@@ -148,9 +163,10 @@ module nft_protocol::quorum {
         witness: &F,
         admins: vector<address>,
         members: vector<address>,
+        delegates: VecSet<ID>,
         ctx: &mut TxContext,
     ) {
-        let quorum = create(witness, admins, members, ctx);
+        let quorum = create(witness, admins, members, delegates, ctx);
         transfer::share_object(quorum);
     }
 
@@ -170,6 +186,7 @@ module nft_protocol::quorum {
             id,
             admins: vector[admin],
             members: vector::empty(),
+            delegates: vec_set::empty(),
             admin_count: 1,
         }
     }
@@ -239,6 +256,54 @@ module nft_protocol::quorum {
         };
 
         quorum.admin_count = quorum.admin_count - 1;
+    }
+
+    // === Delegate Functions ===
+
+    public entry fun vote_add_delegate<F>(
+        quorum: &mut Quorum<F>,
+        entity: ID,
+        ctx: &mut TxContext,
+    ) {
+        let (vote_count, threshold) = vote(quorum, AddDelegate { entity }, ctx);
+
+        if (vote_count >= threshold) {
+            df::remove<AddDelegate, Signatures<F>>(&mut quorum.id, AddDelegate { entity });
+            vec_set::insert(&mut quorum.delegates, entity);
+        };
+    }
+
+    public entry fun vote_remove_delegate<F>(
+        quorum: &mut Quorum<F>,
+        entity: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert!(quorum.admin_count > 1, EMIN_ADMIN_COUNT_IS_ONE);
+
+        let (vote_count, threshold) = vote(quorum, RemoveDelegate { entity }, ctx);
+
+        if (vote_count >= threshold) {
+            df::remove<RemoveDelegate, Signatures<F>>(&mut quorum.id, RemoveDelegate { entity });
+            vec_set::remove(&mut quorum.delegates, &entity);
+        };
+    }
+
+    public fun add_delegate_with_extension<F>(
+        quorum: &mut Quorum<F>,
+        ext_token: &ExtensionToken<F>,
+        entity: ID,
+    ) {
+        assert_extension_token(quorum, ext_token);
+        vec_set::insert(&mut quorum.delegates, entity);
+    }
+
+    public fun remove_delegate_with_extension<F>(
+        quorum: &mut Quorum<F>,
+        ext_token: &ExtensionToken<F>,
+        entity: ID,
+    ) {
+        assert_extension_token(quorum, ext_token);
+        vec_set::remove(&mut quorum.delegates, &entity);
     }
 
     public fun vote<F, Field: copy + drop + store>(
@@ -336,6 +401,9 @@ module nft_protocol::quorum {
 
     // === MintCap Helper Functions ===
 
+    // TODO: Does it make sense to provide specific functions for MintCap?
+    // Or shall we stick to only the generics?
+
     public fun insert_mint_cap<F, C>(
         quorum: &mut Quorum<F>,
         mint_cap: MintCap<C>,
@@ -361,26 +429,6 @@ module nft_protocol::quorum {
         return_cap(quorum, mint_cap, receipt, ctx)
     }
 
-    fun insert_mint_cap_<F, C>(
-        quorum: &mut Quorum<F>,
-        mint_cap: MintCap<C>,
-        admin_only: bool,
-    ) {
-        if (admin_only) {
-            df::add(
-                &mut quorum.id,
-                AdminField {type_name: type_name::get<MintCap<C>>()},
-                option::some(mint_cap),
-            );
-        } else {
-            df::add(
-                &mut quorum.id,
-                MemberField {type_name: type_name::get<MintCap<C>>()},
-                option::some(mint_cap),
-            );
-        }
-    }
-
     // === Object Functions ===
 
     public fun insert_cap<F, T: key + store>(
@@ -398,11 +446,33 @@ module nft_protocol::quorum {
         ctx: &mut TxContext,
     ): (T, ReturnReceipt<F, T>) {
         assert_member_or_admin(quorum, ctx);
-        let cap = dof::remove(&mut quorum.id, type_name::get<T>());
+        let is_admin_field = df::exists_(
+            &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+        );
 
-        let receipt = ReturnReceipt {};
+        let cap: T;
 
-        (cap, receipt)
+        if (is_admin_field) {
+            assert_admin(quorum, ctx);
+
+            let field = df::borrow_mut(
+                &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+            );
+
+            cap = option::extract(field);
+
+        } else {
+            assert_member(quorum, ctx);
+
+            // Fails if Member field does not exist either
+            let field = df::borrow_mut(
+                &mut quorum.id, MemberField {type_name: type_name::get<T>()}
+            );
+
+            cap = option::extract(field);
+        };
+
+        (cap, ReturnReceipt {})
     }
 
     public fun return_cap<F, T: key + store>(
@@ -412,6 +482,79 @@ module nft_protocol::quorum {
         ctx: &mut TxContext,
     ) {
         return_cap_(quorum, cap_object, ctx);
+        burn_receipt(receipt);
+    }
+
+    public fun borrow_cap_as_delegate<F1, F2, T: key + store>(
+        quorum: &mut Quorum<F1>,
+        delegate: &Quorum<F2>,
+        ctx: &mut TxContext,
+    ): (T, ReturnReceipt<F1, T>) {
+        assert_delegate(quorum, &delegate.id);
+        assert_member_or_admin(delegate, ctx);
+
+        let is_admin_field = df::exists_(
+            &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+        );
+
+        let cap: T;
+
+        if (is_admin_field) {
+            assert_admin(delegate, ctx);
+
+            let field = df::borrow_mut(
+                &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+            );
+
+            cap = option::extract(field);
+
+        } else {
+            assert_member(delegate, ctx);
+
+            // Fails if Member field does not exist either
+            let field = df::borrow_mut(
+                &mut quorum.id, MemberField {type_name: type_name::get<T>()}
+            );
+
+            cap = option::extract(field);
+        };
+
+        (cap, ReturnReceipt {})
+    }
+
+    public fun return_cap_as_delegate<F1, F2, T: key + store>(
+        quorum: &mut Quorum<F1>,
+        delegate: &Quorum<F2>,
+        cap_object: T,
+        receipt: ReturnReceipt<F1, T>,
+        ctx: &mut TxContext,
+    ) {
+        assert_delegate(quorum, &delegate.id);
+        assert_member_or_admin(delegate, ctx);
+
+        let is_admin_field = df::exists_(
+            &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+        );
+
+        if (is_admin_field) {
+            assert_admin(delegate, ctx);
+
+            let field = df::borrow_mut(
+                &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+            );
+
+            option::fill(field, cap_object);
+        } else {
+            assert_member(delegate, ctx);
+
+            // Fails if Member field does not exist either
+            let field = df::borrow_mut(
+                &mut quorum.id, MemberField {type_name: type_name::get<T>()}
+            );
+
+            option::fill(field, cap_object);
+        };
+
         burn_receipt(receipt);
     }
 
@@ -496,5 +639,12 @@ module nft_protocol::quorum {
 
     public fun assert_extension_token<F>(quorum: &Quorum<F>, ext_token: &ExtensionToken<F>) {
         assert!(object::id(quorum) == ext_token.quorum_id, EQUORUM_EXTENSION_MISMATCH);
+    }
+
+    public fun assert_delegate<F1>(quorum: &Quorum<F1>, delegate_uid: &UID) {
+        assert!(
+            vec_set::contains(&quorum.delegates, object::uid_as_inner(delegate_uid)),
+            EINVALID_DELEGATE
+        );
     }
 }
