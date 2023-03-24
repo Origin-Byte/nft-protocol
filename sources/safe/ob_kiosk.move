@@ -9,7 +9,8 @@ module nft_protocol::ob_kiosk {
     use sui::table::{Self, Table};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::transfer_policy::{Self, TransferRequest};
+    use nft_protocol::package::{Self, Publisher};
+    use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
     use nft_protocol::kiosk::{Self, Kiosk, KioskOwnerCap};
 
     /// Trying to withdraw profits and sender is not owner.
@@ -268,16 +269,17 @@ module nft_protocol::ob_kiosk {
         ref.is_exclusively_listed = true;
     }
 
+    /// Returns a builder to the calling entity which the entity then populates
+    /// with trade information of which fungible tokens were paid.
+    ///
+    /// The builder then _must_ be transformed into a hot potato `TransferRequest`
+    /// which is then used by logic that has access to `TransferPolicy`.
     public fun transfer_delegated<T: key + store>(
         source: &mut Kiosk,
         target: &mut Kiosk,
         nft_id: ID,
         entity_id: &UID,
-        royalty_base: u64,
-        // _authority: Auth,
-        // _allowlist: &Allowlist,
-        ctx: &mut TxContext,
-    ): TransferRequest<T> {
+    ): TransferRequestBuilder<T> {
         let inner = get_inner_mut(source);
         check_entity_and_pop_ref(inner, object::uid_to_inner(entity_id), nft_id);
 
@@ -294,11 +296,7 @@ module nft_protocol::ob_kiosk {
 
         deposit_(target, nft);
 
-        let request = transfer_policy::new_request(
-            royalty_base, object::id(source), ctx
-        );
-
-        request
+        transfer_policy::builder(object::id(source))
     }
 
     public fun transfer<T: key + store>(

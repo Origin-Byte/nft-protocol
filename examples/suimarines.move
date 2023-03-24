@@ -41,6 +41,17 @@ module nft_protocol::suimarines {
 
         let (mint_cap, collection) = collection::create(&witness, ctx);
 
+        // Creates a new policy and registers an allowlist rule to it.
+        // Therefore now to finish a transfer, the allowlist must be included
+        // in the chain.
+        let publisher = nft_protocol::package::claim(witness, ctx);
+        let (transfer_policy, transfer_policy_cap) =
+            nft_protocol::transfer_policy::new<SUIMARINES>(&publisher, ctx);
+        nft_protocol::transfer_allowlist::add_policy_rule(
+            &mut transfer_policy,
+            &transfer_policy_cap,
+        );
+
         collection::add_domain(
             &Witness {},
             &mut collection,
@@ -91,6 +102,9 @@ module nft_protocol::suimarines {
         );
 
         transfer::transfer(mint_cap, sender);
+        transfer::transfer(publisher, sender);
+        transfer::transfer(transfer_policy_cap, sender);
+        transfer::share_object(transfer_policy);
         transfer::share_object(allowlist);
         transfer::share_object(collection);
     }

@@ -12,8 +12,8 @@ module nft_protocol::transfer_policy {
     use sui::tx_context::TxContext;
     use sui::object::{Self, ID, UID};
     use sui::vec_set::{Self, VecSet};
+    use sui::vec_map::{Self, VecMap};
     use sui::dynamic_field as df;
-    use sui::bag::{Self, Bag};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
@@ -35,30 +35,36 @@ module nft_protocol::transfer_policy {
     /// A "Hot Potato" forcing the buyer to get a transfer permission
     /// from the item type (`T`) owner on purchase attempt.
     struct TransferRequest<phantom T> {
-        /// Amount of SUI paid for the item. Can be used to
-        /// calculate the fee / transfer policy enforcement.
-        paid: u64,
-        /// The ID of the Kiosk / Safe the object is being sold from.
-        /// Can be used by the TransferPolicy implementors.
-        from: ID,
-        /// A Bag of custom details attached to the `TransferRequest`.
-        /// The attachments must be resolved before the `TransferRequest`
-        /// can be completed and unpacked to accept the transfer.
-        metadata: Bag,
-        /// Collected Receipts. Used to verify that all of the rules
-        /// were followed and `TransferRequest` can be confirmed.
-        receipts: VecSet<TypeName>
+        /// In case of transfer requests originating from a user we convert
+        /// the address to ID with `object::id_from_address`.
+        originator: ID,
+        /// List of fungible token amounts that have been paid for the NFT.
+        /// We create some helper methods for SUI token, but also support any.
+        ///
+        /// The key is the type of the token, ie. OTW (e.g. `sui::sui::SUI`)
+        ft_paid_amounts: VecMap<TypeName, u64>,
+        /// Collected Receipts.
+        ///
+        /// Used to verify that all of the rules were followed and
+        /// `TransferRequest` can be confirmed.
+        receipts: VecSet<TypeName>,
+    }
+
+    /// Convenience struct to build a `TransferRequest` hot potato.
+    ///
+    /// This struct can be edited and used to create a `TransferRequest`.
+    /// Since it's a hot potato, it must be used.
+    /// The only way to destroy it is to exchange it for `TransferRequest`.
+    struct TransferRequestBuilder<phantom T> {
+        originator: ID,
+        ft_paid_amounts: VecMap<TypeName, u64>,
     }
 
     /// A unique capability that allows owner of the `T` to authorize
-    /// transfers. Can only be created with the `Publisher` object.
+    /// transfers.
+    /// Can only be created with the `Publisher` object.
     struct TransferPolicy<phantom T> has key, store {
         id: UID,
-        /// The Balance of the `TransferPolicy` which collects `SUI`.
-        /// By default, transfer policy does not collect anything , and it's
-        /// a matter of an implementation of a specific rule - whether to add
-        /// to balance and how much.
-        balance: Balance<SUI>,
         /// Set of types of attached rules.
         rules: VecSet<TypeName>
     }
@@ -79,11 +85,27 @@ module nft_protocol::transfer_policy {
 
     /// Construct a new `TransferRequest` hot potato which requires an
     /// approving action from the creator to be destroyed / resolved.
-    public fun new_request<T>(
-        paid: u64, from: ID, ctx: &mut TxContext
-    ): TransferRequest<T> {
+    public fun builder<T>(originator: ID): TransferRequestBuilder<T> {
+        TransferRequestBuilder {
+            originator,
+            ft_paid_amounts: vec_map::empty(),
+        }
+    }
+
+    public fun builder_add_ft<T, FT>(builder: &mut TransferRequestBuilder<T>, paid: u64) {
+        vec_map::insert(&mut builder.ft_paid_amounts, type_name::get<FT>(), paid);
+    }
+
+    public fun builder_add_ft_by_type<T>(builder: &mut TransferRequestBuilder<T>, ft: TypeName, paid: u64) {
+        vec_map::insert(&mut builder.ft_paid_amounts, ft, paid);
+    }
+
+    public fun build<T>(builder: TransferRequestBuilder<T>): TransferRequest<T> {
+        let TransferRequestBuilder { originator, ft_paid_amounts } = builder;
         TransferRequest {
-            paid, from, receipts: vec_set::empty(), metadata: bag::new(ctx)
+            originator,
+            ft_paid_amounts,
+            receipts: vec_set::empty(),
         }
     }
 
@@ -101,60 +123,33 @@ module nft_protocol::transfer_policy {
         event::emit(TransferPolicyCreated<T> { id: policy_id });
 
         (
-            TransferPolicy { id, rules: vec_set::empty(), balance: balance::zero() },
-            TransferPolicyCap { id: object::new(ctx), policy_id }
+            TransferPolicy { id, rules: vec_set::empty() },
+            TransferPolicyCap { id: object::new(ctx), policy_id },
         )
     }
 
-    /// Special case for the `sui::collectible` module to be able to register a
-    /// type without a `Publisher` object. Is not magical and a similar logic
-    /// can be implemented for the regular `new_transfer_policy_cap` call for
-    /// wrapped types.
-    public(friend) fun new_protected<T>(
-        ctx: &mut TxContext
-    ): (TransferPolicy<T>, TransferPolicyCap<T>) {
-        let id = object::new(ctx);
-        let policy_id = object::uid_to_inner(&id);
-
-        event::emit(TransferPolicyCreated<T> { id: policy_id });
-
-        (
-            TransferPolicy { id, rules: vec_set::empty(), balance: balance::zero() },
-            TransferPolicyCap { id: object::new(ctx), policy_id }
-        )
-    }
-
-    /// Withdraw some amount of profits from the `TransferPolicy`. If amount is not
-    /// specified, all profits are withdrawn.
-    public fun withdraw<T>(
-        self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>, amount: Option<u64>, ctx: &mut TxContext
-    ): Coin<SUI> {
+    /// Withdraw some amount of profits from the `TransferPolicy`.
+    /// If amount is not specified, all profits are withdrawn.
+    public fun withdraw<T, FT>(
+        self: &mut TransferPolicy<T>,
+        cap: &TransferPolicyCap<T>,
+        amount: Option<u64>,
+        ctx: &mut TxContext,
+    ): Coin<FT> {
         assert!(object::id(self) == cap.policy_id, ENotOwner);
+
+        let ft_balance: &mut Balance<FT> =
+            df::borrow_mut(&mut self.id, type_name::get<T>());
 
         let amount = if (option::is_some(&amount)) {
             let amt = option::destroy_some(amount);
-            assert!(amt <= balance::value(&self.balance), ENotEnough);
+            assert!(amt <= balance::value(ft_balance), ENotEnough);
             amt
         } else {
-            balance::value(&self.balance)
+            balance::value(ft_balance)
         };
 
-        coin::take(&mut self.balance, amount, ctx)
-    }
-
-    /// Destroy a TransferPolicyCap.
-    /// Can be performed by any party as long as they own it.
-    public fun destroy_and_withdraw<T>(
-        self: TransferPolicy<T>, cap: TransferPolicyCap<T>, ctx: &mut TxContext
-    ): Coin<SUI> {
-        assert!(object::id(&self) == cap.policy_id, ENotOwner);
-
-        let TransferPolicyCap { id: cap_id, policy_id: _ } = cap;
-        let TransferPolicy { id, rules: _, balance } = self;
-
-        object::delete(id);
-        object::delete(cap_id);
-        coin::from_balance(balance, ctx)
+        coin::take(ft_balance, amount, ctx)
     }
 
     /// Allow a `TransferRequest` for the type `T`. The call is protected
@@ -165,8 +160,12 @@ module nft_protocol::transfer_policy {
     /// Kiosk trades will not be possible.
     public fun confirm_request<T>(
         self: &TransferPolicy<T>, request: TransferRequest<T>
-    ): (u64, ID) {
-        let TransferRequest { paid, from, receipts, metadata } = request;
+    ): ID {
+        let TransferRequest {
+            originator,
+            receipts,
+            ft_paid_amounts: _,
+        } = request;
         let completed = vec_set::into_keys(receipts);
         let total = vector::length(&completed);
 
@@ -178,8 +177,7 @@ module nft_protocol::transfer_policy {
             total = total - 1;
         };
 
-        bag::destroy_empty(metadata);
-        (paid, from)
+        originator
     }
 
     // === Rules Logic ===
@@ -209,12 +207,22 @@ module nft_protocol::transfer_policy {
         df::borrow(&policy.id, RuleKey<Rule> {})
     }
 
-    /// Add some `SUI` to the balance of a `TransferPolicy`.
-    public fun add_to_balance<T, Rule: drop>(
-        _: Rule, policy: &mut TransferPolicy<T>, coin: Coin<SUI>
+    public fun add_to_balance<T, FT>(
+       policy: &mut TransferPolicy<T>, coin: Coin<FT>
     ) {
-        assert!(has_rule<T, Rule>(policy), EUnknownRequrement);
-        coin::put(&mut policy.balance, coin)
+        if (!df::exists_(&policy.id, type_name::get<FT>())) {
+            df::add(&mut policy.id, type_name::get<FT>(), balance::zero<FT>());
+        };
+
+        let balance: &mut Balance<FT> =
+            df::borrow_mut(&mut policy.id, type_name::get<T>());
+        coin::put(balance, coin);
+    }
+
+    public fun add_sui_to_balance<T>(
+       policy: &mut TransferPolicy<T>, coin: Coin<SUI>
+    ) {
+        add_to_balance(policy, coin)
     }
 
     /// Adds a `Receipt` to the `TransferRequest`, unblocking the request and
@@ -240,12 +248,33 @@ module nft_protocol::transfer_policy {
 
     // === Fields access ===
 
-    /// Get the `paid` field of the `TransferRequest`.
-    public fun paid<T>(self: &TransferRequest<T>): u64 { self.paid }
+    public fun paid<T, FT>(self: &TransferRequest<T>): Option<u64> {
+        if (vec_map::contains(&self.ft_paid_amounts, &type_name::get<FT>())) {
+            let paid =
+                vec_map::get(&self.ft_paid_amounts, &type_name::get<FT>());
+
+            option::some(*paid)
+        } else {
+            option::none()
+        }
+    }
+
+    public fun paid_unwrapped<T, FT>(self: &TransferRequest<T>): u64 {
+        option::destroy_some(paid<T, FT>(self))
+    }
+
+    public fun paid_in_sui<T>(self: &TransferRequest<T>): Option<u64> {
+        paid<T, SUI>(self)
+    }
+
+    public fun paid_in_sui_unwrapped<T>(self: &TransferRequest<T>): u64 {
+        paid_unwrapped<T, SUI>(self)
+    }
+
+    public fun ft_paid_amounts<T>(self: &TransferRequest<T>): &VecMap<TypeName, u64> {
+        &self.ft_paid_amounts
+    }
 
     /// Get the `from` field of the `TransferRequest`.
-    public fun from<T>(self: &TransferRequest<T>): ID { self.from }
-
-    /// Get the `metadata_mut` field of the `TransferRequest`.
-    public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut Bag { &mut self.metadata }
+    public fun originator<T>(self: &TransferRequest<T>): ID { self.originator }
 }
