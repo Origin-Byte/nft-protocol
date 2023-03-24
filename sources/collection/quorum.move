@@ -41,7 +41,6 @@
 /// ... Examples: Marketplace - Creators
 module nft_protocol::quorum {
     use std::type_name::{Self, TypeName};
-    use std::vector;
     use std::option;
 
     use sui::event;
@@ -65,8 +64,8 @@ module nft_protocol::quorum {
     struct Quorum<phantom F> has key, store {
         id: UID,
         // TODO: Ideally move to TableSet
-        admins: vector<address>,
-        members: vector<address>,
+        admins: VecSet<address>,
+        members: VecSet<address>,
         // TODO: quorum delegates
         delegates: VecSet<ID>,
         admin_count: u64
@@ -80,7 +79,7 @@ module nft_protocol::quorum {
 
     struct Signatures<phantom F> has store, copy, drop {
         // TODO: make this TableSet
-        list: vector<address>,
+        list: VecSet<address>,
     }
 
     // === Dynamic Field keys ===
@@ -120,8 +119,8 @@ module nft_protocol::quorum {
 
     public fun create<F>(
         _witness: &F,
-        admins: vector<address>,
-        members: vector<address>,
+        admins: VecSet<address>,
+        members: VecSet<address>,
         delegates: VecSet<ID>,
         ctx: &mut TxContext,
     ): Quorum<F> {
@@ -132,15 +131,15 @@ module nft_protocol::quorum {
             type_name: type_name::get<F>(),
         });
 
-        let admin_count = vector::length(&admins);
+        let admin_count = vec_set::size(&admins);
 
         Quorum { id, admins, members, delegates, admin_count }
     }
 
     public fun create_for_extension<F>(
         _witness: &F,
-        admins: vector<address>,
-        members: vector<address>,
+        admins: VecSet<address>,
+        members: VecSet<address>,
         delegates: VecSet<ID>,
         ctx: &mut TxContext,
     ): (Quorum<F>, ExtensionToken<F>) {
@@ -151,7 +150,7 @@ module nft_protocol::quorum {
             type_name: type_name::get<F>(),
         });
 
-        let admin_count = vector::length(&admins);
+        let admin_count = vec_set::size(&admins);
         let extension_token = ExtensionToken { quorum_id: object::uid_to_inner(&id) };
 
         let quorum = Quorum { id, admins, members, delegates, admin_count };
@@ -161,8 +160,8 @@ module nft_protocol::quorum {
 
     public fun init_quorum<F>(
         witness: &F,
-        admins: vector<address>,
-        members: vector<address>,
+        admins: VecSet<address>,
+        members: VecSet<address>,
         delegates: VecSet<ID>,
         ctx: &mut TxContext,
     ) {
@@ -184,8 +183,8 @@ module nft_protocol::quorum {
 
         Quorum {
             id,
-            admins: vector[admin],
-            members: vector::empty(),
+            admins: vec_set::singleton(admin),
+            members: vec_set::empty(),
             delegates: vec_set::empty(),
             admin_count: 1,
         }
@@ -202,7 +201,7 @@ module nft_protocol::quorum {
 
         if (vote_count >= threshold) {
             df::remove<AddAdmin, Signatures<F>>(&mut quorum.id, AddAdmin { admin: new_admin});
-            vector::push_back(&mut quorum.admins, new_admin);
+            vec_set::insert(&mut quorum.admins, new_admin);
             quorum.admin_count = quorum.admin_count + 1;
         };
     }
@@ -218,13 +217,7 @@ module nft_protocol::quorum {
 
         if (vote_count >= threshold) {
             df::remove<RemoveAdmin, Signatures<F>>(&mut quorum.id, RemoveAdmin { admin: old_admin});
-
-            let (exists_, i) = vector::index_of(&quorum.members, &old_admin);
-            assert!(exists_, EADDRESS_IS_NOT_ADMIN);
-
-            if (exists_) {
-                vector::remove(&mut quorum.admins, i);
-            };
+            vec_set::remove(&mut quorum.admins, &old_admin);
 
             quorum.admin_count = quorum.admin_count - 1;
         };
@@ -237,7 +230,7 @@ module nft_protocol::quorum {
     ) {
         assert_extension_token(quorum, ext_token);
 
-        vector::push_back(&mut quorum.admins, new_admin);
+        vec_set::insert(&mut quorum.admins, new_admin);
         quorum.admin_count = quorum.admin_count + 1;
     }
 
@@ -247,13 +240,7 @@ module nft_protocol::quorum {
         old_admin: address,
     ) {
         assert_extension_token(quorum, ext_token);
-
-        let (exists_, i) = vector::index_of(&quorum.members, &old_admin);
-        assert!(exists_, EADDRESS_IS_NOT_ADMIN);
-
-        if (exists_) {
-            vector::remove(&mut quorum.admins, i);
-        };
+        vec_set::remove(&mut quorum.admins, &old_admin);
 
         quorum.admin_count = quorum.admin_count - 1;
     }
@@ -327,14 +314,14 @@ module nft_protocol::quorum {
 
             sign<F>(sigs, ctx);
 
-            vote_count = vector::length(&sigs.list);
+            vote_count = vec_set::size(&sigs.list);
             threshold = calc_voting_threshold(quorum.admin_count);
 
         } else {
             let sig = tx_context::sender(ctx);
 
             let voting_booth = Signatures<F> {
-                list: vector::singleton(sig),
+                list: vec_set::singleton(sig),
             };
 
             df::add(
@@ -354,7 +341,7 @@ module nft_protocol::quorum {
         sigs: &mut Signatures<F>,
         ctx: &mut TxContext,
     ) {
-        vector::push_back(&mut sigs.list, tx_context::sender(ctx))
+        vec_set::insert(&mut sigs.list, tx_context::sender(ctx))
     }
 
     // TODO: allow for extensions to chance the majority rule
@@ -382,8 +369,7 @@ module nft_protocol::quorum {
         ctx: &mut TxContext,
     ) {
         assert_admin<F>(quorum, ctx);
-
-        vector::push_back(&mut quorum.members, member);
+        vec_set::insert(&mut quorum.members, member);
     }
 
     public fun remove_member<F>(
@@ -392,11 +378,7 @@ module nft_protocol::quorum {
         ctx: &mut TxContext,
     ) {
         assert_admin<F>(quorum, ctx);
-
-        let (exists_, i) = vector::index_of(&quorum.members, &member);
-        if (exists_) {
-            vector::remove(&mut quorum.members, i);
-        }
+        vec_set::remove(&mut quorum.members, &member);
     }
 
     // === MintCap Helper Functions ===
@@ -623,17 +605,17 @@ module nft_protocol::quorum {
     }
 
     public fun assert_admin<F>(quorum: &Quorum<F>, ctx: &TxContext) {
-        assert!(vector::contains(&quorum.admins, &tx_context::sender(ctx)), ENOT_AN_ADMIN);
+        assert!(vec_set::contains(&quorum.admins, &tx_context::sender(ctx)), ENOT_AN_ADMIN);
     }
 
     public fun assert_member<F>(quorum: &Quorum<F>, ctx: &TxContext) {
-        assert!(vector::contains(&quorum.members, &tx_context::sender(ctx)), ENOT_A_MEMBER);
+        assert!(vec_set::contains(&quorum.members, &tx_context::sender(ctx)), ENOT_A_MEMBER);
     }
 
     public fun assert_member_or_admin<F>(quorum: &Quorum<F>, ctx: &TxContext) {
         assert!(
-            vector::contains(&quorum.admins, &tx_context::sender(ctx))
-                || vector::contains(&quorum.members, &tx_context::sender(ctx)),
+            vec_set::contains(&quorum.admins, &tx_context::sender(ctx))
+                || vec_set::contains(&quorum.members, &tx_context::sender(ctx)),
             ENOT_AN_ADMIN_NOR_MEMBER);
     }
 
