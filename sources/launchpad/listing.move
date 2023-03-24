@@ -42,11 +42,9 @@ module nft_protocol::listing {
 
     use nft_protocol::err;
     use nft_protocol::utils;
-    use nft_protocol::nft::Nft;
     use nft_protocol::collection::Collection;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
-    use nft_protocol::factory::Factory;
     use nft_protocol::creators;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
@@ -284,7 +282,7 @@ module nft_protocol::listing {
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - `MarketWitness` does not correspond to `Market` type
     /// - No supply is available from underlying `Inventory`
-    public fun buy_nft<C, FT, Market: store, MarketWitness: drop>(
+    public fun buy_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
         witness: MarketWitness,
         listing: &mut Listing,
         inventory_id: ID,
@@ -293,8 +291,8 @@ module nft_protocol::listing {
         price: u64,
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        let inventory = inventory_internal_mut<Nft<C>, Market, MarketWitness>(
+    ): T {
+        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_nft(inventory, ctx);
@@ -316,7 +314,7 @@ module nft_protocol::listing {
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - `MarketWitness` does not correspond to `Market` type
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
-    public fun buy_pseudorandom_nft<C, FT, Market: store, MarketWitness: drop>(
+    public fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
         witness: MarketWitness,
         listing: &mut Listing,
         inventory_id: ID,
@@ -325,8 +323,8 @@ module nft_protocol::listing {
         price: u64,
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        let inventory = inventory_internal_mut<Nft<C>, Market, MarketWitness>(
+    ): T {
+        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
@@ -352,7 +350,7 @@ module nft_protocol::listing {
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
     /// - `user_commitment` does not match the hashed commitment in
     /// `RedeemCommitment`
-    public fun buy_random_nft<C, FT, Market: store, MarketWitness: drop>(
+    public fun buy_random_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
         witness: MarketWitness,
         listing: &mut Listing,
         commitment: RedeemCommitment,
@@ -363,8 +361,8 @@ module nft_protocol::listing {
         price: u64,
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        let inventory = inventory_internal_mut<Nft<C>, Market, MarketWitness>(
+    ): T {
+        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_random_nft(
@@ -553,43 +551,6 @@ module nft_protocol::listing {
         ctx: &mut TxContext,
     ): ID {
         let inventory = inventory::from_warehouse(warehouse, ctx);
-        let inventory_id = object::id(&inventory);
-        add_inventory(listing, inventory, ctx);
-        inventory_id
-    }
-
-    /// Adds `Factory` to `Listing`
-    ///
-    /// Function transparently wraps `Factory` in `Inventory`, therefore, the
-    /// returned ID is that of the `Inventory` not the `Factory`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender is not listing admin or creator registered
-    /// in `CreatorsDomain`.
-    public entry fun add_factory<T>(
-        listing: &mut Listing,
-        collection: &Collection<T>,
-        factory: Factory<T>,
-        ctx: &mut TxContext,
-    ) {
-        insert_factory(listing, factory, ctx);
-    }
-
-    /// Adds `Factory` to `Listing` and returns it's ID
-    ///
-    /// Function transparently wraps `Factory` in `Inventory`, therefore, the
-    /// returned ID is that of the `Inventory` not the `Factory`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender is not listing admin.
-    public fun insert_factory<T>(
-        listing: &mut Listing,
-        factory: Factory<T>,
-        ctx: &mut TxContext,
-    ): ID {
-        let inventory = inventory::from_factory(factory, ctx);
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
         inventory_id

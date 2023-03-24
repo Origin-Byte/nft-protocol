@@ -11,9 +11,7 @@ module nft_protocol::inventory {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    use nft_protocol::nft::Nft;
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::factory::{Self, Factory};
     use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
 
     /// `Inventory` is not a `Warehouse`
@@ -45,19 +43,6 @@ module nft_protocol::inventory {
         Inventory { id: inventory_id }
     }
 
-    /// Create a new `Inventory` from a `Factory`
-    ///
-    /// Erases type `Nft<C>` to `T` for compatibility with `Warehouse<T>`.
-    public fun from_factory<T>(
-        factory: Factory<T>,
-        ctx: &mut TxContext,
-    ): Inventory<T> {
-        let inventory_id = object::new(ctx);
-        df::add(&mut inventory_id, utils::marker<Factory<T>>(), factory);
-
-        Inventory { id: inventory_id }
-    }
-
     /// Deposits NFT to `Inventory`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
@@ -82,17 +67,15 @@ module nft_protocol::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public fun redeem_nft<C>(
-        inventory: &mut Inventory<Nft<C>>,
+    public fun redeem_nft<T: key + store>(
+        inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        if (is_warehouse(inventory)) {
-            let warehouse = borrow_warehouse_mut(inventory);
-            warehouse::redeem_nft(warehouse)
-        } else {
-            let factory = borrow_factory_mut(inventory);
-            factory::redeem_nft(factory, ctx)
-        }
+    ): T {
+        // TODO: This will be restuctured before merge to main
+        assert!(is_warehouse(inventory), 0);
+
+        let warehouse = borrow_warehouse_mut(inventory);
+        warehouse::redeem_nft(warehouse)
     }
 
     /// Redeems NFT from `Inventory` and transfers to owner
@@ -102,8 +85,8 @@ module nft_protocol::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public entry fun redeem_nft_and_transfer<C>(
-        inventory: &mut Inventory<Nft<C>>,
+    public entry fun redeem_nft_and_transfer<T: key + store>(
+        inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft(inventory, ctx);
@@ -124,17 +107,15 @@ module nft_protocol::inventory {
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public fun redeem_pseudorandom_nft<C>(
-        inventory: &mut Inventory<Nft<C>>,
+    public fun redeem_pseudorandom_nft<T: key + store>(
+        inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        if (is_warehouse(inventory)) {
-            let warehouse = borrow_warehouse_mut(inventory);
-            warehouse::redeem_pseudorandom_nft(warehouse, ctx)
-        } else {
-            let factory = borrow_factory_mut(inventory);
-            factory::redeem_nft(factory, ctx)
-        }
+    ): T {
+        // TODO: This will be restuctured before merge to main
+        assert!(is_warehouse(inventory), 0);
+
+        let warehouse = borrow_warehouse_mut(inventory);
+        warehouse::redeem_pseudorandom_nft(warehouse, ctx)
     }
 
     /// Pseudo-randomly redeems NFT from `Inventory` and transfers to owner
@@ -144,8 +125,8 @@ module nft_protocol::inventory {
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public entry fun redeem_pseudorandom_nft_and_transfer<C>(
-        inventory: &mut Inventory<Nft<C>>,
+    public entry fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
+        inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
         let nft = redeem_pseudorandom_nft(inventory, ctx);
@@ -169,22 +150,19 @@ module nft_protocol::inventory {
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public fun redeem_random_nft<C>(
-        inventory: &mut Inventory<Nft<C>>,
+    public fun redeem_random_nft<T: key + store>(
+        inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        if (is_warehouse(inventory)) {
-            let warehouse = borrow_warehouse_mut(inventory);
-            warehouse::redeem_random_nft(
-                warehouse, commitment, user_commitment, ctx,
-            )
-        } else {
-            warehouse::destroy_commitment(commitment);
-            let factory = borrow_factory_mut(inventory);
-            factory::redeem_nft(factory, ctx)
-        }
+    ): T {
+        // TODO: This will be restuctured before merge to main
+        assert!(is_warehouse(inventory), 0);
+
+        let warehouse = borrow_warehouse_mut(inventory);
+        warehouse::redeem_random_nft(
+            warehouse, commitment, user_commitment, ctx,
+        )
     }
 
     /// Randomly redeems NFT from `Inventory` and transfers to owner
@@ -195,8 +173,8 @@ module nft_protocol::inventory {
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public entry fun redeem_random_nft_and_transfer<C>(
-        inventory: &mut Inventory<Nft<C>>,
+    public entry fun redeem_random_nft_and_transfer<T: key + store>(
+        inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
@@ -230,26 +208,17 @@ module nft_protocol::inventory {
     ///
     /// Panics if supply was exceeded.
     public fun supply<T: key + store>(inventory: &Inventory<T>): Option<u64> {
-        if (is_warehouse(inventory)) {
-            let warehouse = borrow_warehouse(inventory);
-            option::some(warehouse::supply(warehouse))
-        } else {
-            let factory = borrow_factory(inventory);
-            factory::supply(factory)
-        }
+        // TODO: This will be restuctured before merge to main
+        assert!(is_warehouse(inventory), 0);
+
+        let warehouse = borrow_warehouse(inventory);
+        option::some(warehouse::supply(warehouse))
     }
 
     /// Returns whether `Inventory` is a `Warehouse`
     public fun is_warehouse<T: key + store>(inventory: &Inventory<T>): bool {
         df::exists_with_type<Marker<Warehouse<T>>, Warehouse<T>>(
             &inventory.id, utils::marker<Warehouse<T>>()
-        )
-    }
-
-    /// Returns whether `Inventory` is a `Factory`
-    public fun is_factory<T: key + store>(inventory: &Inventory<T>): bool {
-        df::exists_with_type<Marker<Factory<T>>, Factory<T>>(
-            &inventory.id, utils::marker<Factory<T>>()
         )
     }
 
@@ -277,30 +246,6 @@ module nft_protocol::inventory {
         df::borrow_mut(&mut inventory.id, utils::marker<Warehouse<T>>())
     }
 
-    /// Borrows `Inventory` as `Factory`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Inventory` is a `Warehouse`
-    public fun borrow_factory<T: key + store>(
-        inventory: &Inventory<T>,
-    ): &Factory<T> {
-        assert_factory(inventory);
-        df::borrow(&inventory.id, utils::marker<Factory<T>>())
-    }
-
-    /// Mutably borrows `Inventory` as `Factory`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Inventory` is a `Warehouse`
-    public fun borrow_factory_mut<T: key + store>(
-        inventory: &mut Inventory<T>,
-    ): &mut Factory<T> {
-        assert_factory(inventory);
-        df::borrow_mut(&mut inventory.id, utils::marker<Factory<T>>())
-    }
-
     // === Assertions ===
 
     /// Asserts that `Inventory` is a `Warehouse`
@@ -310,14 +255,5 @@ module nft_protocol::inventory {
     /// Panics if `Inventory` is not a `Warehouse`
     public fun assert_warehouse<T: key + store>(inventory: &Inventory<T>) {
         assert!(is_warehouse(inventory), ENOT_WAREHOUSE);
-    }
-
-    /// Asserts that `Inventory` is a `Factory`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Inventory` is not a `Factory`
-    public fun assert_factory<T: key + store>(inventory: &Inventory<T>) {
-        assert!(is_factory(inventory), ENOT_FACTORY);
     }
 }

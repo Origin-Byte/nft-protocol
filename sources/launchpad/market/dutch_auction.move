@@ -24,7 +24,6 @@ module nft_protocol::dutch_auction {
 
     use nft_protocol::err;
     use nft_protocol::venue;
-    use nft_protocol::nft::Nft;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::inventory;
     use nft_protocol::market_whitelist::{Self, Certificate};
@@ -218,7 +217,7 @@ module nft_protocol::dutch_auction {
     /// NFTs will be allocated to the winning biddeers.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_conclude<C, FT>(
+    public entry fun sale_conclude<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         ctx: &mut TxContext,
@@ -231,7 +230,7 @@ module nft_protocol::dutch_auction {
         let market = listing::borrow_market<DutchAuctionMarket<FT>>(listing, venue_id);
 
         let inventory_id = market.inventory_id;
-        let supply = listing::supply<Nft<C>>(listing, inventory_id);
+        let supply = listing::supply<T>(listing, inventory_id);
 
         // Auction could be drawing from an inventory with unregulated supply
         let nfts_to_sell = if (option::is_some(&supply)) {
@@ -255,7 +254,7 @@ module nft_protocol::dutch_auction {
 
         // Transfer NFTs to matching orders
         let inventory = listing::inventory_internal_mut<
-            Nft<C>, DutchAuctionMarket<FT>, Witness
+            T, DutchAuctionMarket<FT>, Witness
         >(
             Witness {}, listing, venue_id, inventory_id
         );
@@ -284,7 +283,7 @@ module nft_protocol::dutch_auction {
         vector::destroy_empty(bids_to_fill);
 
         // Cancel all remaining orders if there are no NFTs left to sell
-        let inventory = listing::borrow_inventory<Nft<C>>(listing, inventory_id);
+        let inventory = listing::borrow_inventory<T>(listing, inventory_id);
         if (inventory::is_empty(inventory)) {
             sale_cancel<FT>(listing, venue_id, ctx);
         }
