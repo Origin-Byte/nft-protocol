@@ -16,7 +16,6 @@ module nft_protocol::collection {
     use sui::dynamic_field as df;
 
     use nft_protocol::witness;
-    use nft_protocol::nft::Nft;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::witness::Witness as DelegatedWitness;
@@ -75,25 +74,6 @@ module nft_protocol::collection {
         _witness: &W,
         ctx: &mut TxContext,
     ): (MintCap<T>, Collection<T>) {
-        let id = object::new(ctx);
-
-        event::emit(MintCollectionEvent {
-            collection_id: object::uid_to_inner(&id),
-            type_name: type_name::get<T>(),
-        });
-
-        let cap = mint_cap::new(object::uid_to_inner(&id), ctx);
-
-        (cap, Collection { id })
-    }
-
-    /// Creates a `Collection<Nft<C>>` and corresponding `MintCap<Nft<C>>`
-    ///
-    /// Uses the OriginByte `Nft` type as the main collection NFT.
-    public fun create_originbyte<T>(
-        _witness: &T,
-        ctx: &mut TxContext,
-    ): (MintCap<Nft<T>>, Collection<Nft<T>>) {
         let id = object::new(ctx);
 
         event::emit(MintCollectionEvent {
