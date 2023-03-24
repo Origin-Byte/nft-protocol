@@ -24,6 +24,7 @@ module nft_protocol::dutch_auction {
 
     use nft_protocol::err;
     use nft_protocol::venue;
+    use nft_protocol::nft::Nft;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::inventory;
     use nft_protocol::market_whitelist::{Self, Certificate};
@@ -230,7 +231,7 @@ module nft_protocol::dutch_auction {
         let market = listing::borrow_market<DutchAuctionMarket<FT>>(listing, venue_id);
 
         let inventory_id = market.inventory_id;
-        let supply = listing::supply<C>(listing, inventory_id);
+        let supply = listing::supply<Nft<C>>(listing, inventory_id);
 
         // Auction could be drawing from an inventory with unregulated supply
         let nfts_to_sell = if (option::is_some(&supply)) {
@@ -254,7 +255,7 @@ module nft_protocol::dutch_auction {
 
         // Transfer NFTs to matching orders
         let inventory = listing::inventory_internal_mut<
-            C, DutchAuctionMarket<FT>, Witness
+            Nft<C>, DutchAuctionMarket<FT>, Witness
         >(
             Witness {}, listing, venue_id, inventory_id
         );
@@ -267,7 +268,8 @@ module nft_protocol::dutch_auction {
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            inventory::redeem_pseudorandom_nft_and_transfer(inventory, owner, ctx);
+            let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
+            transfer::transfer(nft, owner);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);
@@ -282,7 +284,7 @@ module nft_protocol::dutch_auction {
         vector::destroy_empty(bids_to_fill);
 
         // Cancel all remaining orders if there are no NFTs left to sell
-        let inventory = listing::borrow_inventory<C>(listing, inventory_id);
+        let inventory = listing::borrow_inventory<Nft<C>>(listing, inventory_id);
         if (inventory::is_empty(inventory)) {
             sale_cancel<FT>(listing, venue_id, ctx);
         }

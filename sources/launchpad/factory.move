@@ -14,13 +14,13 @@ module nft_protocol::factory {
     /// `Factory` is an inventory that can mint loose NFTs
     ///
     /// Each `Factory` may only mint NFTs from a single collection.
-    struct Factory<phantom C> has key, store {
+    struct Factory<phantom T> has key, store {
         /// `Factory` ID
         id: UID,
         /// `LooseMintCap` responsible for generating `PointerDomain` and
         /// maintianing supply invariants on `Collection` and `Archetype`
         /// levels.
-        mint_cap: LooseMintCap<C>,
+        mint_cap: LooseMintCap<T>,
     }
 
     /// Creates a new `Factory`
@@ -33,11 +33,11 @@ module nft_protocol::factory {
     /// - Archetype `RegistryDomain` is not registered
     /// - `Archetype` does not exist
     public fun from_regulated<C>(
-        mint_cap: RegulatedMintCap<C>,
-        collection: &mut Collection<C>,
+        mint_cap: RegulatedMintCap<Nft<C>>,
+        collection: &mut Collection<Nft<C>>,
         metadata_id: ID,
         ctx: &mut TxContext,
-    ): Factory<C> {
+    ): Factory<Nft<C>> {
         let mint_cap = metadata_bag::delegate_regulated(
             mint_cap, collection, metadata_id, ctx,
         );
@@ -50,11 +50,11 @@ module nft_protocol::factory {
     /// `UnregulatedMintCap` can be obtained from
     /// `supply_domain::delegate_unregulated`.
     public fun from_unregulated<C>(
-        mint_cap: UnregulatedMintCap<C>,
-        collection: &mut Collection<C>,
+        mint_cap: UnregulatedMintCap<Nft<C>>,
+        collection: &mut Collection<Nft<C>>,
         metadata_id: ID,
         ctx: &mut TxContext,
-    ): Factory<C> {
+    ): Factory<Nft<C>> {
         let mint_cap = metadata_bag::delegate_unregulated(
             mint_cap, collection, metadata_id, ctx,
         );
@@ -63,18 +63,18 @@ module nft_protocol::factory {
     }
 
     /// Borrow `LooseMintCap`
-    fun borrow_mint_cap<C>(factory: &Factory<C>): &LooseMintCap<C> {
+    fun borrow_mint_cap<T>(factory: &Factory<T>): &LooseMintCap<T> {
         &factory.mint_cap
     }
 
     /// Mutably borrow `LooseMintCap`
-    fun borrow_mint_cap_mut<C>(
-        factory: &mut Factory<C>,
-    ): &mut LooseMintCap<C> {
+    fun borrow_mint_cap_mut<T>(
+        factory: &mut Factory<T>,
+    ): &mut LooseMintCap<T> {
         &mut factory.mint_cap
     }
 
-    /// Mints NFT from `Factory`
+    /// Redeems NFT from `Factory`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Factory`.
@@ -83,11 +83,27 @@ module nft_protocol::factory {
     ///
     /// Panics if supply was exceeded.
     public fun redeem_nft<C>(
-        factory: &mut Factory<C>,
+        factory: &mut Factory<Nft<C>>,
         ctx: &mut TxContext,
     ): Nft<C> {
         let mint_cap = borrow_mint_cap_mut(factory);
         loose_mint_cap::mint_nft(mint_cap, ctx)
+    }
+
+    /// Redeems NFT from `Factory` and transfers
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Factory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if supply was exceeded.
+    public fun redeem_nft_and_transfer<C>(
+        factory: &mut Factory<Nft<C>>,
+        ctx: &mut TxContext,
+    ) {
+        let mint_cap = borrow_mint_cap_mut(factory);
+        loose_mint_cap::mint_nft_and_transfer(mint_cap, ctx)
     }
 
     /// Returns the remaining supply available to `Factory`

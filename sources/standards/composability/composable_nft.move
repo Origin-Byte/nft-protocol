@@ -153,9 +153,9 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if `Blueprint` is already registered on the `Collection`.
-    public fun add_blueprint_domain<C, W, Parent>(
+    public fun add_blueprint_domain<T, W, Parent>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         domain: Blueprint<Parent>,
     ) {
         collection::add_domain(witness, collection, domain);
@@ -174,7 +174,7 @@ module nft_protocol::composable_nft {
     public entry fun compose<C, Parent: store, Child: store>(
         parent_nft: &mut Nft<C>,
         child_nft: Nft<C>,
-        collection: &Collection<C>,
+        collection: &Collection<Nft<C>>,
     ) {
         let blueprint: &Blueprint<Parent> =
             collection::borrow_domain(collection);

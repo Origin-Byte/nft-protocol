@@ -223,7 +223,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade {
 
     public fun collect_proportional_royalty<C, FT>(
         payment: &mut TradePayment<C, FT>,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
         let domain = royalty::royalty_domain(collection);

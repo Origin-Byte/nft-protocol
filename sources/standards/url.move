@@ -44,7 +44,7 @@ module nft_protocol::url {
     ///
     /// Panics if `UrlDomain` does not exist on `Nft`
     public fun set_url<C>(
-        witness: DelegatedWitness<C>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
         url: Url,
     ) {
@@ -59,9 +59,9 @@ module nft_protocol::url {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` does not exist on `Collection`
-    public fun set_collection_url<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun set_collection_url<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         url: Url,
     ) {
         let domain_url = borrow_collection_url_mut(collection);
@@ -76,8 +76,8 @@ module nft_protocol::url {
     }
 
     /// Returns whether `UrlDomain` is registered on `Collection`
-    public fun has_collection_url<C>(collection: &Collection<C>): bool {
-        collection::has_domain<C, UrlDomain>(collection)
+    public fun has_collection_url<T>(collection: &Collection<T>): bool {
+        collection::has_domain<T, UrlDomain>(collection)
     }
 
     /// Borrows `UrlDomain` from `Nft`
@@ -107,7 +107,7 @@ module nft_protocol::url {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` is not registered on the `Collection`
-    public fun borrow_collection_url<C>(collection: &Collection<C>): &Url {
+    public fun borrow_collection_url<T>(collection: &Collection<T>): &Url {
         assert_collection_url(collection);
         let domain: &UrlDomain = collection::borrow_domain(collection);
         &domain.url
@@ -118,8 +118,8 @@ module nft_protocol::url {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` is not registered on the `Collection`
-    fun borrow_collection_url_mut<C>(
-        collection: &mut Collection<C>,
+    fun borrow_collection_url_mut<T>(
+        collection: &mut Collection<T>,
     ): &mut Url {
         assert_collection_url(collection);
         let domain: &mut UrlDomain =
@@ -152,7 +152,7 @@ module nft_protocol::url {
     ///
     /// Panics if `UrlDomain` domain already exists
     public fun add_url_domain_delegated<C>(
-        witness: DelegatedWitness<C>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
         url: Url,
     ) {
@@ -165,9 +165,9 @@ module nft_protocol::url {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` domain already exists
-    public fun add_collection_url_domain<C, W>(
+    public fun add_collection_url_domain<T, W>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         url: Url,
     ) {
         add_collection_url_domain_delegated(
@@ -180,9 +180,9 @@ module nft_protocol::url {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` domain already exists
-    public fun add_collection_url_domain_delegated<C>(
-        witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun add_collection_url_domain_delegated<T>(
+        witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         url: Url,
     ) {
         assert!(!has_collection_url(collection), EEXISTING_DOMAIN);
@@ -205,7 +205,7 @@ module nft_protocol::url {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` is not registered
-    public fun assert_collection_url<C>(collection: &Collection<C>) {
+    public fun assert_collection_url<T>(collection: &Collection<T>) {
         assert!(has_collection_url(collection), EUNDEFINED_URL_DOMAIN);
     }
 }

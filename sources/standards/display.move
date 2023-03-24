@@ -45,9 +45,9 @@ module nft_protocol::display {
     /// Sets name of `DisplayDomain`
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
-    public fun set_name<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun set_name<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         name: String,
     ) {
         let domain: &mut DisplayDomain =
@@ -59,9 +59,9 @@ module nft_protocol::display {
     /// Sets description of `DisplayDomain`
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
-    public fun set_description<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun set_description<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         description: String,
     ) {
         let domain: &mut DisplayDomain =
@@ -78,8 +78,8 @@ module nft_protocol::display {
         nft::borrow_domain(nft)
     }
 
-    public fun collection_display_domain<C>(
-        nft: &Collection<C>,
+    public fun collection_display_domain<T>(
+        nft: &Collection<T>,
     ): &DisplayDomain {
         collection::borrow_domain(nft)
     }
@@ -95,9 +95,9 @@ module nft_protocol::display {
         );
     }
 
-    public fun add_collection_display_domain<C, W>(
+    public fun add_collection_display_domain<T, W>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         name: String,
         description: String,
     ) {
@@ -114,7 +114,7 @@ module nft_protocol::display {
     }
 
     public fun remove_display_domain_delegated<C>(
-        _witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
     ): DisplayDomain {
         nft::remove_domain<C, Witness, DisplayDomain>(Witness {}, nft)
@@ -139,9 +139,9 @@ module nft_protocol::display {
     /// Sets name of `DisplayDomain`
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
-    public fun set_symbol<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun set_symbol<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         symbol: String,
     ) {
         let domain: &mut SymbolDomain =
@@ -160,14 +160,14 @@ module nft_protocol::display {
         option::some(*symbol(nft::borrow_domain<C, SymbolDomain>(nft)))
     }
 
-    public fun display_collection_symbol<C>(
-        nft: &Collection<C>
+    public fun display_collection_symbol<T>(
+        nft: &Collection<T>
     ): Option<String> {
-        if (!collection::has_domain<C, SymbolDomain>(nft)) {
+        if (!collection::has_domain<T, SymbolDomain>(nft)) {
             return option::none()
         };
 
-        option::some(*symbol(collection::borrow_domain<C, SymbolDomain>(nft)))
+        option::some(*symbol(collection::borrow_domain<T, SymbolDomain>(nft)))
     }
 
     public fun add_symbol_domain<C, W>(
@@ -178,9 +178,9 @@ module nft_protocol::display {
         nft::add_domain(witness, nft, new_symbol_domain(symbol));
     }
 
-    public fun add_collection_symbol_domain<C, W>(
+    public fun add_collection_symbol_domain<T, W>(
         witness: &W,
-        nft: &mut Collection<C>,
+        nft: &mut Collection<T>,
         symbol: String,
     ) {
         collection::add_domain(witness, nft, new_symbol_domain(symbol));
@@ -207,9 +207,9 @@ module nft_protocol::display {
     /// Sets name of `CollectionIdDomain`
     ///
     /// Requires that `AttributionDomain` is defined and sender is a creator
-    public fun set_collection_id<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun set_collection_id<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         collection_id: ID,
     ) {
         let domain: &mut CollectionIdDomain =

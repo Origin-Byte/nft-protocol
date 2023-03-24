@@ -137,7 +137,7 @@ module nft_protocol::attributes {
     ///
     /// Panics if `UrlDomain` is not registered on the `Nft`
     public fun borrow_domain_mut<C>(
-        _witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
     ): &mut AttributesDomain {
         assert_attributes(nft);
@@ -163,7 +163,7 @@ module nft_protocol::attributes {
     ///
     /// Panics if `AttributesDomain` domain already exists
     public fun add_domain_delegated<C>(
-        witness: DelegatedWitness<C>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
         map: VecMap<String, String>,
     ) {
@@ -189,7 +189,7 @@ module nft_protocol::attributes {
     ///
     /// Panics if `AttributesDomain` domain already exists
     public fun add_empty_domain_delegated<C>(
-        witness: DelegatedWitness<C>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
     ) {
         assert!(!has_domain(nft), EEXISTING_DOMAIN);
@@ -220,7 +220,7 @@ module nft_protocol::attributes {
     /// Panics if `AttributesDomain` domain already exists or keys and values
     /// vectors have different lengths
     public fun add_domain_from_vec_delegated<C>(
-        witness: DelegatedWitness<C>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
         keys: vector<String>,
         values: vector<String>,

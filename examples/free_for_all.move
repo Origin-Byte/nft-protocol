@@ -16,9 +16,9 @@ module nft_protocol::free_for_all_allowlist {
         transfer_allowlist::init_allowlist(&Witness {}, ctx);
     }
 
-    public entry fun insert_collection<C>(
-        col_cap: &CollectionControlCap<C>,
-        collection: &mut Collection<C>,
+    public entry fun insert_collection<T>(
+        col_cap: &CollectionControlCap<T>,
+        collection: &mut Collection<T>,
         allowlist: &mut Allowlist,
     ) {
         transfer_allowlist_domain::add_id_with_cap(col_cap, collection, allowlist);
