@@ -30,16 +30,33 @@
 /// admins can decide if these are accessible to Admin-only or if they are also
 /// accessible to Members.
 ///
-/// 4. Delegation: Borrow lending between quorums
+/// 4. Delegation: To facilitate interactivity between parties, such as Games
+/// or NFT creators and Marketplaces, Quorums can delegate access rights to other
+/// Quorums. This means that sophisticated creators can create a CreatoQuorum and
+/// delegate access rights to a MarketplaceQuorum. This allows for creators to
+/// preserve their sovereignty over the collection's affairs, whilst allowing for
+/// Marketplaces or other Third-Parties to act on their behalf.
 ///
-/// 5. Simplicity
+/// 5. Simplicity: The above case is an advanced option, however creators can
+/// decide to start simple by calling quorum::singleton(creator_address), which
+/// effectively mimics as if the creator would own the Cap objects directly.
 ///
-/// 6. Extendability
+/// Another option for simplicity, in cases where creators are completely
+/// abstracted away from the on-chain code, these Cap objects can be stored
+/// directly in the marketplace's Quorums. If needed at any time the Marketplace
+/// can return the Caps back to the creator address or quorum.
 ///
+/// 6. Extendability: Following our principles of OriginByte as a developer
+/// framework, this Quorum can be extended with custom-made implementations.
+/// In a nutshell, extensions can:
 ///
-///
-/// ... Examples: Marketplace - Creators
+/// - Implement different voting mechanisms with their own majority
+/// and minority rules;
+/// - Implement different access-permission schemes (they can bypass
+/// the Admin-Member model and add their own model)
 module nft_protocol::quorum {
+    // TODO: Function for poping_caps with vote
+    // TODO: Generalise voting
     use std::type_name::{Self, TypeName};
     use std::option;
 
