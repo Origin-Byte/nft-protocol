@@ -1,3 +1,42 @@
+/// Quorum is a primitive for regulating access management to administrative
+/// objects such `MintCap`, `Publisher`, `LaunchpadCap` among others.
+///
+/// The core problem that Quorum tries to solve is that it's not sufficiently
+/// secure to own Capability objects directly via a keypair. Owning Cap objects
+/// directly equates to centralization risk, exposing projects to
+/// the risk that such keypair gets compromised.
+///
+/// Quorum solves this by providing a flexible yet ergonomic way of regulating
+/// access control over these objects. Baseline Multi-sig only solves the
+/// problem of distributing the risk accross keypairs but it does not provide an
+/// ergonomic on-chain abstraction with ability to manage access control as well
+/// as delegation capatibilities.
+///
+/// The core mechanics of the Quorum are the following:
+///
+/// 1. Allowed users can borrow Cap objects from the Quorum but have to return
+/// it in the same batch of programmable transactions. When authorised users
+/// call `borrow_cap` they will receive the Cap object `T` and a hot potato object
+/// `ReturnReceipt<F, T>`. In order for the batch of transactions to suceed this
+/// hot potato object needs to be returned in conjunctions with the Cap `T`.
+///
+/// 2. Quorum exports two users types: Admins and Members. Any `Admin` user can
+/// add or remove `Member` users. To add or remove `Admin` users, at least >50%
+/// of the admins need to vote in favor. (Note: This is the baseline
+/// functionality that the quorum provides but it can be overwritten by
+/// Quorum extensions to fit specific needs of projects)
+///
+/// 3. Only Admins can insert Cap objects to Quorums. TODO: explain Admin and Member Locks
+///
+/// 4. Delegation: Borrow lending between quorums
+///
+/// 5. Simplicity
+///
+/// 6. Extendability
+///
+///
+///
+/// ... Examples: Marketplace - Creators
 module nft_protocol::quorum {
     use std::type_name::{Self, TypeName};
     use std::vector;
