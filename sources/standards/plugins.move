@@ -1,4 +1,4 @@
-/// Module of the `PluginDomain` for extending collection contracts
+/// Module of the `Plugin` for extending collection contracts
 ///
 /// A plugin is a smart contract which extends the functionality of the
 /// collection base contract by obtaining an instance of the collection
@@ -8,6 +8,7 @@
 /// This solves the issue that after a package is deployed, it can no
 /// longer leverage witness protected API.
 module nft_protocol::plugins {
+    // TODO: Plugin must be generalised beyond the collection
     use std::type_name::{Self, TypeName};
 
     use sui::vec_set::{Self, VecSet};
@@ -17,19 +18,19 @@ module nft_protocol::plugins {
     };
     use nft_protocol::collection::{Self, Collection};
 
-    /// `PluginDomain` not registered on `Collection`
+    /// `Plugin` not registered on `Collection`
     ///
     /// Call `add_plugin_domain` to register plugin on `Collection`.
     const EUNDEFINED_PLUGIN_DOMAIN: u64 = 1;
 
-    /// Plugin was not defined on `PluginDomain`
+    /// Plugin was not defined on `Plugin`
     ///
     /// Call `add_plugin` or `add_collection_plugin` to register plugins.
     const EUNDEFINED_PLUGIN: u64 = 2;
 
-    // === PluginDomain ===
+    // === Plugin ===
 
-    struct PluginDomain<phantom C> has store {
+    struct Plugin<phantom C> has store {
         /// Generator responsible for issuing delegated witnesses
         generator: WitnessGenerator<C>,
         /// Witnesses that have the ability to mutate standard domains
@@ -39,9 +40,9 @@ module nft_protocol::plugins {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Creates a new `PluginDomain` object
-    fun new<C, W>(witness: &W): PluginDomain<C> {
-        PluginDomain {
+    /// Creates a new `Plugin` object
+    fun new<C, W>(witness: &W): Plugin<C> {
+        Plugin {
             generator: witness::generator(witness),
             packages: vec_set::empty(),
         }
@@ -51,7 +52,7 @@ module nft_protocol::plugins {
     ///
     /// #### Panics
     ///
-    /// Panics if witness was already attributed or `PluginDomain` is not
+    /// Panics if witness was already attributed or `Plugin` is not
     /// registered on the `Collection`.
     public fun add_plugin<T, PluginWitness>(
         _witness: DelegatedWitness<T>,
@@ -65,7 +66,7 @@ module nft_protocol::plugins {
     ///
     /// #### Panics
     ///
-    /// Panics if witness was not attributed or `PluginDomain` is not
+    /// Panics if witness was not attributed or `Plugin` is not
     /// registered on the `Collection`.
     public fun remove_plugin<T, PluginWitness>(
         _witness: DelegatedWitness<T>,
@@ -100,43 +101,43 @@ module nft_protocol::plugins {
 
     /// Returns whether witness is a defined plugin
     public fun contains_plugin<T, PluginWitness>(
-        domain: &PluginDomain<T>,
+        domain: &Plugin<T>,
     ): bool {
         vec_set::contains(&domain.packages, &type_name::get<PluginWitness>())
     }
 
     /// Returns list of all defined plugins
-    public fun borrow_plugins<T>(domain: &PluginDomain<T>): &VecSet<TypeName> {
+    public fun borrow_plugins<T>(domain: &Plugin<T>): &VecSet<TypeName> {
         &domain.packages
     }
 
     // === Interoperability ===
 
-    /// Borrows `PluginDomain` from `Collection`
+    /// Borrows `Plugin` from `Collection`
     ///
     /// #### Panics
     ///
-    /// Panics if `PluginDomain` is not registered on `Collection`.
+    /// Panics if `Plugin` is not registered on `Collection`.
     public fun borrow_plugin_domain<T>(
         collection: &Collection<T>,
-    ): &PluginDomain<T> {
+    ): &Plugin<T> {
         assert_domain(collection);
         collection::borrow_domain(collection)
     }
 
-    /// Mutably borrows `PluginDomain` from `Collection`
+    /// Mutably borrows `Plugin` from `Collection`
     ///
     /// #### Panics
     ///
-    /// Panics if `PluginDomain` is not registered on `Collection`.
+    /// Panics if `Plugin` is not registered on `Collection`.
     fun borrow_plugin_domain_mut<T>(
         collection: &mut Collection<T>,
-    ): &mut PluginDomain<T> {
+    ): &mut Plugin<T> {
         assert_domain(collection);
         collection::borrow_domain_mut(Witness {}, collection)
     }
 
-    /// Adds `PluginDomain` to `Collection`
+    /// Adds `Plugin` to `Collection`
     ///
     /// #### Panics
     ///
@@ -151,23 +152,23 @@ module nft_protocol::plugins {
 
     // === Assertions ===
 
-    /// Asserts that witness is attributed in `PluginDomain`
+    /// Asserts that witness is attributed in `Plugin`
     ///
     /// #### Panics
     ///
-    /// Panics if `PluginDomain` is not defined or witness is not a plugin.
-    public fun assert_plugin<T, PluginWitness>(domain: &PluginDomain<T>) {
+    /// Panics if `Plugin` is not defined or witness is not a plugin.
+    public fun assert_plugin<T, PluginWitness>(domain: &Plugin<T>) {
         assert!(contains_plugin<T, PluginWitness>(domain), EUNDEFINED_PLUGIN);
     }
 
-    /// Asserts that `PluginDomain` is defined on the `Collection`
+    /// Asserts that `Plugin` is defined on the `Collection`
     ///
     /// #### Panics
     ///
-    /// Panics if `PluginDomain` is not defined on the `Collection`.
+    /// Panics if `Plugin` is not defined on the `Collection`.
     public fun assert_domain<T>(collection: &Collection<T>) {
         assert!(
-            collection::has_domain<T, PluginDomain<T>>(collection),
+            collection::has_domain<T, Plugin<T>>(collection),
             EUNDEFINED_PLUGIN_DOMAIN,
         )
     }

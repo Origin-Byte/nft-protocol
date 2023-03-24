@@ -6,7 +6,6 @@
 module nft_protocol::url {
     use sui::url::Url;
 
-    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
     use nft_protocol::collection::{Self, Collection};
 

@@ -11,7 +11,6 @@ module nft_protocol::tags {
     use sui::tx_context::TxContext;
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::collection::{Self, Collection};
 
@@ -79,27 +78,27 @@ module nft_protocol::tags {
         License {}
     }
 
-    // === TagDomain ===
+    // === Tags ===
 
-    struct TagDomain has store {
+    struct Tags has store {
         id: UID,
     }
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    public fun empty(ctx: &mut TxContext): TagDomain {
-        TagDomain { id: object::new(ctx) }
+    public fun empty(ctx: &mut TxContext): Tags {
+        Tags { id: object::new(ctx) }
     }
 
-    public fun has_tag<T: store + drop>(domain: &TagDomain): bool {
+    public fun has_tag<T: store + drop>(domain: &Tags): bool {
         utils::assert_same_module_as_witness<T, Witness>();
         df::exists_with_type<Marker<T>, T>(&domain.id, utils::marker<T>())
     }
 
     /// Adds tag to `TagDomain`
     public fun add_tag<T: store + drop>(
-        domain: &mut TagDomain,
+        domain: &mut Tags,
         tag: T,
     ) {
         utils::assert_same_module_as_witness<T, Witness>();
@@ -108,47 +107,9 @@ module nft_protocol::tags {
 
     /// Removes tag from `TagDomain`
     public fun remove_tag<T: store + drop>(
-        domain: &mut TagDomain,
+        domain: &mut Tags,
     ) {
         utils::assert_same_module_as_witness<T, Witness>();
         let _: T = df::remove(&mut domain.id, utils::marker<T>());
-    }
-
-    // ====== Interoperability ===
-
-    public fun tag_domain<C>(
-        nft: &Nft<C>,
-    ): &TagDomain {
-        nft::borrow_domain(nft)
-    }
-
-    public fun collection_tag_domain<T>(
-        collection: &Collection<T>,
-    ): &TagDomain {
-        collection::borrow_domain(collection)
-    }
-
-    /// Requires that sender is a creator
-    public fun collection_tag_domain_mut<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
-    ): &mut TagDomain {
-        collection::borrow_domain_mut(Witness {}, collection)
-    }
-
-    public fun add_tag_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-        tags: TagDomain,
-    ) {
-        nft::add_domain(witness, nft, tags);
-    }
-
-    public fun add_collection_tag_domain<T, W>(
-        witness: &W,
-        collection: &mut Collection<T>,
-        tags: TagDomain,
-    ) {
-        collection::add_domain(witness, collection, tags);
     }
 }
