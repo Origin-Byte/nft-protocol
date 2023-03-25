@@ -7,11 +7,9 @@ module nft_protocol::composable_nft {
     use sui::transfer;
     use sui::linked_table::{Self, LinkedTable};
     use sui::table::{Self, Table};
-    use sui::object::{Self, ID, UID};
+    use sui::object::{ID, UID};
     use sui::tx_context::{Self, TxContext};
-    use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::items;
     use nft_protocol::utils::{Self, UidType};
 
