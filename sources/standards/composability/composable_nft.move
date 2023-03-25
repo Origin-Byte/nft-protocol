@@ -5,13 +5,14 @@ module nft_protocol::composable_nft {
     use std::type_name::{Self, TypeName};
 
     use sui::transfer;
+    use sui::linked_table::{Self, LinkedTable};
+    use sui::table::{Self, Table};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::nft_bag;
+    use nft_protocol::items;
 
     /// Parent and child types are not composable
     ///
@@ -30,64 +31,18 @@ module nft_protocol::composable_nft {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Internal struct for indexing NFTs in `NftBagDomain`
+    /// Internal struct for indexing NFTs in `Items`
     struct Key<phantom T> has drop, store {}
 
-    // === Node ===
+    // === Compositions ===
 
-    /// Defines the properties of a child NFT in the context of type-limited
-    /// composability
-    struct Node has store {
-        // Amount of times the child NFT can be attached
-        limit: u64,
-        // TODO: Node generic about parametrization types
-        // Rendering order of the child NFT
-        order: u64,
+    struct Compositions has store {
+        rules: Table<TypeName, LinkedTable<TypeName, u64>>
     }
 
-    /// Create a new `Node`
-    fun new_child_node(limit: u64, order: u64): Node {
-        Node { limit, order }
-    }
-
-    // === Type ===
-
-    /// NFT type domain
-    ///
-    /// Used to mark the NFT as a certain type
-    struct Type<phantom T> has store {}
-
-    /// Creates a new `Type`
-    public fun new_type<T>(): Type<T> {
-        Type {}
-    }
-
-    /// Registers `Type` as a domain on the `Nft`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if NFT is already marked as the type
-    public fun add_type_domain<C, W, Type>(
-        witness: &W,
-        nft: &mut Nft<C>,
-    ) {
-        nft::add_domain(witness, nft, new_type<Type>());
-    }
-
-    // === Blueprint ===
-
-    /// Domain held in the Collection object, blueprinting all the composability
-    /// between types. It contains a ObjectTable with all the nodes of the
-    /// composability flattened.
-    struct Blueprint<phantom T> has store {
-        id: UID,
-        nodes: VecMap<TypeName, Node>,
-    }
-
-    public fun new_blueprint<Parent>(ctx: &mut TxContext): Blueprint<Parent> {
-        Blueprint {
-            id: object::new(ctx),
-            nodes: vec_map::empty(),
+    public fun new_compositions<Parent>(ctx: &mut TxContext): Compositions {
+        Compositions {
+            rules: table::new<TypeName, LinkedTable<TypeName, u64>>(ctx)
         }
     }
 
@@ -96,28 +51,35 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if parent child relationship already exists
-    public fun add_relationship<Parent, Child>(
-        blueprint: &mut Blueprint<Parent>,
+    public fun add_composition<Parent, Child>(
+        compositions: &mut Compositions,
         limit: u64,
-        order: u64,
     ) {
-        let child_type = type_name::get<Child>();
+        let parent_type = type_name::get<Parent>();
+        let parent_row = table::borrow_mut(&mut compositions.rules, parent_type);
 
+        assert_new_relationship<Child>(parent_row);
+
+        let child_type = type_name::get<Child>();
+        linked_table::push_back(parent_row, child_type, limit);
+    }
+
+    public fun assert_new_relationship<Child>(
+        parent_row: &LinkedTable<TypeName, u64>,
+    ) {
         assert!(
-            !has_child<Parent>(blueprint, &child_type),
+            !has_child<Child>(parent_row),
             ERELATIONSHIP_ALREADY_DEFINED,
         );
-
-        let child = new_child_node(limit, order);
-        vec_map::insert(&mut blueprint.nodes, child_type, child);
     }
 
     /// Returns whether a parent child relationship exists in the blueprint
-    public fun has_child<Parent>(
-        blueprint: &Blueprint<Parent>,
-        child_type: &TypeName,
+    public fun has_child<Child>(
+        parent_row: &LinkedTable<TypeName, u64>,
     ): bool {
-        vec_map::contains(&blueprint.nodes, child_type)
+        let child_type = type_name::get<Child>();
+
+        linked_table::contains<TypeName, u64>(parent_row, child_type)
     }
 
     /// Borrow child node from composability blueprint
@@ -126,39 +88,32 @@ module nft_protocol::composable_nft {
     ///
     /// Panics if parent child relationship was not defined on composability
     /// blueprint.
-    public fun borrow_child<Parent>(
-        blueprint: &Blueprint<Parent>,
-        child_type: &TypeName,
-    ): &Node {
-        assert_composable<Parent>(blueprint, child_type);
-        vec_map::get(&blueprint.nodes, child_type)
+    public fun borrow_child<Parent, Child>(
+        compositions: &Compositions,
+    ): &u64 {
+        // assert_composable<Parent>(blueprint, child_type);
+        let parent_type = type_name::get<Parent>();
+        let parent_row = table::borrow(&compositions.rules, parent_type);
+
+        let child_type = type_name::get<Child>();
+        linked_table::borrow<TypeName, u64>(parent_row, child_type)
     }
 
-    /// Mutbaly borrow child node from composability blueprint
+    /// Mutably borrow child node from composability blueprint
     ///
     /// #### Panics
     ///
     /// Panics if parent child relationship was not defined on composability
     /// blueprint.
-    fun borrow_child_mut<Parent>(
-        blueprint: &mut Blueprint<Parent>,
-        child_type: &TypeName,
-    ): &mut Node {
-        assert_composable<Parent>(blueprint, child_type);
-        vec_map::get_mut(&mut blueprint.nodes, child_type)
-    }
+    fun borrow_child_mut<Parent, Child>(
+        compositions: &mut Compositions,
+    ): &mut u64 {
+        // assert_composable<Parent>(blueprint, child_type);
+        let parent_type = type_name::get<Parent>();
+        let parent_row = table::borrow_mut(&mut compositions.rules, parent_type);
 
-    /// Registers `Blueprint` on the given `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Blueprint` is already registered on the `Collection`.
-    public fun add_blueprint_domain<T, W, Parent>(
-        witness: &W,
-        collection: &mut Collection<T>,
-        domain: Blueprint<Parent>,
-    ) {
-        collection::add_domain(witness, collection, domain);
+        let child_type = type_name::get<Child>();
+        linked_table::borrow_mut<TypeName, u64>(parent_row, child_type)
     }
 
     /// Compose child NFT into parent NFT
@@ -171,30 +126,27 @@ module nft_protocol::composable_nft {
     /// * Parent or child NFT do not have corresponding `Type<Parent>` and
     /// `Type<Child>` domains registered
     /// * Limit of children is exceeded
-    public entry fun compose<C, Parent: store, Child: store>(
-        parent_nft: &mut Nft<C>,
-        child_nft: Nft<C>,
-        collection: &Collection<Nft<C>>,
+    public entry fun compose<Parent: key + store, Child: key + store>(
+        parent_nft: &mut Parent,
+        child_nft: Child,
+        compositions: &Compositions,
     ) {
-        let blueprint: &Blueprint<Parent> =
-            collection::borrow_domain(collection);
-
-        // Assert that types match NFTs
-        nft::assert_domain<C, Type<Parent>>(parent_nft);
-        nft::assert_domain<C, Type<Child>>(&child_nft);
-
         // Asserts that parent and child are composable
         let child_type = type_name::get<Child>();
-        let node = borrow_child<Parent>(blueprint, &child_type);
+        let limit = borrow_child<Parent,Child>(compositions);
 
-        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        items::borrow_items_mut(parent_nft.id)
+
+        // dof::add(&mut items.id, nft_id, child_nft);
+
+        let items = items::borrow(parent_nft);
 
         assert!(
-            nft_bag::count<Key<Child>>(nfts) < node.limit,
+            items::count<Key<Child>>(nfts) < limit,
             EEXCEEDED_TYPE_LIMIT,
         );
 
-        nft_bag::compose(Key<Child> {}, nfts, child_nft);
+        items::compose(Key<Child> {}, nfts, child_nft);
     }
 
     /// Decomposes NFT with given ID from parent NFT
