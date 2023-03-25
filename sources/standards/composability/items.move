@@ -49,16 +49,7 @@ module nft_protocol::items {
         nfts: VecMap<ID, u64>,
     }
 
-    fun proof_of_type<T: key + store>(uid: &UID, object: &T) {
-        let uid_id = object::uid_to_inner(uid);
-        let object_id = object::id(object);
 
-        assert!(uid_id == object_id, 0);
-
-        let type = type_name::get<T>();
-
-        UidType { id: uid_id, type }
-    }
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}

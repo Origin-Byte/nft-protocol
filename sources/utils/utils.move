@@ -6,6 +6,7 @@ module nft_protocol::utils {
     use std::vector;
 
     use sui::vec_map::{Self, VecMap};
+    use sui::object::{Self, ID, UID};
 
     use nft_protocol::err;
 
@@ -15,12 +16,31 @@ module nft_protocol::utils {
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
 
+    struct UidType<phantom T> has drop {
+        id: ID,
+    }
+
     public fun marker<T>(): Marker<T> {
         Marker<T> {}
     }
 
     public fun bps(): u16 {
         10_000
+    }
+
+    public fun proof_of_type<T: key + store>(uid: &UID, object: &T): UidType<T> {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
+
+        let type = type_name::get<T>();
+
+        UidType<T> { id: uid_id }
+    }
+
+    public fun assert_uid_type<T: key + store>(uid: &UID, uid_type: &UidType<T>) {
+        assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
     }
 
     /// First generic `T` is any type, second generic is `Witness`.

@@ -13,6 +13,7 @@ module nft_protocol::composable_nft {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::items;
+    use nft_protocol::utils::{Self, UidType};
 
     /// Parent and child types are not composable
     ///
@@ -127,26 +128,27 @@ module nft_protocol::composable_nft {
     /// `Type<Child>` domains registered
     /// * Limit of children is exceeded
     public entry fun compose<Parent: key + store, Child: key + store>(
-        parent_nft: &mut Parent,
+        parent_uid: &mut UID,
+        parent_type: &mut UidType<Parent>,
         child_nft: Child,
         compositions: &Compositions,
     ) {
+        utils::assert_uid_type(parent_uid, parent_type);
+
         // Asserts that parent and child are composable
         let child_type = type_name::get<Child>();
         let limit = borrow_child<Parent,Child>(compositions);
 
-        items::borrow_items_mut(parent_nft.id)
-
-        // dof::add(&mut items.id, nft_id, child_nft);
-
-        let items = items::borrow(parent_nft);
+        // TODO: Make sure this does not fail if dynamic field for Items is
+        // still not created.
+        let items = items::borrow_items_mut(parent_uid);
 
         assert!(
-            items::count<Key<Child>>(nfts) < limit,
+            items::count<Key<Child>>(items) < *limit,
             EEXCEEDED_TYPE_LIMIT,
         );
 
-        items::compose(Key<Child> {}, nfts, child_nft);
+        items::compose(Key<Child> {}, items, child_nft);
     }
 
     /// Decomposes NFT with given ID from parent NFT
@@ -154,12 +156,16 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if there is no NFT with given ID composed
-    public fun decompose<C, Parent, Child>(
-        parent_nft: &mut Nft<C>,
+    public fun decompose<C, Parent: key + store, Child: key + store>(
+        parent_uid: &mut UID,
+        parent_type: &mut UidType<Parent>,
         child_nft_id: ID,
-    ): Nft<C> {
-        let nfts = nft_bag::borrow_domain_mut(parent_nft);
-        nft_bag::decompose(Key<Child> {}, nfts, child_nft_id)
+    ): Child {
+        utils::assert_uid_type(parent_uid, parent_type);
+
+        let items = items::borrow_items_mut(parent_uid);
+
+        items::decompose(Key<Child> {}, items, child_nft_id)
     }
 
     /// Decomposes NFT with given ID from parent NFT and transfers to
@@ -168,12 +174,13 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if there is no NFT with given ID composed
-    public fun decompose_and_transfer<C, Parent, Child>(
-        parent_nft: &mut Nft<C>,
+    public fun decompose_and_transfer<C, Parent: key + store, Child: key + store>(
+        parent_uid: &mut UID,
+        parent_type: &mut UidType<Parent>,
         child_nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        let nft = decompose<C, Parent, Child>(parent_nft, child_nft_id);
+        let nft = decompose<C, Parent, Child>(parent_uid, parent_type, child_nft_id);
         transfer::transfer(nft, tx_context::sender(ctx));
     }
 
@@ -184,12 +191,12 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if parent and child types are not composable.
-    public fun assert_composable<Parent>(
-        blueprint: &Blueprint<Parent>,
+    public fun assert_composable<Child>(
+        parent_row: &LinkedTable<TypeName, u64>,
         child_type: &TypeName,
     ) {
         assert!(
-            has_child<Parent>(blueprint, child_type),
+            has_child<Child>(parent_row),
             ETYPES_NOT_COMPOSABLE,
         );
     }
