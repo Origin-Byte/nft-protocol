@@ -43,6 +43,9 @@ module nft_protocol::utils {
         assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
     }
 
+    // TODO: deprecate in favor of assert_same_module as it is more generic?
+    // TODO: Rearrange the order of witnesses from <T, W> to <W, T>
+
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
     ///

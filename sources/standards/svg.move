@@ -5,7 +5,9 @@
 /// Composable NFTs with children registering `SvgDomain` can declare them with
 /// `ComposableSvgDomain` to compose all SVG data into one definition.
 module nft_protocol::svg {
-    use nft_protocol::nft::{Self, Nft};
+    use sui::dynamic_field as df;
+    use sui::object::UID;
+
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::collection::{Self, Collection};
 
@@ -24,6 +26,8 @@ module nft_protocol::svg {
         svg: vector<u8>,
     }
 
+    struct SvgKey has store, copy, drop {}
+
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
@@ -40,11 +44,13 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` does not exist on `Nft`
-    public fun set_svg<C>(
+    public fun set_svg<C, T: key + store>(
         _witness: DelegatedWitness<C>,
-        nft: &mut Nft<C>,
+        nft: &mut T,
         svg: vector<u8>,
     ) {
+        // TODO: The permissioning system must be rearranged,
+        // because owners should not be allowed to change this field
         let svg_data = borrow_svg_mut(nft);
         *svg_data = svg;
     }
@@ -63,27 +69,15 @@ module nft_protocol::svg {
         *svg_data = svg;
     }
 
-    // === Interoperability ===
-
-    /// Returns whether `SvgDomain` is registered on `Nft`
-    public fun has_domain<C>(nft: &Nft<C>): bool {
-        nft::has_domain<C, SvgDomain>(nft)
-    }
-
-    /// Returns whether `SvgDomain` is registered on `Collection`
-    public fun has_domain_collection<T>(collection: &Collection<T>): bool {
-        collection::has_domain<T, SvgDomain>(collection)
-    }
-
     /// Borrows SVG data from `Nft`
     ///
     /// #### Panics
     ///
     /// Panics if `SvgDomain` is not registered on the `Nft`
-    public fun borrow_svg<C>(nft: &Nft<C>): &vector<u8> {
-        assert_svg(nft);
-        let domain: &SvgDomain = nft::borrow_domain(nft);
-        &domain.svg
+    public fun borrow_svg(nft_uid: &UID): &vector<u8> {
+        assert_svg(nft_uid);
+        let svg = df::borrow(nft_uid, SvgKey {});
+        svg
     }
 
     /// Mutably borrows SVG data from `Nft`
@@ -91,10 +85,10 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` is not registered on the `Nft`
-    fun borrow_svg_mut<C>(nft: &mut Nft<C>): &mut vector<u8> {
-        assert_svg(nft);
-        let domain: &mut SvgDomain = nft::borrow_domain_mut(Witness {}, nft);
-        &mut domain.svg
+    fun borrow_svg_mut(nft_uid: &mut UID): &mut vector<u8> {
+        assert_svg(nft_uid);
+        let svg = df::borrow_mut(nft_uid, SvgKey {});
+        svg
     }
 
     /// Borrows SVG data from `Collection`
@@ -108,6 +102,8 @@ module nft_protocol::svg {
         &domain.svg
     }
 
+    // TODO: This is not safe, this endpoint should be protected, otherwise anyone
+    // can come in and mutate the collection as the collection is a shared object.
     /// Mutably borrows SVG data from `Collection`
     ///
     /// #### Panics
@@ -131,11 +127,13 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` domain already exists
-    public fun add_domain<C>(
+    public fun add_domain<C, T: key + store>(
         _witness: DelegatedWitness<C>,
-        nft: &mut Nft<C>,
+        nft: &mut T,
         svg: vector<u8>,
     ) {
+        // TODO: The permissioning system must be rearranged,
+        // because owners should not be allowed to add this field
         assert!(!has_domain(nft), EEXISTING_SVG_DOMAIN);
         nft::add_domain(&Witness {}, nft, new(svg));
     }
@@ -161,8 +159,8 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` is not registered
-    public fun assert_svg<C>(nft: &Nft<C>) {
-        assert!(has_domain(nft), EUNDEFINED_SVG_DOMAIN);
+    public fun assert_svg(nft_uid: &UID) {
+        assert!(df::exists_(nft_uid, SvgKey {}), EUNDEFINED_SVG_DOMAIN)
     }
 
     /// Asserts that `SvgDomain` is registered on `Nft`

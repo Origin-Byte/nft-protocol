@@ -201,6 +201,8 @@ module nft_protocol::composable_svg {
         nft::borrow_domain(nft)
     }
 
+    // TODO: This is unsafe, the owner should not have mutability access to the
+    // SVG.
     /// Mutably borrows SVG data from `Nft`
     ///
     /// #### Panics

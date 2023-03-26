@@ -12,7 +12,7 @@ module nft_protocol::domain_bag {
     use sui::tx_context::TxContext;
 
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
-    use nft_protocol::utils::{Self, Marker};
+    use nft_protocol::utils::{Self, Marker, UidType};
 
     /// Domain not defined
     ///
@@ -27,6 +27,9 @@ module nft_protocol::domain_bag {
     /// Transaction sender not logical owner
     const EINVALID_SENDER: u64 = 3;
 
+    // TODO: Consider wrapping DomainBag in option in order to use df instead of dof
+    // since df is more efficient
+
     /// `DomainBag` object
     ///
     /// Aa `DomainBag` exclusively owns domains of different types, which can be
@@ -37,6 +40,8 @@ module nft_protocol::domain_bag {
     struct DomainBag has key, store {
         id: UID,
     }
+
+    struct DomainKey has store, copy, drop {}
 
     /// Create a new `Nft`
     fun new_(ctx: &mut TxContext): DomainBag {
@@ -71,10 +76,28 @@ module nft_protocol::domain_bag {
     ) {
         let domain = new_(ctx);
 
-        df::add(nft_uid, utils::marker<DomainBag>(), domain);
+        df::add(nft_uid, DomainKey {}, domain);
+    }
+
+    // To be used in the context of programmable transactions
+    public fun get_mut_uid<W, T: key + store>(
+        _witness: W,
+        nft_uid: &mut UID,
+        nft_type: &UidType<T>,
+    ): &mut UID {
+        utils::assert_same_module_as_witness<T, W>();
+        utils::assert_uid_type(nft_uid, nft_type);
+
+        let domain_bag = df::borrow_mut<DomainKey, DomainBag>(nft_uid, DomainKey {});
+
+        &mut domain_bag.id
     }
 
     // === Domain Functions ===
+
+    // public fun has_domain_bag()
+    // public fun borrow_domain_bag()
+    // public fun borrow_domain_bag_mut()
 
     /// Check whether `Nft` has a domain
     public fun has_domain<Domain: store>(nft: &DomainBag): bool {

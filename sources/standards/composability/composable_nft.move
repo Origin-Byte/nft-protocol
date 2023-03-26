@@ -127,7 +127,7 @@ module nft_protocol::composable_nft {
     /// * Limit of children is exceeded
     public entry fun compose<Parent: key + store, Child: key + store>(
         parent_uid: &mut UID,
-        parent_type: &mut UidType<Parent>,
+        parent_type: &UidType<Parent>,
         child_nft: Child,
         compositions: &Compositions,
     ) {
