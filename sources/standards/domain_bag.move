@@ -79,7 +79,10 @@ module nft_protocol::domain_bag {
         df::add(nft_uid, DomainKey {}, domain);
     }
 
-    // To be used in the context of programmable transactions
+    // To be used in the context of programmable transactions.
+    // TODO: The problem now is that all domains will have the same access permission,
+    // what if creators want to determine access atomically for each domain?
+    // Maybe you can make this specific with a generic parameter Domain..
     public fun get_mut_uid<W, T: key + store>(
         _witness: W,
         nft_uid: &mut UID,

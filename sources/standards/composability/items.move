@@ -85,6 +85,7 @@ module nft_protocol::items {
         df::borrow(parent_uid, utils::marker<Items>())
     }
 
+    // TODO: This is unsafe because there is no access control...
     /// Mutably borrows `Nft` from `Items`
     ///
     /// #### Panics
@@ -104,6 +105,7 @@ module nft_protocol::items {
         dof::borrow(&items.id, nft_id)
     }
 
+    // TODO: This is unsafe because there is no access control...
     /// Mutably borrows `Nft` from `Items`
     ///
     /// #### Panics

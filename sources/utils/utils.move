@@ -43,6 +43,14 @@ module nft_protocol::utils {
         assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
     }
 
+    public fun assert_same_module<T, Witness>() {
+        let (package_a, module_a, _) = get_package_module_type<T>();
+        let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
+
+        assert!(package_a == package_b, err::witness_source_mismatch());
+        assert!(module_a == module_b, err::witness_source_mismatch());
+    }
+
     // TODO: deprecate in favor of assert_same_module as it is more generic?
     // TODO: Rearrange the order of witnesses from <T, W> to <W, T>
 
