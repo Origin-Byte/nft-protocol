@@ -10,7 +10,7 @@ module nft_protocol::composable_svg {
     use sui::object::{Self, ID, UID};
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_field as df;
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
     use sui::bag::{Self, Bag};
 
     use nft_protocol::svg;
