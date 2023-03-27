@@ -8,6 +8,8 @@ module nft_protocol::attributes {
     use std::ascii::{Self, String};
 
     use sui::vec_map::{Self, VecMap};
+    use sui::object::UID;
+    use sui::dynamic_field as df;
 
     use nft_protocol::utils;
 
@@ -31,6 +33,8 @@ module nft_protocol::attributes {
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
+
+    struct AttributesKey has store, copy, drop {}
 
     /// Creates new `Attributes`
     ///
@@ -79,6 +83,30 @@ module nft_protocol::attributes {
         domain: &mut Attributes,
     ): &mut VecMap<String, String> {
         &mut domain.map
+    }
+
+    public fun has_attributes_df(
+        nft_uid: &UID,
+    ): bool {
+        df::exists_(nft_uid, AttributesKey {})
+    }
+
+    /// Borrows underlying attribute map of `Attributes`
+    public fun borrow_attributes_df(
+        nft_uid: &UID,
+    ): &Attributes {
+        df::borrow(nft_uid, AttributesKey {})
+    }
+
+    /// Mutably borrows underlying attribute map of `Attributes`
+    ///
+    /// Endpoint is unprotected as it relies on safetly obtaining a mutable
+    /// reference to `Attributes`.
+    public fun borrow_attributes_df_mut<W: drop>(
+        _witness: W,
+        nft_uid: &mut UID,
+    ): &mut Attributes {
+        df::borrow_mut(nft_uid, AttributesKey {})
     }
 
     /// Serializes attributes as URL parameters
