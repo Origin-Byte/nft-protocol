@@ -10,6 +10,8 @@ module nft_protocol::composable_svg {
     use sui::object::{Self, ID, UID};
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_field as df;
+    use sui::tx_context::{Self, TxContext};
+    use sui::bag::{Self, Bag};
 
     use nft_protocol::svg;
     use nft_protocol::items;
@@ -41,15 +43,20 @@ module nft_protocol::composable_svg {
         attributes: VecMap<String, String>,
         /// Composed SVG data
         svg: vector<u8>,
+        child_svgs: Bag,
     }
 
     struct ComposableSvgKey has copy, store, drop {}
+
+    struct ChildSvgKey has copy, store, drop {
+        nft_id: ID,
+    }
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
     /// Creates new `ComposableSvg` with no predefined NFTs
-    public fun new(): ComposableSvg {
+    public fun new(ctx: &mut TxContext): ComposableSvg {
         let attributes = vec_map::empty();
         vec_map::insert(
             &mut attributes,
@@ -61,6 +68,7 @@ module nft_protocol::composable_svg {
             nfts: vector::empty(),
             attributes,
             svg: vector::empty(),
+            child_svgs: bag::new(ctx)
         }
     }
 
@@ -92,9 +100,8 @@ module nft_protocol::composable_svg {
         _witness: DelegatedWitness<C>,
         parent_uid: &mut UID,
         parent_type: &UidType<Parent>,
-        child_uid: &UID,
+        child_uid: &mut UID,
         child_type: &UidType<Child>,
-        child_nft_id: ID,
     ) {
         utils::assert_same_module<Parent, C>();
         utils::assert_uid_type<Parent>(parent_uid, parent_type);
@@ -102,19 +109,23 @@ module nft_protocol::composable_svg {
         utils::assert_uid_type<Child>(child_uid, child_type);
 
         let items = items::borrow_items(parent_uid);
+        let child_id = object::uid_to_inner(child_uid);
 
         // Assert that child NFT exists and it has `SvgDomain`
-        let child_nft = items::borrow_nft<Child>(items, child_nft_id);
+        let child_nft = items::borrow_nft_<Child>(items, child_id);
 
         // Assert that child_nft matches child_uid
-        // TODO: make function with assertion
         assert_child_id(child_nft, child_uid);
         svg::assert_svg(child_uid);
 
         // get composable SVG
         let composable_svg = borrow_composable_svg_mut(parent_uid);
 
-        vector::push_back(&mut composable_svg.nfts, child_nft_id);
+        // Pop SVG from child and Push it to ComposableSvg
+        let child_svg = svg::pop_svg(child_uid);
+        insert_child_svg(composable_svg, child_svg, child_id);
+
+        vector::push_back(&mut composable_svg.nfts, child_id);
     }
 
     /// Deregisters NFT whose SVG data is being composed within
@@ -127,19 +138,25 @@ module nft_protocol::composable_svg {
     ///
     /// - `ComposableSvg` doesn't exist
     /// - NFT wasn't composed
-    public fun deregister<C, Parent: key + store>(
+    public fun deregister<C, Parent: key + store, Child: key + store>(
         _witness: DelegatedWitness<C>,
         parent_uid: &mut UID,
         parent_type: &UidType<Parent>,
-        child_nft_id: ID,
+        child_uid: &mut UID,
+        child_type: &UidType<Child>,
     ) {
         utils::assert_same_module<Parent, C>();
         utils::assert_uid_type<Parent>(parent_uid, parent_type);
 
         let composable_svg = borrow_composable_svg_mut(parent_uid);
+        let child_id = object::uid_to_inner(child_uid);
 
-        let (has_entry, idx) = vector::index_of(&composable_svg.nfts, &child_nft_id);
+        let (has_entry, idx) = vector::index_of(&composable_svg.nfts, &child_id);
         assert!(has_entry, EUNDEFINED_NFT);
+
+        // Pop SVG from ComposableSvg and Push it to Child
+        let child_svg = pop_child_svg(composable_svg, child_id);
+        svg::set_svg<C, Child>(child_uid, child_type, child_svg);
 
         vector::remove(&mut composable_svg.nfts, idx);
     }
@@ -178,32 +195,34 @@ module nft_protocol::composable_svg {
         vector::append(&mut svg, b">");
 
         // Serialize NFT tags
-        let nfts = borrow_nfts(composable_svg);
+        let nft_ids = borrow_nfts(composable_svg);
         let items = items::borrow_items(nft_uid);
 
         let idx = 0;
-        let size = vector::length(nfts);
+        let size = vector::length(nft_ids);
+
         while (idx < size) {
-            let nft_id = vector::borrow(nfts, idx);
+            let nft_id = vector::borrow(nft_ids, idx);
 
-            if (items::has(items, *nft_id)) {
-                let nft = items::borrow_nft<T>(items, *nft_id);
-                if (svg::has_svg(nft)) {
-                    let nft_svg = svg::borrow_svg(nft);
+            if (items::has_nft_(items, *nft_id)) {
 
-                    // TODO: Somehow consider serializing id attribute
-                    vector::append(&mut svg, b"<g>");
-                    vector::append(&mut svg, *nft_svg);
-                    vector::append(&mut svg, b"</g>");
-                }
+                let nft_svg = bag::borrow<ChildSvgKey, vector<u8>>(
+                    &composable_svg.child_svgs,
+                    ChildSvgKey { nft_id: *nft_id }
+                );
+
+                // TODO: Somehow consider serializing id attribute
+                vector::append(&mut svg, b"<g>");
+                vector::append(&mut svg, *nft_svg);
+                vector::append(&mut svg, b"</g>");
             };
 
             idx = idx + 1;
         };
 
         vector::append(&mut svg, b"</svg>");
-        let composable_svg_domain = borrow_domain_mut(nft);
-        composable_svg_domain.svg = svg;
+        let composable_svg = borrow_composable_svg_mut(nft_uid);
+        composable_svg.svg = svg;
     }
 
     /// Returns whether `SvgDomain` is registered on `Nft`
@@ -233,6 +252,21 @@ module nft_protocol::composable_svg {
             parent_uid,
             ComposableSvgKey {}
         )
+    }
+
+    fun insert_child_svg(
+        composable_svg: &mut ComposableSvg,
+        svg: vector<u8>,
+        nft_id: ID
+    ) {
+        bag::add(&mut composable_svg.child_svgs, ChildSvgKey { nft_id }, svg);
+    }
+
+    fun pop_child_svg(
+        composable_svg: &mut ComposableSvg,
+        nft_id: ID
+    ): vector<u8> {
+        bag::remove(&mut composable_svg.child_svgs, ChildSvgKey { nft_id })
     }
 
     // === Assertions ===

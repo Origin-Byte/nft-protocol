@@ -4,16 +4,16 @@
 /// `Items` allows easy checking on which NFTs are composed across
 /// different composability schemes.
 module nft_protocol::items {
-    use std::vector;
-    use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
-    use sui::dynamic_object_field as dof;
     use sui::dynamic_field as df;
+    use sui::table::{Self, Table};
     use sui::tx_context::TxContext;
     use sui::object::{Self, ID , UID};
-    use sui::vec_map::{Self, VecMap};
-    use nft_protocol::utils;
+    use sui::dynamic_object_field as dof;
+    use sui::object_bag::{Self, ObjectBag};
+
+    use nft_protocol::utils::{Self, Marker};
 
     /// `Items` was not defined
     ///
@@ -40,16 +40,13 @@ module nft_protocol::items {
     struct Items has key, store {
         /// `Items` ID
         id: UID,
-        /// Authorities which are allowed to withdraw NFTs
-        authorities: vector<TypeName>,
-        /// NFTs that are currently composed and the index of the authority
-        /// permitted to decompose it
-        ///
-        /// Avoids storage costs of holding `TypeName` strings for each `Nft`.
-        nfts: VecMap<ID, u64>,
+        nfts: ObjectBag,
+        quantity: Table<TypeName, u64>,
     }
 
-
+    struct Key<phantom W, phantom T> has copy, store, drop {
+        nft_id: ID,
+    }
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
@@ -58,22 +55,33 @@ module nft_protocol::items {
     public fun new(ctx: &mut TxContext): Items {
         Items {
             id: object::new(ctx),
-            authorities: vector::empty(),
-            nfts: vec_map::empty(),
+            nfts: object_bag::new(ctx),
+            quantity: table::new(ctx),
         }
     }
 
     /// Creates new `Items`
-    public fun create(parent_uid: &mut UID, ctx: &mut TxContext) {
+    public fun empty(parent_uid: &mut UID, ctx: &mut TxContext) {
         let items = new(ctx);
 
+        // TODO: Is it safe here to add it as a marker?
         df::add(parent_uid, utils::marker<Items>(), items);
     }
 
     /// Returns whether NFT with given ID is composed within provided
     /// `Items`
-    public fun has(container: &Items, nft_id: ID): bool {
-        dof::exists_(&container.id, nft_id)
+    public fun has_nft(parent_uid: &UID, nft_id: ID): bool {
+        let items = df::borrow<Marker<Items>, Items>(
+            parent_uid, utils::marker<Items>()
+        );
+
+        object_bag::contains(&items.nfts, nft_id)
+    }
+
+    /// Returns whether NFT with given ID is composed within provided
+    /// `Items`
+    public fun has_nft_(items: &Items, nft_id: ID): bool {
+        object_bag::contains(&items.nfts, nft_id)
     }
 
     /// Borrows `Items` from `T`
@@ -100,7 +108,36 @@ module nft_protocol::items {
     /// #### Panics
     ///
     /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_nft<T: key + store>(items: &Items, nft_id: ID): &T {
+    public fun borrow_nft<T: key + store>(parent_uid: &mut UID, nft_id: ID): &T {
+        let items = df::borrow<Marker<Items>, Items>(
+            parent_uid, utils::marker<Items>()
+        );
+        borrow_nft_(items, nft_id)
+    }
+
+    // TODO: This is unsafe because there is no access control...
+    /// Mutably borrows `Nft` from `Items`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft` was not composed within the `Items`.
+    public fun borrow_nft_mut<T: key + store>(
+        parent_uid: &mut UID,
+        nft_id: ID,
+    ): &mut T {
+        let items = df::borrow_mut<Marker<Items>, Items>(
+            parent_uid, utils::marker<Items>()
+        );
+
+        borrow_nft_mut_(items, nft_id)
+    }
+
+    /// Borrows `Nft` from `Items`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft` was not composed within the `Items`.
+    public fun borrow_nft_<T: key + store>(items: &Items, nft_id: ID): &T {
         assert_composed(items, nft_id);
         dof::borrow(&items.id, nft_id)
     }
@@ -111,7 +148,7 @@ module nft_protocol::items {
     /// #### Panics
     ///
     /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_nft_mut<T: key + store>(
+    public fun borrow_nft_mut_<T: key + store>(
         items: &mut Items,
         nft_id: ID,
     ): &mut T {
@@ -119,151 +156,65 @@ module nft_protocol::items {
         dof::borrow_mut(&mut items.id, nft_id)
     }
 
-    /// Get index of authority
-    fun get_authority_idx(
-        authority_type: &TypeName,
-        domain: &Items,
-    ): Option<u64> {
-        let (has_authority, idx_opt) =
-            vector::index_of(&domain.authorities, authority_type);
-
-        if (has_authority) {
-            option::some(idx_opt)
-        } else {
-            option::none()
-        }
-    }
-
-    /// Get index of authority or inserts a new one if it did not already exist
-    fun get_or_insert_authority_idx(
-        authority_type: TypeName,
-        items: &mut Items,
-    ): u64 {
-        let idx_opt = get_authority_idx(&authority_type, items);
-
-        if (option::is_some(&idx_opt)) {
-            option::destroy_some(idx_opt)
-        } else {
-            let idx = vector::length(&items.authorities);
-            vector::push_back(&mut items.authorities, authority_type);
-            idx
-        }
-    }
-
     /// Composes child NFT into `Items`
-    public fun compose<T: key + store, Auth: drop>(
-        _authority: Auth,
+    public fun compose<W: drop, T: key + store>(
+        _witness: W,
+        key: Key<W, T>,
         items: &mut Items,
         child_nft: T,
     ) {
-        let authority_type = type_name::get<Auth>();
-        let idx = get_or_insert_authority_idx(authority_type, items);
+        let qty = table::borrow_mut(&mut items.quantity, type_name::get<T>());
+        *qty = *qty + 1;
 
-        let nft_id = object::id(&child_nft);
-        vec_map::insert(&mut items.nfts, nft_id, idx);
-        dof::add(&mut items.id, nft_id, child_nft);
+        object_bag::add(&mut items.nfts, key, child_nft);
     }
-
-    // TODO: Reassess when domain model is restructured
-    // /// Composes child NFT into parent NFT
-    // ///
-    // /// #### Panics
-    // ///
-    // /// Panics if `Items` is not registered on the parent `Nft`
-    // public fun compose_nft<C, Auth: drop>(
-    //     authority: Auth,
-    //     parent_nft: &mut Nft<C>,
-    //     child_nft: Nft<C>,
-    // ) {
-    //     let domain = borrow_domain_mut(parent_nft);
-    //     compose(authority, domain, child_nft);
-    // }
 
     /// Decomposes child NFT from `Items`
     ///
     /// #### Panics
     ///
     /// Panics if child `Nft` does not exist.
-    public fun decompose<T: key + store, Auth: drop>(
-        _authority: Auth,
-        domain: &mut Items,
+    public fun decompose<W: drop, T: key + store>(
+        _witness: W,
+        key: Key<W, T>,
+        items: &mut Items,
         child_nft_id: ID,
     ): T {
-        // Identify index of authority that this `Nft` should be composed using
-        // let authority_type = type_name::get<Auth>();
-        let idx_opt =
-            vec_map::get_idx_opt(&domain.nfts, &child_nft_id);
-        assert!(option::is_some(&idx_opt), EUNDEFINED_NFT);
-        let idx = option::destroy_some(idx_opt);
+        let qty = table::borrow_mut(&mut items.quantity, type_name::get<T>());
+        *qty = *qty - 1;
 
-        let authority = vector::borrow(&domain.authorities, idx);
-        let authority_type = type_name::get<Auth>();
-        assert!(authority == &authority_type, EINVALID_AUTHORITY);
-
-        dof::remove(&mut domain.id, child_nft_id)
+        object_bag::remove(&mut items.nfts, key)
     }
 
-    // TODO: Reassess when domain model is restructured
-    /// Decomposes child NFT from parent NFT
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Items` is not registered on the parent `Nft`
-    // public fun decompose_nft<C, Auth: drop>(
-    //     authority: Auth,
-    //     parent_nft: &mut Nft<C>,
-    //     child_nft_id: ID,
-    // ): Nft<C> {
-    //     let domain = borrow_domain_mut(parent_nft);
-    //     decompose(authority, domain, child_nft_id)
-    // }
+    /// Counts how many NFTs are registered under the given type
+    public fun count<T: key + store>(items: &Items): u64 {
+        *table::borrow(&items.quantity, type_name::get<T>())
+    }
 
-    /// Counts how many NFTs are registered under the given authority
-    public fun count<Auth>(domain: &Items): u64 {
-        let authority_type = type_name::get<Auth>();
+    public fun get_key<W: drop, T: key + store>(
+        _witness: W,
+        nft: &T,
+    ): Key<W, T> {
+        let nft_id = object::id(nft);
 
-        let authority_idx = get_authority_idx(&authority_type, domain);
-        if (option::is_none(&authority_idx)) {
-            return 0
-        };
+        Key { nft_id }
+    }
 
-        let count = 0;
-        let authority_idx = option::destroy_some(authority_idx);
-
-        let idx = 0;
-        let size = vec_map::size(&domain.nfts);
-        while (idx < size) {
-            let (_, nft_authority_idx) =
-                vec_map::get_entry_by_idx(&domain.nfts, idx);
-
-            if (nft_authority_idx == &authority_idx) {
-                count = count + 1;
-            };
-
-            idx = idx + 1;
-        };
-
-        count
+    public fun get_key_by_id<W: drop, T: key + store>(
+        _witness: W,
+        nft_id: ID,
+    ): Key<W, T> {
+        Key { nft_id }
     }
 
     // === Assertions ===
-
-    // TODO: Reassess when domain model is restructured
-    // /// Asserts that `Items` is registered on `Nft`
-    // ///
-    // /// #### Panics
-    // ///
-    // /// Panics if `Items` is not registered
-    // public fun assert_container<C>(nft: &Nft<C>) {
-    //     assert!(has_domain(nft), EUNDEFINED_DOMAIN);
-    // }
 
     /// Assert that NFT with given ID is composed within the `Items`
     ///
     /// #### Panics
     ///
     /// Panics if NFT is not composed.
-    public fun assert_composed(container: &Items, nft_id: ID) {
-        assert!(has(container, nft_id), EUNDEFINED_NFT)
+    public fun assert_composed(items: &Items, nft_id: ID) {
+        assert!(has_nft_(items, nft_id), EUNDEFINED_NFT)
     }
 }

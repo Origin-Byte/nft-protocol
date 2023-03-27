@@ -46,7 +46,8 @@ module nft_protocol::svg {
     ///
     /// Panics if `Svg` does not exist on `Nft`
     public fun set_svg<C, T: key + store>(
-        _witness: DelegatedWitness<C>,
+        // TODO: Set the permissioning system
+        // _witness: DelegatedWitness<C>,
         nft_uid: &mut UID,
         uid_type: &UidType<T>,
         svg: vector<u8>,
@@ -85,6 +86,14 @@ module nft_protocol::svg {
         svg
     }
 
+    // TODO: THIS IS UNSAFE! Need to build permissioning
+    public fun pop_svg(nft_uid: &mut UID): vector<u8> {
+        assert_svg(nft_uid);
+        let svg = df::remove(nft_uid, SvgKey {});
+        svg
+    }
+
+    // TODO: THIS IS UNSAFE! Need to build permissioning
     /// Mutably borrows SVG data from `Nft`
     ///
     /// #### Panics

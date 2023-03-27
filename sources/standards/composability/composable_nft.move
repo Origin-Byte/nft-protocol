@@ -30,9 +30,6 @@ module nft_protocol::composable_nft {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Internal struct for indexing NFTs in `Items`
-    struct Key<phantom T> has drop, store {}
-
     // === Compositions ===
 
     struct Compositions has store {
@@ -142,11 +139,13 @@ module nft_protocol::composable_nft {
         let items = items::borrow_items_mut(parent_uid);
 
         assert!(
-            items::count<Key<Child>>(items) < *limit,
+            items::count<Child>(items) < *limit,
             EEXCEEDED_TYPE_LIMIT,
         );
 
-        items::compose(Key<Child> {}, items, child_nft);
+        let key = items::get_key<Witness, Child>(Witness {}, &child_nft);
+
+        items::compose(Witness {}, key, items, child_nft);
     }
 
     /// Decomposes NFT with given ID from parent NFT
@@ -161,9 +160,10 @@ module nft_protocol::composable_nft {
     ): Child {
         utils::assert_uid_type(parent_uid, parent_type);
 
+        let key = items::get_key_by_id<Witness, Child>(Witness {}, child_nft_id);
         let items = items::borrow_items_mut(parent_uid);
 
-        items::decompose(Key<Child> {}, items, child_nft_id)
+        items::decompose(Witness {}, key, items, child_nft_id)
     }
 
     /// Decomposes NFT with given ID from parent NFT and transfers to
