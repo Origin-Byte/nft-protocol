@@ -56,7 +56,6 @@ module nft_protocol::symbol {
 
 
     /// Adds `Symbol` as a dynamic field with key `SymbolKey`.
-    /// It adds attributes from a `VecMap<String, String>`.
     ///
     /// #### Panics
     ///
@@ -81,7 +80,7 @@ module nft_protocol::symbol {
 
 
     /// Creates new `Symbol`
-    public fun new(symbol: String,): Symbol {
+    public fun new(symbol: String): Symbol {
         Symbol { symbol }
     }
 
@@ -114,7 +113,7 @@ module nft_protocol::symbol {
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun borrow_attributes_mut<T: key>(
+    public fun borrow_symbol_mut<T: key>(
         consumable: ConsumableWitness<T>,
         nft_uid: &mut UID,
         nft_type: UidType<T>
@@ -147,7 +146,7 @@ module nft_protocol::symbol {
     /// in other words, it panics if `nft_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_attributes_mut_<W: drop, T: key>(
+    public fun borrow_symbol_mut_<W: drop, T: key>(
         _witness: W,
         nft_uid: &mut UID,
         nft_type: UidType<T>
@@ -165,7 +164,7 @@ module nft_protocol::symbol {
     // === Writer Functions ===
 
 
-    /// Inserts attribute to `Symbol` field in the NFT of type `T`.
+    /// Changes symbol string in the object field `Symbol` of the NFT of type `T`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a
     /// `ConsumableWitness` for the specific type `T` and field `Symbol`.
@@ -188,13 +187,13 @@ module nft_protocol::symbol {
         assert_has_symbol(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let symbol = borrow_attributes_mut(consumable, nft_uid, nft_type);
+        let symbol = borrow_symbol_mut(consumable, nft_uid, nft_type);
 
         cw::consume<T, Symbol>(consumable, symbol);
         symbol.symbol = new_symbol;
     }
 
-    /// Inserts attribute to `Symbol` field in the NFT of type `T`.
+    /// Changes symbol string in the object field `Symbol` of the NFT of type `T`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
     /// from the contract exporting the type `T`.
@@ -219,7 +218,7 @@ module nft_protocol::symbol {
         assert_has_symbol(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let symbol = borrow_attributes_mut_(witness, nft_uid, nft_type);
+        let symbol = borrow_symbol_mut_(witness, nft_uid, nft_type);
         symbol.symbol = new_symbol;
     }
 
