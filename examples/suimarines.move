@@ -90,9 +90,9 @@ module nft_protocol::suimarines {
             transfer_allowlist_domain::from_id(object::id(&allowlist)),
         );
 
-        transfer::transfer(mint_cap, sender);
-        transfer::share_object(allowlist);
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, sender);
+        transfer::public_share_object(allowlist);
+        transfer::public_share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`

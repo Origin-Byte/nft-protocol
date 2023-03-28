@@ -41,8 +41,8 @@ module nft_protocol::example_simple {
             true
         );
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     /// Mint `Nft`
@@ -69,6 +69,6 @@ module nft_protocol::example_simple {
 
         url::add_url_domain(&Witness {}, &mut nft, url);
 
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 }

@@ -47,7 +47,7 @@ module nft_protocol::orderbook {
     use sui::coin::{Self, Coin};
     use sui::event;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, share_object, public_share_object};
     use sui::tx_context::{Self, TxContext};
 
     // === Errors ===
@@ -297,8 +297,8 @@ module nft_protocol::orderbook {
     ) {
         let (buyer_safe, owner_cap) = safe::new(ctx);
         create_bid<C, FT>(book, &mut buyer_safe, price, wallet, ctx);
-        share_object(buyer_safe);
-        transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_safe);
+        public_transfer(owner_cap, tx_context::sender(ctx));
     }
 
     /// Same as [`create_bid`] but with a
@@ -365,8 +365,8 @@ module nft_protocol::orderbook {
             wallet,
             ctx,
         );
-        share_object(buyer_safe);
-        transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_safe);
+        public_transfer(owner_cap, tx_context::sender(ctx));
     }
 
     // === Cancel bid ===
@@ -509,8 +509,8 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        transfer(owner_cap, seller);
-        share_object(seller_safe);
+        public_transfer(owner_cap, seller);
+        public_share_object(seller_safe);
     }
 
     /// Same as [`create_ask`] but protected by
@@ -686,8 +686,8 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        transfer(owner_cap, seller);
-        share_object(seller_safe);
+        public_transfer(owner_cap, seller);
+        public_share_object(seller_safe);
     }
 
     /// Same as [`create_ask_protected`] but with a
@@ -741,7 +741,7 @@ module nft_protocol::orderbook {
     ) {
         assert!(!book.protected_actions.cancel_ask, EACTION_NOT_PUBLIC);
         let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
-        transfer(cap, tx_context::sender(ctx));
+        public_transfer(cap, tx_context::sender(ctx));
     }
 
     /// Same as [`cancel_ask`] but protected by
@@ -755,7 +755,7 @@ module nft_protocol::orderbook {
     ) {
         utils::assert_same_module_as_witness<C, W>();
         let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
-        transfer(cap, tx_context::sender(ctx));
+        public_transfer(cap, tx_context::sender(ctx));
     }
 
     /// Same as [`cancel_ask`] but the [`TransferCap`] is burned instead of
@@ -863,8 +863,8 @@ module nft_protocol::orderbook {
             book, nft_id, price, wallet, seller_safe, &mut buyer_safe, allowlist, ctx
         );
 
-        transfer(owner_cap, buyer);
-        share_object(buyer_safe);
+        public_transfer(owner_cap, buyer);
+        public_share_object(buyer_safe);
     }
 
     /// Similar to [`buy_nft`] except that this is meant for generic
@@ -903,8 +903,8 @@ module nft_protocol::orderbook {
             book, nft_id, price, wallet, seller_safe, &mut buyer_safe, ctx
         );
 
-        transfer(owner_cap, buyer);
-        share_object(buyer_safe);
+        public_transfer(owner_cap, buyer);
+        public_share_object(buyer_safe);
     }
 
     /// Same as [`buy_nft`] but protected by

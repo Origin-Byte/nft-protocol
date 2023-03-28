@@ -7,7 +7,7 @@ module nft_protocol::test_safe {
 
     use sui::object;
     use sui::test_scenario::{Self, Scenario, ctx};
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
 
     use originmate::box;
 
@@ -31,7 +31,7 @@ module nft_protocol::test_safe {
         safe::assert_id(&safe, owner_cap_safe_id);
         safe::assert_owner_cap(&owner_cap, &safe);
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -105,7 +105,7 @@ module nft_protocol::test_safe {
         let nft = nft::test_mint<Foo>(USER, ctx(&mut scenario));
         safe::deposit_nft(nft, &mut safe, ctx(&mut scenario));
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -125,7 +125,7 @@ module nft_protocol::test_safe {
         let nft = nft::test_mint<Foo>(USER, ctx(&mut scenario));
         safe::deposit_nft(nft, &mut safe, ctx(&mut scenario));
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -149,7 +149,7 @@ module nft_protocol::test_safe {
         safe::deposit_nft(nft, &mut safe, ctx(&mut scenario));
         assert!(safe::has_nft<Foo>(nft_id, &safe), 0);
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -171,7 +171,7 @@ module nft_protocol::test_safe {
         let nft = nft::test_mint<Foo>(USER, ctx(&mut scenario));
         safe::deposit_nft(nft, &mut safe, ctx(&mut scenario));
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -204,7 +204,7 @@ module nft_protocol::test_safe {
 
         safe::burn_transfer_cap(transfer_cap, &mut safe);
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -230,8 +230,8 @@ module nft_protocol::test_safe {
             ctx(&mut scenario)
         );
 
-        transfer(transfer_cap, USER);
-        transfer(owner_cap, USER);
+        public_transfer(transfer_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -273,8 +273,8 @@ module nft_protocol::test_safe {
         );
         assert!(safe::has_nft<Foo>(nft_id, &safe), 0);
 
-        transfer(wl, USER);
-        transfer(owner_cap, USER);
+        public_transfer(wl, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -304,7 +304,7 @@ module nft_protocol::test_safe {
 
         safe::burn_transfer_cap(transfer_cap, &mut safe);
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -347,8 +347,8 @@ module nft_protocol::test_safe {
         );
         assert!(safe::has_nft<Foo>(nft_id, &safe), 0);
 
-        transfer(wl, USER);
-        transfer(owner_cap, USER);
+        public_transfer(wl, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -406,7 +406,7 @@ module nft_protocol::test_safe {
         safe::burn_transfer_cap(transfer_cap3, &mut safe);
         safe::burn_transfer_cap(transfer_cap4, &mut safe);
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -443,8 +443,8 @@ module nft_protocol::test_safe {
             transfer_cap, USER, Witness {}, &wl, &mut safe,
         );
 
-        transfer(wl, USER);
-        transfer(owner_cap, USER);
+        public_transfer(wl, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -468,7 +468,7 @@ module nft_protocol::test_safe {
             ctx(&mut scenario),
         );
 
-        transfer(owner_cap, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -509,9 +509,9 @@ module nft_protocol::test_safe {
         assert!(!safe::has_nft<Foo>(nft_id, &safe1), 0);
         assert!(safe::has_nft<Foo>(nft_id, &safe2), 0);
 
-        transfer(wl, USER);
-        transfer(owner_cap1, USER);
-        transfer(owner_cap2, USER);
+        public_transfer(wl, USER);
+        public_transfer(owner_cap1, USER);
+        public_transfer(owner_cap2, USER);
         test_scenario::return_shared(safe1);
         test_scenario::return_shared(safe2);
         test_scenario::end(scenario);
@@ -548,9 +548,9 @@ module nft_protocol::test_safe {
             ctx(&mut scenario),
         );
 
-        transfer(owner_cap, USER);
-        transfer(transfer_cap1, USER);
-        transfer(transfer_cap2, USER);
+        public_transfer(owner_cap, USER);
+        public_transfer(transfer_cap1, USER);
+        public_transfer(transfer_cap2, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -593,9 +593,9 @@ module nft_protocol::test_safe {
         assert!(!safe::has_nft<Foo>(nft_id, &safe), 0);
         test_scenario::next_tx(&mut scenario, USER);
 
-        transfer(owner_cap, USER);
-        transfer(wl, USER);
-        transfer(transfer_cap2, USER);
+        public_transfer(owner_cap, USER);
+        public_transfer(wl, USER);
+        public_transfer(transfer_cap2, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -625,9 +625,9 @@ module nft_protocol::test_safe {
             ctx(&mut scenario),
         );
 
-        transfer(transfer_cap, USER);
-        transfer(right_owner_cap, USER);
-        transfer(wrong_owner_cap, USER);
+        public_transfer(transfer_cap, USER);
+        public_transfer(right_owner_cap, USER);
+        public_transfer(wrong_owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -657,9 +657,9 @@ module nft_protocol::test_safe {
             ctx(&mut scenario),
         );
 
-        transfer(transfer_cap, USER);
-        transfer(right_owner_cap, USER);
-        transfer(wrong_owner_cap, USER);
+        public_transfer(transfer_cap, USER);
+        public_transfer(right_owner_cap, USER);
+        public_transfer(wrong_owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -680,8 +680,8 @@ module nft_protocol::test_safe {
 
         safe::enable_any_deposit(&wrong_owner_cap, &mut safe);
 
-        transfer(right_owner_cap, USER);
-        transfer(wrong_owner_cap, USER);
+        public_transfer(right_owner_cap, USER);
+        public_transfer(wrong_owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -702,8 +702,8 @@ module nft_protocol::test_safe {
 
         safe::enable_deposits_of_collection<Foo>(&wrong_owner_cap, &mut safe);
 
-        transfer(right_owner_cap, USER);
-        transfer(wrong_owner_cap, USER);
+        public_transfer(right_owner_cap, USER);
+        public_transfer(wrong_owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -730,8 +730,8 @@ module nft_protocol::test_safe {
             ctx(&mut scenario),
         );
 
-        transfer(right_owner_cap, USER);
-        transfer(wrong_owner_cap, USER);
+        public_transfer(right_owner_cap, USER);
+        public_transfer(wrong_owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -761,8 +761,8 @@ module nft_protocol::test_safe {
 
         safe::delist_nft(nft_id, &wrong_owner_cap, &mut safe, ctx(&mut scenario));
 
-        transfer(right_owner_cap, USER);
-        transfer(wrong_owner_cap, USER);
+        public_transfer(right_owner_cap, USER);
+        public_transfer(wrong_owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -798,8 +798,8 @@ module nft_protocol::test_safe {
             transfer_cap, USER, &mut safe,
         );
 
-        transfer(wl, USER);
-        transfer(owner_cap, USER);
+        public_transfer(wl, USER);
+        public_transfer(owner_cap, USER);
         test_scenario::return_shared(safe);
         test_scenario::end(scenario);
     }
@@ -841,8 +841,8 @@ module nft_protocol::test_safe {
             ctx(&mut scenario),
         );
 
-        transfer(owner_cap1, USER);
-        transfer(owner_cap2, USER);
+        public_transfer(owner_cap1, USER);
+        public_transfer(owner_cap2, USER);
         test_scenario::return_shared(safe1);
         test_scenario::return_shared(safe2);
         test_scenario::end(scenario);
@@ -916,8 +916,8 @@ module nft_protocol::test_safe {
         );
         safe::assert_has_nft(&nft_id, &safe2);
 
-        transfer(owner_cap1, USER);
-        transfer(owner_cap2, USER);
+        public_transfer(owner_cap1, USER);
+        public_transfer(owner_cap2, USER);
         test_scenario::return_shared(safe1);
         test_scenario::return_shared(safe2);
         test_scenario::end(scenario);

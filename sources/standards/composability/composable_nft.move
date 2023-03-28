@@ -4,7 +4,7 @@ module nft_protocol::composable_nft {
     // TODO: some endpoint for reorder_children
     use std::type_name::{Self, TypeName};
 
-    use sui::transfer;
+    use sui::transfer::public_transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
@@ -222,7 +222,7 @@ module nft_protocol::composable_nft {
         ctx: &mut TxContext,
     ) {
         let nft = decompose<C, Parent, Child>(parent_nft, child_nft_id);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        public_transfer(nft, tx_context::sender(ctx));
     }
 
     // === Assertions ===

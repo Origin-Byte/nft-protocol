@@ -32,7 +32,7 @@ module nft_protocol::test_tags {
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, TagDomain>(&nft);
 
-        transfer::transfer(nft, CREATOR);
+        transfer::public_transfer(nft, CREATOR);
 
         test_scenario::end(scenario);
     }
@@ -60,8 +60,8 @@ module nft_protocol::test_tags {
         // If domain does not exist this function call will fail
         collection::borrow_domain<Foo, TagDomain>(&collection);
 
-        transfer::share_object(collection);
-        transfer::transfer(mint_cap, CREATOR);
+        transfer::public_share_object(collection);
+        transfer::public_transfer(mint_cap, CREATOR);
 
         test_scenario::end(scenario);
     }
