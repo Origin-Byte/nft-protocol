@@ -212,9 +212,6 @@ module nft_protocol::attributes {
 
     /// Borrows immutably the `Attributes` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
-    ///
     /// #### Panics
     ///
     /// Panics if dynamic field with `AttributesKey` does not exist.
@@ -321,6 +318,8 @@ module nft_protocol::attributes {
             attribute_key,
             attribute_value,
         );
+
+        cw::consume<T, Attributes>(consumable, attributes);
     }
 
     /// Removes attribute to `Attributes` field in the NFT of type `T`.
@@ -352,6 +351,8 @@ module nft_protocol::attributes {
             &mut attributes.map,
             attribute_key,
         );
+
+        cw::consume<T, Attributes>(consumable, attributes);
     }
 
     /// Inserts attribute to `Attributes` field in the NFT of type `T`.
