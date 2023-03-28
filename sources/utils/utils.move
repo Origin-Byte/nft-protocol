@@ -28,6 +28,21 @@ module nft_protocol::utils {
         10_000
     }
 
+    public fun assert_with_witness<W: drop, T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+        assert_same_module_as_witness<T, W>();
+    }
+
+    public fun assert_with_consumable_witness<T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+    }
+
     public fun proof_of_type<T: key + store>(uid: &UID, object: &T): UidType<T> {
         let uid_id = object::uid_to_inner(uid);
         let object_id = object::id(object);
@@ -39,7 +54,7 @@ module nft_protocol::utils {
         UidType<T> { id: uid_id }
     }
 
-    public fun assert_uid_type<T: key + store>(uid: &UID, uid_type: &UidType<T>) {
+    public fun assert_uid_type<T: key>(uid: &UID, uid_type: &UidType<T>) {
         assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
     }
 
