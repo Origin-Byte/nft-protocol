@@ -78,8 +78,8 @@ module nft_protocol::footbytes {
             ctx,
         );
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     public entry fun collect_royalty<FT>(

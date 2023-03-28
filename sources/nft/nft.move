@@ -476,7 +476,7 @@ module nft_protocol::nft {
         allowlist: &Allowlist,
     ) {
         change_logical_owner(&mut nft, recipient, authority, allowlist);
-        transfer::transfer(nft, recipient);
+        transfer::public_transfer(nft, recipient);
     }
 
     /// Change the `logical_owner` of the `Nft` to `recipient`

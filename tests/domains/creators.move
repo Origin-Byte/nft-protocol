@@ -25,8 +25,8 @@ module nft_protocol::test_creators {
         );
         creators::assert_domain(&collection);
 
-        transfer::share_object(collection);
-        transfer::transfer(mint_cap, CREATOR);
+        transfer::public_share_object(collection);
+        transfer::public_transfer(mint_cap, CREATOR);
 
         test_scenario::end(scenario);
     }

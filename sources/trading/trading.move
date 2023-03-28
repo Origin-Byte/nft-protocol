@@ -3,9 +3,9 @@ module nft_protocol::trading {
     use nft_protocol::royalties;
     use std::option::{Self, Option};
     use sui::balance::{Self, Balance};
-    use sui::coin::{Self};
-    use sui::object::{Self};
-    use sui::transfer::{transfer};
+    use sui::coin;
+    use sui::object;
+    use sui::transfer::public_transfer;
     use sui::tx_context::{TxContext};
 
     /// Enables collection of wallet/marketplace collection for buying NFTs.
@@ -60,7 +60,7 @@ module nft_protocol::trading {
             let BidCommission { beneficiary, cut } =
                 option::extract(commission);
 
-            transfer(coin::from_balance(cut, ctx), beneficiary);
+            public_transfer(coin::from_balance(cut, ctx), beneficiary);
         };
     }
 
@@ -128,19 +128,19 @@ module nft_protocol::trading {
             } = option::extract(maybe_commission);
 
             // `p` - `c` goes to seller
-            transfer(
+            public_transfer(
                 coin::from_balance(balance::split(paid, amount - cut), ctx),
                 recipient,
             );
 
             // `c` goes to the marketplace
-            transfer(
+            public_transfer(
                 coin::from_balance(balance::split(paid, cut), ctx),
                 beneficiary,
             );
         } else {
             // no commission, all `p` goes to seller
-            transfer(
+            public_transfer(
                 coin::from_balance(balance::split(paid, amount), ctx),
                 recipient,
             );

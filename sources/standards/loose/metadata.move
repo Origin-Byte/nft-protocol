@@ -53,7 +53,7 @@ module nft_protocol::metadata {
         ctx: &mut TxContext
     ) {
         let metadata = new_unregulated(metadata, ctx);
-        transfer::transfer(metadata, tx_context::sender(ctx));
+        transfer::public_transfer(metadata, tx_context::sender(ctx));
     }
 
     /// Create `Metadata` with unregulated supply
@@ -88,7 +88,7 @@ module nft_protocol::metadata {
         ctx: &mut TxContext,
     ) {
         let metadata = new_regulated(metadata, supply, ctx);
-        transfer::transfer(metadata, tx_context::sender(ctx));
+        transfer::public_transfer(metadata, tx_context::sender(ctx));
     }
 
     /// Returns whether `Metadata` has a regulated supply

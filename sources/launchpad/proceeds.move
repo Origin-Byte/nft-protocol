@@ -93,7 +93,7 @@ module nft_protocol::proceeds {
 
         let fee = coin::from_balance(fee_balance, ctx);
 
-        transfer::transfer(
+        transfer::public_transfer(
             fee,
             marketplace_receiver,
         );
@@ -108,7 +108,7 @@ module nft_protocol::proceeds {
 
         let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
 
-        transfer::transfer(
+        transfer::public_transfer(
             proceeds_coin,
             listing_receiver,
         );
@@ -134,7 +134,7 @@ module nft_protocol::proceeds {
 
         let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
 
-        transfer::transfer(
+        transfer::public_transfer(
             proceeds_coin,
             listing_receiver,
         );

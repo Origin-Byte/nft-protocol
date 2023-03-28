@@ -132,7 +132,7 @@ module nft_protocol::inventory {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft(inventory, owner, ctx);
-        transfer::transfer(nft, owner);
+        transfer::public_transfer(nft, owner);
     }
 
     /// Pseudo-randomly redeems NFT from `Inventory`
@@ -185,7 +185,7 @@ module nft_protocol::inventory {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_pseudorandom_nft(inventory, owner, ctx);
-        transfer::transfer(nft, owner);
+        transfer::public_transfer(nft, owner);
     }
 
     /// Randomly redeems NFT from `Inventory`
@@ -251,7 +251,7 @@ module nft_protocol::inventory {
         let nft = redeem_random_nft(
             inventory, commitment, user_commitment, owner, ctx,
         );
-        transfer::transfer(nft, owner);
+        transfer::public_transfer(nft, owner);
     }
 
     // === Getters ===

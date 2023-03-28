@@ -81,7 +81,7 @@ module nft_protocol::warehouse {
 
     /// Creates a `Warehouse` and transfers to transaction sender
     public entry fun init_warehouse<C>(ctx: &mut TxContext) {
-        transfer::transfer(new<C>(ctx), tx_context::sender(ctx));
+        transfer::public_transfer(new<C>(ctx), tx_context::sender(ctx));
     }
 
     /// Deposits NFT to `Warehouse`
@@ -137,7 +137,7 @@ module nft_protocol::warehouse {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft(warehouse);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Redeems NFT from specific index in `Warehouse`
@@ -186,7 +186,7 @@ module nft_protocol::warehouse {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft_at_index(warehouse, index);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Pseudo-randomly redeems NFT from `Warehouse`
@@ -235,7 +235,7 @@ module nft_protocol::warehouse {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_pseudorandom_nft(warehouse, ctx);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Create a new `RedeemCommitment`
@@ -353,7 +353,7 @@ module nft_protocol::warehouse {
         let nft = redeem_random_nft(
             warehouse, commitment, user_commitment, ctx,
         );
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Destroys `Warehouse`

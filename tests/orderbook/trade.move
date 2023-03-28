@@ -8,7 +8,7 @@ module nft_protocol::test_ob_trade {
     use sui::object::ID;
     use sui::sui::SUI;
     use sui::test_scenario::{Self, Scenario};
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
 
     const BUYER1: address = @0xA1C07;
     const BUYER2: address = @0xA1C06;
@@ -332,7 +332,7 @@ module nft_protocol::test_ob_trade {
 
         test_scenario::return_shared(ob);
         test_scenario::return_shared(seller_safe);
-        transfer(owner_cap, SELLER1);
+        public_transfer(owner_cap, SELLER1);
 
         test_scenario::end(scenario);
     }
