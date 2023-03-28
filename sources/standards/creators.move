@@ -61,6 +61,8 @@ module nft_protocol::creators {
         assert_with_consumable_witness(nft_uid, nft_type);
 
         let creators = from_creators(creators);
+
+        cw::consume<T, Creators>(consumable, &mut creators);
         df::add(nft_uid, CreatorsKey {}, creators);
     }
 
@@ -81,6 +83,8 @@ module nft_protocol::creators {
         assert_with_consumable_witness(nft_uid, nft_type);
 
         let creators = singleton(creator);
+
+        cw::consume<T, Creators>(consumable, &mut creators);
         df::add(nft_uid, CreatorsKey {}, creators);
     }
 
@@ -99,6 +103,8 @@ module nft_protocol::creators {
         assert_with_consumable_witness(nft_uid, nft_type);
 
         let creators = empty();
+
+        cw::consume<T, Creators>(consumable, &mut creators);
         df::add(nft_uid, CreatorsKey {}, creators);
     }
 
@@ -204,9 +210,6 @@ module nft_protocol::creators {
 
     /// Borrows immutably the `Creators` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
-    ///
     /// #### Panics
     ///
     /// Panics if dynamic field with `CreatorsKey` does not exist.
@@ -310,6 +313,7 @@ module nft_protocol::creators {
         assert_with_consumable_witness(nft_uid, nft_type);
 
         let creators = borrow_creators_mut(consumable, nft_uid, nft_type);
+        cw::consume<T, Creators>(consumable, creators);
 
         vec_set::insert(&mut creators.creators, who);
     }
