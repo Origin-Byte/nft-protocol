@@ -82,8 +82,8 @@ module nft_protocol::composable_url {
         let composable_url = df::borrow_mut<ComposableUrlKey, ComposableUrl>(nft_uid, ComposableUrlKey {});
         let url = ascii::into_bytes(url::inner_url(&composable_url.url));
 
-        if (attributes::has_attributes_df(nft_uid)) {
-            let attributes = attributes::borrow_attributes_df(nft_uid);
+        if (attributes::has_attributes(nft_uid)) {
+            let attributes = attributes::borrow_attributes(nft_uid);
             let parameters = attributes::as_url_parameters(attributes);
 
             vector::append(&mut url, parameters);
