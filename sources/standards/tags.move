@@ -1,114 +1,3 @@
-module nft_protocol::tags_x {
-    use sui::dynamic_field as df;
-    use sui::object::{Self, UID};
-    use sui::tx_context::TxContext;
-
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::collection::{Self, Collection};
-
-
-    // === Tags ===
-
-    struct Art has store, drop {}
-    struct ProfilePicture has store, drop {}
-    // An example of a collectible would be digital Baseball cards
-    struct Collectible has store, drop {}
-    struct GameAsset has store, drop {}
-    // A tokenised asset is a real world asset represented on-chian,
-    // i.e. insurance policies, loan contracts, etc.
-    struct TokenisedAsset has store, drop {}
-    // Tickers are what's called the abbreviation used to uniquely identify
-    // publicly traded assets, i.e. Tesla trades as $TSLA and Amazon as $AMZN.
-    // Crypto asset tickers themselves can be minted and sold as NFTs.
-    struct Ticker has store, drop {}
-    struct DomainName has store, drop {}
-    struct Music has store, drop {}
-    struct Video has store, drop {}
-    struct Ticket has store, drop {}
-    struct License has store, drop {}
-
-    public fun art(): Art {
-        Art {}
-    }
-
-    public fun profile_picture(): ProfilePicture {
-        ProfilePicture {}
-    }
-
-    public fun collectible(): Collectible {
-        Collectible {}
-    }
-
-    public fun game_asset(): GameAsset {
-        GameAsset {}
-    }
-
-    public fun tokenised_asset(): TokenisedAsset {
-        TokenisedAsset {}
-    }
-
-    public fun ticker(): Ticker {
-        Ticker {}
-    }
-
-    public fun domain_name(): DomainName {
-        DomainName {}
-    }
-
-    public fun music(): Music {
-        Music {}
-    }
-
-    public fun video(): Video {
-        Video {}
-    }
-
-    public fun ticket(): Ticket {
-        Ticket {}
-    }
-
-    public fun license(): License {
-        License {}
-    }
-
-    // === Tags ===
-
-    struct Tags has store {
-        id: UID,
-        tags: Bag,
-    }
-
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
-
-    public fun empty(ctx: &mut TxContext): Tags {
-        Tags { id: object::new(ctx) }
-    }
-
-    public fun has_tag<T: store + drop>(domain: &Tags): bool {
-        utils::assert_same_module_as_witness<T, Witness>();
-        df::exists_with_type<Marker<T>, T>(&domain.id, utils::marker<T>())
-    }
-
-    /// Adds tag to `TagDomain`
-    public fun add_tag<T: store + drop>(
-        domain: &mut Tags,
-        tag: T,
-    ) {
-        utils::assert_same_module_as_witness<T, Witness>();
-        df::add(&mut domain.id, utils::marker<T>(), tag)
-    }
-
-    /// Removes tag from `TagDomain`
-    public fun remove_tag<T: store + drop>(
-        domain: &mut Tags,
-    ) {
-        utils::assert_same_module_as_witness<T, Witness>();
-        let _: T = df::remove(&mut domain.id, utils::marker<T>());
-    }
-}
-
 /// Module of NFT and Collection `Tags` domain
 ///
 /// This domain allows wallets to organize the NFT display based on categories,
@@ -123,12 +12,16 @@ module nft_protocol::tags {
     use sui::bag::{Self, Bag};
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::utils::{
         assert_with_witness, assert_with_consumable_witness, UidType
     };
     use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
+
+    /// No field object `Tags` defined as a dynamic field.
+    const EUNDEFINED_TAGS_FIELD: u64 = 1;
+
+    /// Field object `Tags` already defined as dynamic field.
+    const ETAGS_FIELD_ALREADY_EXISTS: u64 = 2;
 
     struct Tags has store {
         id: UID,
@@ -310,11 +203,11 @@ module nft_protocol::tags {
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun insert_tag<T: key, Tag: store + drop>(
+    public fun insert_tag<T: key, TAG: store + drop>(
         consumable: ConsumableWitness<T>,
         nft_uid: &mut UID,
         nft_type: UidType<T>,
-        tag: Tag,
+        tag: TAG,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
@@ -323,14 +216,12 @@ module nft_protocol::tags {
         assert_with_consumable_witness(nft_uid, nft_type);
 
         let tags = borrow_tags_mut(consumable, nft_uid, nft_type);
-
-        bag::add(&mut tags.tags, utils::marker<Tag>(), tag);
-
+        bag::add(&mut tags.tags, utils::marker<TAG>(), tag);
         cw::consume<T, Tags>(consumable, tags);
     }
 
 
-    /// Removes attribute to `Attributes` field in the NFT of type `T`.
+    /// Removes tag from `Tags` field in the NFT of type `T`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a
     /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
@@ -341,7 +232,7 @@ module nft_protocol::tags {
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun remove_tag<T: key, Tag: store + drop>(
+    public fun remove_tag<T: key, TAG: store + drop>(
         consumable: ConsumableWitness<T>,
         nft_uid: &mut UID,
         nft_type: UidType<T>,
@@ -353,13 +244,11 @@ module nft_protocol::tags {
         assert_with_consumable_witness(nft_uid, nft_type);
 
         let tags = borrow_tags_mut(consumable, nft_uid, nft_type);
-
-        bag::remove<Marker<Tag>, Tag>(&mut tags.tags, utils::marker<Tag>());
-
+        bag::remove<Marker<TAG>, TAG>(&mut tags.tags, utils::marker<TAG>());
         cw::consume<T, Tags>(consumable, tags);
     }
 
-    /// Inserts attribute to `Attributes` field in the NFT of type `T`.
+    /// Inserts tag to `Tags` field in the NFT of type `T`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
     /// from the contract exporting the type `T`.
@@ -372,29 +261,23 @@ module nft_protocol::tags {
     /// in other words, it panics if `nft_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun insert_tag_<W: drop, T: key>(
+    public fun insert_tag_<W: drop, T: key, TAG: store + drop>(
         witness: W,
         nft_uid: &mut UID,
         nft_type: UidType<T>,
-        attribute_key: String,
-        attribute_value: String,
+        tag: TAG,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_attributes(nft_uid);
+        assert_has_tags(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let attributes = borrow_attributes_mut_(witness, nft_uid, nft_type);
-
-        vec_map::insert(
-            &mut attributes.map,
-            attribute_key,
-            attribute_value,
-        );
+        let tags = borrow_tags_mut_(witness, nft_uid, nft_type);
+        bag::add(&mut tags.tags, utils::marker<TAG>(), tag);
     }
 
-    /// Removes attribute to `Attributes` field in the NFT of type `T`.
+    /// Removes tag from `Tags` field in the NFT of type `T`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
     /// from the contract exporting the type `T`.
@@ -407,7 +290,7 @@ module nft_protocol::tags {
     /// in other words, it panics if `nft_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun remove_tag_<W: drop, T: key>(
+    public fun remove_tag_<W: drop, T: key, TAG: store + drop>(
         witness: W,
         nft_uid: &mut UID,
         nft_type: UidType<T>,
@@ -416,16 +299,60 @@ module nft_protocol::tags {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_attributes(nft_uid);
+        assert_has_tags(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let attributes = borrow_attributes_mut_(witness, nft_uid, nft_type);
-
-        vec_map::remove(
-            &mut attributes.map,
-            attribute_key,
-        );
+        let tags = borrow_tags_mut_(witness, nft_uid, nft_type);
+        bag::remove<Marker<TAG>, TAG>(&mut tags.tags, utils::marker<TAG>());
     }
+
+
+    // === Getter Functions & Static Mutability Accessors ===
+
+    public fun art(): Art {
+        Art {}
+    }
+
+    public fun profile_picture(): ProfilePicture {
+        ProfilePicture {}
+    }
+
+    public fun collectible(): Collectible {
+        Collectible {}
+    }
+
+    public fun game_asset(): GameAsset {
+        GameAsset {}
+    }
+
+    public fun tokenised_asset(): TokenisedAsset {
+        TokenisedAsset {}
+    }
+
+    public fun ticker(): Ticker {
+        Ticker {}
+    }
+
+    public fun domain_name(): DomainName {
+        DomainName {}
+    }
+
+    public fun music(): Music {
+        Music {}
+    }
+
+    public fun video(): Video {
+        Video {}
+    }
+
+    public fun ticket(): Ticket {
+        Ticket {}
+    }
+
+    public fun license(): License {
+        License {}
+    }
+
 
     // === Assertions & Helpers ===
 
@@ -438,10 +365,10 @@ module nft_protocol::tags {
     }
 
     public fun assert_has_tags(nft_uid: &UID) {
-        assert!(has_tags(nft_uid), EUNDEFINED_DISPLAY_INFO_FIELD);
+        assert!(has_tags(nft_uid), EUNDEFINED_TAGS_FIELD);
     }
 
     public fun assert_has_not_tags(nft_uid: &UID) {
-        assert!(!has_tags(nft_uid), EDISPLAY_INFO_FIELD_ALREADY_EXISTS);
+        assert!(!has_tags(nft_uid), ETAGS_FIELD_ALREADY_EXISTS);
     }
 }
