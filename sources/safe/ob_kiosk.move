@@ -1,11 +1,9 @@
 module nft_protocol::ob_kiosk {
-    // TODO: Delist
-
     use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
     use std::type_name::{Self, TypeName};
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, uid_mut as ext};
-    use sui::object::{Self, ID, UID, id_to_address};
+    use sui::object::{Self, ID, UID, uid_to_address};
     use sui::table::{Self, Table};
     use sui::transfer::{public_share_object, transfer};
     use sui::tx_context::{Self, TxContext, sender};
@@ -168,19 +166,23 @@ module nft_protocol::ob_kiosk {
     // === Withdraw from the Kiosk ===
 
     /// Authorizes given entity to take given NFT out.
-    /// The entity must prove with their `&UID` in `transfer_delegated`.
+    /// The entity must prove with their `&UID` in `transfer_delegated` or
+    /// must be the signer in `transfer_signed`.
+    ///
+    /// Use the `object::id_to_address` to authorize entities which only live
+    /// on chain.
     public fun auth_transfer(
         self: &mut Kiosk,
         owner_cap: &OwnerCap,
         nft_id: ID,
-        entity_id: ID,
+        entity: address,
     ) {
         assert_owner_cap(self, owner_cap);
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
         assert_ref_not_exclusively_listed(ref);
-        vec_set::insert(&mut ref.auths, id_to_address(&entity_id));
+        vec_set::insert(&mut ref.auths, entity);
     }
 
     /// Authorizes ONLY given entity to take given NFT out.
@@ -202,7 +204,7 @@ module nft_protocol::ob_kiosk {
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
         assert_not_listed(ref);
-        vec_set::insert(&mut ref.auths, object::uid_to_address(entity_id));
+        vec_set::insert(&mut ref.auths, uid_to_address(entity_id));
         ref.is_exclusively_listed = true;
     }
 
@@ -228,6 +230,19 @@ module nft_protocol::ob_kiosk {
         entity_id: &UID,
     ): TransferRequestBuilder<T> {
         let (nft, builder) = withdraw_nft(source, nft_id, entity_id);
+        deposit(target, nft);
+        builder
+    }
+
+    /// Similar to `transfer_delegated` but instead of proving origin with
+    /// `&UID` we check that the entity is the signer.
+    public fun transfer_signed<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): TransferRequestBuilder<T> {
+        let (nft, builder) = withdraw_nft_signed(source, nft_id, ctx);
         deposit(target, nft);
         builder
     }
@@ -268,7 +283,25 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         entity_id: &UID,
     ): (T, TransferRequestBuilder<T>) {
-        let originator = object::uid_to_address(entity_id);
+        withdraw_nft_(self, nft_id, uid_to_address(entity_id))
+    }
+
+    /// Similar to `withdraw_nft` but the entity is a signer instead of UID.
+    /// Transfer can be prevented with an allowlist.
+    public fun withdraw_nft_signed<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): (T, TransferRequestBuilder<T>) {
+        withdraw_nft_(self, nft_id, sender(ctx))
+    }
+
+    /// After authorization that the call is permitted, gets the NFT.
+    fun withdraw_nft_<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        originator: address,
+    ): (T, TransferRequestBuilder<T>) {
         check_entity_and_pop_ref(self, originator, nft_id);
 
         let cap = pop_cap(self);
@@ -278,7 +311,9 @@ module nft_protocol::ob_kiosk {
         (nft, transfer_policy::builder(nft_id, originator))
     }
 
+
     /// Similar to `withdraw_nft` but uses the owner address as originator.
+    /// Transfer can be prevented with an allowlist.
     public fun withdraw_nft_as_owner<T: key + store>(
         self: &mut Kiosk,
         nft_id: ID,
@@ -320,6 +355,46 @@ module nft_protocol::ob_kiosk {
         set_cap(source, cap);
 
         deposit_(target, nft);
+    }
+
+    // === Delisting of NFTs ===
+
+    /// Removes _all_ entities from access to the NFT.
+    /// Cannot be performed if the NFT is exclusively listed.
+    public fun delist_nft_as_owner(
+        self: &mut Kiosk, nft_id: ID, owner_cap: &OwnerCap,
+    ) {
+        assert_owner_cap(self, owner_cap);
+
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow_mut(refs, nft_id);
+        assert_ref_not_exclusively_listed(ref);
+        ref.auths = vec_set::empty();
+    }
+
+    /// Removes a specific NFT from access to the NFT.
+    /// Cannot be performed if the NFT is exclusively listed.
+    public fun remove_auth_transfer_as_owner(
+        self: &mut Kiosk, nft_id: ID, entity: address, owner_cap: &OwnerCap,
+    ) {
+        assert_owner_cap(self, owner_cap);
+
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow_mut(refs, nft_id);
+        assert_ref_not_exclusively_listed(ref);
+        vec_set::remove(&mut ref.auths, &entity);
+    }
+
+    /// This is the only path to delist an exclusively listed NFT.
+    public fun remove_auth_transfer(
+        self: &mut Kiosk, nft_id: ID, entity: &UID,
+    ) {
+        let entity = uid_to_address(entity);
+
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow_mut(refs, nft_id);
+        vec_set::remove(&mut ref.auths, &entity);
+        ref.is_exclusively_listed = false; // no-op if it wasn't
     }
 
     // === Configure deposit settings ===
