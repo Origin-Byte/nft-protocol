@@ -33,7 +33,7 @@ module nft_protocol::unprotected_safe {
 
     use sui::event;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{public_share_object, public_transfer};
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_object_field::{Self as dof};
@@ -122,16 +122,16 @@ module nft_protocol::unprotected_safe {
     /// tx sender.
     public entry fun create_for_sender(ctx: &mut TxContext) {
         let (safe, cap) = new(ctx);
-        public_share_object(safe);
+        transfer::public_share_object(safe);
 
-        public_transfer(cap, tx_context::sender(ctx));
+        transfer::public_transfer(cap, tx_context::sender(ctx));
     }
 
     /// Creates a new `Safe` shared object and returns the authority capability
     /// that grants authority over this safe.
     public fun create_safe(ctx: &mut TxContext): OwnerCap {
         let (safe, cap) = new(ctx);
-        public_share_object(safe);
+        transfer::public_share_object(safe);
 
         cap
     }
@@ -284,7 +284,7 @@ module nft_protocol::unprotected_safe {
         let nft =
             withdraw_nft<T, Auth>(transfer_cap, authority, allowlist, safe);
 
-        transfer(nft, recipient);
+        transfer::public_transfer(nft, recipient);
     }
 
     /// Withdraw NFT out of `UnprotectedSafe` and transfer to another

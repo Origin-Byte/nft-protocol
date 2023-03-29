@@ -268,7 +268,7 @@ module nft_protocol::dutch_auction {
             balance::join<FT>(&mut total_funds, filled_funds);
 
             let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
-            transfer::transfer(nft, owner);
+            transfer::public_transfer(nft, owner);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);
