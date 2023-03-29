@@ -35,6 +35,7 @@ module nft_protocol::mint_cap {
         ///
         /// Intended for discovery.
         collection_id: ID,
+        supply: Option<Supply>,
     }
 
     /// Create a new `MintCap`
