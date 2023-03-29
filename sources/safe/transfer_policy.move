@@ -45,9 +45,9 @@ module nft_protocol::transfer_policy {
     /// from the item type (`T`) owner on purchase attempt.
     struct TransferRequest<phantom T> {
         nft: ID,
-        /// In case of transfer requests originating from a user we convert
-        /// the address to ID with `object::id_from_address`.
-        originator: ID,
+        /// For entities which authorize with `ID`, we convert the `ID` to
+        /// address.
+        originator: address,
         /// List of fungible token amounts that have been paid for the NFT.
         /// We create some helper methods for SUI token, but also support any.
         ///
@@ -67,7 +67,7 @@ module nft_protocol::transfer_policy {
     /// The only way to destroy it is to exchange it for `TransferRequest`.
     struct TransferRequestBuilder<phantom T> {
         nft: ID,
-        originator: ID,
+        originator: address,
         ft_paid_amounts: VecMap<TypeName, u64>,
     }
 
@@ -96,7 +96,7 @@ module nft_protocol::transfer_policy {
 
     /// Construct a new `TransferRequest` hot potato which requires an
     /// approving action from the creator to be destroyed / resolved.
-    public fun builder<T>(nft: ID, originator: ID): TransferRequestBuilder<T> {
+    public fun builder<T>(nft: ID, originator: address): TransferRequestBuilder<T> {
         TransferRequestBuilder {
             nft,
             originator,
@@ -144,7 +144,9 @@ module nft_protocol::transfer_policy {
         // other currencies
         assert!(vec_map::size(&ft_paid_amounts) == 1, EOnlyTransferRequestOfSuiToken);
 
-        sui_transfer_policy::new_request(nft, paid, originator)
+        sui_transfer_policy::new_request(
+            nft, paid, object::id_from_address(originator)
+        )
     }
 
     /// Register a type in the Kiosk system and receive an `TransferPolicyCap`
@@ -198,7 +200,7 @@ module nft_protocol::transfer_policy {
     /// Kiosk trades will not be possible.
     public fun confirm_request<T>(
         self: &TransferPolicy<T>, request: TransferRequest<T>
-    ): ID {
+    ): address {
         let TransferRequest {
             nft: _,
             originator,
@@ -315,7 +317,7 @@ module nft_protocol::transfer_policy {
     }
 
     /// Which entity started the trade.
-    public fun originator<T>(self: &TransferRequest<T>): ID { self.originator }
+    public fun originator<T>(self: &TransferRequest<T>): address { self.originator }
 
     /// What's the NFT that's being transferred.
     public fun nft<T>(self: &TransferRequest<T>): ID { self.nft }
