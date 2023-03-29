@@ -5,19 +5,19 @@
 // branch to make it easier to import, but will be removed as soon as devnet-0.28.0
 // is released.
 module nft_protocol::transfer_policy {
-    use std::vector;
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
-    use nft_protocol::package::{Self, Publisher};
-    use sui::tx_context::TxContext;
-    use sui::object::{Self, ID, UID};
-    use sui::vec_set::{Self, VecSet};
-    use sui::vec_map::{Self, VecMap};
-    use sui::dynamic_field as df;
+    use std::vector;
     use sui::balance::{Self, Balance};
-    use sui::sui::SUI;
     use sui::coin::{Self, Coin};
+    use sui::dynamic_field as df;
     use sui::event;
+    use sui::object::{Self, ID, UID};
+    use sui::package::{Self, Publisher};
+    use sui::sui::SUI;
+    use sui::tx_context::TxContext;
+    use sui::vec_map::{Self, VecMap};
+    use sui::vec_set::{Self, VecSet};
 
     /// The number of receipts does not match the `TransferPolicy` requirement.
     const EPolicyNotSatisfied: u64 = 0;

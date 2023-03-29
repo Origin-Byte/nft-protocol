@@ -13,7 +13,7 @@ module nft_protocol::limited_fixed_price {
 
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{public_transfer, public_share_object};
+    use sui::transfer::public_transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
@@ -233,25 +233,6 @@ module nft_protocol::limited_fixed_price {
         ob_kiosk::deposit_as_owner(buyer_kiosk, owner_cap, nft);
     }
 
-    /// Buy NFT for non-whitelisted sale.
-    /// Deposits the NFT to a kiosk and transfers the ownership to the buyer.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Venue` does not exist, is not live, or is whitelisted or
-    /// wallet does not have the necessary funds.
-    public entry fun create_kiosk_and_buy_nft<C, FT>(
-        listing: &mut Listing,
-        venue_id: ID,
-        wallet: &mut Coin<FT>,
-        ctx: &mut TxContext,
-    ) {
-        let (buyer_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
-        buy_nft_into_kiosk<C, FT>(listing, venue_id, wallet, &owner_cap, &mut buyer_kiosk, ctx);
-        public_transfer(owner_cap, tx_context::sender(ctx));
-        public_share_object(buyer_kiosk);
-    }
-
     /// Buy NFT for whitelisted sale
     ///
     /// #### Panics
@@ -297,34 +278,6 @@ module nft_protocol::limited_fixed_price {
 
         let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
         ob_kiosk::deposit_as_owner(kiosk, owner_cap, nft);
-    }
-
-    /// Buy NFT for whitelisted sale
-    /// Deposits the NFT to a kiosk and transfers the ownership to the buyer.
-    ///
-    /// #### Panics
-    ///
-    /// - If `Venue` does not exist, is not live, or is not whitelisted
-    /// - If whitelist `Certificate` was not issued for given market
-    public entry fun create_kiosk_and_buy_whitelisted_nft<C, FT>(
-        listing: &mut Listing,
-        venue_id: ID,
-        wallet: &mut Coin<FT>,
-        whitelist_token: Certificate,
-        ctx: &mut TxContext,
-    ) {
-        let (buyer_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
-        buy_whitelisted_nft_into_kiosk<C, FT>(
-            listing,
-            venue_id,
-            wallet,
-            &owner_cap,
-            &mut buyer_kiosk,
-            whitelist_token,
-            ctx,
-        );
-        public_transfer(owner_cap, tx_context::sender(ctx));
-        public_share_object(buyer_kiosk);
     }
 
     /// Internal method to buy NFT

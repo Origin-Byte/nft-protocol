@@ -10,45 +10,45 @@
 /// The module uses generics and reflection to allow for flexibility in
 /// implementing and managing the allowlist.
 ///
-/// Three generics at play:
+/// Generics at play:
 /// 1. Admin (allowlist witness) enables any organization to start their own
 ///     allowlist and manage it according to their own rules;
-/// 2. CW (collection witness) enpowers creators to add or remove their
-///     collections to allowlists;
-/// 3. Auth (3rd party witness) is used to authorize contracts via their
+/// TODO: use publisher
+/// 2. Auth (3rd party witness) is used to authorize contracts via their
 ///     witness types. If e.g. an orderbook trading contract wants to be
 ///     included in a allowlist, the allowlist admin adds the stringified
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
+/// TODO: make it UID instead of witness
 module nft_protocol::transfer_allowlist {
+    use nft_protocol::transfer_policy;
+    use nft_protocol::utils;
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
-
-    use sui::transfer;
     use sui::object::{Self, UID};
+    use sui::package::Publisher;
+    use sui::transfer;
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::transfer_policy;
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    /// Package publisher mismatch
+    const EPackagePublisherMismatch: u64 = 0;
 
     /// Invalid admin
     ///
     /// Create new `Allowlist` using `create` with desired admin.
-    const EINVALID_ADMIN: u64 = 1;
+    const EInvalidAdmin: u64 = 1;
 
     /// Invalid collection
     ///
     /// Call `insert_collection` to insert a collection.
-    const EINVALID_COLLECTION: u64 = 2;
+    const EInvalidCollection: u64 = 2;
 
     /// Invalid transfer authority
     ///
     /// Call `insert_authority` to insert an authority.
-    const EINVALID_AUTHORITY: u64 = 3;
-
-    /// `Allowlist` requires an authority to be provided
-    const EREQUIRES_AUTHORITTY: u64 = 4;
+    const EInvalidAuthority: u64 = 3;
 
     struct Allowlist has key, store {
         id: UID,
@@ -64,19 +64,6 @@ module nft_protocol::transfer_allowlist {
         /// Otherwise we use a witness pattern but store the witness object as
         /// the output of `type_name::get`.
         authorities: Option<VecSet<TypeName>>,
-    }
-
-    /// Gives the collection admin a capability to insert and remove their
-    /// collection from a allowlist.
-    ///
-    /// To create this cap, the contract which defines the collection generic
-    /// must call `create_collection_cap` with a witness that belongs to the
-    /// same contract as the generic `C`.
-    /// Additionally, the witness type must be called `Witness`.
-    ///
-    /// TODO: replace with `Publisher`
-    struct CollectionControlCap<phantom C> has key, store {
-        id: UID,
     }
 
     struct AllowlistRule has drop {}
@@ -103,14 +90,6 @@ module nft_protocol::transfer_allowlist {
         transfer::public_share_object(allowlist);
     }
 
-    /// See the docs for struct `CollectionControlCap`.
-    public fun create_collection_cap<C>(
-        _witness: DelegatedWitness<C>,
-        ctx: &mut TxContext,
-    ): CollectionControlCap<C> {
-        CollectionControlCap { id: object::new(ctx) }
-    }
-
     public fun insert_collection<C, Admin>(
         _allowlist_witness: &Admin,
         _collection_witness: DelegatedWitness<C>,
@@ -129,9 +108,10 @@ module nft_protocol::transfer_allowlist {
     /// collection to give the allowlist owner a way to combat spam.
     public fun insert_collection_with_cap<C, Admin>(
         _allowlist_witness: &Admin,
-        _authority: &CollectionControlCap<C>,
+        collection_pub: &Publisher,
         list: &mut Allowlist,
     ) {
+        utils::assert_package_publisher<C>(collection_pub);
         assert_admin_witness<Admin>(list);
 
         vec_set::insert(&mut list.collections, type_name::get<C>());
@@ -143,9 +123,10 @@ module nft_protocol::transfer_allowlist {
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
     public entry fun remove_itself<C>(
-        _authority: &CollectionControlCap<C>,
+        collection_pub: &Publisher,
         list: &mut Allowlist,
     ) {
+        utils::assert_package_publisher<C>(collection_pub);
         vec_set::remove(&mut list.collections, &type_name::get<C>());
     }
 
@@ -263,7 +244,7 @@ module nft_protocol::transfer_allowlist {
     fun assert_admin_witness<Admin>(list: &Allowlist) {
         assert!(
             type_name::get<Admin>() == list.admin_witness,
-            EINVALID_ADMIN,
+            EInvalidAdmin,
         );
     }
 
@@ -274,7 +255,7 @@ module nft_protocol::transfer_allowlist {
     /// Panics if `Nft<C>` may not be transferred.
     public fun assert_collection<C>(allowlist: &Allowlist) {
         assert!(
-            contains_collection<C>(allowlist), EINVALID_COLLECTION,
+            contains_collection<C>(allowlist), EInvalidCollection,
         );
     }
 
@@ -285,7 +266,7 @@ module nft_protocol::transfer_allowlist {
     /// Panics if `Nft<C>` may not be transferred.
     public fun assert_authority<Auth>(allowlist: &Allowlist) {
         assert!(
-            contains_authority<Auth>(allowlist), EINVALID_AUTHORITY,
+            contains_authority<Auth>(allowlist), EInvalidAuthority,
         );
     }
 

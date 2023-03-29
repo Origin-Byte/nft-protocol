@@ -1,17 +1,14 @@
 module nft_protocol::ob_kiosk {
+    use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
-
-    use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
-    use sui::package::{Self, Publisher};
     use sui::dynamic_field::{Self as df};
+    use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
     use sui::object::{Self, ID, UID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use sui::table::{Self, Table};
+    use sui::transfer;
+    use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
-
-    use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
 
     /// Trying to withdraw profits and sender is not owner.
     const ENotOwner: u64 = 0;
@@ -35,6 +32,7 @@ module nft_protocol::ob_kiosk {
     const EIncorrectKioskId: u64 = 6;
 
     struct OwnerCap has key {
+        id: UID,
         // We wrap KioskOwnerCap in a key-only object to prevent transfers
         // The easiest way is to add the KioskOwnerCap inside the Kiosk as a dynamic field
         // TODO: Consider using TypedID
@@ -44,6 +42,7 @@ module nft_protocol::ob_kiosk {
     }
 
     struct BackupCap has key {
+        id: UID,
         kiosk: ID,
     }
 
@@ -90,8 +89,18 @@ module nft_protocol::ob_kiosk {
     ): OwnerCap {
         let (kiosk, owner_cap) = new(backup, ctx);
 
-        transfer::share_object(kiosk);
+        transfer::public_share_object(kiosk);
         owner_cap
+    }
+
+    public fun new_kiosk_for_sender(
+        backup: Option<address>,
+        ctx: &mut TxContext
+    ): Kiosk {
+        let (kiosk, owner_cap) = new(backup, ctx);
+
+        transfer::transfer(owner_cap, tx_context::sender(ctx));
+        kiosk
     }
 
     public fun new(
@@ -112,44 +121,12 @@ module nft_protocol::ob_kiosk {
 
         df::add(kiosk::uid_mut(&mut kiosk), df_key, inner_kiosk);
 
-        let owner_cap = OwnerCap { kiosk: object::id(&kiosk) };
+        let owner_cap = OwnerCap {
+            id: object::new(ctx),
+            kiosk: object::id(&kiosk),
+        };
 
         (kiosk, owner_cap)
-    }
-
-    /// Unpacks and destroys a Kiosk returning the profits (even if "0").
-    /// Can only be performed by the bearer of the `KioskOwnerCap` in the
-    /// case where there's no items inside and a `Kiosk` is not shared.
-    public entry fun close_and_withdraw(
-        self: Kiosk, cap: OwnerCap, ctx: &mut TxContext
-    ) {
-        // Check if OwnerCap matches Kiosk
-        assert_owner_cap(&self, &cap);
-
-        // Pop InnerKiosk, keep KioskOwnerCap and drop the rest
-        let inner = df::remove<TypeName, InnerKiosk>(
-            kiosk::uid_mut(&mut self),
-            type_name::get<InnerKiosk>()
-        );
-
-        let InnerKiosk {
-            kiosk_cap,
-            owner: _,
-            backup: _,
-            permissionless_deposits: _,
-            refs,
-        } = inner;
-
-        let OwnerCap { kiosk: _, } = cap;
-
-        table::drop(refs);
-
-        let kiosk_owner_cap = option::extract(&mut kiosk_cap);
-        option::destroy_none(kiosk_cap);
-
-        // Close the kiosk and send profits to the tx sender
-        let profits = kiosk::close_and_withdraw(self, kiosk_owner_cap, ctx);
-        transfer::transfer(profits, tx_context::sender(ctx));
     }
 
     public fun is_ob_kiosk(_self: &Kiosk): bool {
@@ -292,7 +269,7 @@ module nft_protocol::ob_kiosk {
         );
         // TODO: Figure out a more efficient way of doing this. Currently we need to get a
         // mutable reference again, otherwise we get compile error due to Invalid usage of reference
-        // let inner = get_inner_mut(source);
+        let inner = get_inner_mut(source);
         option::fill(&mut inner.kiosk_cap, kiosk_cap);
 
         deposit_(target, nft);
@@ -305,7 +282,6 @@ module nft_protocol::ob_kiosk {
         target: &mut Kiosk,
         nft_id: ID,
         owner_cap: &OwnerCap,
-        ctx: &mut TxContext,
     ): TransferRequestBuilder<T> {
         assert_owner_cap(source, owner_cap);
 
