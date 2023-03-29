@@ -32,6 +32,9 @@ module nft_protocol::symbol {
 
     /// Adds `Symbol` as a dynamic field with key `SymbolKey`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Symbol`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -56,6 +59,9 @@ module nft_protocol::symbol {
 
 
     /// Adds `Symbol` as a dynamic field with key `SymbolKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///

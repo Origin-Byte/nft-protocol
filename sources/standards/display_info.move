@@ -33,6 +33,9 @@ module nft_protocol::display_info {
 
     /// Adds `DisplayInfo` as a dynamic field with key `DisplayInfoKey`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `DisplayInfo`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -58,6 +61,9 @@ module nft_protocol::display_info {
 
 
     /// Adds `DisplayInfo` as a dynamic field with key `DisplayInfoKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///

@@ -60,6 +60,9 @@ module nft_protocol::tags {
 
     /// Adds `Tags` as a dynamic field with key `TagsKey`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Tags`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -84,6 +87,9 @@ module nft_protocol::tags {
 
 
     /// Adds `Tags` as a dynamic field with key `TagsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///

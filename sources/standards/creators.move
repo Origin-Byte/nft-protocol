@@ -47,6 +47,9 @@ module nft_protocol::creators {
     /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
     /// It adds creators from a `VecSet<address>`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -69,6 +72,9 @@ module nft_protocol::creators {
     /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
     /// It adds a single `address` to the creators object.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -89,6 +95,9 @@ module nft_protocol::creators {
     }
 
     /// Adds empty `Creators` as a dynamic field with key `CreatorsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
     ///
     /// #### Panics
     ///
@@ -115,6 +124,9 @@ module nft_protocol::creators {
     /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
     /// It adds creators from a `VecSet<address>`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -137,6 +149,9 @@ module nft_protocol::creators {
     /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
     /// It adds a single `address` to the creators object.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -157,6 +172,9 @@ module nft_protocol::creators {
     }
 
     /// Adds empty `Creators` as a dynamic field with key `CreatorsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///

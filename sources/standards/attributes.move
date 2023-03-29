@@ -43,6 +43,9 @@ module nft_protocol::attributes {
     /// Adds `Attributes` as a dynamic field with key `AttributesKey`.
     /// It adds attributes from a `VecMap<String, String>`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -64,6 +67,9 @@ module nft_protocol::attributes {
 
     /// Adds `Attributes` as a dynamic field with key `AttributesKey`.
     /// It adds attributes from vectors of keys and values.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
     ///
     /// #### Panics
     ///
@@ -90,6 +96,9 @@ module nft_protocol::attributes {
 
     /// Adds empty `Attributes` as a dynamic field with key `AttributesKey`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -115,6 +124,9 @@ module nft_protocol::attributes {
     /// Adds `Attributes` as a dynamic field with key `AttributesKey`.
     /// It adds attributes from a `VecMap<String, String>`.
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
@@ -136,6 +148,9 @@ module nft_protocol::attributes {
 
     /// Adds `Attributes` as a dynamic field with key `AttributesKey`.
     /// It adds attributes from vectors of keys and values.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -161,6 +176,9 @@ module nft_protocol::attributes {
     }
 
     /// Adds empty `Attributes` as a dynamic field with key `AttributesKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
