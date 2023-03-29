@@ -16,7 +16,7 @@ module nft_protocol::test_utils {
     use sui::object::{Self, ID};
     use sui::sui::SUI;
     use sui::test_scenario::{Self, Scenario, ctx};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context;
 
     const CREATOR: address = @0xA1C05;
@@ -57,7 +57,7 @@ module nft_protocol::test_utils {
         let col_id = object::id(&col);
         let cap_id = object::id(&cap);
 
-        share_object(col);
+        public_share_object(col);
         test_scenario::next_tx(scenario, creator);
 
         transfer_allowlist::init_allowlist(transfer_witness, ctx(scenario));
@@ -73,7 +73,7 @@ module nft_protocol::test_utils {
             &mut wl,
         );
 
-        transfer(cap, creator);
+        public_transfer(cap, creator);
         test_scenario::return_shared(wl);
 
         (col_id, cap_id, wl_id)
@@ -105,7 +105,7 @@ module nft_protocol::test_utils {
         let owner_cap_id = object::id(&owner_cap);
 
         test_scenario::return_shared(safe);
-        transfer(owner_cap, owner);
+        public_transfer(owner_cap, owner);
 
         test_scenario::next_tx(scenario, owner);
 
@@ -131,7 +131,7 @@ module nft_protocol::test_utils {
         );
 
         test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
+        public_transfer(owner_cap, user);
 
         test_scenario::next_tx(scenario, user);
 
@@ -152,7 +152,7 @@ module nft_protocol::test_utils {
         );
 
         test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
+        public_transfer(owner_cap, user);
 
         test_scenario::next_tx(scenario, user);
 
@@ -176,7 +176,7 @@ module nft_protocol::test_utils {
         );
 
         test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
+        public_transfer(owner_cap, user);
 
         test_scenario::next_tx(scenario, user);
 
@@ -201,7 +201,7 @@ module nft_protocol::test_utils {
         assert!(safe::has_nft<C>(nft_id, &safe), 0);
 
         test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
+        public_transfer(owner_cap, user);
 
         test_scenario::next_tx(scenario, user);
 
@@ -237,7 +237,7 @@ module nft_protocol::test_utils {
 
         test_scenario::return_shared(ob);
         test_scenario::return_shared(seller_safe);
-        transfer(owner_cap, seller);
+        public_transfer(owner_cap, seller);
 
         test_scenario::next_tx(scenario, seller);
 
@@ -277,7 +277,7 @@ module nft_protocol::test_utils {
 
         test_scenario::return_shared(ob);
         test_scenario::return_shared(seller_safe);
-        transfer(owner_cap, seller);
+        public_transfer(owner_cap, seller);
 
         test_scenario::next_tx(scenario, seller);
 

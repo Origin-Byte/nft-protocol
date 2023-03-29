@@ -30,7 +30,7 @@ module nft_protocol::mint_and_sell {
 
         let (mint_cap, collection) =
             collection::create(&COLLECTION {}, ctx(&mut scenario));
-        transfer::share_object(collection);
+        transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
         // 2. Create `Warehouse`
@@ -71,8 +71,8 @@ module nft_protocol::mint_and_sell {
         test_scenario::return_to_address(CREATOR, bought_nft);
 
         // Return objects and end test
-        transfer::transfer(mint_cap, CREATOR);
-        transfer::transfer(wallet, CREATOR);
+        transfer::public_transfer(mint_cap, CREATOR);
+        transfer::public_transfer(wallet, CREATOR);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -84,7 +84,7 @@ module nft_protocol::mint_and_sell {
 
         let (mint_cap, collection) =
             collection::create(&COLLECTION {}, ctx(&mut scenario));
-        transfer::share_object(collection);
+        transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
         // 2. Create `Warehouse`
@@ -133,8 +133,8 @@ module nft_protocol::mint_and_sell {
         test_scenario::return_to_address(CREATOR, bought_nft);
 
         // Return objects and end test
-        transfer::transfer(mint_cap, CREATOR);
-        transfer::transfer(wallet, CREATOR);
+        transfer::public_transfer(mint_cap, CREATOR);
+        transfer::public_transfer(wallet, CREATOR);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }

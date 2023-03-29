@@ -1,6 +1,6 @@
 #[test_only]
 module nft_protocol::test_transfer_allowlist {
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
     use sui::test_scenario::{Self, Scenario, ctx};
 
     use nft_protocol::witness;
@@ -46,8 +46,8 @@ module nft_protocol::test_transfer_allowlist {
 
         assert!(!transfer_allowlist::can_be_transferred<Foo, Witness>(&wl), 0);
 
-        transfer(wl, ADMIN);
-        transfer(col_cap, CREATOR);
+        public_transfer(wl, ADMIN);
+        public_transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -68,8 +68,8 @@ module nft_protocol::test_transfer_allowlist {
             &mut wl,
         );
 
-        transfer(wl, ADMIN);
-        transfer(col_cap, CREATOR);
+        public_transfer(wl, ADMIN);
+        public_transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -92,8 +92,8 @@ module nft_protocol::test_transfer_allowlist {
 
         transfer_allowlist::remove_collection<Witness2, Foo>(Witness2 {}, &mut wl);
 
-        transfer(wl, ADMIN);
-        transfer(col_cap, CREATOR);
+        public_transfer(wl, ADMIN);
+        public_transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -138,9 +138,9 @@ module nft_protocol::test_transfer_allowlist {
         assert!(!transfer_allowlist::can_be_transferred<Foo, Witness>(&wl), 0);
         assert!(!transfer_allowlist::can_be_transferred<Bar, Witness>(&wl), 0);
 
-        transfer(wl, ADMIN);
-        transfer(col_cap1, CREATOR);
-        transfer(col_cap2, CREATOR);
+        public_transfer(wl, ADMIN);
+        public_transfer(col_cap1, CREATOR);
+        public_transfer(col_cap2, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -173,8 +173,8 @@ module nft_protocol::test_transfer_allowlist {
         assert!(!transfer_allowlist::can_be_transferred<Bar, Witness>(&wl), 0);
         assert!(!transfer_allowlist::can_be_transferred<Bar, Witness2>(&wl), 0);
 
-        transfer(wl, ADMIN);
-        transfer(col_cap, CREATOR);
+        public_transfer(wl, ADMIN);
+        public_transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -204,8 +204,8 @@ module nft_protocol::test_transfer_allowlist {
         assert!(!transfer_allowlist::can_be_transferred<Foo, Witness>(&wl), 0);
         assert!(!transfer_allowlist::can_be_transferred<Foo, Witness2>(&wl), 0);
 
-        transfer(wl, ADMIN);
-        transfer(col_cap, CREATOR);
+        public_transfer(wl, ADMIN);
+        public_transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 
@@ -219,7 +219,7 @@ module nft_protocol::test_transfer_allowlist {
 
         transfer_allowlist::insert_authority<Witness2, Witness2>(Witness2 {}, &mut wl);
 
-        transfer(wl, ADMIN);
+        public_transfer(wl, ADMIN);
         test_scenario::end(scenario);
     }
 
@@ -234,7 +234,7 @@ module nft_protocol::test_transfer_allowlist {
         transfer_allowlist::insert_authority<Witness, Witness2>(Witness {}, &mut wl);
         transfer_allowlist::remove_authority<Witness2, Witness2>(Witness2 {}, &mut wl);
 
-        transfer(wl, ADMIN);
+        public_transfer(wl, ADMIN);
         test_scenario::end(scenario);
     }
 
@@ -257,8 +257,8 @@ module nft_protocol::test_transfer_allowlist {
 
         transfer_allowlist::clear_collections(Witness2 {}, &mut wl);
 
-        transfer(wl, ADMIN);
-        transfer(col_cap, CREATOR);
+        public_transfer(wl, ADMIN);
+        public_transfer(col_cap, CREATOR);
         test_scenario::end(scenario);
     }
 }

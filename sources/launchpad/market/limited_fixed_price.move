@@ -9,23 +9,18 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::limited_fixed_price {
-    use std::ascii::String;
     use std::option;
-    use std::type_name;
 
-    use sui::balance;
     use sui::coin::{Self, Coin};
-    use sui::event;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context::{Self, TxContext};
+    use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::inventory;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::nft::Nft;
-    use nft_protocol::kiosk::Kiosk;
     use nft_protocol::ob_kiosk::{Self, OwnerCap};
     use nft_protocol::venue;
 
@@ -51,21 +46,13 @@ module nft_protocol::limited_fixed_price {
         /// `Warehouse` or `Factory` that the market will redeem from
         inventory_id: ID,
         /// Stores the withdraw count for each address
+        ///
+        /// TODO: Replace with data structure that compresses address count
         addresses: VecMap<address, u64>,
     }
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
-
-    // === Events ===
-
-    struct NftSoldEvent has copy, drop {
-        nft: ID,
-        price: u64,
-        ft_type: String,
-        nft_type: String,
-        buyer: address,
-    }
 
     // === Init functions ===
 
@@ -106,7 +93,7 @@ module nft_protocol::limited_fixed_price {
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(inventory_id, limit, price, ctx);
-        transfer(market, tx_context::sender(ctx));
+        public_transfer(market, tx_context::sender(ctx));
     }
 
     /// Initializes a `Venue` with `LimitedFixedPriceMarket<FT>`
@@ -221,7 +208,7 @@ module nft_protocol::limited_fixed_price {
         venue::assert_is_not_whitelisted(venue);
 
         let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
-        transfer(nft, tx_context::sender(ctx));
+        public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Buy NFT for non-whitelisted sale
@@ -261,8 +248,8 @@ module nft_protocol::limited_fixed_price {
     ) {
         let (buyer_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
         buy_nft_into_kiosk<C, FT>(listing, venue_id, wallet, &owner_cap, &mut buyer_kiosk, ctx);
-        transfer(owner_cap, tx_context::sender(ctx));
-        share_object(buyer_kiosk);
+        public_transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_kiosk);
     }
 
     /// Buy NFT for whitelisted sale
@@ -280,13 +267,11 @@ module nft_protocol::limited_fixed_price {
     ) {
         let venue = listing::borrow_venue(listing, venue_id);
         venue::assert_is_live(venue);
-        venue::assert_is_whitelisted(venue);
-        market_whitelist::assert_certificate(&whitelist_token, venue_id);
-
+        market_whitelist::assert_whitelist(&whitelist_token, venue);
         market_whitelist::burn(whitelist_token);
 
         let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
-        transfer(nft, tx_context::sender(ctx));
+        public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Buy NFT for whitelisted sale
@@ -307,9 +292,7 @@ module nft_protocol::limited_fixed_price {
     ) {
         let venue = listing::borrow_venue(listing, venue_id);
         venue::assert_is_live(venue);
-        venue::assert_is_whitelisted(venue);
-        market_whitelist::assert_certificate(&whitelist_token, venue_id);
-
+        market_whitelist::assert_whitelist(&whitelist_token, venue);
         market_whitelist::burn(whitelist_token);
 
         let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
@@ -340,8 +323,8 @@ module nft_protocol::limited_fixed_price {
             whitelist_token,
             ctx,
         );
-        transfer(owner_cap, tx_context::sender(ctx));
-        share_object(buyer_kiosk);
+        public_transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_kiosk);
     }
 
     /// Internal method to buy NFT
@@ -356,40 +339,27 @@ module nft_protocol::limited_fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Nft<C> {
-        let venue = listing::venue_internal_mut<
-            LimitedFixedPriceMarket<FT>, Witness
-        >(
-            Witness {}, listing, venue_id
-        );
         let market =
-            venue::borrow_market_mut<LimitedFixedPriceMarket<FT>>(venue);
-        let market_price = market.price;
+            listing::market_internal_mut<LimitedFixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, venue_id
+            );
 
         let owner = tx_context::sender(ctx);
         increment_count(market, owner);
 
-        let funds = balance::split(coin::balance_mut(wallet), market_price);
-
+        let price = market.price;
         let inventory_id = market.inventory_id;
-        let inventory = listing::inventory_internal_mut<
-            C, LimitedFixedPriceMarket<FT>, Witness
-        >(
-            Witness {}, listing, venue_id, inventory_id
-        );
 
-        let nft = inventory::redeem_nft(inventory, owner, ctx);
-
-        event::emit(NftSoldEvent {
-            nft: object::id(&nft),
-            price: market_price,
-            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
-            nft_type: *type_name::borrow_string(&type_name::get<C>()),
-            buyer: owner,
-        });
-
-        listing::pay(listing, funds, 1);
-
-        nft
+        listing::buy_pseudorandom_nft<C, FT, LimitedFixedPriceMarket<FT>, Witness>(
+            Witness {},
+            listing,
+            inventory_id,
+            venue_id,
+            tx_context::sender(ctx),
+            price,
+            coin::balance_mut(wallet),
+            ctx,
+        )
     }
 
     // === Modifier Functions ===
@@ -410,14 +380,10 @@ module nft_protocol::limited_fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let venue = listing::venue_internal_mut<
-            LimitedFixedPriceMarket<FT>, Witness
-        >(
-            Witness {}, listing, venue_id
-        );
-
         let market =
-            venue::borrow_market_mut<LimitedFixedPriceMarket<FT>>(venue);
+            listing::market_internal_mut<LimitedFixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, venue_id
+            );
 
         assert!(new_limit >= market.limit, EDECREASED_LIMIT);
 
@@ -437,14 +403,10 @@ module nft_protocol::limited_fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let venue = listing::venue_internal_mut<
-            LimitedFixedPriceMarket<FT>, Witness
-        >(
-            Witness {}, listing, venue_id
-        );
-
         let market =
-            venue::borrow_market_mut<LimitedFixedPriceMarket<FT>>(venue);
+            listing::market_internal_mut<LimitedFixedPriceMarket<FT>, Witness>(
+                Witness {}, listing, venue_id
+            );
 
         market.price = new_price;
     }

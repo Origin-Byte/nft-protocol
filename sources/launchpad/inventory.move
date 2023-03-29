@@ -14,7 +14,7 @@ module nft_protocol::inventory {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::factory::{Self, Factory};
-    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use nft_protocol::witness::Witness as DelegatedWitness;
 
@@ -93,12 +93,9 @@ module nft_protocol::inventory {
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
     ///
-    /// Requires `Allowlist` authority token. See
-    /// [transfer](nft.html#transfer).
-    ///
     /// #### Panics
     ///
-    /// Panics if no supply is available or authority token was invalid.
+    /// Panics if no supply is available.
     public fun redeem_nft<C>(
         inventory: &mut Inventory<C>,
         owner: address,
@@ -115,31 +112,146 @@ module nft_protocol::inventory {
         nft::change_logical_owner(
             &mut nft,
             owner,
-            Witness {}, // Any Auth will work
+            Witness {},
             &inventory.allowlist
         );
 
         nft
     }
 
-    /// Redeems NFT from `Inventory`
+    /// Redeems NFT from `Inventory` and transfers to owner
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
-    ///
-    /// Requires `Allowlist` authority token. See
-    /// [transfer_with_auth](nft.html#transfer_with_auth).
+    /// See `redeem_nft` for more details
     ///
     /// #### Panics
     ///
-    /// Panics if no supply is available or authority token was invalid.
-    public entry fun transfer<C>(
+    /// Panics if no supply is available.
+    public entry fun redeem_nft_and_transfer<C>(
         inventory: &mut Inventory<C>,
         owner: address,
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft(inventory, owner, ctx);
-        transfer::transfer(nft, owner);
+        transfer::public_transfer(nft, owner);
+    }
+
+    /// Pseudo-randomly redeems NFT from `Inventory`
+    ///
+    /// Endpoint is susceptible to validator prediction of the resulting index,
+    /// use `random_redeem_nft` instead.
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    ///
+    /// If the underlying `Inventory` is a `Factory` then logic will fallback to
+    /// using sequential withdraw.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no supply left.
+    public fun redeem_pseudorandom_nft<C>(
+        inventory: &mut Inventory<C>,
+        owner: address,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        let nft = if (is_warehouse(inventory)) {
+            let warehouse = borrow_warehouse_mut(inventory);
+            warehouse::redeem_pseudorandom_nft(warehouse, ctx)
+        } else {
+            let factory = borrow_factory_mut(inventory);
+            factory::redeem_nft(factory, ctx)
+        };
+
+        nft::change_logical_owner(
+            &mut nft,
+            owner,
+            Witness {},
+            &inventory.allowlist
+        );
+
+        nft
+    }
+
+    /// Pseudo-randomly redeems NFT from `Inventory` and transfers to owner
+    ///
+    /// See `redeem_pseudorandom_nft` for more details.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no supply left.
+    public entry fun redeem_pseudorandom_nft_and_transfer<C>(
+        inventory: &mut Inventory<C>,
+        owner: address,
+        ctx: &mut TxContext,
+    ) {
+        let nft = redeem_pseudorandom_nft(inventory, owner, ctx);
+        transfer::public_transfer(nft, owner);
+    }
+
+    /// Randomly redeems NFT from `Inventory`
+    ///
+    /// Requires a `RedeemCommitment` created by the user in a separate
+    /// transaction to ensure that validators may not bias results favorably.
+    /// You can obtain a `RedeemCommitment` by calling
+    /// `warehouse::init_redeem_commitment`.
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    ///
+    /// If the underlying `Inventory` is a `Factory` then logic will fallback to
+    /// using sequential withdraw.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no supply left or `user_commitment` does not match
+    /// the hashed commitment in `RedeemCommitment`.
+    public fun redeem_random_nft<C>(
+        inventory: &mut Inventory<C>,
+        commitment: RedeemCommitment,
+        user_commitment: vector<u8>,
+        owner: address,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        let nft = if (is_warehouse(inventory)) {
+            let warehouse = borrow_warehouse_mut(inventory);
+            warehouse::redeem_random_nft(
+                warehouse, commitment, user_commitment, ctx,
+            )
+        } else {
+            warehouse::destroy_commitment(commitment);
+            let factory = borrow_factory_mut(inventory);
+            factory::redeem_nft(factory, ctx)
+        };
+
+        nft::change_logical_owner(
+            &mut nft,
+            owner,
+            Witness {},
+            &inventory.allowlist
+        );
+
+        nft
+    }
+
+    /// Randomly redeems NFT from `Inventory` and transfers to owner
+    ///
+    /// See `redeem_random_nft` for more details.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no supply left or `user_commitment` does not match
+    /// the hashed commitment in `RedeemCommitment`.
+    public entry fun redeem_random_nft_and_transfer<C>(
+        inventory: &mut Inventory<C>,
+        commitment: RedeemCommitment,
+        user_commitment: vector<u8>,
+        owner: address,
+        ctx: &mut TxContext,
+    ) {
+        let nft = redeem_random_nft(
+            inventory, commitment, user_commitment, owner, ctx,
+        );
+        transfer::public_transfer(nft, owner);
     }
 
     // === Getters ===

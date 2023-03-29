@@ -228,6 +228,6 @@ module nft_protocol::loose_mint_cap {
         ctx: &mut TxContext,
     ) {
         let nft = mint_nft(mint_cap, ctx);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 }

@@ -73,8 +73,8 @@ module nft_protocol::tribal_realms {
             &Witness {}, &mut collection, gun_blueprint,
         );
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     public entry fun mint_nft<T: drop + store>(

@@ -82,7 +82,7 @@ module nft_protocol::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -109,7 +109,7 @@ module nft_protocol::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -181,7 +181,7 @@ module nft_protocol::test_dutch_auction {
         assert!(dutch_auction::bid_owner(bid) == CREATOR, 0);
         assert!(balance::value(dutch_auction::bid_amount(bid)) == 12, 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -208,7 +208,7 @@ module nft_protocol::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -243,7 +243,7 @@ module nft_protocol::test_dutch_auction {
 
         assert!(coin::value(&wallet) == 5, 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -285,7 +285,7 @@ module nft_protocol::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -407,7 +407,7 @@ module nft_protocol::test_dutch_auction {
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -451,7 +451,7 @@ module nft_protocol::test_dutch_auction {
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -545,7 +545,7 @@ module nft_protocol::test_dutch_auction {
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -679,7 +679,7 @@ module nft_protocol::test_dutch_auction {
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -737,7 +737,7 @@ module nft_protocol::test_dutch_auction {
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }

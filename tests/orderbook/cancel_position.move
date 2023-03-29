@@ -6,7 +6,7 @@ module nft_protocol::test_ob_cancel_position {
     use nft_protocol::orderbook::{Self as ob, Orderbook};
     use sui::coin;
     use sui::test_scenario;
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
     use originmate::crit_bit_u64 as crit_bit;
 
     const BUYER: address = @0xA1C06;
@@ -196,7 +196,7 @@ module nft_protocol::test_ob_cancel_position {
 
         assert!(coin::value(&wallet) == OFFER_SUI, 0);
 
-        transfer(wallet, BUYER);
+        public_transfer(wallet, BUYER);
         test_scenario::end(scenario);
     }
 
@@ -217,7 +217,7 @@ module nft_protocol::test_ob_cancel_position {
         let ob: Orderbook<test_ob::Foo, SUI> = test_scenario::take_shared(&scenario);
         assert!(crit_bit::length(ob::borrow_bids(&ob)) == 1, 0);
 
-        transfer(wallet, BUYER);
+        public_transfer(wallet, BUYER);
         test_scenario::return_shared(ob);
         test_scenario::end(scenario);
     }
@@ -235,7 +235,7 @@ module nft_protocol::test_ob_cancel_position {
         test_scenario::next_tx(&mut scenario, BUYER);
         let wallet = test_ob::cancel_bid(&mut scenario, BUYER, OFFER_SUI);
 
-        transfer(wallet, BUYER);
+        public_transfer(wallet, BUYER);
         test_scenario::end(scenario);
     }
 
@@ -253,7 +253,7 @@ module nft_protocol::test_ob_cancel_position {
         test_scenario::next_tx(&mut scenario, THIRD_PARTY);
         let wallet = test_ob::cancel_bid(&mut scenario, THIRD_PARTY, OFFER_SUI);
 
-        transfer(wallet, BUYER);
+        public_transfer(wallet, BUYER);
         test_scenario::end(scenario);
     }
 
@@ -272,7 +272,7 @@ module nft_protocol::test_ob_cancel_position {
 
         assert!(coin::value(&wallet) == OFFER_SUI + COMMISSION_SUI, 0);
 
-        transfer(wallet, BUYER);
+        public_transfer(wallet, BUYER);
         test_scenario::end(scenario);
     }
 }

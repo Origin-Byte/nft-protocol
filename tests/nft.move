@@ -16,7 +16,7 @@ module nft_protocol::test_nft {
 
     use sui::object::{Self, UID};
     use sui::test_scenario::{Self, ctx};
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
 
     struct Foo has drop {}
     struct Witness has drop {}
@@ -37,7 +37,7 @@ module nft_protocol::test_nft {
 
         assert!(nft::logical_owner(&nft) == OWNER, 0);
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -57,7 +57,7 @@ module nft_protocol::test_nft {
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, DomainA>(&nft);
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -78,7 +78,7 @@ module nft_protocol::test_nft {
             Witness {}, &mut nft
         );
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -103,7 +103,7 @@ module nft_protocol::test_nft {
             DomainA { id: object::new(ctx) },
         );
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -126,7 +126,7 @@ module nft_protocol::test_nft {
             fake_witness::new(), &mut nft
         );
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 

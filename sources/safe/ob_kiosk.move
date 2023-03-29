@@ -2,6 +2,8 @@ module nft_protocol::ob_kiosk {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
+    use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
+    use sui::package::{Self, Publisher};
     use sui::dynamic_field::{Self as df};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
@@ -9,9 +11,7 @@ module nft_protocol::ob_kiosk {
     use sui::table::{Self, Table};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::package::{Self, Publisher};
     use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
-    use nft_protocol::kiosk::{Self, Kiosk, KioskOwnerCap};
 
     /// Trying to withdraw profits and sender is not owner.
     const ENotOwner: u64 = 0;
@@ -280,8 +280,9 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         entity_id: &UID,
     ): TransferRequestBuilder<T> {
+        let originator = object::uid_to_inner(entity_id);
         let inner = get_inner_mut(source);
-        check_entity_and_pop_ref(inner, object::uid_to_inner(entity_id), nft_id);
+        check_entity_and_pop_ref(inner, originator, nft_id);
 
         let kiosk_cap = option::extract(&mut inner.kiosk_cap);
         let nft = kiosk::take<T>(
@@ -291,12 +292,12 @@ module nft_protocol::ob_kiosk {
         );
         // TODO: Figure out a more efficient way of doing this. Currently we need to get a
         // mutable reference again, otherwise we get compile error due to Invalid usage of reference
-        let inner = get_inner_mut(source);
+        // let inner = get_inner_mut(source);
         option::fill(&mut inner.kiosk_cap, kiosk_cap);
 
         deposit_(target, nft);
 
-        transfer_policy::builder(object::id(source))
+        transfer_policy::builder(originator)
     }
 
     public fun transfer<T: key + store>(
@@ -304,11 +305,8 @@ module nft_protocol::ob_kiosk {
         target: &mut Kiosk,
         nft_id: ID,
         owner_cap: &OwnerCap,
-        royalty_base: u64,
-        // _authority: Auth,
-        // _allowlist: &Allowlist,
         ctx: &mut TxContext,
-    ): TransferRequest<T> {
+    ): TransferRequestBuilder<T> {
         assert_owner_cap(source, owner_cap);
 
         let inner = get_inner_mut(source);
@@ -329,11 +327,7 @@ module nft_protocol::ob_kiosk {
 
         deposit_(target, nft);
 
-        let request = transfer_policy::new_request(
-            royalty_base, object::id(source), ctx
-        );
-
-        request
+        transfer_policy::builder(object::id(owner_cap))
     }
 
 

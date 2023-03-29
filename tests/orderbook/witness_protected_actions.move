@@ -7,7 +7,7 @@ module nft_protocol::test_ob_witness_protected_actions {
     use sui::coin;
     use sui::object::ID;
     use sui::sui::SUI;
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
     use sui::test_scenario::{Self, Scenario, ctx};
 
     const BUYER: address = @0xA1C06;
@@ -191,7 +191,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         test_scenario::return_shared(ob);
         test_scenario::return_shared(wl);
         test_scenario::return_shared(seller_safe);
-        transfer(owner_cap, SELLER);
+        public_transfer(owner_cap, SELLER);
 
         test_scenario::end(scenario);
     }
@@ -354,7 +354,7 @@ module nft_protocol::test_ob_witness_protected_actions {
 
         assert!(coin::value(&wallet) == OFFER_SUI, 0);
 
-        transfer(wallet, BUYER);
+        public_transfer(wallet, BUYER);
         test_scenario::end(scenario);
     }
 
@@ -407,7 +407,7 @@ module nft_protocol::test_ob_witness_protected_actions {
 
         assert!(coin::value(&wallet) == OFFER_SUI, 0);
 
-        transfer(wallet, BUYER);
+        public_transfer(wallet, BUYER);
         test_scenario::end(scenario);
     }
 

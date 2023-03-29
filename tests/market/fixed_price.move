@@ -76,7 +76,7 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario),
         );
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -99,7 +99,7 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario),
         );
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -151,7 +151,7 @@ module nft_protocol::test_fixed_price {
 
         test_scenario::return_to_address(BUYER, nft);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -178,7 +178,7 @@ module nft_protocol::test_fixed_price {
 
         assert!(coin::value(&wallet) == 0, 0);
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::next_tx(&mut scenario, BUYER);
 
         test_scenario::return_shared(listing);
@@ -219,7 +219,7 @@ module nft_protocol::test_fixed_price {
             ctx(&mut scenario),
         );
 
-        transfer::transfer(wallet, BUYER);
+        transfer::public_transfer(wallet, BUYER);
         test_scenario::next_tx(&mut scenario, BUYER);
 
         test_scenario::return_shared(listing);

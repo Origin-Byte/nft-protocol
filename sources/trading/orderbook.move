@@ -23,7 +23,6 @@ module nft_protocol::orderbook {
     // TODO: settings to skip royalty settlement (witness protected)
 
     use nft_protocol::ob_kiosk::{Self, OwnerCap};
-    use nft_protocol::kiosk::Kiosk;
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils;
     use nft_protocol::trading::{
@@ -46,9 +45,10 @@ module nft_protocol::orderbook {
 
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
+    use sui::kiosk::Kiosk;
     use sui::event;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, share_object, public_share_object};
     use sui::tx_context::{Self, TxContext};
 
     // === Errors ===
@@ -297,8 +297,8 @@ module nft_protocol::orderbook {
     ) {
         let (buyer_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
         create_bid<T, FT>(book, &mut buyer_kiosk, price, wallet, ctx);
-        share_object(buyer_kiosk);
-        transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_kiosk);
+        public_transfer(owner_cap, tx_context::sender(ctx));
     }
 
     /// Same as [`create_bid`] but with a
@@ -365,8 +365,8 @@ module nft_protocol::orderbook {
             wallet,
             ctx,
         );
-        share_object(buyer_kiosk);
-        transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_kiosk);
+        public_transfer(owner_cap, tx_context::sender(ctx));
     }
 
     // === Cancel bid ===
@@ -491,8 +491,8 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        transfer(owner_cap, seller);
-        share_object(seller_kiosk);
+        public_transfer(owner_cap, seller);
+        public_share_object(seller_kiosk);
     }
 
     /// Same as [`create_ask`] but protected by
@@ -636,8 +636,8 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        transfer(owner_cap, seller);
-        share_object(seller_kiosk);
+        public_transfer(owner_cap, seller);
+        public_share_object(seller_kiosk);
     }
 
     /// Same as [`create_ask_protected`] but with a
@@ -794,8 +794,8 @@ module nft_protocol::orderbook {
             book, nft_id, price, wallet, seller_kiosk, &mut buyer_kiosk, allowlist, ctx
         );
 
-        transfer(owner_cap, buyer);
-        share_object(buyer_kiosk);
+        public_transfer(owner_cap, buyer);
+        public_share_object(buyer_safe);
     }
 
     /// Same as [`buy_nft`] but protected by

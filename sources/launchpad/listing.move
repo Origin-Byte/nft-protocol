@@ -26,14 +26,14 @@ module nft_protocol::listing {
     // TODO: Currently, to issue whitelist token one has to call a function
     // times the number of whitelist addresses. Let us consider more gas efficient
     // ways of mass emiting whitelist tokens.
+    use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
     use sui::event;
     use sui::transfer;
-    use sui::balance::Balance;
+    use sui::balance::{Self, Balance};
     use sui::object::{Self, ID , UID};
-    use sui::typed_id::{Self, TypedID};
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
@@ -41,10 +41,10 @@ module nft_protocol::listing {
 
     use nft_protocol::err;
     use nft_protocol::utils;
-    use nft_protocol::nft::Nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::collection::Collection;
     use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
     use nft_protocol::factory::Factory;
     use nft_protocol::creators;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
@@ -52,6 +52,7 @@ module nft_protocol::listing {
     use nft_protocol::venue::{Self, Venue};
     use nft_protocol::witness::Witness as DelegatedWitness;
 
+    use originmate::typed_id::{Self, TypedID};
     use originmate::object_box::{Self as obox, ObjectBox};
 
     /// `Venue` was not defined on `Listing`
@@ -95,6 +96,8 @@ module nft_protocol::listing {
         marketplace_id: TypedID<Marketplace>,
     }
 
+    // === Events ===
+
     /// Event signalling that a `Listing` was created
     struct CreateListingEvent has copy, drop {
         listing_id: ID,
@@ -103,6 +106,15 @@ module nft_protocol::listing {
     /// Event signalling that a `Listing` was deleted
     struct DeleteListingEvent has copy, drop {
         listing_id: ID,
+    }
+
+    /// Event signalling that `Nft` was sold by `Listing`
+    struct NftSoldEvent has copy, drop {
+        nft: ID,
+        price: u64,
+        ft_type: String,
+        nft_type: String,
+        buyer: address,
     }
 
     /// Initialises a `Listing` object and returns it.
@@ -141,7 +153,7 @@ module nft_protocol::listing {
             ctx,
         );
 
-        transfer::share_object(listing);
+        transfer::public_share_object(listing);
     }
 
     /// Initializes a `Venue` on `Listing`
@@ -212,13 +224,153 @@ module nft_protocol::listing {
         inventory_id
     }
 
+    /// Pay for `Nft` sale and direct funds to `Listing` proceeds
     public fun pay<FT>(
         listing: &mut Listing,
         balance: Balance<FT>,
-        qty_sold: u64,
+        quantity: u64,
     ) {
         let proceeds = borrow_proceeds_mut(listing);
-        proceeds::add(proceeds, balance, qty_sold);
+        proceeds::add(proceeds, balance, quantity);
+    }
+
+    /// Emits `NftSoldEvent` for provided `Nft`
+    ///
+    /// Buyer is set to the `logical_owner` of the `Nft`.
+    public fun emit_sold_event<FT, C>(
+        nft: &Nft<C>,
+        price: u64,
+    ) {
+        event::emit(NftSoldEvent {
+            nft: object::id(nft),
+            price,
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
+            nft_type: *type_name::borrow_string(&type_name::get<C>()),
+            buyer: nft::logical_owner(nft),
+        });
+    }
+
+    /// Pay for `Nft` sale, direct fund to `Listing` proceeds, and emit sale
+    /// events.
+    ///
+    /// Will charge `price` from the provided `Balance` object.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if balance is not enough to fund price
+    public fun pay_and_emit_sold_event<FT, C>(
+        listing: &mut Listing,
+        nft: &Nft<C>,
+        balance: &mut Balance<FT>,
+        price: u64,
+    ) {
+        let funds = balance::split(balance, price);
+        pay(listing, funds, 1);
+        emit_sold_event<FT, C>(nft, price);
+    }
+
+    /// Buys an NFT from an `Inventory`
+    ///
+    /// Only venues registered on the `Listing` have authorization to withdraw
+    /// from an `Inventory`, therefore this operation must be authorized using
+    /// a witness that corresponds to the market contract.
+    ///
+    /// Endpoint will redeem NFTs sequentially, if you need random withdrawal
+    /// use `buy_pseudorandom_nft` or `buy_random_nft`.
+    ///
+    /// #### Panics
+    ///
+    /// - `Market` type does not correspond to `venue_id` on the `Listing`
+    /// - `MarketWitness` does not correspond to `Market` type
+    /// - No supply is available from underlying `Inventory`
+    public fun buy_nft<C, FT, Market: store, MarketWitness: drop>(
+        witness: MarketWitness,
+        listing: &mut Listing,
+        inventory_id: ID,
+        venue_id: ID,
+        owner: address,
+        price: u64,
+        balance: &mut Balance<FT>,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        let inventory = inventory_internal_mut<C, Market, MarketWitness>(
+            witness, listing, venue_id, inventory_id,
+        );
+        let nft = inventory::redeem_nft(inventory, owner, ctx);
+        pay_and_emit_sold_event(listing, &nft, balance, price);
+        nft
+    }
+
+    /// Buys a pseudo-random NFT from an `Inventory`
+    ///
+    /// Only venues registered on the `Listing` have authorization to withdraw
+    /// from an `Inventory`, therefore this operation must be authorized using
+    /// a witness that corresponds to the market contract.
+    ///
+    /// Endpoint is susceptible to validator prediction of the resulting index,
+    /// use `buy_random_nft` instead.
+    ///
+    /// #### Panics
+    ///
+    /// - `Market` type does not correspond to `venue_id` on the `Listing`
+    /// - `MarketWitness` does not correspond to `Market` type
+    /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
+    public fun buy_pseudorandom_nft<C, FT, Market: store, MarketWitness: drop>(
+        witness: MarketWitness,
+        listing: &mut Listing,
+        inventory_id: ID,
+        venue_id: ID,
+        owner: address,
+        price: u64,
+        balance: &mut Balance<FT>,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        let inventory = inventory_internal_mut<C, Market, MarketWitness>(
+            witness, listing, venue_id, inventory_id,
+        );
+        let nft = inventory::redeem_pseudorandom_nft(inventory, owner, ctx);
+        pay_and_emit_sold_event(listing, &nft, balance, price);
+        nft
+    }
+
+    /// Buys a random NFT from `Inventory`
+    ///
+    /// Requires a `RedeemCommitment` created by the user in a separate
+    /// transaction to ensure that validators may not bias results favorably.
+    /// You can obtain a `RedeemCommitment` by calling
+    /// `warehouse::init_redeem_commitment`.
+    ///
+    /// Only venues registered on the `Listing` have authorization to withdraw
+    /// from an `Inventory`, therefore this operation must be authorized using
+    /// a witness that corresponds to the market contract.
+    ///
+    /// #### Panics
+    ///
+    /// - `Market` type does not correspond to `venue_id` on the `Listing`
+    /// - `MarketWitness` does not correspond to `Market` type
+    /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
+    /// - `user_commitment` does not match the hashed commitment in
+    /// `RedeemCommitment`
+    public fun buy_random_nft<C, FT, Market: store, MarketWitness: drop>(
+        witness: MarketWitness,
+        listing: &mut Listing,
+        commitment: RedeemCommitment,
+        user_commitment: vector<u8>,
+        inventory_id: ID,
+        venue_id: ID,
+        owner: address,
+        price: u64,
+        balance: &mut Balance<FT>,
+        ctx: &mut TxContext,
+    ): Nft<C> {
+        let inventory = inventory_internal_mut<C, Market, MarketWitness>(
+            witness, listing, venue_id, inventory_id,
+        );
+        let nft = inventory::redeem_random_nft(
+            inventory, commitment, user_commitment, owner, ctx,
+        );
+        pay_and_emit_sold_event(listing, &nft, balance, price);
+        nft
     }
 
     // === Admin functions ===
@@ -558,21 +710,34 @@ module nft_protocol::listing {
         object_table::contains(&listing.venues, venue_id)
     }
 
-    /// Borrow the Listing's `Venue`
+    /// Borrow the listing's `Venue`
     ///
     /// #### Panics
     ///
-    /// Panics if venue does not exist.
+    /// Panics if `Venue` does not exist.
     public fun borrow_venue(listing: &Listing, venue_id: ID): &Venue {
         assert_venue(listing, venue_id);
         object_table::borrow(&listing.venues, venue_id)
     }
 
-    /// Mutably borrow the Listing's `Venue`
+    /// Borrow the listing's `Market`
     ///
     /// #### Panics
     ///
-    /// Panics if venue does not exist.
+    /// Panics if `Market` does not exist.
+    public fun borrow_market<Market: store>(
+        listing: &Listing,
+        venue_id: ID,
+    ): &Market {
+        let venue = borrow_venue(listing, venue_id);
+        venue::borrow_market<Market>(venue)
+    }
+
+    /// Mutably borrow the listing's `Venue`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` does not exist.
     fun borrow_venue_mut(
         listing: &mut Listing,
         venue_id: ID,
@@ -581,8 +746,7 @@ module nft_protocol::listing {
         object_table::borrow_mut(&mut listing.venues, venue_id)
     }
 
-    /// Mutably borrow the Listing's `Venue` and the corresponding
-    /// inventory
+    /// Mutably borrow the listing's `Venue`
     ///
     /// `Venue` and inventories are unprotected therefore only market modules
     /// registered on a `Venue` can gain mutable access to it.
@@ -600,6 +764,24 @@ module nft_protocol::listing {
         venue::assert_market<Market>(venue);
 
         venue
+    }
+
+    /// Mutably borrow the Listing's `Market`
+    ///
+    /// `Market` is unprotected therefore only market modules registered
+    /// on a `Venue` can gain mutable access to it.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness does not originate from the same module as market.
+    public fun market_internal_mut<Market: store, Witness: drop>(
+        witness: Witness,
+        listing: &mut Listing,
+        venue_id: ID,
+    ): &mut Market {
+        let venue =
+            venue_internal_mut<Market, Witness>(witness, listing, venue_id);
+        venue::borrow_market_mut<Market>(venue)
     }
 
     /// Returns whether `Inventory` with given ID exists

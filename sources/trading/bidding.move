@@ -10,7 +10,7 @@ module nft_protocol::bidding {
     use sui::object::{Self, ID, UID};
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, share_object};
 
     use nft_protocol::err;
     use nft_protocol::ob_kiosk::{Self, OwnerCap};
@@ -326,7 +326,7 @@ module nft_protocol::bidding {
             balance::join(coin::balance_mut(&mut offer), cut);
         };
 
-        transfer(offer, sender);
+        public_transfer(offer, sender);
 
         emit(BidClosedEvent {
             bid: object::id(bid),

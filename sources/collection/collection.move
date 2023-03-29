@@ -10,7 +10,7 @@ module nft_protocol::collection {
     use std::type_name::{Self, TypeName};
 
     use sui::event;
-    use sui::transfer;
+    use sui::transfer::{public_transfer, public_share_object};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
@@ -93,8 +93,8 @@ module nft_protocol::collection {
         ctx: &mut TxContext,
     ) {
         let (mint_cap, collection) = create(witness, ctx);
-        transfer::share_object(collection);
-        transfer::transfer(mint_cap, owner);
+        public_share_object(collection);
+        public_transfer(mint_cap, owner);
     }
 
     // === Domain Functions ===

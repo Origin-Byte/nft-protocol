@@ -150,7 +150,7 @@ module nft_protocol::supply_domain {
         ctx: &mut TxContext,
     ) {
         let delegated = delegate(mint_cap, collection, value, ctx);
-        transfer::transfer(delegated, receiver);
+        transfer::public_transfer(delegated, receiver);
     }
 
     /// Merge delegated `RegulatedMintCap`
@@ -205,7 +205,7 @@ module nft_protocol::supply_domain {
         ctx: &mut TxContext,
     ) {
         let delegated = delegate_unregulated(mint_cap, collection, ctx);
-        transfer::transfer(delegated, receiver);
+        transfer::public_transfer(delegated, receiver);
     }
 
     /// Increases maximum supply

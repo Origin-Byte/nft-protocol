@@ -4,6 +4,7 @@ module nft_protocol::market_whitelist {
     use sui::tx_context::TxContext;
 
     use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::venue::{Self, Venue};
 
     /// `Certificate` issued for incorrect `Venue` ID
     const EINCORRECT_CERTIFICATE: u64 = 1;
@@ -61,7 +62,7 @@ module nft_protocol::market_whitelist {
         ctx: &mut TxContext,
     ) {
         let certificate = new(listing, venue_id, ctx);
-        transfer::transfer(certificate, recipient);
+        transfer::public_transfer(certificate, recipient);
     }
 
     /// Burns a `Certificate`
@@ -78,6 +79,17 @@ module nft_protocol::market_whitelist {
     }
 
     // === Assertions ===
+
+    /// Assert `Certificate` parameters based on `Venue`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` is not whitelisted or `Certificate` parameters
+    /// don't match.
+    public fun assert_whitelist(certificate: &Certificate, venue: &Venue) {
+        venue::assert_is_whitelisted(venue);
+        assert_certificate(certificate, object::id(venue));
+    }
 
     /// Assert `Certificate` parameters
     ///

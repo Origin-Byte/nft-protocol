@@ -486,7 +486,7 @@ module nft_protocol::royalty {
                     ctx,
                 );
 
-                transfer::transfer(wallet, *who);
+                transfer::public_transfer(wallet, *who);
             };
 
             i = i + 1;

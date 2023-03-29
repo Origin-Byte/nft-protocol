@@ -20,7 +20,7 @@ module nft_protocol::royalties {
     use sui::coin;
     use sui::event::emit;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, share_object};
     use sui::tx_context::TxContext;
 
     /// `W` is the collection's witness (not the one time witness!) which
@@ -101,7 +101,7 @@ module nft_protocol::royalties {
 
         let amount = balance::value(&payment.amount);
         if (amount > 0) {
-            transfer(
+            public_transfer(
                 coin::take(
                     &mut payment.amount,
                     amount,

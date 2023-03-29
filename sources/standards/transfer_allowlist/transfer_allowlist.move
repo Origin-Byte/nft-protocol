@@ -100,7 +100,7 @@ module nft_protocol::transfer_allowlist {
         ctx: &mut TxContext,
     ) {
         let allowlist = create(witness, ctx);
-        transfer::share_object(allowlist);
+        transfer::public_share_object(allowlist);
     }
 
     /// See the docs for struct `CollectionControlCap`.
