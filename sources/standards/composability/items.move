@@ -44,12 +44,75 @@ module nft_protocol::items {
         quantity: Table<TypeName, u64>,
     }
 
-    struct Key<phantom W, phantom T> has copy, store, drop {
+    struct NftKey<phantom AW, phantom T> has copy, store, drop {
         nft_id: ID,
     }
 
+    /// Key struct used to store Items in dynamic fields
+    struct ItemsKey has store, copy, drop {}
+
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
+
+    // === Insert with ConsumableWitness ===
+
+
+    // TODO: Consider deprecate
+    /// Adds `Items` as a dynamic field with key `ItemsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Items`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
+    /// in other words, it panics if `nft_uid` is not of type `T`.
+    public fun add_items<T: key>(
+        consumable: ConsumableWitness<T>,
+        parent_uid: &mut UID,
+        parent_type: UidType<T>,
+        ctx: &mut TxContext,
+    ) {
+        assert_has_not_items(parent_uid);
+        assert_with_consumable_witness(parent_uid, parent_type);
+
+        let items = new(ctx);
+
+        cw::consume<T, Items>(consumable, &mut items);
+        df::add(parent_uid, ItemsKey {}, items);
+    }
+
+
+    // === Insert with module specific Witness ===
+
+
+    /// Adds `Items` as a dynamic field with key `ItemsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
+    /// in other words, it panics if `nft_uid` is not of type `T`.
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    public fun add_items_<W: drop, T: key>(
+        _witness: W,
+        parent_uid: &mut UID,
+        parent_type: UidType<T>,
+        ctx: &mut TxContext,
+    ) {
+        assert_has_not_items(parent_uid);
+        assert_with_witness<W, T>(parent_uid, parent_type);
+
+        let items = new(ctx);
+        df::add(parent_uid, ItemsKey {}, items);
+    }
+
+
+    // === Get for call from external Module ===
+
 
     /// Creates new `Items`
     public fun new(ctx: &mut TxContext): Items {
@@ -60,109 +123,99 @@ module nft_protocol::items {
         }
     }
 
-    /// Creates new `Items`
-    public fun empty(parent_uid: &mut UID, ctx: &mut TxContext) {
-        let items = new(ctx);
 
-        // TODO: Is it safe here to add it as a marker?
-        df::add(parent_uid, utils::marker<Items>(), items);
+    // === Field Borrow Functions ===
+
+
+    /// Borrows immutably the `Items` field.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `ItemsKey` does not exist.
+    public fun borrow_items(
+        parent_uid: &UID,
+    ): &Items {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_items(parent_uid);
+        df::borrow(parent_uid, ItemsKey {})
     }
 
-    /// Returns whether NFT with given ID is composed within provided
-    /// `Items`
-    public fun has_nft(parent_uid: &UID, nft_id: ID): bool {
+    /// Immutably Borrows `Nft` from `Items`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft` was not composed within the `Items`.
+    public fun borrow_nft<T: key + store>(parent_uid: &UID, nft_id: ID): &T {
         let items = df::borrow<Marker<Items>, Items>(
             parent_uid, utils::marker<Items>()
         );
 
-        object_bag::contains(&items.nfts, nft_id)
-    }
-
-    /// Returns whether NFT with given ID is composed within provided
-    /// `Items`
-    public fun has_nft_(items: &Items, nft_id: ID): bool {
-        object_bag::contains(&items.nfts, nft_id)
-    }
-
-    /// Borrows `Items` from `T`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `T` was not composed within the `Items`.
-    public fun borrow_items(parent_uid: &UID): &Items {
-        df::borrow(parent_uid, utils::marker<Items>())
-    }
-
-    // TODO: This is unsafe because there is no access control...
-    /// Mutably borrows `Nft` from `Items`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_items_mut(parent_uid: &mut UID): &mut Items {
-        df::borrow_mut(parent_uid, utils::marker<Items>())
-    }
-
-    /// Borrows `Nft` from `Items`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_nft<T: key + store>(parent_uid: &mut UID, nft_id: ID): &T {
-        let items = df::borrow<Marker<Items>, Items>(
-            parent_uid, utils::marker<Items>()
-        );
-        borrow_nft_(items, nft_id)
-    }
-
-    // TODO: This is unsafe because there is no access control...
-    /// Mutably borrows `Nft` from `Items`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_nft_mut<T: key + store>(
-        parent_uid: &mut UID,
-        nft_id: ID,
-    ): &mut T {
-        let items = df::borrow_mut<Marker<Items>, Items>(
-            parent_uid, utils::marker<Items>()
-        );
-
-        borrow_nft_mut_(items, nft_id)
-    }
-
-    /// Borrows `Nft` from `Items`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_nft_<T: key + store>(items: &Items, nft_id: ID): &T {
         assert_composed(items, nft_id);
         dof::borrow(&items.id, nft_id)
     }
 
-    // TODO: This is unsafe because there is no access control...
     /// Mutably borrows `Nft` from `Items`
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
+    /// Panics if dynamic field with `ItemsKey` does not exist.
+    ///
+    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
+    /// in other words, it panics if `nft_uid` is not of type `T`.
+    ///
     /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_nft_mut_<T: key + store>(
-        items: &mut Items,
+    public fun borrow_nft_mut_<CW: drop, AW: drop, T: key + store>(
+        auth_witness: AW,
+        creator_witness: CW,
+        parent_uid: &mut UID,
+        parent_type: UidType<T>,
         nft_id: ID,
     ): &mut T {
-        assert_composed(items, nft_id);
-        dof::borrow_mut(&mut items.id, nft_id)
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_items(parent_uid);
+        assert_with_witness<CW, T>(parent_uid, parent_type);
+
+        let nft_key = NftKey<AW, T> { nft_id: nft_id };
+        let items = df::borrow_mut<NftKey<AW, T>, Items>(parent_uid, nft_key);
+
+        borrow_nft_mut_internal(items, nft_id)
     }
 
+
+    // === Writer Functions ===
+
+
     /// Composes child NFT into `Items`
-    public fun compose<W: drop, T: key + store>(
-        _witness: W,
-        key: Key<W, T>,
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Items`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `ItemsKey` does not exist.
+    ///
+    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
+    /// in other words, it panics if `nft_uid` is not of type `T`.
+    public fun compose_<AW: drop, CW: drop, T: key + store>(
+        _auth_witness: AW,
+        creator_witness: CW,
+        key: Key<AW, T>,
         items: &mut Items,
         child_nft: T,
     ) {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_items(parent_uid);
+        assert_with_witness<CW, T>(parent_uid, parent_type);
+
         let qty = table::borrow_mut(&mut items.quantity, type_name::get<T>());
         *qty = *qty + 1;
 
@@ -171,19 +224,47 @@ module nft_protocol::items {
 
     /// Decomposes child NFT from `Items`
     ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Items`.
+    ///
     /// #### Panics
     ///
+    /// Panics if dynamic field with `ItemsKey` does not exist.
+    ///
+    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
+    /// in other words, it panics if `nft_uid` is not of type `T`.
+    ///
     /// Panics if child `Nft` does not exist.
-    public fun decompose<W: drop, T: key + store>(
-        _witness: W,
+    public fun decompose_<AW: drop, CW: drop, T: key + store>(
+        _auth_witness: AW,
+        creator_witness: CW,
         key: Key<W, T>,
         items: &mut Items,
         child_nft_id: ID,
     ): T {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_items(parent_uid);
+        assert_with_witness<CW, T>(parent_uid, parent_type);
+
         let qty = table::borrow_mut(&mut items.quantity, type_name::get<T>());
         *qty = *qty - 1;
 
         object_bag::remove(&mut items.nfts, key)
+    }
+
+
+    // === Getter Functions & Static Mutability Accessors ===
+
+    /// Immutably Borrows `Nft` from `Items`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Nft` was not composed within the `Items`.
+    public fun get_nft<T: key + store>(items: &Items, nft_id: ID): &T {
+        assert_composed(items, nft_id);
+        dof::borrow(&items.id, nft_id)
     }
 
     /// Counts how many NFTs are registered under the given type
@@ -207,7 +288,32 @@ module nft_protocol::items {
         Key { nft_id }
     }
 
-    // === Assertions ===
+
+    // === Assertions & Helpers ===
+
+
+    /// Returns whether NFT with given ID is composed within provided
+    /// `Items`
+    public fun has_nft(parent_uid: &UID, nft_id: ID): bool {
+        let items = df::borrow<Marker<Items>, Items>(
+            parent_uid, utils::marker<Items>()
+        );
+
+        object_bag::contains(&items.nfts, nft_id)
+    }
+
+    /// Returns whether NFT with given ID is composed within provided
+    /// `Items`
+    public fun has_nft_(items: &Items, nft_id: ID): bool {
+        object_bag::contains(&items.nfts, nft_id)
+    }
+
+    /// Checks that a given NFT has a dynamic field with `ItemsKey`
+    public fun has_items(
+        nft_uid: &UID,
+    ): bool {
+        df::exists_(nft_uid, ItemsKey {})
+    }
 
     /// Assert that NFT with given ID is composed within the `Items`
     ///
@@ -216,5 +322,13 @@ module nft_protocol::items {
     /// Panics if NFT is not composed.
     public fun assert_composed(items: &Items, nft_id: ID) {
         assert!(has_nft_(items, nft_id), EUNDEFINED_NFT)
+    }
+
+    public fun assert_has_items(nft_uid: &UID) {
+        assert!(has_items(nft_uid), EUNDEFINED_ATTRIBUTES_FIELD);
+    }
+
+    public fun assert_has_not_items(nft_uid: &UID) {
+        assert!(!has_items(nft_uid), EATTRIBUTES_FIELD_ALREADY_EXISTS);
     }
 }
