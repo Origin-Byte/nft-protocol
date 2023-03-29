@@ -436,6 +436,9 @@ module nft_protocol::creators {
 
     /// Returns a mutable reference to the list of creators
     /// defined on the `Creators`.
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Creators`.
     public fun get_creators_mut(
         creators: &mut Creators,
     ): &mut VecSet<address> {

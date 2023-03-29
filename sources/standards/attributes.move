@@ -445,7 +445,7 @@ module nft_protocol::attributes {
     // === Getter Functions & Static Mutability Accessors ===
 
 
-    /// Borrows underlying attribute map of `Attributes`
+    /// Immutably borrows underlying attribute map of `Attributes`
     public fun get_attributes_map(
         attributes: &Attributes,
     ): &VecMap<String, String> {
