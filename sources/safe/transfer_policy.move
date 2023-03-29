@@ -1,9 +1,3 @@
-// Copyright (c) Mysten Labs, Inc.
-// SPDX-License-Identifier: Apache-2.0
-
-// NOTE: This is a placeholder, we are temporarily adding this file to this
-// branch to make it easier to import, but will be removed as soon as devnet-0.28.0
-// is released.
 module nft_protocol::transfer_policy {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
