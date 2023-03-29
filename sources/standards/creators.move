@@ -330,7 +330,7 @@ module nft_protocol::creators {
         assert_has_creators(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let creators = borrow_creators_mut(consumable, nft_uid, nft_type);
+        let creators = borrow_mut_internal(nft_uid);
         cw::consume<T, Creators>(consumable, creators);
 
         vec_set::insert(&mut creators.creators, who);
@@ -359,7 +359,7 @@ module nft_protocol::creators {
         assert_has_creators(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let creators = borrow_creators_mut(consumable, nft_uid, nft_type);
+        let creators = borrow_mut_internal(nft_uid);
 
         vec_set::remove(&mut creators.creators, &who);
     }
@@ -389,7 +389,7 @@ module nft_protocol::creators {
         assert_has_creators(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let creators = borrow_creators_mut_(witness, nft_uid, nft_type);
+        let creators = borrow_mut_internal(nft_uid);
 
         vec_set::insert(&mut creators.creators, who);
     }
@@ -419,7 +419,7 @@ module nft_protocol::creators {
         assert_has_creators(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let creators = borrow_creators_mut_(witness, nft_uid, nft_type);
+        let creators = borrow_mut_internal(nft_uid);
 
         vec_set::remove(&mut creators.creators, &who);
     }
@@ -440,6 +440,22 @@ module nft_protocol::creators {
         creators: &mut Creators,
     ): &mut VecSet<address> {
         &mut creators.creators
+    }
+
+
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `Creators` field.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal(
+        nft_uid: &mut UID,
+    ): &mut Creators {
+        df::borrow_mut<CreatorsKey, Creators>(
+            nft_uid,
+            CreatorsKey {}
+        )
     }
 
 

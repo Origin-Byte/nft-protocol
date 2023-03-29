@@ -193,7 +193,7 @@ module nft_protocol::symbol {
         assert_has_symbol(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let symbol = borrow_symbol_mut(consumable, nft_uid, nft_type);
+        let symbol = borrow_mut_internal(nft_uid);
 
         cw::consume<T, Symbol>(consumable, symbol);
         symbol.symbol = new_symbol;
@@ -224,7 +224,7 @@ module nft_protocol::symbol {
         assert_has_symbol(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let symbol = borrow_symbol_mut_(witness, nft_uid, nft_type);
+        let symbol = borrow_mut_internal(nft_uid);
         symbol.symbol = new_symbol;
     }
 
@@ -246,6 +246,22 @@ module nft_protocol::symbol {
         symbol: &mut Symbol,
     ): &String {
         &mut symbol.symbol
+    }
+
+
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `Symbol` field.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal(
+        nft_uid: &mut UID,
+    ): &mut Symbol {
+        df::borrow_mut<SymbolKey, Symbol>(
+            nft_uid,
+            SymbolKey {}
+        )
     }
 
     // === Assertions & Helpers ===

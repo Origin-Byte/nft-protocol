@@ -196,7 +196,7 @@ module nft_protocol::display_info {
         assert_has_display_info(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let display_info = borrow_display_info_mut(consumable, nft_uid, nft_type);
+        let display_info = borrow_mut_internal(nft_uid);
 
         cw::consume<T, DisplayInfo>(consumable, display_info);
         display_info.name = new_name;
@@ -227,7 +227,7 @@ module nft_protocol::display_info {
         assert_has_display_info(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let display_info = borrow_display_info_mut_(witness, nft_uid, nft_type);
+        let display_info = borrow_mut_internal(nft_uid);
 
         display_info.name = new_name;
     }
@@ -255,7 +255,7 @@ module nft_protocol::display_info {
         assert_has_display_info(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let display_info = borrow_display_info_mut(consumable, nft_uid, nft_type);
+        let display_info = borrow_mut_internal(nft_uid);
 
         cw::consume<T, DisplayInfo>(consumable, display_info);
         display_info.description = new_description;
@@ -286,8 +286,7 @@ module nft_protocol::display_info {
         assert_has_display_info(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let display_info = borrow_display_info_mut_(witness, nft_uid, nft_type);
-
+        let display_info = borrow_mut_internal(nft_uid);
         display_info.description = new_description;
     }
 
@@ -326,6 +325,22 @@ module nft_protocol::display_info {
         display_info: &mut DisplayInfo,
     ): &String {
         &mut display_info.description
+    }
+
+
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `DisplayInfo` field.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal(
+        nft_uid: &mut UID,
+    ): &mut DisplayInfo {
+        df::borrow_mut<DisplayInfoKey, DisplayInfo>(
+            nft_uid,
+            DisplayInfoKey {}
+        )
     }
 
     // === Assertions & Helpers ===

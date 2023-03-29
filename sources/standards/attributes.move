@@ -329,7 +329,7 @@ module nft_protocol::attributes {
         assert_has_attributes(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let attributes = borrow_attributes_mut(consumable, nft_uid, nft_type);
+        let attributes = borrow_mut_internal(nft_uid);
 
         vec_map::insert(
             &mut attributes.map,
@@ -363,7 +363,7 @@ module nft_protocol::attributes {
         assert_has_attributes(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let attributes = borrow_attributes_mut(consumable, nft_uid, nft_type);
+        let attributes = borrow_mut_internal(nft_uid);
 
         vec_map::remove(
             &mut attributes.map,
@@ -399,7 +399,7 @@ module nft_protocol::attributes {
         assert_has_attributes(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let attributes = borrow_attributes_mut_(witness, nft_uid, nft_type);
+        let attributes = borrow_mut_internal(nft_uid);
 
         vec_map::insert(
             &mut attributes.map,
@@ -433,7 +433,7 @@ module nft_protocol::attributes {
         assert_has_attributes(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let attributes = borrow_attributes_mut_(witness, nft_uid, nft_type);
+        let attributes = borrow_mut_internal(nft_uid);
 
         vec_map::remove(
             &mut attributes.map,
@@ -492,6 +492,22 @@ module nft_protocol::attributes {
 
         parameters
     }
+
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `Attributes` field.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal(
+        nft_uid: &mut UID,
+    ): &mut Attributes {
+        df::borrow_mut<AttributesKey, Attributes>(
+            nft_uid,
+            AttributesKey {}
+        )
+    }
+
 
     // === Assertions & Helpers ===
 

@@ -221,7 +221,7 @@ module nft_protocol::tags {
         assert_has_tags(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let tags = borrow_tags_mut(consumable, nft_uid, nft_type);
+        let tags = borrow_mut_internal(nft_uid);
         bag::add(&mut tags.tags, utils::marker<TAG>(), tag);
         cw::consume<T, Tags>(consumable, tags);
     }
@@ -249,7 +249,7 @@ module nft_protocol::tags {
         assert_has_tags(nft_uid);
         assert_with_consumable_witness(nft_uid, nft_type);
 
-        let tags = borrow_tags_mut(consumable, nft_uid, nft_type);
+        let tags = borrow_mut_internal(nft_uid);
         bag::remove<Marker<TAG>, TAG>(&mut tags.tags, utils::marker<TAG>());
         cw::consume<T, Tags>(consumable, tags);
     }
@@ -279,7 +279,7 @@ module nft_protocol::tags {
         assert_has_tags(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let tags = borrow_tags_mut_(witness, nft_uid, nft_type);
+        let tags = borrow_mut_internal(nft_uid);
         bag::add(&mut tags.tags, utils::marker<TAG>(), tag);
     }
 
@@ -308,7 +308,7 @@ module nft_protocol::tags {
         assert_has_tags(nft_uid);
         assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let tags = borrow_tags_mut_(witness, nft_uid, nft_type);
+        let tags = borrow_mut_internal(nft_uid);
         bag::remove<Marker<TAG>, TAG>(&mut tags.tags, utils::marker<TAG>());
     }
 
@@ -357,6 +357,22 @@ module nft_protocol::tags {
 
     public fun license(): License {
         License {}
+    }
+
+
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `Tags` field.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal(
+        nft_uid: &mut UID,
+    ): &mut Tags {
+        df::borrow_mut<TagsKey, Tags>(
+            nft_uid,
+            TagsKey {}
+        )
     }
 
 
