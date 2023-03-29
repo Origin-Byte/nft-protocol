@@ -1,12 +1,15 @@
-/// Module of collection `SupplyDomain`
+/// Module containing `Supply` type
 ///
-/// A `Collection` with a defined `SupplyDomain` has a regulated supply.
+/// `Supply` tracks the supply of a given object type or an accumualtion of
+/// actions. It tracks the current supply and guarantees that it cannot surpass
+/// the maximum supply defined. Among others, this is used to keep track of
+/// NFT supply for collections.
+///
+/// A `Collection` with a defined `Supply` has a regulated supply.
 /// Collections can have a ceiling on the maximum supply and keep track
 /// of the current supply, whilst unregulated policies have no supply
 /// constraints nor they keep track of the number of minted objects.
-///
-/// Regulated policies are enforced by
-module nft_protocol::supply_domain {
+module nft_protocol::supply {
     use sui::transfer;
     use sui::object;
     use sui::tx_context::TxContext;
@@ -16,260 +19,579 @@ module nft_protocol::supply_domain {
     use nft_protocol::mint_cap::{
         Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
     };
-    use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::supply::{Self};
     use nft_protocol::witness::Witness as DelegatedWitness;
+
+    use sui::object::UID;
+    use sui::dynamic_field as df;
+
+    use nft_protocol::utils::{
+        Self, assert_with_witness, assert_with_consumable_witness, UidType
+    };
+    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     friend nft_protocol::warehouse;
 
-    struct SupplyDomain<phantom C> has store {
-        supply: Supply,
-    }
+    /// No field object `Attributes` defined as a dynamic field.
+    const EUNDEFINED_SUPPLY_FIELD: u64 = 1;
 
-    /// Creates a `SupplyDomain`
-    fun new<C>(max: u64, frozen: bool): SupplyDomain<C> {
-        SupplyDomain { supply: supply::new(max, frozen) }
+    /// Field object `Attributes` already defined as dynamic field.
+    const ESUPPLY_FIELD_ALREADY_EXISTS: u64 = 2;
+
+
+    /// `Supply` tracks supply parameters
+    ///
+    /// `Supply` can be frozen, therefore making it impossible to change the
+    /// maximum supply.
+    struct Supply has store, drop {
+        frozen: bool,
+        max: u64,
+        current: u64,
     }
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Borrows `Supply` from `Collection`
+    /// Key struct used to store Attributes in dynamic fields
+    struct SupplyKey has store, copy, drop {}
+
+
+    // === Insert with ConsumableWitness ===
+
+
+    /// Adds `Supply` as a dynamic field with key `SupplyKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Supply`.
     ///
     /// #### Panics
     ///
-    /// Panics if `SupplyDomain` is not registered on `Collection`.
-    public fun supply<T>(collection: &Collection<T>): &Supply {
-        assert_regulated(collection);
-
-        let domain: &SupplyDomain<T> = collection::borrow_domain(collection);
-        &domain.supply
-    }
-
-    /// Mutably borrows `Supply` from `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `SupplyDomain` is not registered on `Collection`.
-    fun supply_mut<T>(collection: &mut Collection<T>): &mut Supply {
-        assert_regulated(collection);
-
-        let domain: &mut SupplyDomain<T> =
-            collection::borrow_domain_mut(Witness {}, collection);
-        &mut domain.supply
-    }
-
-    /// Returns whether `Collection` supply is regulated
-    public fun is_regulated<T>(collection: &Collection<T>): bool {
-        collection::has_domain<T, SupplyDomain<T>>(collection)
-    }
-
-    /// Regulate the supply of `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if collection is already regulated.
-    public fun regulate<T, W>(
-        witness: &W,
-        collection: &mut Collection<T>,
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun add_supply<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         max: u64,
         frozen: bool,
     ) {
-        assert_unregulated(collection);
-        collection::add_domain(witness, collection, new<T>(max, frozen));
+        assert_has_not_supply(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let attributes = new(max, frozen);
+
+        cw::consume<T, Supply>(consumable, &mut attributes);
+        df::add(object_uid, SupplyKey {}, attributes);
     }
 
-    /// Deregulate the supply of `Collection`
+
+    // === Insert with module specific Witness ===
+
+
+    /// Adds `Supply` as a dynamic field with key `SupplyKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated or supply is non-zero or frozen.
-    public fun deregulate<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    public fun add_supply_<W: drop, T: key>(
+        _witness: W,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        max: u64,
+        frozen: bool,
     ) {
-        supply::assert_not_frozen(supply(collection));
-        let SupplyDomain<T> { supply } =
-            collection::remove_domain(Witness {}, collection);
-        supply::assert_zero(&supply);
+        assert_has_not_supply(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
+
+        let supply = new(max, frozen);
+        df::add(object_uid, SupplyKey {}, supply);
     }
 
-    /// Freeze the supply of `Collection`
+
+    // === Get for call from external Module ===
+
+
+    /// Creates a new `Supply`
+    public fun new(max: u64, frozen: bool): Supply {
+        Supply { frozen: frozen, max: max, current: 0 }
+    }
+
+
+    // === Field Borrow Functions ===
+
+
+    /// Borrows immutably the `Supply` field.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated or supply was already frozen.
-    public fun freeze_supply<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
-    ) {
-        supply::freeze_supply(supply_mut(collection))
+    /// Panics if dynamic field with `SupplyKey` does not exist.
+    public fun borrow_supply(
+        object_uid: &UID,
+    ): &Supply {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        df::borrow(object_uid, SupplyKey {})
     }
 
-    /// Delegate partial `DelegatedSupply<C>` for use in composing an
-    /// `Inventory`.
+    /// Borrows Mutably the `Supply` field.
     ///
-    /// The extend value is used as the maximum supply for the new
-    /// `RegulatedMintCap`, while the current supply of the existing supply is
-    /// incremented by the value.
-    ///
-    /// Requires that collection supply is frozen.
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Supply`.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated, supply is not frozen, or if there
-    /// is no excess supply to delegate a supply of `value`.
-    public fun delegate<T>(
-        mint_cap: &MintCap<T>,
-        collection: &mut Collection<T>,
+    /// Panics if dynamic field with `SupplyKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun borrow_supply_mut<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>
+    ): &mut Supply {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let supply = df::borrow_mut<SupplyKey, Supply>(
+            object_uid,
+            SupplyKey {}
+        );
+        cw::consume<T, Supply>(consumable, supply);
+
+        supply
+    }
+
+    /// Borrows Mutably the `Supply` field.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `SupplyKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    public fun borrow_supply_mut_<W: drop, T: key>(
+        _witness: W,
+        object_uid: &mut UID,
+        object_type: UidType<T>
+    ): &mut Supply {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
+
+        df::borrow_mut(object_uid, SupplyKey {})
+    }
+
+
+    // === Writer Functions ===
+
+    /// Increases maximum supply in `Supply` field in the object of type `T`
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    ///
+    /// Panics if supply is frozen.
+    public fun increase_supply_ceil<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         value: u64,
-        ctx: &mut TxContext,
-    ): RegulatedMintCap<T> {
-        let collection_id = object::id(collection);
-        let supply = supply::extend(supply_mut(collection), value);
-        mint_cap::new_regulated(mint_cap, collection_id, supply, ctx)
+    ) {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let supply = df::borrow_mut<SupplyKey, Supply>(
+            object_uid,
+            SupplyKey {}
+        );
+
+        cw::consume<T, Supply>(consumable, supply);
+        assert_not_frozen(supply);
+
+        supply.max = supply.max + value;
     }
 
-    /// Delegate partial `DelegatedSupply<C>` for use in composing an
-    /// `Inventory` and transfer to transaction sender.
+    /// Decreases maximum supply in `Supply` field in the object of type `T`
     ///
-    /// The extend value is used as the maximum supply for the new
-    /// `RegulatedMintCap`, while the current supply of the existing supply is
-    /// incremented by the value.
-    ///
-    /// Requires that collection supply is frozen.
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated, supply is not frozen, or if there
-    /// is no excess supply to delegate a supply of `value`.
-    public entry fun delegate_and_transfer<T>(
-        mint_cap: &MintCap<T>,
-        collection: &mut Collection<T>,
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    ///
+    /// Panics if supply is frozen.
+    ///
+    /// Panics if value is supperior to current supply.
+    public fun decrease_supply_ceil<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         value: u64,
-        receiver: address,
-        ctx: &mut TxContext,
     ) {
-        let delegated = delegate(mint_cap, collection, value, ctx);
-        transfer::transfer(delegated, receiver);
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let supply = df::borrow_mut<SupplyKey, Supply>(
+            object_uid,
+            SupplyKey {}
+        );
+
+        cw::consume<T, Supply>(consumable, supply);
+
+        assert_not_frozen(supply);
+        assert!(
+            supply.max - value > supply.current,
+            err::max_supply_cannot_be_below_current_supply()
+        );
+        supply.max = supply.max - value;
     }
 
-    /// Merge delegated `RegulatedMintCap`
+    /// Freezes supply in `Supply` field in the object of type `T`
     ///
-    /// Any excess supply on the merged `RegulatedMintCap` will be decremented
-    /// from the original `Supply`.
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated.
-    public entry fun merge_delegated<T>(
-        collection: &mut Collection<T>,
-        delegated: RegulatedMintCap<T>,
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    ///
+    /// Panics if supply is frozen already.
+    public fun freeze<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
     ) {
-        let supply = supply_mut(collection);
-        let delegated = mint_cap::delete_regulated(delegated);
-        supply::merge(supply, delegated);
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let supply = df::borrow_mut<SupplyKey, Supply>(
+            object_uid,
+            SupplyKey {}
+        );
+
+        cw::consume<T, Supply>(consumable, supply);
+
+        assert_not_frozen(supply);
+        supply.frozen = true;
     }
 
-    /// Delegate unregulated mint permission for use in composing a `Factory`.
+    /// Increases maximum supply in `Supply` field in the object of type `T`
     ///
-    /// Requires that collection supply is unregulated, therefore must not be
-    /// called if you intend to register a `SupplyDomain` in the future.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is regulated.
-    public fun delegate_unregulated<T>(
-        mint_cap: &MintCap<T>,
-        collection: &Collection<T>,
-        ctx: &mut TxContext,
-    ): UnregulatedMintCap<T> {
-        assert_unregulated(collection);
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
+    /// in other words, it panics if `nft_uid` is not of type `T`.
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    ///
+    /// Panics if supply is frozen.
+    public fun increase_supply_ceil_<W: drop, T: key>(
+        witness: W,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        value: u64,
+    ) {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let collection_id = object::id(collection);
-        mint_cap::new_unregulated(mint_cap, collection_id, ctx)
+        let supply = df::borrow_mut<SupplyKey, Supply>(
+            object_uid,
+            SupplyKey {}
+        );
+
+        assert_not_frozen(supply);
+        supply.max = supply.max + value;
     }
 
-    /// Delegate unregulated mint permission for use in composing a `Factory`
-    /// and transfer to transaction sender.
+    /// Decreases maximum supply in `Supply` field in the object of type `T`
     ///
-    /// Requires that collection supply is unregulated, therefore must not be
-    /// called if you intend to register a `SupplyDomain` in the future.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is regulated.
-    public entry fun delegate_unregulated_and_transfer<T>(
-        mint_cap: &MintCap<T>,
-        collection: &Collection<T>,
-        receiver: address,
-        ctx: &mut TxContext,
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
+    /// in other words, it panics if `nft_uid` is not of type `T`.
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    ///
+    /// Panics if value is supperior to current supply.
+    public fun decrease_supply_ceil_<W:drop, T: key>(
+        witness: W,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        value: u64,
     ) {
-        let delegated = delegate_unregulated(mint_cap, collection, ctx);
-        transfer::transfer(delegated, receiver);
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
+
+        let supply = df::borrow_mut<SupplyKey, Supply>(
+            object_uid,
+            SupplyKey {}
+        );
+
+        assert_not_frozen(supply);
+        assert!(
+            supply.max - value > supply.current,
+            err::max_supply_cannot_be_below_current_supply()
+        );
+        supply.max = supply.max - value;
     }
 
+    /// Freezes supply in `Supply` field in the object of type `T`
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    ///
+    /// Panics if supply is frozen already.
+    public fun freeze_<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+    ) {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_supply(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let supply = df::borrow_mut<SupplyKey, Supply>(
+            object_uid,
+            SupplyKey {}
+        );
+
+        cw::consume<T, Supply>(consumable, supply);
+
+        assert_not_frozen(supply);
+        supply.frozen = true;
+    }
+
+
+    // === Getter Functions & Static Mutability Accessors ===
+
+
+    /// Increments current supply. This function should be called when an NFT
+    /// is minted, if it's type has a supply.
+    ///
+    /// Endpoint is unprotected as it relies on safetly obtaining a mutable
+    /// reference to `Attributes`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if new maximum supply exceeds maximum.
+    public fun increment(supply: &mut Supply, value: u64) {
+        assert!(
+            supply.current + value <= supply.max,
+            err::supply_maxed_out()
+        );
+        supply.current = supply.current + value;
+    }
+
+    /// Decrements current supply. This function should be called when an NFT
+    /// is burned, if it's type has a supply.
+    ///
+    /// Endpoint is unprotected as it relies on safetly obtaining a mutable
+    /// reference to `Attributes`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if new maximum supply exceeds maximum.
+    public fun decrement(supply: &mut Supply, value: u64) {
+        supply.current = supply.current - value;
+    }
+
+    /// Freezes supply in `Supply` field object.
+    ///
+    /// Endpoint is unprotected as it relies on safetly obtaining a mutable
+    /// reference to `Attributes`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if already frozen
+    public fun freeze_supply(supply: &mut Supply) {
+        assert_not_frozen(supply);
+        supply.frozen = true;
+    }
+
+    // TODO: Is the name not duplicated?
     /// Increases maximum supply
     ///
+    /// Endpoint is unprotected as it relies on safetly obtaining a mutable
+    /// reference to `Attributes`.
+    ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated or supply is frozen.
-    public entry fun increase_max_supply<T>(
-        collection: &mut Collection<T>,
-        _mint_cap: &MintCap<T>,
-        value: u64,
-    ) {
-        supply::increase_maximum(supply_mut(collection), value)
+    /// Panics if supply is frozen.
+    public fun increase_supply_ceil(supply: &mut Supply, value: u64) {
+        assert_not_frozen(supply);
+        supply.max = supply.max + value;
     }
 
+    // TODO: Is the name not duplicated?
     /// Decreases maximum supply
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated, supply is frozen, or if new
-    /// maximum supply is smaller than current supply.
-    public entry fun decrease_max_supply<T>(
-        collection: &mut Collection<T>,
-        _mint_cap: &MintCap<T>,
-        value: u64
-    ) {
-        supply::decrease_maximum(supply_mut(collection), value)
+    /// Panics if supply is frozen or if new maximum supply is smaller than
+    /// current supply.
+    public fun decrease_supply_ceil(supply: &mut Supply, value: u64) {
+        assert_not_frozen(supply);
+        assert!(
+            supply.max - value > supply.current,
+            err::max_supply_cannot_be_below_current_supply()
+        );
+        supply.max = supply.max - value;
     }
 
-    /// Increments current supply
+    /// Merge two `Supply` to one
+    ///
+    /// Ideally, the merged `Supply` will have been extended from the original
+    /// `Supply`, as otherwise it may not be possible to merge the two
+    /// supplies.
+    ///
+    /// Any excess supply on the merged `Supply` will be decremented from the
+    /// original supply.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated or supply exceeds maximum.
-    public fun increment_supply<T>(
-        collection: &mut Collection<T>,
-        _mint_cap: &MintCap<T>,
-        value: u64
-    ) {
-        supply::increment(supply_mut(collection), value)
+    /// Panics if total supply will cause maximum or zero supply to be
+    /// exceeded.
+    public fun merge(supply: &mut Supply, other: Supply) {
+        let excess = other.max - other.current;
+        decrement(supply, excess);
+        increment(supply, other.current);
     }
 
-    /// Increments current supply
+    /// Split one `Supply` into two.
     ///
     /// #### Panics
     ///
-    /// Panics if collection is unregulated.
-    public fun decrement_supply<T>(
-        collection: &mut Collection<T>,
-        _mint_cap: &MintCap<T>,
-        value: u64
-    ) {
-        supply::decrement(supply_mut(collection), value)
+    /// Panics if `split_max` is superior to `Supply.max`
+    /// Panics if `split_current` is superior to `Supply.current`
+    /// Panics if the result leads to `current > max`
+    public fun split(
+        supply: &mut Supply,
+        split_max: u64,
+        split_current: u64,
+    ): Supply {
+        // Order here matters, we need to first decrease the current value
+        // and only then decrease the ceil. Decreasing the ceil will fail
+        // if the result is below the current value.
+        decrement(supply, split_current);
+        decrease_supply_ceil(supply, split_max);
+
+        let new_supply = new(split_max, false);
+        increment(new_supply, split_current);
+
+        supply
     }
 
-    // === Assertions ===
-
-    /// Assert that the `Collection` supply is regulated
-    public fun assert_regulated<T>(collection: &Collection<T>) {
-        assert!(is_regulated(collection), err::supply_not_regulated());
+    /// Returns maximum supply
+    public fun get_max(supply: &Supply): u64 {
+        supply.max
     }
 
-    /// Assert that the `Collection` supply is not regulated
-    public fun assert_unregulated<T>(collection: &Collection<T>) {
-        assert!(!is_regulated(collection), err::supply_regulated());
+    /// Returns current supply
+    public fun get_current(supply: &Supply): u64 {
+        supply.current
+    }
+
+    /// Returns remaining supply
+    public fun get_remaining_supply(supply: &Supply): u64 {
+        supply.max - supply.current
+    }
+
+
+    // === Assertions & Helpers ===
+
+
+    /// Checks that a given NFT has a dynamic field with `AttributesKey`
+    public fun has_supply(
+        object_uid: &UID,
+    ): bool {
+        df::exists_(object_uid, SupplyKey {})
+    }
+
+    /// Asserts that current supply is zero
+    public fun assert_zero_current_supply(supply: &Supply) {
+        assert!(supply.current == 0, err::supply_is_not_zero())
+    }
+
+    /// Asserts that supply is frozen
+    public fun assert_frozen(supply: &Supply) {
+        assert!(supply.frozen, err::supply_not_frozen())
+    }
+
+    /// Asserts that supply is not frozen
+    public fun assert_not_frozen(supply: &Supply) {
+        assert!(!supply.frozen, err::supply_frozen())
+    }
+
+    public fun assert_has_supply(object_uid: &UID) {
+        assert!(has_supply(object_uid), EUNDEFINED_SUPPLY_FIELD);
+    }
+
+    public fun assert_has_not_supply(object_uid: &UID) {
+        assert!(!has_supply(object_uid), ESUPPLY_FIELD_ALREADY_EXISTS);
     }
 }
