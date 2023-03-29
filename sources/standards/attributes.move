@@ -50,7 +50,7 @@ module nft_protocol::attributes {
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun add_attributes<T: key>(
+    entry public fun add_attributes<T: key>(
         consumable: ConsumableWitness<T>,
         nft_uid: &mut UID,
         nft_type: UidType<T>,
