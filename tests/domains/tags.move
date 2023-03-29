@@ -17,7 +17,7 @@ module nft_protocol::test_tags {
         let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(CREATOR, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         let tags = tags::empty(ctx);
 
@@ -42,7 +42,7 @@ module nft_protocol::test_tags {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) =
-            collection::create(&Foo {}, ctx(&mut scenario));
+            collection::create(&Witness {}, ctx(&mut scenario));
 
         let tags = tags::empty(ctx(&mut scenario));
 

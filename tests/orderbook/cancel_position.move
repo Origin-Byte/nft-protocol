@@ -1,12 +1,14 @@
 #[test_only]
 module nft_protocol::test_ob_cancel_position {
-    use nft_protocol::safe::{TransferCap};
-    use nft_protocol::test_utils as test_ob;
     use sui::sui::SUI;
-    use nft_protocol::orderbook::{Self as ob, Orderbook};
     use sui::coin;
     use sui::test_scenario;
-    use sui::transfer::public_transfer;
+    use sui::transfer;
+
+    use nft_protocol::safe::{TransferCap};
+    use nft_protocol::test_utils as test_ob;
+    use nft_protocol::orderbook::{Self as ob, Orderbook};
+
     use originmate::crit_bit_u64 as crit_bit;
 
     const BUYER: address = @0xA1C06;
@@ -22,13 +24,13 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_non_existing_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
         // Creates transfer cap and sends it to orderbook
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
 
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::cancel_ask(&mut scenario, nft_id, OFFER_SUI);
@@ -41,13 +43,13 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_someone_elses_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
         // Creates transfer cap and sends it to orderbook
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
 
         test_scenario::next_tx(&mut scenario, THIRD_PARTY);
         test_ob::cancel_ask(&mut scenario, nft_id, OFFER_SUI);
@@ -59,17 +61,17 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
         // Creates transfer cap and sends it to orderbook
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
-        let transfer_cap_id = test_ob::create_ask<test_ob::Foo>(
+        let transfer_cap_id = test_ob::create_ask(
             &mut scenario,
             nft_id,
             OFFER_SUI,
@@ -94,30 +96,30 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_only_one_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
-        let nft1_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft1_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
         test_scenario::next_tx(&mut scenario, SELLER);
-        let transfer_cap1_id = test_ob::create_ask<test_ob::Foo>(
+        let transfer_cap1_id = test_ob::create_ask(
             &mut scenario,
             nft1_id,
             OFFER_SUI,
         );
 
-        let nft2_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft2_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
         test_scenario::next_tx(&mut scenario, SELLER);
-        test_ob::create_ask<test_ob::Foo>(
+        test_ob::create_ask(
             &mut scenario,
             nft2_id,
             OFFER_SUI,
         );
 
-        let nft3_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft3_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
         test_scenario::next_tx(&mut scenario, SELLER);
-        test_ob::create_ask<test_ob::Foo>(
+        test_ob::create_ask(
             &mut scenario,
             nft3_id,
             OFFER_SUI,
@@ -150,13 +152,13 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_ask_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
         // Creates transfer cap and sends it to orderbook
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
@@ -187,11 +189,11 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
 
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
         let wallet = test_ob::cancel_bid(&mut scenario, BUYER, OFFER_SUI);
 
         assert!(coin::value(&wallet) == OFFER_SUI, 0);
@@ -204,12 +206,12 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_only_one_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
 
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
         let wallet = test_ob::cancel_bid(&mut scenario, BUYER, OFFER_SUI);
         assert!(coin::value(&wallet) == OFFER_SUI, 0);
 
@@ -227,8 +229,8 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_non_existing_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, BUYER);
         test_ob::create_safe(&mut scenario, BUYER);
 
@@ -244,12 +246,12 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cannot_cancel_someone_elses_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, BUYER);
         test_ob::create_safe(&mut scenario, BUYER);
 
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
         test_scenario::next_tx(&mut scenario, THIRD_PARTY);
         let wallet = test_ob::cancel_bid(&mut scenario, THIRD_PARTY, OFFER_SUI);
 
@@ -261,8 +263,8 @@ module nft_protocol::test_ob_cancel_position {
     fun it_cancels_bid_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
 
         test_ob::create_bid_with_commission(

@@ -66,7 +66,7 @@ module nft_protocol::trading {
 
     /// Wraps the funds in an object which can be only unwrapped in a method
     /// of the `C`ollection that deals with royalties.
-    public fun settle_funds_with_royalties<C, FT>(
+    public fun settle_funds_with_royalties<T, FT>(
         paid: &mut Balance<FT>,
         recipient: address,
         maybe_commission: &mut Option<AskCommission>,
@@ -85,14 +85,14 @@ module nft_protocol::trading {
             let trade = object::new(ctx);
 
             // `p` - `c` goes to seller
-            royalties::create_with_trade<C, FT>(
+            royalties::create_with_trade<T, FT>(
                 balance::split(paid, amount - cut),
                 recipient,
                 object::uid_to_inner(&trade),
                 ctx,
             );
             // `c` goes to the marketplace
-            royalties::create_with_trade<C, FT>(
+            royalties::create_with_trade<T, FT>(
                 balance::split(paid, cut),
                 beneficiary,
                 object::uid_to_inner(&trade),
@@ -103,46 +103,10 @@ module nft_protocol::trading {
         } else {
             // no commission, all `p` goes to seller
 
-            royalties::create<C, FT>(
+            royalties::create<T, FT>(
                 balance::split(paid, amount),
                 recipient,
                 ctx,
-            );
-        };
-    }
-
-    /// No royalty collection, just transfer the funds directly.
-    public fun settle_funds_no_royalties<C, FT>(
-        paid: &mut Balance<FT>,
-        recipient: address,
-        maybe_commission: &mut Option<AskCommission>,
-        ctx: &mut TxContext,
-    ) {
-        let amount = balance::value(paid);
-
-        if (option::is_some(maybe_commission)) {
-            // the `p`aid amount for the NFT and the commission `c`ut
-
-            let AskCommission {
-                cut, beneficiary,
-            } = option::extract(maybe_commission);
-
-            // `p` - `c` goes to seller
-            public_transfer(
-                coin::from_balance(balance::split(paid, amount - cut), ctx),
-                recipient,
-            );
-
-            // `c` goes to the marketplace
-            public_transfer(
-                coin::from_balance(balance::split(paid, cut), ctx),
-                beneficiary,
-            );
-        } else {
-            // no commission, all `p` goes to seller
-            public_transfer(
-                coin::from_balance(balance::split(paid, amount), ctx),
-                recipient,
             );
         };
     }

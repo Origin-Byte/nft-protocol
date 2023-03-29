@@ -41,16 +41,11 @@ module nft_protocol::listing {
 
     use nft_protocol::err;
     use nft_protocol::utils;
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::collection::Collection;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
-    use nft_protocol::factory::Factory;
-    use nft_protocol::creators;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::venue::{Self, Venue};
-    use nft_protocol::witness::Witness as DelegatedWitness;
 
     use originmate::typed_id::{Self, TypedID};
     use originmate::object_box::{Self as obox, ObjectBox};
@@ -195,13 +190,11 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if transaction sender is not listing admin or creator.
-    public entry fun init_warehouse<C>(
+    public entry fun init_warehouse<T: key + store>(
         listing: &mut Listing,
-        collection: &Collection<C>,
         ctx: &mut TxContext,
     ) {
-        let witness = creators::delegate(collection, ctx);
-        create_warehouse<C>(witness, listing, ctx);
+        create_warehouse<T>(listing, ctx);
     }
 
     /// Creates an empty `Warehouse` on `Listing` and returns it's ID
@@ -212,13 +205,11 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if transaction sender is not listing admin.
-    public fun create_warehouse<C>(
-        witness: DelegatedWitness<C>,
+    public fun create_warehouse<T: key + store>(
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
-        let inventory =
-            inventory::from_warehouse(witness, warehouse::new(ctx), ctx);
+        let inventory = inventory::from_warehouse(warehouse::new<T>(ctx), ctx);
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
         inventory_id
@@ -237,16 +228,17 @@ module nft_protocol::listing {
     /// Emits `NftSoldEvent` for provided `Nft`
     ///
     /// Buyer is set to the `logical_owner` of the `Nft`.
-    public fun emit_sold_event<FT, C>(
-        nft: &Nft<C>,
+    public fun emit_sold_event<FT, T: key>(
+        nft: &T,
         price: u64,
+        buyer: address,
     ) {
         event::emit(NftSoldEvent {
             nft: object::id(nft),
             price,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
-            nft_type: *type_name::borrow_string(&type_name::get<C>()),
-            buyer: nft::logical_owner(nft),
+            nft_type: *type_name::borrow_string(&type_name::get<T>()),
+            buyer,
         });
     }
 
@@ -258,15 +250,16 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if balance is not enough to fund price
-    public fun pay_and_emit_sold_event<FT, C>(
+    public fun pay_and_emit_sold_event<FT, T: key>(
         listing: &mut Listing,
-        nft: &Nft<C>,
+        nft: &T,
         balance: &mut Balance<FT>,
         price: u64,
+        buyer: address,
     ) {
         let funds = balance::split(balance, price);
         pay(listing, funds, 1);
-        emit_sold_event<FT, C>(nft, price);
+        emit_sold_event<FT, T>(nft, price, buyer);
     }
 
     /// Buys an NFT from an `Inventory`
@@ -283,21 +276,20 @@ module nft_protocol::listing {
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - `MarketWitness` does not correspond to `Market` type
     /// - No supply is available from underlying `Inventory`
-    public fun buy_nft<C, FT, Market: store, MarketWitness: drop>(
+    public fun buy_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
         witness: MarketWitness,
         listing: &mut Listing,
         inventory_id: ID,
         venue_id: ID,
-        owner: address,
+        buyer: address,
         price: u64,
         balance: &mut Balance<FT>,
-        ctx: &mut TxContext,
-    ): Nft<C> {
-        let inventory = inventory_internal_mut<C, Market, MarketWitness>(
+    ): T {
+        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
             witness, listing, venue_id, inventory_id,
         );
-        let nft = inventory::redeem_nft(inventory, owner, ctx);
-        pay_and_emit_sold_event(listing, &nft, balance, price);
+        let nft = inventory::redeem_nft(inventory);
+        pay_and_emit_sold_event(listing, &nft, balance, price, buyer);
         nft
     }
 
@@ -315,21 +307,21 @@ module nft_protocol::listing {
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - `MarketWitness` does not correspond to `Market` type
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
-    public fun buy_pseudorandom_nft<C, FT, Market: store, MarketWitness: drop>(
+    public fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
         witness: MarketWitness,
         listing: &mut Listing,
         inventory_id: ID,
         venue_id: ID,
-        owner: address,
+        buyer: address,
         price: u64,
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        let inventory = inventory_internal_mut<C, Market, MarketWitness>(
+    ): T {
+        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
             witness, listing, venue_id, inventory_id,
         );
-        let nft = inventory::redeem_pseudorandom_nft(inventory, owner, ctx);
-        pay_and_emit_sold_event(listing, &nft, balance, price);
+        let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
+        pay_and_emit_sold_event(listing, &nft, balance, price, buyer);
         nft
     }
 
@@ -351,25 +343,25 @@ module nft_protocol::listing {
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
     /// - `user_commitment` does not match the hashed commitment in
     /// `RedeemCommitment`
-    public fun buy_random_nft<C, FT, Market: store, MarketWitness: drop>(
+    public fun buy_random_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
         witness: MarketWitness,
         listing: &mut Listing,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         inventory_id: ID,
         venue_id: ID,
-        owner: address,
+        buyer: address,
         price: u64,
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        let inventory = inventory_internal_mut<C, Market, MarketWitness>(
+    ): T {
+        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_random_nft(
-            inventory, commitment, user_commitment, owner, ctx,
+            inventory, commitment, user_commitment, ctx,
         );
-        pay_and_emit_sold_event(listing, &nft, balance, price);
+        pay_and_emit_sold_event(listing, &nft, balance, price, buyer);
         nft
     }
 
@@ -487,10 +479,10 @@ module nft_protocol::listing {
     /// - `Inventory` with the given ID does not exist
     /// - `Inventory` with the given ID is not a `Warehouse`
     /// - Transaction sender is not the listing admin
-    public entry fun add_nft<C>(
+    public entry fun add_nft<T: key + store>(
         listing: &mut Listing,
         inventory_id: ID,
-        nft: Nft<C>,
+        nft: T,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
@@ -509,9 +501,9 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if transaction sender is not the listing admin
-    public entry fun add_inventory<C>(
+    public entry fun add_inventory<T>(
         listing: &mut Listing,
-        inventory: Inventory<C>,
+        inventory: Inventory<T>,
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
@@ -529,14 +521,12 @@ module nft_protocol::listing {
     ///
     /// Panics if transaction sender is not listing admin or creator registered
     /// in `CreatorsDomain`.
-    public entry fun add_warehouse<C>(
+    public entry fun add_warehouse<T: key + store>(
         listing: &mut Listing,
-        collection: &Collection<C>,
-        warehouse: Warehouse<C>,
+        warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ) {
-        let witness = creators::delegate(collection, ctx);
-        insert_warehouse(witness, listing, warehouse, ctx);
+        insert_warehouse(listing, warehouse, ctx);
     }
 
     /// Adds `Warehouse` to `Listing` and returns it's ID
@@ -547,52 +537,12 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if transaction sender is not listing admin.
-    public fun insert_warehouse<C>(
-        witness: DelegatedWitness<C>,
+    public fun insert_warehouse<T: key + store>(
         listing: &mut Listing,
-        warehouse: Warehouse<C>,
+        warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ): ID {
-        let inventory = inventory::from_warehouse(witness, warehouse, ctx);
-        let inventory_id = object::id(&inventory);
-        add_inventory(listing, inventory, ctx);
-        inventory_id
-    }
-
-    /// Adds `Factory` to `Listing`
-    ///
-    /// Function transparently wraps `Factory` in `Inventory`, therefore, the
-    /// returned ID is that of the `Inventory` not the `Factory`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender is not listing admin or creator registered
-    /// in `CreatorsDomain`.
-    public entry fun add_factory<C>(
-        listing: &mut Listing,
-        collection: &Collection<C>,
-        factory: Factory<C>,
-        ctx: &mut TxContext,
-    ) {
-        let witness = creators::delegate(collection, ctx);
-        insert_factory(witness, listing, factory, ctx);
-    }
-
-    /// Adds `Factory` to `Listing` and returns it's ID
-    ///
-    /// Function transparently wraps `Factory` in `Inventory`, therefore, the
-    /// returned ID is that of the `Inventory` not the `Factory`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender is not listing admin.
-    public fun insert_factory<C>(
-        witness: DelegatedWitness<C>,
-        listing: &mut Listing,
-        factory: Factory<C>,
-        ctx: &mut TxContext,
-    ): ID {
-        let inventory = inventory::from_factory(witness, factory, ctx);
+        let inventory = inventory::from_warehouse(warehouse, ctx);
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
         inventory_id
@@ -785,11 +735,11 @@ module nft_protocol::listing {
     }
 
     /// Returns whether `Inventory` with given ID exists
-    public fun contains_inventory<C>(
+    public fun contains_inventory<T>(
         listing: &Listing,
         inventory_id: ID,
     ): bool {
-        object_bag::contains_with_type<ID, Inventory<C>>(
+        object_bag::contains_with_type<ID, Inventory<T>>(
             &listing.inventories,
             inventory_id,
         )
@@ -800,11 +750,11 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if `Inventory` does not exist.
-    public fun borrow_inventory<C>(
+    public fun borrow_inventory<T>(
         listing: &Listing,
         inventory_id: ID,
-    ): &Inventory<C> {
-        assert_inventory<C>(listing, inventory_id);
+    ): &Inventory<T> {
+        assert_inventory<T>(listing, inventory_id);
         object_bag::borrow(&listing.inventories, inventory_id)
     }
 
@@ -813,11 +763,11 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if `Inventory` does not exist.
-    fun borrow_inventory_mut<C>(
+    fun borrow_inventory_mut<T>(
         listing: &mut Listing,
         inventory_id: ID,
-    ): &mut Inventory<C> {
-        assert_inventory<C>(listing, inventory_id);
+    ): &mut Inventory<T> {
+        assert_inventory<T>(listing, inventory_id);
         object_bag::borrow_mut(&mut listing.inventories, inventory_id)
     }
 
@@ -829,12 +779,12 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if witness does not originate from the same module as market.
-    public fun inventory_internal_mut<C, Market: store, Witness: drop>(
+    public fun inventory_internal_mut<T, Market: store, Witness: drop>(
         witness: Witness,
         listing: &mut Listing,
         venue_id: ID,
         inventory_id: ID,
-    ): &mut Inventory<C> {
+    ): &mut Inventory<T> {
         venue_internal_mut<Market, Witness>(witness, listing, venue_id);
         borrow_inventory_mut(listing, inventory_id)
     }
@@ -846,12 +796,12 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// Panics if `Warehouse` or `Listing` with the ID does not exist
-    public fun supply<C>(
+    public fun supply<T: key + store>(
         listing: &Listing,
         inventory_id: ID,
     ): Option<u64> {
-        assert_inventory<C>(listing, inventory_id);
-        let inventory = borrow_inventory<C>(listing, inventory_id);
+        assert_inventory<T>(listing, inventory_id);
+        let inventory = borrow_inventory<T>(listing, inventory_id);
         inventory::supply(inventory)
     }
 
@@ -899,10 +849,10 @@ module nft_protocol::listing {
         assert!(contains_venue(listing, venue_id), EUNDEFINED_VENUE);
     }
 
-    public fun assert_inventory<C>(listing: &Listing, inventory_id: ID) {
+    public fun assert_inventory<T>(listing: &Listing, inventory_id: ID) {
         // Inventory can be either `Warehouse` or `Factory`
         assert!(
-            contains_inventory<C>(listing, inventory_id),
+            contains_inventory<T>(listing, inventory_id),
             EUNDEFINED_INVENTORY,
         );
     }

@@ -22,7 +22,6 @@ module nft_protocol::bidding {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        settle_funds_no_royalties,
         settle_funds_with_royalties,
         transfer_bid_commission,
     };
@@ -130,12 +129,12 @@ module nft_protocol::bidding {
     ///
     /// It performs the following:
     /// - Splits funds from `Bid<FT>` by:
-    ///     - (1) Creating TradePayment<C, FT> for the trade amount
+    ///     - (1) Creating TradePayment<T, FT> for the trade amount
     /// - Transfers NFT from `sellers_safe` to `buyers_safe` and
     /// burns `TransferCap`
     /// - Transfers bid commission funds to the address
     /// `bid.commission.beneficiary`
-    public entry fun sell_nft<C, FT>(
+    public entry fun sell_nft<T: key + store, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         sellers_safe: &mut Safe,
@@ -143,32 +142,13 @@ module nft_protocol::bidding {
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        sell_nft_<C, FT>(
+        sell_nft_<T, FT>(
             bid,
             transfer_cap,
             option::none(),
             sellers_safe,
             buyers_safe,
             allowlist,
-            ctx,
-        );
-    }
-
-    /// Similar to [`sell_nft`] except that this is meant for
-    /// generic collections, ie. those which aren't native to our protocol.
-    public entry fun sell_generic_nft<C: key + store, FT>(
-        bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        sell_generic_nft_<C, FT>(
-            bid,
-            transfer_cap,
-            option::none(),
-            sellers_safe,
-            buyers_safe,
             ctx,
         );
     }
@@ -177,8 +157,8 @@ module nft_protocol::bidding {
     ///
     /// It performs the following:
     /// - Splits funds from `Bid<FT>` by:
-    ///     - (1) Creating TradePayment<C, FT> for the Ask commission
-    ///     - (2) Creating TradePayment<C, FT> for the net trade amount
+    ///     - (1) Creating TradePayment<T, FT> for the Ask commission
+    ///     - (2) Creating TradePayment<T, FT> for the net trade amount
     /// - Transfers NFT from `sellers_safe` to `buyers_safe` and
     /// burns `TransferCap`
     /// - Transfers bid commission funds to the address
@@ -186,7 +166,7 @@ module nft_protocol::bidding {
     ///
     /// To be called by a intermediate application, for the purpose of
     /// securing a commission for intermediating the process.
-    public entry fun sell_nft_with_commission<C, FT>(
+    public entry fun sell_nft_with_commission<T: key + store, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         beneficiary: address,
@@ -200,38 +180,13 @@ module nft_protocol::bidding {
             beneficiary,
             commission_ft,
         );
-        sell_nft_<C, FT>(
+        sell_nft_<T, FT>(
             bid,
             transfer_cap,
             option::some(commission),
             sellers_safe,
             buyers_safe,
             allowlist,
-            ctx,
-        );
-    }
-
-    /// Similar to [`sell_nft_with_commission`] except that this is meant for
-    /// generic collections, ie. those which aren't native to our protocol.
-    public entry fun sell_generic_nft_with_commission<C: key + store, FT>(
-        bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
-        beneficiary: address,
-        commission_ft: u64,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        let commission = new_ask_commission(
-            beneficiary,
-            commission_ft,
-        );
-        sell_generic_nft_<C, FT>(
-            bid,
-            transfer_cap,
-            option::some(commission),
-            sellers_safe,
-            buyers_safe,
             ctx,
         );
     }
@@ -295,12 +250,12 @@ module nft_protocol::bidding {
 
     /// Function to sell an NFT with an open `bid`.
     ///
-    /// It splits funds from `Bid<FT>` by creating TradePayment<C, FT>
-    /// for the Ask commission if any, and creating TradePayment<C, FT> for the
+    /// It splits funds from `Bid<FT>` by creating TradePayment<T, FT>
+    /// for the Ask commission if any, and creating TradePayment<T, FT> for the
     /// next trade amount. It transfers the NFT from `sellers_safe` to
     /// `buyers_safe` and burns `TransferCap`. It then transfers bid
     /// commission funds to address `bid.commission.beneficiary`.
-    fun sell_nft_<C, FT>(
+    fun sell_nft_<T: key + store, FT>(
         bid: &mut Bid<FT>,
         transfer_cap: TransferCap,
         ask_commission: Option<AskCommission>,
@@ -317,7 +272,7 @@ module nft_protocol::bidding {
 
         let price = balance::value(&bid.offer);
         assert!(price != 0, EBID_ALREADY_CLOSED);
-        settle_funds_with_royalties<C, FT>(
+        settle_funds_with_royalties<T, FT>(
             &mut bid.offer,
             tx_context::sender(ctx),
             &mut ask_commission,
@@ -325,9 +280,8 @@ module nft_protocol::bidding {
         );
         option::destroy_none(ask_commission);
 
-        safe::transfer_nft_to_safe<C, Witness>(
+        safe::transfer_nft_to_safe<T, Witness>(
             transfer_cap,
-            bid.buyer,
             Witness {},
             allowlist,
             sellers_safe,
@@ -344,52 +298,7 @@ module nft_protocol::bidding {
             seller: tx_context::sender(ctx),
             buyer: bid.buyer,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
-            nft_type: *type_name::borrow_string(&type_name::get<C>()),
-        });
-    }
-
-    /// Similar to [`sell_nft_`] except that this is meant for generic
-    /// collections, ie. those which aren't native to our protocol.
-    fun sell_generic_nft_<C: key + store, FT>(
-        bid: &mut Bid<FT>,
-        transfer_cap: TransferCap,
-        ask_commission: Option<AskCommission>,
-        sellers_safe: &mut Safe,
-        buyers_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        safe::assert_transfer_cap_of_safe(&transfer_cap, sellers_safe);
-        safe::assert_nft_of_transfer_cap(&bid.nft, &transfer_cap);
-        safe::assert_id(buyers_safe, bid.safe);
-
-        let nft_id = safe::transfer_cap_nft(&transfer_cap);
-
-        let price = balance::value(&bid.offer);
-        settle_funds_no_royalties<C, FT>(
-            &mut bid.offer,
-            tx_context::sender(ctx),
-            &mut ask_commission,
-            ctx,
-        );
-        option::destroy_none(ask_commission);
-
-        safe::transfer_generic_nft_to_safe<C>(
-            transfer_cap,
-            sellers_safe,
-            buyers_safe,
-            ctx,
-        );
-
-        transfer_bid_commission(&mut bid.commission, ctx);
-
-        emit(BidMatchedEvent {
-            bid: object::id(bid),
-            nft: nft_id,
-            price,
-            seller: tx_context::sender(ctx),
-            buyer: bid.buyer,
-            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
-            nft_type: *type_name::borrow_string(&type_name::get<C>()),
+            nft_type: *type_name::borrow_string(&type_name::get<T>()),
         });
     }
 

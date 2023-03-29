@@ -9,7 +9,6 @@ module nft_protocol::safe {
     use sui::transfer::{public_share_object, public_transfer};
 
     use nft_protocol::err;
-    use nft_protocol::nft::Nft;
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::unprotected_safe::{Self, UnprotectedSafe};
 
@@ -195,31 +194,18 @@ module nft_protocol::safe {
     ///
     /// Requires that `enable_any_deposit` flag is set to true, or that the
     /// `Safe` owner enabled NFTs of given collection to be inserted.
-    public entry fun deposit_nft<T>(
-        nft: Nft<T>,
-        safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        assert_can_deposit<T>(safe);
-        unprotected_safe::deposit_nft(nft, &mut safe.inner, ctx);
-    }
-
-    /// Transfer an NFT into the `Safe`.
-    ///
-    /// The type T here can refer to any object, not just the NFT protocol's
-    /// exported NFT type.
-    public entry fun deposit_generic_nft<T: key + store>(
+    public entry fun deposit_nft<T: key + store>(
         nft: T,
         safe: &mut Safe,
         ctx: &mut TxContext,
     ) {
         assert_can_deposit<T>(safe);
-        unprotected_safe::deposit_generic_nft(nft, &mut safe.inner, ctx);
+        unprotected_safe::deposit_nft(nft, &mut safe.inner, ctx);
     }
 
     /// Transfer an NFT from owner to the `Safe`.
-    public entry fun deposit_nft_privileged<T>(
-        nft: Nft<T>,
+    public entry fun deposit_nft_privileged<T: key + store>(
+        nft: T,
         owner_cap: &OwnerCap,
         safe: &mut Safe,
         ctx: &mut TxContext,
@@ -228,14 +214,23 @@ module nft_protocol::safe {
         unprotected_safe::deposit_nft(nft, &mut safe.inner, ctx);
     }
 
-    public entry fun deposit_generic_nft_privileged<T: key + store>(
-        nft: T,
-        owner_cap: &OwnerCap,
+    public fun withdraw_nft<T: key + store, Auth: drop>(
+        transfer_cap: TransferCap,
+        authority: Auth,
+        allowlist: &Allowlist,
         safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        assert_owner_cap(owner_cap, safe);
-        unprotected_safe::deposit_generic_nft(nft, &mut safe.inner, ctx);
+    ): T {
+        let TransferCap {
+            id, inner, safe: _,
+        } = transfer_cap;
+        object::delete(id);
+
+        unprotected_safe::withdraw_nft(
+            inner,
+            authority,
+            allowlist,
+            &mut safe.inner,
+        )
     }
 
     /// Use a transfer cap to get an NFT out of the `Safe`.
@@ -243,7 +238,7 @@ module nft_protocol::safe {
     /// If the NFT is not exclusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft_to_recipient<T, Auth: drop>(
+    public fun transfer_nft_to_recipient<T: key + store, Auth: drop>(
         transfer_cap: TransferCap,
         recipient: address,
         authority: Auth,
@@ -264,23 +259,6 @@ module nft_protocol::safe {
         )
     }
 
-    public fun transfer_generic_nft_to_recipient<T: key + store>(
-        transfer_cap: TransferCap,
-        recipient: address,
-        safe: &mut Safe,
-    ) {
-        let TransferCap {
-            id, inner, safe: _,
-        } = transfer_cap;
-        object::delete(id);
-
-        unprotected_safe::transfer_generic_nft_to_recipient<T>(
-            inner,
-            recipient,
-            &mut safe.inner
-        )
-    }
-
     /// Use a transfer cap to get an NFT out of source `Safe` and
     /// deposit it to the target `Safe`. The recipient address should match the
     /// owner of the target `Safe`.
@@ -288,9 +266,8 @@ module nft_protocol::safe {
     /// If the NFT is not exclusively listed, it can happen that the transfer
     /// cap is no longer valid. The NFT could've been traded or the trading cap
     /// revoked.
-    public fun transfer_nft_to_safe<T, Auth: drop>(
+    public fun transfer_nft_to_safe<T: key + store, Auth: drop>(
         transfer_cap: TransferCap,
-        recipient: address,
         authority: Auth,
         allowlist: &Allowlist,
         source: &mut Safe,
@@ -304,28 +281,8 @@ module nft_protocol::safe {
 
         unprotected_safe::transfer_nft_to_safe<T, Auth>(
             inner,
-            recipient,
             authority,
             allowlist,
-            &mut source.inner,
-            &mut target.inner,
-            ctx,
-        )
-    }
-
-    public fun transfer_generic_nft_to_safe<T: key + store>(
-        transfer_cap: TransferCap,
-        source: &mut Safe,
-        target: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        let TransferCap {
-            id, inner, safe: _,
-        } = transfer_cap;
-        object::delete(id);
-
-        unprotected_safe::transfer_generic_nft_to_safe<T>(
-            inner,
             &mut source.inner,
             &mut target.inner,
             ctx,
@@ -365,20 +322,12 @@ module nft_protocol::safe {
         &safe.inner
     }
 
-    public fun borrow_nft<C>(nft: ID, safe: &Safe): &Nft<C> {
-        unprotected_safe::borrow_nft<C>(nft, &safe.inner)
+    public fun borrow_nft<T: key + store>(nft: ID, safe: &Safe): &T {
+        unprotected_safe::borrow_nft<T>(nft, &safe.inner)
     }
 
-    public fun has_nft<C>(nft: ID, safe: &Safe): bool {
-        unprotected_safe::has_nft<C>(nft, &safe.inner)
-    }
-
-    public fun borrow_generic_nft<C: key + store>(nft: ID, safe: &Safe): &C {
-        unprotected_safe::borrow_generic_nft<C>(nft, &safe.inner)
-    }
-
-    public fun has_generic_nft<T: key + store>(nft: ID, safe: &Safe): bool {
-        unprotected_safe::has_generic_nft<T>(nft, &safe.inner)
+    public fun has_nft<T: key + store>(nft: ID, safe: &Safe): bool {
+        unprotected_safe::has_nft<T>(nft, &safe.inner)
     }
 
     public fun owner_cap_safe(cap: &OwnerCap): ID {
@@ -399,10 +348,6 @@ module nft_protocol::safe {
 
     public fun transfer_cap_is_exclusive(cap: &TransferCap): bool {
         unprotected_safe::transfer_cap_is_exclusive(&cap.inner)
-    }
-
-    public fun transfer_cap_is_nft_generic(cap: &TransferCap): bool {
-        unprotected_safe::transfer_cap_is_nft_generic(&cap.inner)
     }
 
     public fun transfer_cap_object_type(cap: &TransferCap): TypeName {
@@ -437,20 +382,6 @@ module nft_protocol::safe {
 
     public fun assert_transfer_cap_exclusive(cap: &TransferCap) {
         unprotected_safe::assert_transfer_cap_exclusive(&cap.inner)
-    }
-
-    public fun assert_transfer_cap_of_native_nft(cap: &TransferCap) {
-        unprotected_safe::assert_transfer_cap_of_native_nft(&cap.inner)
-    }
-
-    /// Checks that the transfer cap is issued for an NFT of type `Nft<C>`
-    public fun assert_nft_type<C>(cap: &TransferCap) {
-        unprotected_safe::assert_nft_type<C>(&cap.inner)
-    }
-
-    /// Checks that the transfer cap is issued for an NFT of type `C`
-    public fun assert_generic_nft_type<C>(cap: &TransferCap) {
-        unprotected_safe::assert_generic_nft_type<C>(&cap.inner)
     }
 
     public fun assert_can_deposit<T>(safe: &Safe) {

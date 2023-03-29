@@ -25,7 +25,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(CREATOR, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         display::add_display_domain(
             &Witness {},
@@ -46,7 +46,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) =
-            collection::create(&Foo {}, ctx(&mut scenario));
+            collection::create(&Witness {}, ctx(&mut scenario));
 
         display::add_collection_display_domain(
             &Witness {},
@@ -68,7 +68,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(CREATOR, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         url::add_url_domain(
             &Witness {},
@@ -88,7 +88,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) =
-            collection::create(&Foo {}, ctx(&mut scenario));
+            collection::create(&Witness {}, ctx(&mut scenario));
 
         url::add_collection_url_domain(
             &Witness {},
@@ -109,7 +109,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(CREATOR, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         display::add_symbol_domain(
             &Witness {},
@@ -129,7 +129,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) =
-            collection::create(&Foo {}, ctx(&mut scenario));
+            collection::create(&Witness {}, ctx(&mut scenario));
 
         display::add_collection_symbol_domain(
             &Witness {},
@@ -150,7 +150,7 @@ module nft_protocol::test_display {
         let scenario = test_scenario::begin(CREATOR);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(CREATOR, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         let attributes = vec_map::empty();
         vec_map::insert(

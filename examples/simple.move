@@ -23,7 +23,9 @@ module nft_protocol::example_simple {
 
     /// Called during contract publishing
     fun init(witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let (mint_cap, collection) = nft::new_collection(
+            &witness, ctx
+        );
 
         collection::add_domain(
             &Witness {},
@@ -50,17 +52,13 @@ module nft_protocol::example_simple {
         name: String,
         description: String,
         url: vector<u8>,
-        _mint_cap: &MintCap<EXAMPLE_SIMPLE>,
+        _mint_cap: &MintCap<Nft<EXAMPLE_SIMPLE>>,
         ctx: &mut TxContext,
     ) {
         let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft: Nft<EXAMPLE_SIMPLE> = nft::new(
-            &Witness {},
-            name,
-            url,
-            tx_context::sender(ctx),
-            ctx,
+            &Witness {}, name, url, ctx,
         );
 
         display::add_display_domain(

@@ -16,7 +16,7 @@ module nft_protocol::test_royalty {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) =
-            collection::create(&Foo {}, ctx(&mut scenario));
+            collection::create(&Witness {}, ctx(&mut scenario));
 
         let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
         royalty::add_proportional_royalty(&mut royalty, 100);

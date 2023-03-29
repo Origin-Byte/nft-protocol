@@ -23,12 +23,12 @@ module nft_protocol::mint_cap {
 
     // === MintCap ===
 
-    /// `MintCap<C>` delegates the capability to it's owner to mint `Nft<C>`.
-    /// There is only one `MintCap` per `Collection<C>`.
+    /// `MintCap<T>` delegates the capability to it's owner to mint `T`.
+    /// There is only one `MintCap` per `Collection<T>`.
     ///
     /// This pattern is useful as `MintCap` can be made shared allowing users
     /// to mint NFTs themselves, such as in a name service application.
-    struct MintCap<phantom C> has key, store {
+    struct MintCap<phantom T> has key, store {
         /// `MintCap` ID
         id: UID,
         /// ID of the `Collection` that `MintCap` controls.
@@ -40,15 +40,15 @@ module nft_protocol::mint_cap {
     /// Create a new `MintCap`
     ///
     /// Only one `MintCap` must exist per collection
-    public(friend) fun new<C>(
+    public(friend) fun new<T>(
         collection_id: ID,
         ctx: &mut TxContext,
-    ): MintCap<C> {
+    ): MintCap<T> {
         MintCap { id: object::new(ctx), collection_id }
     }
 
     /// Returns ID of `Collection` associated with `MintCap`
-    public fun collection_id<C>(mint: &MintCap<C>): ID {
+    public fun collection_id<T>(mint: &MintCap<T>): ID {
         mint.collection_id
     }
 
@@ -56,7 +56,7 @@ module nft_protocol::mint_cap {
 
     /// `UnregulatedMintCap` delegates the capability to it's owner to mint
     /// `Nft` from collections with unregulated supply.
-    struct UnregulatedMintCap<phantom C> has key, store {
+    struct UnregulatedMintCap<phantom T> has key, store {
         /// `RegulatedMintCap` ID
         id: UID,
         /// ID of the `Collection` that `RegulatedMintCap` controls
@@ -69,11 +69,11 @@ module nft_protocol::mint_cap {
     ///
     /// `UnregulatedMintCap` may only be created by
     /// `supply_domain::delegate_unregulated`.
-    public(friend) fun new_unregulated<C>(
-        _mint_cap: &MintCap<C>,
+    public(friend) fun new_unregulated<T>(
+        _mint_cap: &MintCap<T>,
         collection_id: ID,
         ctx: &mut TxContext,
-    ): UnregulatedMintCap<C> {
+    ): UnregulatedMintCap<T> {
         UnregulatedMintCap {
             id: object::new(ctx),
             collection_id
@@ -81,7 +81,7 @@ module nft_protocol::mint_cap {
     }
 
     /// Delete `UnregulatedMintCap`
-    public fun delete_unregulated<C>(mint: UnregulatedMintCap<C>) {
+    public fun delete_unregulated<T>(mint: UnregulatedMintCap<T>) {
         let UnregulatedMintCap {
             id,
             collection_id: _,
@@ -90,7 +90,7 @@ module nft_protocol::mint_cap {
     }
 
     /// Returns ID of `Collection` associated with `RegulatedMintCap`
-    public fun unregulated_collection_id<C>(mint: &UnregulatedMintCap<C>): ID {
+    public fun unregulated_collection_id<T>(mint: &UnregulatedMintCap<T>): ID {
         mint.collection_id
     }
 
@@ -98,7 +98,7 @@ module nft_protocol::mint_cap {
 
     /// `RegulatedMintCap` delegates the capability to it's owner to mint
     /// `Nft` from collections with regulated supply.
-    struct RegulatedMintCap<phantom C> has key, store {
+    struct RegulatedMintCap<phantom T> has key, store {
         /// `RegulatedMintCap` ID
         id: UID,
         /// ID of the `Collection` that `RegulatedMintCap` controls
@@ -113,12 +113,12 @@ module nft_protocol::mint_cap {
     ///
     /// `RegulatedMintCap` may only be created by
     /// `supply_domain::delegate_regulated`.
-    public(friend) fun new_regulated<C>(
-        _mint_cap: &MintCap<C>,
+    public(friend) fun new_regulated<T>(
+        _mint_cap: &MintCap<T>,
         collection_id: ID,
         supply: Supply,
         ctx: &mut TxContext,
-    ): RegulatedMintCap<C> {
+    ): RegulatedMintCap<T> {
         RegulatedMintCap {
             id: object::new(ctx),
             collection_id,
@@ -131,11 +131,11 @@ module nft_protocol::mint_cap {
     /// Presence of `UnregulatedMintCap` implies that `Collection` supply is
     /// unregulated, therefore it is safe to create arbitrary
     /// `RegulatedMintCap`.
-    public fun from_unregulated<C>(
-        mint_cap: UnregulatedMintCap<C>,
+    public fun from_unregulated<T>(
+        mint_cap: UnregulatedMintCap<T>,
         supply: u64,
         ctx: &mut TxContext,
-    ): RegulatedMintCap<C> {
+    ): RegulatedMintCap<T> {
         let collection_id = unregulated_collection_id(&mint_cap);
         delete_unregulated(mint_cap);
 
@@ -152,11 +152,11 @@ module nft_protocol::mint_cap {
     /// #### Panics
     ///
     /// Panics if supply exceeds maximum.
-    public fun delegate<C>(
-        delegated: &mut RegulatedMintCap<C>,
+    public fun delegate<T>(
+        delegated: &mut RegulatedMintCap<T>,
         value: u64,
         ctx: &mut TxContext,
-    ): RegulatedMintCap<C> {
+    ): RegulatedMintCap<T> {
         let supply = supply::extend(borrow_supply_mut(delegated), value);
         RegulatedMintCap {
             id: object::new(ctx),
@@ -167,16 +167,16 @@ module nft_protocol::mint_cap {
 
     /// Creates a new `RegulatedMintCap` by delegating all remaining supply
     /// from existing `RegulatedMintCap`.
-    public fun delegate_all<C>(
-        delegated: &mut RegulatedMintCap<C>,
+    public fun delegate_all<T>(
+        delegated: &mut RegulatedMintCap<T>,
         ctx: &mut TxContext,
-    ): RegulatedMintCap<C> {
+    ): RegulatedMintCap<T> {
         let supply = supply::supply(borrow_supply(delegated));
         delegate(delegated, supply, ctx)
     }
 
-    /// Delete `RegulatedMintCap<C>`
-    public fun delete_regulated<C>(mint: RegulatedMintCap<C>): Supply {
+    /// Delete `RegulatedMintCap`
+    public fun delete_regulated<T>(mint: RegulatedMintCap<T>): Supply {
         let RegulatedMintCap {
             id,
             collection_id: _,
@@ -187,18 +187,18 @@ module nft_protocol::mint_cap {
     }
 
     /// Returns ID of `Collection` associated with `RegulatedMintCap`
-    public fun regulated_collection_id<C>(mint: &RegulatedMintCap<C>): ID {
+    public fun regulated_collection_id<T>(mint: &RegulatedMintCap<T>): ID {
         mint.collection_id
     }
 
     /// Borrow `RegulatedMintCap` `Supply`
-    public fun borrow_supply<C>(delegated: &RegulatedMintCap<C>): &Supply {
+    public fun borrow_supply<T>(delegated: &RegulatedMintCap<T>): &Supply {
         &delegated.supply
     }
 
     /// Mutably borrow `RegulatedMintCap` `Supply`
-    fun borrow_supply_mut<C>(
-        delegated: &mut RegulatedMintCap<C>,
+    fun borrow_supply_mut<T>(
+        delegated: &mut RegulatedMintCap<T>,
     ): &mut Supply {
         &mut delegated.supply
     }
@@ -211,8 +211,8 @@ module nft_protocol::mint_cap {
     /// #### Panics
     ///
     /// Panics if delegated supply is exceeded.
-    public entry fun increment_supply<C>(
-        delegated: &mut RegulatedMintCap<C>,
+    public entry fun increment_supply<T>(
+        delegated: &mut RegulatedMintCap<T>,
         value: u64,
     ) {
         supply::increment(&mut delegated.supply, value);
