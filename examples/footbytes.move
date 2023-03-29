@@ -5,7 +5,7 @@ module nft_protocol::footbytes {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
@@ -72,7 +72,7 @@ module nft_protocol::footbytes {
             tags,
         );
 
-        metadata_bag::init_metadata_bag<FOOTBYTES, Witness>(
+        metadata_bag::init_metadata_bag<Nft<FOOTBYTES>, Witness>(
             &Witness {},
             &mut collection,
             ctx,
@@ -83,8 +83,8 @@ module nft_protocol::footbytes {
     }
 
     public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<FOOTBYTES, FT>,
-        collection: &mut Collection<FOOTBYTES>,
+        payment: &mut TradePayment<Nft<FOOTBYTES>, FT>,
+        collection: &mut Collection<Nft<FOOTBYTES>>,
         ctx: &mut TxContext,
     ) {
         let b = royalties::balance_mut(Witness {}, payment);
@@ -101,8 +101,8 @@ module nft_protocol::footbytes {
         name: String,
         description: String,
         url: vector<u8>,
-        collection: &mut Collection<FOOTBYTES>,
-        mint_cap: &MintCap<FOOTBYTES>,
+        collection: &mut Collection<Nft<FOOTBYTES>>,
+        mint_cap: &MintCap<Nft<FOOTBYTES>>,
         supply: u64,
         ctx: &mut TxContext,
     ) {

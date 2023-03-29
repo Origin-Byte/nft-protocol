@@ -4,12 +4,10 @@ module nft_protocol::test_limited_fixed_price {
     use sui::coin;
     use sui::balance;
     use sui::transfer;
-    use sui::object::ID;
+    use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::venue;
-    use nft_protocol::witness;
     use nft_protocol::proceeds;
     use nft_protocol::warehouse;
     use nft_protocol::listing::{Self, Listing};
@@ -18,8 +16,9 @@ module nft_protocol::test_limited_fixed_price {
 
     use nft_protocol::test_listing::init_listing;
 
-    struct COLLECTION {}
-
+    struct Foo has key, store {
+        id: UID,
+    }
     struct Witness has drop {}
 
     const CREATOR: address = @0xA1C05;
@@ -33,10 +32,8 @@ module nft_protocol::test_limited_fixed_price {
         is_whitelisted: bool,
         scenario: &mut Scenario,
     ): (ID, ID) {
-        let inventory_id = listing::create_warehouse<COLLECTION>(
-            witness::from_witness(&Witness {}), listing, ctx(scenario),
-        );
-        let venue_id = limited_fixed_price::create_venue<COLLECTION, SUI>(
+        let inventory_id = listing::create_warehouse<Foo>(listing, ctx(scenario));
+        let venue_id = limited_fixed_price::create_venue<Foo, SUI>(
             listing, inventory_id, is_whitelisted, limit, price, ctx(scenario)
         );
 
@@ -71,7 +68,7 @@ module nft_protocol::test_limited_fixed_price {
             init_market(&mut listing, 1, 10, false, &mut scenario);
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -94,7 +91,7 @@ module nft_protocol::test_limited_fixed_price {
         listing::sale_on(&mut listing, venue_id, ctx(&mut scenario));
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -117,7 +114,7 @@ module nft_protocol::test_limited_fixed_price {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
@@ -127,7 +124,7 @@ module nft_protocol::test_limited_fixed_price {
 
         let wallet = coin::mint_for_testing<SUI>(15, ctx(&mut scenario));
 
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -145,11 +142,9 @@ module nft_protocol::test_limited_fixed_price {
         assert!(balance::value(proceeds::balance<SUI>(proceeds)) == 10, 0);
 
         // Check NFT was transferred with correct logical owner
-        let nft = test_scenario::take_from_address<Nft<COLLECTION>>(
+        let nft = test_scenario::take_from_address<Foo>(
             &scenario, BUYER
         );
-
-        assert!(nft::logical_owner(&nft) == BUYER, 0);
 
         test_scenario::return_to_address(BUYER, nft);
 
@@ -170,14 +165,14 @@ module nft_protocol::test_limited_fixed_price {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
@@ -187,21 +182,21 @@ module nft_protocol::test_limited_fixed_price {
 
         let wallet = coin::mint_for_testing<SUI>(20, ctx(&mut scenario));
 
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
             ctx(&mut scenario),
         );
 
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
             ctx(&mut scenario),
         );
 
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -225,7 +220,7 @@ module nft_protocol::test_limited_fixed_price {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
@@ -235,7 +230,7 @@ module nft_protocol::test_limited_fixed_price {
 
         let wallet = coin::mint_for_testing<SUI>(20, ctx(&mut scenario));
 
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -258,14 +253,14 @@ module nft_protocol::test_limited_fixed_price {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
@@ -283,7 +278,7 @@ module nft_protocol::test_limited_fixed_price {
             limited_fixed_price::borrow_count<SUI>(market, BUYER) == 0, 0
         );
 
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -298,7 +293,7 @@ module nft_protocol::test_limited_fixed_price {
             limited_fixed_price::borrow_count<SUI>(market, BUYER) == 1, 0
         );
 
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -331,7 +326,7 @@ module nft_protocol::test_limited_fixed_price {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        limited_fixed_price::buy_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,
@@ -358,7 +353,7 @@ module nft_protocol::test_limited_fixed_price {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
@@ -373,7 +368,7 @@ module nft_protocol::test_limited_fixed_price {
         );
 
         let wallet = coin::mint_for_testing<SUI>(10, ctx(&mut scenario));
-        limited_fixed_price::buy_whitelisted_nft<COLLECTION, SUI>(
+        limited_fixed_price::buy_whitelisted_nft<Foo, SUI>(
             &mut listing,
             venue_id,
             &mut wallet,

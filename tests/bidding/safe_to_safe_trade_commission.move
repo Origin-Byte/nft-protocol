@@ -1,14 +1,15 @@
 #[test_only]
 module nft_protocol::test_bidding_safe_to_safe_trade_commission {
+    use sui::coin::{Self, Coin};
+    use sui::object::ID;
+    use sui::sui::SUI;
+    use sui::test_scenario::{Self, Scenario, ctx};
+
     use nft_protocol::bidding;
     use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::test_utils::{Self as utils};
     use nft_protocol::transfer_allowlist::Allowlist;
-    use sui::coin::{Self, Coin};
-    use sui::object::ID;
-    use sui::sui::SUI;
-    use sui::test_scenario::{Self, Scenario, ctx};
 
     const SELL_BENEFICIARY: address = @0xA1C08;
     const BUY_BENEFICIARY: address = @0xA1C07;
@@ -20,19 +21,12 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
     const SELL_COMMISSION_SUI: u64 = 10;
     const BUY_COMMISSION_SUI: u64 = 10;
 
-    struct Foo has drop {} // collection
-    struct Witness has drop {} // collection witness, must be named witness
-    struct AllowlistWitness has drop {}
-
     #[test]
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
 
-        utils::create_collection_and_allowlist_with_type(
-            &Foo {},
-            &Witness {},
-            CREATOR,
-            &mut scenario,
+        utils::create_collection_and_allowlist(
+            CREATOR, &mut scenario,
         );
 
         test_scenario::next_tx(&mut scenario, SELLER);
@@ -41,10 +35,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
             &mut scenario, SELLER
         );
 
-        let nft_id = utils::mint_and_deposit_nft<Foo>(
-            &mut scenario,
-            SELLER,
-        );
+        let nft_id = utils::mint_and_deposit_nft(&mut scenario, SELLER);
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
@@ -53,7 +44,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
             seller_safe_id,
         );
 
-        assert!(safe::has_nft<Foo>(nft_id, &seller_safe), 0);
+        assert!(safe::has_nft<utils::Foo>(nft_id, &seller_safe), 0);
 
         let seller_owner_cap = test_scenario::take_from_address_by_id<OwnerCap>(
             &mut scenario,
@@ -83,7 +74,7 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
 
         test_scenario::next_tx(&mut scenario, SELLER);
 
-        sell_nft<Foo>(
+        sell_nft<utils::Foo>(
             &mut scenario,
             transfer_cap,
             seller_safe_id,
@@ -117,14 +108,13 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
         coin::destroy_zero(wallet);
     }
 
-    fun sell_nft<C>(
+    fun sell_nft<T: key + store>(
         scenario: &mut Scenario,
         transfer_cap: safe::TransferCap,
         seller_safe_id: ID,
         buyer_safe_id: ID,
     ) {
         let nft_id = safe::transfer_cap_nft(&transfer_cap);
-        safe::assert_transfer_cap_of_native_nft(&transfer_cap);
 
         test_scenario::next_tx(scenario, SELLER);
 
@@ -142,10 +132,10 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
 
         let wl: Allowlist = test_scenario::take_shared(scenario);
 
-        assert!(!safe::has_nft<C>(nft_id, &buyer_safe), 0);
-        assert!(safe::has_nft<C>(nft_id, &seller_safe), 1);
+        assert!(!safe::has_nft<T>(nft_id, &buyer_safe), 0);
+        assert!(safe::has_nft<T>(nft_id, &seller_safe), 1);
 
-        bidding::sell_nft_with_commission<C, SUI>(
+        bidding::sell_nft_with_commission<T, SUI>(
             &mut bid,
             transfer_cap,
             SELL_BENEFICIARY,
@@ -156,8 +146,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
             ctx(scenario),
         );
 
-        assert!(safe::has_nft<Foo>(nft_id, &buyer_safe), 2);
-        assert!(!safe::has_nft<Foo>(nft_id, &seller_safe), 3);
+        assert!(safe::has_nft<utils::Foo>(nft_id, &buyer_safe), 2);
+        assert!(!safe::has_nft<utils::Foo>(nft_id, &seller_safe), 3);
 
         test_scenario::return_shared(buyer_safe);
         test_scenario::return_shared(seller_safe);
@@ -165,8 +155,8 @@ module nft_protocol::test_bidding_safe_to_safe_trade_commission {
         test_scenario::return_shared(bid);
 
         test_scenario::next_tx(scenario, CREATOR);
-        let payment: TradePayment<Foo, SUI> = test_scenario::take_shared(scenario);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, &mut payment, ctx(scenario));
+        let payment: TradePayment<utils::Foo, SUI> = test_scenario::take_shared(scenario);
+        royalties::transfer_remaining_to_beneficiary(utils::witness(), &mut payment, ctx(scenario));
         test_scenario::return_shared(payment);
 
         test_scenario::next_tx(scenario, SELL_BENEFICIARY);
