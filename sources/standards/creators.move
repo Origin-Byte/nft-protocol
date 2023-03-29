@@ -52,21 +52,21 @@ module nft_protocol::creators {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun add_creators<T: key + store>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         creators: VecSet<address>,
     ) {
-        assert_has_not_creators(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_not_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let creators = from_creators(creators);
 
         cw::consume<T, Creators>(consumable, &mut creators);
-        df::add(nft_uid, CreatorsKey {}, creators);
+        df::add(object_uid, CreatorsKey {}, creators);
     }
 
     /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
@@ -77,21 +77,21 @@ module nft_protocol::creators {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun add_singleton<T: key + store>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         creator: address,
     ) {
-        assert_has_not_creators(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_not_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let creators = singleton(creator);
 
         cw::consume<T, Creators>(consumable, &mut creators);
-        df::add(nft_uid, CreatorsKey {}, creators);
+        df::add(object_uid, CreatorsKey {}, creators);
     }
 
     /// Adds empty `Creators` as a dynamic field with key `CreatorsKey`.
@@ -101,20 +101,20 @@ module nft_protocol::creators {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun add_empty<T: key + store>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
     ) {
-        assert_has_not_creators(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_not_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let creators = empty();
 
         cw::consume<T, Creators>(consumable, &mut creators);
-        df::add(nft_uid, CreatorsKey {}, creators);
+        df::add(object_uid, CreatorsKey {}, creators);
     }
 
 
@@ -129,21 +129,21 @@ module nft_protocol::creators {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun add_creators_<W: drop, T: key + store>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         creators: VecSet<address>,
     ) {
-        assert_has_not_creators(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_not_creators(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let creators = from_creators(creators);
-        df::add(nft_uid, CreatorsKey {}, creators);
+        df::add(object_uid, CreatorsKey {}, creators);
     }
 
     /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
@@ -154,21 +154,21 @@ module nft_protocol::creators {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun add_singleton_<W: drop, T: key + store>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         creator: address,
     ) {
-        assert_has_not_creators(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_not_creators(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let creators = singleton(creator);
-        df::add(nft_uid, CreatorsKey {}, creators);
+        df::add(object_uid, CreatorsKey {}, creators);
     }
 
     /// Adds empty `Creators` as a dynamic field with key `CreatorsKey`.
@@ -178,20 +178,20 @@ module nft_protocol::creators {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun add_empty_<W: drop, T: key + store>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
     ) {
-        assert_has_not_creators(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_not_creators(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let creators = empty();
-        df::add(nft_uid, CreatorsKey {}, creators);
+        df::add(object_uid, CreatorsKey {}, creators);
     }
 
 
@@ -232,13 +232,13 @@ module nft_protocol::creators {
     ///
     /// Panics if dynamic field with `CreatorsKey` does not exist.
     public fun borrow_creators(
-        nft_uid: &UID,
+        object_uid: &UID,
     ): &Creators {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_creators(nft_uid);
-        df::borrow(nft_uid, CreatorsKey {})
+        assert_has_creators(object_uid);
+        df::borrow(object_uid, CreatorsKey {})
     }
 
     /// Borrows Mutably the `Creators` field.
@@ -250,21 +250,21 @@ module nft_protocol::creators {
     ///
     /// Panics if dynamic field with `CreatorsKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun borrow_creators_mut<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>
+        object_uid: &mut UID,
+        object_type: UidType<T>
     ): &mut Creators {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_creators(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let creators = df::borrow_mut<CreatorsKey, Creators>(
-            nft_uid,
+            object_uid,
             CreatorsKey {}
         );
         cw::consume<T, Creators>(consumable, creators);
@@ -281,23 +281,23 @@ module nft_protocol::creators {
     ///
     /// Panics if dynamic field with `CreatorsKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun borrow_creators_mut_<W: drop, T: key>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>
+        object_uid: &mut UID,
+        object_type: UidType<T>
     ): &mut Creators {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_creators(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_creators(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let creators = df::borrow_mut<CreatorsKey, Creators>(
-            nft_uid,
+            object_uid,
             CreatorsKey {}
         );
 
@@ -307,7 +307,7 @@ module nft_protocol::creators {
 
     // === Writer Functions ===
 
-    /// Inserts address to `Creators` field in the NFT of type `T`.
+    /// Inserts address to `Creators` field in object `T`
     ///
     /// Endpoint is protected as it relies on safetly obtaining a
     /// `ConsumableWitness` for the specific type `T` and field `Creators`.
@@ -316,27 +316,27 @@ module nft_protocol::creators {
     ///
     /// Panics if dynamic field with `CreatorsKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun insert_creator<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         who: address,
     ) {
        // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_creators(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
-        let creators = borrow_mut_internal(nft_uid);
+        let creators = borrow_mut_internal(object_uid);
         cw::consume<T, Creators>(consumable, creators);
 
         vec_set::insert(&mut creators.creators, who);
     }
 
-    /// Removes address from `Creators` field in the NFT of type `T`.
+    /// Removes address from `Creators` field in object `T`
     ///
     /// Endpoint is protected as it relies on safetly obtaining a
     /// `ConsumableWitness` for the specific type `T` and field `Creators`.
@@ -345,26 +345,26 @@ module nft_protocol::creators {
     ///
     /// Panics if dynamic field with `CreatorsKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun remove_creator<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         who: address,
     ) {
        // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_creators(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
-        let creators = borrow_mut_internal(nft_uid);
+        let creators = borrow_mut_internal(object_uid);
 
         vec_set::remove(&mut creators.creators, &who);
     }
 
-    /// Inserts address to `Creators` field in the NFT of type `T`.
+    /// Inserts address to `Creators` field in object `T`
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
     /// from the contract exporting the type `T`.
@@ -373,28 +373,28 @@ module nft_protocol::creators {
     ///
     /// Panics if dynamic field with `AttributesKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun insert_creator_<W: drop, T: key>(
         witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         who: address,
     ) {
        // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_creators(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_creators(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let creators = borrow_mut_internal(nft_uid);
+        let creators = borrow_mut_internal(object_uid);
 
         vec_set::insert(&mut creators.creators, who);
     }
 
-    /// Removes address from `Creators` field in the NFT of type `T`.
+    /// Removes address from `Creators` field in object `T`
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
     /// from the contract exporting the type `T`.
@@ -403,23 +403,23 @@ module nft_protocol::creators {
     ///
     /// Panics if dynamic field with `AttributesKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun remove_creator_<W: drop, T: key>(
         witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         who: address,
     ) {
        // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_creators(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_creators(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let creators = borrow_mut_internal(nft_uid);
+        let creators = borrow_mut_internal(object_uid);
 
         vec_set::remove(&mut creators.creators, &who);
     }
@@ -453,10 +453,10 @@ module nft_protocol::creators {
     ///
     /// For internal use only.
     fun borrow_mut_internal(
-        nft_uid: &mut UID,
+        object_uid: &mut UID,
     ): &mut Creators {
         df::borrow_mut<CreatorsKey, Creators>(
-            nft_uid,
+            object_uid,
             CreatorsKey {}
         )
     }
@@ -464,11 +464,11 @@ module nft_protocol::creators {
 
     // === Assertions & Helpers ===
 
-    /// Checks that a given NFT has a dynamic field with `AttributesKey`
+    /// Checks that a given Object has a dynamic field with `AttributesKey`
     public fun has_creators(
-        nft_uid: &UID,
+        object_uid: &UID,
     ): bool {
-        df::exists_(nft_uid, CreatorsKey {})
+        df::exists_(object_uid, CreatorsKey {})
     }
 
     /// Returns whether address is a defined creator
@@ -497,11 +497,11 @@ module nft_protocol::creators {
         assert!(contains_creator(domain, who), EUNDEFINED_ADDRESS);
     }
 
-    public fun assert_has_creators(nft_uid: &UID) {
-        assert!(has_creators(nft_uid), EUNDEFINED_CREATORS_DOMAIN);
+    public fun assert_has_creators(object_uid: &UID) {
+        assert!(has_creators(object_uid), EUNDEFINED_CREATORS_DOMAIN);
     }
 
-    public fun assert_has_not_creators(nft_uid: &UID) {
-        assert!(!has_creators(nft_uid), ECREATORS_FIELD_ALREADY_EXISTS);
+    public fun assert_has_not_creators(object_uid: &UID) {
+        assert!(!has_creators(object_uid), ECREATORS_FIELD_ALREADY_EXISTS);
     }
 }

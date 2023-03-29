@@ -37,21 +37,21 @@ module nft_protocol::symbol {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun add_symbol<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         symbol: String,
     ) {
-        assert_has_not_symbol(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_not_symbol(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let symbol = new(symbol);
 
         cw::consume<T, Symbol>(consumable, &mut symbol);
-        df::add(nft_uid, SymbolKey {}, symbol);
+        df::add(object_uid, SymbolKey {}, symbol);
     }
 
 
@@ -65,21 +65,21 @@ module nft_protocol::symbol {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun add_symbol_<W: drop, T: key>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         symbol: String,
     ) {
-        assert_has_not_symbol(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_not_symbol(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let symbol = new(symbol);
-        df::add(nft_uid, SymbolKey {}, symbol);
+        df::add(object_uid, SymbolKey {}, symbol);
     }
 
     // === Get for call from external Module ===
@@ -99,13 +99,13 @@ module nft_protocol::symbol {
     ///
     /// Panics if dynamic field with `SymbolKey` does not exist.
     public fun borrow_symbol(
-        nft_uid: &UID,
+        object_uid: &UID,
     ): &Symbol {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_symbol(nft_uid);
-        df::borrow(nft_uid, SymbolKey {})
+        assert_has_symbol(object_uid);
+        df::borrow(object_uid, SymbolKey {})
     }
 
     /// Borrows Mutably the `Symbol` field.
@@ -117,21 +117,21 @@ module nft_protocol::symbol {
     ///
     /// Panics if dynamic field with `SymbolKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun borrow_symbol_mut<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>
+        object_uid: &mut UID,
+        object_type: UidType<T>
     ): &mut Symbol {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_symbol(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_symbol(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let symbol = df::borrow_mut<SymbolKey, Symbol>(
-            nft_uid,
+            object_uid,
             SymbolKey {}
         );
         cw::consume<T, Symbol>(consumable, symbol);
@@ -148,22 +148,22 @@ module nft_protocol::symbol {
     ///
     /// Panics if dynamic field with `SymbolKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun borrow_symbol_mut_<W: drop, T: key>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>
+        object_uid: &mut UID,
+        object_type: UidType<T>
     ): &mut Symbol {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_symbol(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_symbol(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        df::borrow_mut(nft_uid, SymbolKey {})
+        df::borrow_mut(object_uid, SymbolKey {})
     }
 
 
@@ -179,21 +179,21 @@ module nft_protocol::symbol {
     ///
     /// Panics if dynamic field with `SymbolKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun change_symbol<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         new_symbol: String,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_symbol(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_symbol(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
-        let symbol = borrow_mut_internal(nft_uid);
+        let symbol = borrow_mut_internal(object_uid);
 
         cw::consume<T, Symbol>(consumable, symbol);
         symbol.symbol = new_symbol;
@@ -208,23 +208,23 @@ module nft_protocol::symbol {
     ///
     /// Panics if dynamic field with `SymbolKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun change_symbol_<W: drop, T: key>(
         witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         new_symbol: String,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_symbol(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_symbol(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let symbol = borrow_mut_internal(nft_uid);
+        let symbol = borrow_mut_internal(object_uid);
         symbol.symbol = new_symbol;
     }
 
@@ -256,10 +256,10 @@ module nft_protocol::symbol {
     ///
     /// For internal use only.
     fun borrow_mut_internal(
-        nft_uid: &mut UID,
+        object_uid: &mut UID,
     ): &mut Symbol {
         df::borrow_mut<SymbolKey, Symbol>(
-            nft_uid,
+            object_uid,
             SymbolKey {}
         )
     }
@@ -269,16 +269,16 @@ module nft_protocol::symbol {
 
     /// Checks that a given NFT has a dynamic field with `SymbolKey`
     public fun has_symbol(
-        nft_uid: &UID,
+        object_uid: &UID,
     ): bool {
-        df::exists_(nft_uid, SymbolKey {})
+        df::exists_(object_uid, SymbolKey {})
     }
 
-    public fun assert_has_symbol(nft_uid: &UID) {
-        assert!(has_symbol(nft_uid), EUNDEFINED_SYMBOL_FIELD);
+    public fun assert_has_symbol(object_uid: &UID) {
+        assert!(has_symbol(object_uid), EUNDEFINED_SYMBOL_FIELD);
     }
 
-    public fun assert_has_not_symbol(nft_uid: &UID) {
-        assert!(!has_symbol(nft_uid), ESYMBOL_FIELD_ALREADY_EXISTS);
+    public fun assert_has_not_symbol(object_uid: &UID) {
+        assert!(!has_symbol(object_uid), ESYMBOL_FIELD_ALREADY_EXISTS);
     }
 }

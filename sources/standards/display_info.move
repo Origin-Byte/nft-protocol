@@ -38,22 +38,22 @@ module nft_protocol::display_info {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun add_display_info<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         name: String,
         description: String,
     ) {
-        assert_has_not_display_info(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_not_display_info(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let display_info = new(name, description);
 
         cw::consume<T, DisplayInfo>(consumable, &mut display_info);
-        df::add(nft_uid, DisplayInfoKey {}, display_info);
+        df::add(object_uid, DisplayInfoKey {}, display_info);
     }
 
 
@@ -67,22 +67,22 @@ module nft_protocol::display_info {
     ///
     /// #### Panics
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun add_display_info_<W: drop, T: key>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         name: String,
         description: String,
     ) {
-        assert_has_not_display_info(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_not_display_info(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let display_info = new(name, description);
-        df::add(nft_uid, DisplayInfoKey {}, display_info);
+        df::add(object_uid, DisplayInfoKey {}, display_info);
     }
 
     // === Get for call from external Module ===
@@ -102,13 +102,13 @@ module nft_protocol::display_info {
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
     public fun borrow_display_info(
-        nft_uid: &UID,
+        object_uid: &UID,
     ): &DisplayInfo {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_display_info(nft_uid);
-        df::borrow(nft_uid, DisplayInfoKey {})
+        assert_has_display_info(object_uid);
+        df::borrow(object_uid, DisplayInfoKey {})
     }
 
     /// Borrows Mutably the `DisplayInfo` field.
@@ -120,21 +120,21 @@ module nft_protocol::display_info {
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun borrow_display_info_mut<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>
+        object_uid: &mut UID,
+        object_type: UidType<T>
     ): &mut DisplayInfo {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_display_info(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_display_info(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
         let display_info = df::borrow_mut<DisplayInfoKey, DisplayInfo>(
-            nft_uid,
+            object_uid,
             DisplayInfoKey {}
         );
         cw::consume<T, DisplayInfo>(consumable, display_info);
@@ -151,22 +151,22 @@ module nft_protocol::display_info {
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun borrow_display_info_mut_<W: drop, T: key>(
         _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>
+        object_uid: &mut UID,
+        object_type: UidType<T>
     ): &mut DisplayInfo {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_display_info(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_display_info(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        df::borrow_mut(nft_uid, DisplayInfoKey {})
+        df::borrow_mut(object_uid, DisplayInfoKey {})
     }
 
 
@@ -182,21 +182,21 @@ module nft_protocol::display_info {
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun change_name<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         new_name: String,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_display_info(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_display_info(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
-        let display_info = borrow_mut_internal(nft_uid);
+        let display_info = borrow_mut_internal(object_uid);
 
         cw::consume<T, DisplayInfo>(consumable, display_info);
         display_info.name = new_name;
@@ -211,23 +211,23 @@ module nft_protocol::display_info {
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun change_name_<W: drop, T: key>(
         witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         new_name: String,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_display_info(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_display_info(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let display_info = borrow_mut_internal(nft_uid);
+        let display_info = borrow_mut_internal(object_uid);
 
         display_info.name = new_name;
     }
@@ -241,21 +241,21 @@ module nft_protocol::display_info {
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     public fun change_description<T: key>(
         consumable: ConsumableWitness<T>,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         new_description: String,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_display_info(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_has_display_info(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
 
-        let display_info = borrow_mut_internal(nft_uid);
+        let display_info = borrow_mut_internal(object_uid);
 
         cw::consume<T, DisplayInfo>(consumable, display_info);
         display_info.description = new_description;
@@ -270,23 +270,23 @@ module nft_protocol::display_info {
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
     ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun change_description_<W: drop, T: key>(
         witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         new_description: String,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_display_info(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
+        assert_has_display_info(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let display_info = borrow_mut_internal(nft_uid);
+        let display_info = borrow_mut_internal(object_uid);
         display_info.description = new_description;
     }
 
@@ -335,10 +335,10 @@ module nft_protocol::display_info {
     ///
     /// For internal use only.
     fun borrow_mut_internal(
-        nft_uid: &mut UID,
+        object_uid: &mut UID,
     ): &mut DisplayInfo {
         df::borrow_mut<DisplayInfoKey, DisplayInfo>(
-            nft_uid,
+            object_uid,
             DisplayInfoKey {}
         )
     }
@@ -346,18 +346,18 @@ module nft_protocol::display_info {
     // === Assertions & Helpers ===
 
 
-    /// Checks that a given NFT has a dynamic field with `DisplayInfoKey`
+    /// Checks that a given Object has a dynamic field with `DisplayInfoKey`
     public fun has_display_info(
-        nft_uid: &UID,
+        object_uid: &UID,
     ): bool {
-        df::exists_(nft_uid, DisplayInfoKey {})
+        df::exists_(object_uid, DisplayInfoKey {})
     }
 
-    public fun assert_has_display_info(nft_uid: &UID) {
-        assert!(has_display_info(nft_uid), EUNDEFINED_DISPLAY_INFO_FIELD);
+    public fun assert_has_display_info(object_uid: &UID) {
+        assert!(has_display_info(object_uid), EUNDEFINED_DISPLAY_INFO_FIELD);
     }
 
-    public fun assert_has_not_display_info(nft_uid: &UID) {
-        assert!(!has_display_info(nft_uid), EDISPLAY_INFO_FIELD_ALREADY_EXISTS);
+    public fun assert_has_not_display_info(object_uid: &UID) {
+        assert!(!has_display_info(object_uid), EDISPLAY_INFO_FIELD_ALREADY_EXISTS);
     }
 }
