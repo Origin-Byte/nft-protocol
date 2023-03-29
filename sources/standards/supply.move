@@ -293,7 +293,7 @@ module nft_protocol::supply {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if supply is frozen already.
-    public fun freeze<T: key>(
+    public fun freeze_supply<T: key>(
         consumable: ConsumableWitness<T>,
         object_uid: &mut UID,
         object_type: UidType<T>,
@@ -404,7 +404,7 @@ module nft_protocol::supply {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if supply is frozen already.
-    public fun freeze_<T: key>(
+    public fun freeze_supply_<T: key>(
         consumable: ConsumableWitness<T>,
         object_uid: &mut UID,
         object_type: UidType<T>,
@@ -468,7 +468,7 @@ module nft_protocol::supply {
     /// #### Panics
     ///
     /// Panics if already frozen
-    public fun freeze_supply(supply: &mut Supply) {
+    public fun freeze_supply___(supply: &mut Supply) {
         assert_not_frozen(supply);
         supply.frozen = true;
     }
@@ -482,7 +482,7 @@ module nft_protocol::supply {
     /// #### Panics
     ///
     /// Panics if supply is frozen.
-    public fun increase_supply_ceil(supply: &mut Supply, value: u64) {
+    public fun increase_supply_ceil__(supply: &mut Supply, value: u64) {
         assert_not_frozen(supply);
         supply.max = supply.max + value;
     }
@@ -494,7 +494,7 @@ module nft_protocol::supply {
     ///
     /// Panics if supply is frozen or if new maximum supply is smaller than
     /// current supply.
-    public fun decrease_supply_ceil(supply: &mut Supply, value: u64) {
+    public fun decrease_supply_ceil__(supply: &mut Supply, value: u64) {
         assert_not_frozen(supply);
         assert!(
             supply.max - value > supply.current,
@@ -538,12 +538,12 @@ module nft_protocol::supply {
         // and only then decrease the ceil. Decreasing the ceil will fail
         // if the result is below the current value.
         decrement(supply, split_current);
-        decrease_supply_ceil(supply, split_max);
+        decrease_supply_ceil__(supply, split_max);
 
         let new_supply = new(split_max, false);
-        increment(new_supply, split_current);
+        increment(&mut new_supply, split_current);
 
-        supply
+        new_supply
     }
 
     /// Returns maximum supply
