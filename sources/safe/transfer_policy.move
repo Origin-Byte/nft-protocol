@@ -1,3 +1,14 @@
+/// The rolling hot potato pattern was designed by us in conjunction with
+/// Mysten team.
+///
+/// To lower the barrier to entry, we mimic their APIs where relevant.
+/// See the `sui::transfer_policy` module in the https://github.com/MystenLabs/sui
+///
+/// Our transfer policy offers generics over fungible token and a builder pattern.
+///
+/// We interoperate with the sui ecosystem by allowing our `TransferRequest` to
+/// be converted into the sui version.
+/// This is only possible if the payment was done in SUI token.
 module nft_protocol::transfer_policy {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
@@ -9,6 +20,7 @@ module nft_protocol::transfer_policy {
     use sui::object::{Self, ID, UID};
     use sui::package::{Self, Publisher};
     use sui::sui::SUI;
+    use sui::transfer_policy as sui_transfer_policy;
     use sui::tx_context::TxContext;
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
@@ -25,10 +37,14 @@ module nft_protocol::transfer_policy {
     const ENotOwner: u64 = 4;
     /// Trying to `withdraw` more than there is.
     const ENotEnough: u64 = 5;
+    /// Conversion of our transfer request to the one exposed by the sui library
+    /// is only permitted for SUI token.
+    const EOnlyTransferRequestOfSuiToken: u64 = 6;
 
     /// A "Hot Potato" forcing the buyer to get a transfer permission
     /// from the item type (`T`) owner on purchase attempt.
     struct TransferRequest<phantom T> {
+        nft: ID,
         /// In case of transfer requests originating from a user we convert
         /// the address to ID with `object::id_from_address`.
         originator: ID,
@@ -50,6 +66,7 @@ module nft_protocol::transfer_policy {
     /// Since it's a hot potato, it must be used.
     /// The only way to destroy it is to exchange it for `TransferRequest`.
     struct TransferRequestBuilder<phantom T> {
+        nft: ID,
         originator: ID,
         ft_paid_amounts: VecMap<TypeName, u64>,
     }
@@ -79,8 +96,9 @@ module nft_protocol::transfer_policy {
 
     /// Construct a new `TransferRequest` hot potato which requires an
     /// approving action from the creator to be destroyed / resolved.
-    public fun builder<T>(originator: ID): TransferRequestBuilder<T> {
+    public fun builder<T>(nft: ID, originator: ID): TransferRequestBuilder<T> {
         TransferRequestBuilder {
+            nft,
             originator,
             ft_paid_amounts: vec_map::empty(),
         }
@@ -95,12 +113,38 @@ module nft_protocol::transfer_policy {
     }
 
     public fun build<T>(builder: TransferRequestBuilder<T>): TransferRequest<T> {
-        let TransferRequestBuilder { originator, ft_paid_amounts } = builder;
+        let TransferRequestBuilder { nft, originator, ft_paid_amounts } = builder;
         TransferRequest {
+            nft,
             originator,
             ft_paid_amounts,
             receipts: vec_set::empty(),
         }
+    }
+
+    /// The transfer request can be converted to the sui lib version if the
+    /// payment was done in SUI and there's no other currency used.
+    ///
+    /// Note that after this, the royalty enforcement is modelled after the
+    /// sui ecosystem settings.
+    ///
+    /// The creator has to opt into that ecosystem.
+    public fun into_sui<T>(
+        request: TransferRequest<T>,
+    ): sui_transfer_policy::TransferRequest<T> {
+        let paid = paid_in_sui_unwrapped(&request);
+
+        let TransferRequest {
+            nft,
+            originator,
+            receipts: _,
+            ft_paid_amounts,
+        } = request;
+        // since we unwrap above to get the SUI amount, we know that there're no
+        // other currencies
+        assert!(vec_map::size(&ft_paid_amounts) == 1, EOnlyTransferRequestOfSuiToken);
+
+        sui_transfer_policy::new_request(nft, paid, originator)
     }
 
     /// Register a type in the Kiosk system and receive an `TransferPolicyCap`
@@ -156,6 +200,7 @@ module nft_protocol::transfer_policy {
         self: &TransferPolicy<T>, request: TransferRequest<T>
     ): ID {
         let TransferRequest {
+            nft: _,
             originator,
             receipts,
             ft_paid_amounts: _,
@@ -269,6 +314,9 @@ module nft_protocol::transfer_policy {
         &self.ft_paid_amounts
     }
 
-    /// Get the `from` field of the `TransferRequest`.
+    /// Which entity started the trade.
     public fun originator<T>(self: &TransferRequest<T>): ID { self.originator }
+
+    /// What's the NFT that's being transferred.
+    public fun nft<T>(self: &TransferRequest<T>): ID { self.nft }
 }

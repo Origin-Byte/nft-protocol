@@ -1,4 +1,7 @@
 module nft_protocol::ob_kiosk {
+    // TODO: Delist
+    // TODO: address instead of ID
+
     use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
     use std::type_name::{Self, TypeName};
     use sui::dynamic_field::{Self as df};
@@ -87,6 +90,19 @@ module nft_protocol::ob_kiosk {
         kiosk
     }
 
+    /// Creates a new Kiosk in the OB ecosystem.
+    /// By default, all deposits are allowed permissionlessly.
+    ///
+    /// The scope of deposits can be controlled with
+    /// - `restrict_deposits` to allow only owner to deposit;
+    /// - `enable_any_deposit` to again set deposits to be permissionless;
+    /// - `disable_deposits_of_collection` to prevent specific collection to
+    ///     deposit (ignored if all deposits enabled)
+    /// - `enable_deposits_of_collection` to again specific collection to deposit
+    ///     (useful in conjunction with restricting all deposits)
+    ///
+    /// Note that those collections which have restricted deposits will NOT be
+    /// allowed to be transferred to the kiosk even on trades.
     public fun new(ctx: &mut TxContext): (Kiosk, OwnerCap) {
         let (kiosk, kiosk_cap) = kiosk::new(ctx);
 
@@ -129,7 +145,7 @@ module nft_protocol::ob_kiosk {
             is_exclusively_listed: false,
         });
 
-        // underlying NFT place to kiosk
+        // place underlying NFT to kiosk
         let cap = pop_cap(self);
         kiosk::place(self, &cap, nft);
         set_cap(self, cap);
@@ -137,6 +153,8 @@ module nft_protocol::ob_kiosk {
 
     // === Withdraw from the Kiosk ===
 
+    /// Authorizes given entity to take given NFT out.
+    /// The entity must prove with their `&UID` in `transfer_delegated`.
     public fun auth_transfer(
         self: &mut Kiosk,
         owner_cap: &OwnerCap,
@@ -151,6 +169,14 @@ module nft_protocol::ob_kiosk {
         vec_set::insert(&mut ref.auths, entity_id);
     }
 
+    /// Authorizes ONLY given entity to take given NFT out.
+    /// No one else (including the owner) can perform a transfer.
+    ///
+    /// The entity must prove with their `&UID` in `transfer_delegated`.
+    ///
+    /// Only the given entity can then delist their listing.
+    /// This is a dangerous action to be used only with audited contracts
+    /// because the NFT is locked until given entity agrees to release it.
     public fun auth_exclusive_transfer(
         self: &mut Kiosk,
         owner_cap: &OwnerCap,
@@ -185,7 +211,7 @@ module nft_protocol::ob_kiosk {
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        (nft, transfer_policy::builder(originator))
+        (nft, transfer_policy::builder(nft_id, originator))
     }
 
     /// Can be called by an entity that has been authorized by the owner to
@@ -243,7 +269,7 @@ module nft_protocol::ob_kiosk {
 
         deposit(target, nft);
 
-        transfer_policy::builder(object::id(owner_cap))
+        transfer_policy::builder(nft_id, object::id(owner_cap))
     }
 
     // === Configure deposit settings ===
