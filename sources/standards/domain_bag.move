@@ -4,9 +4,6 @@
 /// to NFTs. The current design allows creators to create DomainBags with custom
 /// domain-specific fields, with their own bespoke behavior.
 module nft_protocol::domain_bag {
-    use std::string;
-
-    use sui::url::Url;
     use sui::dynamic_field as df;
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
