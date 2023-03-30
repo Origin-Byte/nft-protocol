@@ -45,7 +45,7 @@ module nft_protocol::collection {
     /// [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See
     /// [borrow_domain_mut](#borrow_domain_mut).
-    struct Collection<phantom T> has key, store {
+    struct Collection<phantom W> has key, store {
         /// `Collection` ID
         id: UID,
     }
@@ -75,22 +75,18 @@ module nft_protocol::collection {
     ///     let (mint_cap, collection) = collection::create(&witness, ctx);
     /// }
     /// ```
-    public fun create<W, T>(
+    public fun create<W: drop>(
         _witness: &W,
         ctx: &mut TxContext,
-    ): (MintCap<T>, Collection<T>) {
-        utils::assert_same_module_as_witness<T, W>();
-
+    ): Collection<W> {
         let id = object::new(ctx);
 
         event::emit(MintCollectionEvent {
             collection_id: object::uid_to_inner(&id),
-            type_name: type_name::get<T>(),
+            type_name: type_name::get<W>(),
         });
 
-        let cap = mint_cap::new(object::uid_to_inner(&id), option::none(), ctx);
-
-        (cap, Collection { id })
+        Collection { id }
     }
 
     /// Creates a shared `Collection<T>` and corresponding `MintCap<T>`
@@ -98,14 +94,12 @@ module nft_protocol::collection {
     /// #### Panics
     ///
     /// Panics if witness is not defined in the same module as `T`.
-    public fun init_collection<W, T>(
+    public fun init_collection<W: drop>(
         witness: &W,
-        owner: address,
         ctx: &mut TxContext,
     ) {
-        let (mint_cap, collection) = create<W, T>(witness, ctx);
+        let collection = create<W>(witness, ctx);
         transfer::public_share_object(collection);
-        transfer::public_transfer(mint_cap, owner);
     }
 
     // === Domain Functions ===

@@ -10,32 +10,24 @@
 /// of the current supply, whilst unregulated policies have no supply
 /// constraints nor they keep track of the number of minted objects.
 module nft_protocol::supply {
-    use sui::transfer;
-    use sui::tx_context::TxContext;
-
     use nft_protocol::err;
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::mint_cap::{
-        Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
-    };
-    use nft_protocol::supply::{Self};
-    use nft_protocol::witness::Witness as DelegatedWitness;
 
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{
-        Self, assert_with_witness, assert_with_consumable_witness, UidType
-    };
     use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
-
-    friend nft_protocol::warehouse;
+    use nft_protocol::utils::{
+        assert_with_witness, assert_with_consumable_witness, UidType
+    };
 
     /// No field object `Attributes` defined as a dynamic field.
     const EUNDEFINED_SUPPLY_FIELD: u64 = 1;
 
     /// Field object `Attributes` already defined as dynamic field.
     const ESUPPLY_FIELD_ALREADY_EXISTS: u64 = 2;
+
+    /// Field object `Supply` is set as frozen.
+    const ESUPPLY_FROZEN: u64 = 3;
 
 
     /// `Supply` tracks supply parameters
@@ -530,17 +522,16 @@ module nft_protocol::supply {
     /// Panics if the result leads to `current > max`
     public fun split(
         supply: &mut Supply,
-        split_max: u64,
-        split_current: u64,
+        quantity: u64,
     ): Supply {
         // Order here matters, we need to first decrease the current value
         // and only then decrease the ceil. Decreasing the ceil will fail
         // if the result is below the current value.
-        decrement(supply, split_current);
-        decrease_supply_ceil__(supply, split_max);
+        assert_enough_supply(quantity, supply);
+        decrease_supply_ceil__(supply, quantity);
 
-        let new_supply = new(split_max, false);
-        increment(&mut new_supply, split_current);
+        // New supply object is frozen by default
+        let new_supply = new(quantity, true);
 
         new_supply
     }
@@ -583,7 +574,7 @@ module nft_protocol::supply {
 
     /// Asserts that supply is not frozen
     public fun assert_not_frozen(supply: &Supply) {
-        assert!(!supply.frozen, err::supply_frozen())
+        assert!(!supply.frozen, ESUPPLY_FROZEN)
     }
 
     public fun assert_has_supply(object_uid: &UID) {
@@ -594,8 +585,10 @@ module nft_protocol::supply {
         assert!(!has_supply(object_uid), ESUPPLY_FIELD_ALREADY_EXISTS);
     }
 
-    /// Assert that `SupplyDomain` is frozen
-    public fun assert_not_frozen<T>(domain: &SupplyDomain<T>) {
-        assert!(!domain.frozen, ESupplyFrozen)
+    public fun assert_enough_supply(quantity: u64, supply: &Supply) {
+        assert!(
+            quantity >= get_remaining_supply(supply),
+            ESUPPLY_FIELD_ALREADY_EXISTS
+        );
     }
 }

@@ -18,9 +18,9 @@ module nft_protocol::mint_cap {
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
+    use nft_protocol::collection::Collection;
+    use nft_protocol::utils;
     use nft_protocol::supply::{Self, Supply};
-
-    friend nft_protocol::collection;
 
     /// `MintCap` is unregulated when expected regulated
     const EUnregulated: u64 = 1;
@@ -46,11 +46,16 @@ module nft_protocol::mint_cap {
         supply: Option<Supply>,
     }
 
-    public(friend) fun new<T>(
-        collection_id: ID,
+    public fun new<W: drop, T: key>(
+        _witness: W,
+        collection: &Collection<W>,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
+        utils::assert_same_module_as_witness<T, W>();
+
+        let collection_id = object::id(collection);
+
         if (option::is_some(&supply)) {
             new_regulated(
                 collection_id, option::destroy_some(supply), ctx,
@@ -61,7 +66,7 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap` with unregulated supply
-    public(friend) fun new_unregulated<T>(
+    fun new_unregulated<T>(
         collection_id: ID,
         ctx: &mut TxContext,
     ): MintCap<T> {
@@ -69,7 +74,7 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap` with regulated supply
-    public(friend) fun new_regulated<T>(
+    fun new_regulated<T>(
         collection_id: ID,
         supply: u64,
         ctx: &mut TxContext,
@@ -77,7 +82,7 @@ module nft_protocol::mint_cap {
         MintCap {
             id: object::new(ctx),
             collection_id,
-            supply: option::some(supply::new(supply)),
+            supply: option::some(supply::new(supply, false)),
         }
     }
 
@@ -93,7 +98,7 @@ module nft_protocol::mint_cap {
     /// Panics if supply is unregulated.
     public fun supply<T>(mint_cap: &MintCap<T>): u64 {
         assert_regulated(mint_cap);
-        supply::supply(option::borrow(&mint_cap.supply))
+        supply::get_remaining_supply(option::borrow(&mint_cap.supply))
     }
 
     /// Returns ID of `Collection` associated with `MintCap`
@@ -120,15 +125,16 @@ module nft_protocol::mint_cap {
 
     /// Create a new `MintCap` by delegating supply from unregulated or
     /// regulated `MintCap`.
-    public fun delegate<T>(
+    public fun split<T>(
         mint_cap: &mut MintCap<T>,
         quantity: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
         let supply = if (option::is_some(&mint_cap.supply)) {
-            supply::split(option::borrow_mut(&mut mint_cap.supply), quantity)
+            supply::split(
+                option::borrow_mut(&mut mint_cap.supply), quantity)
         } else {
-            supply::new(quantity)
+            supply::new(quantity, true)
         };
 
         MintCap {
@@ -158,7 +164,10 @@ module nft_protocol::mint_cap {
 
     /// Delete `MintCap`
     public fun delete_mint_cap<T>(mint_cap: MintCap<T>) {
+        // TODO: Should delete Supply object if any, otherwise it becomes
+        // a stale object
         let MintCap { id, collection_id: _, supply: _ } = mint_cap;
+
         object::delete(id);
     }
 
