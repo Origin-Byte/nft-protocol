@@ -178,9 +178,8 @@ module nft_protocol::items {
     /// in other words, it panics if `nft_uid` is not of type `T`.
     ///
     /// Panics if `Nft` was not composed within the `Items`.
-    public fun borrow_nft_mut_<CW: drop, AW: drop, Parent: key + store, Child: key + store>(
+    public fun borrow_nft_mut_<AW: drop, Parent: key + store, Child: key + store>(
         auth_witness: AW,
-        creator_witness: CW,
         parent_uid: &mut UID,
         parent_type: UidType<Parent>,
         nft_id: ID,
@@ -189,10 +188,7 @@ module nft_protocol::items {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_items(parent_uid);
-        // No need to assert the Child belongs to the same module as the creator's
-        // Witness because certain composability models might allow Parents and Childs
-        // to be from different collections
-        assert_with_witness<CW, Parent>(parent_uid, parent_type);
+        assert_uid_type(parent_uid, &parent_type);
 
         let items = df::borrow_mut<ItemsKey, Items>(parent_uid, ItemsKey {});
         borrow_nft_mut_internal<AW, Child>(&auth_witness, items, nft_id)

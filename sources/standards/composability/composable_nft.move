@@ -241,7 +241,7 @@ module nft_protocol::composable_nft {
     ///
     /// Panics if Witness `W` does not match `T`'s module.
     public fun borrow_child_mut_<W: drop, Parent: key + store, Child: key + store>(
-        witness: W,
+        _witness: W,
         parent_uid: &mut UID,
         parent_type: UidType<Parent>,
         child_id: ID,
@@ -252,7 +252,7 @@ module nft_protocol::composable_nft {
         assert_has_compositions(parent_uid);
         assert_with_witness<W, Parent>(parent_uid, parent_type);
 
-        items::borrow_nft_mut_(Witness {}, witness, parent_uid, parent_type, child_id)
+        items::borrow_nft_mut_(Witness {}, parent_uid, parent_type, child_id)
     }
 
 
