@@ -551,6 +551,10 @@ module nft_protocol::supply {
         supply.max - supply.current
     }
 
+    public fun is_frozen(supply: &Supply): bool {
+        supply.frozen
+    }
+
 
     // === Assertions & Helpers ===
 
