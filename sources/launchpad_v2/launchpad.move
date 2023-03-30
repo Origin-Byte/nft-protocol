@@ -41,6 +41,7 @@ module nft_protocol::launchpad_v2 {
     struct LaunchCap has key, store {
         id: UID,
         listing_id: ID,
+        clonable: bool,
     }
 
     /// Initialises a launchpad by creating an object and returns it.
@@ -58,7 +59,8 @@ module nft_protocol::launchpad_v2 {
 
         let cap = LaunchCap {
             id: cap_id,
-            listing_id: object::uid_to_inner(&listing_id)
+            listing_id: object::uid_to_inner(&listing_id),
+            clonable: true,
         };
 
         let data = Listing {
@@ -80,18 +82,23 @@ module nft_protocol::launchpad_v2 {
     public fun clone_launch_cap(
         cap: &LaunchCap,
         listing: &Listing,
+        clonable: bool,
         ctx: &mut TxContext,
     ) {
+        assert_launch_cap(cap, listing);
         let cap_id = object::new(ctx);
 
         let cap = LaunchCap {
             id: cap_id,
-            listing_id: object::id(listing)
+            listing_id: object::id(listing),
+            clonable,
         };
     }
 
-
-
+    public fun assert_launch_cap(cap: &LaunchCap, listing: &Listing) {
+        // TODO: Shall we check the other way around as well, if cap.listing_id matches?
+        assert!(vec_set::contains(&listing.launch_caps, &object::id(cap)), 0);
+    }
 
 
 }
