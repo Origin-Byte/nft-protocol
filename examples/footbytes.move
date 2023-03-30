@@ -5,7 +5,7 @@ module nft_protocol::footbytes {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
@@ -71,7 +71,7 @@ module nft_protocol::footbytes {
             tags,
         );
 
-        metadata_bag::init_metadata_bag<FOOTBYTES, Witness>(
+        metadata_bag::init_metadata_bag<Nft<FOOTBYTES>, Witness>(
             &Witness {},
             &mut collection,
             ctx,
@@ -85,8 +85,8 @@ module nft_protocol::footbytes {
         name: String,
         description: String,
         url: vector<u8>,
-        collection: &mut Collection<FOOTBYTES>,
-        mint_cap: &MintCap<FOOTBYTES>,
+        collection: &mut Collection<Nft<FOOTBYTES>>,
+        mint_cap: &mut MintCap<Nft<FOOTBYTES>>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
@@ -100,7 +100,7 @@ module nft_protocol::footbytes {
 
         url::add_url_domain(&Witness {}, &mut nft, url);
 
-        let metadata = metadata::new_regulated(nft, supply, ctx);
+        let metadata = metadata::create_regulated(nft, supply, ctx);
         metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);
     }
 }

@@ -49,9 +49,9 @@ module nft_protocol::transfer_allowlist_domain {
     /// Adds new allowlist to `TransferAllowlistDomain`.
     /// Now, off chain clients can use this information to discover the ID
     /// and use it in relevant txs.
-    public fun add_id<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun add_id<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         al: &mut Allowlist,
     ) {
         let domain = transfer_allowlist_domain_mut(collection);
@@ -59,9 +59,9 @@ module nft_protocol::transfer_allowlist_domain {
     }
 
     /// Removes existing allowlist from `TransferAllowlistDomain`.
-    public fun remove_id<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun remove_id<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         id: ID,
     ) {
         let domain = transfer_allowlist_domain_mut(collection);
@@ -108,8 +108,8 @@ module nft_protocol::transfer_allowlist_domain {
     /// #### Panics
     ///
     /// Panics if `TransferAllowlistDomain` is not registered on `Collection`.
-    public fun transfer_allowlist_domain<C>(
-        collection: &Collection<C>,
+    public fun transfer_allowlist_domain<T>(
+        collection: &Collection<T>,
     ): &TransferAllowlistDomain {
         assert_domain(collection);
         collection::borrow_domain(collection)
@@ -120,8 +120,8 @@ module nft_protocol::transfer_allowlist_domain {
     /// #### Panics
     ///
     /// Panics if `TransferAllowlistDomain` is not registered on `Collection`.
-    fun transfer_allowlist_domain_mut<C>(
-        collection: &mut Collection<C>,
+    fun transfer_allowlist_domain_mut<T>(
+        collection: &mut Collection<T>,
     ): &mut TransferAllowlistDomain {
         assert_domain(collection);
         collection::borrow_domain_mut(Witness {}, collection)
@@ -134,9 +134,9 @@ module nft_protocol::transfer_allowlist_domain {
     /// #### Panics
     ///
     /// Panics if `TransferAllowlistDomain` is not defined on the `Collection`.
-    public fun assert_domain<C>(collection: &Collection<C>) {
+    public fun assert_domain<T>(collection: &Collection<T>) {
         assert!(
-            collection::has_domain<C, TransferAllowlistDomain>(collection),
+            collection::has_domain<T, TransferAllowlistDomain>(collection),
             EUNDEFINED_TRANSFER_ALLOWLIST_DOMAIN,
         )
     }

@@ -10,7 +10,6 @@ module nft_protocol::composable_url {
     use sui::url::Url;
 
     use nft_protocol::url;
-    use nft_protocol::witness;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::attributes;
     use nft_protocol::witness::Witness as DelegatedWitness;
@@ -49,7 +48,7 @@ module nft_protocol::composable_url {
     ///
     /// Panics if `ComposableUrlDomain` does not exist on `Nft`
     public fun set_url<C>(
-        witness: DelegatedWitness<C>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
         url: Url,
     ) {
@@ -66,7 +65,7 @@ module nft_protocol::composable_url {
     /// Panics if `ComposableUrlDomain` or `UrlDomain` is not registered
     public fun regenerate<C>(
         // TODO: Remove delegated witness by removing static fields from `Nft`
-        witness: DelegatedWitness<C>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
     ) {
         let url = ascii::into_bytes(sui::url::inner_url(url::borrow_url(nft)));
@@ -125,7 +124,7 @@ module nft_protocol::composable_url {
         witness: &W,
         nft: &mut Nft<C>,
     ) {
-        add_composable_url_delegated(witness::from_witness(witness), nft);
+        add_composable_url_delegated(nft::delegate_witness(witness), nft);
     }
 
     /// Adds `UrlDomain` to `Nft`
@@ -138,7 +137,7 @@ module nft_protocol::composable_url {
     ///
     /// Panics if `UrlDomain` domain already exists
     public fun add_composable_url_delegated<C>(
-        _witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
     ) {
         assert!(!has_composable_url(nft), EEXISTING_URL_DOMAIN);

@@ -449,6 +449,15 @@ module nft_protocol::ob_kiosk {
         vec_set::insert(&mut settings.collections_with_enabled_deposits, col_type);
     }
 
+    public fun transfer_cap_to_owner(
+        cap: OwnerCap,
+        kiosk: &Kiosk,
+        owner: address,
+    ) {
+        assert_owner_address(kiosk, owner);
+        transfer(cap, owner);
+    }
+
     // === Assertions and getters ===
 
     public fun owner_cap_kiosk(cap: &OwnerCap): ID { cap.kiosk }
@@ -469,6 +478,10 @@ module nft_protocol::ob_kiosk {
 
     public fun assert_can_deposit<T>(self: &mut Kiosk) {
         assert!(can_deposit<T>(self), EPermissionlessDepositsDisabled);
+    }
+
+    public fun assert_owner_address(self: &Kiosk, owner: address) {
+        assert!(kiosk::owner(self) == owner, ENotOwner);
     }
 
     public fun assert_owner_cap(self: &Kiosk, cap: &OwnerCap) {

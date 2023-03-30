@@ -21,11 +21,11 @@ module nft_protocol::test_ob_commission {
     fun it_cannot_create_ask_with_commission_greater_than_requested_tokens() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
         test_scenario::next_tx(&mut scenario, SELLER);
 
         test_ob::create_ask_with_commission(
@@ -43,11 +43,11 @@ module nft_protocol::test_ob_commission {
     fun it_works() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
         test_scenario::next_tx(&mut scenario, SELLER);
 
         test_ob::create_ask_with_commission(
@@ -60,7 +60,7 @@ module nft_protocol::test_ob_commission {
 
 
         test_ob::create_safe(&mut scenario, BUYER);
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
         test_ob::finish_trade(
             &mut scenario,
             nft_id,
@@ -87,11 +87,11 @@ module nft_protocol::test_ob_commission {
     fun it_lists_nft() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
         test_scenario::next_tx(&mut scenario, SELLER);
 
         let (owner_cap, seller_safe) =

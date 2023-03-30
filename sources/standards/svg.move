@@ -54,9 +54,9 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` does not exist on `Collection`
-    public fun set_collection_svg<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun set_collection_svg<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         svg: vector<u8>,
     ) {
         let svg_data = borrow_collection_svg_mut(collection);
@@ -71,8 +71,8 @@ module nft_protocol::svg {
     }
 
     /// Returns whether `SvgDomain` is registered on `Collection`
-    public fun has_domain_collection<C>(collection: &Collection<C>): bool {
-        collection::has_domain<C, SvgDomain>(collection)
+    public fun has_domain_collection<T>(collection: &Collection<T>): bool {
+        collection::has_domain<T, SvgDomain>(collection)
     }
 
     /// Borrows SVG data from `Nft`
@@ -102,7 +102,7 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` is not registered on the `Collection`
-    public fun borrow_collection_svg<C>(collection: &Collection<C>): &vector<u8> {
+    public fun borrow_collection_svg<T>(collection: &Collection<T>): &vector<u8> {
         assert_collection_svg(collection);
         let domain: &SvgDomain = collection::borrow_domain(collection);
         &domain.svg
@@ -113,8 +113,8 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` is not registered on the `Collection`
-    fun borrow_collection_svg_mut<C>(
-        collection: &mut Collection<C>,
+    fun borrow_collection_svg_mut<T>(
+        collection: &mut Collection<T>,
     ): &mut vector<u8> {
         assert_collection_svg(collection);
         let domain: &mut SvgDomain =
@@ -145,9 +145,9 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` domain already exists
-    public fun add_domain_collection<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun add_domain_collection<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         svg: vector<u8>,
     ) {
         assert!(!has_domain_collection(collection), EEXISTING_SVG_DOMAIN);
@@ -170,7 +170,7 @@ module nft_protocol::svg {
     /// #### Panics
     ///
     /// Panics if `SvgDomain` is not registered
-    public fun assert_collection_svg<C>(collection: &Collection<C>) {
+    public fun assert_collection_svg<T>(collection: &Collection<T>) {
         assert!(has_domain_collection(collection), EUNDEFINED_SVG_DOMAIN);
     }
 }

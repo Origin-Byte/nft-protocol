@@ -7,10 +7,11 @@
 /// information on one object and thus avoid redundancy, and to provide
 /// configuration data to NFTs.
 module nft_protocol::collection {
+    use std::option;
     use std::type_name::{Self, TypeName};
 
     use sui::event;
-    use sui::transfer::{public_transfer, public_share_object};
+    use sui::transfer;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
@@ -32,7 +33,7 @@ module nft_protocol::collection {
 
     /// NFT `Collection` object
     ///
-    /// OriginByte collections and NFTs have a generic parameter `C` which is a
+    /// OriginByte collections and NFTs have a generic parameter `T` which is a
     /// one-time witness created by the creator's NFT collection module. This
     /// allows `Collection` and `Nft` to be linked via type association, but
     /// also ensures that NFTs can only be minted by the contract that
@@ -44,7 +45,7 @@ module nft_protocol::collection {
     /// [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See
     /// [borrow_domain_mut](#borrow_domain_mut).
-    struct Collection<phantom C> has key, store {
+    struct Collection<phantom T> has key, store {
         /// `Collection` ID
         id: UID,
     }
@@ -53,13 +54,17 @@ module nft_protocol::collection {
     struct MintCollectionEvent has copy, drop {
         /// ID of the `Collection` that was minted
         collection_id: ID,
-        /// Type name of `Collection<C>` one-time witness `C`
+        /// Type name of `Collection<T>` one-time witness `T`
         ///
         /// Intended to allow users to filter by collections of interest.
         type_name: TypeName,
     }
 
-    /// Creates a `Collection<C>` and corresponding `MintCap<C>`
+    /// Creates a `Collection<T>` and corresponding `MintCap<T>`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness is not defined in the same module as `T`.
     ///
     /// #### Usage
     ///
@@ -70,59 +75,67 @@ module nft_protocol::collection {
     ///     let (mint_cap, collection) = collection::create(&witness, ctx);
     /// }
     /// ```
-    public fun create<C>(
-        _witness: &C,
+    public fun create<W, T>(
+        _witness: &W,
         ctx: &mut TxContext,
-    ): (MintCap<C>, Collection<C>) {
+    ): (MintCap<T>, Collection<T>) {
+        utils::assert_same_module_as_witness<T, W>();
+
         let id = object::new(ctx);
 
         event::emit(MintCollectionEvent {
             collection_id: object::uid_to_inner(&id),
-            type_name: type_name::get<C>(),
+            type_name: type_name::get<T>(),
         });
 
-        let cap = mint_cap::new(object::uid_to_inner(&id), ctx);
+        let cap = mint_cap::new(object::uid_to_inner(&id), option::none(), ctx);
 
         (cap, Collection { id })
     }
 
-    /// Creates a shared `Collection<C>` and corresponding `MintCap<C>`
-    public fun init_collection<C>(
-        witness: &C,
+    /// Creates a shared `Collection<T>` and corresponding `MintCap<T>`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness is not defined in the same module as `T`.
+    public fun init_collection<W, T>(
+        witness: &W,
         owner: address,
         ctx: &mut TxContext,
     ) {
-        let (mint_cap, collection) = create(witness, ctx);
-        public_share_object(collection);
-        public_transfer(mint_cap, owner);
+        let (mint_cap, collection) = create<W, T>(witness, ctx);
+        transfer::public_share_object(collection);
+        transfer::public_transfer(mint_cap, owner);
     }
 
     // === Domain Functions ===
 
-    /// Check whether `Collection` has a domain of type `D`
-    public fun has_domain<C, D: store>(
-        collection: &Collection<C>,
+    /// Check whether `Collection` has domain
+    public fun has_domain<T, Domain: store>(
+        collection: &Collection<T>,
     ): bool {
-        df::exists_with_type<Marker<D>, D>(&collection.id, utils::marker<D>())
+        df::exists_with_type<Marker<Domain>, Domain>(
+            &collection.id, utils::marker<Domain>(),
+        )
     }
 
-    /// Borrow domain of type `D` from `Nft`
+    /// Borrow domain from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if domain of type `D` is not present on the `Nft`
-    public fun borrow_domain<C, D: store>(
-        collection: &Collection<C>
-    ): &D {
-        assert_domain<C, D>(collection);
-        df::borrow(&collection.id, utils::marker<D>())
+    /// Panics if domain is not present on the `Nft`
+    public fun borrow_domain<T, Domain: store>(
+        collection: &Collection<T>
+    ): &Domain {
+        assert_domain<T, Domain>(collection);
+        df::borrow(&collection.id, utils::marker<Domain>())
     }
 
-    /// Mutably borrow domain of type `D` from `Collection`
+    /// Mutably borrow domain from `Collection`
     ///
-    /// Guarantees that domain `D` can only be mutated by the module that
+    /// Guarantees that domain can only be mutated by the module that
     /// instantiated it. In other words, witness `W` must be defined in the
-    /// same module as domain `D`.
+    /// same module as domain.
     ///
     /// #### Usage
     ///
@@ -136,7 +149,7 @@ module nft_protocol::collection {
     ///         name: String,
     ///     } has key, store
     ///
-    ///     public fun domain_mut(collection: &mut Collection<C>): &mut DisplayDomain {
+    ///     public fun domain_mut(collection: &mut Collection<T>): &mut DisplayDomain {
     ///         let domain: &mut DisplayDomain =
     ///             collection::borrow_domain_mut(Witness {}, collection);
     ///     }
@@ -146,31 +159,31 @@ module nft_protocol::collection {
     /// #### Panics
     ///
     /// Panics when module attempts to mutably borrow a domain it did not
-    /// define itself or if domain of type `D` is not present on the `Nft`. See
+    /// define itself or if domain is not present on the `Nft`. See
     /// [nft::borrow_domain_mut](./nft.html#borrow_domain_mut).
     /// ```
-    public fun borrow_domain_mut<C, D: store, W: drop>(
+    public fun borrow_domain_mut<T, Domain: store, W: drop>(
         _witness: W,
-        collection: &mut Collection<C>,
-    ): &mut D {
-        utils::assert_same_module_as_witness<D, W>();
-        assert_domain<C, D>(collection);
+        collection: &mut Collection<T>,
+    ): &mut Domain {
+        utils::assert_same_module_as_witness<Domain, W>();
+        assert_domain<T, Domain>(collection);
 
-        df::borrow_mut(&mut collection.id, utils::marker<D>())
+        df::borrow_mut(&mut collection.id, utils::marker<Domain>())
     }
 
-    /// Adds domain of type `D` to `Collection`
+    /// Adds domain to `Collection`
     ///
     /// Helper method that can be simply used without knowing what a delegated
     /// witness is.
     ///
     /// #### Panics
     ///
-    /// Panics if domain `D` already exists.
-    public fun add_domain<C, W, D: store>(
+    /// Panics if domain already exists.
+    public fun add_domain<T, W, Domain: store>(
         witness: &W,
-        collection: &mut Collection<C>,
-        domain: D,
+        collection: &mut Collection<T>,
+        domain: Domain,
     ) {
         add_domain_delegated(
             witness::from_witness(witness),
@@ -179,26 +192,26 @@ module nft_protocol::collection {
         )
     }
 
-    /// Adds domain of type `D` to `Collection`
+    /// Adds domain to `Collection`
     ///
     /// #### Panics
     ///
-    /// Panics if domain `D` already exists.
-    public fun add_domain_delegated<C, D: store>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
-        domain: D,
+    /// Panics if domain already exists.
+    public fun add_domain_delegated<T, Domain: store>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
+        domain: Domain,
     ) {
-        assert_no_domain<C, D>(collection);
-        df::add(&mut collection.id, utils::marker<D>(), domain);
+        assert_no_domain<T, Domain>(collection);
+        df::add(&mut collection.id, utils::marker<Domain>(), domain);
     }
 
-    /// Removes domain of type `D` from `Collection`
+    /// Removes domain from `Collection`
     ///
     /// #### Panics
     ///
     /// Panics when module attempts to remove a domain it did not define
-    /// itself or if domain of type `D` is not present on the `Collection`. See
+    /// itself or if domain is not present on the `Collection`. See
     /// [borrow_domain_mut](#borrow_domain_mut).
     ///
     /// #### Usage
@@ -206,35 +219,37 @@ module nft_protocol::collection {
     /// ```
     /// let display_domain: DisplayDomain = collection::remove_domain(Witness {}, &mut nft);
     /// ```
-    public fun remove_domain<C, W: drop, D: store>(
+    public fun remove_domain<T, W: drop, Domain: store>(
         _witness: W,
-        collection: &mut Collection<C>,
-    ): D {
-        utils::assert_same_module_as_witness<W, D>();
-        assert_domain<C, D>(collection);
+        collection: &mut Collection<T>,
+    ): Domain {
+        utils::assert_same_module_as_witness<W, Domain>();
+        assert_domain<T, Domain>(collection);
 
-        df::remove(&mut collection.id, utils::marker<D>())
+        df::remove(&mut collection.id, utils::marker<Domain>())
     }
 
     // === Assertions ===
 
-    /// Assert that domain `D` exists on `Collection`
+    /// Assert that domain exists on `Collection`
     ///
     /// #### Panics
     ///
-    /// Panics if domain, `D`, does not exist on `Collection`.
-    public fun assert_domain<C, D: store>(collection: &Collection<C>) {
-        assert!(has_domain<C, D>(collection), EUNDEFINED_DOMAIN);
+    /// Panics if domain does not exist on `Collection`.
+    public fun assert_domain<T, Domain: store>(
+        collection: &Collection<T>,
+    ) {
+        assert!(has_domain<T, Domain>(collection), EUNDEFINED_DOMAIN);
     }
 
-    /// Assert that domain `D` does not exist on `Collection`
+    /// Assert that domain does not exist on `Collection`
     ///
     /// #### Panics
     ///
-    /// Panics if domain, `D`, does exists on `Collection`.
-    public fun assert_no_domain<C, D: store>(
-        collection: &Collection<C>
+    /// Panics if domain does exists on `Collection`.
+    public fun assert_no_domain<T, Domain: store>(
+        collection: &Collection<T>
     ) {
-        assert!(!has_domain<C, D>(collection), EEXISTING_DOMAIN);
+        assert!(!has_domain<T, Domain>(collection), EEXISTING_DOMAIN);
     }
 }

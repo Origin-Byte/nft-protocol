@@ -31,7 +31,6 @@ module nft_protocol::orderbook {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        settle_funds_no_royalties,
         settle_funds_with_royalties,
         transfer_bid_commission,
     };
@@ -87,7 +86,7 @@ module nft_protocol::orderbook {
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
     /// 2. asks DESC
-    struct Orderbook<phantom C, phantom FT> has key {
+    struct Orderbook<phantom T: key + store, phantom FT> has key {
         id: UID,
         /// Actions which have a flag set to true can only be called via a
         /// witness protected implementation.
@@ -168,7 +167,7 @@ module nft_protocol::orderbook {
 
     /// `TradeIntermediate` is made a shared object and can be called
     /// permissionlessly.
-    struct TradeIntermediate<phantom C, phantom FT> has key {
+    struct TradeIntermediate<phantom T, phantom FT> has key {
         id: UID,
         nft_id: ID,
         seller: address,
@@ -231,7 +230,7 @@ module nft_protocol::orderbook {
     /// In both cases [`TradeFilledEvent`] is emitted.
     /// In such case, the property `trade_intermediate` is `Some`.
     ///
-    /// If the NFT was bought directly (`buy_nft` or `buy_generic_nft`), then
+    /// If the NFT was bought directly (`buy_nft`), then
     /// the property `trade_intermediate` is `None`.
     struct TradeFilledEvent has copy, drop {
         buyer_kiosk: ID,
@@ -241,8 +240,7 @@ module nft_protocol::orderbook {
         price: u64,
         seller_kiosk: ID,
         seller: address,
-        /// Is `None` if the NFT was bought directly (`buy_nft` or
-        /// `buy_generic_nft`.)
+        /// Is `None` if the NFT was bought directly (`buy_nft`)
         ///
         /// Is `Some` if the NFT was bought via `create_bid` or `create_ask`.
         trade_intermediate: Option<ID>,
@@ -393,7 +391,6 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<T, W>();
-
         cancel_bid_(book, bid_price_level, wallet, ctx)
     }
 

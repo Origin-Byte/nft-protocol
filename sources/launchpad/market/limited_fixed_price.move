@@ -13,14 +13,13 @@ module nft_protocol::limited_fixed_price {
 
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
-    use sui::transfer::public_transfer;
+    use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context::{Self, TxContext};
     use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
-    use nft_protocol::nft::Nft;
     use nft_protocol::ob_kiosk::{Self, OwnerCap};
     use nft_protocol::venue;
 
@@ -197,7 +196,7 @@ module nft_protocol::limited_fixed_price {
     ///
     /// Panics if `Venue` does not exist, is not live, or is whitelisted or
     /// wallet does not have the necessary funds.
-    public entry fun buy_nft<C, FT>(
+    public entry fun buy_nft<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
@@ -207,7 +206,7 @@ module nft_protocol::limited_fixed_price {
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
 
-        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
         public_transfer(nft, tx_context::sender(ctx));
     }
 
@@ -217,7 +216,7 @@ module nft_protocol::limited_fixed_price {
     ///
     /// Panics if `Venue` does not exist, is not live, or is whitelisted or
     /// wallet does not have the necessary funds.
-    public entry fun buy_nft_into_kiosk<C, FT>(
+    public entry fun buy_nft_into_safe<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
@@ -229,8 +228,32 @@ module nft_protocol::limited_fixed_price {
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
 
-        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
         ob_kiosk::deposit_as_owner(buyer_kiosk, owner_cap, nft);
+    }
+
+    /// Buy NFT for non-whitelisted sale.
+    /// Deposits the NFT to a safe and transfers the ownership to the buyer.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` does not exist, is not live, or is whitelisted or
+    /// wallet does not have the necessary funds.
+    public entry fun create_safe_and_buy_nft<T: key + store, FT>(
+        listing: &mut Listing,
+        venue_id: ID,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        let (buyer_safe, owner_cap) = ob_kiosk::new(ctx);
+        buy_nft_into_safe<T, FT>(listing, venue_id, wallet, &owner_cap, &mut buyer_safe, ctx);
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_safe,
+            tx_context::sender(ctx)
+        );
+        public_share_object(buyer_safe);
     }
 
     /// Buy NFT for whitelisted sale
@@ -239,7 +262,7 @@ module nft_protocol::limited_fixed_price {
     ///
     /// - If `Venue` does not exist, is not live, or is not whitelisted
     /// - If whitelist `Certificate` was not issued for given market
-    public entry fun buy_whitelisted_nft<C, FT>(
+    public entry fun buy_whitelisted_nft<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
@@ -251,7 +274,7 @@ module nft_protocol::limited_fixed_price {
         market_whitelist::assert_whitelist(&whitelist_token, venue);
         market_whitelist::burn(whitelist_token);
 
-        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
         public_transfer(nft, tx_context::sender(ctx));
     }
 
@@ -262,7 +285,7 @@ module nft_protocol::limited_fixed_price {
     ///
     /// - If `Venue` does not exist, is not live, or is not whitelisted
     /// - If whitelist `Certificate` was not issued for given market
-    public entry fun buy_whitelisted_nft_into_kiosk<C, FT>(
+    public entry fun buy_whitelisted_nft_into_safe<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
@@ -276,8 +299,41 @@ module nft_protocol::limited_fixed_price {
         market_whitelist::assert_whitelist(&whitelist_token, venue);
         market_whitelist::burn(whitelist_token);
 
-        let nft = buy_nft_<C, FT>(listing, venue_id, wallet, ctx);
+        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
         ob_kiosk::deposit_as_owner(kiosk, owner_cap, nft);
+    }
+
+    /// Buy NFT for whitelisted sale
+    /// Deposits the NFT to a safe and transfers the ownership to the buyer.
+    ///
+    /// #### Panics
+    ///
+    /// - If `Venue` does not exist, is not live, or is not whitelisted
+    /// - If whitelist `Certificate` was not issued for given market
+    public entry fun create_safe_and_buy_whitelisted_nft<T: key + store, FT>(
+        listing: &mut Listing,
+        venue_id: ID,
+        wallet: &mut Coin<FT>,
+        whitelist_token: Certificate,
+        ctx: &mut TxContext,
+    ) {
+        let (buyer_safe, owner_cap) = ob_kiosk::new(ctx);
+        buy_whitelisted_nft_into_safe<T, FT>(
+            listing,
+            venue_id,
+            wallet,
+            &owner_cap,
+            &mut buyer_safe,
+            whitelist_token,
+            ctx,
+        );
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_safe,
+            tx_context::sender(ctx)
+        );
+        public_share_object(buyer_safe);
     }
 
     /// Internal method to buy NFT
@@ -286,12 +342,12 @@ module nft_protocol::limited_fixed_price {
     ///
     /// Panics if `Venue` or associated `Inventory` does not exist or wallet
     /// does not have required funds.
-    fun buy_nft_<C, FT>(
+    fun buy_nft_<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ): Nft<C> {
+    ): T {
         let market =
             listing::market_internal_mut<LimitedFixedPriceMarket<FT>, Witness>(
                 Witness {}, listing, venue_id
@@ -303,7 +359,7 @@ module nft_protocol::limited_fixed_price {
         let price = market.price;
         let inventory_id = market.inventory_id;
 
-        listing::buy_pseudorandom_nft<C, FT, LimitedFixedPriceMarket<FT>, Witness>(
+        listing::buy_pseudorandom_nft<T, FT, LimitedFixedPriceMarket<FT>, Witness>(
             Witness {},
             listing,
             inventory_id,

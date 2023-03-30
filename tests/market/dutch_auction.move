@@ -6,13 +6,11 @@ module nft_protocol::test_dutch_auction {
     use sui::coin::{Self, Coin};
     use sui::balance;
     use sui::transfer;
-    use sui::object::ID;
+    use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
     use originmate::crit_bit_u64 as crit_bit;
 
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::witness;
     use nft_protocol::proceeds;
     use nft_protocol::venue;
     use nft_protocol::listing::{Self, Listing};
@@ -21,8 +19,9 @@ module nft_protocol::test_dutch_auction {
 
     use nft_protocol::test_listing::init_listing;
 
-    struct COLLECTION {}
-
+    struct Foo has key, store {
+        id: UID,
+    }
     struct Witness has drop {}
 
     const CREATOR: address = @0xA1C05;
@@ -34,10 +33,9 @@ module nft_protocol::test_dutch_auction {
         is_whitelisted: bool,
         scenario: &mut Scenario,
     ): (ID, ID) {
-        let inventory_id = listing::create_warehouse<COLLECTION>(
-            witness::from_witness(&Witness {}), listing, ctx(scenario)
-        );
-        let venue_id = dutch_auction::create_venue<COLLECTION, SUI>(
+        let inventory_id =
+            listing::create_warehouse<Foo>(listing, ctx(scenario));
+        let venue_id = dutch_auction::create_venue<Foo, SUI>(
             listing, inventory_id, is_whitelisted, reserve_price, ctx(scenario)
         );
 
@@ -561,7 +559,7 @@ module nft_protocol::test_dutch_auction {
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        dutch_auction::sale_conclude<COLLECTION, SUI>(
+        dutch_auction::sale_conclude<Foo, SUI>(
             &mut listing,
             venue_id,
             ctx(&mut scenario),
@@ -582,14 +580,14 @@ module nft_protocol::test_dutch_auction {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
@@ -628,7 +626,7 @@ module nft_protocol::test_dutch_auction {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        dutch_auction::sale_conclude<COLLECTION, SUI>(
+        dutch_auction::sale_conclude<Foo, SUI>(
             &mut listing,
             venue_id,
             ctx(&mut scenario),
@@ -666,11 +664,9 @@ module nft_protocol::test_dutch_auction {
         test_scenario::return_to_address(BUYER, refunded1);
 
         // Check NFT was transferred with correct logical owner
-        let nft = test_scenario::take_from_address<Nft<COLLECTION>>(
+        let nft = test_scenario::take_from_address<Foo>(
             &scenario, BUYER
         );
-
-        assert!(nft::logical_owner(&nft) == BUYER, 0);
 
         test_scenario::return_to_address(BUYER, nft);
 
@@ -695,14 +691,14 @@ module nft_protocol::test_dutch_auction {
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
         listing::add_nft(
             &mut listing,
             warehouse_id,
-            nft::test_mint<COLLECTION>(CREATOR, ctx(&mut scenario)),
+            Foo { id: object::new(ctx(&mut scenario)) },
             ctx(&mut scenario)
         );
 
@@ -719,7 +715,7 @@ module nft_protocol::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        dutch_auction::sale_conclude<COLLECTION, SUI>(
+        dutch_auction::sale_conclude<Foo, SUI>(
             &mut listing,
             venue_id,
             ctx(&mut scenario),

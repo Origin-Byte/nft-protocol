@@ -18,8 +18,6 @@ module nft_protocol::warehouse {
 
     use originmate::pseudorandom;
 
-    use nft_protocol::nft::Nft;
-
     /// `Warehouse` does not have NFTs left to withdraw
     ///
     /// Call `Warehouse::deposit_nft` or `Listing::add_nft` to add NFTs.
@@ -59,8 +57,12 @@ module nft_protocol::warehouse {
         contract_commitment: vector<u8>,
     }
 
-    /// `Warehouse` object
-    struct Warehouse<phantom C> has key, store {
+    /// `Warehouse` object which stores NFTs of type `T`
+    ///
+    /// The reason that the type is limited is to easily support random
+    /// withdrawals. If multiple types are allowed then user will not be able
+    /// to predict the type of the object they withdraw.
+    struct Warehouse<phantom T: key + store> has key, store {
         /// `Warehouse` ID
         id: UID,
         /// NFTs that are currently on sale
@@ -71,7 +73,7 @@ module nft_protocol::warehouse {
     }
 
     /// Create a new `Warehouse`
-    public fun new<C>(ctx: &mut TxContext): Warehouse<C> {
+    public fun new<T: key + store>(ctx: &mut TxContext): Warehouse<T> {
         Warehouse {
             id: object::new(ctx),
             nfts: vector::empty(),
@@ -80,17 +82,17 @@ module nft_protocol::warehouse {
     }
 
     /// Creates a `Warehouse` and transfers to transaction sender
-    public entry fun init_warehouse<C>(ctx: &mut TxContext) {
-        transfer::public_transfer(new<C>(ctx), tx_context::sender(ctx));
+    public entry fun init_warehouse<T: key + store>(ctx: &mut TxContext) {
+        transfer::public_transfer(new<T>(ctx), tx_context::sender(ctx));
     }
 
     /// Deposits NFT to `Warehouse`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
-    public entry fun deposit_nft<C>(
-        warehouse: &mut Warehouse<C>,
-        nft: Nft<C>,
+    public entry fun deposit_nft<T: key + store>(
+        warehouse: &mut Warehouse<T>,
+        nft: T,
     ) {
         let nft_id = object::id(&nft);
         vector::push_back(&mut warehouse.nfts, nft_id);
@@ -110,9 +112,9 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty.
-    public fun redeem_nft<C>(
-        warehouse: &mut Warehouse<C>,
-    ): Nft<C> {
+    public fun redeem_nft<T: key + store>(
+        warehouse: &mut Warehouse<T>,
+    ): T {
         let nfts = &mut warehouse.nfts;
         assert!(!vector::is_empty(nfts), EEMPTY);
 
@@ -132,8 +134,8 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty.
-    public entry fun redeem_nft_and_transfer<C>(
-        warehouse: &mut Warehouse<C>,
+    public entry fun redeem_nft_and_transfer<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft(warehouse);
@@ -153,10 +155,10 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public fun redeem_nft_at_index<C>(
-        warehouse: &mut Warehouse<C>,
+    public fun redeem_nft_at_index<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         index: u64,
-    ): Nft<C> {
+    ): T {
         let nfts = &mut warehouse.nfts;
         let length = vector::length(nfts);
         assert!(index < vector::length(nfts), EINDEX_OUT_OF_BOUNDS);
@@ -180,8 +182,8 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public entry fun redeem_nft_at_index_and_transfer<C>(
-        warehouse: &mut Warehouse<C>,
+    public entry fun redeem_nft_at_index_and_transfer<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         index: u64,
         ctx: &mut TxContext,
     ) {
@@ -203,10 +205,10 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty
-    public fun redeem_pseudorandom_nft<C>(
-        warehouse: &mut Warehouse<C>,
+    public fun redeem_pseudorandom_nft<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
-    ): Nft<C> {
+    ): T {
         let supply = supply(warehouse);
         assert!(supply != 0, EEMPTY);
 
@@ -230,8 +232,8 @@ module nft_protocol::warehouse {
     /// Entry mint functions like `suimarines::mint_nft` take an `Warehouse`
     /// object to deposit into. Calling `redeem_nft_and_transfer` allows one to
     /// withdraw an NFT and own it directly.
-    public entry fun redeem_pseudorandom_nft_and_transfer<C>(
-        warehouse: &mut Warehouse<C>,
+    public entry fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ) {
         let nft = redeem_pseudorandom_nft(warehouse, ctx);
@@ -298,12 +300,12 @@ module nft_protocol::warehouse {
     ///
     /// Panics if `Warehouse` is empty or `user_commitment` does not match the
     /// hashed commitment in `RedeemCommitment`.
-    public fun redeem_random_nft<C>(
-        warehouse: &mut Warehouse<C>,
+    public fun redeem_random_nft<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
-    ): Nft<C> {
+    ): T {
         let supply = supply(warehouse);
         assert!(supply != 0, EEMPTY);
 
@@ -344,8 +346,8 @@ module nft_protocol::warehouse {
     ///
     /// Panics if `Warehouse` is empty or `user_commitment` does not match the
     /// hashed commitment in `RedeemCommitment`.
-    public entry fun redeem_random_nft_and_transfer<C>(
-        warehouse: &mut Warehouse<C>,
+    public entry fun redeem_random_nft_and_transfer<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
@@ -361,7 +363,7 @@ module nft_protocol::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is not empty
-    public entry fun destroy<C>(warehouse: Warehouse<C>) {
+    public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
         let Warehouse { id, nfts: _, total_deposited: _ } = warehouse;
         object::delete(id);
@@ -381,34 +383,34 @@ module nft_protocol::warehouse {
     // === Getter Functions ===
 
     /// Return how many `Nft` there are to sell
-    public fun supply<C>(warehouse: &Warehouse<C>): u64 {
+    public fun supply<T: key + store>(warehouse: &Warehouse<T>): u64 {
         vector::length(&warehouse.nfts)
     }
 
     /// Return whether there are any `Nft` in the `Warehouse`
-    public fun is_empty<C>(warehouse: &Warehouse<C>): bool {
+    public fun is_empty<T: key + store>(warehouse: &Warehouse<T>): bool {
         vector::is_empty(&warehouse.nfts)
     }
 
     /// Returns list of all NFTs stored in `Warehouse`
-    public fun nfts<C>(warehouse: &Warehouse<C>): &vector<ID> {
+    public fun nfts<T: key + store>(warehouse: &Warehouse<T>): &vector<ID> {
         &warehouse.nfts
     }
 
     /// Return cumulated amount of `Nft`s deposited in the `Warehouse`
-    public fun total_deposited<C>(warehouse: &Warehouse<C>): u64 {
+    public fun total_deposited<T: key + store>(warehouse: &Warehouse<T>): u64 {
         warehouse.total_deposited
     }
 
     /// Return cumulated amount of `Nft`s redeemed in the `Warehouse`
-    public fun total_redeemed<C>(warehouse: &Warehouse<C>): u64 {
+    public fun total_redeemed<T: key + store>(warehouse: &Warehouse<T>): u64 {
         warehouse.total_deposited - vector::length(&warehouse.nfts)
     }
 
     // === Assertions ===
 
     /// Asserts that `Warehouse` is empty
-    public fun assert_is_empty<C>(warehouse: &Warehouse<C>) {
+    public fun assert_is_empty<T: key + store>(warehouse: &Warehouse<T>) {
         assert!(is_empty(warehouse), ENOT_EMPTY);
     }
 

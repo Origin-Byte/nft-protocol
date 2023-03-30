@@ -23,7 +23,6 @@ module nft_protocol::bidding {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        settle_funds_no_royalties,
         settle_funds_with_royalties,
         transfer_bid_commission,
     };

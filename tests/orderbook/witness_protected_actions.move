@@ -21,12 +21,12 @@ module nft_protocol::test_ob_witness_protected_actions {
 
     fun create_col_wl_ob_nft_safes(scenario: &mut Scenario): ID {
         test_scenario::next_tx(scenario, CREATOR);
-        test_ob::create_collection_and_allowlist(scenario);
-        test_ob::create_ob<test_ob::Foo>(scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, scenario);
+        test_ob::create_ob(scenario);
 
         test_scenario::next_tx(scenario, SELLER);
         test_ob::create_safe(scenario, SELLER);
-        let nft_id = test_ob::create_and_deposit_nft(
+        let nft_id = test_ob::mint_and_deposit_nft(
             scenario,
             SELLER,
         );
@@ -44,7 +44,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
         protect_buy_nft(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
-        test_ob::create_ask<test_ob::Foo>(
+        test_ob::create_ask(
             &mut scenario,
             nft_id,
             OFFER_SUI,
@@ -87,7 +87,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
         protect_buy_nft(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
-        test_ob::create_ask<test_ob::Foo>(
+        test_ob::create_ask(
             &mut scenario,
             nft_id,
             OFFER_SUI,
@@ -128,7 +128,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         let nft_id = create_col_wl_ob_nft_safes(&mut scenario);
         protect_create_ask(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
-        test_ob::create_ask<test_ob::Foo>(
+        test_ob::create_ask(
             &mut scenario,
             nft_id,
             OFFER_SUI,
@@ -203,7 +203,7 @@ module nft_protocol::test_ob_witness_protected_actions {
         create_col_wl_ob_nft_safes(&mut scenario);
         protect_create_bid(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
 
         test_scenario::end(scenario);
     }
@@ -266,13 +266,13 @@ module nft_protocol::test_ob_witness_protected_actions {
     fun it_protects_cancel_ask() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         protect_cancel_ask(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
 
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::cancel_ask(&mut scenario, nft_id, OFFER_SUI);
@@ -309,15 +309,15 @@ module nft_protocol::test_ob_witness_protected_actions {
     fun cancel_ask_protected<W: drop>(witness: W) {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         protect_cancel_ask(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
         test_scenario::next_tx(&mut scenario, SELLER);
-        test_ob::create_ask<test_ob::Foo>(
+        test_ob::create_ask(
             &mut scenario,
             nft_id,
             OFFER_SUI,
@@ -344,12 +344,12 @@ module nft_protocol::test_ob_witness_protected_actions {
     fun it_protects_cancel_bid() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         protect_cancel_bid(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
 
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
         let wallet = test_ob::cancel_bid(&mut scenario, BUYER, OFFER_SUI);
 
         assert!(coin::value(&wallet) == OFFER_SUI, 0);
@@ -387,11 +387,11 @@ module nft_protocol::test_ob_witness_protected_actions {
     fun cancel_bid_protected<W: drop>(witness: W) {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         protect_cancel_bid(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
-        test_ob::create_bid<test_ob::Foo>(&mut scenario, OFFER_SUI);
+        test_ob::create_bid(&mut scenario, OFFER_SUI);
 
         test_scenario::next_tx(&mut scenario, BUYER);
         let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(&scenario);
@@ -416,8 +416,8 @@ module nft_protocol::test_ob_witness_protected_actions {
     fun it_protects_create_bid_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_ob::create_safe(&mut scenario, BUYER);
         protect_create_bid(&mut scenario);
 
@@ -434,15 +434,15 @@ module nft_protocol::test_ob_witness_protected_actions {
     fun it_protects_create_ask_with_commission() {
         let scenario = test_scenario::begin(CREATOR);
 
-        test_ob::create_collection_and_allowlist(&mut scenario);
-        let _ob_id = test_ob::create_ob<test_ob::Foo>(&mut scenario);
+        test_ob::create_collection_and_allowlist(CREATOR, &mut scenario);
+        let _ob_id = test_ob::create_ob(&mut scenario);
         test_scenario::next_tx(&mut scenario, SELLER);
         test_ob::create_safe(&mut scenario, SELLER);
 
         protect_create_ask(&mut scenario);
 
         // Creates transfer cap and sends it to orderbook
-        let nft_id = test_ob::create_and_deposit_nft(&mut scenario, SELLER);
+        let nft_id = test_ob::mint_and_deposit_nft(&mut scenario, SELLER);
 
         test_scenario::next_tx(&mut scenario, SELLER);
 

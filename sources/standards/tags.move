@@ -122,16 +122,16 @@ module nft_protocol::tags {
         nft::borrow_domain(nft)
     }
 
-    public fun collection_tag_domain<C>(
-        collection: &Collection<C>,
+    public fun collection_tag_domain<T>(
+        collection: &Collection<T>,
     ): &TagDomain {
         collection::borrow_domain(collection)
     }
 
     /// Requires that sender is a creator
-    public fun collection_tag_domain_mut<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun collection_tag_domain_mut<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
     ): &mut TagDomain {
         collection::borrow_domain_mut(Witness {}, collection)
     }
@@ -144,9 +144,9 @@ module nft_protocol::tags {
         nft::add_domain(witness, nft, tags);
     }
 
-    public fun add_collection_tag_domain<C, W>(
+    public fun add_collection_tag_domain<T, W>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         tags: TagDomain,
     ) {
         collection::add_domain(witness, collection, tags);
