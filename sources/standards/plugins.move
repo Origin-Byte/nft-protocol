@@ -80,34 +80,6 @@ module nft_protocol::plugins {
     }
 
 
-    // === Insert with module specific Witness ===
-
-
-    /// Adds `Plugin` as a dynamic field with key `PluginKey`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    /// Panics if type `T` does not match `C`'s module.
-    public fun add_plugin_<W: drop, C, T: key>(
-        witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-    ) {
-        assert_has_not_plugin(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-        assert_same_module<C, T>();
-
-        let plugin = new<W, C>(&witness);
-        df::add(object_uid, PluginKey {}, plugin);
-    }
-
     // === Get for call from external Module ===
 
 

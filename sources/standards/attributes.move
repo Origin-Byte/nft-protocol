@@ -12,7 +12,7 @@ module nft_protocol::attributes {
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{
-        Self, assert_with_witness, assert_with_consumable_witness, UidType
+        Self, assert_with_consumable_witness, UidType
     };
     use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
@@ -118,86 +118,6 @@ module nft_protocol::attributes {
     }
 
 
-    // === Insert with module specific Witness ===
-
-
-    /// Adds `Attributes` as a dynamic field with key `AttributesKey`.
-    /// It adds attributes from a `VecMap<String, String>`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_attributes_<W: drop, T: key>(
-        _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
-        map: VecMap<String, String>,
-    ) {
-        assert_has_not_attributes(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
-
-        let attributes = new(map);
-        df::add(nft_uid, AttributesKey {}, attributes);
-    }
-
-    /// Adds `Attributes` as a dynamic field with key `AttributesKey`.
-    /// It adds attributes from vectors of keys and values.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if keys and values vectors have different lengths.
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_attributes_from_vec_<W: drop, T: key>(
-        _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
-        keys: vector<String>,
-        values: vector<String>,
-    ) {
-        assert_has_not_attributes(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
-
-        let map = utils::from_vec_to_map<String, String>(keys, values);
-        let attributes = new(map);
-        df::add(nft_uid, AttributesKey {}, attributes);
-    }
-
-    /// Adds empty `Attributes` as a dynamic field with key `AttributesKey`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_empty_<W: drop, T: key>(
-        _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
-    ) {
-        assert_has_not_attributes(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
-
-        let attributes = empty();
-        df::add(nft_uid, AttributesKey {}, attributes);
-    }
-
     // === Get for call from external Module ===
 
 
@@ -274,33 +194,6 @@ module nft_protocol::attributes {
         attributes
     }
 
-    /// Borrows Mutably the `Attributes` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `AttributesKey` does not exist.
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_attributes_mut_<W: drop, T: key>(
-        _witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>
-    ): &mut Attributes {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_attributes(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
-
-        df::borrow_mut(nft_uid, AttributesKey {})
-    }
-
 
     // === Writer Functions ===
 
@@ -371,74 +264,6 @@ module nft_protocol::attributes {
         );
 
         cw::consume<T, Attributes>(consumable, attributes);
-    }
-
-    /// Inserts attribute to `Attributes` field in the NFT of type `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `AttributesKey` does not exist.
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun insert_attribute_<W: drop, T: key>(
-        witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
-        attribute_key: String,
-        attribute_value: String,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_attributes(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
-
-        let attributes = borrow_mut_internal(nft_uid);
-
-        vec_map::insert(
-            &mut attributes.map,
-            attribute_key,
-            attribute_value,
-        );
-    }
-
-    /// Removes attribute to `Attributes` field in the NFT of type `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `AttributesKey` does not exist.
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun remove_attribute_<W: drop, T: key>(
-        witness: W,
-        nft_uid: &mut UID,
-        nft_type: UidType<T>,
-        attribute_key: &String,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_attributes(nft_uid);
-        assert_with_witness<W, T>(nft_uid, nft_type);
-
-        let attributes = borrow_mut_internal(nft_uid);
-
-        vec_map::remove(
-            &mut attributes.map,
-            attribute_key,
-        );
     }
 
 

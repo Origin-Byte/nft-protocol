@@ -6,7 +6,7 @@ module nft_protocol::symbol {
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{
-        assert_with_witness, assert_with_consumable_witness, UidType
+        assert_with_consumable_witness, UidType
     };
     use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
@@ -54,33 +54,6 @@ module nft_protocol::symbol {
         df::add(object_uid, SymbolKey {}, symbol);
     }
 
-
-    // === Insert with module specific Witness ===
-
-
-    /// Adds `Symbol` as a dynamic field with key `SymbolKey`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_symbol_<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        symbol: String,
-    ) {
-        assert_has_not_symbol(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let symbol = new(symbol);
-        df::add(object_uid, SymbolKey {}, symbol);
-    }
 
     // === Get for call from external Module ===
 
@@ -139,33 +112,6 @@ module nft_protocol::symbol {
         symbol
     }
 
-    /// Borrows Mutably the `Symbol` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `SymbolKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_symbol_mut_<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>
-    ): &mut Symbol {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_symbol(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        df::borrow_mut(object_uid, SymbolKey {})
-    }
-
 
     // === Writer Functions ===
 
@@ -199,34 +145,6 @@ module nft_protocol::symbol {
         symbol.symbol = new_symbol;
     }
 
-    /// Changes symbol string in the object field `Symbol` of the NFT of type `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `SymbolKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun change_symbol_<W: drop, T: key>(
-        witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        new_symbol: String,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_symbol(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let symbol = borrow_mut_internal(object_uid);
-        symbol.symbol = new_symbol;
-    }
 
     // === Getter Functions & Static Mutability Accessors ===
 

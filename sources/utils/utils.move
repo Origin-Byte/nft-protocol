@@ -43,7 +43,11 @@ module nft_protocol::utils {
         assert_uid_type(nft_uid, &nft_type);
     }
 
-    public fun proof_of_type<T: key + store>(uid: &UID, object: &T): UidType<T> {
+    public fun uid_type_to_inner<T: key>(uid: &UidType<T>): ID {
+        uid.id
+    }
+
+    public fun proof_of_type<T: key>(uid: &UID, object: &T): UidType<T> {
         let uid_id = object::uid_to_inner(uid);
         let object_id = object::id(object);
 

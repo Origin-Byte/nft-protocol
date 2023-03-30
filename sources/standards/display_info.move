@@ -57,34 +57,6 @@ module nft_protocol::display_info {
     }
 
 
-    // === Insert with module specific Witness ===
-
-
-    /// Adds `DisplayInfo` as a dynamic field with key `DisplayInfoKey`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_display_info_<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        name: String,
-        description: String,
-    ) {
-        assert_has_not_display_info(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let display_info = new(name, description);
-        df::add(object_uid, DisplayInfoKey {}, display_info);
-    }
-
     // === Get for call from external Module ===
 
 
@@ -142,33 +114,6 @@ module nft_protocol::display_info {
         display_info
     }
 
-    /// Borrows Mutably the `DisplayInfo` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_display_info_mut_<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>
-    ): &mut DisplayInfo {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_display_info(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        df::borrow_mut(object_uid, DisplayInfoKey {})
-    }
-
 
     // === Writer Functions ===
 
@@ -202,35 +147,6 @@ module nft_protocol::display_info {
         display_info.name = new_name;
     }
 
-    /// Changes name string in the object field `DisplayInfo` of the object type `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun change_name_<W: drop, T: key>(
-        witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        new_name: String,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_display_info(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let display_info = borrow_mut_internal(object_uid);
-
-        display_info.name = new_name;
-    }
 
     /// Changes description string in the object field `DisplayInfo` of the object type `T`.
     ///
@@ -261,34 +177,6 @@ module nft_protocol::display_info {
         display_info.description = new_description;
     }
 
-    /// Changes description string in the object field `DisplayInfo` of the object type `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun change_description_<W: drop, T: key>(
-        witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        new_description: String,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_display_info(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let display_info = borrow_mut_internal(object_uid);
-        display_info.description = new_description;
-    }
 
     // === Getter Functions & Static Mutability Accessors ===
 

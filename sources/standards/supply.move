@@ -76,35 +76,6 @@ module nft_protocol::supply {
     }
 
 
-    // === Insert with module specific Witness ===
-
-
-    /// Adds `Supply` as a dynamic field with key `SupplyKey`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_supply_<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        max: u64,
-        frozen: bool,
-    ) {
-        assert_has_not_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let supply = new(max, frozen);
-        df::add(object_uid, SupplyKey {}, supply);
-    }
-
-
     // === Get for call from external Module ===
 
 
@@ -161,33 +132,6 @@ module nft_protocol::supply {
         cw::consume<T, Supply>(consumable, supply);
 
         supply
-    }
-
-    /// Borrows Mutably the `Supply` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `SupplyKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_supply_mut_<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>
-    ): &mut Supply {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        df::borrow_mut(object_uid, SupplyKey {})
     }
 
 
@@ -306,117 +250,6 @@ module nft_protocol::supply {
         supply.frozen = true;
     }
 
-    /// Increases maximum supply in `Supply` field in the object of type `T`
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `AttributesKey` does not exist.
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    ///
-    /// Panics if supply is frozen.
-    public fun increase_supply_ceil_<W: drop, T: key>(
-        witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        value: u64,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let supply = df::borrow_mut<SupplyKey, Supply>(
-            object_uid,
-            SupplyKey {}
-        );
-
-        assert_not_frozen(supply);
-        supply.max = supply.max + value;
-    }
-
-    /// Decreases maximum supply in `Supply` field in the object of type `T`
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `AttributesKey` does not exist.
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    ///
-    /// Panics if value is supperior to current supply.
-    public fun decrease_supply_ceil_<W:drop, T: key>(
-        witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        value: u64,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let supply = df::borrow_mut<SupplyKey, Supply>(
-            object_uid,
-            SupplyKey {}
-        );
-
-        assert_not_frozen(supply);
-        assert!(
-            supply.max - value > supply.current,
-            err::max_supply_cannot_be_below_current_supply()
-        );
-        supply.max = supply.max - value;
-    }
-
-    /// Freezes supply in `Supply` field in the object of type `T`
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `AttributesKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if supply is frozen already.
-    public fun freeze_supply_<T: key>(
-        consumable: ConsumableWitness<T>,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-    ) {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_supply(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
-
-        let supply = df::borrow_mut<SupplyKey, Supply>(
-            object_uid,
-            SupplyKey {}
-        );
-
-        cw::consume<T, Supply>(consumable, supply);
-
-        assert_not_frozen(supply);
-        supply.frozen = true;
-    }
-
 
     // === Getter Functions & Static Mutability Accessors ===
 
@@ -459,7 +292,7 @@ module nft_protocol::supply {
     /// #### Panics
     ///
     /// Panics if already frozen
-    public fun freeze_supply___(supply: &mut Supply) {
+    public fun freeze_supply_(supply: &mut Supply) {
         assert_not_frozen(supply);
         supply.frozen = true;
     }
@@ -473,7 +306,7 @@ module nft_protocol::supply {
     /// #### Panics
     ///
     /// Panics if supply is frozen.
-    public fun increase_supply_ceil__(supply: &mut Supply, value: u64) {
+    public fun increase_supply_ceil_(supply: &mut Supply, value: u64) {
         assert_not_frozen(supply);
         supply.max = supply.max + value;
     }
@@ -485,7 +318,7 @@ module nft_protocol::supply {
     ///
     /// Panics if supply is frozen or if new maximum supply is smaller than
     /// current supply.
-    public fun decrease_supply_ceil__(supply: &mut Supply, value: u64) {
+    public fun decrease_supply_ceil_(supply: &mut Supply, value: u64) {
         assert_not_frozen(supply);
         assert!(
             supply.max - value > supply.current,
@@ -528,7 +361,7 @@ module nft_protocol::supply {
         // and only then decrease the ceil. Decreasing the ceil will fail
         // if the result is below the current value.
         assert_enough_supply(quantity, supply);
-        decrease_supply_ceil__(supply, quantity);
+        decrease_supply_ceil_(supply, quantity);
 
         // New supply object is frozen by default
         let new_supply = new(quantity, true);

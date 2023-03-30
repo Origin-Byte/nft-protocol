@@ -18,6 +18,16 @@ module nft_protocol::consumable_witness {
     // TODO
     public fun from_access_policy() {}
 
+    public fun get_consumable_from_witness<W: drop, T: key>(
+        _witness: W,
+    ): ConsumableWitness<T> {
+        utils::assert_same_module_as_witness<T, W>();
+
+        ConsumableWitness<T> {
+            field: type_name::get<T>(),
+        }
+    }
+
     // TODO: Explain that this needs to be used in the context of programmable
     // transactions
     public fun consume<T, F>(consumable: ConsumableWitness<T>, field: &mut F) {
