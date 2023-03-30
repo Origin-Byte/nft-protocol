@@ -11,7 +11,6 @@
 /// constraints nor they keep track of the number of minted objects.
 module nft_protocol::supply {
     use sui::transfer;
-    use sui::object;
     use sui::tx_context::TxContext;
 
     use nft_protocol::err;
@@ -593,5 +592,10 @@ module nft_protocol::supply {
 
     public fun assert_has_not_supply(object_uid: &UID) {
         assert!(!has_supply(object_uid), ESUPPLY_FIELD_ALREADY_EXISTS);
+    }
+
+    /// Assert that `SupplyDomain` is frozen
+    public fun assert_not_frozen<T>(domain: &SupplyDomain<T>) {
+        assert!(!domain.frozen, ESupplyFrozen)
     }
 }

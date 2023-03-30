@@ -45,7 +45,7 @@ module nft_protocol::example_symbol {
 
     /// Called during contract publishing
     fun init(witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create_originbyte(&witness, ctx);
+        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
         collection::add_domain(
             &Witness {},
@@ -64,8 +64,8 @@ module nft_protocol::example_symbol {
 
         orderbook::create<Nft<EXAMPLE_SYMBOL>, SUI>(ctx);
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     /// Mint `Nft` from `SymbolDomain`
@@ -77,7 +77,6 @@ module nft_protocol::example_symbol {
             &Witness {},
             domain.symbol, // name
             sui::url::new_unsafe_from_bytes(b""), // url
-            tx_context::sender(ctx), // owner
             ctx,
         );
 
@@ -110,7 +109,7 @@ module nft_protocol::example_symbol {
 
         let nft = mint_nft(register(registry, symbol), ctx);
 
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Associate `SymbolDomain` to `Collection`
@@ -133,6 +132,6 @@ module nft_protocol::example_symbol {
         let domain: SymbolDomain = collection::remove_domain(Witness {}, collection);
         let nft = mint_nft(domain, ctx);
 
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 }

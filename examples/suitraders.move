@@ -11,7 +11,6 @@ module nft_protocol::suitraders {
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::attributes;
     use nft_protocol::warehouse::{Self, Warehouse};
@@ -28,8 +27,7 @@ module nft_protocol::suitraders {
     struct Witness has drop {}
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create_originbyte(&witness, ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
+        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
         collection::add_domain(
             &Witness {},
@@ -82,7 +80,7 @@ module nft_protocol::suitraders {
         );
 
         let inventory_id = nft_protocol::listing::create_warehouse<Nft<SUITRADERS>>(
-            delegated_witness, &mut listing, ctx
+            &mut listing, ctx
         );
 
         nft_protocol::fixed_price::init_venue<Nft<SUITRADERS>, sui::sui::SUI>(
@@ -101,10 +99,10 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        transfer::share_object(listing);
+        transfer::public_share_object(listing);
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     /// Calculates and transfers royalties to the `RoyaltyDomain`
@@ -129,7 +127,7 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &MintCap<Nft<SUITRADERS>>,
+        mint_cap: &mut MintCap<Nft<SUITRADERS>>,
         warehouse: &mut Warehouse<Nft<SUITRADERS>>,
         ctx: &mut TxContext,
     ) {

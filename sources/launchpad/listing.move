@@ -34,7 +34,6 @@ module nft_protocol::listing {
     use sui::transfer;
     use sui::balance::{Self, Balance};
     use sui::object::{Self, ID , UID};
-    use sui::typed_id::{Self, TypedID};
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
@@ -42,15 +41,13 @@ module nft_protocol::listing {
 
     use nft_protocol::err;
     use nft_protocol::utils;
-    use nft_protocol::collection::Collection;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
-    use nft_protocol::creators;
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::venue::{Self, Venue};
-    use nft_protocol::witness::Witness as DelegatedWitness;
 
+    use originmate::typed_id::{Self, TypedID};
     use originmate::object_box::{Self as obox, ObjectBox};
 
     /// `Venue` was not defined on `Listing`
@@ -151,7 +148,7 @@ module nft_protocol::listing {
             ctx,
         );
 
-        transfer::share_object(listing);
+        transfer::public_share_object(listing);
     }
 
     /// Initializes a `Venue` on `Listing`
@@ -195,11 +192,9 @@ module nft_protocol::listing {
     /// Panics if transaction sender is not listing admin or creator.
     public entry fun init_warehouse<T: key + store>(
         listing: &mut Listing,
-        collection: &Collection<T>,
         ctx: &mut TxContext,
     ) {
-        let witness = creators::delegate(collection, ctx);
-        create_warehouse<T>(witness, listing, ctx);
+        create_warehouse<T>(listing, ctx);
     }
 
     /// Creates an empty `Warehouse` on `Listing` and returns it's ID
@@ -211,7 +206,6 @@ module nft_protocol::listing {
     ///
     /// Panics if transaction sender is not listing admin.
     public fun create_warehouse<T: key + store>(
-        witness: DelegatedWitness<T>,
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
@@ -290,12 +284,11 @@ module nft_protocol::listing {
         buyer: address,
         price: u64,
         balance: &mut Balance<FT>,
-        ctx: &mut TxContext,
     ): T {
         let inventory = inventory_internal_mut<T, Market, MarketWitness>(
             witness, listing, venue_id, inventory_id,
         );
-        let nft = inventory::redeem_nft(inventory, ctx);
+        let nft = inventory::redeem_nft(inventory);
         pay_and_emit_sold_event(listing, &nft, balance, price, buyer);
         nft
     }
@@ -530,7 +523,6 @@ module nft_protocol::listing {
     /// in `CreatorsDomain`.
     public entry fun add_warehouse<T: key + store>(
         listing: &mut Listing,
-        collection: &Collection<T>,
         warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ) {

@@ -1,8 +1,7 @@
 module nft_protocol::flat_fee {
-
     use sui::balance;
     use sui::tx_context;
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
 
@@ -28,7 +27,7 @@ module nft_protocol::flat_fee {
         rate: u64,
         ctx: &mut TxContext,
     ) {
-        transfer(new(rate, ctx), tx_context::sender(ctx));
+        public_transfer(new(rate, ctx), tx_context::sender(ctx));
     }
 
     public entry fun collect_proceeds_and_fees<FT>(

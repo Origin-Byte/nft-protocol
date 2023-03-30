@@ -76,31 +76,31 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(inventory_id, reserve_price, ctx);
-        transfer::transfer(market, tx_context::sender(ctx));
+        transfer::public_transfer(market, tx_context::sender(ctx));
     }
 
     /// Initializes a `Venue` with `DutchAuctionMarket<FT>`
-    public entry fun init_venue<C, FT>(
+    public entry fun init_venue<T, FT>(
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
-        create_venue<C, FT>(
+        create_venue<T, FT>(
             listing, inventory_id, is_whitelisted, reserve_price, ctx
         );
     }
 
     /// Creates a `Venue` with `DutchAuctionMarket<FT>`
-    public fun create_venue<C, FT>(
+    public fun create_venue<T, FT>(
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ): ID {
-        listing::assert_inventory<C>(listing, inventory_id);
+        listing::assert_inventory<T>(listing, inventory_id);
 
         let market = new<FT>(inventory_id, reserve_price, ctx);
         listing::create_venue(listing, market, is_whitelisted, ctx)
@@ -268,13 +268,13 @@ module nft_protocol::dutch_auction {
             balance::join<FT>(&mut total_funds, filled_funds);
 
             let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
-            transfer::transfer(nft, owner);
+            transfer::public_transfer(nft, owner);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);
             } else {
                 // Transfer bidding coins back to bid owner
-                transfer::transfer(coin::from_balance(amount, ctx), owner);
+                transfer::public_transfer(coin::from_balance(amount, ctx), owner);
             };
         };
 
@@ -401,7 +401,7 @@ module nft_protocol::dutch_auction {
                 let owner = bid.owner;
                 refund_bid(bid, &mut wallet, &owner);
 
-                transfer::transfer(wallet, owner);
+                transfer::public_transfer(wallet, owner);
             };
 
             vector::destroy_empty(price_level);

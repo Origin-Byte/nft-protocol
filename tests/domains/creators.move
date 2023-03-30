@@ -6,7 +6,7 @@ module nft_protocol::test_creators {
     use nft_protocol::creators;
     use nft_protocol::collection;
 
-    struct Foo has drop {}
+    struct Foo {}
     struct Witness has drop {}
 
     const CREATOR: address = @0xA1C04;
@@ -15,8 +15,9 @@ module nft_protocol::test_creators {
     fun add_attribution() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (mint_cap, collection) =
-            collection::create(&Foo {}, ctx(&mut scenario));
+        let (mint_cap, collection) = collection::create<Witness, Foo>(
+            &Witness {}, ctx(&mut scenario),
+        );
 
         collection::add_domain(
             &Witness {},
@@ -25,8 +26,8 @@ module nft_protocol::test_creators {
         );
         creators::assert_domain(&collection);
 
-        transfer::share_object(collection);
-        transfer::transfer(mint_cap, CREATOR);
+        transfer::public_share_object(collection);
+        transfer::public_transfer(mint_cap, CREATOR);
 
         test_scenario::end(scenario);
     }

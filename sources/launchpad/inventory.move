@@ -27,7 +27,7 @@ module nft_protocol::inventory {
     struct Witness has drop {}
 
     /// A type-erased wrapper around `Warehouse` and `Factory`
-    struct Inventory<phantom C> has key, store {
+    struct Inventory<phantom T> has key, store {
         /// `Inventory` ID
         id: UID,
     }
@@ -67,10 +67,7 @@ module nft_protocol::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public fun redeem_nft<T: key + store>(
-        inventory: &mut Inventory<T>,
-        ctx: &mut TxContext,
-    ): T {
+    public fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
         // TODO: This will be restuctured before merge to main
         assert!(is_warehouse(inventory), 0);
 
@@ -89,8 +86,8 @@ module nft_protocol::inventory {
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
-        let nft = redeem_nft(inventory, ctx);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        let nft = redeem_nft(inventory);
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Pseudo-randomly redeems NFT from `Inventory`
@@ -130,7 +127,7 @@ module nft_protocol::inventory {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_pseudorandom_nft(inventory, ctx);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Randomly redeems NFT from `Inventory`
@@ -182,7 +179,7 @@ module nft_protocol::inventory {
         let nft = redeem_random_nft(
             inventory, commitment, user_commitment, ctx,
         );
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     // === Getters ===

@@ -13,7 +13,7 @@ module nft_protocol::limited_fixed_price {
 
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
 
@@ -91,7 +91,7 @@ module nft_protocol::limited_fixed_price {
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(inventory_id, limit, price, ctx);
-        transfer(market, tx_context::sender(ctx));
+        public_transfer(market, tx_context::sender(ctx));
     }
 
     /// Initializes a `Venue` with `LimitedFixedPriceMarket<FT>`
@@ -206,7 +206,7 @@ module nft_protocol::limited_fixed_price {
         venue::assert_is_not_whitelisted(venue);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        transfer(nft, tx_context::sender(ctx));
+        public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Buy NFT for non-whitelisted sale
@@ -245,8 +245,8 @@ module nft_protocol::limited_fixed_price {
     ) {
         let (buyer_safe, owner_cap) = safe::new(ctx);
         buy_nft_into_safe<T, FT>(listing, venue_id, wallet, &mut buyer_safe, ctx);
-        transfer(owner_cap, tx_context::sender(ctx));
-        share_object(buyer_safe);
+        public_transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_safe);
     }
 
     /// Buy NFT for whitelisted sale
@@ -268,7 +268,7 @@ module nft_protocol::limited_fixed_price {
         market_whitelist::burn(whitelist_token);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        transfer(nft, tx_context::sender(ctx));
+        public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Buy NFT for whitelisted sale
@@ -318,8 +318,8 @@ module nft_protocol::limited_fixed_price {
             whitelist_token,
             ctx,
         );
-        transfer(owner_cap, tx_context::sender(ctx));
-        share_object(buyer_safe);
+        public_transfer(owner_cap, tx_context::sender(ctx));
+        public_share_object(buyer_safe);
     }
 
     /// Internal method to buy NFT

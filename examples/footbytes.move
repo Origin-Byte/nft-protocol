@@ -78,8 +78,8 @@ module nft_protocol::footbytes {
             ctx,
         );
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     public entry fun collect_royalty<FT>(
@@ -102,7 +102,7 @@ module nft_protocol::footbytes {
         description: String,
         url: vector<u8>,
         collection: &mut Collection<Nft<FOOTBYTES>>,
-        mint_cap: &MintCap<Nft<FOOTBYTES>>,
+        mint_cap: &mut MintCap<Nft<FOOTBYTES>>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
@@ -116,7 +116,7 @@ module nft_protocol::footbytes {
 
         url::add_url_domain(&Witness {}, &mut nft, url);
 
-        let metadata = metadata::new_regulated(nft, supply, ctx);
+        let metadata = metadata::create_regulated(nft, supply, ctx);
         metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);
     }
 }

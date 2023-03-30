@@ -7,6 +7,7 @@
 /// information on one object and thus avoid redundancy, and to provide
 /// configuration data to NFTs.
 module nft_protocol::collection {
+    use std::option;
     use std::type_name::{Self, TypeName};
 
     use sui::event;
@@ -61,6 +62,10 @@ module nft_protocol::collection {
 
     /// Creates a `Collection<T>` and corresponding `MintCap<T>`
     ///
+    /// #### Panics
+    ///
+    /// Panics if witness is not defined in the same module as `T`.
+    ///
     /// #### Usage
     ///
     /// ```
@@ -74,6 +79,8 @@ module nft_protocol::collection {
         _witness: &W,
         ctx: &mut TxContext,
     ): (MintCap<T>, Collection<T>) {
+        utils::assert_same_module_as_witness<T, W>();
+
         let id = object::new(ctx);
 
         event::emit(MintCollectionEvent {
@@ -81,20 +88,24 @@ module nft_protocol::collection {
             type_name: type_name::get<T>(),
         });
 
-        let cap = mint_cap::new(object::uid_to_inner(&id), ctx);
+        let cap = mint_cap::new(object::uid_to_inner(&id), option::none(), ctx);
 
         (cap, Collection { id })
     }
 
     /// Creates a shared `Collection<T>` and corresponding `MintCap<T>`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness is not defined in the same module as `T`.
     public fun init_collection<W, T>(
         witness: &W,
         owner: address,
         ctx: &mut TxContext,
     ) {
         let (mint_cap, collection) = create<W, T>(witness, ctx);
-        transfer::share_object(collection);
-        transfer::transfer(mint_cap, owner);
+        transfer::public_share_object(collection);
+        transfer::public_transfer(mint_cap, owner);
     }
 
     // === Domain Functions ===

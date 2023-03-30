@@ -6,7 +6,7 @@ module nft_protocol::safe {
     use sui::object::{Self, ID, UID};
     use sui::vec_set::{Self, VecSet};
     use sui::tx_context::{Self, TxContext};
-    use sui::transfer::{share_object, transfer};
+    use sui::transfer::{public_share_object, public_transfer};
 
     use nft_protocol::err;
     use nft_protocol::transfer_allowlist::Allowlist;
@@ -66,9 +66,9 @@ module nft_protocol::safe {
         ctx: &mut TxContext,
     ) {
         let (safe, cap) = new(ctx);
-        share_object(safe);
+        public_share_object(safe);
 
-        transfer(cap, tx_context::sender(ctx));
+        public_transfer(cap, tx_context::sender(ctx));
     }
 
 
@@ -80,7 +80,7 @@ module nft_protocol::safe {
         ctx: &mut TxContext,
     ): OwnerCap {
         let (safe, cap) = new(ctx);
-        share_object(safe);
+        public_share_object(safe);
 
         cap
     }
@@ -111,7 +111,7 @@ module nft_protocol::safe {
         ctx: &mut TxContext,
     ) {
         let cap = create_transfer_cap(nft, owner_cap, safe, ctx);
-        transfer(cap, tx_context::sender(ctx));
+        public_transfer(cap, tx_context::sender(ctx));
     }
 
     /// Creates an irrevocable and exclusive transfer cap.
@@ -139,7 +139,7 @@ module nft_protocol::safe {
         ctx: &mut TxContext,
     ) {
         let cap = create_exclusive_transfer_cap(nft, owner_cap, safe, ctx);
-        transfer(cap, tx_context::sender(ctx));
+        public_transfer(cap, tx_context::sender(ctx));
     }
 
     /// Only owner or allowlisted collections can deposit.

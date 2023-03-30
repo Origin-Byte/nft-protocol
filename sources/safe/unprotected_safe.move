@@ -29,19 +29,16 @@ module nft_protocol::unprotected_safe {
     use std::type_name::{Self, TypeName};
 
     use nft_protocol::err;
-    use nft_protocol::transfer_allowlist::Allowlist;
+    use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
     use sui::event;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::{share_object, transfer};
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_object_field::{Self as dof};
 
     // === Errors ===
-
-    /// NFT type is not what the user expected
-    const ENFT_TYPE_MISMATCH: u64 = 0;
 
     struct UnprotectedSafe has key, store {
         id: UID,
@@ -125,16 +122,16 @@ module nft_protocol::unprotected_safe {
     /// tx sender.
     public entry fun create_for_sender(ctx: &mut TxContext) {
         let (safe, cap) = new(ctx);
-        share_object(safe);
+        transfer::public_share_object(safe);
 
-        transfer(cap, tx_context::sender(ctx));
+        transfer::public_transfer(cap, tx_context::sender(ctx));
     }
 
     /// Creates a new `Safe` shared object and returns the authority capability
     /// that grants authority over this safe.
     public fun create_safe(ctx: &mut TxContext): OwnerCap {
         let (safe, cap) = new(ctx);
-        share_object(safe);
+        transfer::public_share_object(safe);
 
         cap
     }
@@ -236,10 +233,13 @@ module nft_protocol::unprotected_safe {
     /// the trading cap revoked.
     public fun withdraw_nft<T: key + store, Auth: drop>(
         transfer_cap: TransferCap,
-        authority: Auth,
+        _authority: Auth,
         allowlist: &Allowlist,
         safe: &mut UnprotectedSafe,
     ): T {
+        transfer_allowlist::assert_collection<T>(allowlist);
+        transfer_allowlist::assert_authority<Auth>(allowlist);
+
         let nft_id = transfer_cap.nft;
 
         event::emit(
@@ -284,7 +284,7 @@ module nft_protocol::unprotected_safe {
         let nft =
             withdraw_nft<T, Auth>(transfer_cap, authority, allowlist, safe);
 
-        transfer(nft, recipient);
+        transfer::public_transfer(nft, recipient);
     }
 
     /// Withdraw NFT out of `UnprotectedSafe` and transfer to another

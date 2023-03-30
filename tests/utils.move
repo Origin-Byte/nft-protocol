@@ -1,91 +1,71 @@
 #[test_only]
 module nft_protocol::test_utils {
     use nft_protocol::collection;
-    use nft_protocol::nft;
     use nft_protocol::witness;
     use nft_protocol::orderbook::{Self as ob, Orderbook};
     use nft_protocol::safe::{Self, Safe, OwnerCap};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
-    use originmate::box::{Self, Box};
-
     use std::option;
     use std::vector;
 
     use sui::coin::{Self, Coin};
-    use sui::object::{Self, ID};
+    use sui::object::{Self, UID, ID};
     use sui::sui::SUI;
     use sui::test_scenario::{Self, Scenario, ctx};
-    use sui::transfer::{transfer, share_object};
+    use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context;
 
-    const CREATOR: address = @0xA1C05;
+    struct Foo has key, store {
+        id: UID,
+    }
 
-    struct Foo has drop {} // collection
-    struct Witness has drop {} // collection witness, must be named witness
+    struct Witness has drop {}
 
     public fun witness(): Witness {
         Witness {}
     }
 
-    public fun create_collection_and_allowlist(scenario: &mut Scenario) {
-        collection::init_collection(&Foo {}, CREATOR, ctx(scenario));
-        test_scenario::next_tx(scenario, CREATOR);
-
-        transfer_allowlist::init_allowlist(&Witness {}, ctx(scenario));
-        test_scenario::next_tx(scenario, CREATOR);
-
-        let wl: Allowlist = test_scenario::take_shared(scenario);
-        transfer_allowlist::insert_collection<Foo, Witness>(
-            &Witness {},
-            witness::from_witness(&Witness {}),
-            &mut wl,
-        );
-
-        test_scenario::return_shared(wl);
-    }
-
-    public fun create_collection_and_allowlist_with_type<C: drop, Witness: drop>(
-        coll_type: &C,
-        transfer_witness: &Witness,
+    public fun create_collection_and_allowlist(
         creator: address,
         scenario: &mut Scenario,
     ): (ID, ID, ID) {
-
-        let (cap, col) = collection::create<C>(coll_type, ctx(scenario));
+        let (cap, col) =
+            collection::create<Witness, Foo>(&Witness {}, ctx(scenario));
 
         let col_id = object::id(&col);
         let cap_id = object::id(&cap);
 
-        share_object(col);
+        public_share_object(col);
         test_scenario::next_tx(scenario, creator);
 
-        transfer_allowlist::init_allowlist(transfer_witness, ctx(scenario));
+        transfer_allowlist::init_allowlist(&Witness {}, ctx(scenario));
 
         test_scenario::next_tx(scenario, creator);
 
         let wl: Allowlist = test_scenario::take_shared(scenario);
         let wl_id = object::id(&wl);
 
-        transfer_allowlist::insert_collection<C, Witness>(
-            transfer_witness,
-            witness::from_witness(transfer_witness),
+        transfer_allowlist::insert_collection<Foo, Witness>(
+            &Witness {},
+            witness::from_witness(&Witness {}),
             &mut wl,
         );
 
-        transfer(cap, creator);
+        public_transfer(cap, creator);
         test_scenario::return_shared(wl);
 
         (col_id, cap_id, wl_id)
     }
 
-    public fun create_ob<C>(scenario: &mut Scenario): ID {
-        let ob = ob::new_unprotected<C, SUI>(ctx(scenario));
+    public fun create_ob(scenario: &mut Scenario): ID {
+        let ob = ob::new_unprotected<Foo, SUI>(ctx(scenario));
         let ob_id = object::id(&ob);
 
         ob::share(ob);
 
-        test_scenario::next_tx(scenario, CREATOR);
+        let sender = tx_context::sender(ctx(scenario));
+        test_scenario::next_tx(scenario, sender);
 
         ob_id
     }
@@ -105,110 +85,41 @@ module nft_protocol::test_utils {
         let owner_cap_id = object::id(&owner_cap);
 
         test_scenario::return_shared(safe);
-        transfer(owner_cap, owner);
+        public_transfer(owner_cap, owner);
 
         test_scenario::next_tx(scenario, owner);
 
         (safe_id, owner_cap_id)
     }
 
-    public fun create_and_deposit_nft_sender(scenario: &mut Scenario): ID {
+    public fun mint_and_deposit_nft_sender(
+        scenario: &mut Scenario,
+    ): ID {
         let sender = tx_context::sender(ctx(scenario));
-        create_and_deposit_nft(scenario, sender)
+        mint_and_deposit_nft(scenario, sender)
     }
 
-    public fun create_and_deposit_nft(
+    public fun mint_and_deposit_nft(
         scenario: &mut Scenario,
         user: address,
     ): ID {
         test_scenario::next_tx(scenario, user);
         let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
 
-        let nft = nft::test_mint(user, ctx(scenario));
+        let nft = Foo { id: object::new(ctx(scenario)) };
+
         let nft_id = object::id(&nft);
-        safe::deposit_nft<Foo>(
-            nft, &mut safe, ctx(scenario),
-        );
+        safe::deposit_nft(nft, &mut safe, ctx(scenario));
 
         test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
+        public_transfer(owner_cap, user);
 
         test_scenario::next_tx(scenario, user);
 
         nft_id
     }
 
-    public fun create_and_deposit_nft_with_type<C: drop>(
-        scenario: &mut Scenario,
-        user: address,
-    ): ID {
-        test_scenario::next_tx(scenario, user);
-        let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
-
-        let nft = nft::test_mint(user, ctx(scenario));
-        let nft_id = object::id(&nft);
-        safe::deposit_nft<C>(
-            nft, &mut safe, ctx(scenario),
-        );
-
-        test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
-
-        test_scenario::next_tx(scenario, user);
-
-        nft_id
-    }
-
-    public fun create_and_deposit_generic_nft(
-        scenario: &mut Scenario,
-        user: address,
-    ): ID {
-        test_scenario::next_tx(scenario, user);
-        let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
-
-        // we use box bcs we need some type which is not exposed by our pkg
-        box::box(user, true, ctx(scenario));
-        test_scenario::next_tx(scenario, user);
-        let nft: Box<bool> = test_scenario::take_from_sender(scenario);
-        let nft_id = object::id(&nft);
-        safe::deposit_generic_nft<Box<bool>>(
-            nft, &mut safe, ctx(scenario),
-        );
-
-        test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
-
-        test_scenario::next_tx(scenario, user);
-
-        nft_id
-    }
-
-    // To be used if Collection type struct is in test module
-    public fun mint_and_deposit_nft<C>(
-        scenario: &mut Scenario,
-        user: address,
-    ): ID {
-        test_scenario::next_tx(scenario, user);
-        let (owner_cap, safe) = owner_cap_and_safe(scenario, user);
-
-        let nft = nft::test_mint(user, ctx(scenario));
-        let nft_id = object::id(&nft);
-        safe::deposit_nft<C>(
-            nft, &mut safe, ctx(scenario),
-        );
-
-        test_scenario::next_tx(scenario, user);
-        assert!(safe::has_nft<C>(nft_id, &safe), 0);
-
-        test_scenario::return_shared(safe);
-        transfer(owner_cap, user);
-
-        test_scenario::next_tx(scenario, user);
-
-        nft_id
-    }
-
-    public fun create_ask<C>(
+    public fun create_ask(
         scenario: &mut Scenario,
         nft_id: ID,
         price: u64,
@@ -225,7 +136,7 @@ module nft_protocol::test_utils {
 
         let transfer_cap_id = object::id(&transfer_cap);
 
-        let ob: Orderbook<C, SUI> = test_scenario::take_shared(scenario);
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
 
         ob::create_ask(
             &mut ob,
@@ -237,7 +148,7 @@ module nft_protocol::test_utils {
 
         test_scenario::return_shared(ob);
         test_scenario::return_shared(seller_safe);
-        transfer(owner_cap, seller);
+        public_transfer(owner_cap, seller);
 
         test_scenario::next_tx(scenario, seller);
 
@@ -277,7 +188,7 @@ module nft_protocol::test_utils {
 
         test_scenario::return_shared(ob);
         test_scenario::return_shared(seller_safe);
-        transfer(owner_cap, seller);
+        public_transfer(owner_cap, seller);
 
         test_scenario::next_tx(scenario, seller);
 
@@ -290,28 +201,11 @@ module nft_protocol::test_utils {
         buyer: address,
         seller: address,
     ) {
-        let id =
-            test_scenario::most_recent_id_shared<ob::TradeIntermediate<Foo, SUI>>();
+        let id = test_scenario::most_recent_id_shared<
+            ob::TradeIntermediate<Foo, SUI>
+        >();
 
         finish_trade_id(
-            scenario,
-            option::destroy_some(id),
-            nft_id,
-            buyer,
-            seller,
-        )
-    }
-
-    public fun finish_generic_trade<C: key + store>(
-        scenario: &mut Scenario,
-        nft_id: ID,
-        buyer: address,
-        seller: address,
-    ) {
-        let id =
-            test_scenario::most_recent_id_shared<ob::TradeIntermediate<C, SUI>>();
-
-        finish_generic_trade_id<C>(
             scenario,
             option::destroy_some(id),
             nft_id,
@@ -356,39 +250,6 @@ module nft_protocol::test_utils {
         test_scenario::next_tx(scenario, buyer);
     }
 
-    public fun finish_generic_trade_id<C: key + store>(
-        scenario: &mut Scenario,
-        ti_id: ID,
-        nft_id: ID,
-        buyer: address,
-        seller: address,
-    ) {
-        let ti: ob::TradeIntermediate<C, SUI> =
-            test_scenario::take_shared_by_id(scenario, ti_id);
-
-        let seller_safe = user_safe(scenario, seller);
-        let buyer_safe = user_safe(scenario, buyer);
-
-        assert!(!safe::has_generic_nft<C>(nft_id, &buyer_safe), 0);
-        assert!(safe::has_generic_nft<C>(nft_id, &seller_safe), 0);
-
-        ob::finish_trade_of_generic_nft(
-            &mut ti,
-            &mut seller_safe,
-            &mut buyer_safe,
-            ctx(scenario),
-        );
-
-        assert!(safe::has_generic_nft<C>(nft_id, &buyer_safe), 0);
-        assert!(!safe::has_generic_nft<C>(nft_id, &seller_safe), 0);
-
-        test_scenario::return_shared(buyer_safe);
-        test_scenario::return_shared(seller_safe);
-        test_scenario::return_shared(ti);
-
-        test_scenario::next_tx(scenario, buyer);
-    }
-
     public fun buy_nft(
         scenario: &mut Scenario,
         nft_id: ID,
@@ -423,13 +284,13 @@ module nft_protocol::test_utils {
         test_scenario::next_tx(scenario, buyer);
     }
 
-    public fun create_bid<C>(
+    public fun create_bid(
         scenario: &mut Scenario,
         price: u64,
     ) {
         let buyer = tx_context::sender(ctx(scenario));
         let buyer_safe = user_safe(scenario, buyer);
-        let ob: Orderbook<C, SUI> = test_scenario::take_shared(scenario);
+        let ob: Orderbook<Foo, SUI> = test_scenario::take_shared(scenario);
         let asks = ob::borrow_asks(&ob);
         let amount = if (originmate::crit_bit_u64::is_empty(asks)) {
             // no asks, create a bid with the given price
@@ -539,6 +400,7 @@ module nft_protocol::test_utils {
             nft_id,
             ctx(scenario),
         );
+
         test_scenario::return_shared(ob);
     }
 
