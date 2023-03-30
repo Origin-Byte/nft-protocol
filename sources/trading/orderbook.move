@@ -22,7 +22,7 @@ module nft_protocol::orderbook {
     // TODO: do we allow anyone to create an OB for any collection?
     // TODO: settings to skip royalty settlement (witness protected)
 
-    use nft_protocol::safe::{Self, Safe, TransferCap};
+    use nft_protocol::ob_kiosk::{Self, OwnerCap};
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils;
     use nft_protocol::trading::{
@@ -31,7 +31,6 @@ module nft_protocol::orderbook {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        settle_funds_with_royalties,
         transfer_bid_commission,
     };
 
@@ -44,6 +43,7 @@ module nft_protocol::orderbook {
 
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
+    use sui::kiosk::Kiosk;
     use sui::event;
     use sui::object::{Self, ID, UID};
     use sui::transfer::{public_transfer, share_object, public_share_object};
@@ -65,14 +65,14 @@ module nft_protocol::orderbook {
     /// Must list at least one NFT
     const EEMPTY_INPUT: u64 = 3;
 
-    /// The NFT lives in a safe which also wanted to buy it
+    /// The NFT lives in a kiosk which also wanted to buy it
     const ECANNOT_TRADE_WITH_SELF: u64 = 4;
 
     /// User doesn't own this order
     const EORDER_OWNER_MUST_BE_SENDER: u64 = 5;
 
-    /// Expected different safe
-    const ESAFE_ID_MISMATCH: u64 = 6;
+    /// Expected different kiosk
+    const EKIOSK_ID_MISMATCH: u64 = 6;
 
     /// No order matches the given price level or ownership level
     const EORDER_DOES_NOT_EXIST: u64 = 7;
@@ -134,8 +134,8 @@ module nft_protocol::orderbook {
         /// The address of the user who created this bid and who will receive an
         /// NFT in exchange for their tokens.
         owner: address,
-        /// Points to `Safe` shared object into which to deposit NFT.
-        safe: ID,
+        /// Points to `Kiosk` shared object into which to deposit NFT.
+        kiosk: ID,
         /// If the NFT is offered via a marketplace or a wallet, the
         /// facilitator can optionally set how many tokens they want to claim
         /// on top of the offer.
@@ -152,8 +152,10 @@ module nft_protocol::orderbook {
     struct Ask has store {
         /// How many tokens does the seller want for their NFT in exchange.
         price: u64,
-        /// Capability to get an NFT from a safe.
-        transfer_cap: TransferCap,
+        /// ID of the respective NFT object
+        nft_id: ID,
+        /// ID of the respective kiosk
+        kiosk_id: ID,
         /// Who owns the NFT.
         owner: address,
         /// If the NFT is offered via a marketplace or a wallet, the
@@ -166,14 +168,11 @@ module nft_protocol::orderbook {
     /// permissionlessly.
     struct TradeIntermediate<phantom T, phantom FT> has key {
         id: UID,
-        /// in option bcs we want to extract it but cannot destroy shared obj
-        /// in Sui yet
-        ///
-        /// https://github.com/MystenLabs/sui/issues/2083
-        transfer_cap: Option<TransferCap>,
+        nft_id: ID,
         seller: address,
+        seller_kiosk: ID,
         buyer: address,
-        buyer_safe: ID,
+        buyer_kiosk: ID,
         paid: Balance<FT>,
         commission: Option<AskCommission>,
     }
@@ -191,7 +190,7 @@ module nft_protocol::orderbook {
         orderbook: ID,
         owner: address,
         price: u64,
-        safe: ID,
+        kiosk: ID,
         nft_type: String,
         ft_type: String,
     }
@@ -210,7 +209,7 @@ module nft_protocol::orderbook {
         orderbook: ID,
         owner: address,
         price: u64,
-        safe: ID,
+        kiosk: ID,
         nft_type: String,
         ft_type: String,
     }
@@ -219,7 +218,7 @@ module nft_protocol::orderbook {
     struct BidClosedEvent has copy, drop {
         orderbook: ID,
         owner: address,
-        safe: ID,
+        kiosk: ID,
         price: u64,
         nft_type: String,
         ft_type: String,
@@ -233,12 +232,12 @@ module nft_protocol::orderbook {
     /// If the NFT was bought directly (`buy_nft`), then
     /// the property `trade_intermediate` is `None`.
     struct TradeFilledEvent has copy, drop {
-        buyer_safe: ID,
+        buyer_kiosk: ID,
         buyer: address,
         nft: ID,
         orderbook: ID,
         price: u64,
-        seller_safe: ID,
+        seller_kiosk: ID,
         seller: address,
         /// Is `None` if the NFT was bought directly (`buy_nft`)
         ///
@@ -259,16 +258,16 @@ module nft_protocol::orderbook {
     /// In such a case, a new shared object [`TradeIntermediate`] is created.
     /// Otherwise we add the bid to the orderbook's state.
     ///
-    /// The client provides the Safe into which they wish to receive an NFT.
+    /// The client provides the Kiosk into which they wish to receive an NFT.
     public entry fun create_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
-        buyer_safe: &mut Safe,
+        buyer_kiosk: &mut Kiosk,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_bid, EACTION_NOT_PUBLIC);
-        create_bid_<T, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
+        create_bid_<T, FT>(book, buyer_kiosk, price, option::none(), wallet, ctx)
     }
 
     /// Same as [`create_bid`] but protected by
@@ -276,33 +275,39 @@ module nft_protocol::orderbook {
     public fun create_bid_protected<W: drop, T: key + store, FT>(
         _witness: W,
         book: &mut Orderbook<T, FT>,
-        buyer_safe: &mut Safe,
+        buyer_kiosk: &mut Kiosk,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<T, W>();
-        create_bid_<T, FT>(book, buyer_safe, price, option::none(), wallet, ctx)
+
+        create_bid_<T, FT>(book, buyer_kiosk, price, option::none(), wallet, ctx)
     }
 
-    /// Same as [`create_bid`] but creates a new safe for the sender first
-    public entry fun create_safe_and_bid<T: key + store, FT>(
+    /// Same as [`create_bid`] but creates a new kiosk for the sender first
+    public entry fun create_kiosk_and_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let (buyer_safe, owner_cap) = safe::new(ctx);
-        create_bid<T, FT>(book, &mut buyer_safe, price, wallet, ctx);
-        public_share_object(buyer_safe);
-        public_transfer(owner_cap, tx_context::sender(ctx));
+        let (buyer_kiosk, owner_cap) = ob_kiosk::new(ctx);
+        create_bid<T, FT>(book, &mut buyer_kiosk, price, wallet, ctx);
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_kiosk,
+            tx_context::sender(ctx)
+        );
+        public_share_object(buyer_kiosk);
     }
 
     /// Same as [`create_bid`] but with a
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
     public entry fun create_bid_with_commission<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
-        buyer_safe: &mut Safe,
+        buyer_kiosk: &mut Kiosk,
         price: u64,
         beneficiary: address,
         commission_ft: u64,
@@ -315,7 +320,7 @@ module nft_protocol::orderbook {
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
         create_bid_<T, FT>(
-            book, buyer_safe, price, option::some(commission), wallet, ctx,
+            book, buyer_kiosk, price, option::some(commission), wallet, ctx,
         )
     }
 
@@ -324,7 +329,7 @@ module nft_protocol::orderbook {
     public fun create_bid_with_commission_protected<W: drop, T: key + store, FT>(
         _witness: W,
         book: &mut Orderbook<T, FT>,
-        buyer_safe: &mut Safe,
+        buyer_kiosk: &mut Kiosk,
         price: u64,
         beneficiary: address,
         commission_ft: u64,
@@ -338,13 +343,13 @@ module nft_protocol::orderbook {
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
         create_bid_<T, FT>(
-            book, buyer_safe, price, option::some(commission), wallet, ctx,
+            book, buyer_kiosk, price, option::some(commission), wallet, ctx,
         )
     }
 
-    /// Same as [`create_safe_and_bid`] but with a
+    /// Same as [`create_kiosk_and_bid`] but with a
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
-    public entry fun create_safe_and_bid_with_commission<T: key + store, FT>(
+    public entry fun create_kiosk_and_bid_with_commission<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         price: u64,
         beneficiary: address,
@@ -352,18 +357,23 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let (buyer_safe, owner_cap) = safe::new(ctx);
+        let (buyer_kiosk, owner_cap) = ob_kiosk::new(ctx);
         create_bid_with_commission(
             book,
-            &mut buyer_safe,
+            &mut buyer_kiosk,
             price,
             beneficiary,
             commission_ft,
             wallet,
             ctx,
         );
-        public_share_object(buyer_safe);
-        public_transfer(owner_cap, tx_context::sender(ctx));
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_kiosk,
+            tx_context::sender(ctx)
+        );
+        public_share_object(buyer_kiosk);
     }
 
     // === Cancel bid ===
@@ -402,49 +412,31 @@ module nft_protocol::orderbook {
     /// Otherwise the transfer cap is stored in the orderbook.
     public entry fun create_ask<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
+        owner_cap: &OwnerCap,
         requested_tokens: u64,
-        transfer_cap: TransferCap,
-        seller_safe: &mut Safe,
+        nft_id: ID,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, EACTION_NOT_PUBLIC);
         create_ask_<T, FT>(
-            book, requested_tokens, option::none(), transfer_cap, seller_safe, ctx
+            book, owner_cap, requested_tokens, option::none(), nft_id, seller_kiosk, ctx
         )
-    }
-
-    /// Creates exclusive transfer cap and then calls [`create_ask`].
-    public entry fun list_nft<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        requested_tokens: u64,
-        nft: ID,
-        owner_cap: &safe::OwnerCap,
-        seller_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        let transfer_cap = safe::create_exclusive_transfer_cap(
-            nft,
-            owner_cap,
-            seller_safe,
-            ctx,
-        );
-
-        create_ask(book, requested_tokens, transfer_cap, seller_safe, ctx)
     }
 
     /// Provide list of NFTs and corresponding prices (index # match.)
     ///
-    /// The NFTs must be deposited in the seller's safe.
+    /// The NFTs must be deposited in the seller's kiosk.
     ///
     /// #### Panics
     /// * If `nfts` and `prices` have different lengths
     /// * If `nfts` is empty
     public entry fun list_multiple_nfts<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
+        owner_cap: &OwnerCap,
         nfts: vector<ID>,
         prices: vector<u64>,
-        owner_cap: &safe::OwnerCap,
-        seller_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         assert!(
@@ -458,52 +450,59 @@ module nft_protocol::orderbook {
             let nft = vector::borrow(&nfts, i);
             let price = vector::borrow(&prices, i);
 
-            list_nft(book, *price, *nft, owner_cap, seller_safe, ctx);
+            create_ask(book, owner_cap, *price, *nft, seller_kiosk, ctx);
 
             i = i + 1;
         }
     }
 
-    /// 1. Deposits an NFT to safe
+    /// 1. Deposits an NFT to kiosk
     /// 2. Calls [`list_nft`]
     ///
+    /// The type `T` in case of OB collections is `Nft<T>`.
+    /// In case of generic collections `C == T`.
+    ///
     /// This endpoint is useful mainly for generic collections, because NFTs
-    /// of OB _usually_ live in a safe in the first place.
+    /// of OB _usually_ live in a kiosk in the first place.
     public entry fun deposit_and_list_nft<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         nft: T,
         requested_tokens: u64,
-        owner_cap: &safe::OwnerCap,
-        seller_safe: &mut Safe,
+        owner_cap: &OwnerCap,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         let nft_id = object::id(&nft);
-        safe::deposit_nft_privileged(nft, owner_cap, seller_safe, ctx);
-        list_nft(book, requested_tokens, nft_id, owner_cap, seller_safe, ctx)
+        ob_kiosk::deposit_as_owner(seller_kiosk, owner_cap, nft);
+        create_ask(book, owner_cap, requested_tokens, nft_id, seller_kiosk, ctx);
     }
 
-    /// 1. Creates a new safe for the sender
+    /// 1. Creates a new kiosk for the sender
     /// 2. Calls [`deposit_and_list_nft`]
-    public entry fun create_safe_and_deposit_and_list_nft<T: key + store, FT>(
+    public entry fun create_kiosk_and_deposit_and_list_nft<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         nft: T,
         requested_tokens: u64,
         ctx: &mut TxContext,
     ) {
         let seller = tx_context::sender(ctx);
-        let (seller_safe, owner_cap) = safe::new(ctx);
+        let (seller_kiosk, owner_cap) = ob_kiosk::new(ctx);
 
         deposit_and_list_nft(
             book,
             nft,
             requested_tokens,
             &owner_cap,
-            &mut seller_safe,
+            &mut seller_kiosk,
             ctx,
         );
 
-        public_transfer(owner_cap, seller);
-        public_share_object(seller_safe);
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &seller_kiosk,
+            seller
+        );
+        public_share_object(seller_kiosk);
     }
 
     /// Same as [`create_ask`] but protected by
@@ -511,15 +510,16 @@ module nft_protocol::orderbook {
     public fun create_ask_protected<W: drop, T: key + store, FT>(
         _witness: W,
         book: &mut Orderbook<T, FT>,
+        owner_cap: &OwnerCap,
         requested_tokens: u64,
-        transfer_cap: TransferCap,
-        seller_safe: &mut Safe,
+        nft_id: ID,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<T, W>();
 
         create_ask_<T, FT>(
-            book, requested_tokens, option::none(), transfer_cap, seller_safe, ctx
+            book, owner_cap, requested_tokens, option::none(), nft_id, seller_kiosk, ctx
         )
     }
 
@@ -527,11 +527,12 @@ module nft_protocol::orderbook {
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
     public entry fun create_ask_with_commission<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
+        owner_cap: &OwnerCap,
         requested_tokens: u64,
-        transfer_cap: TransferCap,
+        nft_id: ID,
         beneficiary: address,
         commission: u64,
-        seller_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, EACTION_NOT_PUBLIC);
@@ -542,42 +543,7 @@ module nft_protocol::orderbook {
             commission,
         );
         create_ask_<T, FT>(
-            book,
-            requested_tokens,
-            option::some(commission),
-            transfer_cap,
-            seller_safe,
-            ctx,
-        )
-    }
-
-    /// Same as [`list_nft`] but with a
-    /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
-    public entry fun list_nft_with_commission<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        requested_tokens: u64,
-        nft: ID,
-        owner_cap: &safe::OwnerCap,
-        beneficiary: address,
-        commission: u64,
-        seller_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        let transfer_cap = safe::create_exclusive_transfer_cap(
-            nft,
-            owner_cap,
-            seller_safe,
-            ctx,
-        );
-
-        create_ask_with_commission(
-            book,
-            requested_tokens,
-            transfer_cap,
-            beneficiary,
-            commission,
-            seller_safe,
-            ctx,
+            book, owner_cap, requested_tokens, option::none(), nft_id, seller_kiosk, ctx
         )
     }
 
@@ -594,8 +560,8 @@ module nft_protocol::orderbook {
         prices: vector<u64>,
         beneficiary: address,
         commissions: vector<u64>,
-        owner_cap: &safe::OwnerCap,
-        seller_safe: &mut Safe,
+        owner_cap: &OwnerCap,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         assert!(
@@ -614,14 +580,14 @@ module nft_protocol::orderbook {
             let price = vector::borrow(&prices, i);
             let commission = vector::borrow(&commissions, i);
 
-            list_nft_with_commission(
+            create_ask_with_commission(
                 book,
+                owner_cap,
                 *price,
                 *nft,
-                owner_cap,
                 beneficiary,
                 *commission,
-                seller_safe,
+                seller_kiosk,
                 ctx,
             );
 
@@ -635,29 +601,30 @@ module nft_protocol::orderbook {
         book: &mut Orderbook<T, FT>,
         nft: T,
         requested_tokens: u64,
-        owner_cap: &safe::OwnerCap,
+        owner_cap: &OwnerCap,
         beneficiary: address,
         commission: u64,
-        seller_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         let nft_id = object::id(&nft);
-        safe::deposit_nft_privileged(nft, owner_cap, seller_safe, ctx);
-        list_nft_with_commission(
-            book,
-            requested_tokens,
-            nft_id,
-            owner_cap,
-            beneficiary,
-            commission,
-            seller_safe,
-            ctx,
-        )
+        ob_kiosk::deposit_as_owner(seller_kiosk, owner_cap, nft);
+
+        create_ask_with_commission(
+                book,
+                owner_cap,
+                requested_tokens,
+                nft_id,
+                beneficiary,
+                commission,
+                seller_kiosk,
+                ctx,
+            );
     }
 
-    /// Same as [`create_safe_and_deposit_and_list_nft`] but with a
+    /// Same as [`create_kiosk_and_deposit_and_list_nft`] but with a
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
-    public entry fun create_safe_and_deposit_and_list_nft_with_commission<T: key + store, FT>(
+    public entry fun create_kiosk_and_deposit_and_list_nft_with_commission<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         nft: T,
         requested_tokens: u64,
@@ -666,7 +633,7 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         let seller = tx_context::sender(ctx);
-        let (seller_safe, owner_cap) = safe::new(ctx);
+        let (seller_kiosk, owner_cap) = ob_kiosk::new(ctx);
 
         deposit_and_list_nft_with_commission(
             book,
@@ -675,12 +642,16 @@ module nft_protocol::orderbook {
             &owner_cap,
             beneficiary,
             commission,
-            &mut seller_safe,
+            &mut seller_kiosk,
             ctx,
         );
 
-        public_transfer(owner_cap, seller);
-        public_share_object(seller_safe);
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &seller_kiosk,
+            seller
+        );
+        public_share_object(seller_kiosk);
     }
 
     /// Same as [`create_ask_protected`] but with a
@@ -691,11 +662,12 @@ module nft_protocol::orderbook {
     public fun create_ask_with_commission_protected<W: drop, T: key + store, FT>(
         _witness: W,
         book: &mut Orderbook<T, FT>,
+        owner_cap: &OwnerCap,
         requested_tokens: u64,
-        transfer_cap: TransferCap,
+        nft_id: ID,
         beneficiary: address,
         commission: u64,
-        seller_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<T, W>();
@@ -706,12 +678,7 @@ module nft_protocol::orderbook {
             commission,
         );
         create_ask_<T, FT>(
-            book,
-            requested_tokens,
-            option::some(commission),
-            transfer_cap,
-            seller_safe,
-            ctx,
+            book, owner_cap, requested_tokens, option::none(), nft_id, seller_kiosk, ctx
         )
     }
 
@@ -733,8 +700,7 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.cancel_ask, EACTION_NOT_PUBLIC);
-        let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
-        public_transfer(cap, tx_context::sender(ctx));
+        cancel_ask_(book, nft_price_level, nft_id, ctx);
     }
 
     /// Same as [`cancel_ask`] but protected by
@@ -747,22 +713,7 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<T, W>();
-        let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
-        public_transfer(cap, tx_context::sender(ctx));
-    }
-
-    /// Same as [`cancel_ask`] but the [`TransferCap`] is burned instead of
-    /// transferred back to the tx sender.
-    public entry fun cancel_ask_and_discard_transfer_cap<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        nft_price_level: u64,
-        nft_id: ID,
-        seller_safe: &mut Safe,
-        ctx: &mut TxContext,
-    ) {
-        assert!(!book.protected_actions.cancel_ask, EACTION_NOT_PUBLIC);
-        let (cap, _) = cancel_ask_(book, nft_price_level, nft_id, ctx);
-        safe::burn_transfer_cap(cap, seller_safe);
+        cancel_ask_(book, nft_price_level, nft_id, ctx);
     }
 
     // === Edit listing ===
@@ -774,23 +725,24 @@ module nft_protocol::orderbook {
     /// Depends on whether the ask is filled immediately or not.
     public entry fun edit_ask<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
+        owner_cap: &OwnerCap,
         old_price: u64,
         nft_id: ID,
         new_price: u64,
-        seller_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.cancel_ask, EACTION_NOT_PUBLIC);
         assert!(!book.protected_actions.create_ask, EACTION_NOT_PUBLIC);
 
-        let (cap, commission) = cancel_ask_(book, old_price, nft_id, ctx);
-        create_ask_(book, new_price, commission, cap, seller_safe, ctx);
+        let commission = cancel_ask_(book, old_price, nft_id, ctx);
+        create_ask_(book, owner_cap, new_price, commission, nft_id, seller_kiosk, ctx);
     }
 
     /// Cancels the old bid and creates a new one with new price.
     public entry fun edit_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
-        buyer_safe: &mut Safe,
+        buyer_kiosk: &mut Kiosk,
         old_price: u64,
         new_price: u64,
         wallet: &mut Coin<FT>,
@@ -799,7 +751,7 @@ module nft_protocol::orderbook {
         assert!(!book.protected_actions.cancel_bid, EACTION_NOT_PUBLIC);
         assert!(!book.protected_actions.create_bid, EACTION_NOT_PUBLIC);
 
-        edit_bid_(book, buyer_safe, old_price, new_price, wallet, ctx);
+        edit_bid_(book, buyer_kiosk, old_price, new_price, wallet, ctx);
     }
 
     // === Buy NFT ===
@@ -807,7 +759,7 @@ module nft_protocol::orderbook {
     /// To buy a specific NFT listed in the orderbook, the client provides the
     /// price for which the NFT is listed.
     ///
-    /// The NFT is transferred from the seller's Safe to the buyer's Safe.
+    /// The NFT is transferred from the seller's Kiosk to the buyer's Kiosk.
     ///
     /// In this case, it's important to provide both the price and NFT ID to
     /// avoid actions such as offering an NFT for a really low price and then
@@ -825,39 +777,43 @@ module nft_protocol::orderbook {
         nft_id: ID,
         price: u64,
         wallet: &mut Coin<FT>,
-        seller_safe: &mut Safe,
-        buyer_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_nft_<T, FT>(
-            book, nft_id, price, wallet, seller_safe, buyer_safe, allowlist, ctx
+            book, nft_id, price, wallet, seller_kiosk, buyer_kiosk, allowlist, ctx
         )
     }
 
-    /// 1. Creates a new [`Safe`] for the sender
-    /// 2. Buys the NFT into this new safe
-    /// 3. Shares the safe and gives the owner cap to sender
-    public entry fun create_safe_and_buy_nft<T: key + store, FT>(
+    /// 1. Creates a new [`Kiosk`] for the sender
+    /// 2. Buys the NFT into this new kiosk
+    /// 3. Shares the kiosk and gives the owner cap to sender
+    public entry fun create_kiosk_and_buy_nft<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         nft_id: ID,
         price: u64,
         wallet: &mut Coin<FT>,
-        seller_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let buyer = tx_context::sender(ctx);
-        let (buyer_safe, owner_cap) = safe::new(ctx);
+        let (buyer_kiosk, owner_cap) = ob_kiosk::new(ctx);
 
         assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_nft_<T, FT>(
-            book, nft_id, price, wallet, seller_safe, &mut buyer_safe, allowlist, ctx
+            book, nft_id, price, wallet, seller_kiosk, &mut buyer_kiosk, allowlist, ctx
         );
 
-        public_transfer(owner_cap, buyer);
-        public_share_object(buyer_safe);
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_kiosk,
+            buyer
+        );
+        public_share_object(buyer_kiosk);
     }
 
     /// Same as [`buy_nft`] but protected by
@@ -868,15 +824,15 @@ module nft_protocol::orderbook {
         nft_id: ID,
         price: u64,
         wallet: &mut Coin<FT>,
-        seller_safe: &mut Safe,
-        buyer_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         utils::assert_same_module_as_witness<T, W>();
 
         buy_nft_<T, FT>(
-            book, nft_id, price, wallet, seller_safe, buyer_safe, allowlist, ctx
+            book, nft_id, price, wallet, seller_kiosk, buyer_kiosk, allowlist, ctx
         )
     }
 
@@ -885,18 +841,19 @@ module nft_protocol::orderbook {
     /// When a bid is created and there's an ask with a lower price, then the
     /// trade cannot be resolved immediately.
     ///
-    /// That's because we don't know the `Safe` ID up front in OB.
+    /// That's because we don't know the `Kiosk` ID up front in OB.
     ///
     /// Therefore, orderbook creates [`TradeIntermediate`] which then has to be
     /// permissionlessly resolved via this endpoint.
     public entry fun finish_trade<T: key + store, FT>(
+        book: &Orderbook<T, FT>,
         trade: &mut TradeIntermediate<T, FT>,
-        seller_safe: &mut Safe,
-        buyer_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
-        finish_trade_<T, FT>(trade, seller_safe, buyer_safe, allowlist, ctx)
+        finish_trade_<T, FT>(book, trade, seller_kiosk, buyer_kiosk, allowlist, ctx)
     }
 
     // === Create orderbook ===
@@ -932,9 +889,7 @@ module nft_protocol::orderbook {
 
     /// Returns a new orderbook without any protection, ie. all endpoints can
     /// be called as entry points.
-    public fun new_unprotected<T: key + store, FT>(
-        ctx: &mut TxContext,
-    ): Orderbook<T, FT> {
+    public fun new_unprotected<T: key + store, FT>(ctx: &mut TxContext): Orderbook<T, FT> {
         new<T, FT>(no_protection(), ctx)
     }
 
@@ -1066,10 +1021,6 @@ module nft_protocol::orderbook {
         ask.price
     }
 
-    public fun ask_nft(ask: &Ask): &TransferCap {
-        &ask.transfer_cap
-    }
-
     public fun ask_owner(ask: &Ask): address {
         ask.owner
     }
@@ -1114,14 +1065,16 @@ module nft_protocol::orderbook {
 
     fun create_bid_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
-        buyer_safe: &mut Safe,
+        buyer_kiosk: &mut Kiosk,
         price: u64,
         bid_commission: Option<BidCommission<FT>>,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
+        ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
+
         let buyer = tx_context::sender(ctx);
-        let buyer_safe_id = object::id(buyer_safe);
+        let buyer_kiosk_id = object::id(buyer_kiosk);
 
         let asks = &mut book.asks;
 
@@ -1150,36 +1103,37 @@ module nft_protocol::orderbook {
             let Ask {
                 price: _,
                 owner: seller,
-                transfer_cap,
+                nft_id,
+                kiosk_id,
                 commission: ask_commission,
             } = ask;
-            let nft = safe::transfer_cap_nft(&transfer_cap);
-            let seller_safe = safe::transfer_cap_safe(&transfer_cap);
+
             assert!(
-                seller_safe != buyer_safe_id,
+                kiosk_id != buyer_kiosk_id,
                 ECANNOT_TRADE_WITH_SELF,
             );
 
             // see also `finish_trade` entry point
             let trade_intermediate = TradeIntermediate<T, FT> {
-                buyer_safe: buyer_safe_id,
+                buyer_kiosk: buyer_kiosk_id,
                 buyer,
+                nft_id,
                 seller,
+                seller_kiosk: kiosk_id,
                 commission: ask_commission,
                 id: object::new(ctx),
                 paid: balance::split(coin::balance_mut(wallet), lowest_ask_price),
-                transfer_cap: option::some(transfer_cap),
             };
             let trade_intermediate_id = object::id(&trade_intermediate);
             share_object(trade_intermediate);
 
             event::emit(TradeFilledEvent {
                 orderbook: object::id(book),
-                buyer_safe: buyer_safe_id,
+                buyer_kiosk: buyer_kiosk_id,
                 buyer,
-                nft,
+                nft: nft_id,
                 price: lowest_ask_price,
-                seller_safe,
+                seller_kiosk: kiosk_id,
                 seller,
                 trade_intermediate: option::some(trade_intermediate_id),
                 nft_type: type_name::into_string(type_name::get<T>()),
@@ -1193,7 +1147,7 @@ module nft_protocol::orderbook {
                 orderbook: object::id(book),
                 owner: buyer,
                 price,
-                safe: buyer_safe_id,
+                kiosk: buyer_kiosk_id,
                 nft_type: type_name::into_string(type_name::get<T>()),
                 ft_type: type_name::into_string(type_name::get<FT>()),
             });
@@ -1205,7 +1159,7 @@ module nft_protocol::orderbook {
             let order = Bid {
                 offer: bid_offer,
                 owner: buyer,
-                safe: buyer_safe_id,
+                kiosk: buyer_kiosk_id,
                 commission: bid_commission,
             };
 
@@ -1253,12 +1207,12 @@ module nft_protocol::orderbook {
         };
         assert!(index < bids_count, EORDER_OWNER_MUST_BE_SENDER);
 
-        let Bid { offer, owner: _owner, commission, safe } =
+        let Bid { offer, owner: _owner, commission, kiosk } =
             vector::remove(price_level, index);
 
         event::emit(BidClosedEvent {
             owner: sender,
-            safe,
+            kiosk,
             orderbook: object::id(book),
             price: bid_price_level,
             nft_type: type_name::into_string(type_name::get<T>()),
@@ -1295,7 +1249,7 @@ module nft_protocol::orderbook {
 
     fun edit_bid_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
-        buyer_safe: &mut Safe,
+        buyer_kiosk: &mut Kiosk,
         old_price: u64,
         new_price: u64,
         wallet: &mut Coin<FT>,
@@ -1304,22 +1258,31 @@ module nft_protocol::orderbook {
         let commission =
             cancel_bid_except_commission_(book, old_price, wallet, ctx);
 
-        create_bid_(book, buyer_safe, new_price, commission, wallet, ctx);
+        create_bid_(book, buyer_kiosk, new_price, commission, wallet, ctx);
     }
 
     fun create_ask_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
+        owner_cap: &OwnerCap,
         price: u64,
         ask_commission: Option<AskCommission>,
-        transfer_cap: TransferCap,
-        seller_safe: &mut Safe,
+        nft_id: ID,
+        seller_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
-        safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
-        safe::assert_transfer_cap_exclusive(&transfer_cap);
+        ob_kiosk::assert_is_ob_kiosk(seller_kiosk);
+        ob_kiosk::assert_owner_cap(seller_kiosk, owner_cap);
+
+        // TODO: Confirm that NFT is in the kiosk
+        // TODO: Check Type of NFT matches orderbook type
+        // if (kiosk::transfer_cap_is_nft_generic(&transfer_cap)) {
+        //     kiosk::assert_generic_nft_type<T>(&transfer_cap);
+        // } else {
+        //     kiosk::assert_nft_type<T>(&transfer_cap);
+        // };
 
         let seller = tx_context::sender(ctx);
-        let seller_safe_id = object::id(seller_safe);
+        let seller_kiosk_id = object::id(seller_kiosk);
 
         let bids = &mut book.bids;
 
@@ -1348,28 +1311,34 @@ module nft_protocol::orderbook {
             let Bid {
                 owner: buyer,
                 offer: bid_offer,
-                safe: buyer_safe_id,
+                kiosk: buyer_kiosk_id,
                 commission: bid_commission,
             } = bid;
             assert!(
-                buyer_safe_id != seller_safe_id,
+                buyer_kiosk_id != seller_kiosk_id,
                 ECANNOT_TRADE_WITH_SELF,
             );
             let paid = balance::value(&bid_offer);
 
-            let nft = safe::transfer_cap_nft(&transfer_cap);
-
             // we cannot transfer the NFT straight away because we don't know
-            // the buyers safe at the point of sending the tx
+            // the buyers kiosk at the point of sending the tx
+
+            ob_kiosk::auth_exclusive_transfer(
+                seller_kiosk,
+                owner_cap,
+                nft_id,
+                &book.id,
+            );
 
             // see also `finish_trade` entry point
             let trade_intermediate = TradeIntermediate<T, FT> {
                 id: object::new(ctx),
-                transfer_cap: option::some(transfer_cap),
                 commission: ask_commission,
                 seller,
                 buyer,
-                buyer_safe: buyer_safe_id,
+                buyer_kiosk: buyer_kiosk_id,
+                seller_kiosk: seller_kiosk_id,
+                nft_id: nft_id,
                 paid: bid_offer,
             };
             let trade_intermediate_id = object::id(&trade_intermediate);
@@ -1377,11 +1346,11 @@ module nft_protocol::orderbook {
 
             event::emit(TradeFilledEvent {
                 orderbook: object::id(book),
-                buyer_safe: buyer_safe_id,
+                buyer_kiosk: buyer_kiosk_id,
                 buyer,
-                nft,
+                nft: nft_id,
                 price: paid,
-                seller_safe: seller_safe_id,
+                seller_kiosk: seller_kiosk_id,
                 seller,
                 trade_intermediate: option::some(trade_intermediate_id),
                 nft_type: type_name::into_string(type_name::get<T>()),
@@ -1392,19 +1361,20 @@ module nft_protocol::orderbook {
             option::destroy_none(bid_commission);
         } else {
             event::emit(AskCreatedEvent {
-                nft: safe::transfer_cap_nft(&transfer_cap),
+                nft: nft_id,
                 orderbook: object::id(book),
                 owner: seller,
                 price,
-                safe: seller_safe_id,
+                kiosk: seller_kiosk_id,
                 nft_type: type_name::into_string(type_name::get<T>()),
                 ft_type: type_name::into_string(type_name::get<FT>()),
             });
 
             let ask = Ask {
                 price,
+                nft_id,
+                kiosk_id: seller_kiosk_id,
                 owner: seller,
-                transfer_cap,
                 commission: ask_commission,
             };
             // store the Ask object
@@ -1428,13 +1398,14 @@ module nft_protocol::orderbook {
         nft_price_level: u64,
         nft_id: ID,
         ctx: &mut TxContext,
-    ): (TransferCap, Option<AskCommission>) {
+    ): Option<AskCommission> {
         let sender = tx_context::sender(ctx);
 
         let Ask {
             owner,
             price: _,
-            transfer_cap,
+            nft_id,
+            kiosk_id,
             commission,
         } = remove_ask(
             &mut book.asks,
@@ -1453,7 +1424,7 @@ module nft_protocol::orderbook {
 
         assert!(owner == sender, EORDER_OWNER_MUST_BE_SENDER);
 
-        (transfer_cap, commission)
+        commission
     }
 
     fun buy_nft_<T: key + store, FT>(
@@ -1461,17 +1432,19 @@ module nft_protocol::orderbook {
         nft_id: ID,
         price: u64,
         wallet: &mut Coin<FT>,
-        seller_safe: &mut Safe,
-        buyer_safe: &mut Safe,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
+        // TODO: Why is there no TradeIntermediate here?
         let buyer = tx_context::sender(ctx);
 
         let Ask {
-            transfer_cap,
             owner: seller,
             price: _,
+            nft_id: _,
+            kiosk_id: _,
             commission: maybe_commission,
         } = remove_ask(
             &mut book.asks,
@@ -1481,11 +1454,11 @@ module nft_protocol::orderbook {
 
         event::emit(TradeFilledEvent {
             orderbook: object::id(book),
-            buyer_safe: object::id(buyer_safe),
+            buyer_kiosk: object::id(buyer_kiosk),
             buyer,
             nft: nft_id,
             price,
-            seller_safe: object::id(seller_safe),
+            seller_kiosk: object::id(seller_kiosk),
             seller,
             trade_intermediate: option::none(),
             nft_type: type_name::into_string(type_name::get<T>()),
@@ -1502,41 +1475,43 @@ module nft_protocol::orderbook {
         option::destroy_none(maybe_commission);
         balance::destroy_zero(bid_offer);
 
-        safe::transfer_nft_to_safe<T, Witness>(
-            transfer_cap,
-            Witness {},
-            allowlist,
-            seller_safe,
-            buyer_safe,
+        // TODO: This is odd, it should not compile because request does not have drop
+        let tx_request = ob_kiosk::transfer_delegated<T>(
+            seller_kiosk,
+            buyer_kiosk,
+            nft_id,
+            &book.id,
+            price,
             ctx,
         );
     }
 
     fun finish_trade_<T: key + store, FT>(
+        // Note: We need this here to provide &UID
+        book: &Orderbook<T, FT>,
         trade: &mut TradeIntermediate<T, FT>,
-        seller_safe: &mut Safe,
-        buyer_safe: &mut Safe,
-        allowlist: &Allowlist,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        _allowlist: &Allowlist,
         ctx: &mut TxContext,
     ) {
         let TradeIntermediate {
             id: _,
-            transfer_cap,
+            nft_id,
+            seller_kiosk: _,
             paid,
             seller,
-            buyer: _,
-            buyer_safe: expected_buyer_safe_id,
+            buyer,
+            buyer_kiosk: expected_buyer_kiosk_id,
             commission: maybe_commission,
         } = trade;
 
-        let transfer_cap = option::extract(transfer_cap);
-
-        safe::assert_transfer_cap_of_safe(&transfer_cap, seller_safe);
-        safe::assert_transfer_cap_exclusive(&transfer_cap);
         assert!(
-            *expected_buyer_safe_id == object::id(buyer_safe),
-            ESAFE_ID_MISMATCH,
+            *expected_buyer_kiosk_id == object::id(buyer_kiosk),
+            EKIOSK_ID_MISMATCH,
         );
+
+        let price = balance::value(paid);
 
         settle_funds_with_royalties<T, FT>(
             paid,
@@ -1545,12 +1520,13 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        safe::transfer_nft_to_safe<T, Witness>(
-            transfer_cap,
-            Witness {},
-            allowlist,
-            seller_safe,
-            buyer_safe,
+        // TODO: This is odd, it should not compile because request does not have drop
+        let tx_request = ob_kiosk::transfer_delegated<T>(
+            seller_kiosk,
+            buyer_kiosk,
+            *nft_id,
+            &book.id,
+            price,
             ctx,
         );
     }
@@ -1570,7 +1546,7 @@ module nft_protocol::orderbook {
         while (asks_count > index) {
             let ask = vector::borrow(price_level, index);
             // on the same price level, we search for the specified NFT
-            if (nft_id == safe::transfer_cap_nft(&ask.transfer_cap)) {
+            if (nft_id == ask.nft_id) {
                 break
             };
 

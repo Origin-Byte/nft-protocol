@@ -14,7 +14,6 @@ module nft_protocol::suitraders {
     use nft_protocol::creators;
     use nft_protocol::attributes;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::{Self, MintCap};
 
@@ -103,22 +102,6 @@ module nft_protocol::suitraders {
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
         transfer::public_share_object(collection);
-    }
-
-    /// Calculates and transfers royalties to the `RoyaltyDomain`
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<Nft<SUITRADERS>, FT>,
-        collection: &mut Collection<Nft<SUITRADERS>>,
-        ctx: &mut TxContext,
-    ) {
-        let b = royalties::balance_mut(Witness {}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
     public entry fun mint_nft(

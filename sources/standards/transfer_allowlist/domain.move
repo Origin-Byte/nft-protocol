@@ -1,4 +1,4 @@
-/// `TransferAllowlistDomain` tracks allowlist objects which can be used for
+/// `TransferAllowlistDomain` tracks allowlist objects that can be used for
 /// transferring a collection's NFT.
 ///
 /// #### Important
@@ -6,12 +6,13 @@
 /// It is not authoritative and it's the responsibility of the collection
 /// creator to keep it up to date.
 module nft_protocol::transfer_allowlist_domain {
-    use sui::vec_set::{Self, VecSet};
-    use sui::object::{Self, ID};
-
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::transfer_allowlist::Allowlist;
+    use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::transfer_allowlist::{Allowlist, CollectionControlCap};
+    use sui::object::{Self, ID};
+    use sui::package::Publisher;
+    use sui::vec_set::{Self, VecSet};
 
     /// `TransferAllowlistDomain` was not defined on `Collection`
     ///
@@ -68,21 +69,25 @@ module nft_protocol::transfer_allowlist_domain {
     }
 
     /// Like [`add_id`] but as an endpoint
-    public entry fun add_id_with_cap<T>(
-        _cap: &CollectionControlCap<T>,
-        collection: &mut Collection<T>,
+    public entry fun add_id_with_cap<C>(
+        collection_pub: &Publisher,
+        collection: &mut Collection<C>,
         al: &mut Allowlist,
     ) {
+        utils::assert_package_publisher<C>(collection_pub);
+
         let domain = transfer_allowlist_domain_mut(collection);
         vec_set::insert(&mut domain.allowlists, object::id(al));
     }
 
     /// Like [`remove_id`] but as an endpoint
-    public entry fun remove_id_with_cap<T>(
-        _cap: &CollectionControlCap<T>,
-        collection: &mut Collection<T>,
+    public entry fun remove_id_with_cap<C>(
+        collection_pub: &Publisher,
+        collection: &mut Collection<C>,
         id: ID,
     ) {
+        utils::assert_package_publisher<C>(collection_pub);
+
         let domain = transfer_allowlist_domain_mut(collection);
         vec_set::remove(&mut domain.allowlists, &id);
     }

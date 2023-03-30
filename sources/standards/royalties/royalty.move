@@ -10,6 +10,8 @@
 ///
 /// The module relies on an external contract to drive the royalty gathering
 /// and dirtribution flow.
+///
+/// TODO
 module nft_protocol::royalty {
     use std::fixed_point32;
 
@@ -34,37 +36,6 @@ module nft_protocol::royalty {
 
     /// `RoyaltyDomain` stores royalty strategies for `Collection` and
     /// distributes them among creators
-    ///
-    /// ##### Usage
-    ///
-    /// `RoyaltyDomain` can only calculate royalties owed and distribute them
-    /// to shareholders, as a result, it relies on trusted price execution.
-    ///
-    /// The usage example shows how to derive the owed royalties from the
-    /// example collection, `Suimarines`, which uses `TradePayment` as the
-    /// price oracle, but is also responsible for deconstructing it. For more
-    /// information read [royalties](./royalties.html).
-    ///
-    /// ```
-    /// module nft_protocol::suimarines {
-    ///     struct Witness has drop {}
-    ///
-    ///     public entry fun collect_royalty<FT>(
-    ///         payment: &mut TradePayment<SUIMARINES, FT>,
-    ///         collection: &mut Collection<SUIMARINES>,
-    ///         ctx: &mut TxContext,
-    ///     ) {
-    ///         let b = royalties::balance_mut(Witness {}, payment);
-    ///
-    ///         let domain = royalty::royalty_domain(collection);
-    ///         let royalty_owed =
-    ///             royalty::calculate_proportional_royalty(domain, balance::value(b));
-    ///
-    ///         royalty::collect_royalty(collection, b, royalty_owed);
-    ///         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
-    ///     }
-    /// }
-    /// ```
     struct RoyaltyDomain has store {
         /// Royalty strategies
         strategies: UID,

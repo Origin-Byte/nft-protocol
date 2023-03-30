@@ -15,11 +15,12 @@ module nft_protocol::limited_fixed_price {
     use sui::object::{Self, ID, UID};
     use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context::{Self, TxContext};
+    use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
-    use nft_protocol::safe;
+    use nft_protocol::ob_kiosk::{Self, OwnerCap};
     use nft_protocol::venue;
 
     /// Limit of NFTs withdrawn from the market was exceeded
@@ -219,7 +220,8 @@ module nft_protocol::limited_fixed_price {
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
-        buyer_safe: &mut safe::Safe,
+        owner_cap: &OwnerCap,
+        buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         let venue = listing::borrow_venue(listing, venue_id);
@@ -227,7 +229,7 @@ module nft_protocol::limited_fixed_price {
         venue::assert_is_not_whitelisted(venue);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        safe::deposit_nft(nft, buyer_safe, ctx);
+        ob_kiosk::deposit_as_owner(buyer_kiosk, owner_cap, nft);
     }
 
     /// Buy NFT for non-whitelisted sale.
@@ -243,9 +245,14 @@ module nft_protocol::limited_fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let (buyer_safe, owner_cap) = safe::new(ctx);
-        buy_nft_into_safe<T, FT>(listing, venue_id, wallet, &mut buyer_safe, ctx);
-        public_transfer(owner_cap, tx_context::sender(ctx));
+        let (buyer_safe, owner_cap) = ob_kiosk::new(ctx);
+        buy_nft_into_safe<T, FT>(listing, venue_id, wallet, &owner_cap, &mut buyer_safe, ctx);
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_safe,
+            tx_context::sender(ctx)
+        );
         public_share_object(buyer_safe);
     }
 
@@ -272,7 +279,7 @@ module nft_protocol::limited_fixed_price {
     }
 
     /// Buy NFT for whitelisted sale
-    /// Deposits the NFT to a safe and transfers the ownership to the buyer.
+    /// Deposits the NFT to a kiosk and transfers the ownership to the buyer.
     ///
     /// #### Panics
     ///
@@ -282,7 +289,8 @@ module nft_protocol::limited_fixed_price {
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
-        safe: &mut safe::Safe,
+        owner_cap: &OwnerCap,
+        kiosk: &mut Kiosk,
         whitelist_token: Certificate,
         ctx: &mut TxContext,
     ) {
@@ -292,7 +300,7 @@ module nft_protocol::limited_fixed_price {
         market_whitelist::burn(whitelist_token);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        safe::deposit_nft(nft, safe, ctx);
+        ob_kiosk::deposit_as_owner(kiosk, owner_cap, nft);
     }
 
     /// Buy NFT for whitelisted sale
@@ -309,16 +317,22 @@ module nft_protocol::limited_fixed_price {
         whitelist_token: Certificate,
         ctx: &mut TxContext,
     ) {
-        let (buyer_safe, owner_cap) = safe::new(ctx);
+        let (buyer_safe, owner_cap) = ob_kiosk::new(ctx);
         buy_whitelisted_nft_into_safe<T, FT>(
             listing,
             venue_id,
             wallet,
+            &owner_cap,
             &mut buyer_safe,
             whitelist_token,
             ctx,
         );
-        public_transfer(owner_cap, tx_context::sender(ctx));
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_safe,
+            tx_context::sender(ctx)
+        );
         public_share_object(buyer_safe);
     }
 
