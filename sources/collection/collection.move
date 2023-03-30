@@ -7,6 +7,7 @@
 /// information on one object and thus avoid redundancy, and to provide
 /// configuration data to NFTs.
 module nft_protocol::collection {
+    use std::option;
     use std::type_name::{Self, TypeName};
 
     use sui::event;
@@ -87,7 +88,7 @@ module nft_protocol::collection {
             type_name: type_name::get<T>(),
         });
 
-        let cap = mint_cap::new(object::uid_to_inner(&id), ctx);
+        let cap = mint_cap::new(object::uid_to_inner(&id), option::none(), ctx);
 
         (cap, Collection { id })
     }
