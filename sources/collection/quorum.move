@@ -76,7 +76,7 @@ module nft_protocol::quorum {
     const EMIN_ADMIN_COUNT_IS_ONE: u64 = 4;
     const EADDRESS_IS_NOT_ADMIN: u64 = 5;
     const EQUORUM_EXTENSION_MISMATCH: u64 = 6;
-    const EINVALID_DELEGATE: u64 = 6;
+    const EINVALID_DELEGATE: u64 = 7;
 
     struct Quorum<phantom F> has key, store {
         id: UID,
@@ -154,23 +154,14 @@ module nft_protocol::quorum {
     }
 
     public fun create_for_extension<F>(
-        _witness: &F,
+        witness: &F,
         admins: VecSet<address>,
         members: VecSet<address>,
         delegates: VecSet<ID>,
         ctx: &mut TxContext,
     ): (Quorum<F>, ExtensionToken<F>) {
-        let id = object::new(ctx);
-
-        event::emit(CreateQuorumEvent {
-            quorum_id: object::uid_to_inner(&id),
-            type_name: type_name::get<F>(),
-        });
-
-        let admin_count = vec_set::size(&admins);
-        let extension_token = ExtensionToken { quorum_id: object::uid_to_inner(&id) };
-
-        let quorum = Quorum { id, admins, members, delegates, admin_count };
+        let quorum = create(witness, admins, members, delegates, ctx);
+        let extension_token = ExtensionToken { quorum_id: object::id(&quorum) };
 
         (quorum, extension_token)
     }
@@ -187,24 +178,17 @@ module nft_protocol::quorum {
     }
 
     public fun singleton<F>(
-        _witness: &F,
+        witness: &F,
         admin: address,
         ctx: &mut TxContext,
     ): Quorum<F> {
-        let id = object::new(ctx);
-
-        event::emit(CreateQuorumEvent {
-            quorum_id: object::uid_to_inner(&id),
-            type_name: type_name::get<F>(),
-        });
-
-        Quorum {
-            id,
-            admins: vec_set::singleton(admin),
-            members: vec_set::empty(),
-            delegates: vec_set::empty(),
-            admin_count: 1,
-        }
+        create(
+            witness,
+            vec_set::singleton(admin),
+            vec_set::empty(),
+            vec_set::empty(),
+            ctx
+        )
     }
 
     // === Admin Functions ===
@@ -228,7 +212,7 @@ module nft_protocol::quorum {
         old_admin: address,
         ctx: &mut TxContext,
     ) {
-        assert!(quorum.admin_count > 1, EMIN_ADMIN_COUNT_IS_ONE);
+        assert!(quorum.admin_count == 1, EMIN_ADMIN_COUNT_IS_ONE);
 
         let (vote_count, threshold) = vote(quorum, RemoveAdmin { admin: old_admin}, ctx);
 
