@@ -23,10 +23,13 @@ module nft_protocol::mint_cap {
     use nft_protocol::supply::{Self, Supply};
 
     /// `MintCap` is unregulated when expected regulated
-    const EUnregulated: u64 = 1;
+    const EMINT_CAP_UNREGULATED: u64 = 1;
 
     /// `MintCap` is regulated when expected unregulated
-    const ERegulated: u64 = 2;
+    const EMINT_CAP_REGULATED: u64 = 2;
+
+    /// `MintCap` is regulated when expected unregulated
+    const EMINT_CAP_SUPPLY_FROZEN: u64 = 2;
 
     // === MintCap ===
 
@@ -99,6 +102,22 @@ module nft_protocol::mint_cap {
     public fun supply<T>(mint_cap: &MintCap<T>): u64 {
         assert_regulated(mint_cap);
         supply::get_remaining_supply(option::borrow(&mint_cap.supply))
+    }
+
+    public fun is_frozen<T>(mint_cap: &MintCap<T>): bool {
+        assert_regulated(mint_cap);
+        let supply = option::borrow(&mint_cap.supply);
+
+        supply::is_frozen(supply)
+    }
+
+    public fun get_supply<T>(mint_cap: &MintCap<T>): &Supply {
+        assert_regulated(mint_cap);
+        option::borrow(&mint_cap.supply)
+    }
+
+    public fun has_supply<T>(mint_cap: &MintCap<T>): bool {
+        option::is_some(&mint_cap.supply)
     }
 
     /// Returns ID of `Collection` associated with `MintCap`
@@ -174,10 +193,14 @@ module nft_protocol::mint_cap {
     // === Assertions ===
 
     public fun assert_regulated<T>(mint_cap: &MintCap<T>) {
-        assert!(option::is_some(&mint_cap.supply), EUnregulated)
+        assert!(option::is_some(&mint_cap.supply), EMINT_CAP_UNREGULATED)
     }
 
     public fun assert_unregulated<T>(mint_cap: &MintCap<T>) {
-        assert!(option::is_none(&mint_cap.supply), ERegulated)
+        assert!(option::is_none(&mint_cap.supply), EMINT_CAP_REGULATED)
+    }
+
+    public fun assert_frozen<T>(mint_cap: &MintCap<T>) {
+        assert!(is_frozen(mint_cap), EMINT_CAP_SUPPLY_FROZEN);
     }
 }
