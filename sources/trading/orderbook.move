@@ -31,7 +31,6 @@ module nft_protocol::orderbook {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        settle_funds_with_royalties,
         transfer_bid_commission,
     };
 
@@ -293,10 +292,15 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let (buyer_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
+        let (buyer_kiosk, owner_cap) = ob_kiosk::new(ctx);
         create_bid<T, FT>(book, &mut buyer_kiosk, price, wallet, ctx);
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_kiosk,
+            tx_context::sender(ctx)
+        );
         public_share_object(buyer_kiosk);
-        public_transfer(owner_cap, tx_context::sender(ctx));
     }
 
     /// Same as [`create_bid`] but with a
@@ -353,7 +357,7 @@ module nft_protocol::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let (buyer_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
+        let (buyer_kiosk, owner_cap) = ob_kiosk::new(ctx);
         create_bid_with_commission(
             book,
             &mut buyer_kiosk,
@@ -363,8 +367,13 @@ module nft_protocol::orderbook {
             wallet,
             ctx,
         );
+
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_kiosk,
+            tx_context::sender(ctx)
+        );
         public_share_object(buyer_kiosk);
-        public_transfer(owner_cap, tx_context::sender(ctx));
     }
 
     // === Cancel bid ===
@@ -477,7 +486,7 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         let seller = tx_context::sender(ctx);
-        let (seller_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
+        let (seller_kiosk, owner_cap) = ob_kiosk::new(ctx);
 
         deposit_and_list_nft(
             book,
@@ -488,7 +497,11 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        public_transfer(owner_cap, seller);
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &seller_kiosk,
+            seller
+        );
         public_share_object(seller_kiosk);
     }
 
@@ -620,7 +633,7 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         let seller = tx_context::sender(ctx);
-        let (seller_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
+        let (seller_kiosk, owner_cap) = ob_kiosk::new(ctx);
 
         deposit_and_list_nft_with_commission(
             book,
@@ -633,7 +646,11 @@ module nft_protocol::orderbook {
             ctx,
         );
 
-        public_transfer(owner_cap, seller);
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &seller_kiosk,
+            seller
+        );
         public_share_object(seller_kiosk);
     }
 
@@ -784,15 +801,19 @@ module nft_protocol::orderbook {
         ctx: &mut TxContext,
     ) {
         let buyer = tx_context::sender(ctx);
-        let (buyer_kiosk, owner_cap) = ob_kiosk::new(option::none(), ctx);
+        let (buyer_kiosk, owner_cap) = ob_kiosk::new(ctx);
 
         assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_nft_<T, FT>(
             book, nft_id, price, wallet, seller_kiosk, &mut buyer_kiosk, allowlist, ctx
         );
 
-        public_transfer(owner_cap, buyer);
-        public_share_object(buyer_safe);
+        ob_kiosk::transfer_cap_to_owner(
+            owner_cap,
+            &buyer_kiosk,
+            buyer
+        );
+        public_share_object(buyer_kiosk);
     }
 
     /// Same as [`buy_nft`] but protected by

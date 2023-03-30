@@ -8,7 +8,7 @@
 ///
 /// We interoperate with the sui ecosystem by allowing our `TransferRequest` to
 /// be converted into the sui version.
-/// This is only possible if the payment was done in SUI token.
+/// This is only possible for the cases where the payment is done in SUI token.
 module nft_protocol::transfer_policy {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};

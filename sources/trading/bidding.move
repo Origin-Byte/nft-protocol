@@ -6,6 +6,7 @@ module nft_protocol::bidding {
     use std::type_name;
 
     use sui::event::emit;
+    use sui::kiosk::Kiosk;
     use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
     use sui::balance::{Self, Balance};
@@ -13,8 +14,8 @@ module nft_protocol::bidding {
     use sui::transfer::{public_transfer, share_object};
 
     use nft_protocol::err;
+    use nft_protocol::transfer_policy::{Self, TransferRequest};
     use nft_protocol::ob_kiosk::{Self, OwnerCap};
-    use nft_protocol::kiosk::Kiosk;
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::trading::{
         AskCommission,
@@ -23,7 +24,6 @@ module nft_protocol::bidding {
         destroy_bid_commission,
         new_ask_commission,
         new_bid_commission,
-        settle_funds_with_royalties,
         transfer_bid_commission,
     };
 
@@ -144,7 +144,7 @@ module nft_protocol::bidding {
         buyers_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
-    ) {
+    ): TransferRequest<T> {
         sell_nft_<T, FT>(
             bid,
             owner_cap,
@@ -154,7 +154,7 @@ module nft_protocol::bidding {
             buyers_kiosk,
             allowlist,
             ctx,
-        );
+        )
     }
 
     /// Entry function to sell an NFT with an open `bid`.
@@ -180,7 +180,7 @@ module nft_protocol::bidding {
         buyers_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
-    ) {
+    ): TransferRequest<T> {
         let commission = new_ask_commission(
             beneficiary,
             commission_ft,
@@ -194,7 +194,7 @@ module nft_protocol::bidding {
             buyers_kiosk,
             allowlist,
             ctx,
-        );
+        )
     }
 
     /// If a user wants to cancel their position, they get their coins back.
@@ -270,7 +270,7 @@ module nft_protocol::bidding {
         buyers_kiosk: &mut Kiosk,
         allowlist: &Allowlist,
         ctx: &mut TxContext,
-    ) {
+    ): TransferRequest<T> {
         ob_kiosk::assert_owner_cap(sellers_kiosk, owner_cap);
         ob_kiosk::assert_is_ob_kiosk(sellers_kiosk);
         ob_kiosk::assert_is_ob_kiosk(buyers_kiosk);
@@ -278,24 +278,17 @@ module nft_protocol::bidding {
 
         let price = balance::value(&bid.offer);
         assert!(price != 0, EBID_ALREADY_CLOSED);
-        // TODO: Confirm, I don't think commission should pay royalties, these should be linear
-        // settle_funds_with_royalties<C, FT>(
-        //     &mut bid.offer,
-        //     tx_context::sender(ctx),
-        //     &mut ask_commission,
-        //     ctx,
-        // );
         option::destroy_none(ask_commission);
 
         // TODO: This is odd, it should not compile because request does not have drop
-        let tx_request = ob_kiosk::transfer<T>(
+        let tx_builder = ob_kiosk::transfer_signed<T>(
             sellers_kiosk,
             buyers_kiosk,
             nft_id,
-            owner_cap,
-            price,
             ctx,
         );
+
+        let tx_request = transfer_policy::build(tx_builder);
 
         transfer_bid_commission(&mut bid.commission, ctx);
 
@@ -308,6 +301,8 @@ module nft_protocol::bidding {
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
             nft_type: *type_name::borrow_string(&type_name::get<T>()),
         });
+
+        tx_request
     }
 
     fun close_bid_<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
