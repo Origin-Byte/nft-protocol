@@ -127,7 +127,7 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &MintCap<Nft<SUITRADERS>>,
+        mint_cap: &mut MintCap<Nft<SUITRADERS>>,
         warehouse: &mut Warehouse<Nft<SUITRADERS>>,
         ctx: &mut TxContext,
     ) {

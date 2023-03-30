@@ -80,7 +80,7 @@ module nft_protocol::tribal_realms {
         name: String,
         description: String,
         url: vector<u8>,
-        mint_cap: &MintCap<Nft<TRIBAL_REALMS>>,
+        mint_cap: &mut MintCap<Nft<TRIBAL_REALMS>>,
         warehouse: &mut Warehouse<Nft<TRIBAL_REALMS>>,
         ctx: &mut TxContext,
     ) {

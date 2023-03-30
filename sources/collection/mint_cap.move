@@ -13,13 +13,20 @@
 /// `UnregulatedMintCap` is that they may not be used to further delegate more
 /// mint capabilities.
 module nft_protocol::mint_cap {
+    use std::option::{Self, Option};
+
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
     use nft_protocol::supply::{Self, Supply};
 
     friend nft_protocol::collection;
-    friend nft_protocol::supply_domain;
+
+    /// `MintCap` is unregulated when expected regulated
+    const EUnregulated: u64 = 1;
+
+    /// `MintCap` is regulated when expected unregulated
+    const ERegulated: u64 = 2;
 
     // === MintCap ===
 
@@ -35,186 +42,133 @@ module nft_protocol::mint_cap {
         ///
         /// Intended for discovery.
         collection_id: ID,
+        /// Supply that `MintCap` can mint
+        supply: Option<Supply>,
     }
 
-    /// Create a new `MintCap`
-    ///
-    /// Only one `MintCap` must exist per collection
     public(friend) fun new<T>(
+        collection_id: ID,
+        supply: Option<u64>,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        if (option::is_some(&supply)) {
+            new_regulated(
+                collection_id, option::destroy_some(supply), ctx,
+            )
+        } else {
+            new_unregulated(collection_id, ctx)
+        }
+    }
+
+    /// Create a new `MintCap` with unregulated supply
+    public(friend) fun new_unregulated<T>(
         collection_id: ID,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        MintCap { id: object::new(ctx), collection_id }
+        MintCap { id: object::new(ctx), collection_id, supply: option::none() }
+    }
+
+    /// Create a new `MintCap` with regulated supply
+    public(friend) fun new_regulated<T>(
+        collection_id: ID,
+        supply: u64,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        MintCap {
+            id: object::new(ctx),
+            collection_id,
+            supply: option::some(supply::new(supply)),
+        }
     }
 
     /// Returns ID of `Collection` associated with `MintCap`
-    public fun collection_id<T>(mint: &MintCap<T>): ID {
-        mint.collection_id
+    public fun collection_id<T>(mint_cap: &MintCap<T>): ID {
+        mint_cap.collection_id
     }
 
-    // === UnregulatedMintCap ===
-
-    /// `UnregulatedMintCap` delegates the capability to it's owner to mint
-    /// `Nft` from collections with unregulated supply.
-    struct UnregulatedMintCap<phantom T> has key, store {
-        /// `RegulatedMintCap` ID
-        id: UID,
-        /// ID of the `Collection` that `RegulatedMintCap` controls
-        ///
-        /// Intended for discovery.
-        collection_id: ID,
-    }
-
-    /// Create a new `UnregulatedMintCap`
-    ///
-    /// `UnregulatedMintCap` may only be created by
-    /// `supply_domain::delegate_unregulated`.
-    public(friend) fun new_unregulated<T>(
-        _mint_cap: &MintCap<T>,
-        collection_id: ID,
-        ctx: &mut TxContext,
-    ): UnregulatedMintCap<T> {
-        UnregulatedMintCap {
-            id: object::new(ctx),
-            collection_id
-        }
-    }
-
-    /// Delete `UnregulatedMintCap`
-    public fun delete_unregulated<T>(mint: UnregulatedMintCap<T>) {
-        let UnregulatedMintCap {
-            id,
-            collection_id: _,
-        } = mint;
-        object::delete(id);
-    }
-
-    /// Returns ID of `Collection` associated with `RegulatedMintCap`
-    public fun unregulated_collection_id<T>(mint: &UnregulatedMintCap<T>): ID {
-        mint.collection_id
-    }
-
-    // === RegulatedMintCap ===
-
-    /// `RegulatedMintCap` delegates the capability to it's owner to mint
-    /// `Nft` from collections with regulated supply.
-    struct RegulatedMintCap<phantom T> has key, store {
-        /// `RegulatedMintCap` ID
-        id: UID,
-        /// ID of the `Collection` that `RegulatedMintCap` controls
-        ///
-        /// Intended for discovery.
-        collection_id: ID,
-        /// Supply that `RegulatedMintCap` is entitled to mint
-        supply: Supply,
-    }
-
-    /// Create a new `RegulatedMintCap`
-    ///
-    /// `RegulatedMintCap` may only be created by
-    /// `supply_domain::delegate_regulated`.
-    public(friend) fun new_regulated<T>(
-        _mint_cap: &MintCap<T>,
-        collection_id: ID,
-        supply: Supply,
-        ctx: &mut TxContext,
-    ): RegulatedMintCap<T> {
-        RegulatedMintCap {
-            id: object::new(ctx),
-            collection_id,
-            supply,
-        }
-    }
-
-    /// Create a new `RegulatedMintCap` from `UnregulatedMintCap`
-    ///
-    /// Presence of `UnregulatedMintCap` implies that `Collection` supply is
-    /// unregulated, therefore it is safe to create arbitrary
-    /// `RegulatedMintCap`.
-    public fun from_unregulated<T>(
-        mint_cap: UnregulatedMintCap<T>,
-        supply: u64,
-        ctx: &mut TxContext,
-    ): RegulatedMintCap<T> {
-        let collection_id = unregulated_collection_id(&mint_cap);
-        delete_unregulated(mint_cap);
-
-        RegulatedMintCap {
-            id: object::new(ctx),
-            collection_id,
-            supply: supply::new(supply, true),
-        }
-    }
-
-    /// Creates a new `RegulatedMintCap` by delegating some supply from an
-    /// existing `RegulatedMintCap`.
+    /// Return remaining supply
     ///
     /// #### Panics
     ///
-    /// Panics if supply exceeds maximum.
-    public fun delegate<T>(
-        delegated: &mut RegulatedMintCap<T>,
-        value: u64,
-        ctx: &mut TxContext,
-    ): RegulatedMintCap<T> {
-        let supply = supply::extend(borrow_supply_mut(delegated), value);
-        RegulatedMintCap {
-            id: object::new(ctx),
-            collection_id: regulated_collection_id(delegated),
-            supply,
-        }
+    /// Panics if supply is unregulated.
+    public fun supply<T>(mint_cap: &MintCap<T>): u64 {
+        assert_regulated(mint_cap);
+        supply::supply(option::borrow(&mint_cap.supply))
     }
 
-    /// Creates a new `RegulatedMintCap` by delegating all remaining supply
-    /// from existing `RegulatedMintCap`.
-    public fun delegate_all<T>(
-        delegated: &mut RegulatedMintCap<T>,
-        ctx: &mut TxContext,
-    ): RegulatedMintCap<T> {
-        let supply = supply::supply(borrow_supply(delegated));
-        delegate(delegated, supply, ctx)
+    /// Returns ID of `Collection` associated with `MintCap`
+    public fun borrow_supply<T>(mint_cap: &MintCap<T>): &Option<Supply> {
+        &mint_cap.supply
     }
 
-    /// Delete `RegulatedMintCap`
-    public fun delete_regulated<T>(mint: RegulatedMintCap<T>): Supply {
-        let RegulatedMintCap {
-            id,
-            collection_id: _,
-            supply
-        } = mint;
-        object::delete(id);
-        supply
-    }
-
-    /// Returns ID of `Collection` associated with `RegulatedMintCap`
-    public fun regulated_collection_id<T>(mint: &RegulatedMintCap<T>): ID {
-        mint.collection_id
-    }
-
-    /// Borrow `RegulatedMintCap` `Supply`
-    public fun borrow_supply<T>(delegated: &RegulatedMintCap<T>): &Supply {
-        &delegated.supply
-    }
-
-    /// Mutably borrow `RegulatedMintCap` `Supply`
-    fun borrow_supply_mut<T>(
-        delegated: &mut RegulatedMintCap<T>,
-    ): &mut Supply {
-        &mut delegated.supply
-    }
-
-    /// Increments the delegated supply of `Inventory`
+    /// Increment `MintCap` supply
     ///
-    /// This endpoint must be called before a new `Nft` object is created to
-    /// ensure that global supply tracking remains consistent.
+    /// This function should be called each time `MintCap` is used to authorize
+    /// a mint.
     ///
     /// #### Panics
     ///
-    /// Panics if delegated supply is exceeded.
-    public entry fun increment_supply<T>(
-        delegated: &mut RegulatedMintCap<T>,
-        value: u64,
+    /// Panics if supply is execeeded.
+    public fun increment_supply<T>(
+        mint_cap: &mut MintCap<T>,
+        quantity: u64,
     ) {
-        supply::increment(&mut delegated.supply, value);
+        if (option::is_some(&mint_cap.supply)) {
+            supply::increment(option::borrow_mut(&mut mint_cap.supply), quantity);
+        }
+    }
+
+    /// Create a new `MintCap` by delegating supply from unregulated or
+    /// regulated `MintCap`.
+    public fun delegate<T>(
+        mint_cap: &mut MintCap<T>,
+        quantity: u64,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        let supply = if (option::is_some(&mint_cap.supply)) {
+            supply::split(option::borrow_mut(&mut mint_cap.supply), quantity)
+        } else {
+            supply::new(quantity)
+        };
+
+        MintCap {
+            id: object::new(ctx),
+            collection_id: mint_cap.collection_id,
+            supply: option::some(supply),
+        }
+    }
+
+    /// Merge two `MintCap` together
+    public fun merge<T>(
+        mint_cap: &mut MintCap<T>,
+        other: MintCap<T>,
+    ) {
+        let MintCap { id, collection_id: _, supply } = other;
+
+        if (option::is_some(&supply)) {
+            assert_unregulated(mint_cap);
+            supply::merge(
+                option::borrow_mut(&mut mint_cap.supply),
+                option::destroy_some(supply),
+            );
+        };
+
+        object::delete(id);
+    }
+
+    /// Delete `MintCap`
+    public fun delete_mint_cap<T>(mint_cap: MintCap<T>) {
+        let MintCap { id, collection_id: _, supply: _ } = mint_cap;
+        object::delete(id);
+    }
+
+    // === Assertions ===
+
+    public fun assert_regulated<T>(mint_cap: &MintCap<T>) {
+        assert!(option::is_some(&mint_cap.supply), EUnregulated)
+    }
+
+    public fun assert_unregulated<T>(mint_cap: &MintCap<T>) {
+        assert!(option::is_none(&mint_cap.supply), ERegulated)
     }
 }

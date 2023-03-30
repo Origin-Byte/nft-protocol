@@ -21,9 +21,7 @@ module nft_protocol::nft {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::mint_cap::{
-        Self, MintCap, RegulatedMintCap, UnregulatedMintCap,
-    };
+    use nft_protocol::mint_cap::{Self, MintCap};
 
     /// Domain not defined
     ///
@@ -95,6 +93,9 @@ module nft_protocol::nft {
     /// be used by functions defined within that contract due to the potential
     /// to violate correctness guarantees in other parts of the codebase.
     ///
+    /// `mint_cap::increment_supply` should be called when instantiating a new
+    /// `Nft` using this method if you are tracking supply using `MintCap`.
+    ///
     /// #### Usage
     ///
     /// ```
@@ -117,46 +118,12 @@ module nft_protocol::nft {
 
     /// Create a new `Nft` using `MintCap`
     public fun from_mint_cap<C>(
-        _mint_cap: &MintCap<Nft<C>>,
-        name: string::String,
-        url: Url,
-        ctx: &mut TxContext,
-    ): Nft<C> {
-        new_(name, url, ctx)
-    }
-
-    /// Create a new `Nft` using `RegulatedMintCap`
-    ///
-    /// `RegulatedMintCap` may only be created by
-    /// `supply_domain::delegate_regulated`.
-    ///
-    /// See [new](#new) for usage information.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if supply is exceeded.
-    public fun from_regulated<C>(
-        mint_cap: &mut RegulatedMintCap<Nft<C>>,
+        mint_cap: &mut MintCap<Nft<C>>,
         name: string::String,
         url: Url,
         ctx: &mut TxContext,
     ): Nft<C> {
         mint_cap::increment_supply(mint_cap, 1);
-        new_(name, url, ctx)
-    }
-
-    /// Create a new `Nft` using `UnregulatedMintCap`
-    ///
-    /// `UnregulatedMintCap` may only be created by
-    /// `supply_domain::delegate_unregulated`.
-    ///
-    /// See [new](#new) for usage information.
-    public fun from_unregulated<C>(
-        _mint_cap: &UnregulatedMintCap<Nft<C>>,
-        name: string::String,
-        url: Url,
-        ctx: &mut TxContext,
-    ): Nft<C> {
         new_(name, url, ctx)
     }
 
@@ -315,50 +282,6 @@ module nft_protocol::nft {
     /// exists.
     public fun add_domain_with_mint_cap<C, Domain: store>(
         _mint_cap: &MintCap<Nft<C>>,
-        nft: &mut Nft<C>,
-        domain: Domain,
-    ) {
-        // assert_logical_owner(nft, ctx);
-        add_domain_(nft, domain)
-    }
-
-    /// Adds domain of to `Nft`
-    ///
-    /// Same as [add_domain](#add_domain) but uses `RegulatedMintCap` to
-    /// authenticate the operation.
-    ///
-    /// Requires that transaction sender is the logical owner of the NFT.
-    /// Prevents entities delegated the sole right ot mint NFTs from
-    /// registering arbitrary domains on existing NFTs.
-    ///
-    /// #### Panics
-    ///
-    /// Panics transaction sender is not logical owner or if domain already
-    /// exists.
-    public fun add_domain_with_regulated<C, Domain: store>(
-        _mint_cap: &RegulatedMintCap<Nft<C>>,
-        nft: &mut Nft<C>,
-        domain: Domain,
-    ) {
-        // assert_logical_owner(nft, ctx);
-        add_domain_(nft, domain)
-    }
-
-    /// Adds domain to `Nft`
-    ///
-    /// Same as [add_domain](#add_domain) but uses `UnregulatedMintCap` to
-    /// authenticate the operation.
-    ///
-    /// Requires that transaction sender is the logical owner of the NFT.
-    /// Prevents entities delegated the sole right ot mint NFTs from
-    /// registering arbitrary domains on existing NFTs.
-    ///
-    /// #### Panics
-    ///
-    /// Panics transaction sender is not logical owner or if domain already
-    /// exists.
-    public fun add_domain_with_unregulated<C, Domain: store>(
-        _mint_cap: &UnregulatedMintCap<Nft<C>>,
         nft: &mut Nft<C>,
         domain: Domain,
     ) {

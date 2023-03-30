@@ -38,9 +38,15 @@ module nft_protocol::example_simple {
 
         nft_protocol::supply_domain::regulate(
             &Witness {},
+            mint_cap,
             &mut collection,
             1000,
             true
+        );
+
+        // Request a `MintCap` that has the right to mint 1000 NFTs
+        let mint_cap = nft_protocol::supply_domain::delegate(
+            &mut collection, 1000, ctx,
         );
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));

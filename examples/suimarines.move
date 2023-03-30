@@ -117,7 +117,7 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &MintCap<Nft<SUIMARINES>>,
+        mint_cap: &mut MintCap<Nft<SUIMARINES>>,
         warehouse: &mut Warehouse<Nft<SUIMARINES>>,
         ctx: &mut TxContext,
     ) {
@@ -140,7 +140,7 @@ module nft_protocol::suimarines {
         url: vector<vector<u8>>,
         attribute_keys: vector<vector<ascii::String>>,
         attribute_values: vector<vector<ascii::String>>,
-        mint_cap: &MintCap<Nft<SUIMARINES>>,
+        mint_cap: &mut MintCap<Nft<SUIMARINES>>,
         warehouse: &mut Warehouse<Nft<SUIMARINES>>,
         ctx: &mut TxContext,
     ) {
@@ -174,7 +174,7 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &MintCap<Nft<SUIMARINES>>,
+        mint_cap: &mut MintCap<Nft<SUIMARINES>>,
         ctx: &mut TxContext,
     ): Nft<SUIMARINES> {
         let url = sui::url::new_unsafe_from_bytes(url);
