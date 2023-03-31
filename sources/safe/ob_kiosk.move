@@ -1,8 +1,7 @@
 module nft_protocol::ob_kiosk {
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
-    use nft_protocol::lock::{Self, MutLock};
+    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::access_policy::{Self, AccessPolicy};
+    use nft_protocol::access_policy::{Self as ap, AccessPolicy};
     use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
     use originmate::typed_id::{Self, TypedID};
 
@@ -14,6 +13,8 @@ module nft_protocol::ob_kiosk {
     use sui::transfer::{public_share_object};
     use sui::tx_context::{TxContext, sender};
     use sui::vec_set::{Self, VecSet};
+
+    struct Witness has drop {}
 
     // === Errors ===
 
@@ -406,20 +407,48 @@ module nft_protocol::ob_kiosk {
 
     // === NFT Accessors ===
 
-    public fun borrow_nft_mut<OTW: drop, T: key + store, Field: store>(
+    public fun borrow_nft_field_mut<OTW: drop, T: key + store, Field: store>(
         kiosk: &mut Kiosk,
         collection: &Collection<OTW>,
         nft_id: TypedID<T>,
         ctx: &mut TxContext,
-    ): (ConsumableWitness<T>, MutLock<T>) {
+    ): (MutLock<Witness, T>, ReturnPromise<T>) {
+        // TODO: Need to guarantee that NFT is not listed anywhere
         // TODO: Assert T lives in the OTW universe
-        let consumable = access_policy::access_for_field<OTW, T, Field>(collection, ctx);
+        ap::assert_field_auth<OTW, T, Field>(collection, ctx);
+
+        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
+        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
+
+        mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft)
+    }
+
+    public fun borrow_nft_mut<OTW: drop, T: key + store>(
+        kiosk: &mut Kiosk,
+        collection: &Collection<OTW>,
+        nft_id: TypedID<T>,
+        ctx: &mut TxContext,
+    ): (MutLock<Witness, T>, ReturnPromise<T>) {
+        // TODO: Assert T lives in the OTW universe
+        // TODO: Need to guarantee that NFT is not listed anywhere
+        ap::assert_parent_auth<OTW, T>(collection, ctx);
+
+        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
+        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
+
+        mut_lock::lock_nft_global<Witness, T>(Witness {}, nft)
+    }
+
+    public fun return_nft<OTW: drop, T: key + store>(
+        kiosk: &mut Kiosk,
+        locked_nft: MutLock<Witness, T>,
+        promise: ReturnPromise<T>,
+    ) {
+        // TODO: Assert T lives in the OTW universe
+        let nft = mut_lock::unlock_nft(Witness {}, locked_nft, promise);
         let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
 
-        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
-        let locked_nft = access_policy::lock_nft_for_mutation<T, Field>(nft, &consumable);
-
-        (consumable, locked_nft)
+        kiosk::place<T>(kiosk, owner_cap, nft);
     }
 
 

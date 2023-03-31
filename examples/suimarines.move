@@ -3,17 +3,16 @@ module nft_protocol::suimarines {
     use std::string::{Self, String};
     use std::vector;
 
-    use sui::object;
+    use sui::object::{Self, UID};
     use sui::balance;
     use sui::transfer;
     use sui::dynamic_field as df;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::lock::MutLock;
+    use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
     use nft_protocol::tags;
     use nft_protocol::utils;
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness, ReturnFieldPLEASE};
     use nft_protocol::royalty;
     use nft_protocol::witness;
     use nft_protocol::creators;
@@ -30,6 +29,7 @@ module nft_protocol::suimarines {
     const EWRONG_ATTRIBUTE_VALUES_LENGTH: u64 = 4;
 
     struct Submarine has key, store {
+        id: UID,
         name: String,
         index: u64,
     }
@@ -67,28 +67,41 @@ module nft_protocol::suimarines {
     }
 
     public entry fun get_nft_field<Field: store>(
-        locked_nft: MutLock<Submarine>,
-        consumable: ConsumableWitness<Submarine>,
-    ): (Field, ReturnFieldPLEASE<Field>) {
-        // assert consumable
-        let nft = unlock_nft(locked_nft);
+        locked_nft: &mut MutLock<Submarine>,
+    ): (Field, ReturnFieldPromise<Field>) {
 
-        let field = df::remove(nft, utils::marker<Field>());
-        cw::consume<Submarine, Field>(consumable, &mut field);
+        let nft = mut_lock::borrow_nft_as_witness(Witness {}, locked_nft);
 
-        let return_please = cw::return_please(&mut field);
+        // TODO: Change FIELDS to use MARKER INSTEAD OF KEY!
+        let field = df::remove(&mut nft.id, utils::marker<Field>());
 
-        (field, return_please)
+        let promise = mut_lock::issue_return_field_promise<Field>();
+
+        (field, promise)
+    }
+
+    public entry fun return_nft_field<Field: store>(
+        locked_nft: &mut MutLock<Submarine>,
+        field: Field,
+        promise: ReturnFieldPromise<Field>
+    ) {
+        let nft = mut_lock::borrow_nft_as_witness(Witness {}, locked_nft);
+
+        mut_lock::consume_field_promise(Witness {}, locked_nft, &field, promise);
+
+        df::add(&mut nft.id, utils::marker<Field>(), field);
     }
 
     public entry fun mint_nft(
         name: String,
         index: u64,
-        warehouse: &mut Warehouse<SuiMarine>,
+        warehouse: &mut Warehouse<Submarine>,
+        ctx: &mut TxContext,
     ) {
         let nft = mint(
             name,
-            index
+            index,
+            ctx
         );
 
         warehouse::deposit_nft(warehouse, nft);
@@ -98,8 +111,10 @@ module nft_protocol::suimarines {
     fun mint(
         name: String,
         index: u64,
-    ): SuiMarine {
-        SuiMarine {
+        ctx: &mut TxContext,
+    ): Submarine {
+        Submarine {
+            id: object::new(ctx),
             name,
             index,
         }

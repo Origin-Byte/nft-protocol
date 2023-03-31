@@ -13,10 +13,9 @@ module nft_protocol::access_policy {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::lock::{Self, MutLock};
+    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
     use nft_protocol::utils::{Self, UidType};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// When trying to create an access policy when it already exists
     const EACCESS_POLICY_ALREADY_EXISTS: u64 = 1;
@@ -157,43 +156,8 @@ module nft_protocol::access_policy {
     //     }
     // }
 
-    public fun access_for_field<OTW: drop, T: key + store, Field: store>(
-        // TODO: Add way to get collection bag
-        collection: &Collection<OTW>,
-        // access_policy: &AccessPolicy<T>,
-        ctx: &TxContext,
-    ): ConsumableWitness<T> {
-        let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
-            Witness {},
-            collection
-        );
-
-        let vec_set = table::borrow(
-            &access_policy.field_access, type_name::get<Field>()
-        );
-
-        assert!(
-            vec_set::contains(vec_set, &tx_context::sender(ctx)),
-            EFIELD_ACCESS_DENIED
-        );
-
-        cw::from_access_policy<T>(type_name::get<Field>())
-    }
-
-    public fun lock_nft_for_mutation<T: key + store, Field: store>(
-        nft: T,
-        consumable: &ConsumableWitness<T>
-    ): MutLock<T> {
-        // Checks if fields correspond
-        cw::assert_consumable<T, Field>(consumable);
-
-        lock::new(nft, type_name::get<Field>())
-    }
-
     public fun assert_field_auth<OTW: drop, T: key + store, Field: store>(
-        // TODO: Add way to get collection bag
         collection: &Collection<OTW>,
-        // access_policy: &AccessPolicy<T>,
         ctx: &TxContext,
     ) {
         let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
@@ -211,10 +175,8 @@ module nft_protocol::access_policy {
         );
     }
 
-    public fun assert_parent_auth<OTW: drop, T: key + store, Field: store>(
-        // TODO: Add way to get collection bag
+    public fun assert_parent_auth<OTW: drop, T: key + store>(
         collection: &Collection<OTW>,
-        // access_policy: &AccessPolicy<T>,
         ctx: &TxContext,
     ) {
         let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
