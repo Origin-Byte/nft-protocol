@@ -126,7 +126,7 @@ module nft_protocol::utils {
         assert!(uid_id == object_id, 0);
     }
 
-    public fun assert_same_module<T, Witness>() {
+    public fun assert_same_module<T, Witness: drop>() {
         let (package_a, module_a, _) = get_package_module_type<T>();
         let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
 

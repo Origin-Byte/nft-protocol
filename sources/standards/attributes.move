@@ -34,6 +34,7 @@ module nft_protocol::attributes {
     struct Witness has drop {}
 
     /// Key struct used to store Attributes in dynamic fields
+    // TODO: Deprecate
     struct AttributesKey has store, copy, drop {}
 
 

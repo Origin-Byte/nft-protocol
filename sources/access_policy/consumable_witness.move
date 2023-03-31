@@ -1,15 +1,17 @@
 /// Module of the `ConsumableWitness` used for generating Witnesses that must
 /// be consumed by a specific object of a specific module
 module nft_protocol::consumable_witness {
+    use sui::object::{Self, ID};
     use std::type_name::{Self, TypeName};
     use nft_protocol::utils;
 
     friend nft_protocol::access_policy;
 
-    /// Collection generic witness type
     struct ConsumableWitness<phantom T> {
         field: TypeName,
     }
+
+    struct ReturnFieldPLEASE<phantom F> {}
 
     /// Create a new `ConsumableWitness` from collection witness
     public fun new<T, W>(_witness: &W, field: TypeName): ConsumableWitness<T> {
@@ -40,6 +42,12 @@ module nft_protocol::consumable_witness {
 
         // Consume witness
         ConsumableWitness { field: _ } = consumable;
+    }
+
+    // It's &mut because we want only user with mutable access
+    // to create this hot potato
+    public fun return_please<Field: store>(_field: &mut Field): ReturnFieldPLEASE<Field> {
+        ReturnFieldPLEASE {}
     }
 
     public fun assert_consumable<T, Field>(consumable: &ConsumableWitness<T>) {

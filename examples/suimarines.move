@@ -6,10 +6,14 @@ module nft_protocol::suimarines {
     use sui::object;
     use sui::balance;
     use sui::transfer;
+    use sui::dynamic_field as df;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::lock::MutLock;
     use nft_protocol::tags;
+    use nft_protocol::utils;
+    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness, ReturnFieldPLEASE};
     use nft_protocol::royalty;
     use nft_protocol::witness;
     use nft_protocol::creators;
@@ -25,7 +29,7 @@ module nft_protocol::suimarines {
     const EWRONG_ATTRIBUTE_KEYS_LENGTH: u64 = 3;
     const EWRONG_ATTRIBUTE_VALUES_LENGTH: u64 = 4;
 
-    struct SuiMarine has key, store {
+    struct Submarine has key, store {
         name: String,
         index: u64,
     }
@@ -62,12 +66,19 @@ module nft_protocol::suimarines {
         transfer::public_share_object(collection);
     }
 
-    public entry fun get_nft_field(
-        locked_nft: MutLock<T>,
+    public entry fun get_nft_field<Field: store>(
+        locked_nft: MutLock<Submarine>,
+        consumable: ConsumableWitness<Submarine>,
+    ): (Field, ReturnFieldPLEASE<Field>) {
+        // assert consumable
+        let nft = unlock_nft(locked_nft);
 
-    ) {
+        let field = df::remove(nft, utils::marker<Field>());
+        cw::consume<Submarine, Field>(consumable, &mut field);
 
+        let return_please = cw::return_please(&mut field);
 
+        (field, return_please)
     }
 
     public entry fun mint_nft(
