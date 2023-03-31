@@ -288,7 +288,7 @@ module nft_protocol::collection {
         _witness: W,
         collection: &Collection<OTW>,
     ): &Field {
-        utils::assert_same_module<W, Field>();
+        utils::assert_same_module<Field, W>();
         // It's up that field to implement correct collection witness access control.
         bag::borrow(&collection.bag, type_name::get<Field>())
     }
