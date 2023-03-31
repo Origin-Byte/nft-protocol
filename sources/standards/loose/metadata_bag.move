@@ -23,9 +23,9 @@ module nft_protocol::metadata_bag {
     struct Witness has drop {}
 
     /// `MetadataBagDomain` object
-    struct MetadataBagDomain<T: key + store> has key, store {
+    struct MetadataBagDomain<phantom C> has key, store {
         id: UID,
-        table: ObjectTable<ID, Metadata<T>>,
+        table: ObjectTable<ID, Metadata<C>>,
     }
 
     /// Create a `MetadataBagDomain` object
@@ -39,18 +39,18 @@ module nft_protocol::metadata_bag {
     }
 
     /// Create a `MetadataBagDomain` object and register on `Collection`
-    public fun init_metadata_bag<T: key + store, W>(
+    public fun init_metadata_bag<C, W>(
         witness: &W,
         collection: &mut Collection<Nft<C>>,
         ctx: &mut TxContext,
     ) {
-        let metadata_bag = new_metadata_bag<T>(ctx);
+        let metadata_bag = new_metadata_bag<C>(ctx);
         collection::add_domain(witness, collection, metadata_bag);
     }
 
     /// Returns whether `Metadata` with `ID` is registered on `MetadataBagDomain`
-    public fun contains_metadata<T: key + store>(
-        metadata_bag: &MetadataBagDomain<T>,
+    public fun contains_metadata<C>(
+        metadata_bag: &MetadataBagDomain<C>,
         metadata_id: ID,
     ): bool {
         object_table::contains(&metadata_bag.table, metadata_id)
@@ -61,10 +61,10 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Metadata` does not exist on `MetadataBagDomain`.
-    public fun borrow_metadata<T: key + store>(
-        metadata_bag: &MetadataBagDomain<T>,
+    public fun borrow_metadata<C>(
+        metadata_bag: &MetadataBagDomain<C>,
         metadata_id: ID,
-    ): &Metadata<T> {
+    ): &Metadata<C> {
         assert_metadata(metadata_bag, metadata_id);
         object_table::borrow(&metadata_bag.table, metadata_id)
     }
@@ -74,10 +74,10 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Metadata` does not exist on `MetadataBagDomain`.
-    fun borrow_metadata_mut<T: key + store>(
-        metadata_bag: &mut MetadataBagDomain<T>,
+    fun borrow_metadata_mut<C>(
+        metadata_bag: &mut MetadataBagDomain<C>,
         metadata_id: ID,
-    ): &mut Metadata<T> {
+    ): &mut Metadata<C> {
         assert_metadata(metadata_bag, metadata_id);
         object_table::borrow_mut(&mut metadata_bag.table, metadata_id)
     }
@@ -105,7 +105,7 @@ module nft_protocol::metadata_bag {
     }
 
     /// Add `MetadataBagDomain` to `Collection`
-    public fun add_metadata_bag<T: key + store, W>(
+    public fun add_metadata_bag<C, W>(
         witness: &W,
         collection: &mut Collection<Nft<C>>,
         metadata_bag: MetadataBagDomain<C>,
@@ -188,12 +188,12 @@ module nft_protocol::metadata_bag {
     }
 
     /// Asserts that `Metadata` with `ID` is registered on `MetadataBagDomain`
-    public fun assert_metadata<T: key + store>(
-        metadata_bag: &MetadataBagDomain<T>,
+    public fun assert_metadata<C>(
+        metadata_bag: &MetadataBagDomain<C>,
         metadata_id: ID,
     ) {
         assert!(
-            contains_metadata<T>(metadata_bag, metadata_id),
+            contains_metadata<C>(metadata_bag, metadata_id),
             EUNDEFINED_ARCHETYPE
         );
     }

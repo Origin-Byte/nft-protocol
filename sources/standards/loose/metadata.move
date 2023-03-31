@@ -24,7 +24,7 @@ module nft_protocol::metadata {
     const EREGULATED_ARCHETYPE: u64 = 2;
 
     /// `Metadata` object
-    struct Metadata<T: key + store> has key, store {
+    struct Metadata<phantom C> has key, store {
         id: UID,
         metadata: Nft<C>,
         supply: Option<Supply>,
@@ -101,7 +101,7 @@ module nft_protocol::metadata {
     }
 
     /// Returns the `Metadata` `Nft`
-    public fun borrow_metadata<T: key + store>(metadata: &Metadata<T>): &T {
+    public fun borrow_metadata<C>(metadata: &Metadata<C>): &Nft<C> {
         &metadata.metadata
     }
 
@@ -138,7 +138,7 @@ module nft_protocol::metadata {
         let nft = borrow_metadata(metadata);
 
         loose_mint_cap::new(
-            mint_cap::delegate(mint_cap, quantity, ctx),
+            mint_cap::split(mint_cap, quantity, ctx),
             metadata_id,
             *nft::name(nft),
             *nft::url(nft),

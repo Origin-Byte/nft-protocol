@@ -85,7 +85,7 @@ module nft_protocol::mint_cap {
         MintCap {
             id: object::new(ctx),
             collection_id,
-            supply: option::some(supply::new(supply, false)),
+            supply: option::some(supply::new(supply)),
         }
     }
 
@@ -101,14 +101,7 @@ module nft_protocol::mint_cap {
     /// Panics if supply is unregulated.
     public fun supply<T>(mint_cap: &MintCap<T>): u64 {
         assert_regulated(mint_cap);
-        supply::get_remaining_supply(option::borrow(&mint_cap.supply))
-    }
-
-    public fun is_frozen<T>(mint_cap: &MintCap<T>): bool {
-        assert_regulated(mint_cap);
-        let supply = option::borrow(&mint_cap.supply);
-
-        supply::is_frozen(supply)
+        supply::supply(option::borrow(&mint_cap.supply))
     }
 
     public fun get_supply<T>(mint_cap: &MintCap<T>): &Supply {
@@ -153,7 +146,7 @@ module nft_protocol::mint_cap {
             supply::split(
                 option::borrow_mut(&mut mint_cap.supply), quantity)
         } else {
-            supply::new(quantity, true)
+            supply::new(quantity)
         };
 
         MintCap {
@@ -198,9 +191,5 @@ module nft_protocol::mint_cap {
 
     public fun assert_unregulated<T>(mint_cap: &MintCap<T>) {
         assert!(option::is_none(&mint_cap.supply), EMINT_CAP_REGULATED)
-    }
-
-    public fun assert_frozen<T>(mint_cap: &MintCap<T>) {
-        assert!(is_frozen(mint_cap), EMINT_CAP_SUPPLY_FROZEN);
     }
 }
