@@ -1,10 +1,11 @@
 /// The rolling hot potato pattern was designed by us in conjunction with
 /// Mysten team.
 ///
-/// To lower the barrier to entry, we mimic their APIs where relevant.
+/// To lower the barrier to entry, we mimic those APIs where relevant.
 /// See the `sui::transfer_policy` module in the https://github.com/MystenLabs/sui
 ///
-/// Our transfer policy offers generics over fungible token and a builder pattern.
+/// Our transfer policy offers generics over fungible token and a builder
+/// pattern on top of `sui::transfer_policy`.
 ///
 /// We interoperate with the sui ecosystem by allowing our `TransferRequest` to
 /// be converted into the sui version.
@@ -29,17 +30,15 @@ module nft_protocol::transfer_policy {
     const EPolicyNotSatisfied: u64 = 0;
     /// A completed rule is not set in the `TransferPolicy`.
     const EIllegalRule: u64 = 1;
-    /// A Rule is not set.
-    const EUnknownRequrement: u64 = 2;
+    /// Conversion of our transfer request to the one exposed by the sui library
+    /// is only permitted for SUI token.
+    const EOnlyTransferRequestOfSuiToken: u64 = 2;
     /// Attempting to create a Rule that is already set.
     const ERuleAlreadySet: u64 = 3;
     /// Trying to `withdraw` or `close_and_withdraw` with a wrong Cap.
     const ENotOwner: u64 = 4;
     /// Trying to `withdraw` more than there is.
     const ENotEnough: u64 = 5;
-    /// Conversion of our transfer request to the one exposed by the sui library
-    /// is only permitted for SUI token.
-    const EOnlyTransferRequestOfSuiToken: u64 = 6;
 
     /// A "Hot Potato" forcing the buyer to get a transfer permission
     /// from the item type (`T`) owner on purchase attempt.
@@ -58,6 +57,10 @@ module nft_protocol::transfer_policy {
         /// Used to verify that all of the rules were followed and
         /// `TransferRequest` can be confirmed.
         receipts: VecSet<TypeName>,
+        /// Optional metadata can be attached to the request.
+        /// The metadata is dropped at the destruction of the request.
+        /// It doesn't have to be emptied out.
+        metadata: UID,
     }
 
     /// Convenience struct to build a `TransferRequest` hot potato.
@@ -69,6 +72,7 @@ module nft_protocol::transfer_policy {
         nft: ID,
         originator: address,
         ft_paid_amounts: VecMap<TypeName, u64>,
+        metadata: UID,
     }
 
     /// A unique capability that allows owner of the `T` to authorize
@@ -94,13 +98,25 @@ module nft_protocol::transfer_policy {
     /// Key to store "Rule" configuration for a specific `TransferPolicy`.
     struct RuleKey<phantom T: drop> has copy, store, drop {}
 
+    /// Anyone can attach any metadata (dynamic fields).
+    /// The UID is eventually dropped when the `TransferRequest` is destroyed.
+    ///
+    /// There are some standard metadata which contracts should attach such as
+    /// * `ob_kiosk::set_transfer_request_auth`
+    public fun metadata_mut<T>(req: &mut TransferRequest<T>): &mut UID {
+        &mut req.metadata
+    }
+
     /// Construct a new `TransferRequest` hot potato which requires an
     /// approving action from the creator to be destroyed / resolved.
-    public fun builder<T>(nft: ID, originator: address): TransferRequestBuilder<T> {
+    public fun builder<T>(
+        nft: ID, originator: address, ctx: &mut TxContext,
+    ): TransferRequestBuilder<T> {
         TransferRequestBuilder {
             nft,
             originator,
             ft_paid_amounts: vec_map::empty(),
+            metadata: object::new(ctx),
         }
     }
 
@@ -108,16 +124,26 @@ module nft_protocol::transfer_policy {
         vec_map::insert(&mut builder.ft_paid_amounts, type_name::get<FT>(), paid);
     }
 
-    public fun builder_add_ft_by_type<T>(builder: &mut TransferRequestBuilder<T>, ft: TypeName, paid: u64) {
+    public fun builder_add_ft_by_type<T>(
+        builder: &mut TransferRequestBuilder<T>, ft: TypeName, paid: u64,
+    ) {
         vec_map::insert(&mut builder.ft_paid_amounts, ft, paid);
     }
 
+    /// See `metadata_mut`.
+    public fun builder_metadata_mut<T>(req: &mut TransferRequestBuilder<T>): &mut UID {
+        &mut req.metadata
+    }
+
     public fun build<T>(builder: TransferRequestBuilder<T>): TransferRequest<T> {
-        let TransferRequestBuilder { nft, originator, ft_paid_amounts } = builder;
+        let TransferRequestBuilder {
+            nft, originator, ft_paid_amounts, metadata,
+        } = builder;
         TransferRequest {
+            ft_paid_amounts,
+            metadata,
             nft,
             originator,
-            ft_paid_amounts,
             receipts: vec_set::empty(),
         }
     }
@@ -139,13 +165,15 @@ module nft_protocol::transfer_policy {
             originator,
             receipts: _,
             ft_paid_amounts,
+            metadata,
         } = request;
         // since we unwrap above to get the SUI amount, we know that there're no
         // other currencies
         assert!(vec_map::size(&ft_paid_amounts) == 1, EOnlyTransferRequestOfSuiToken);
+        object::delete(metadata);
 
         sui_transfer_policy::new_request(
-            nft, paid, object::id_from_address(originator)
+            nft, paid, object::id_from_address(originator),
         )
     }
 
@@ -199,14 +227,16 @@ module nft_protocol::transfer_policy {
     /// Note: unless there's a policy for `T` to allow transfers,
     /// Kiosk trades will not be possible.
     public fun confirm_request<T>(
-        self: &TransferPolicy<T>, request: TransferRequest<T>
+        self: &TransferPolicy<T>, request: TransferRequest<T>,
     ): address {
         let TransferRequest {
             nft: _,
             originator,
             receipts,
             ft_paid_amounts: _,
+            metadata,
         } = request;
+        object::delete(metadata);
         let completed = vec_set::into_keys(receipts);
         let total = vector::length(&completed);
 
@@ -233,7 +263,9 @@ module nft_protocol::transfer_policy {
     /// Config requires `drop` to allow creators to remove any policy at any moment,
     /// even if graceful unpacking has not been implemented in a "rule module".
     public fun add_rule<T, Rule: drop, Config: store + drop>(
-        _: Rule, policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>, cfg: Config
+        _: Rule, policy: &mut TransferPolicy<T>,
+        cap: &TransferPolicyCap<T>,
+        cfg: Config,
     ) {
         assert!(object::id(policy) == cap.policy_id, ENotOwner);
         assert!(!has_rule<T, Rule>(policy), ERuleAlreadySet);
