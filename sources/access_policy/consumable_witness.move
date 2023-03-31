@@ -41,4 +41,8 @@ module nft_protocol::consumable_witness {
         // Consume witness
         ConsumableWitness { field: _ } = consumable;
     }
+
+    public fun assert_consumable<T, Field>(consumable: &ConsumableWitness<T>) {
+        assert!(consumable.field == type_name::get<Field>(), 0);
+    }
 }

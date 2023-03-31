@@ -1,8 +1,11 @@
 module nft_protocol::ob_kiosk {
     use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
+    use nft_protocol::lock::{Self, MutLock};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::access_policy::{Self, AccessPolicy};
     use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
+    use originmate::typed_id::{Self, TypedID};
+
     use std::type_name::{Self, TypeName};
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, uid_mut as ext};
@@ -403,18 +406,21 @@ module nft_protocol::ob_kiosk {
 
     // === NFT Accessors ===
 
-    public fun get_nft_mut<OTW: drop, T: key + store, Field: store>(
+    public fun borrow_nft_mut<OTW: drop, T: key + store, Field: store>(
+        kiosk: &mut Kiosk,
         collection: &Collection<OTW>,
+        nft_id: TypedID<T>,
         ctx: &mut TxContext,
-    ): ConsumableWitness<T> {
+    ): (ConsumableWitness<T>, MutLock<T>) {
         // TODO: Assert T lives in the OTW universe
         let consumable = access_policy::access_for_field<OTW, T, Field>(collection, ctx);
+        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
 
-        // Return Borrowed NFT and ConsumableWitness
-        // TODO: Missing Borrow from the Kiosk!
-        consumable
+        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
+        let locked_nft = access_policy::lock_nft_for_mutation<T, Field>(nft, &consumable);
+
+        (consumable, locked_nft)
     }
-
 
 
     // === Assertions and getters ===
