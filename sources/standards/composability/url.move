@@ -8,21 +8,22 @@ module nft_protocol::composable_url {
     use std::vector;
 
     use sui::url::Url;
+    use sui::object::UID;
+    use sui::dynamic_field as df;
 
     use nft_protocol::url;
-    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::attributes;
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::utils::{Self, Marker};
 
     /// `ComposableUrlDomain` was not defined
     ///
     /// Call `composable_url::add_domain` or to add `ComposableUrlDomain`.
-    const EUNDEFINED_URL_DOMAIN: u64 = 1;
+    const EUndefinedComposableUrl: u64 = 1;
 
     /// `ComposableUrlDomain` already defined
     ///
     /// Call `composable_url::borrow_domain` to borrow domain.
-    const EEXISTING_URL_DOMAIN: u64 = 2;
+    const EExistingComposableUrl: u64 = 2;
 
     /// Domain for providing composed URL data
     struct ComposableUrlDomain has store {
@@ -48,14 +49,10 @@ module nft_protocol::composable_url {
     ///
     /// Panics if `ComposableUrlDomain` does not exist on `Nft`
     public fun set_url<C>(
-        witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+        domain: &mut ComposableUrlDomain,
         url: Url,
     ) {
-        let domain_url = borrow_composable_url_mut(nft);
-        *domain_url = url;
-
-        url::set_url(witness, nft, url);
+        domain.url = url;
     }
 
     /// Regenerates composed URL data
@@ -63,12 +60,11 @@ module nft_protocol::composable_url {
     /// #### Panics
     ///
     /// Panics if `ComposableUrlDomain` or `UrlDomain` is not registered
-    public fun regenerate<C>(
-        // TODO: Remove delegated witness by removing static fields from `Nft`
-        witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+    public fun regenerate(
+        nft: &mut UID,
     ) {
-        let url = ascii::into_bytes(sui::url::inner_url(url::borrow_url(nft)));
+        let url_domain = url::borrow_url(url::borrow_domain(nft));
+        let url = ascii::into_bytes(sui::url::inner_url(url_domain));
 
         if (attributes::has_domain(nft)) {
             let attributes_domain = attributes::borrow_domain(nft);
@@ -76,72 +72,58 @@ module nft_protocol::composable_url {
 
             vector::append(&mut url, parameters);
         };
-
-        // Set `Nft.url` to composed URL
-        set_url(witness, nft, sui::url::new_unsafe_from_bytes(url));
     }
 
     // === Interoperability ===
 
     /// Returns whether `ComposableUrlDomain` is registered on `Nft`
-    public fun has_composable_url<C>(nft: &Nft<C>): bool {
-        nft::has_domain<C, ComposableUrlDomain>(nft)
+    public fun has_domain(nft: &UID): bool {
+        df::exists_with_type<Marker<ComposableUrlDomain>, ComposableUrlDomain>(
+            nft, utils::marker(),
+        )
     }
 
-    /// Borrows composed URL data from `Nft`
+    /// Borrows `ComposableUrlDomain` from `Nft`
     ///
     /// #### Panics
     ///
     /// Panics if `ComposableUrlDomain` is not registered on the `Nft`
-    public fun borrow_composable_url<C>(nft: &Nft<C>): &Url {
+    public fun borrow_domain(nft: &UID): &ComposableUrlDomain {
         assert_composable_url(nft);
-        let domain: &ComposableUrlDomain = nft::borrow_domain(nft);
-        &domain.url
+        df::borrow(nft, utils::marker<ComposableUrlDomain>())
     }
 
-    /// Mutably borrows URL data from `Nft`
+    /// Mutably borrows `ComposableUrlDomain` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered on the `Nft`
-    fun borrow_composable_url_mut<C>(nft: &mut Nft<C>): &mut Url {
+    /// Panics if `ComposableUrlDomain` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut ComposableUrlDomain {
         assert_composable_url(nft);
-        let domain: &mut ComposableUrlDomain =
-            nft::borrow_domain_mut(Witness {}, nft);
-        &mut domain.url
+        df::borrow_mut(nft, utils::marker<ComposableUrlDomain>())
     }
 
-    /// Adds `UrlDomain` to `Nft`
-    ///
-    /// `ComposableUrlDomain` will not be automatically updated so
-    /// `composable_url::register` and `composable_url::regenerate` must be
-    /// called.
+    /// Adds `ComposableUrlDomain` to `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` domain already exists
-    public fun add_composable_url<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
+    /// Panics if `ComposableUrlDomain` domain already exists
+    public fun add_domain(
+        nft: &mut UID,
+        domain: ComposableUrlDomain,
     ) {
-        add_composable_url_delegated(nft::delegate_witness(witness), nft);
+        assert_no_composable_url(nft);
+        df::add(nft, utils::marker<ComposableUrlDomain>(), domain);
     }
 
-    /// Adds `UrlDomain` to `Nft`
-    ///
-    /// `ComposableUrlDomain` will not be automatically updated so
-    /// `composable_url::register` and `composable_url::regenerate` must be
-    /// called.
+    /// Remove `ComposableUrlDomain` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` domain already exists
-    public fun add_composable_url_delegated<C>(
-        _witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
-    ) {
-        assert!(!has_composable_url(nft), EEXISTING_URL_DOMAIN);
-        nft::add_domain(&Witness {}, nft, new());
+    /// Panics if `ComposableUrlDomain` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): ComposableUrlDomain {
+        assert_composable_url(nft);
+        df::remove(nft, utils::marker<ComposableUrlDomain>())
     }
 
     // === Assertions ===
@@ -151,7 +133,16 @@ module nft_protocol::composable_url {
     /// #### Panics
     ///
     /// Panics if `ComposableUrlDomain` is not registered
-    public fun assert_composable_url<C>(nft: &Nft<C>) {
-        assert!(has_composable_url(nft), EUNDEFINED_URL_DOMAIN);
+    public fun assert_composable_url(nft: &UID) {
+        assert!(has_domain(nft), EUndefinedComposableUrl);
+    }
+
+    /// Asserts that `ComposableUrlDomain` is not registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `ComposableUrlDomain` is registered
+    public fun assert_no_composable_url(nft: &UID) {
+        assert!(!has_domain(nft), EExistingComposableUrl);
     }
 }

@@ -76,8 +76,8 @@ module nft_protocol::supply_domain {
     /// #### Panics
     ///
     /// Panics if collection is already regulated.
-    public fun regulate<T, W>(
-        witness: &W,
+    public fun regulate<T, W: drop>(
+        witness: W,
         mint_cap: MintCap<T>,
         collection: &mut Collection<T>,
         supply: u64,

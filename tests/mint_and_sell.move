@@ -28,7 +28,7 @@ module nft_protocol::mint_and_sell {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) =
-            collection::create<Witness, Foo>(&Witness {}, ctx(&mut scenario));
+            collection::create<Witness, Foo>(Witness {}, ctx(&mut scenario));
         transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
@@ -81,7 +81,7 @@ module nft_protocol::mint_and_sell {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) =
-            collection::create<Witness, Foo>(&Witness {}, ctx(&mut scenario));
+            collection::create<Witness, Foo>(Witness {}, ctx(&mut scenario));
         transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 

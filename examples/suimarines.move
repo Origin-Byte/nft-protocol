@@ -10,15 +10,17 @@ module nft_protocol::suimarines {
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::url;
     use nft_protocol::tags;
+    use nft_protocol::symbol;
     use nft_protocol::royalty;
     use nft_protocol::display;
     use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::attributes;
-    use nft_protocol::mint_cap::{Self, MintCap};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::collection;
+    use nft_protocol::collection_id;
     use nft_protocol::transfer_allowlist_domain;
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
@@ -36,7 +38,6 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
-
         let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
         // Creates a new policy and registers an allowlist rule to it.
@@ -51,50 +52,54 @@ module nft_protocol::suimarines {
         );
 
         collection::add_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
-            creators::from_address<Nft<SUIMARINES>, Witness>(
-                &Witness {}, sender,
+            creators::from_address_delegated<Nft<SUIMARINES>>(
+                nft::delegate_witness(Witness {}), sender,
             ),
         );
 
         // Register custom domains
-        display::add_collection_display_domain(
-            &Witness {},
+        collection::add_domain(
+            Witness {},
             &mut collection,
-            string::utf8(b"Suimarines"),
-            string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+            display::new(
+                string::utf8(b"Suimarines"),
+                string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+            ),
         );
 
-        url::add_collection_url_domain(
-            &Witness {},
+        collection::add_domain(
+            Witness {},
             &mut collection,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            url::new(
+                sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+            ),
         );
 
-        display::add_collection_symbol_domain(
-            &Witness {},
+        collection::add_domain(
+            Witness {},
             &mut collection,
-            string::utf8(b"SUIM"),
+            symbol::new(string::utf8(b"SUIM")),
         );
 
         let royalty = royalty::from_address(sender, ctx);
         royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(&Witness {}, &mut collection, royalty);
+        royalty::add_royalty_domain(Witness {}, &mut collection, royalty);
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(&Witness {}, &mut collection, tags);
+        collection::add_domain(Witness {}, &mut collection, tags);
 
         let allowlist = transfer_allowlist::create(&Witness {}, ctx);
         transfer_allowlist::insert_collection<Nft<SUIMARINES>, Witness>(
             &Witness {},
-            witness::from_witness(&Witness {}),
+            witness::from_witness(Witness {}),
             &mut allowlist,
         );
 
         collection::add_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
             transfer_allowlist_domain::from_id(object::id(&allowlist)),
         );
@@ -177,18 +182,20 @@ module nft_protocol::suimarines {
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
-        display::add_display_domain(
-            &Witness {}, &mut nft, name, description,
+        nft::add_domain(Witness {}, &mut nft, display::new(name, description));
+
+        nft::add_domain(Witness {}, &mut nft, url::new(url));
+
+        nft::add_domain(
+            Witness {},
+            &mut nft,
+            attributes::from_vec(attribute_keys, attribute_values),
         );
 
-        url::add_url_domain(&Witness {}, &mut nft, url);
-
-        attributes::add_domain_from_vec(
-            &Witness {}, &mut nft, attribute_keys, attribute_values,
-        );
-
-        display::add_collection_id_domain(
-            &Witness {}, &mut nft, mint_cap::collection_id(mint_cap),
+        nft::add_domain(
+            Witness {},
+            &mut nft,
+            collection_id::from_mint_cap(mint_cap),
         );
 
         nft
