@@ -4,6 +4,8 @@ module nft_protocol::consumable_witness {
     use std::type_name::{Self, TypeName};
     use nft_protocol::utils;
 
+    friend nft_protocol::access_policy;
+
     /// Collection generic witness type
     struct ConsumableWitness<phantom T> {
         field: TypeName,
@@ -16,7 +18,9 @@ module nft_protocol::consumable_witness {
     }
 
     // TODO
-    public fun from_access_policy() {}
+    public(friend)fun from_access_policy<T: key>(field: TypeName): ConsumableWitness<T> {
+        ConsumableWitness {field}
+    }
 
     public fun get_consumable_from_witness<W: drop, T: key>(
         _witness: W,

@@ -3,12 +3,25 @@ module nft_protocol::access_policy {
     use std::vector;
 
     use sui::event;
+    use sui::bag;
+    use sui::dynamic_field as df;
+    use sui::package::{Self, Publisher};
     use sui::transfer;
+    use sui::table::{Self, Table};
     use sui::table_vec::{Self, TableVec};
     use sui::object::{Self, UID, ID};
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
+    use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::utils;
+    use nft_protocol::utils::{Self, UidType};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
+
+    /// When trying to create an access policy when it already exists
+    const EACCESS_POLICY_ALREADY_EXISTS: u64 = 1;
+
+    const EFIELD_ACCESS_DENIED: u64 = 2;
+    const EPARENT_ACCESS_DENIED: u64 = 3;
 
     // TODO: Add accessors to Kiosk once merged
     // get_mutable_access_by_sender
@@ -19,138 +32,203 @@ module nft_protocol::access_policy {
     struct AccessPolicy<phantom T: key + store> has key, store {
         id: UID,
         version: u64,
-        rules: Rules,
-        owner_sign_off: bool,
+        parent_access: VecSet<address>,
+        // TODO: Consider if TypeName is safe here
+        field_access: Table<TypeName, VecSet<address>>,
     }
 
-    // Wrapper of rules
-    struct Rules has store {
-        // Address access type --> Can represent user addresses or UID access type
-        addresses: TableVec<address>,
-        // Bearer Token access type
-        token: bool,
-        // Bearer One-Time Token access type
-        ott: bool
-    }
+    struct Witness has drop {}
 
-    // Unique object per Type that defines the version counter
-    struct VersionCounter<phantom T: key + store> has key, store {
-        version: u64,
-        frozen: bool,
-    }
+    // struct AccessToken<phantom T: key + store> has key, store {
+    //     id: UID,
+    //     version: u64,
+    // }
 
-    struct AccessToken<phantom T: key + store> has key, store {
-        id: UID,
-        version: u64,
-    }
-
-    struct OneTimeToken<phantom T: key + store> has key {
-        id: UID,
-        version: u64,
-    }
-
-    struct DfKeys has store, copy, drop { index: u64 }
+    // struct OneTimeToken<phantom T: key + store> has key {
+    //     id: UID,
+    //     version: u64,
+    // }
 
     /// Event signalling that a `AccessPolicy` was created
     struct NewPolicyEvent has copy, drop {
         policy_id: ID,
         type_name: TypeName,
+        // Version starts at 1
         version: u64,
     }
 
-    public fun create<T: key + store, W>(
-        _witness: &W,
-        version_counter: &mut VersionCounter<T>,
+    public fun create_empty<OTW: drop, T: key + store>(
+        pub: &Publisher,
+        collection: &mut Collection<OTW>,
         ctx: &mut TxContext,
     ): AccessPolicy<T> {
-        utils::assert_same_module_as_witness<T, W>();
-
-        version_counter.version = version_counter.version + 1;
+        // This assert is redundant because it's being asserted
+        // downstream in assert_no_access_policy
+        assert!(package::from_package<OTW>(pub), 0);
+        // TODO: We should not assert that OTW and T are from the
+        // same package, because T maybe be an extended type from the collection
+        // using some plugin --> need to reconsider
+        assert!(package::from_package<T>(pub), 0);
+        assert_no_access_policy<OTW, T>(pub, collection);
 
         let id = object::new(ctx);
 
         event::emit(NewPolicyEvent {
             policy_id: object::uid_to_inner(&id),
             type_name: type_name::get<T>(),
-            version: version_counter.version,
+            version: 1,
         });
 
-        let rules = empty_rules(ctx);
+        let parent_access = empty_parent_access();
+        let field_access = empty_field_access(ctx);
 
         AccessPolicy {
             id,
-            version: version_counter.version,
-            rules,
-            owner_sign_off: false,
+            version: 1,
+            parent_access,
+            field_access,
         }
     }
 
-    fun empty_rules(ctx: &mut TxContext): Rules {
-        Rules {
-            addresses: table_vec::empty(ctx),
-            token: false,
-            ott: false,
-        }
+    fun empty_parent_access(): VecSet<address> {
+        vec_set::empty()
     }
 
-    public fun add_addresses_access<T: key + store, W>(
-        _witness: &W,
+    fun empty_field_access(ctx: &mut TxContext): Table<TypeName, VecSet<address>> {
+        table::new(ctx)
+    }
+
+    public fun add_parent_access<OTW: drop, T: key + store>(
+        pub: &Publisher,
+        access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
-        access_policy: &mut AccessPolicy<T>,
     ) {
-        utils::assert_same_module_as_witness<T, W>();
+        assert!(package::from_package<OTW>(pub), 0);
+        // TODO: We should not assert that OTW and T are from the
+        // same package, because T maybe be an extended type from the collection
+        // using some plugin --> need to reconsider
+        assert!(package::from_package<T>(pub), 0);
 
-        let len = vector::length(&addresses);
-        while (len > 0) {
-            let addr = vector::pop_back(&mut addresses);
-            table_vec::push_back(&mut access_policy.rules.addresses, addr);
-            len = len - 1;
-        };
+        utils::insert_vec_in_vec_set(&mut access_policy.parent_access, addresses);
     }
 
-    public fun add_token_access<T: key + store, W>(
-        _witness: &W,
+    //
+    public fun add_field_access<OTW: drop, T: key + store, Field: store>(
+        pub: &Publisher,
         access_policy: &mut AccessPolicy<T>,
+        addresses: vector<address>,
     ) {
-        utils::assert_same_module_as_witness<T, W>();
-        access_policy.rules.token = true;
+        assert!(package::from_package<OTW>(pub), 0);
+        // TODO: We should not assert that OTW and T are from the
+        // same package, because T maybe be an extended type from the collection
+        // using some plugin --> need to reconsider
+        assert!(package::from_package<T>(pub), 0);
+
+
+        // Get table vec
+        let vec_set = table::borrow_mut(
+            &mut access_policy.field_access, type_name::get<Field>()
+        );
+
+        utils::insert_vec_in_vec_set(vec_set, addresses);
     }
 
-    public fun add_one_time_token_access<T: key + store, W>(
-        _witness: &W,
-        access_policy: &mut AccessPolicy<T>,
+
+    // public fun issue_token<T: key + store, W>(
+    //     pub: &Publisher,
+    //     access_policy: &mut AccessPolicy<T>,
+    //     ctx: &mut TxContext
+    // ): AccessToken<T> {
+    //     AccessToken {
+    //         id: object::new(ctx),
+    //         version: access_policy.version,
+    //     }
+    // }
+
+    // public fun issue_one_time_token<T: key + store, W>(
+    //     pub: &Publisher,
+    //     access_policy: &mut AccessPolicy<T>,
+    //     ctx: &mut TxContext
+    // ): OneTimeToken<T> {
+    //     OneTimeToken {
+    //         id: object::new(ctx),
+    //         version: access_policy.version,
+    //     }
+    // }
+
+    public fun access_for_field<OTW: drop, T: key + store, Field: store>(
+        // TODO: Add way to get collection bag
+        collection: &Collection<OTW>,
+        // access_policy: &AccessPolicy<T>,
+        ctx: &TxContext,
+    ): ConsumableWitness<T> {
+        let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
+            Witness {},
+            collection
+        );
+
+        let vec_set = table::borrow(
+            &access_policy.field_access, type_name::get<Field>()
+        );
+
+        assert!(
+            vec_set::contains(vec_set, &tx_context::sender(ctx)),
+            EFIELD_ACCESS_DENIED
+        );
+
+        cw::from_access_policy<T>(type_name::get<Field>())
+    }
+
+
+    public fun assert_field_auth<OTW: drop, T: key + store, Field: store>(
+        // TODO: Add way to get collection bag
+        collection: &Collection<OTW>,
+        // access_policy: &AccessPolicy<T>,
+        ctx: &TxContext,
     ) {
-        utils::assert_same_module_as_witness<T, W>();
-        access_policy.rules.ott = true;
+        let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
+            Witness {},
+            collection
+        );
+
+        let vec_set = table::borrow(
+            &access_policy.field_access, type_name::get<Field>()
+        );
+
+        assert!(
+            vec_set::contains(vec_set, &tx_context::sender(ctx)),
+            EFIELD_ACCESS_DENIED
+        );
     }
 
-    public fun issue_token<T: key + store, W>(
-        _witness: &W,
-        access_policy: &mut AccessPolicy<T>,
-        ctx: &mut TxContext
-    ): AccessToken<T> {
-        AccessToken {
-            id: object::new(ctx),
-            version: access_policy.version,
-        }
-    }
-
-    public fun issue_one_time_token<T: key + store, W>(
-        _witness: &W,
-        access_policy: &mut AccessPolicy<T>,
-        ctx: &mut TxContext
-    ): OneTimeToken<T> {
-        OneTimeToken {
-            id: object::new(ctx),
-            version: access_policy.version,
-        }
-    }
-
-    public fun activate_policy<T: key + store, W>(
-        _witness: &W,
-        access_policy: AccessPolicy<T>,
+    public fun assert_parent_auth<OTW: drop, T: key + store, Field: store>(
+        // TODO: Add way to get collection bag
+        collection: &Collection<OTW>,
+        // access_policy: &AccessPolicy<T>,
+        ctx: &TxContext,
     ) {
-        transfer::freeze_object(access_policy);
+        let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
+            Witness {},
+            collection
+        );
+
+        assert!(
+            vec_set::contains(&access_policy.parent_access, &tx_context::sender(ctx)),
+            EPARENT_ACCESS_DENIED
+        );
+    }
+
+
+    fun assert_no_access_policy<OTW: drop, T: key + store>(
+        pub: &Publisher,
+        collection: &Collection<OTW>
+    ) {
+        let bag = collection::get_bag_as_publisher(pub, collection);
+
+        assert!(
+            !bag::contains(bag, type_name::get<AccessPolicy<T>>()),
+            EACCESS_POLICY_ALREADY_EXISTS
+        );
     }
 
 }

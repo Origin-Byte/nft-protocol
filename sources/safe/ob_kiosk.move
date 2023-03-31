@@ -1,4 +1,7 @@
 module nft_protocol::ob_kiosk {
+    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::access_policy::{Self, AccessPolicy};
     use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
     use std::type_name::{Self, TypeName};
     use sui::dynamic_field::{Self as df};
@@ -397,6 +400,22 @@ module nft_protocol::ob_kiosk {
         let col_type = type_name::get<C>();
         vec_set::insert(&mut settings.collections_with_enabled_deposits, col_type);
     }
+
+    // === NFT Accessors ===
+
+    public fun get_nft_mut<OTW: drop, T: key + store, Field: store>(
+        collection: &Collection<OTW>,
+        ctx: &mut TxContext,
+    ): ConsumableWitness<T> {
+        // TODO: Assert T lives in the OTW universe
+        let consumable = access_policy::access_for_field<OTW, T, Field>(collection, ctx);
+
+        // Return Borrowed NFT and ConsumableWitness
+        // TODO: Missing Borrow from the Kiosk!
+        consumable
+    }
+
+
 
     // === Assertions and getters ===
 
