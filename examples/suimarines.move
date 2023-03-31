@@ -62,7 +62,13 @@ module nft_protocol::suimarines {
         transfer::public_share_object(collection);
     }
 
-    public entry fun get_nft_field() {}
+    public entry fun get_nft_field(
+        locked_nft: MutLock<T>,
+
+    ) {
+
+
+    }
 
     public entry fun mint_nft(
         name: String,
