@@ -5,12 +5,11 @@ module nft_protocol::tribal_realms {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::url;
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::display;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::composable_nft::{Self as c_nft};
-    use nft_protocol::collection;
 
     /// One time witness is only instantiated in the init method
     struct TRIBAL_REALMS has drop {}
@@ -28,7 +27,7 @@ module nft_protocol::tribal_realms {
     struct Witness has drop {}
 
     fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
         display::add_collection_display_domain(
             &Witness {},
@@ -73,16 +72,16 @@ module nft_protocol::tribal_realms {
             &Witness {}, &mut collection, gun_blueprint,
         );
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     public entry fun mint_nft<T: drop + store>(
         name: String,
         description: String,
         url: vector<u8>,
-        mint_cap: &MintCap<TRIBAL_REALMS>,
-        warehouse: &mut Warehouse<TRIBAL_REALMS>,
+        mint_cap: &mut MintCap<Nft<TRIBAL_REALMS>>,
+        warehouse: &mut Warehouse<Nft<TRIBAL_REALMS>>,
         ctx: &mut TxContext,
     ) {
         let url = sui::url::new_unsafe_from_bytes(url);

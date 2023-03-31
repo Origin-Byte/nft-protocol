@@ -3,17 +3,35 @@
 /// This domain allows wallets to organize the NFT display based on categories,
 /// such as Art, Profile Picture, Collectibles, etc.
 module nft_protocol::tags {
-    // TODO: Consider if we should add a wrapper domain Tags {bag} such that
-    // wallet can always query this domain instead of having to query all domains
-    // and figure out which ones are tags or not.
+    // TODO: limit tags to three
+    // Ability to add tags with vector<string>
     use sui::dynamic_field as df;
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
+    use sui::bag::{Self, Bag};
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::utils::{
+        assert_with_consumable_witness, UidType
+    };
+    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
+
+    /// No field object `Tags` defined as a dynamic field.
+    const EUNDEFINED_TAGS_FIELD: u64 = 1;
+
+    /// Field object `Tags` already defined as dynamic field.
+    const ETAGS_FIELD_ALREADY_EXISTS: u64 = 2;
+
+    struct Tags has store {
+        id: UID,
+        tags: Bag
+    }
+
+    /// Witness used to authenticate witness protected endpoints
+    struct Witness has drop {}
+
+    /// Key struct used to store Tags in dynamic fields
+    struct TagsKey has store, copy, drop {}
 
     // === Tags ===
 
@@ -34,6 +52,154 @@ module nft_protocol::tags {
     struct Video has store, drop {}
     struct Ticket has store, drop {}
     struct License has store, drop {}
+
+
+    // === Insert with ConsumableWitness ===
+
+
+    /// Adds `Tags` as a dynamic field with key `TagsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Tags`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun add_empty<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        ctx: &mut TxContext,
+    ) {
+        assert_has_not_tags(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let tags = empty(ctx);
+
+        cw::consume<T, Tags>(consumable, &mut tags);
+        df::add(object_uid, TagsKey {}, tags);
+    }
+
+
+    // === Get for call from external Module ===
+
+    /// Creates empty `Tags`
+    public fun empty(ctx: &mut TxContext): Tags {
+        Tags { id: object::new(ctx), tags: bag::new(ctx) }
+    }
+
+    // === Field Borrow Functions ===
+
+
+    /// Borrows immutably the `Tags` field.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `TagsKey` does not exist.
+    public fun borrow_tags(
+        object_uid: &UID,
+    ): &Tags {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_tags(object_uid);
+        df::borrow(object_uid, TagsKey {})
+    }
+
+    /// Borrows Mutably the `Tags` field.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Tags`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `TagsKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun borrow_tags_mut<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>
+    ): &mut Tags {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_tags(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let tags = df::borrow_mut<TagsKey, Tags>(
+            object_uid,
+            TagsKey {}
+        );
+        cw::consume<T, Tags>(consumable, tags);
+
+        tags
+    }
+
+
+    // === Writer Functions ===
+
+
+    /// Inserts tag to `Tags` field in the NFT of type `T`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun insert_tag<T: key, TAG: store + drop>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        tag: TAG,
+    ) {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_tags(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let tags = borrow_mut_internal(object_uid);
+        bag::add(&mut tags.tags, utils::marker<TAG>(), tag);
+        cw::consume<T, Tags>(consumable, tags);
+    }
+
+
+    /// Removes tag from `Tags` field in the NFT of type `T`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun remove_tag<T: key, TAG: store + drop>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+    ) {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_tags(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let tags = borrow_mut_internal(object_uid);
+        bag::remove<Marker<TAG>, TAG>(&mut tags.tags, utils::marker<TAG>());
+        cw::consume<T, Tags>(consumable, tags);
+    }
+
+
+    // === Getter Functions & Static Mutability Accessors ===
 
     public fun art(): Art {
         Art {}
@@ -79,76 +245,38 @@ module nft_protocol::tags {
         License {}
     }
 
-    // === TagDomain ===
 
-    struct TagDomain has store {
-        id: UID,
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `Tags` field.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal(
+        object_uid: &mut UID,
+    ): &mut Tags {
+        df::borrow_mut<TagsKey, Tags>(
+            object_uid,
+            TagsKey {}
+        )
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
 
-    public fun empty(ctx: &mut TxContext): TagDomain {
-        TagDomain { id: object::new(ctx) }
+    // === Assertions & Helpers ===
+
+
+    /// Checks that a given NFT has a dynamic field with `TagsKey`
+    public fun has_tags(
+        object_uid: &UID,
+    ): bool {
+        df::exists_(object_uid, TagsKey {})
     }
 
-    public fun has_tag<T: store + drop>(domain: &TagDomain): bool {
-        utils::assert_same_module_as_witness<T, Witness>();
-        df::exists_with_type<Marker<T>, T>(&domain.id, utils::marker<T>())
+    public fun assert_has_tags(object_uid: &UID) {
+        assert!(has_tags(object_uid), EUNDEFINED_TAGS_FIELD);
     }
 
-    /// Adds tag to `TagDomain`
-    public fun add_tag<T: store + drop>(
-        domain: &mut TagDomain,
-        tag: T,
-    ) {
-        utils::assert_same_module_as_witness<T, Witness>();
-        df::add(&mut domain.id, utils::marker<T>(), tag)
-    }
-
-    /// Removes tag from `TagDomain`
-    public fun remove_tag<T: store + drop>(
-        domain: &mut TagDomain,
-    ) {
-        utils::assert_same_module_as_witness<T, Witness>();
-        let _: T = df::remove(&mut domain.id, utils::marker<T>());
-    }
-
-    // ====== Interoperability ===
-
-    public fun tag_domain<C>(
-        nft: &Nft<C>,
-    ): &TagDomain {
-        nft::borrow_domain(nft)
-    }
-
-    public fun collection_tag_domain<C>(
-        collection: &Collection<C>,
-    ): &TagDomain {
-        collection::borrow_domain(collection)
-    }
-
-    /// Requires that sender is a creator
-    public fun collection_tag_domain_mut<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
-    ): &mut TagDomain {
-        collection::borrow_domain_mut(Witness {}, collection)
-    }
-
-    public fun add_tag_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-        tags: TagDomain,
-    ) {
-        nft::add_domain(witness, nft, tags);
-    }
-
-    public fun add_collection_tag_domain<C, W>(
-        witness: &W,
-        collection: &mut Collection<C>,
-        tags: TagDomain,
-    ) {
-        collection::add_domain(witness, collection, tags);
+    public fun assert_has_not_tags(object_uid: &UID) {
+        assert!(!has_tags(object_uid), ETAGS_FIELD_ALREADY_EXISTS);
     }
 }

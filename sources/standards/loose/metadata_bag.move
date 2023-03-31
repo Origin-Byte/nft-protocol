@@ -3,11 +3,9 @@ module nft_protocol::metadata_bag {
     use sui::tx_context::TxContext;
     use sui::object_table::{Self, ObjectTable};
 
+    use nft_protocol::nft::Nft;
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::mint_cap::{
-        MintCap, RegulatedMintCap, UnregulatedMintCap,
-    };
-
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::metadata::{Self, Metadata};
     use nft_protocol::loose_mint_cap::LooseMintCap;
 
@@ -31,17 +29,19 @@ module nft_protocol::metadata_bag {
     }
 
     /// Create a `MetadataBagDomain` object
-    public fun new_metadata_bag<C>(ctx: &mut TxContext): MetadataBagDomain<C> {
-        MetadataBagDomain<C> {
+    public fun new_metadata_bag<C>(
+        ctx: &mut TxContext,
+    ): MetadataBagDomain<C> {
+        MetadataBagDomain {
             id: object::new(ctx),
-            table: object_table::new<ID, Metadata<C>>(ctx),
+            table: object_table::new(ctx),
         }
     }
 
     /// Create a `MetadataBagDomain` object and register on `Collection`
     public fun init_metadata_bag<C, W>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<Nft<C>>,
         ctx: &mut TxContext,
     ) {
         let metadata_bag = new_metadata_bag<C>(ctx);
@@ -84,38 +84,30 @@ module nft_protocol::metadata_bag {
 
     /// Add `Metadata` to `MetadataBagDomain`
     public entry fun add_metadata<C>(
-        _mint_cap: &MintCap<C>,
+        _mint_cap: &MintCap<Nft<C>>,
         metadata_bag: &mut MetadataBagDomain<C>,
         metadata: Metadata<C>,
     ) {
-        object_table::add<ID, Metadata<C>>(
+        object_table::add(
             &mut metadata_bag.table,
             object::id(&metadata),
             metadata,
         );
     }
 
-    /// Freeze `Metadata` supply in `Collection`
-    public entry fun freeze_metadata_supply<C>(
-        collection: &mut Collection<C>,
-        metadata_id: ID,
-    ) {
-        let metadata_bag = borrow_metadata_bag_mut(collection);
-        let metadata = borrow_metadata_mut(metadata_bag, metadata_id);
-        metadata::freeze_supply(metadata);
-    }
-
     // === Interoperability ===
 
     /// Return whether `Collection` has defined an metadata `MetadataBagDomain`
-    public fun is_archetypal<C>(collection: &Collection<C>): bool {
-        collection::has_domain<C, MetadataBagDomain<C>>(collection)
+    public fun is_archetypal<C>(
+        collection: &Collection<Nft<C>>,
+    ): bool {
+        collection::has_domain<Nft<C>, MetadataBagDomain<C>>(collection)
     }
 
     /// Add `MetadataBagDomain` to `Collection`
     public fun add_metadata_bag<C, W>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<Nft<C>>,
         metadata_bag: MetadataBagDomain<C>,
     ) {
         collection::add_domain(witness, collection, metadata_bag);
@@ -126,7 +118,9 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Collection` does not have a `MetadataBagDomain`.
-    public fun borrow_metagada_bag<C>(collection: &Collection<C>): &MetadataBagDomain<C> {
+    public fun borrow_metagada_bag<C>(
+        collection: &Collection<Nft<C>>,
+    ): &MetadataBagDomain<C> {
         assert_archetypal(collection);
         collection::borrow_domain(collection)
     }
@@ -136,7 +130,9 @@ module nft_protocol::metadata_bag {
     /// #### Panics
     ///
     /// Panics if `Collection` does not have a `MetadataBagDomain`.
-    fun borrow_metadata_bag_mut<C>(collection: &mut Collection<C>): &mut MetadataBagDomain<C> {
+    fun borrow_metadata_bag_mut<C>(
+        collection: &mut Collection<Nft<C>>,
+    ): &mut MetadataBagDomain<C> {
         assert_archetypal(collection);
         collection::borrow_domain_mut(Witness {}, collection)
     }
@@ -147,8 +143,8 @@ module nft_protocol::metadata_bag {
     ///
     /// Panics if `Collection` does not have a `MetadataBagDomain`.
     public entry fun add_metadata_to_collection<C>(
-        _mint_cap: &MintCap<C>,
-        collection: &mut Collection<C>,
+        _mint_cap: &MintCap<Nft<C>>,
+        collection: &mut Collection<Nft<C>>,
         metadata: Metadata<C>,
     ) {
         let metadata_bag = borrow_metadata_bag_mut(collection);
@@ -167,44 +163,27 @@ module nft_protocol::metadata_bag {
     ///
     /// #### Panics
     ///
-    /// Panics if metadata `MetadataBagDomain` is not registered on `Collection`
-    /// or `Metadata` does not exist.
-    public fun delegate_regulated<C>(
-        mint_cap: RegulatedMintCap<C>,
-        collection: &mut Collection<C>,
+    /// * `MetadataBagDomain` is not registered on `Collection`
+    /// * `Metadata` does not exist
+    /// * Supply is exceeded
+    public fun delegate<C>(
+        mint_cap: &mut MintCap<Nft<C>>,
+        collection: &mut Collection<Nft<C>>,
         metadata_id: ID,
+        quantity: u64,
         ctx: &mut TxContext,
-    ): LooseMintCap<C> {
+    ): LooseMintCap<Nft<C>> {
         let metadata_bag = borrow_metadata_bag_mut(collection);
         let metadata = borrow_metadata_mut(metadata_bag, metadata_id);
-        metadata::delegate_regulated(mint_cap, metadata, ctx)
-    }
-
-    /// Delegates metadata minting rights while maintaining `Collection` and
-    /// `Metadata` level supply invariants.
-    ///
-    /// The argument of `RegulatedMintCap` implies that supply is at least
-    /// controlled at the `Collection` level.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if metadata `MetadataBagDomain` is not registered on `Collection`
-    /// or `Metadata` does not exist.
-    public fun delegate_unregulated<C>(
-        mint_cap: UnregulatedMintCap<C>,
-        collection: &mut Collection<C>,
-        metadata_id: ID,
-        ctx: &mut TxContext,
-    ): LooseMintCap<C> {
-        let metadata_bag = borrow_metadata_bag_mut(collection);
-        let metadata = borrow_metadata_mut(metadata_bag, metadata_id);
-        metadata::delegate_unregulated(mint_cap, metadata, ctx)
+        metadata::delegate(mint_cap, metadata, quantity, ctx)
     }
 
     // === Assertions ===
 
     /// Asserts that `Collection` has a defined `MetadataBagDomain`
-    public fun assert_archetypal<C>(collection: &Collection<C>) {
+    public fun assert_archetypal<C>(
+        collection: &Collection<Nft<C>>,
+    ) {
         assert!(is_archetypal(collection), EUNDEFINED_METADATA_IN_BAG);
     }
 

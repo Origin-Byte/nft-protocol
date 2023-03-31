@@ -6,16 +6,14 @@ module nft_protocol::suitraders {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display;
-    use nft_protocol::witness;
     use nft_protocol::creators;
     use nft_protocol::attributes;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::{Self, MintCap};
 
@@ -28,13 +26,12 @@ module nft_protocol::suitraders {
     struct Witness has drop {}
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
-        let delegated_witness = witness::from_witness(&Witness {});
+        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
         collection::add_domain(
             &Witness {},
             &mut collection,
-            creators::from_address<SUITRADERS, Witness>(
+            creators::from_address<Nft<SUITRADERS>, Witness>(
                 &Witness {}, tx_context::sender(ctx),
             ),
         );
@@ -81,11 +78,11 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        let inventory_id = nft_protocol::listing::create_warehouse<SUITRADERS>(
-            delegated_witness, &mut listing, ctx
+        let inventory_id = nft_protocol::listing::create_warehouse<Nft<SUITRADERS>>(
+            &mut listing, ctx
         );
 
-        nft_protocol::fixed_price::init_venue<SUITRADERS, sui::sui::SUI>(
+        nft_protocol::fixed_price::init_venue<Nft<SUITRADERS>, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -93,7 +90,7 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_venue<SUITRADERS, sui::sui::SUI>(
+        nft_protocol::dutch_auction::init_venue<Nft<SUITRADERS>, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -101,26 +98,10 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        transfer::share_object(listing);
+        transfer::public_share_object(listing);
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
-    }
-
-    /// Calculates and transfers royalties to the `RoyaltyDomain`
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<SUITRADERS, FT>,
-        collection: &mut Collection<SUITRADERS>,
-        ctx: &mut TxContext,
-    ) {
-        let b = royalties::balance_mut(Witness {}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     public entry fun mint_nft(
@@ -129,8 +110,8 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &MintCap<SUITRADERS>,
-        warehouse: &mut Warehouse<SUITRADERS>,
+        mint_cap: &mut MintCap<Nft<SUITRADERS>>,
+        warehouse: &mut Warehouse<Nft<SUITRADERS>>,
         ctx: &mut TxContext,
     ) {
         let url = sui::url::new_unsafe_from_bytes(url);

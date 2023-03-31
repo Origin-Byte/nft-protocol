@@ -19,7 +19,6 @@ module nft_protocol::suimarines {
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_allowlist_domain;
 
@@ -39,12 +38,23 @@ module nft_protocol::suimarines {
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
+
+        // Creates a new policy and registers an allowlist rule to it.
+        // Therefore now to finish a transfer, the allowlist must be included
+        // in the chain.
+        let publisher = sui::package::claim(witness, ctx);
+        let (transfer_policy, transfer_policy_cap) =
+            nft_protocol::transfer_policy::new<SUIMARINES>(&publisher, ctx);
+        nft_protocol::transfer_allowlist::add_policy_rule(
+            &mut transfer_policy,
+            &transfer_policy_cap,
+        );
 
         collection::add_domain(
             &Witness {},
             &mut collection,
-            creators::from_address<SUIMARINES, Witness>(
+            creators::from_address<Nft<SUIMARINES>, Witness>(
                 &Witness {}, sender,
             ),
         );
@@ -78,7 +88,7 @@ module nft_protocol::suimarines {
         tags::add_collection_tag_domain(&Witness {}, &mut collection, tags);
 
         let allowlist = transfer_allowlist::create(&Witness {}, ctx);
-        transfer_allowlist::insert_collection<SUIMARINES, Witness>(
+        transfer_allowlist::insert_collection<Nft<SUIMARINES>, Witness>(
             &Witness {},
             witness::from_witness(&Witness {}),
             &mut allowlist,
@@ -90,25 +100,12 @@ module nft_protocol::suimarines {
             transfer_allowlist_domain::from_id(object::id(&allowlist)),
         );
 
-        transfer::transfer(mint_cap, sender);
-        transfer::share_object(allowlist);
-        transfer::share_object(collection);
-    }
-
-    /// Calculates and transfers royalties to the `RoyaltyDomain`
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<SUIMARINES, FT>,
-        collection: &mut Collection<SUIMARINES>,
-        ctx: &mut TxContext,
-    ) {
-        let b = royalties::balance_mut(Witness {}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
+        transfer::public_transfer(mint_cap, sender);
+        transfer::public_transfer(publisher, sender);
+        transfer::public_transfer(transfer_policy_cap, sender);
+        transfer::public_share_object(transfer_policy);
+        transfer::public_share_object(allowlist);
+        transfer::public_share_object(collection);
     }
 
     public entry fun mint_nft(
@@ -117,8 +114,8 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &MintCap<SUIMARINES>,
-        warehouse: &mut Warehouse<SUIMARINES>,
+        mint_cap: &mut MintCap<Nft<SUIMARINES>>,
+        warehouse: &mut Warehouse<Nft<SUIMARINES>>,
         ctx: &mut TxContext,
     ) {
         let nft = mint(
@@ -140,8 +137,8 @@ module nft_protocol::suimarines {
         url: vector<vector<u8>>,
         attribute_keys: vector<vector<ascii::String>>,
         attribute_values: vector<vector<ascii::String>>,
-        mint_cap: &MintCap<SUIMARINES>,
-        warehouse: &mut Warehouse<SUIMARINES>,
+        mint_cap: &mut MintCap<Nft<SUIMARINES>>,
+        warehouse: &mut Warehouse<Nft<SUIMARINES>>,
         ctx: &mut TxContext,
     ) {
         let len = vector::length(&name);
@@ -174,7 +171,7 @@ module nft_protocol::suimarines {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &MintCap<SUIMARINES>,
+        mint_cap: &mut MintCap<Nft<SUIMARINES>>,
         ctx: &mut TxContext,
     ): Nft<SUIMARINES> {
         let url = sui::url::new_unsafe_from_bytes(url);

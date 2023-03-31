@@ -16,13 +16,13 @@ module nft_protocol::test_nft {
 
     use sui::object::{Self, UID};
     use sui::test_scenario::{Self, ctx};
-    use sui::transfer::transfer;
+    use sui::transfer::public_transfer;
 
     struct Foo has drop {}
     struct Witness has drop {}
 
     struct DomainA has key, store {
-        id: UID
+        id: UID,
     }
 
     const OWNER: address = @0xA1C05;
@@ -33,11 +33,9 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(OWNER, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
-        assert!(nft::logical_owner(&nft) == OWNER, 0);
-
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -46,7 +44,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(OWNER, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
             &Witness {},
@@ -57,7 +55,7 @@ module nft_protocol::test_nft {
         // If domain does not exist this function call will fail
         nft::borrow_domain<Foo, DomainA>(&nft);
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -66,7 +64,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(OWNER, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
             &Witness {},
@@ -78,7 +76,7 @@ module nft_protocol::test_nft {
             Witness {}, &mut nft
         );
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -88,7 +86,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(OWNER, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
             &Witness {},
@@ -103,7 +101,7 @@ module nft_protocol::test_nft {
             DomainA { id: object::new(ctx) },
         );
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 
@@ -113,7 +111,7 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
-        let nft = nft::test_mint<Foo>(OWNER, ctx);
+        let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
             &Witness {},
@@ -126,7 +124,7 @@ module nft_protocol::test_nft {
             fake_witness::new(), &mut nft
         );
 
-        transfer(nft, OWNER);
+        public_transfer(nft, OWNER);
         test_scenario::end(scenario);
     }
 

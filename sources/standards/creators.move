@@ -1,27 +1,26 @@
-/// Module of Collection `CreatorsDomain`
+/// Module of Collection `Creators`
 ///
-/// `CreatorsDomain` tracks all collection creators, used to authenticate
-/// mutable operations on other OriginByte standard domains.
+/// `Creators` tracks all collection creators.
 module nft_protocol::creators {
     use sui::vec_set::{Self, VecSet};
-    use sui::tx_context::{Self, TxContext};
+    use sui::object::UID;
+    use sui::dynamic_field as df;
 
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::witness::{
-        Self, WitnessGenerator, Witness as DelegatedWitness
+    use nft_protocol::utils::{
+        assert_with_consumable_witness, UidType
     };
+    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
-    /// `CreatorsDomain` was not defined on `Collection`
-    ///
-    /// Call `collection::add_domain` to add `CreatorsDomain`.
+    /// No field object `Creators` defined as a dynamic field.
     const EUNDEFINED_CREATORS_DOMAIN: u64 = 1;
 
-    /// Address was not attributed as a creator
-    ///
-    /// Call `add_creator` or `add_creator_external` to attribute the creator.
-    const EUNDEFINED_ADDRESS: u64 = 2;
+    /// Field object `Creators` already defined as dynamic field.
+    const ECREATORS_FIELD_ALREADY_EXISTS: u64 = 2;
 
-    /// `CreatorsDomain` tracks collection creators
+    /// Address was not attributed as a creator
+    const EUNDEFINED_ADDRESS: u64 = 3;
+
+    /// `Creators` tracks collection creators
     ///
     /// #### Usage
     ///
@@ -29,12 +28,10 @@ module nft_protocol::creators {
     /// transaction senders which are creators using
     /// `assert_collection_has_creator`.
     ///
-    /// `CreatorsDomain` can additionally be frozen which will cause
+    /// `Creators` can additionally be frozen which will cause
     /// `assert_collection_has_creator` to always fail, therefore, allowing
     /// creators to lock in their NFT collection.
-    struct CreatorsDomain<phantom C> has store {
-        /// Generator responsible for issuing delegated witnesses
-        generator: WitnessGenerator<C>,
+    struct Creators has store {
         /// Creators that have the ability to mutate standard domains
         creators: VecSet<address>,
     }
@@ -42,162 +39,302 @@ module nft_protocol::creators {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Creates an empty `CreatorsDomain` object
-    ///
-    /// By not attributing any `Creators`, nobody will ever be able to modify
-    /// `Collection` domains.
-    public fun empty<C>(witness: &C): CreatorsDomain<C> {
-        from_creators(witness, vec_set::empty())
-    }
+    /// Key struct used to store Attributes in dynamic fields
+    struct CreatorsKey has store, copy, drop {}
 
-    /// Creates a `CreatorsDomain` object with only one creator
-    ///
-    /// Only the single `Creator` will ever be able to modify `Collection`
-    /// domains.
-    public fun from_address<C, W>(
-        witness: &W,
-        who: address,
-    ): CreatorsDomain<C> {
-        let creators = vec_set::empty();
-        vec_set::insert(&mut creators, who);
+    // === Insert with ConsumableWitness ===
 
-        from_creators(witness, creators)
-    }
-
-    /// Creates a `CreatorsDomain` with multiple creators
+    /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
+    /// It adds creators from a `VecSet<address>`.
     ///
-    /// Each attributed creator will be able to modify `Collection` domains.
-    public fun from_creators<C, W>(
-        witness: &W,
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun add_creators<T: key + store>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         creators: VecSet<address>,
-    ): CreatorsDomain<C> {
-        CreatorsDomain {
-            generator: witness::generator<C, W>(witness),
+    ) {
+        assert_has_not_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let creators = from_creators(creators);
+
+        cw::consume<T, Creators>(consumable, &mut creators);
+        df::add(object_uid, CreatorsKey {}, creators);
+    }
+
+    /// Adds `Creators` as a dynamic field with key `CreatorsKey`.
+    /// It adds a single `address` to the creators object.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun add_singleton<T: key + store>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        creator: address,
+    ) {
+        assert_has_not_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let creators = singleton(creator);
+
+        cw::consume<T, Creators>(consumable, &mut creators);
+        df::add(object_uid, CreatorsKey {}, creators);
+    }
+
+    /// Adds empty `Creators` as a dynamic field with key `CreatorsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun add_empty<T: key + store>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+    ) {
+        assert_has_not_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let creators = empty();
+
+        cw::consume<T, Creators>(consumable, &mut creators);
+        df::add(object_uid, CreatorsKey {}, creators);
+    }
+
+
+    // === Get for call from external Module ===
+
+
+    /// Creates a `Creators` with multiple creators
+    public fun from_creators(
+        creators: VecSet<address>,
+    ): Creators {
+        Creators {
             creators,
         }
     }
 
-    /// Attributes the given address as a creator on the `Collection`
+    /// Creates a `Creators` object with only one creator
+    public fun singleton(
+        who: address,
+    ): Creators {
+        let creators = vec_set::empty();
+        vec_set::insert(&mut creators, who);
+
+        from_creators(creators)
+    }
+
+    /// Creates an empty `Creators` object
+    public fun empty(): Creators {
+        from_creators(vec_set::empty())
+    }
+
+
+    // === Field Borrow Functions ===
+
+
+    /// Borrows immutably the `Creators` field.
     ///
     /// #### Panics
     ///
-    /// Panics if creator was already attributed or `CreatorsDomain` is not
-    /// registered on the `Collection`.
-    public fun add_creator<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    /// Panics if dynamic field with `CreatorsKey` does not exist.
+    public fun borrow_creators(
+        object_uid: &UID,
+    ): &Creators {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_creators(object_uid);
+        df::borrow(object_uid, CreatorsKey {})
+    }
+
+    /// Borrows Mutably the `Creators` field.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `CreatorsKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun borrow_creators_mut<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>
+    ): &mut Creators {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let creators = df::borrow_mut<CreatorsKey, Creators>(
+            object_uid,
+            CreatorsKey {}
+        );
+        cw::consume<T, Creators>(consumable, creators);
+
+        creators
+    }
+
+
+    // === Writer Functions ===
+
+    /// Inserts address to `Creators` field in object `T`
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `CreatorsKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun insert_creator<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         who: address,
     ) {
-        let domain = creators_domain_mut(collection);
-        vec_set::insert(&mut domain.creators, who);
+       // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let creators = borrow_mut_internal(object_uid);
+        cw::consume<T, Creators>(consumable, creators);
+
+        vec_set::insert(&mut creators.creators, who);
     }
 
-    /// Attributes the given address as a creator on the `Collection`
+    /// Removes address from `Creators` field in object `T`
     ///
-    /// Same as `add_creator` but as an entry function.
+    /// Endpoint is protected as it relies on safetly obtaining a
+    /// `ConsumableWitness` for the specific type `T` and field `Creators`.
     ///
     /// #### Panics
     ///
-    /// Panics if transaction sender is not a creator, if already attributed,
-    /// or if `CreatorsDomain` is not registered on the `Collection`.
-    public entry fun add_creator_external<C>(
-        collection: &mut Collection<C>,
+    /// Panics if dynamic field with `CreatorsKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun remove_creator<T: key>(
+        consumable: ConsumableWitness<T>,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
         who: address,
-        ctx: &mut TxContext,
     ) {
-        add_creator(delegate(collection, ctx), collection, who);
+       // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_creators(object_uid);
+        assert_with_consumable_witness(object_uid, object_type);
+
+        let creators = borrow_mut_internal(object_uid);
+        cw::consume<T, Creators>(consumable, creators);
+
+        vec_set::remove(&mut creators.creators, &who);
     }
 
-    /// Create a delegated witness
-    ///
-    /// Delegated witness can be used to authorize mutating operations across
-    /// most OriginByte domains.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender was not a creator or `CreatorsDomain` was
-    /// not registered on the `Collection`.
-    public fun delegate<C>(
-        collection: &Collection<C>,
-        ctx: &mut TxContext,
-    ): DelegatedWitness<C> {
-        let domain = creators_domain(collection);
-        assert_creator(domain, &tx_context::sender(ctx));
-        witness::delegate(&domain.generator)
+
+    // === Getter Functions & Static Mutability Accessors ===
+
+    /// Returns an immutable reference to the list of creators
+    /// defined on the `Creators`.
+    public fun get_creators(
+        creators: &Creators,
+    ): &VecSet<address> {
+        &creators.creators
     }
 
-    // === Getters ===
+    /// Returns a mutable reference to the list of creators
+    /// defined on the `Creators`.
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Creators`.
+    public fun get_creators_mut(
+        creators: &mut Creators,
+    ): &mut VecSet<address> {
+        &mut creators.creators
+    }
 
-    /// Returns whether `CreatorsDomain` has no defined creators
-    public fun is_empty<C>(domain: &CreatorsDomain<C>): bool {
-        vec_set::is_empty(&domain.creators)
+
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `Creators` field.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal(
+        object_uid: &mut UID,
+    ): &mut Creators {
+        df::borrow_mut<CreatorsKey, Creators>(
+            object_uid,
+            CreatorsKey {}
+        )
+    }
+
+
+    // === Assertions & Helpers ===
+
+    /// Checks that a given Object has a dynamic field with `AttributesKey`
+    public fun has_creators(
+        object_uid: &UID,
+    ): bool {
+        df::exists_(object_uid, CreatorsKey {})
     }
 
     /// Returns whether address is a defined creator
-    public fun contains_creator<C>(
-        domain: &CreatorsDomain<C>,
+    public fun contains_creator(
+        creators: &Creators,
         who: &address,
     ): bool {
-        vec_set::contains(&domain.creators, who)
+        vec_set::contains(&creators.creators, who)
     }
 
-    /// Returns the list of creators defined on the `CreatorsDomain`
-    public fun borrow_creators<C>(
-        domain: &CreatorsDomain<C>,
-    ): &VecSet<address> {
-        &domain.creators
+    /// Returns whether `Creators` has no defined creators
+    public fun is_empty(domain: &Creators): bool {
+        vec_set::is_empty(&domain.creators)
     }
 
-    // === Interoperability ===
-
-    /// Borrows `CreatorsDomain` from `Collection`
+    /// Asserts that address is a creator attributed in `Creators`
     ///
     /// #### Panics
     ///
-    /// Panics if `CreatorsDomain` is not registered on `Collection`.
-    public fun creators_domain<C>(
-        collection: &Collection<C>,
-    ): &CreatorsDomain<C> {
-        assert_domain(collection);
-        collection::borrow_domain(collection)
-    }
-
-    /// Mutably borrows `CreatorsDomain` from `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `CreatorsDomain` is not registered on `Collection`.
-    fun creators_domain_mut<C>(
-        collection: &mut Collection<C>,
-    ): &mut CreatorsDomain<C> {
-        assert_domain(collection);
-        collection::borrow_domain_mut(Witness {}, collection)
-    }
-
-    // === Assertions ===
-
-    /// Asserts that address is a creator attributed in `CreatorsDomain`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `CreatorsDomain` is not defined or address is not an
+    /// Panics if `Creators` is not defined or address is not an
     /// attributed creator.
-    public fun assert_creator<C>(
-        domain: &CreatorsDomain<C>,
+    public fun assert_creator(
+        domain: &Creators,
         who: &address
     ) {
         assert!(contains_creator(domain, who), EUNDEFINED_ADDRESS);
     }
 
-    /// Asserts that `CreatorsDomain` is defined on the `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `CreatorsDomain` is not defined on the `Collection`.
-    public fun assert_domain<C>(collection: &Collection<C>) {
-        assert!(
-            collection::has_domain<C, CreatorsDomain<C>>(collection),
-            EUNDEFINED_CREATORS_DOMAIN,
-        )
+    public fun assert_has_creators(object_uid: &UID) {
+        assert!(has_creators(object_uid), EUNDEFINED_CREATORS_DOMAIN);
+    }
+
+    public fun assert_has_not_creators(object_uid: &UID) {
+        assert!(!has_creators(object_uid), ECREATORS_FIELD_ALREADY_EXISTS);
     }
 }

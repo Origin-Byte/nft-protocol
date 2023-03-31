@@ -12,14 +12,13 @@ module nft_protocol::supply {
     /// `Supply` can be frozen, therefore making it impossible to change the
     /// maximum supply.
     struct Supply has store, drop {
-        frozen: bool,
         max: u64,
         current: u64,
     }
 
     /// Creates a new `Supply` object
-    public fun new(max: u64, frozen: bool): Supply {
-        Supply { frozen: frozen, max: max, current: 0 }
+    public fun new(max: u64): Supply {
+        Supply { max: max, current: 0 }
     }
 
     /// Maximum supply
@@ -43,7 +42,6 @@ module nft_protocol::supply {
     ///
     /// Panics if supply is frozen.
     public fun increase_maximum(supply: &mut Supply, value: u64) {
-        assert_not_frozen(supply);
         supply.max = supply.max + value;
     }
 
@@ -54,7 +52,6 @@ module nft_protocol::supply {
     /// Panics if supply is frozen or if new maximum supply is smaller than
     /// current supply.
     public fun decrease_maximum(supply: &mut Supply, value: u64) {
-        assert_not_frozen(supply);
         assert!(
             supply.max - value > supply.current,
             err::max_supply_cannot_be_below_current_supply()
@@ -80,52 +77,32 @@ module nft_protocol::supply {
         supply.current = supply.current - value;
     }
 
-    /// Freeze `Supply`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if already frozen
-    public fun freeze_supply(supply: &mut Supply) {
-        assert_not_frozen(supply);
-        supply.frozen = true;
-    }
-
-    /// Creates a new `Supply` which is extended from the current `Supply`
+    /// Creates a new `Supply` which is split from the current `Supply`
     ///
     /// The extend value is used as the maximum supply for the new `Supply`,
     /// while the current supply of the existing supply is incremented by the
     /// value.
     ///
-    /// The existing `Supply` must be frozen, thus the extended `Supply` will
-    /// also be frozen.
+    /// Existing `Supply` will be automatically frozen if not already frozen.
     ///
     /// #### Panics
     ///
     /// Panics if not frozen or if value will cause maximum supply to be
     /// exceeded.
-    public fun extend(supply: &mut Supply, value: u64): Supply {
-        assert_frozen(supply);
-        increment(supply, value);
-        new(value, true)
+    public fun split(supply: &mut Supply, value: u64): Supply {
+        decrease_maximum(supply, value);
+        new(value)
     }
 
-    /// Merge two `Supply` to one
+    /// Merge `Supply` into another
     ///
-    /// Ideally, the merged `Supply` will have been extended from the original
-    /// `Supply`, as otherwise it may not be possible to merge the two
-    /// supplies.
-    ///
-    /// Any excess supply on the merged `Supply` will be decremented from the
-    /// original supply.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if total supply will cause maximum or zero supply to be
-    /// exceeded.
+    /// Does not require that either `Supply` is frozen, since splitting supply
+    /// requires that both supplies are frozen, thus merging will only make
+    /// sense with frozen supplies.
     public fun merge(supply: &mut Supply, other: Supply) {
-        let excess = other.max - other.current;
-        decrement(supply, excess);
-        increment(supply, other.current);
+        let Supply { max, current } = other;
+        increase_maximum(supply, max);
+        increment(supply, current);
     }
 
     // === Assertions ===
@@ -133,15 +110,5 @@ module nft_protocol::supply {
     /// Asserts that current supply is zero
     public fun assert_zero(supply: &Supply) {
         assert!(supply.current == 0, err::supply_is_not_zero())
-    }
-
-    /// Asserts that supply is frozen
-    public fun assert_frozen(supply: &Supply) {
-        assert!(supply.frozen, err::supply_not_frozen())
-    }
-
-    /// Asserts that supply is not frozen
-    public fun assert_not_frozen(supply: &Supply) {
-        assert!(!supply.frozen, err::supply_frozen())
     }
 }

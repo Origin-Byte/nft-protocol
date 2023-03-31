@@ -5,7 +5,7 @@ module nft_protocol::footbytes {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft;
+    use nft_protocol::nft::{Self, Nft};
     use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
@@ -13,7 +13,6 @@ module nft_protocol::footbytes {
     use nft_protocol::creators;
     use nft_protocol::metadata;
     use nft_protocol::metadata_bag;
-    use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
 
@@ -26,7 +25,7 @@ module nft_protocol::footbytes {
     struct Witness has drop {}
 
     fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+        let (mint_cap, collection) = collection::create_originbyte(&witness, ctx);
 
         collection::add_domain(
             &Witness {},
@@ -72,37 +71,22 @@ module nft_protocol::footbytes {
             tags,
         );
 
-        metadata_bag::init_metadata_bag<FOOTBYTES, Witness>(
+        metadata_bag::init_metadata_bag<Nft<FOOTBYTES>, Witness>(
             &Witness {},
             &mut collection,
             ctx,
         );
 
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
-    }
-
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<FOOTBYTES, FT>,
-        collection: &mut Collection<FOOTBYTES>,
-        ctx: &mut TxContext,
-    ) {
-        let b = royalties::balance_mut(Witness {}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     public entry fun mint_nft_template(
         name: String,
         description: String,
         url: vector<u8>,
-        collection: &mut Collection<FOOTBYTES>,
-        mint_cap: &MintCap<FOOTBYTES>,
+        collection: &mut Collection<Nft<FOOTBYTES>>,
+        mint_cap: &mut MintCap<Nft<FOOTBYTES>>,
         supply: u64,
         ctx: &mut TxContext,
     ) {
@@ -116,7 +100,7 @@ module nft_protocol::footbytes {
 
         url::add_url_domain(&Witness {}, &mut nft, url);
 
-        let metadata = metadata::new_regulated(nft, supply, ctx);
+        let metadata = metadata::create_regulated(nft, supply, ctx);
         metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);
     }
 }

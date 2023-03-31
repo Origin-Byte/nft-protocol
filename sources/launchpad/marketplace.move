@@ -70,7 +70,7 @@ module nft_protocol::marketplace {
             ctx,
         );
 
-        transfer::share_object(marketplace);
+        transfer::public_share_object(marketplace);
     }
 
     // === Getters ===
