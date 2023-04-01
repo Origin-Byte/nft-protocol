@@ -26,8 +26,6 @@ module nft_protocol::transfer_policy {
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
 
-    /// The number of receipts does not match the `TransferPolicy` requirement.
-    const EPolicyNotSatisfied: u64 = 0;
     /// A completed rule is not set in the `TransferPolicy`.
     const EIllegalRule: u64 = 1;
     /// Conversion of our transfer request to the one exposed by the sui library
@@ -39,6 +37,8 @@ module nft_protocol::transfer_policy {
     const ENotOwner: u64 = 4;
     /// Trying to `withdraw` more than there is.
     const ENotEnough: u64 = 5;
+    /// The number of receipts does not match the `TransferPolicy` requirement.
+    const EPolicyNotSatisfied: u64 = 6;
 
     /// A "Hot Potato" forcing the buyer to get a transfer permission
     /// from the item type (`T`) owner on purchase attempt.

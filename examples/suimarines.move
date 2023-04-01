@@ -4,7 +4,6 @@ module nft_protocol::suimarines {
     use std::vector;
 
     use sui::object;
-    use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -19,7 +18,7 @@ module nft_protocol::suimarines {
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::transfer_allowlist_domain;
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;

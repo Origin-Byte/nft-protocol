@@ -1,7 +1,6 @@
 module nft_protocol::footbytes {
     use std::string::{Self, String};
 
-    use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 

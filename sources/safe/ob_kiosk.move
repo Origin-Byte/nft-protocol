@@ -27,6 +27,20 @@ module nft_protocol::ob_kiosk {
     const ENotOwner: u64 = 7;
     /// The transfer is not authorized for the given entity
     const ENotAuthorized: u64 = 8;
+    /// Error for operations which demand that the kiosk owner is set to
+    /// `PermissionlessAddr`
+    const EKioskNotPermissionless: u64 = 9;
+    /// The NFT type does not match the desired type
+    const ENftTypeMismatch: u64 = 10;
+
+    // === Constants ===
+
+    /// If the owner of the kiosk is set to this address, all methods which
+    /// would normally verify that the owner is the signer are permissionless.
+    ///
+    /// This is useful for wrapping kiosk functionality in a smart contract.
+    /// Create a new permissionless kiosk with `new_permissionless`.
+    const PermissionlessAddr: address = @0xb;
 
     // === Structs ===
 
@@ -45,6 +59,8 @@ module nft_protocol::ob_kiosk {
         /// If set to true, then `listed_with` must have length of 1 and
         /// listed_for must be "none".
         is_exclusively_listed: bool,
+        /// Kiosk is heterogeneous
+        nft_type: TypeName,
     }
 
     /// Configures how deposits without owner cap are limited
@@ -64,8 +80,6 @@ module nft_protocol::ob_kiosk {
     struct KioskOwnerCapDfKey has store, copy, drop {}
     /// For `Kiosk::id` value `DepositSetting`
     struct DepositSettingDfKey has store, copy, drop {}
-    /// For `Kiosk::id` value `boolean`
-    struct PermissionlessAccessDfKey has store, copy, drop {}
     /// For `TransferRequest::metadata` value `TypeName`
     struct AuthTransferRequestDfKey has store, copy, drop {}
 
@@ -74,6 +88,40 @@ module nft_protocol::ob_kiosk {
     /// Calls `new`
     public fun create_for_sender(ctx: &mut TxContext) {
         public_share_object(new(ctx));
+    }
+
+    /// All functions which would normally verify that the owner is the signer
+    /// are calleable.
+    /// This means that the kiosk MUST be wrapped.
+    /// Otherwise, anyone could call those functions.
+    public fun new_permissionless(_ctx: &mut TxContext): Kiosk {
+        // let kiosk = new(ctx);
+
+        // let cap = pop_cap(&mut kiosk);
+        // let nft = kiosk::set_owner_custom(&mut kiosk, &cap, PermissionlessAddr);
+        // set_cap(&mut kiosk, cap);
+
+        // kiosk
+
+        abort(0) // TODO: wait for new Sui version
+
+    }
+
+    /// Changes the owner of a kiosk to the given address.
+    /// This is only possible if the kiosk is currently permissionless.
+    /// Ie. the old owner is `PermissionlessAddr`.
+    ///
+    /// Note that we don't support changing ownership of a kiosk that's not
+    /// permissionless.
+    /// The address that is set as the owner of the kiosk is the address that
+    /// will remain the owner forever.
+    public fun set_permissionless_to_permissioned(_self: &mut Kiosk, _user: address) {
+        // assert!(kiosk::owner(self) == PermissionlessAddr, EKioskNotPermissionless);
+        // let cap = pop_cap(self);
+        // let nft = kiosk::set_owner_custom(self, &cap, user);
+        // set_cap(self, cap);
+
+        abort(0) // TODO: wait for new Sui version
     }
 
     /// Creates a new Kiosk in the OB ecosystem.
@@ -94,7 +142,6 @@ module nft_protocol::ob_kiosk {
         let kiosk_ext = ext(&mut kiosk);
 
         df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
-        df::add(kiosk_ext, PermissionlessAccessDfKey {}, false);
         df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
         df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
             enable_any_deposit: true,
@@ -114,7 +161,7 @@ module nft_protocol::ob_kiosk {
     public fun deposit_as_owner<T: key + store>(
         self: &mut Kiosk, nft: T, ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
         deposit_(self, nft);
     }
 
@@ -125,6 +172,7 @@ module nft_protocol::ob_kiosk {
         table::add(refs, nft_id, NftRef {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
+            nft_type: type_name::get<T>(),
         });
 
         // place underlying NFT to kiosk
@@ -147,7 +195,7 @@ module nft_protocol::ob_kiosk {
         entity: address,
         ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
@@ -169,7 +217,7 @@ module nft_protocol::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
@@ -273,7 +321,8 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert_owner(source, ctx);
+        assert_permission(source, ctx);
+        assert!(kiosk::owner(source) != PermissionlessAddr, ENotAuthorized);
         assert!(kiosk::owner(source) == kiosk::owner(target), ENotOwner);
 
         let refs = df::borrow_mut(ext(source), NftRefsDfKey {});
@@ -317,7 +366,7 @@ module nft_protocol::ob_kiosk {
     public fun delist_nft_as_owner(
         self: &mut Kiosk, nft_id: ID, ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
@@ -330,7 +379,7 @@ module nft_protocol::ob_kiosk {
     public fun remove_auth_transfer_as_owner(
         self: &mut Kiosk, nft_id: ID, entity: address, ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
@@ -356,7 +405,7 @@ module nft_protocol::ob_kiosk {
     public entry fun restrict_deposits(
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
         let settings = deposit_setting_mut(self);
         settings.enable_any_deposit = false;
     }
@@ -365,7 +414,7 @@ module nft_protocol::ob_kiosk {
     public entry fun enable_any_deposit(
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
         let settings = deposit_setting_mut(self);
         settings.enable_any_deposit = true;
     }
@@ -378,7 +427,7 @@ module nft_protocol::ob_kiosk {
     public entry fun disable_deposits_of_collection<C>(
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
         let settings = deposit_setting_mut(self);
         let col_type = type_name::get<C>();
         vec_set::remove(&mut settings.collections_with_enabled_deposits, &col_type);
@@ -392,13 +441,30 @@ module nft_protocol::ob_kiosk {
     public entry fun enable_deposits_of_collection<C>(
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
-        assert_owner(self, ctx);
+        assert_permission(self, ctx);
         let settings = deposit_setting_mut(self);
         let col_type = type_name::get<C>();
         vec_set::insert(&mut settings.collections_with_enabled_deposits, col_type);
     }
 
     // === Assertions and getters ===
+
+    /// Immutably borrow an item from the `Kiosk`.
+    public fun borrow<T: key + store>(_self: &mut Kiosk, _nft_id: ID): &T {
+        // let cap = pop_cap(self);
+        // let nft = kiosk::borrow(self, cap, nft_id);
+        // set_cap(self, cap);
+
+        // nft
+
+        abort(0) // TODO: wait for new Sui version
+    }
+
+    public fun nft_type(self: &mut Kiosk, nft_id: ID): &TypeName {
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow(refs, nft_id);
+        &ref.nft_type
+    }
 
     public fun is_ob_kiosk(self: &mut Kiosk): bool {
         df::exists_(ext(self), NftRefsDfKey {})
@@ -414,6 +480,10 @@ module nft_protocol::ob_kiosk {
             )
     }
 
+    public fun assert_nft_type<T>(self: &mut Kiosk, nft_id: ID) {
+        assert!(nft_type(self, nft_id) == &type_name::get<T>(), ENftTypeMismatch);
+    }
+
     public fun assert_can_deposit<T>(self: &mut Kiosk) {
         assert!(can_deposit<T>(self), EPermissionlessDepositsDisabled);
     }
@@ -422,8 +492,10 @@ module nft_protocol::ob_kiosk {
         assert!(kiosk::owner(self) == owner, ENotOwner);
     }
 
-    public fun assert_owner(self: &Kiosk, ctx: &mut TxContext) {
-        assert!(kiosk::owner(self) == sender(ctx), ENotOwner);
+    /// Either the kiosk is permissionless, or the sender is the owner.
+    public fun assert_permission(self: &Kiosk, ctx: &mut TxContext) {
+        let owner = kiosk::owner(self);
+        assert!(owner == PermissionlessAddr || owner == sender(ctx), ENotOwner);
     }
 
     public fun assert_has_nft(self: &Kiosk, nft_id: ID) {
