@@ -20,13 +20,14 @@
 ///     to authorize transfers.
 module nft_protocol::transfer_allowlist {
     use nft_protocol::ob_kiosk;
-    use nft_protocol::transfer_policy;
+    use nft_protocol::transfer_request::{Self, TransferRequest};
     use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
     use sui::object::{Self, UID};
     use sui::package::Publisher;
+    use sui::transfer_policy;
     use sui::transfer;
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
@@ -226,6 +227,7 @@ module nft_protocol::transfer_allowlist {
         transfer_policy::add_rule<C, AllowlistRule, bool>(
             AllowlistRule {}, policy, cap, false,
         );
+        transfer_request::add_rule_to_originbyte_ecosystem<C, AllowlistRule>(policy, cap);
     }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.
@@ -233,12 +235,12 @@ module nft_protocol::transfer_allowlist {
     /// In the end, if the allowlist rule is included in the transfer policy,
     /// the transfer request can only be finished if this rule is present.
     public fun confirm_transfer<C: key + store>(
-        req: &mut transfer_policy::TransferRequest<C>,
+        req: &mut TransferRequest<C>,
         allowlist: &Allowlist,
     ) {
         let auth = ob_kiosk::get_transfer_request_auth(req);
         assert_transferable<C>(allowlist, auth);
-        transfer_policy::add_receipt<C, AllowlistRule>(AllowlistRule {}, req);
+        transfer_request::add_receipt(req, &AllowlistRule {});
     }
 
     // === Assertions ===

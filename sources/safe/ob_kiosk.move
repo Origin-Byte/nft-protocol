@@ -1,5 +1,5 @@
 module nft_protocol::ob_kiosk {
-    use nft_protocol::transfer_policy::{Self, TransferRequestBuilder};
+    use nft_protocol::transfer_request::{Self, TransferRequest};
     use std::type_name::{Self, TypeName};
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, uid_mut as ext};
@@ -247,7 +247,7 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         entity_id: &UID,
         ctx: &mut TxContext,
-    ): TransferRequestBuilder<T> {
+    ): TransferRequest<T> {
         let (nft, builder) = withdraw_nft(source, nft_id, entity_id, ctx);
         deposit(target, nft);
         builder
@@ -262,7 +262,7 @@ module nft_protocol::ob_kiosk {
         target: &mut Kiosk,
         nft_id: ID,
         ctx: &mut TxContext,
-    ): TransferRequestBuilder<T> {
+    ): TransferRequest<T> {
         let (nft, builder) = withdraw_nft_signed(source, nft_id, ctx);
         deposit(target, nft);
         builder
@@ -282,7 +282,7 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         entity_id: &UID,
         ctx: &mut TxContext,
-    ): (T, TransferRequestBuilder<T>) {
+    ): (T, TransferRequest<T>) {
         withdraw_nft_(self, nft_id, uid_to_address(entity_id), ctx)
     }
 
@@ -294,7 +294,7 @@ module nft_protocol::ob_kiosk {
         self: &mut Kiosk,
         nft_id: ID,
         ctx: &mut TxContext,
-    ): (T, TransferRequestBuilder<T>) {
+    ): (T, TransferRequest<T>) {
         withdraw_nft_(self, nft_id, sender(ctx), ctx)
     }
 
@@ -304,14 +304,14 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         originator: address,
         ctx: &mut TxContext,
-    ): (T, TransferRequestBuilder<T>) {
+    ): (T, TransferRequest<T>) {
         check_entity_and_pop_ref(self, originator, nft_id, ctx);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        (nft, transfer_policy::builder(nft_id, originator, ctx))
+        (nft, transfer_request::new(nft_id, originator, ctx))
     }
 
     /// If both kiosks are owned by the same user, then we allow free transfer.
@@ -345,17 +345,17 @@ module nft_protocol::ob_kiosk {
     /// that the trading contracts maintain a global object.
     /// In some cases this is doable, in other it's inconvenient.
     public fun set_transfer_request_auth<T, Auth>(
-        req: &mut transfer_policy::TransferRequest<T>,
+        req: &mut TransferRequest<T>,
         _auth: &Auth,
     ) {
-        let metadata = transfer_policy::metadata_mut(req);
+        let metadata = transfer_request::metadata_mut(req);
         df::add(metadata, AuthTransferRequestDfKey {}, type_name::get<Auth>());
     }
 
     public fun get_transfer_request_auth<T>(
-        req: &mut transfer_policy::TransferRequest<T>,
+        req: &mut TransferRequest<T>,
     ): &TypeName {
-        let metadata = transfer_policy::metadata_mut(req);
+        let metadata = transfer_request::metadata_mut(req);
         df::borrow(metadata, AuthTransferRequestDfKey {})
     }
 

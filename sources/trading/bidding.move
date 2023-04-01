@@ -6,7 +6,7 @@ module nft_protocol::bidding {
     use nft_protocol::err;
     use nft_protocol::ob_kiosk;
     use nft_protocol::trading;
-    use nft_protocol::transfer_policy::{Self, TransferRequest};
+    use nft_protocol::transfer_request::{Self, TransferRequest};
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
@@ -216,19 +216,21 @@ module nft_protocol::bidding {
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         ob_kiosk::assert_kiosk_id(buyers_kiosk, bid.kiosk);
+        let seller = tx_context::sender(ctx);
 
         let price = balance::value(&bid.offer);
         assert!(price != 0, EBidAlreadyClosed);
 
-        let transfer_req_builder = ob_kiosk::transfer_delegated<T>(
+        let transfer_req = ob_kiosk::transfer_delegated<T>(
             sellers_kiosk,
             buyers_kiosk,
             nft_id,
             &bid.id,
             ctx,
         );
-        transfer_policy::builder_add_ft<T, FT>(&mut transfer_req_builder, price);
-        let transfer_req = transfer_policy::build(transfer_req_builder);
+        transfer_request::set_paid<T, FT>(
+            &mut transfer_req, balance::withdraw_all(&mut bid.offer), seller,
+        );
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
         trading::transfer_bid_commission(&mut bid.commission, ctx);
@@ -237,7 +239,7 @@ module nft_protocol::bidding {
             bid: object::id(bid),
             nft: nft_id,
             price,
-            seller: tx_context::sender(ctx),
+            seller,
             buyer: bid.buyer,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
             nft_type: *type_name::borrow_string(&type_name::get<T>()),

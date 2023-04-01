@@ -22,7 +22,7 @@ module nft_protocol::orderbook {
 
     use nft_protocol::ob_kiosk;
     use nft_protocol::trading;
-    use nft_protocol::transfer_policy;
+    use nft_protocol::transfer_request::{Self, TransferRequest};
     use nft_protocol::utils;
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
     use std::ascii::String;
@@ -525,7 +525,7 @@ module nft_protocol::orderbook {
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ): (Balance<FT>, transfer_policy::TransferRequest<T>) {
+    ): TransferRequest<T> {
         assert!(!book.protected_actions.buy_nft, EACTION_NOT_PUBLIC);
         buy_nft_<T, FT>(
             book, seller_kiosk, buyer_kiosk, nft_id, price, wallet, ctx
@@ -543,7 +543,7 @@ module nft_protocol::orderbook {
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ): (Balance<FT>, transfer_policy::TransferRequest<T>) {
+    ): TransferRequest<T> {
         utils::assert_same_module_as_witness<T, W>();
         buy_nft_<T, FT>(
             book, seller_kiosk, buyer_kiosk, nft_id, price, wallet, ctx
@@ -565,7 +565,7 @@ module nft_protocol::orderbook {
         seller_kiosk: &mut Kiosk,
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
-    ): (Balance<FT>, transfer_policy::TransferRequest<T>) {
+    ): TransferRequest<T> {
         finish_trade_<T, FT>(book, trade, seller_kiosk, buyer_kiosk, ctx)
     }
 
@@ -1090,7 +1090,7 @@ module nft_protocol::orderbook {
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ): (Balance<FT>, transfer_policy::TransferRequest<T>) {
+    ): TransferRequest<T> {
         let buyer = tx_context::sender(ctx);
 
         let Ask {
@@ -1127,18 +1127,17 @@ module nft_protocol::orderbook {
         );
         option::destroy_none(maybe_commission);
 
-        let transfer_req_builder = ob_kiosk::transfer_delegated<T>(
+        let transfer_req = ob_kiosk::transfer_delegated<T>(
             seller_kiosk,
             buyer_kiosk,
             nft_id,
             &book.id,
             ctx,
         );
-        transfer_policy::builder_add_ft<T, FT>(&mut transfer_req_builder, price);
-        let req = transfer_policy::build(transfer_req_builder);
-        ob_kiosk::set_transfer_request_auth(&mut req, &Witness {});
+        transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
+        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
-        (bid_offer, req)
+        transfer_req
     }
 
     fun finish_trade_<T: key + store, FT>(
@@ -1147,13 +1146,13 @@ module nft_protocol::orderbook {
         seller_kiosk: &mut Kiosk,
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
-    ): (Balance<FT>, transfer_policy::TransferRequest<T>) {
+    ): TransferRequest<T> {
         let TradeIntermediate {
             id: _,
             nft_id,
             seller_kiosk: _,
             paid,
-            seller: _,
+            seller,
             buyer: _,
             buyer_kiosk: expected_buyer_kiosk_id,
             commission: maybe_commission,
@@ -1166,19 +1165,19 @@ module nft_protocol::orderbook {
 
         trading::transfer_ask_commission<FT>(maybe_commission, paid, ctx);
 
-        let price = balance::value(paid);
-        let transfer_req_builder = ob_kiosk::transfer_delegated<T>(
+        let transfer_req = ob_kiosk::transfer_delegated<T>(
             seller_kiosk,
             buyer_kiosk,
             *nft_id,
             &book.id,
             ctx,
         );
-        transfer_policy::builder_add_ft<T, FT>(&mut transfer_req_builder, price);
-        let req = transfer_policy::build(transfer_req_builder);
-        ob_kiosk::set_transfer_request_auth(&mut req, &Witness {});
+        transfer_request::set_paid<T, FT>(
+            &mut transfer_req, balance::withdraw_all(paid), *seller,
+        );
+        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
-        (balance::withdraw_all(paid), req)
+        transfer_req
     }
 
     /// Finds an ask of a given NFT advertized for the given price. Removes it
