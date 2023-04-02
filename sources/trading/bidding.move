@@ -86,13 +86,13 @@ module nft_protocol::bidding {
 
     /// === Entry points ===
 
-    /// Payable entry function to create a bid for an NFT.
-    ///
     /// It performs the following:
-    /// - Sends funds Balance<FT> from `wallet` to the `bid`
-    /// - Creates object `bid` and shares it.
+    /// - Creates object `bid`
+    /// - Transfers `price` tokens from `wallet` to the `bid.offer`
+    /// - Shares the bid
     ///
     /// Make sure that the buyers kiosk allows deposits of `T`.
+    /// See `ob_kiosk::DepositSetting`.
     public fun create_bid<FT>(
         buyers_kiosk: ID,
         nft: ID,
@@ -105,16 +105,17 @@ module nft_protocol::bidding {
         share_object(bid);
     }
 
-    /// Payable entry function to create a bid for an NFT.
-    ///
     /// It performs the following:
-    /// - Sends funds Balance<FT> from `wallet` to the `bid`
-    /// - Creates object `bid` with `commission` and shares it.
+    /// - Creates object `bid`
+    /// - Transfers `price` tokens from `wallet` to the `bid.offer`
+    /// - Transfers `commission_ft` tokens from `wallet` to the `bid.commission`
+    /// - Shares the bid
     ///
     /// To be called by a intermediate application, for the purpose
     /// of securing a commission for intermediating the process.
     ///
     /// Make sure that the buyers kiosk allows deposits of `T`.
+    /// See `ob_kiosk::DepositSetting`.
     public fun create_bid_with_commission<FT>(
         buyers_kiosk: ID,
         nft: ID,
@@ -134,11 +135,10 @@ module nft_protocol::bidding {
     }
 
     /// Match a bid.
-    ///
-    /// As a seller, you can resolve the bid.
-    /// The NFT lives in the sellers kiosk.
+    /// The NFT must live in the sellers kiosk.
     ///
     /// Aborts if the buyers kiosk does not allow deposits of `T`.
+    /// See `ob_kiosk::DepositSetting`.
     public fun sell_nft_from_kiosk<T: key + store, FT>(
         bid: &mut Bid<FT>,
         sellers_kiosk: &mut Kiosk,
@@ -156,7 +156,11 @@ module nft_protocol::bidding {
         sell_nft_common(bid, buyers_kiosk, transfer_req, nft_id, ctx)
     }
 
-    /// If the NFT does not live in a safe
+    /// Use if the NFT does not live in a safe and the seller has access to it
+    /// as an owner object.
+    ///
+    /// Aborts if the buyers kiosk does not allow deposits of `T`.
+    /// See `ob_kiosk::DepositSetting`.
     public fun sell_nft<T: key + store, FT>(
         bid: &mut Bid<FT>,
         buyers_kiosk: &mut Kiosk,
@@ -174,6 +178,7 @@ module nft_protocol::bidding {
     }
 
     /// If a user wants to cancel their position, they get their coins back.
+    /// Both offer and commission (if set) are given back.
     public fun close_bid<FT>(
         bid: &mut Bid<FT>, kiosk: &mut Kiosk, ctx: &mut TxContext,
     ) {
@@ -186,8 +191,11 @@ module nft_protocol::bidding {
         share_object(bid);
     }
 
-    /// Sends funds Balance<FT> from `wallet` to the `bid` and
-    /// shares object `bid.`
+    /// It performs the following:
+    /// - Creates object `bid`
+    /// - Transfers `price` tokens from `wallet` to the `bid.offer`
+    /// - Transfers `commission_ft` tokens from `wallet` to the `bid.commission`
+    /// if commission is set
     public fun new_bid<FT>(
         buyers_kiosk: ID,
         nft: ID,
