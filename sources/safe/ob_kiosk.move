@@ -461,7 +461,7 @@ module nft_protocol::ob_kiosk {
         collection: &Collection<OTW>,
         nft_id: TypedID<T>,
         ctx: &mut TxContext,
-    ): (MutLock<Witness, T>, ReturnPromise<T>) {
+    ): (MutLock<T>, ReturnPromise<T>) {
         // TODO: Need to guarantee that NFT is not listed anywhere
         // TODO: Assert T lives in the OTW universe
         ap::assert_field_auth<OTW, T, Field>(collection, ctx);
@@ -477,7 +477,7 @@ module nft_protocol::ob_kiosk {
         collection: &Collection<OTW>,
         nft_id: TypedID<T>,
         ctx: &mut TxContext,
-    ): (MutLock<Witness, T>, ReturnPromise<T>) {
+    ): (MutLock<T>, ReturnPromise<T>) {
         // TODO: Assert T lives in the OTW universe
         // TODO: Need to guarantee that NFT is not listed anywhere
         ap::assert_parent_auth<OTW, T>(collection, ctx);
@@ -490,7 +490,7 @@ module nft_protocol::ob_kiosk {
 
     public fun return_nft<OTW: drop, T: key + store>(
         kiosk: &mut Kiosk,
-        locked_nft: MutLock<Witness, T>,
+        locked_nft: MutLock<T>,
         promise: ReturnPromise<T>,
     ) {
         // TODO: Assert T lives in the OTW universe
