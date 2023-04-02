@@ -372,6 +372,11 @@ module nft_protocol::supply {
         supply.current
     }
 
+    /// Returns `true` if frozen
+    public fun is_frozen(supply: &Supply): bool {
+        supply.frozen
+    }
+
     /// Returns remaining supply
     public fun get_remaining_supply(supply: &Supply): u64 {
         supply.max - supply.current

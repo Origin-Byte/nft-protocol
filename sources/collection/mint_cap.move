@@ -105,6 +105,11 @@ module nft_protocol::mint_cap {
         supply::get_current(option::borrow(&mint_cap.supply))
     }
 
+    public fun is_frozen<T>(mint_cap: &MintCap<T>): bool {
+        let supply = get_supply(mint_cap);
+        supply::is_frozen(supply)
+    }
+
     public fun get_supply<T>(mint_cap: &MintCap<T>): &Supply {
         assert_regulated(mint_cap);
         option::borrow(&mint_cap.supply)
