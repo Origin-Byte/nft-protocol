@@ -95,6 +95,10 @@ module nft_protocol::launchpad_v2 {
         };
     }
 
+    public fun listing_id(launch_cap: &LaunchCap): ID {
+        object::uid_to_inner(&launch_cap.id)
+    }
+
     public fun assert_launch_cap(cap: &LaunchCap, listing: &Listing) {
         // TODO: Shall we check the other way around as well, if cap.listing_id matches?
         assert!(vec_set::contains(&listing.launch_caps, &object::id(cap)), 0);
