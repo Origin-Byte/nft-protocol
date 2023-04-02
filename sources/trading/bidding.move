@@ -1,8 +1,6 @@
 /// Bidding module that allows users to bid for any given NFT just by its ID.
 /// This gives NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
-    // TODO: sell NFT that's not in kiosk
-
     use nft_protocol::err;
     use nft_protocol::ob_kiosk;
     use nft_protocol::trading;
@@ -14,9 +12,9 @@ module nft_protocol::bidding {
     use sui::coin::{Self, Coin};
     use sui::event::emit;
     use sui::kiosk::Kiosk;
-    use sui::object::{Self, ID, UID};
+    use sui::object::{Self, ID, UID, uid_to_address};
     use sui::transfer::{public_transfer, share_object};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::{TxContext, sender};
 
     /// === Errors ===
 
@@ -33,14 +31,28 @@ module nft_protocol::bidding {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
+    /// Holds public information about a bid.
+    ///
+    /// Initially, a bid is open, ie. the offer balance is not zero.
+    /// Then, a bid is either closed or matched.
+    /// In either case, the offer balance is set to zero.
     struct Bid<phantom FT> has key {
         id: UID,
         nft: ID,
         buyer: address,
+        /// Buyer's kiosk into which the NFT must be deposited.
         kiosk: ID,
         offer: Balance<FT>,
+        /// Optionally, upon creation, the bid can be created with a commission.
+        /// This means that when the bid is matched, the balance in this field
+        /// is sent to the given beneficiary.
+        ///
+        /// Useful for wallets or marketplaces which create bids on behalf of
+        /// users and want to secure a commission.
         commission: Option<trading::BidCommission<FT>>,
     }
+
+    /// === Events ===
 
     struct BidCreatedEvent has copy, drop {
         bid: ID,
@@ -79,9 +91,11 @@ module nft_protocol::bidding {
     /// It performs the following:
     /// - Sends funds Balance<FT> from `wallet` to the `bid`
     /// - Creates object `bid` and shares it.
+    ///
+    /// Make sure that the buyers kiosk allows deposits of `T`.
     public fun create_bid<FT>(
-        nft: ID,
         buyers_kiosk: ID,
+        nft: ID,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
@@ -99,9 +113,11 @@ module nft_protocol::bidding {
     ///
     /// To be called by a intermediate application, for the purpose
     /// of securing a commission for intermediating the process.
+    ///
+    /// Make sure that the buyers kiosk allows deposits of `T`.
     public fun create_bid_with_commission<FT>(
-        nft: ID,
         buyers_kiosk: ID,
+        nft: ID,
         price: u64,
         beneficiary: address,
         commission_ft: u64,
@@ -117,29 +133,44 @@ module nft_protocol::bidding {
         share_object(bid);
     }
 
-    /// Entry function to sell an NFT with an open `bid`.
+    /// Match a bid.
     ///
-    /// It performs the following:
-    /// - Splits funds from `Bid<FT>` by:
-    ///     - (1) Creating TradePayment<C, FT> for the trade amount
-    /// - Transfers NFT from `sellers_kiosk` to `buyers_kiosk` and
-    /// burns `TransferCap`
-    /// - Transfers bid commission funds to the address
-    /// `bid.commission.beneficiary`
-    public fun sell_nft<T: key + store, FT>(
+    /// As a seller, you can resolve the bid.
+    /// The NFT lives in the sellers kiosk.
+    ///
+    /// Aborts if the buyers kiosk does not allow deposits of `T`.
+    public fun sell_nft_from_kiosk<T: key + store, FT>(
         bid: &mut Bid<FT>,
-        nft_id: ID,
         sellers_kiosk: &mut Kiosk,
         buyers_kiosk: &mut Kiosk,
+        nft_id: ID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        sell_nft_<T, FT>(
-            bid,
-            nft_id,
+        let transfer_req = ob_kiosk::transfer_delegated<T>(
             sellers_kiosk,
             buyers_kiosk,
+            nft_id,
+            &bid.id,
             ctx,
-        )
+        );
+        sell_nft_common(bid, buyers_kiosk, transfer_req, nft_id, ctx)
+    }
+
+    /// If the NFT does not live in a safe
+    public fun sell_nft<T: key + store, FT>(
+        bid: &mut Bid<FT>,
+        buyers_kiosk: &mut Kiosk,
+        nft: T,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(buyers_kiosk, nft);
+        let transfer_req = ob_transfer_request::new<T>(
+            nft_id,
+            uid_to_address(&bid.id),
+            ctx,
+        );
+        sell_nft_common(bid, buyers_kiosk, transfer_req, nft_id, ctx)
     }
 
     /// If a user wants to cancel their position, they get their coins back.
@@ -158,8 +189,8 @@ module nft_protocol::bidding {
     /// Sends funds Balance<FT> from `wallet` to the `bid` and
     /// shares object `bid.`
     public fun new_bid<FT>(
-        nft: ID,
         buyers_kiosk: ID,
+        nft: ID,
         price: u64,
         commission: Option<trading::BidCommission<FT>>,
         wallet: &mut Coin<FT>,
@@ -168,7 +199,7 @@ module nft_protocol::bidding {
         assert!(price != 0, EPriceCannotBeZero);
 
         let offer = balance::split(coin::balance_mut(wallet), price);
-        let buyer = tx_context::sender(ctx);
+        let buyer = sender(ctx);
 
         let commission_amount = if(option::is_some(&commission)) {
             trading::bid_commission_amount(option::borrow(&commission))
@@ -201,33 +232,18 @@ module nft_protocol::bidding {
 
     /// === Privates ===
 
-    /// Function to sell an NFT with an open `bid`.
-    ///
-    /// It splits funds from `Bid<FT>` by creating TradePayment<C, FT>
-    /// for the Ask commission if any, and creating TradePayment<C, FT> for the
-    /// next trade amount. It transfers the NFT from `sellers_kiosk` to
-    /// `buyers_kiosk` and burns `TransferCap`. It then transfers bid
-    /// commission funds to address `bid.commission.beneficiary`.
-    fun sell_nft_<T: key + store, FT>(
+    fun sell_nft_common<T: key + store, FT>(
         bid: &mut Bid<FT>,
-        nft_id: ID,
-        sellers_kiosk: &mut Kiosk,
         buyers_kiosk: &mut Kiosk,
+        transfer_req: TransferRequest<T>,
+        nft_id: ID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         ob_kiosk::assert_kiosk_id(buyers_kiosk, bid.kiosk);
-        let seller = tx_context::sender(ctx);
-
+        let seller = sender(ctx);
         let price = balance::value(&bid.offer);
         assert!(price != 0, EBidAlreadyClosed);
 
-        let transfer_req = ob_kiosk::transfer_delegated<T>(
-            sellers_kiosk,
-            buyers_kiosk,
-            nft_id,
-            &bid.id,
-            ctx,
-        );
         ob_transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(&mut bid.offer), seller,
         );
@@ -253,7 +269,7 @@ module nft_protocol::bidding {
         kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
-        let sender = tx_context::sender(ctx);
+        let sender = sender(ctx);
         assert!(bid.buyer == sender, err::sender_not_owner());
 
         let total = balance::value(&bid.offer);

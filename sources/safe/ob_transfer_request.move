@@ -109,7 +109,7 @@ module nft_protocol::ob_transfer_request {
             metadata: object::new(ctx),
             nft,
             originator,
-            // is overwritten in `set_paid`
+            // is overwritten in `set_paid` if any balance is associated with
             beneficiary: @0x0,
             receipts: vec_set::empty(),
         }
@@ -121,6 +121,11 @@ module nft_protocol::ob_transfer_request {
     ) {
         self.beneficiary = beneficiary;
         df::add(&mut self.metadata, BalanceDfKey {}, paid);
+    }
+
+    /// Sets empty SUI token balance.
+    public fun set_no_paid<T>(self: &mut TransferRequest<T>) {
+        df::add(&mut self.metadata, BalanceDfKey {}, balance::zero<SUI>());
     }
 
     /// Adds a `Receipt` to the `TransferRequest`, unblocking the request and
