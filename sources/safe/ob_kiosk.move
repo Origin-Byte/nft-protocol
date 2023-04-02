@@ -1,5 +1,5 @@
 module nft_protocol::ob_kiosk {
-    use nft_protocol::transfer_request::{Self, TransferRequest};
+    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use std::type_name::{Self, TypeName};
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, uid_mut as ext};
@@ -311,7 +311,7 @@ module nft_protocol::ob_kiosk {
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        (nft, transfer_request::new(nft_id, originator, ctx))
+        (nft, ob_transfer_request::new(nft_id, originator, ctx))
     }
 
     /// If both kiosks are owned by the same user, then we allow free transfer.
@@ -348,14 +348,14 @@ module nft_protocol::ob_kiosk {
         req: &mut TransferRequest<T>,
         _auth: &Auth,
     ) {
-        let metadata = transfer_request::metadata_mut(req);
+        let metadata = ob_transfer_request::metadata_mut(req);
         df::add(metadata, AuthTransferRequestDfKey {}, type_name::get<Auth>());
     }
 
     public fun get_transfer_request_auth<T>(
         req: &mut TransferRequest<T>,
     ): &TypeName {
-        let metadata = transfer_request::metadata_mut(req);
+        let metadata = ob_transfer_request::metadata_mut(req);
         df::borrow(metadata, AuthTransferRequestDfKey {})
     }
 

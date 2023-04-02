@@ -6,7 +6,7 @@ module nft_protocol::bidding {
     use nft_protocol::err;
     use nft_protocol::ob_kiosk;
     use nft_protocol::trading;
-    use nft_protocol::transfer_request::{Self, TransferRequest};
+    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
@@ -228,7 +228,7 @@ module nft_protocol::bidding {
             &bid.id,
             ctx,
         );
-        transfer_request::set_paid<T, FT>(
+        ob_transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(&mut bid.offer), seller,
         );
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});

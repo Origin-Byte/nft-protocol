@@ -22,7 +22,7 @@
 /// This is helpful for reducing # of txs users have to send for trading
 /// logic which requires multiple steps.
 /// With our protocol, automation can be set up by marketplaces.
-module nft_protocol::transfer_request {
+module nft_protocol::ob_transfer_request {
     use std::type_name::{Self, TypeName};
     use std::vector;
     use sui::balance::{Self, Balance};
@@ -35,6 +35,8 @@ module nft_protocol::transfer_request {
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
+    // === Errors ===
+
     /// A completed rule is not set in the `TransferPolicy`.
     const EIllegalRule: u64 = 1;
     /// Conversion of our transfer request to the one exposed by the sui library
@@ -42,6 +44,8 @@ module nft_protocol::transfer_request {
     const EOnlyTransferRequestOfSuiToken: u64 = 2;
     /// The number of receipts does not match the `TransferPolicy` requirement.
     const EPolicyNotSatisfied: u64 = 3;
+
+    // === Structs ===
 
     /// A "Hot Potato" forcing the buyer to get a transfer permission
     /// from the item type (`T`) owner on purchase attempt.
@@ -83,13 +87,15 @@ module nft_protocol::transfer_request {
     /// This isn't prevented in the standard Sui implementation either.
     /// The best prevention is a client side condition which fails the trade
     /// if royalty is too high.
-    struct TransferRequestBalanceAccessCap<phantom T> has store, drop {}
+    struct BalanceAccessCap<phantom T> has store, drop {}
 
     /// Stores balance on `TransferRequest` as dynamic field in the metadata.
     struct BalanceDfKey has copy, store, drop {}
     /// Stores `VecSet<TypeName>` on `TransferPolicy`.
     /// Works similarly to `TransferPolicy::rules`.
     struct OringinbyteRulesDfKey has copy, store, drop {}
+
+    // === TransferRequest ===
 
     /// Construct a new `TransferRequest` hot potato which requires an
     /// approving action from the creator to be destroyed / resolved.
@@ -129,33 +135,7 @@ module nft_protocol::transfer_request {
     /// There are some standard metadata are
     /// * `ob_kiosk::set_transfer_request_auth`
     /// * `transfer_request::set_paid`
-    public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut UID {
-        &mut self.metadata
-    }
-
-    /// We extend the functionality of `TransferPolicy` by inserting our
-    /// Originbyte `VecSet<TypeName>` into it.
-    /// These rules work with our custom `TransferRequest`.
-    public fun add_rule_to_originbyte_ecosystem<T, Rule>(
-        self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
-    ) {
-        let ext = transfer_policy::uid_mut_as_owner(self, cap);
-        if (!df::exists_(ext, OringinbyteRulesDfKey {})) {
-            df::add(ext, OringinbyteRulesDfKey {}, vec_set::empty<TypeName>());
-        };
-
-        let rules = df::borrow_mut(ext, OringinbyteRulesDfKey {});
-        vec_set::insert(rules, type_name::get<Rule>());
-    }
-
-    /// Allows us to modify the rules.
-    public fun remove_rule_from_originbyte_ecosystem<T, Rule>(
-        self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
-    ) {
-        let ext = transfer_policy::uid_mut_as_owner(self, cap);
-        let rules = df::borrow_mut(ext, OringinbyteRulesDfKey {});
-        vec_set::remove(rules, &type_name::get<Rule>());
-    }
+    public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut UID { &mut self.metadata }
 
     /// The transfer request can be converted to the sui lib version if the
     /// payment was done in SUI and there's no other currency used.
@@ -189,14 +169,44 @@ module nft_protocol::transfer_request {
         )
     }
 
+    // === TransferPolicy ===
+
+    /// We extend the functionality of `TransferPolicy` by inserting our
+    /// Originbyte `VecSet<TypeName>` into it.
+    /// These rules work with our custom `TransferRequest`.
+    public fun add_rule_to_originbyte_ecosystem<T, Rule>(
+        self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
+    ) {
+        let ext = transfer_policy::uid_mut_as_owner(self, cap);
+        if (!df::exists_(ext, OringinbyteRulesDfKey {})) {
+            df::add(ext, OringinbyteRulesDfKey {}, vec_set::empty<TypeName>());
+        };
+
+        let rules = df::borrow_mut(ext, OringinbyteRulesDfKey {});
+        vec_set::insert(rules, type_name::get<Rule>());
+    }
+
+    /// Allows us to modify the rules.
+    public fun remove_rule_from_originbyte_ecosystem<T, Rule>(
+        self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
+    ) {
+        let ext = transfer_policy::uid_mut_as_owner(self, cap);
+        let rules = df::borrow_mut(ext, OringinbyteRulesDfKey {});
+        vec_set::remove(rules, &type_name::get<Rule>());
+    }
+
+    /// Creates a new capability which enables the holder to get `&mut` access
+    /// to a balance paid for an NFT.
+    public fun grant_balance_access_cap<T>(
+        _cap: &TransferPolicyCap<T>,
+    ): BalanceAccessCap<T> { BalanceAccessCap {} }
+
     // === Request confirmation ===
 
     /// Same as `confirm_request<T, SUI>`.
     public fun confirm_request_in_sui<T>(
-        self: &TransferPolicy<T>, request: TransferRequest<T>, ctx: &mut TxContext,
-    ) {
-        confirm_request<T, SUI>(self, request, ctx)
-    }
+        policy: &TransferPolicy<T>, self: TransferRequest<T>, ctx: &mut TxContext,
+    ) { confirm_request<T, SUI>(policy, self, ctx) }
 
     /// Allow a `TransferRequest` for the type `T`.
     /// The call is protected by the type constraint, as only the publisher of
@@ -207,7 +217,7 @@ module nft_protocol::transfer_request {
     /// If there is no transfer policy in the OB ecosystem, try using
     /// `into_sui` to convert the `TransferRequest` to the SUI ecosystem.
     public fun confirm_request<T, FT>(
-        self: &TransferPolicy<T>, request: TransferRequest<T>, ctx: &mut TxContext,
+        policy: &TransferPolicy<T>, self: TransferRequest<T>, ctx: &mut TxContext,
     ) {
         let TransferRequest {
             metadata,
@@ -215,8 +225,8 @@ module nft_protocol::transfer_request {
             originator: _,
             beneficiary,
             receipts,
-        } = request;
-        let rules = df::borrow(transfer_policy::uid(self), OringinbyteRulesDfKey {});
+        } = self;
+        let rules = df::borrow(transfer_policy::uid(policy), OringinbyteRulesDfKey {});
         let completed = vec_set::into_keys(receipts);
         let total = vector::length(&completed);
 
@@ -231,11 +241,27 @@ module nft_protocol::transfer_request {
         let balance: Balance<FT> = df::remove(&mut metadata, BalanceDfKey {});
         if (balance::value(&balance) > 0) {
             public_transfer(coin::from_balance(balance, ctx), beneficiary);
+        } else {
+            balance::destroy_zero(balance);
         };
         object::delete(metadata);
     }
 
     // === Getters ===
+
+    public fun paid_in_ft_mut<T, FT>(
+        self: &mut TransferRequest<T>, _cap: &BalanceAccessCap<T>,
+    ): (&mut Balance<FT>, address) {
+        let balance = df::borrow_mut(&mut self.metadata, BalanceDfKey {});
+        (balance, self.beneficiary)
+    }
+
+    public fun paid_in_sui_mut<T>(
+        self: &mut TransferRequest<T>, _cap: &BalanceAccessCap<T>,
+    ): (&mut Balance<SUI>, address) {
+        let balance = df::borrow_mut(&mut self.metadata, BalanceDfKey {});
+        (balance, self.beneficiary)
+    }
 
     /// Returns the amount and beneficiary.
     public fun paid_in_ft<T, FT>(self: &TransferRequest<T>): (u64, address) {
