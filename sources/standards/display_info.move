@@ -6,9 +6,8 @@ module nft_protocol::display_info {
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{
-        assert_with_witness, assert_with_consumable_witness, UidType
+        assert_with_witness, UidType, marker, Marker
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// No field object `DisplayInfo` defined as a dynamic field.
     const EUNDEFINED_DISPLAY_INFO_FIELD: u64 = 1;
@@ -24,36 +23,33 @@ module nft_protocol::display_info {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Key struct used to store DisplayInfo in dynamic fields
-    struct DisplayInfoKey has store, copy, drop {}
+
+    // === Insert with module specific Witness ===
 
 
-    // === Insert with ConsumableWitness ===
-
-
-    /// Adds `DisplayInfo` as a dynamic field with key `DisplayInfoKey`.
+    /// Adds `DisplayInfo` as a dynamic field with key `Marker<DisplayInfo>`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `DisplayInfo`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun add_display_info<T: key>(
-        consumable: ConsumableWitness<T>,
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    public fun add_display_info_<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         name: String,
         description: String,
     ) {
         assert_has_not_display_info(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let display_info = new(name, description);
-
-        cw::consume<T, DisplayInfo>(consumable, &mut display_info);
-        df::add(object_uid, DisplayInfoKey {}, display_info);
+        df::add(object_uid, marker<DisplayInfo>(), display_info);
     }
 
 
@@ -72,7 +68,7 @@ module nft_protocol::display_info {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
+    /// Panics if dynamic field with `Marker<DisplayInfo>` does not exist.
     public fun borrow_display_info(
         object_uid: &UID,
     ): &DisplayInfo {
@@ -80,22 +76,24 @@ module nft_protocol::display_info {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_display_info(object_uid);
-        df::borrow(object_uid, DisplayInfoKey {})
+        df::borrow(object_uid, marker<DisplayInfo>())
     }
 
     /// Borrows Mutably the `DisplayInfo` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `DisplayInfo`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
+    /// Panics if dynamic field with `Marker<DisplayInfo>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun borrow_display_info_mut<T: key>(
-        consumable: ConsumableWitness<T>,
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    public fun borrow_display_info_mut<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>
     ): &mut DisplayInfo {
@@ -103,15 +101,9 @@ module nft_protocol::display_info {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_display_info(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let display_info = df::borrow_mut<DisplayInfoKey, DisplayInfo>(
-            object_uid,
-            DisplayInfoKey {}
-        );
-        cw::consume<T, DisplayInfo>(consumable, display_info);
-
-        display_info
+        df::borrow_mut(object_uid, marker<DisplayInfo>())
     }
 
 
@@ -120,17 +112,19 @@ module nft_protocol::display_info {
 
     /// Changes name string in the object field `DisplayInfo` of the object type `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `DisplayInfo`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
+    /// Panics if dynamic field with `Marker<DisplayInfo>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun change_name<T: key>(
-        consumable: ConsumableWitness<T>,
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    public fun change_name<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         new_name: String,
@@ -139,28 +133,29 @@ module nft_protocol::display_info {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_display_info(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let display_info = borrow_mut_internal(object_uid);
 
-        cw::consume<T, DisplayInfo>(consumable, display_info);
         display_info.name = new_name;
     }
 
 
     /// Changes description string in the object field `DisplayInfo` of the object type `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `DisplayInfo`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
+    /// Panics if dynamic field with `Marker<DisplayInfo>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun change_description<T: key>(
-        consumable: ConsumableWitness<T>,
+    ///
+    /// Panics if Witness `W` does not match `T`'s module.
+    public fun change_description<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         new_description: String,
@@ -169,11 +164,9 @@ module nft_protocol::display_info {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_display_info(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let display_info = borrow_mut_internal(object_uid);
-
-        cw::consume<T, DisplayInfo>(consumable, display_info);
         display_info.description = new_description;
     }
 
@@ -225,20 +218,20 @@ module nft_protocol::display_info {
     fun borrow_mut_internal(
         object_uid: &mut UID,
     ): &mut DisplayInfo {
-        df::borrow_mut<DisplayInfoKey, DisplayInfo>(
+        df::borrow_mut<Marker<DisplayInfo>, DisplayInfo>(
             object_uid,
-            DisplayInfoKey {}
+            marker<DisplayInfo>()
         )
     }
 
     // === Assertions & Helpers ===
 
 
-    /// Checks that a given Object has a dynamic field with `DisplayInfoKey`
+    /// Checks that a given Object has a dynamic field with `Marker<DisplayInfo>`
     public fun has_display_info(
         object_uid: &UID,
     ): bool {
-        df::exists_(object_uid, DisplayInfoKey {})
+        df::exists_(object_uid, marker<DisplayInfo>())
     }
 
     public fun assert_has_display_info(object_uid: &UID) {

@@ -6,9 +6,8 @@ module nft_protocol::symbol {
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{
-        assert_with_consumable_witness, UidType
+        assert_with_witness, UidType, marker, Marker
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// No field object `Symbol` defined as a dynamic field.
     const EUNDEFINED_SYMBOL_FIELD: u64 = 1;
@@ -23,35 +22,31 @@ module nft_protocol::symbol {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Key struct used to store Symbol in dynamic fields
-    struct SymbolKey has store, copy, drop {}
+
+    // === Insert with module specific Witness ===
 
 
-    // === Insert with ConsumableWitness ===
-
-
-    /// Adds `Symbol` as a dynamic field with key `SymbolKey`.
+    /// Adds `Symbol` as a dynamic field with key `Marker<Symbol>`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Symbol`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun add_symbol<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun add_symbol<W:drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         symbol: String,
     ) {
         assert_has_not_symbol(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let symbol = new(symbol);
 
-        cw::consume<T, Symbol>(consumable, &mut symbol);
-        df::add(object_uid, SymbolKey {}, symbol);
+        df::add(object_uid, marker<Symbol>(), symbol);
     }
 
 
@@ -70,7 +65,7 @@ module nft_protocol::symbol {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SymbolKey` does not exist.
+    /// Panics if dynamic field with `Marker<Symbol>` does not exist.
     public fun borrow_symbol(
         object_uid: &UID,
     ): &Symbol {
@@ -78,22 +73,22 @@ module nft_protocol::symbol {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_symbol(object_uid);
-        df::borrow(object_uid, SymbolKey {})
+        df::borrow(object_uid, marker<Symbol>())
     }
 
     /// Borrows Mutably the `Symbol` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Symbol`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SymbolKey` does not exist.
+    /// Panics if dynamic field with `Marker<Symbol>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun borrow_symbol_mut<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun borrow_symbol_mut<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>
     ): &mut Symbol {
@@ -101,13 +96,12 @@ module nft_protocol::symbol {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_symbol(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let symbol = df::borrow_mut<SymbolKey, Symbol>(
+        let symbol = df::borrow_mut<Marker<Symbol>, Symbol>(
             object_uid,
-            SymbolKey {}
+            marker<Symbol>()
         );
-        cw::consume<T, Symbol>(consumable, symbol);
 
         symbol
     }
@@ -118,17 +112,17 @@ module nft_protocol::symbol {
 
     /// Changes symbol string in the object field `Symbol` of the NFT of type `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Symbol`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SymbolKey` does not exist.
+    /// Panics if dynamic field with `Marker<Symbol>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun change_symbol<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun change_symbol<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         new_symbol: String,
@@ -137,11 +131,10 @@ module nft_protocol::symbol {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_symbol(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let symbol = borrow_mut_internal(object_uid);
 
-        cw::consume<T, Symbol>(consumable, symbol);
         symbol.symbol = new_symbol;
     }
 
@@ -176,20 +169,20 @@ module nft_protocol::symbol {
     fun borrow_mut_internal(
         object_uid: &mut UID,
     ): &mut Symbol {
-        df::borrow_mut<SymbolKey, Symbol>(
+        df::borrow_mut<Marker<Symbol>, Symbol>(
             object_uid,
-            SymbolKey {}
+            marker<Symbol>()
         )
     }
 
     // === Assertions & Helpers ===
 
 
-    /// Checks that a given NFT has a dynamic field with `SymbolKey`
+    /// Checks that a given NFT has a dynamic field with `Marker<Symbol>`
     public fun has_symbol(
         object_uid: &UID,
     ): bool {
-        df::exists_(object_uid, SymbolKey {})
+        df::exists_(object_uid, marker<Symbol>())
     }
 
     public fun assert_has_symbol(object_uid: &UID) {

@@ -1,210 +1,165 @@
-// /// Module of the `UrlDomain`
-// ///
-// /// Used to associate a URL with `Collection` or `Nft`.add
-// ///
-// /// Interoperability functions are delegated to the `display_ext` module.
-// module nft_protocol::url {
-//     use sui::url::Url;
+/// Module of the `UrlDomain`
+///
+/// Used to associate a URL with `Collection` or `Nft`.add
+///
+/// Interoperability functions are delegated to the `display_ext` module.
+module nft_protocol::url {
+    use std::ascii::String;
+    use sui::url::{Self, Url};
+    use sui::dynamic_field as df;
+    use sui::object::UID;
 
-//     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
-//     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::utils::{
+        assert_with_witness, UidType, marker, Marker
+    };
 
-//     /// `UrlDomain` was not defined
-//     ///
-//     /// Call `url::add` or `url::add_collection` to add `UrlDomain`.
-//     const EUNDEFINED_URL_DOMAIN: u64 = 1;
+    /// No field object `Url` defined as a dynamic field with key `Key`.
+    const EUNDEFINED_URL_FIELD: u64 = 1;
 
-//     /// `UrlDomain` already defined
-//     ///
-//     /// Call `url::borrow` or url::borrow_collection` to borrow domain.
-//     const EEXISTING_DOMAIN: u64 = 2;
+    /// Field object `Url` already defined as dynamic field with key `Key`.
+    const EURL_FIELD_ALREADY_EXISTS: u64 = 2;
 
-//     /// Domain for storing an associated URL
-//     ///
-//     /// Changes are replicated to `ComposableUrl` domain as URL base for NFTs.
-//     struct UrlDomain has store {
-//         url: Url,
-//     }
+    /// Witness used to authenticate witness protected endpoints
+    struct Witness has drop {}
 
-//     /// Witness used to authenticate witness protected endpoints
-//     struct Witness has drop {}
 
-//     /// Creates new `UrlDomain` with a URL
-//     public fun new(url: Url): UrlDomain {
-//         UrlDomain { url }
-//     }
+    // === Insert with module specific Witness ===
 
-//     /// Sets URL of `UrlDomain`
-//     ///
-//     /// Need to ensure that `UrlDomain` is updated with attributes if they
-//     /// exist therefore function cannot be public.
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` does not exist on `Nft`
-//     public fun set_url<C>(
-//         witness: DelegatedWitness<Nft<C>>,
-//         nft: &mut Nft<C>,
-//         url: Url,
-//     ) {
-//         let domain_url = borrow_url_mut(nft);
-//         *domain_url = url;
 
-//         nft::set_url(witness, nft, url);
-//     }
+    /// Adds `Tags` as a dynamic field with key `TagsKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun add_url<W: drop, T: key, Key: copy + store + drop>(
+        _witness: W,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        url: String,
+    ) {
+        assert_has_not_url<Key>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-//     /// Sets URL of `UrlDomain`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` does not exist on `Collection`
-//     public fun set_collection_url<T>(
-//         _witness: DelegatedWitness<T>,
-//         collection: &mut Collection<T>,
-//         url: Url,
-//     ) {
-//         let domain_url = borrow_collection_url_mut(collection);
-//         *domain_url = url;
-//     }
+        let url = url::new_unsafe(url);
 
-//     // === Interoperability ===
+        df::add(object_uid, marker<Key>(), url);
+    }
 
-//     /// Returns whether `UrlDomain` is registered on `Nft`
-//     public fun has_url<C>(nft: &Nft<C>): bool {
-//         nft::has_domain<C, UrlDomain>(nft)
-//     }
+    // === Field Borrow Functions ===
 
-//     /// Returns whether `UrlDomain` is registered on `Collection`
-//     public fun has_collection_url<T>(collection: &Collection<T>): bool {
-//         collection::has_domain<T, UrlDomain>(collection)
-//     }
 
-//     /// Borrows `UrlDomain` from `Nft`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` is not registered on the `Nft`
-//     public fun borrow_url<C>(nft: &Nft<C>): &Url {
-//         assert_url(nft);
-//         let domain: &UrlDomain = nft::borrow_domain(nft);
-//         &domain.url
-//     }
+    /// Borrows immutably the `Url` field with the key `Key`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `Marker<Key>` does not exist.
+    public fun borrow_url<Key: copy + store + drop>(
+        object_uid: &UID,
+    ): &Url {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_url<Key>(object_uid);
+        df::borrow(object_uid, marker<Key>())
+    }
 
-//     /// Mutably borrows `UrlDomain` from `Nft`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` is not registered on the `Nft`
-//     fun borrow_url_mut<C>(nft: &mut Nft<C>): &mut Url {
-//         assert_url(nft);
-//         let domain: &mut UrlDomain = nft::borrow_domain_mut(Witness {}, nft);
-//         &mut domain.url
-//     }
+    /// Borrows Mutably the `Url` field with the key `Key`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `Marker<Key>` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun borrow_tags_mut<W: drop, T: key, Key: copy + store + drop>(
+        _witness: W,
+        object_uid: &mut UID,
+        object_type: UidType<T>
+    ): &mut Url {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_url<Key>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-//     /// Borrows `UrlDomain` from `Collection`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` is not registered on the `Collection`
-//     public fun borrow_collection_url<T>(collection: &Collection<T>): &Url {
-//         assert_collection_url(collection);
-//         let domain: &UrlDomain = collection::borrow_domain(collection);
-//         &domain.url
-//     }
+        let tags = df::borrow_mut<Marker<Key>, Url>(
+            object_uid,
+            marker<Key>()
+        );
 
-//     /// Mutably borrows `UrlDomain` from `Collection`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` is not registered on the `Collection`
-//     fun borrow_collection_url_mut<T>(
-//         collection: &mut Collection<T>,
-//     ): &mut Url {
-//         assert_collection_url(collection);
-//         let domain: &mut UrlDomain =
-//             collection::borrow_domain_mut(Witness {}, collection);
-//         &mut domain.url
-//     }
+        tags
+    }
 
-//     /// Adds `UrlDomain` to `Nft`
-//     ///
-//     /// Need to ensure that `UrlDomain` is updated with attributes if they
-//     /// exist therefore function cannot be public.
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` domain already exists
-//     public fun add_url_domain<C, W>(
-//         witness: &W,
-//         nft: &mut Nft<C>,
-//         url: Url,
-//     ) {
-//         add_url_domain_delegated(witness::from_witness(witness), nft, url)
-//     }
+    // === Writer Functions ===
 
-//     /// Adds `UrlDomain` to `Nft`
-//     ///
-//     /// Need to ensure that `UrlDomain` is updated with attributes if they
-//     /// exist therefore function cannot be public.
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` domain already exists
-//     public fun add_url_domain_delegated<C>(
-//         witness: DelegatedWitness<Nft<C>>,
-//         nft: &mut Nft<C>,
-//         url: Url,
-//     ) {
-//         assert!(!has_url(nft), EEXISTING_DOMAIN);
-//         nft::add_domain_delegated(witness, nft, new(url));
-//     }
 
-//     /// Adds `UrlDomain` to `Collection`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` domain already exists
-//     public fun add_collection_url_domain<T, W>(
-//         witness: &W,
-//         collection: &mut Collection<T>,
-//         url: Url,
-//     ) {
-//         add_collection_url_domain_delegated(
-//             witness::from_witness(witness), collection, url,
-//         )
-//     }
+    /// Sets URL of for field with key `Key`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if dynamic field with `AttributesKey` does not exist.
+    ///
+    /// Panics if `object_uid` does not correspond to `object_type.id`,
+    /// in other words, it panics if `object_uid` is not of type `T`.
+    public fun set_url<W: drop, T: key, Key: store + copy + drop>(
+        _witness: W,
+        object_uid: &mut UID,
+        object_type: UidType<T>,
+        new_url: String,
+    ) {
+        // `df::borrow` fails if there is no such dynamic field,
+        // however asserting it here allows for a more straightforward
+        // error message
+        assert_has_url<Key>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-//     /// Adds `UrlDomain` to `Collection`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` domain already exists
-//     public fun add_collection_url_domain_delegated<T>(
-//         witness: DelegatedWitness<T>,
-//         collection: &mut Collection<T>,
-//         url: Url,
-//     ) {
-//         assert!(!has_collection_url(collection), EEXISTING_DOMAIN);
-//         collection::add_domain_delegated(witness, collection, new(url));
-//     }
+        let url = borrow_mut_internal<Key>(object_uid);
 
-//     // === Assertions ===
+        *url = url::new_unsafe(new_url);
+    }
 
-//     /// Asserts that `UrlDomain` is registered on `Nft`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` is not registered
-//     public fun assert_url<C>(nft: &Nft<C>) {
-//         assert!(has_url(nft), EUNDEFINED_URL_DOMAIN);
-//     }
 
-//     /// Asserts that `UrlDomain` is registered on `Nft`
-//     ///
-//     /// #### Panics
-//     ///
-//     /// Panics if `UrlDomain` is not registered
-//     public fun assert_collection_url<T>(collection: &Collection<T>) {
-//         assert!(has_collection_url(collection), EUNDEFINED_URL_DOMAIN);
-//     }
-// }
+    // === Private Functions ===
+
+
+    /// Borrows Mutably the `Tags` field with key `Key`.
+    ///
+    /// For internal use only.
+    fun borrow_mut_internal<Key: store + copy + drop>(
+        object_uid: &mut UID,
+    ): &mut Url {
+        df::borrow_mut<Marker<Key>, Url>(
+            object_uid,
+            marker<Key>()
+        )
+    }
+
+
+    // === Assertions ===
+
+
+    /// Checks that a given NFT has a dynamic field with `Marker<Tags>`
+    public fun has_url<Key: copy + store + drop>(
+        object_uid: &UID,
+    ): bool {
+        df::exists_(object_uid, marker<Key>())
+    }
+
+    public fun assert_has_url<Key: copy + store + drop>(object_uid: &UID) {
+        assert!(has_url<Key>(object_uid), EUNDEFINED_URL_FIELD);
+    }
+
+    public fun assert_has_not_url<Key: copy + store + drop>(object_uid: &UID) {
+        assert!(!has_url<Key>(object_uid), EURL_FIELD_ALREADY_EXISTS);
+    }
+}
