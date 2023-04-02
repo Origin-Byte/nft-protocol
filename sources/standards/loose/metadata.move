@@ -37,10 +37,12 @@ module nft_protocol::metadata {
     public fun create<C>(
         metadata: Nft<C>,
         supply: Option<u64>,
+        // Only matters if the supply is some
+        frozen: bool,
         ctx: &mut TxContext,
     ): Metadata<C> {
         if (option::is_some(&supply)) {
-            create_regulated(metadata, option::destroy_some(supply), ctx)
+            create_regulated(metadata, option::destroy_some(supply), frozen, ctx)
         } else {
             create_unregulated(metadata, ctx)
         }
@@ -64,12 +66,14 @@ module nft_protocol::metadata {
     public fun create_regulated<C>(
         metadata: Nft<C>,
         supply: u64,
+        frozen: bool,
         ctx: &mut TxContext,
     ): Metadata<C> {
         Metadata {
             id: object::new(ctx),
             metadata,
-            supply: option::some(supply::new(supply)),
+
+            supply: option::some(supply::new(supply, frozen)),
         }
     }
 
@@ -82,7 +86,7 @@ module nft_protocol::metadata {
         metadata: Nft<C>,
         ctx: &mut TxContext
     ) {
-        let metadata = create(metadata, option::none(), ctx);
+        let metadata = create(metadata, option::none(), false,  ctx);
         transfer::public_transfer(metadata, tx_context::sender(ctx));
     }
 
@@ -94,9 +98,10 @@ module nft_protocol::metadata {
     public entry fun create_regulated_and_transfer<C>(
         metadata: Nft<C>,
         quantity: u64,
+        frozen: bool,
         ctx: &mut TxContext,
     ) {
-        let metadata = create(metadata, option::some(quantity), ctx);
+        let metadata = create(metadata, option::some(quantity), frozen, ctx);
         transfer::public_transfer(metadata, tx_context::sender(ctx));
     }
 
