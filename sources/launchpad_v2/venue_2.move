@@ -8,11 +8,14 @@ module nft_protocol::venue_v2 {
     use sui::object::{Self, UID, ID};
     use sui::dynamic_field as df;
 
+    use nft_protocol::supply::{Self, Supply};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::launchpad_v2::{Self, LaunchCap};
     use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
+
+    const EMARKET_WITNESS_MISMATCH: u64 = 2;
 
 
     /// `Venue` object
@@ -31,11 +34,21 @@ module nft_protocol::venue_v2 {
         policy: VenuePolicy,
         // Here for discoverability and assertion.
         redeem_policy: TypeName,
+        // Here for discoverability and assertion.
+        market_policy: TypeName,
+        supply: Option<Supply>,
         start_time: Option<u64>,
         close_time: Option<u64>,
         live: bool,
-        supply: Supply,
         // resolver: Resolver,
+    }
+
+    struct NftCert has key, store {
+        id: UID,
+        venue_id: ID,
+        warehouse_id: Option<u64>,
+        // Relative index of the NFT in the Warehouse
+        relative_index: Option<u64>,
     }
 
     public fun request_access(
@@ -80,6 +93,28 @@ module nft_protocol::venue_v2 {
         };
 
         venue.live
+    }
+
+    public fun decrement_supply_if_any<AW: drop>(_market_witness: AW, venue: &mut Venue) {
+        assert!(type_name::get<AW>() == venue.market_policy, EMARKET_WITNESS_MISMATCH);
+        if (option::is_some(&venue.supply)) {
+            supply::decrement(option::borrow_mut(&mut venue.supply), 1);
+        }
+    }
+
+    public fun redeem_generic_cert<AW: drop>(
+        _market_witness: AW,
+        venue: &mut Venue,
+        ctx: &mut TxContext,
+    ): NftCert {
+        assert!(type_name::get<AW>() == venue.market_policy, EMARKET_WITNESS_MISMATCH);
+
+        NftCert {
+            id: object::new(ctx),
+            venue_id: object::id(venue),
+            warehouse_id: option::none(),
+            relative_index: option::none(),
+        }
     }
 
     public fun uid_mut(venue: &mut Venue, launch_cap: &LaunchCap): &mut UID {

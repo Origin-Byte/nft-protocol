@@ -1,4 +1,5 @@
 module nft_protocol::pseudorand_redeem {
+    use std::vector;
     use std::option::{Self, Option};
     use sui::clock::{Self, Clock};
     use sui::transfer;
@@ -13,23 +14,15 @@ module nft_protocol::pseudorand_redeem {
     use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
     use nft_protocol::venue_v2::{Self, Venue};
 
+    use originmate::pseudorandom;
+
+    /// Attempted to construct a `RedeemCommitment` with a hash length
+    /// different than 32 bytes
+    const EINVALID_COMMITMENT_LENGTH: u64 = 4;
+
     struct PseudoRandRedeem has store {
         nft_precision: u64,
         safe_precision: u64,
-    }
-
-    /// Used for the client to commit a pseudo-random
-    struct RedeemCommitment has key {
-        /// `RedeemCommitment` ID
-        id: UID,
-        /// Hashed sender commitment
-        ///
-        /// Sender will have to provide the pre-hashed value to be able to use
-        /// this `RedeemCommitment`. This value can be pseudo-random as long
-        /// as it is not predictable by the validator.
-        hashed_sender_commitment: vector<u8>,
-        /// Open commitment made by validator
-        contract_commitment: vector<u8>,
     }
 
     struct PseudoRandRedeemDfKey has store, copy, drop {}
@@ -72,28 +65,35 @@ module nft_protocol::pseudorand_redeem {
         df::add(venue_uid, PseudoRandRedeemDfKey {}, pubkey);
     }
 
-    /// Create a new `RedeemCommitment`
+    /// Pseudo-randomly redeems NFT from `Warehouse`
     ///
-    /// Contract commitment must be unfeasible to predict by the transaction
-    /// sender. The underlying value of the commitment can be pseudo-random as
-    /// long as it is not predictable by the validator.
+    /// Endpoint is susceptible to validator prediction of the resulting index,
+    /// use `random_redeem_nft` instead.
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Warehouse`.
+    ///
+    /// `Warehouse` may not change the logical owner of an `Nft` when
+    /// redeeming as this would allow royalties to be trivially bypassed.
     ///
     /// #### Panics
     ///
-    /// Panics if commitment is not 32 bytes.
-    public fun new_redeem_commitment(
-        hashed_sender_commitment: vector<u8>,
+    /// Panics if `Warehouse` is empty
+    public fun redeem_pseudorandom_cert<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
-    ): RedeemCommitment {
-        assert!(
-            vector::length(&hashed_sender_commitment) != 32,
-            EINVALID_COMMITMENT_LENGTH,
-        );
+    ): T {
+        let supply = supply(warehouse);
+        assert!(supply != 0, EEMPTY);
 
-        RedeemCommitment {
-            id: object::new(ctx),
-            hashed_sender_commitment,
-            contract_commitment: pseudorandom::rand_with_ctx(ctx),
-        }
+        // Use supply of `Warehouse` as an additional nonce factor
+        let nonce = vector::empty();
+        vector::append(&mut nonce, sui::bcs::to_bytes(&supply));
+
+        let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
+
+        let index = select(supply, &contract_commitment);
+        redeem_nft_at_index(warehouse, index)
     }
+
 }
