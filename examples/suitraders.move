@@ -2,7 +2,6 @@ module nft_protocol::suitraders {
     use std::ascii;
     use std::string::{Self, String};
 
-    use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -14,7 +13,7 @@ module nft_protocol::suitraders {
     use nft_protocol::creators;
     use nft_protocol::attributes;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::mint_cap::{Self, MintCap};
 
     /// One time witness is only instantiated in the init method

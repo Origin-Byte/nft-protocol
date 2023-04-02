@@ -1,28 +1,22 @@
 /// Bidding module that allows users to bid for any given NFT just by its ID.
 /// This gives NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
+    // TODO: sell NFT that's not in kiosk
+
+    use nft_protocol::err;
+    use nft_protocol::ob_kiosk;
+    use nft_protocol::trading;
+    use nft_protocol::transfer_request::{Self, TransferRequest};
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
-
+    use sui::balance::{Self, Balance};
+    use sui::coin::{Self, Coin};
     use sui::event::emit;
     use sui::kiosk::Kiosk;
-    use sui::coin::{Self, Coin};
     use sui::object::{Self, ID, UID};
-    use sui::balance::{Self, Balance};
-    use sui::tx_context::{Self, TxContext};
     use sui::transfer::{public_transfer, share_object};
-
-    use nft_protocol::err;
-    use nft_protocol::transfer_policy::{Self, TransferRequest};
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::trading::{
-        bid_commission_amount,
-        BidCommission,
-        destroy_bid_commission,
-        new_bid_commission,
-        transfer_bid_commission,
-    };
+    use sui::tx_context::{Self, TxContext};
 
     /// === Errors ===
 
@@ -45,7 +39,7 @@ module nft_protocol::bidding {
         buyer: address,
         kiosk: ID,
         offer: Balance<FT>,
-        commission: Option<BidCommission<FT>>,
+        commission: Option<trading::BidCommission<FT>>,
     }
 
     struct BidCreatedEvent has copy, drop {
@@ -114,7 +108,7 @@ module nft_protocol::bidding {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let commission = new_bid_commission(
+        let commission = trading::new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
@@ -167,7 +161,7 @@ module nft_protocol::bidding {
         nft: ID,
         buyers_kiosk: ID,
         price: u64,
-        commission: Option<BidCommission<FT>>,
+        commission: Option<trading::BidCommission<FT>>,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Bid<FT> {
@@ -177,7 +171,7 @@ module nft_protocol::bidding {
         let buyer = tx_context::sender(ctx);
 
         let commission_amount = if(option::is_some(&commission)) {
-            bid_commission_amount(option::borrow(&commission))
+            trading::bid_commission_amount(option::borrow(&commission))
         } else {
             0
         };
@@ -222,33 +216,36 @@ module nft_protocol::bidding {
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         ob_kiosk::assert_kiosk_id(buyers_kiosk, bid.kiosk);
+        let seller = tx_context::sender(ctx);
 
         let price = balance::value(&bid.offer);
         assert!(price != 0, EBidAlreadyClosed);
 
-        let tx_builder = ob_kiosk::transfer_delegated<T>(
+        let transfer_req = ob_kiosk::transfer_delegated<T>(
             sellers_kiosk,
             buyers_kiosk,
             nft_id,
             &bid.id,
             ctx,
         );
+        transfer_request::set_paid<T, FT>(
+            &mut transfer_req, balance::withdraw_all(&mut bid.offer), seller,
+        );
+        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
-        let tx_request = transfer_policy::build(tx_builder);
-
-        transfer_bid_commission(&mut bid.commission, ctx);
+        trading::transfer_bid_commission(&mut bid.commission, ctx);
 
         emit(BidMatchedEvent {
             bid: object::id(bid),
             nft: nft_id,
             price,
-            seller: tx_context::sender(ctx),
+            seller,
             buyer: bid.buyer,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
             nft_type: *type_name::borrow_string(&type_name::get<T>()),
         });
 
-        tx_request
+        transfer_req
     }
 
     fun close_bid_<FT>(
@@ -265,7 +262,7 @@ module nft_protocol::bidding {
 
         if (option::is_some(&bid.commission)) {
             let commission = option::extract(&mut bid.commission);
-            let (cut, _beneficiary) = destroy_bid_commission(commission);
+            let (cut, _beneficiary) = trading::destroy_bid_commission(commission);
 
             balance::join(coin::balance_mut(&mut offer), cut);
         };
