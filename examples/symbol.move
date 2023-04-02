@@ -3,12 +3,10 @@
 module nft_protocol::example_symbol {
     use std::string::{Self, String};
 
-    use sui::sui::SUI;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::orderbook;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::display;
     use nft_protocol::collection::{Self, Collection};
@@ -61,8 +59,6 @@ module nft_protocol::example_symbol {
             &mut collection,
             RegistryDomain { symbols: vec_set::empty() },
         );
-
-        orderbook::create<Nft<EXAMPLE_SYMBOL>, SUI>(ctx);
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
         transfer::public_share_object(collection);
