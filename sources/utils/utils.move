@@ -5,7 +5,11 @@ module nft_protocol::utils {
     use std::string::{Self, String, sub_string};
     use std::type_name;
     use std::vector;
+
+    use sui::vec_set::{Self, VecSet};
+    use sui::tx_context::{Self, TxContext};
     use sui::package::{Self, Publisher};
+    use sui::table_vec::{Self, TableVec};
     use sui::vec_map::{Self, VecMap};
     use sui::object::{Self, ID, UID};
 
@@ -19,6 +23,58 @@ module nft_protocol::utils {
 
     struct UidType<phantom T> has drop {
         id: ID,
+    }
+
+    public fun table_vec_from_vec<T: store>(
+        vec: vector<T>,
+        ctx: &mut TxContext
+    ): TableVec<T> {
+        let table = table_vec::empty<T>(ctx);
+
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            table_vec::push_back(&mut table, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+
+        table
+    }
+
+    public fun insert_vec_in_vec_set<T: store + copy + drop>(
+        set: &mut VecSet<T>,
+        vec: vector<T>,
+    ) {
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            vec_set::insert(set, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+    }
+
+    public fun insert_vec_in_table<T: store>(
+        table: &mut TableVec<T>,
+        vec: vector<T>,
+    ) {
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            table_vec::push_back(table, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
     }
 
     public fun marker<T>(): Marker<T> {
@@ -63,7 +119,14 @@ module nft_protocol::utils {
         assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
     }
 
-    public fun assert_same_module<T, Witness>() {
+    public fun assert_uid_type_<T: key>(uid: &UID, object: &T) {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
+    }
+
+    public fun assert_same_module<T, Witness: drop>() {
         let (package_a, module_a, _) = get_package_module_type<T>();
         let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
 

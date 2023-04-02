@@ -15,14 +15,12 @@ module nft_protocol::composable_svg {
 
     use nft_protocol::svg;
     use nft_protocol::items;
-    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::utils::{
-        assert_with_consumable_witness, UidType, assert_same_module, assert_uid_type
+        assert_with_witness, UidType, assert_same_module, assert_uid_type
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
 
-    /// `ComposableSvg` was not defined
+    /// `mposableSvg` was not defined
     ///
     /// Call `composable_svg::add` or to add `ComposableSvg`.
     const EUNDEFINED_SVG_DOMAIN: u64 = 1;
@@ -56,6 +54,7 @@ module nft_protocol::composable_svg {
         child_svgs: Bag,
     }
 
+    // TODO: Consider if using these Keys or type Markers
     struct ComposableSvgKey has copy, store, drop {}
 
     struct ChildSvgKey has copy, store, drop {
@@ -68,25 +67,25 @@ module nft_protocol::composable_svg {
 
     /// Adds `ComposableSvg` as a dynamic field with key `ComposableSvgKey`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `ComposableSvg`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun add_composable_url<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun add_composable_url<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         ctx: &mut TxContext
     ) {
         assert_has_not_composable_url(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let composable_url = new(ctx);
 
-        cw::consume<T, ComposableSvg>(consumable, &mut composable_url);
+
         df::add(object_uid, ComposableSvgKey {}, composable_url);
     }
 
@@ -132,8 +131,8 @@ module nft_protocol::composable_svg {
 
     /// Borrows Mutably the `ComposableSvg` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `ComposableUrl`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -141,8 +140,8 @@ module nft_protocol::composable_svg {
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun borrow_composable_url_mut<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun borrow_composable_url_mut<W:drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>
     ): &mut ComposableSvg {
@@ -150,13 +149,12 @@ module nft_protocol::composable_svg {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_composable_url(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let composable_svg = df::borrow_mut<ComposableSvgKey, ComposableSvg>(
             object_uid,
             ComposableSvgKey {}
         );
-        cw::consume<T, ComposableSvg>(consumable, composable_svg);
 
         composable_svg
     }
@@ -170,8 +168,8 @@ module nft_protocol::composable_svg {
     /// `ComposableSvg` will not be automatically updated so
     /// `composable_svg::regenerate` must be called.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `ComposableSvg`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -182,17 +180,18 @@ module nft_protocol::composable_svg {
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun register<Parent: key + store, Child: key + store>(
-        parent_consumable: ConsumableWitness<Parent>,
+    public fun register<PW: drop, CW: drop, Parent: key + store, Child: key + store>(
+        _parent_witness: PW,
         // TODO: Maybe we get away with this by copying the SVG from the child
         // instead of burning it
-        child_consumable: ConsumableWitness<Child>,
+        child_witness: CW,
         parent_uid: &mut UID,
         parent_type: UidType<Parent>,
         child_uid: &mut UID,
         child_type: UidType<Child>,
     ) {
-        assert_same_module<Parent, Child>();
+        assert_same_module<Parent, PW>();
+        assert_same_module<Child, CW>();
         assert_uid_type<Parent>(parent_uid, &parent_type);
         assert_uid_type<Child>(child_uid, &child_type);
 
@@ -206,10 +205,9 @@ module nft_protocol::composable_svg {
 
         // get composable SVG
         let composable_svg = borrow_composable_svg_mut(parent_uid);
-        cw::consume<Parent, ComposableSvg>(parent_consumable, composable_svg);
 
         // Pop SVG from child and Push it to ComposableSvg
-        let child_svg = svg::burn_svg(child_consumable, child_uid, child_type);
+        let child_svg = svg::burn_svg(child_witness, child_uid, child_type);
         insert_child_svg(composable_svg, child_svg, child_id);
 
         vector::push_back(&mut composable_svg.nfts, child_id);
@@ -222,8 +220,8 @@ module nft_protocol::composable_svg {
     /// `ComposableSvg` will not be automatically updated so
     /// `composable_svg::regenerate` must be called.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `ComposableSvg`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -232,22 +230,22 @@ module nft_protocol::composable_svg {
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun deregister<Parent: key + store, Child: key + store>(
-        parent_consumable: ConsumableWitness<Parent>,
+    public fun deregister<PW:drop, CW: drop, Parent: key + store, Child: key + store>(
+        _parent_witness: PW,
         // TODO: Maybe we get away with this by copying the SVG from the child
         // instead of burning it
-        child_consumable: ConsumableWitness<Child>,
+        child_witness: CW,
         parent_uid: &mut UID,
         parent_type: UidType<Parent>,
         child_uid: &mut UID,
         child_type: UidType<Child>,
     ) {
-        assert_same_module<Parent, Child>();
+        assert_same_module<Parent, PW>();
+        assert_same_module<Child, CW>();
         assert_uid_type<Parent>(parent_uid, &parent_type);
         assert_uid_type<Child>(child_uid, &child_type);
 
         let composable_svg = borrow_composable_svg_mut(parent_uid);
-        cw::consume<Parent, ComposableSvg>(parent_consumable, composable_svg);
         let child_id = object::uid_to_inner(child_uid);
 
         let (has_entry, idx) = vector::index_of(&composable_svg.nfts, &child_id);
@@ -255,7 +253,7 @@ module nft_protocol::composable_svg {
 
         // Pop SVG from ComposableSvg and Push it to Child
         let child_svg = pop_child_svg(composable_svg, child_id);
-        svg::set_svg<Child>(child_consumable, child_uid, child_type, child_svg);
+        svg::set_svg<CW, Child>(child_witness, child_uid, child_type, child_svg);
 
         vector::remove(&mut composable_svg.nfts, idx);
     }

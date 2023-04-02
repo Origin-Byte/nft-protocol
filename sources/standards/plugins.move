@@ -23,10 +23,9 @@ module nft_protocol::plugins {
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{
-        assert_with_witness, assert_with_consumable_witness, UidType,
-        assert_same_module, Self
+        assert_with_witness, UidType,
+        assert_same_module, Self, marker, Marker
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// Field object `Plugin` not registered on in object `T`
     const EUNDEFINED_PLUGIN_FIELD: u64 = 1;
@@ -49,34 +48,33 @@ module nft_protocol::plugins {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Key struct used to store DisplayInfo in dynamic fields
-    struct PluginKey has store, copy, drop {}
+
+    // === Insert with module specific Witness ===
 
 
-    // === Insert with ConsumableWitness ===
-
-
-    /// Adds `DisplayInfo` as a dynamic field with key `DisplayInfoKey`.
+    /// Adds `Plugin` as a dynamic field with key `PluginKey`.
+    ///
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
+    /// Panics if Witness `W` does not match `T`'s module.
     /// Panics if type `T` does not match `C`'s module.
-    public fun add_plugin<C, T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun add_plugin<W: drop, C: drop, T: key>(
+        witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
     ) {
-        assert_has_not_plugin(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
-        assert_same_module<C, T>();
+        assert_has_not_plugin<C>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
+        assert_same_module<T, C>();
 
-        let plugin = new<ConsumableWitness<T>, C>(&consumable);
-
-        cw::consume<T, Plugin<C>>(consumable, &mut plugin);
-        df::add(object_uid, PluginKey {}, plugin);
+        let plugin = new<W, C>(&witness);
+        df::add(object_uid, marker<Plugin<C>>(), plugin);
     }
 
 
@@ -100,46 +98,14 @@ module nft_protocol::plugins {
     /// #### Panics
     ///
     /// Panics if dynamic field with `DisplayInfoKey` does not exist.
-    public fun borrow_plugin<C>(
+    public fun borrow_plugin<C: drop>(
         object_uid: &UID,
     ): &Plugin<C> {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_plugin(object_uid);
-        df::borrow(object_uid, PluginKey {})
-    }
-
-    /// Borrows Mutably the `Plugin` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Plugin`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `DisplayInfoKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun borrow_plugin_mut<C, T: key>(
-        consumable: ConsumableWitness<T>,
-        object_uid: &mut UID,
-        object_type: UidType<T>
-    ): &mut Plugin<C> {
-        utils::assert_same_module<T, C>();
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_plugin(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
-
-        let plugin = df::borrow_mut<PluginKey, Plugin<C>>(
-            object_uid,
-            PluginKey {}
-        );
-        cw::consume<T, Plugin<C>>(consumable, plugin);
-
-        plugin
+        assert_has_plugin<C>(object_uid);
+        df::borrow(object_uid, marker<Plugin<C>>())
     }
 
     /// Borrows Mutably the `Plugin` field.
@@ -155,86 +121,23 @@ module nft_protocol::plugins {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_display_info_mut_<W: drop, C, T: key>(
+    public fun borrow_display_info_mut<W: drop, C: drop, T: key>(
         _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>
     ): &mut Plugin<C> {
-        utils::assert_same_module<T, C>();
+        assert_same_module<T, C>();
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_plugin(object_uid);
+        assert_has_plugin<C>(object_uid);
         assert_with_witness<W, T>(object_uid, object_type);
-
-        df::borrow_mut(object_uid, PluginKey {})
+        df::borrow_mut(object_uid, marker<Plugin<C>>())
     }
 
 
     // === Writer Functions ===
 
-    /// Inserts witness as typename to `Plugin` field in the NFT of type `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Plugin`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `PluginKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun insert_witness<C, T: key, PluginWitness>(
-        consumable: ConsumableWitness<T>,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-    ) {
-        utils::assert_same_module<T, C>();
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_plugin(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
-
-        let plugin = borrow_mut_internal<C>(object_uid);
-
-        vec_set::insert(&mut plugin.packages, type_name::get<PluginWitness>());
-
-        cw::consume<T, Plugin<C>>(consumable, plugin);
-    }
-
-    /// Removes witness as typename from `Plugin` field in the NFT of type `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Plugin`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `PluginKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun remove_witness<C, T: key, PluginWitness>(
-        consumable: ConsumableWitness<T>,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-    ) {
-        utils::assert_same_module<T, C>();
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_plugin(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
-
-        let plugin = borrow_mut_internal<C>(object_uid);
-
-        vec_set::remove(
-            &mut plugin.packages,
-            &type_name::get<PluginWitness>()
-        );
-
-        cw::consume<T, Plugin<C>>(consumable, plugin);
-    }
 
     /// Inserts witness as typename to `Plugin` field in the NFT of type `T`.
     ///
@@ -247,8 +150,8 @@ module nft_protocol::plugins {
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun insert_witness_<W: drop, C, T: key, PluginWitness>(
-        main_witness: W,
+    public fun insert_witness<W: drop, C: drop, T: key, PluginWitness>(
+        _main_witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
     ) {
@@ -256,7 +159,7 @@ module nft_protocol::plugins {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_plugin(object_uid);
+        assert_has_plugin<C>(object_uid);
         assert_with_witness<W, T>(object_uid, object_type);
 
         let plugin = borrow_mut_internal<C>(object_uid);
@@ -274,8 +177,8 @@ module nft_protocol::plugins {
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun remove_witness_<W: drop, C, T: key, PluginWitness>(
-        main_witness: W,
+    public fun remove_witness<W: drop, C: drop, T: key, PluginWitness>(
+        _main_witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
     ) {
@@ -283,7 +186,7 @@ module nft_protocol::plugins {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_plugin(object_uid);
+        assert_has_plugin<C>(object_uid);
         assert_with_witness<W, T>(object_uid, object_type);
 
         let plugin = borrow_mut_internal<C>(object_uid);
@@ -320,9 +223,9 @@ module nft_protocol::plugins {
     fun borrow_mut_internal<C>(
         object_uid: &mut UID,
     ): &mut Plugin<C> {
-        df::borrow_mut<PluginKey, Plugin<C>>(
+        df::borrow_mut<Marker<Plugin<C>>, Plugin<C>>(
             object_uid,
-            PluginKey {}
+            marker<Plugin<C>>()
         )
     }
 
@@ -337,10 +240,10 @@ module nft_protocol::plugins {
     }
 
     /// Checks that a given NFT has a dynamic field with `DisplayInfoKey`
-    public fun has_plugin(
+    public fun has_plugin<C: drop>(
         object_uid: &UID,
     ): bool {
-        df::exists_(object_uid, PluginKey {})
+        df::exists_(object_uid, marker<Plugin<C>>())
     }
 
     /// Asserts that witness is attributed in `Plugin`
@@ -357,10 +260,10 @@ module nft_protocol::plugins {
     /// #### Panics
     ///
     /// Panics if no dynamic field with key `PluginKey`
-    public fun assert_has_plugin(
+    public fun assert_has_plugin<C: drop>(
         object_uid: &UID
     ) {
-        assert!(has_plugin(object_uid), EUNDEFINED_PLUGIN_FIELD);
+        assert!(has_plugin<C>(object_uid), EUNDEFINED_PLUGIN_FIELD);
     }
 
     /// Asserts that an object does not have a dynamic field with key `PluginKey`
@@ -368,7 +271,7 @@ module nft_protocol::plugins {
     /// #### Panics
     ///
     /// Panics if it has dynamic field with key `PluginKey`
-    public fun assert_has_not_plugin(object_uid: &UID) {
-        assert!(!has_plugin(object_uid), EPLUGIN_FIELD_ALREADY_EXISTS);
+    public fun assert_has_not_plugin<C: drop>(object_uid: &UID) {
+        assert!(!has_plugin<C>(object_uid), EPLUGIN_FIELD_ALREADY_EXISTS);
     }
 }

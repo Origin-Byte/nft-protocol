@@ -10,11 +10,9 @@ module nft_protocol::tags {
     use sui::tx_context::TxContext;
     use sui::bag::{Self, Bag};
 
-    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::utils::{
-        assert_with_consumable_witness, UidType
+        Self, assert_with_witness, UidType, marker, Marker
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// No field object `Tags` defined as a dynamic field.
     const EUNDEFINED_TAGS_FIELD: u64 = 1;
@@ -29,9 +27,6 @@ module nft_protocol::tags {
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
-
-    /// Key struct used to store Tags in dynamic fields
-    struct TagsKey has store, copy, drop {}
 
     // === Tags ===
 
@@ -54,31 +49,30 @@ module nft_protocol::tags {
     struct License has store, drop {}
 
 
-    // === Insert with ConsumableWitness ===
+    // === Insert with module specific Witness ===
 
 
-    /// Adds `Tags` as a dynamic field with key `TagsKey`.
+    /// Adds `Tags` as a dynamic field with key `Marker<Tags>`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Tags`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun add_empty<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun add_empty<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         ctx: &mut TxContext,
     ) {
         assert_has_not_tags(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let tags = empty(ctx);
 
-        cw::consume<T, Tags>(consumable, &mut tags);
-        df::add(object_uid, TagsKey {}, tags);
+        df::add(object_uid, marker<Tags>(), tags);
     }
 
 
@@ -96,7 +90,7 @@ module nft_protocol::tags {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `TagsKey` does not exist.
+    /// Panics if dynamic field with `Marker<Tags>` does not exist.
     public fun borrow_tags(
         object_uid: &UID,
     ): &Tags {
@@ -104,22 +98,22 @@ module nft_protocol::tags {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_tags(object_uid);
-        df::borrow(object_uid, TagsKey {})
+        df::borrow(object_uid, marker<Tags>())
     }
 
     /// Borrows Mutably the `Tags` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Tags`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `TagsKey` does not exist.
+    /// Panics if dynamic field with `Marker<Tags>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun borrow_tags_mut<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun borrow_tags_mut<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>
     ): &mut Tags {
@@ -127,13 +121,12 @@ module nft_protocol::tags {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_tags(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let tags = df::borrow_mut<TagsKey, Tags>(
+        let tags = df::borrow_mut<Marker<Tags>, Tags>(
             object_uid,
-            TagsKey {}
+            marker<Tags>()
         );
-        cw::consume<T, Tags>(consumable, tags);
 
         tags
     }
@@ -144,8 +137,8 @@ module nft_protocol::tags {
 
     /// Inserts tag to `Tags` field in the NFT of type `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -153,8 +146,8 @@ module nft_protocol::tags {
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun insert_tag<T: key, TAG: store + drop>(
-        consumable: ConsumableWitness<T>,
+    public fun insert_tag<W: drop, T: key, TAG: store + drop>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         tag: TAG,
@@ -163,18 +156,17 @@ module nft_protocol::tags {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_tags(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let tags = borrow_mut_internal(object_uid);
         bag::add(&mut tags.tags, utils::marker<TAG>(), tag);
-        cw::consume<T, Tags>(consumable, tags);
     }
 
 
     /// Removes tag from `Tags` field in the NFT of type `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -182,8 +174,8 @@ module nft_protocol::tags {
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun remove_tag<T: key, TAG: store + drop>(
-        consumable: ConsumableWitness<T>,
+    public fun remove_tag<W: drop, T: key, TAG: store + drop>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
     ) {
@@ -191,11 +183,10 @@ module nft_protocol::tags {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_tags(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let tags = borrow_mut_internal(object_uid);
         bag::remove<Marker<TAG>, TAG>(&mut tags.tags, utils::marker<TAG>());
-        cw::consume<T, Tags>(consumable, tags);
     }
 
 
@@ -255,9 +246,9 @@ module nft_protocol::tags {
     fun borrow_mut_internal(
         object_uid: &mut UID,
     ): &mut Tags {
-        df::borrow_mut<TagsKey, Tags>(
+        df::borrow_mut<Marker<Tags>, Tags>(
             object_uid,
-            TagsKey {}
+            marker<Tags>()
         )
     }
 
@@ -265,11 +256,11 @@ module nft_protocol::tags {
     // === Assertions & Helpers ===
 
 
-    /// Checks that a given NFT has a dynamic field with `TagsKey`
+    /// Checks that a given NFT has a dynamic field with `Marker<Tags>`
     public fun has_tags(
         object_uid: &UID,
     ): bool {
-        df::exists_(object_uid, TagsKey {})
+        df::exists_(object_uid, marker<Tags>())
     }
 
     public fun assert_has_tags(object_uid: &UID) {

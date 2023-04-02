@@ -14,9 +14,8 @@ module nft_protocol::items {
     use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::utils::{
-        assert_with_witness, assert_with_consumable_witness, UidType, assert_uid_type
+        assert_with_witness, UidType, assert_uid_type
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// `Items` was not defined
     ///
@@ -63,34 +62,6 @@ module nft_protocol::items {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    // === Insert with ConsumableWitness ===
-
-
-    // TODO: Consider deprecate
-    /// Adds `Items` as a dynamic field with key `ItemsKey`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Items`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `nft_uid` does not correspond to `nft_type.id`,
-    /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun add_items<T: key>(
-        consumable: ConsumableWitness<T>,
-        parent_uid: &mut UID,
-        parent_type: UidType<T>,
-        ctx: &mut TxContext,
-    ) {
-        assert_has_not_items(parent_uid);
-        assert_with_consumable_witness(parent_uid, parent_type);
-
-        let items = new(ctx);
-
-        cw::consume<T, Items>(consumable, &mut items);
-        df::add(parent_uid, ItemsKey {}, items);
-    }
-
 
     // === Insert with module specific Witness ===
 
@@ -106,7 +77,7 @@ module nft_protocol::items {
     /// in other words, it panics if `nft_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_items_<W: drop, T: key>(
+    public fun add_items<W: drop, T: key>(
         _witness: W,
         parent_uid: &mut UID,
         parent_type: UidType<T>,
@@ -200,8 +171,8 @@ module nft_protocol::items {
 
     /// Composes child NFT into `Items`
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Items`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the composability contract.
     ///
     /// #### Panics
     ///
@@ -232,8 +203,8 @@ module nft_protocol::items {
 
     /// Decomposes child NFT from `Items`
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Items`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract defining the composability model.
     ///
     /// #### Panics
     ///
@@ -249,6 +220,11 @@ module nft_protocol::items {
         parent_type: &UidType<Parent>,
         child_id: ID,
     ): Child {
+        // TODO: Need to perform assertion because composability contracts
+        // should be independent from each other, and therefore should
+        // not be able to remove child NFTs that are from other composability
+        // models.
+
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message

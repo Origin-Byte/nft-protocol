@@ -17,8 +17,7 @@ module nft_protocol::supply_domain {
 
     use nft_protocol::supply;
     use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
-    use nft_protocol::utils::{assert_with_consumable_witness, UidType};
+    use nft_protocol::utils::{assert_with_witness, UidType, marker, Marker};
 
     /// No field object `Attributes` defined as a dynamic field.
     const EUNDEFINED_SUPPLY_FIELD: u64 = 1;
@@ -43,17 +42,14 @@ module nft_protocol::supply_domain {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Key struct used to store Attributes in dynamic fields
-    struct SupplyKey has store, copy, drop {}
+
+    // === Insert with module specific Witness ===
 
 
-    // === Insert with ConsumableWitness ===
-
-
-    /// Adds `Supply` as a dynamic field with key `SupplyKey`.
+    /// Adds `Supply` as a dynamic field with key `Marker<Supply<T>>`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Supply`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -62,21 +58,19 @@ module nft_protocol::supply_domain {
     /// * `MintCap` is regulated, expect the root `MintCap` created at
     /// `Collection` initialization, which is the only `MintCap` with
     /// unregulated supply.
-    public fun add_supply<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun add_supply<W: drop, T: key>(
+        _winess: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         mint_cap: MintCap<T>,
         supply: u64,
         frozen: bool,
     ) {
-        assert_has_not_supply(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_has_not_supply<T>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
         let attributes = new(mint_cap, supply, frozen);
-
-        cw::consume<T, Supply<T>>(consumable, &mut attributes);
-        df::add(object_uid, SupplyKey {}, attributes);
+        df::add(object_uid, marker<Supply<T>>(), attributes);
     }
 
 
@@ -107,44 +101,43 @@ module nft_protocol::supply_domain {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SupplyKey` does not exist.
-    public fun borrow_supply<T>(
+    /// Panics if dynamic field with `Marker<Supply<T>>` does not exist.
+    public fun borrow_supply<T: key>(
         object_uid: &UID,
     ): &Supply<T> {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_supply(object_uid);
-        df::borrow(object_uid, SupplyKey {})
+        assert_has_supply<T>(object_uid);
+        df::borrow(object_uid, marker<Supply<T>>())
     }
 
     /// Borrows Mutably the `Supply` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Supply`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SupplyKey` does not exist.
+    /// Panics if dynamic field with `Marker<Supply<T>>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun borrow_supply_mut<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun borrow_supply_mut<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>
     ): &mut Supply<T> {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_supply(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_has_supply<T>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let supply = df::borrow_mut<SupplyKey, Supply<T>>(
+        let supply = df::borrow_mut<Marker<Supply<T>>, Supply<T>>(
             object_uid,
-            SupplyKey {}
+            marker<Supply<T>>()
         );
-        cw::consume<T, Supply<T>>(consumable, supply);
 
         supply
     }
@@ -154,8 +147,8 @@ module nft_protocol::supply_domain {
 
     /// Increases maximum supply in `Supply` field in the object of type `T`
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -165,8 +158,8 @@ module nft_protocol::supply_domain {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if supply is frozen.
-    public fun increase_supply_ceil<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun increase_supply_ceil<W: drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         value: u64,
@@ -174,22 +167,21 @@ module nft_protocol::supply_domain {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_supply(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_has_supply<T>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let supply = df::borrow_mut<SupplyKey, Supply<T>>(
+        let supply = df::borrow_mut<Marker<Supply<T>>, Supply<T>>(
             object_uid,
-            SupplyKey {}
+            marker<Supply<T>>()
         );
 
-        cw::consume<T, Supply<T>>(consumable, supply);
         increase_supply_ceil_(supply, value)
     }
 
     /// Decreases maximum supply in `Supply` field in the object of type `T`
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -201,8 +193,8 @@ module nft_protocol::supply_domain {
     /// Panics if supply is frozen.
     ///
     /// Panics if value is supperior to current supply.
-    public fun decrease_supply_ceil<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun decrease_supply_ceil<W:drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         value: u64,
@@ -210,22 +202,21 @@ module nft_protocol::supply_domain {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_supply(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_has_supply<T>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let supply = df::borrow_mut<SupplyKey, Supply<T>>(
+        let supply = df::borrow_mut<Marker<Supply<T>>, Supply<T>>(
             object_uid,
-            SupplyKey {}
+            marker<Supply<T>>()
         );
 
-        cw::consume<T, Supply<T>>(consumable, supply);
         decrease_supply_ceil_(supply, value)
     }
 
     /// Freezes supply in `Supply` field in the object of type `T`
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Attributes`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
@@ -235,23 +226,22 @@ module nft_protocol::supply_domain {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if supply is frozen already.
-    public fun freeze_supply<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun freeze_supply<W:drop, T: key>(
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_supply(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
+        assert_has_supply<T>(object_uid);
+        assert_with_witness<W, T>(object_uid, object_type);
 
-        let supply = df::borrow_mut<SupplyKey, Supply<T>>(
+        let supply = df::borrow_mut<Marker<Supply<T>>, Supply<T>>(
             object_uid,
-            SupplyKey {}
+            marker<Supply<T>>()
         );
 
-        cw::consume<T, Supply<T>>(consumable, supply);
         freeze_supply_(supply)
     }
 
@@ -348,10 +338,10 @@ module nft_protocol::supply_domain {
 
 
     /// Checks that a given NFT has a dynamic field with `AttributesKey`
-    public fun has_supply(
+    public fun has_supply<T: key>(
         object_uid: &UID,
     ): bool {
-        df::exists_(object_uid, SupplyKey {})
+        df::exists_(object_uid, marker<Supply<T>>())
     }
 
     /// Asserts that current supply is zero
@@ -369,12 +359,12 @@ module nft_protocol::supply_domain {
         assert!(!supply.frozen, ESUPPLY_FROZEN)
     }
 
-    public fun assert_has_supply(object_uid: &UID) {
-        assert!(has_supply(object_uid), EUNDEFINED_SUPPLY_FIELD);
+    public fun assert_has_supply<T: key>(object_uid: &UID) {
+        assert!(has_supply<T>(object_uid), EUNDEFINED_SUPPLY_FIELD);
     }
 
-    public fun assert_has_not_supply(object_uid: &UID) {
-        assert!(!has_supply(object_uid), ESUPPLY_FIELD_ALREADY_EXISTS);
+    public fun assert_has_not_supply<T: key>(object_uid: &UID) {
+        assert!(!has_supply<T>(object_uid), ESUPPLY_FIELD_ALREADY_EXISTS);
     }
 
     public fun assert_enough_supply<T>(quantity: u64, supply: &Supply<T>) {

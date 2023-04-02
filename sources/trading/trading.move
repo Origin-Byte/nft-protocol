@@ -62,9 +62,34 @@ module nft_protocol::trading {
         };
     }
 
+    public fun transfer_ask_commission<FT>(
+        commission: &mut Option<AskCommission>,
+        source: &mut Balance<FT>,
+        ctx: &mut TxContext,
+    ) {
+        if (option::is_some(commission)) {
+            let AskCommission { beneficiary, cut } =
+                option::extract(commission);
+
+            public_transfer(coin::take(source, cut, ctx), beneficiary);
+        };
+    }
+
     // === Getters ===
 
     public fun bid_commission_amount<FT>(bid: &BidCommission<FT>): u64 {
         balance::value(&bid.cut)
+    }
+
+    public fun bid_commission_beneficiary<FT>(bid: &BidCommission<FT>): address {
+        bid.beneficiary
+    }
+
+    public fun ask_commission_amount(ask: &AskCommission): u64 {
+        ask.cut
+    }
+
+    public fun ask_commission_beneficiary(ask: &AskCommission): address {
+        ask.beneficiary
     }
 }
