@@ -14,7 +14,6 @@ module nft_protocol::composable_url {
     use nft_protocol::utils::{Self, UidType};
     use nft_protocol::witness;
     use nft_protocol::attributes;
-    use nft_protocol::witness::Witness as DelegatedWitness;
 
     /// `ComposableUrl` was not defined
     ///
@@ -32,6 +31,7 @@ module nft_protocol::composable_url {
         url: Url,
     }
 
+    // TODO: Consider if using these Keys or type Markers
     struct ComposableUrlKey has store, copy, drop {}
 
     /// Witness used to authenticate witness protected endpoints

@@ -15,9 +15,8 @@ module nft_protocol::composable_nft {
 
     use nft_protocol::items;
     use nft_protocol::utils::{
-        Self, assert_with_witness, assert_with_consumable_witness, UidType
+        Self, assert_with_witness, UidType, marker, Marker
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// Parent and child types are not composable
     ///
@@ -48,42 +47,11 @@ module nft_protocol::composable_nft {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Key struct used to store Items in dynamic fields
-    struct CompositionsKey has store, copy, drop {}
-
-
-    // === Insert with ConsumableWitness ===
-
-
-    /// Adds `Compositions` as a dynamic field with key `CompositionsKey`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Compositions`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun init_compositions<T: key>(
-        consumable: ConsumableWitness<T>,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        ctx: &mut TxContext,
-    ) {
-        assert_has_not_compositions(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
-
-        let compositions = new(ctx);
-
-        cw::consume<T, Compositions>(consumable, &mut compositions);
-        df::add(object_uid, CompositionsKey {}, compositions);
-    }
-
 
     // === Insert with module specific Witness ===
 
 
-    /// Adds `Compositions` as a dynamic field with key `CompositionsKey`.
+    /// Adds `Compositions` as a dynamic field with key `Marker<Compositions>`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
     /// from the contract exporting the type `T`.
@@ -94,7 +62,7 @@ module nft_protocol::composable_nft {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun init_compositions_<W: drop, T: key>(
+    public fun init_compositions<W: drop, T: key>(
         _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
@@ -104,7 +72,7 @@ module nft_protocol::composable_nft {
         assert_with_witness<W, T>(object_uid, object_type);
 
         let compositions = new(ctx);
-        df::add(object_uid, CompositionsKey {}, compositions);
+        df::add(object_uid, marker<Compositions>(), compositions);
     }
 
 
@@ -126,7 +94,7 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `CompositionsKey` does not exist.
+    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
     public fun borrow_compositions(
         object_uid: &UID,
     ): &Compositions {
@@ -134,39 +102,9 @@ module nft_protocol::composable_nft {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_compositions(object_uid);
-        df::borrow(object_uid, CompositionsKey {})
+        df::borrow(object_uid, marker<Compositions>())
     }
 
-    /// Borrows Mutably the `Compositions` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Compositions`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `CompositionsKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    public fun borrow_compositions_mut<T: key>(
-        consumable: ConsumableWitness<T>,
-        object_uid: &mut UID,
-        object_type: UidType<T>
-    ): &mut Compositions {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_compositions(object_uid);
-        assert_with_consumable_witness(object_uid, object_type);
-
-        let compositions = df::borrow_mut<CompositionsKey, Compositions>(
-            object_uid,
-            CompositionsKey {}
-        );
-        cw::consume<T, Compositions>(consumable, compositions);
-
-        compositions
-    }
 
     /// Borrows Mutably the `Compositions` field.
     ///
@@ -175,13 +113,13 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `CompositionsKey` does not exist.
+    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_compositions_mut_<W: drop, T: key>(
+    public fun borrow_compositions_mut<W: drop, T: key>(
         _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>
@@ -192,40 +130,8 @@ module nft_protocol::composable_nft {
         assert_has_compositions(object_uid);
         assert_with_witness<W, T>(object_uid, object_type);
 
-        df::borrow_mut(object_uid, CompositionsKey {})
+        df::borrow_mut(object_uid, marker<Compositions>())
     }
-
-    // /// Borrows Mutably an NFT of type `Child` from the `Items` field.
-    // ///
-    // /// Endpoint is protected as it relies on safetly obtaining a
-    // /// `ConsumableWitness` for the specific type `T` and field `Compositions`.
-    // ///
-    // /// #### Panics
-    // ///
-    // /// Panics if dynamic field with `CompositionsKey` does not exist.
-    // ///
-    // /// Panics if `object_uid` does not correspond to `object_type.id`,
-    // /// in other words, it panics if `object_uid` is not of type `T`.
-    // public fun borrow_child_mut<Parent: key + store, Child: key + store>(
-    //     consumable: ConsumableWitness<Parent>,
-    //     object_uid: &mut UID,
-    //     object_type: UidType<Parent>
-    // ): &mut Child {
-    //     // `df::borrow` fails if there is no such dynamic field,
-    //     // however asserting it here allows for a more straightforward
-    //     // error message
-    //     assert_has_compositions(object_uid);
-    //     assert_with_consumable_witness(object_uid, object_type);
-
-    //     let compositions = df::borrow_mut<CompositionsKey, Compositions>(
-    //         object_uid,
-    //         CompositionsKey {}
-    //     );
-
-    //     cw::consume<Parent, Compositions>(consumable, compositions);
-
-    //     items::borrow_nft_mut_(Witness {}, )
-    // }
 
     /// Borrows Mutably the `Compositions` field.
     ///
@@ -234,13 +140,13 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `CompositionsKey` does not exist.
+    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_child_mut_<W: drop, Parent: key + store, Child: key + store>(
+    public fun borrow_child_mut<W: drop, Parent: key + store, Child: key + store>(
         _witness: W,
         parent_uid: &mut UID,
         parent_type: UidType<Parent>,
@@ -262,57 +168,19 @@ module nft_protocol::composable_nft {
     /// Inserts parent child relationship to `Compositions` object field
     /// in object `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Compositions`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `CompositionsKey` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if parent child relationship already exists
-    public fun insert_relation<T: key, Parent: key, Child: key>(
-        consumable: ConsumableWitness<T>,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        limit: u64,
-    ) {
-        assert_has_compositions(object_uid);
-        utils::assert_same_module_<T, Child, Parent>();
-        assert_with_consumable_witness(object_uid, object_type);
-
-        let compositions = df::borrow_mut<CompositionsKey, Compositions>(
-            object_uid,
-            CompositionsKey {}
-        );
-
-        let parent_type = type_name::get<Parent>();
-        let parent_row = table::borrow_mut(&mut compositions.rules, parent_type);
-
-        assert_new_relationship<Child>(parent_row);
-
-        let child_type = type_name::get<Child>();
-        linked_table::push_back(parent_row, child_type, limit);
-    }
-
-    /// Inserts parent child relationship to `Compositions` object field
-    /// in object `T`.
-    ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
     /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `CompositionsKey` does not exist.
+    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if parent child relationship already exists
     public fun insert_relation_<W: drop, T: key, Parent: key, Child: key>(
-        witness: W,
+        _witness: W,
         object_uid: &mut UID,
         object_type: UidType<T>,
         limit: u64,
@@ -321,9 +189,9 @@ module nft_protocol::composable_nft {
         utils::assert_same_module_<T, Child, Parent>();
         assert_with_witness<W, T>(object_uid, object_type);
 
-        let compositions = df::borrow_mut<CompositionsKey, Compositions>(
+        let compositions = df::borrow_mut<Marker<Compositions>, Compositions>(
             object_uid,
-            CompositionsKey {}
+            marker<Compositions>()
         );
 
         let parent_type = type_name::get<Parent>();
@@ -483,7 +351,7 @@ module nft_protocol::composable_nft {
     public fun has_compositions(
         object_uid: &UID,
     ): bool {
-        df::exists_(object_uid, CompositionsKey {})
+        df::exists_(object_uid, marker<Compositions>())
     }
 
     public fun assert_has_compositions(object_uid: &UID) {
