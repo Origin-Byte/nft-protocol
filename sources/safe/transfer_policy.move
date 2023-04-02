@@ -3,14 +3,25 @@
 ///
 /// To lower the barrier to entry, we mimic those APIs where relevant.
 /// See the `sui::transfer_policy` module in the https://github.com/MystenLabs/sui
-///
-/// Our transfer request offers generics over fungible token and associates
-/// paid balance with the request.
-/// This enables us to do permissionless transfers of NFTs.
-///
 /// We interoperate with the sui ecosystem by allowing our `TransferRequest` to
 /// be converted into the sui version.
 /// This is only possible for the cases where the payment is done in SUI token.
+///
+/// Our transfer request offers generics over fungible token.
+/// We are no longer limited to SUI token.
+/// Royalty policies can decide whether they charge a fee in other tokens.
+///
+/// Our transfer request associates paid balance with the request.
+/// This enables us to do permissionless transfers of NFTs.
+/// That's because we store the beneficiary address (e.g. NFT seller) with the
+/// paid balance.
+/// Then when confirming a transfer, we transfer this balance to the seller.
+/// With special capability, the policies which act as a middleware can access
+/// the balance and charge royalty from it.
+/// Therefore, a 3rd party to a trade can send a tx to finish it.
+/// This is helpful for reducing # of txs users have to send for trading
+/// logic which requires multiple steps.
+/// With our protocol, automation can be set up by marketplaces.
 module nft_protocol::transfer_request {
     use std::type_name::{Self, TypeName};
     use std::vector;
@@ -37,12 +48,14 @@ module nft_protocol::transfer_request {
     ///
     /// We create some helper methods for SUI token, but also support any
     /// fungible token.
+    ///
+    /// See the module docs for a comparison between this and `SuiTransferRequest`.
     struct TransferRequest<phantom T> {
         nft: ID,
         /// For entities which authorize with `ID`, we convert the `ID` to
         /// address.
         originator: address,
-        /// Who's to receive the payment
+        /// Who's to receive the payment which we wrap as dyn field in metadata.
         beneficiary: address,
         /// Collected Receipts.
         ///
@@ -50,20 +63,39 @@ module nft_protocol::transfer_request {
         /// `TransferRequest` can be confirmed.
         receipts: VecSet<TypeName>,
         /// Optional metadata can be attached to the request.
-        /// The metadata is dropped at the destruction of the request.
+        /// The metadata are dropped at the destruction of the request.
         /// It doesn't have to be emptied out.
         metadata: UID,
     }
 
+    /// Policies which own this capability get mutable access the balance of
+    /// `TransferRequest<T>`.
+    ///
+    /// This is useful for policies which charge a fee from the payment.
+    /// E.g., the fee can be deducted from the balance and the rest transferred
+    /// to the beneficiary (NFT seller).
+    ///
+    /// Note that thorough review of the policy code is required because it
+    /// gets access to all the funds used for trading.
+    ///
+    /// We don't consider a malicious policy by the creator to be a security
+    /// risk because it is equivalent to charging a 100% royalty.
+    /// This isn't prevented in the standard Sui implementation either.
+    /// The best prevention is a client side condition which fails the trade
+    /// if royalty is too high.
+    struct TransferRequestBalanceAccessCap<phantom T> has store, drop {}
+
     /// Stores balance on `TransferRequest` as dynamic field in the metadata.
     struct BalanceDfKey has copy, store, drop {}
-    /// Stores `VecSet<TypeName>` on `TransferPolicy`
+    /// Stores `VecSet<TypeName>` on `TransferPolicy`.
+    /// Works similarly to `TransferPolicy::rules`.
     struct OringinbyteRulesDfKey has copy, store, drop {}
 
     /// Construct a new `TransferRequest` hot potato which requires an
     /// approving action from the creator to be destroyed / resolved.
     ///
-    /// Must call `set_paid` to set the paid amount.
+    /// `set_paid` MUST be called to set the paid amount.
+    /// Without calling `set_paid`, the tx will always abort.
     public fun new<T>(
         nft: ID, originator: address, ctx: &mut TxContext,
     ): TransferRequest<T> {
@@ -77,7 +109,7 @@ module nft_protocol::transfer_request {
         }
     }
 
-    /// Aborts if already called
+    /// Aborts unless called exactly once.
     public fun set_paid<T, FT>(
         self: &mut TransferRequest<T>, paid: Balance<FT>, beneficiary: address,
     ) {
@@ -94,8 +126,9 @@ module nft_protocol::transfer_request {
     /// Anyone can attach any metadata (dynamic fields).
     /// The UID is eventually dropped when the `TransferRequest` is destroyed.
     ///
-    /// There are some standard metadata which contracts should attach such as
+    /// There are some standard metadata are
     /// * `ob_kiosk::set_transfer_request_auth`
+    /// * `transfer_request::set_paid`
     public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut UID {
         &mut self.metadata
     }
@@ -115,6 +148,7 @@ module nft_protocol::transfer_request {
         vec_set::insert(rules, type_name::get<Rule>());
     }
 
+    /// Allows us to modify the rules.
     public fun remove_rule_from_originbyte_ecosystem<T, Rule>(
         self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
     ) {
@@ -129,7 +163,9 @@ module nft_protocol::transfer_request {
     /// Note that after this, the royalty enforcement is modelled after the
     /// sui ecosystem settings.
     ///
-    /// The creator has to opt into that ecosystem.
+    /// The creator has to opt into that (Sui) ecosystem.
+    /// All the receipts are reset and must be collected anew.
+    /// Therefore, it really makes sense to call this function immediately.
     public fun into_sui<T>(
         self: TransferRequest<T>, ctx: &mut TxContext,
     ): SuiTransferRequest<T> {
@@ -193,11 +229,13 @@ module nft_protocol::transfer_request {
         };
 
         let balance: Balance<FT> = df::remove(&mut metadata, BalanceDfKey {});
-        public_transfer(coin::from_balance(balance, ctx), beneficiary);
+        if (balance::value(&balance) > 0) {
+            public_transfer(coin::from_balance(balance, ctx), beneficiary);
+        };
         object::delete(metadata);
     }
 
-    // === Fields access ===
+    // === Getters ===
 
     /// Returns the amount and beneficiary.
     public fun paid_in_ft<T, FT>(self: &TransferRequest<T>): (u64, address) {
