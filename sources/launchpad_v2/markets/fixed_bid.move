@@ -8,7 +8,7 @@
 module nft_protocol::fixed_bid_v2 {
     use nft_protocol::launchpad_v2::{Self, LaunchCap};
     use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
-    use nft_protocol::venue_v2::{Self, Venue};
+    use nft_protocol::venue_v2::{Self, Venue, NftCert};
 
     // use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
@@ -93,7 +93,6 @@ module nft_protocol::fixed_bid_v2 {
     public entry fun buy_nft_cert_and_transfer<T: key + store, FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
-        buyer_safe: &mut Kiosk,
         request: VenueRequest,
         clock: &Clock,
         ctx: &mut TxContext,
@@ -101,8 +100,27 @@ module nft_protocol::fixed_bid_v2 {
         venue_v2::assert_venue_request(venue, &request);
         venue_v2::check_if_live(clock, venue);
 
-        let nft = buy_nft_cert<T, FT>(venue, wallet, ctx);
+        let nft = buy_nft_cert_<T, FT>(venue, wallet, ctx);
         ob_kiosk::deposit_as_owner(buyer_safe, nft, ctx);
+    }
+
+    /// Internal method to buy NFT
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` or associated `Inventory` does not exist or wallet
+    /// does not have required funds.
+    public fun buy_nft_cert<T: key + store, FT>(
+        venue: &mut Venue,
+        wallet: &mut Coin<FT>,
+        request: VenueRequest,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ): NftCert {
+        venue_v2::assert_venue_request(venue, &request);
+        venue_v2::check_if_live(clock, venue);
+
+        buy_nft_cert_<T, FT>(venue, wallet, ctx)
     }
 
 
@@ -112,13 +130,12 @@ module nft_protocol::fixed_bid_v2 {
     ///
     /// Panics if `Venue` or associated `Inventory` does not exist or wallet
     /// does not have required funds.
-    fun buy_nft_cert<T: key + store, FT>(
+    fun buy_nft_cert_<T: key + store, FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): NftCert {
         venue_v2::decrement_supply_if_any(Witness {}, venue);
-
         let market = venue_v2::get_df<FixedBidDfKey, FixedBidMarket<FT>>(venue, FixedBidDfKey {});
 
         venue_v2::redeem_generic_cert(Witness {}, venue, ctx)
