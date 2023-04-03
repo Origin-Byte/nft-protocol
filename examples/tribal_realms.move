@@ -30,7 +30,7 @@ module nft_protocol::tribal_realms {
     fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
         let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
-        collection::add_domain(
+        nft::add_collection_domain(
             Witness {},
             &mut collection,
             display::new(
@@ -92,6 +92,10 @@ module nft_protocol::tribal_realms {
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
         nft::add_domain(Witness {}, &mut nft, display::new(name, description));
         nft::add_domain(Witness {}, &mut nft, url::new(url));
+
+        c_nft::add_type_domain<TRIBAL_REALMS, Witness, T>(
+            &Witness {}, &mut nft,
+        );
 
         warehouse::deposit_nft(warehouse, nft);
     }

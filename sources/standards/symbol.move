@@ -1,4 +1,4 @@
-/// Module of `SymbolDomain` used to assign a symbol to collection or NFT
+/// Module of the `Symbol`
 module nft_protocol::symbol {
     use std::string::String;
 
@@ -17,25 +17,25 @@ module nft_protocol::symbol {
     /// Call `symbol::borrow_domain` to borrow domain.
     const EExistingSymbol: u64 = 2;
 
-    // === SymbolDomain ===
+    // === Symbol ===
 
-    struct SymbolDomain has store {
+    struct Symbol has store {
         symbol: String,
     }
 
-    /// Gets symbol of `SymbolDomain`
-    public fun symbol(domain: &SymbolDomain): &String {
+    /// Gets symbol of `Symbol`
+    public fun symbol(domain: &Symbol): &String {
         &domain.symbol
     }
 
-    /// Creates new `SymbolDomain` with a symbol
-    public fun new(symbol: String): SymbolDomain {
-        SymbolDomain { symbol }
+    /// Creates new `Symbol` with a symbol
+    public fun new(symbol: String): Symbol {
+        Symbol { symbol }
     }
 
     /// Sets name of `DisplayDomain`
     public fun set_symbol<T>(
-        domain: &mut SymbolDomain,
+        domain: &mut Symbol,
         symbol: String,
     ) {
         domain.symbol = symbol;
@@ -43,72 +43,72 @@ module nft_protocol::symbol {
 
     // === Interoperability ===
 
-    /// Returns whether `SymbolDomain` is registered on `Nft`
+    /// Returns whether `Symbol` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
-        df::exists_with_type<Marker<SymbolDomain>, SymbolDomain>(
+        df::exists_with_type<Marker<Symbol>, Symbol>(
             nft, utils::marker(),
         )
     }
 
-    /// Borrows `SymbolDomain` from `Nft`
+    /// Borrows `Symbol` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SymbolDomain` is not registered on the `Nft`
-    public fun borrow_domain(nft: &UID): &SymbolDomain {
+    /// Panics if `Symbol` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &Symbol {
         assert_symbol(nft);
-        df::borrow(nft, utils::marker<SymbolDomain>())
+        df::borrow(nft, utils::marker<Symbol>())
     }
 
-    /// Mutably borrows `SymbolDomain` from `Nft`
+    /// Mutably borrows `Symbol` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SymbolDomain` is not registered on the `Nft`
-    public fun borrow_domain_mut(nft: &mut UID): &mut SymbolDomain {
+    /// Panics if `Symbol` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut Symbol {
         assert_symbol(nft);
-        df::borrow_mut(nft, utils::marker<SymbolDomain>())
+        df::borrow_mut(nft, utils::marker<Symbol>())
     }
 
-    /// Adds `SymbolDomain` to `Nft`
+    /// Adds `Symbol` to `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SymbolDomain` domain already exists
+    /// Panics if `Symbol` domain already exists
     public fun add_domain(
         nft: &mut UID,
-        domain: SymbolDomain,
+        domain: Symbol,
     ) {
         assert_no_symbol(nft);
-        df::add(nft, utils::marker<SymbolDomain>(), domain);
+        df::add(nft, utils::marker<Symbol>(), domain);
     }
 
-    /// Remove `SymbolDomain` from `Nft`
+    /// Remove `Symbol` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SymbolDomain` domain doesnt exist
-    public fun remove_domain(nft: &mut UID): SymbolDomain {
+    /// Panics if `Symbol` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): Symbol {
         assert_symbol(nft);
-        df::remove(nft, utils::marker<SymbolDomain>())
+        df::remove(nft, utils::marker<Symbol>())
     }
 
     // === Assertions ===
 
-    /// Asserts that `SymbolDomain` is registered on `Nft`
+    /// Asserts that `Symbol` is registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SymbolDomain` is not registered
+    /// Panics if `Symbol` is not registered
     public fun assert_symbol(nft: &UID) {
         assert!(has_domain(nft), EUndefinedSymbol);
     }
 
-    /// Asserts that `SymbolDomain` is not registered on `Nft`
+    /// Asserts that `Symbol` is not registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SymbolDomain` is registered
+    /// Panics if `Symbol` is registered
     public fun assert_no_symbol(nft: &UID) {
         assert!(!has_domain(nft), EExistingSymbol);
     }

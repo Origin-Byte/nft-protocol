@@ -9,11 +9,11 @@ module nft_protocol::suitraders {
     use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
-    use nft_protocol::display;
+    use nft_protocol::display_info;
     use nft_protocol::creators;
     use nft_protocol::attributes;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::collection_id;
     use nft_protocol::mint_cap::MintCap;
 
@@ -25,9 +25,10 @@ module nft_protocol::suitraders {
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: SUITRADERS, ctx: &mut TxContext) {
+    fun init(_witness: SUITRADERS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
-        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
+        let collection: Collection<Nft<SUITRADERS>> =
+            nft::create_collection(Witness {}, ctx);
 
         collection::add_domain(
             Witness {},
@@ -41,7 +42,7 @@ module nft_protocol::suitraders {
         collection::add_domain(
             Witness {},
             &mut collection,
-            display::new(
+            display_info::new(
                 string::utf8(b"Suimarines"),
                 string::utf8(b"A unique NFT collection of Suimarines on Sui"),
             ),

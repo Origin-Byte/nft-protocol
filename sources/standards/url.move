@@ -20,114 +20,74 @@ module nft_protocol::url {
     /// Call `url::borrow_domain` to borrow domain.
     const EExistingUrl: u64 = 2;
 
-    /// Domain for storing an associated URL
-    ///
-    /// Changes are replicated to `ComposableUrl` domain as URL base for NFTs.
-    struct UrlDomain has store {
-        url: Url,
-    }
-
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
-
-    /// Creates new `UrlDomain` with a URL
-    public fun new(url: Url): UrlDomain {
-        UrlDomain { url }
-    }
-
-    /// Borrow URL of `UrlDomain`
-    public fun borrow_url(domain: &UrlDomain): &Url {
-        &domain.url
-    }
-
-    /// Mutably borrow URL of `UrlDomain`
-    public fun borrow_url_mut(domain: &mut UrlDomain): &mut Url {
-        &mut domain.url
-    }
-
-    /// Sets URL of `UrlDomain`
-    ///
-    /// Need to ensure that `UrlDomain` is updated with attributes if they
-    /// exist therefore function cannot be public.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `UrlDomain` does not exist on `Nft`
-    public fun set_url(
-        domain: &mut UrlDomain,
-        url: Url,
-    ) {
-        domain.url = url;
-    }
-
     // === Interoperability ===
 
-    /// Returns whether `UrlDomain` is registered on `Nft`
+    /// Returns whether `Url` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
-        df::exists_with_type<Marker<UrlDomain>, UrlDomain>(
+        df::exists_with_type<Marker<Url>, Url>(
             nft, utils::marker(),
         )
     }
 
-    /// Borrows `UrlDomain` from `Nft`
+    /// Borrows `Url` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered on the `Nft`
-    public fun borrow_domain(nft: &UID): &UrlDomain {
+    /// Panics if `Url` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &Url {
         assert_url(nft);
-        df::borrow(nft, utils::marker<UrlDomain>())
+        df::borrow(nft, utils::marker<Url>())
     }
 
-    /// Mutably borrows `UrlDomain` from `Nft`
+    /// Mutably borrows `Url` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered on the `Nft`
-    public fun borrow_domain_mut(nft: &mut UID): &mut UrlDomain {
+    /// Panics if `Url` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut Url {
         assert_url(nft);
-        df::borrow_mut(nft, utils::marker<UrlDomain>())
+        df::borrow_mut(nft, utils::marker<Url>())
     }
 
-    /// Adds `UrlDomain` to `Nft`
+    /// Adds `Url` to `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` domain already exists
+    /// Panics if `Url` domain already exists
     public fun add_domain(
         nft: &mut UID,
-        domain: UrlDomain,
+        domain: Url,
     ) {
         assert_no_url(nft);
-        df::add(nft, utils::marker<UrlDomain>(), domain);
+        df::add(nft, utils::marker<Url>(), domain);
     }
 
-    /// Remove `UrlDomain` from `Nft`
+    /// Remove `Url` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` domain doesnt exist
-    public fun remove_domain(nft: &mut UID): UrlDomain {
+    /// Panics if `Url` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): Url {
         assert_url(nft);
-        df::remove(nft, utils::marker<UrlDomain>())
+        df::remove(nft, utils::marker<Url>())
     }
 
     // === Assertions ===
 
-    /// Asserts that `UrlDomain` is registered on `Nft`
+    /// Asserts that `Url` is registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered
+    /// Panics if `Url` is not registered
     public fun assert_url(nft: &UID) {
         assert!(has_domain(nft), EUndefinedUrl);
     }
 
-    /// Asserts that `UrlDomain` is not registered on `Nft`
+    /// Asserts that `Url` is not registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is registered
+    /// Panics if `Url` is registered
     public fun assert_no_url(nft: &UID) {
         assert!(!has_domain(nft), EExistingUrl);
     }

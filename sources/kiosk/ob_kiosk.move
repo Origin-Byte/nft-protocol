@@ -1,4 +1,8 @@
 module nft_protocol::ob_kiosk {
+    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
+    use nft_protocol::collection::Collection;
+    use nft_protocol::access_policy as ap;
+    use originmate::typed_id::{Self, TypedID};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use std::type_name::{Self, TypeName};
     use sui::dynamic_field::{Self as df};
@@ -8,6 +12,8 @@ module nft_protocol::ob_kiosk {
     use sui::transfer::{public_share_object};
     use sui::tx_context::{TxContext, sender};
     use sui::vec_set::{Self, VecSet};
+
+    struct Witness has drop {}
 
     // === Errors ===
 
@@ -446,6 +452,53 @@ module nft_protocol::ob_kiosk {
         let col_type = type_name::get<C>();
         vec_set::insert(&mut settings.collections_with_enabled_deposits, col_type);
     }
+
+    // === NFT Accessors ===
+
+    public fun borrow_nft_field_mut<OTW: drop, T: key + store, Field: store>(
+        kiosk: &mut Kiosk,
+        collection: &Collection<OTW>,
+        nft_id: TypedID<T>,
+        ctx: &mut TxContext,
+    ): (MutLock<T>, ReturnPromise<T>) {
+        // TODO: Need to guarantee that NFT is not listed anywhere
+        // TODO: Assert T lives in the OTW universe
+        ap::assert_field_auth<OTW, T, Field>(collection, ctx);
+
+        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
+        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
+
+        mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft)
+    }
+
+    public fun borrow_nft_mut<OTW: drop, T: key + store>(
+        kiosk: &mut Kiosk,
+        collection: &Collection<OTW>,
+        nft_id: TypedID<T>,
+        ctx: &mut TxContext,
+    ): (MutLock<T>, ReturnPromise<T>) {
+        // TODO: Assert T lives in the OTW universe
+        // TODO: Need to guarantee that NFT is not listed anywhere
+        ap::assert_parent_auth<OTW, T>(collection, ctx);
+
+        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
+        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
+
+        mut_lock::lock_nft_global<Witness, T>(Witness {}, nft)
+    }
+
+    public fun return_nft<OTW: drop, T: key + store>(
+        kiosk: &mut Kiosk,
+        locked_nft: MutLock<T>,
+        promise: ReturnPromise<T>,
+    ) {
+        // TODO: Assert T lives in the OTW universe
+        let nft = mut_lock::unlock_nft(Witness {}, locked_nft, promise);
+        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
+
+        kiosk::place<T>(kiosk, owner_cap, nft);
+    }
+
 
     // === Assertions and getters ===
 
