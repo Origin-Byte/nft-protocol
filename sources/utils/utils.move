@@ -7,11 +7,12 @@ module nft_protocol::utils {
     use std::vector;
 
     use sui::vec_set::{Self, VecSet};
-    use sui::tx_context::{Self, TxContext};
     use sui::package::{Self, Publisher};
     use sui::table_vec::{Self, TableVec};
     use sui::vec_map::{Self, VecMap};
+    use sui::tx_context::TxContext;
     use sui::object::{Self, ID, UID};
+
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
     const EMismatchedKeyValueLength: u64 = 1;
@@ -110,8 +111,6 @@ module nft_protocol::utils {
 
         assert!(uid_id == object_id, 0);
 
-        let type = type_name::get<T>();
-
         UidType<T> { id: uid_id }
     }
 
@@ -128,7 +127,7 @@ module nft_protocol::utils {
 
     public fun assert_same_module<T, Witness: drop>() {
         let (package_a, module_a, _) = get_package_module_type<T>();
-        let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
+        let (package_b, module_b, _) = get_package_module_type<Witness>();
 
         assert!(package_a == package_b, err::witness_source_mismatch());
         assert!(module_a == module_b, err::witness_source_mismatch());
@@ -148,26 +147,6 @@ module nft_protocol::utils {
 
     public fun assert_package_publisher<C>(pub: &Publisher) {
         assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
-    }
-
-    public fun table_vec_from_vec<T: store>(
-        vec: vector<T>,
-        ctx: &mut TxContext
-    ): TableVec<T> {
-        let table = table_vec::empty<T>(ctx);
-
-        let len = vector::length(&vec);
-
-        while (len > 0) {
-            let elem = vector::pop_back(&mut vec);
-            table_vec::push_back(&mut table, elem);
-
-            len = len - 1;
-        };
-
-        vector::destroy_empty(vec);
-
-        table
     }
 
     /// First generic `T` is any type, second generic is `Witness`.

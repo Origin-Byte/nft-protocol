@@ -17,8 +17,6 @@ module nft_protocol::mint_cap {
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
-    use sui::bcs;
-    use sui::dynamic_field as df;
 
     use nft_protocol::collection::Collection;
     use nft_protocol::utils;
