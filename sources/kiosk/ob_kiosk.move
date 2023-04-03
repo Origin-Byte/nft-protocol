@@ -470,7 +470,7 @@ module nft_protocol::ob_kiosk {
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft)
+        mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft, ctx)
     }
 
     public fun borrow_nft_mut<OTW: drop, T: key + store>(
@@ -488,7 +488,7 @@ module nft_protocol::ob_kiosk {
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        mut_lock::lock_nft_global<Witness, T>(Witness {}, nft)
+        mut_lock::lock_nft_global<Witness, T>(Witness {}, nft, ctx)
     }
 
     public fun return_nft<OTW: drop, T: key + store>(

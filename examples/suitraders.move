@@ -1,25 +1,22 @@
 module nft_protocol::suitraders {
     use std::ascii;
+    use std::option;
     use std::string::{Self, String};
 
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::attributes;
-    use nft_protocol::attributes;
     use nft_protocol::collection_id;
-    use nft_protocol::collection;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::creators;
     use nft_protocol::display_info;
-    use nft_protocol::display;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::royalty;
     use nft_protocol::tags;
-    use nft_protocol::url;
     use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::witness;
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -33,7 +30,8 @@ module nft_protocol::suitraders {
         let sender = tx_context::sender(ctx);
         let collection: Collection<Nft<SUITRADERS>> =
             nft::create_collection(Witness {}, ctx);
-        let mint_cap = mint_cap::new_unregulated(Witness {}, &collection, ctx);
+        let mint_cap =
+            mint_cap::new<Witness, Nft<SUITRADERS>>(Witness {}, &collection, option::none(), ctx);
 
         collection::add_domain(
             Witness {},
@@ -53,8 +51,10 @@ module nft_protocol::suitraders {
             ),
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy(
-            &Witness {}, &mut collection, 100, ctx,
+        let delegated_witness = witness::from_witness<Nft<SUITRADERS>, Witness>(Witness {});
+
+        royalty_strategy_bps::create_domain_and_add_strategy<Nft<SUITRADERS>>(
+            delegated_witness, &mut collection, 100, ctx,
         );
 
         let tags = tags::empty(ctx);

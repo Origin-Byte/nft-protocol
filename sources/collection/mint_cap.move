@@ -49,9 +49,9 @@ module nft_protocol::mint_cap {
         supply: Option<Supply>,
     }
 
-    public fun new<W: drop, T: key>(
+    public fun new<W: drop, T>(
         _witness: W,
-        collection: &Collection<W>,
+        collection: &Collection<T>,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {

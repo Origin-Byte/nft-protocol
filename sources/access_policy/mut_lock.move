@@ -1,14 +1,16 @@
 module nft_protocol::mut_lock {
     use std::type_name::{Self, TypeName};
     use std::option::{Self, Option};
-    use sui::object::{Self, ID};
+    use sui::object::{Self, ID, UID};
+    use sui::tx_context::TxContext;
     use nft_protocol::utils;
 
     const ELOCK_PROMISE_MISMATCH: u64 = 1;
     const ELOCK_AUTHORITY_MISMATCH: u64 = 2;
 
     // TODO: Consider using Witness as type reflection
-    struct MutLock<T> {
+    struct MutLock<T> has key {
+        id: UID,
         nft: T,
         // We add authority as type name because otherwise
         // we have 4 generics in the extract function
@@ -29,10 +31,12 @@ module nft_protocol::mut_lock {
     public fun lock_nft_global<Auth: drop, T: key + store>(
         _auth: Auth,
         nft: T,
+        ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = object::id(&nft);
 
         let mut_lock = MutLock {
+            id: object::new(ctx),
             nft,
             authority: type_name::get<Auth>(),
             field: option::none()
@@ -49,10 +53,12 @@ module nft_protocol::mut_lock {
     public fun lock_nft<Auth: drop, T: key + store, Field: store>(
         _auth: Auth,
         nft: T,
+        ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = object::id(&nft);
 
         let mut_lock = MutLock {
+            id: object::new(ctx),
             nft,
             authority: type_name::get<Auth>(),
             field: option::some(type_name::get<Field>())
@@ -73,7 +79,9 @@ module nft_protocol::mut_lock {
             ELOCK_AUTHORITY_MISMATCH
         );
 
-        let MutLock { nft, authority: _, field: _ } = locked_nft;
+        let MutLock { id, nft, authority: _, field: _ } = locked_nft;
+
+        object::delete(id);
 
         assert!(promise.nft_id == object::id(&nft), ELOCK_PROMISE_MISMATCH);
 

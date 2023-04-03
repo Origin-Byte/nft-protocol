@@ -1,5 +1,6 @@
 module nft_protocol::tribal_realms {
     use std::string::{Self, String};
+    use std::option;
 
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
@@ -30,7 +31,8 @@ module nft_protocol::tribal_realms {
     fun init(_witness: TRIBAL_REALMS, ctx: &mut TxContext) {
         let collection: Collection<Nft<TRIBAL_REALMS>> =
             nft::create_collection(Witness {}, ctx);
-        let mint_cap = mint_cap::new_unregulated(Witness {}, &collection, ctx);
+        let mint_cap =
+            mint_cap::new<Witness, Nft<TRIBAL_REALMS>>(Witness {}, &collection, option::none(), ctx);
 
         nft::add_collection_domain(
             Witness {},

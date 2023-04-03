@@ -2,6 +2,7 @@
 /// allows associating them with collections
 module nft_protocol::example_symbol {
     use std::string::{Self, String};
+    use std::option;
 
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
@@ -46,7 +47,8 @@ module nft_protocol::example_symbol {
     fun init(_witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
         let collection: Collection<Nft<EXAMPLE_SYMBOL>> =
             nft::create_collection(Witness {}, ctx);
-        let mint_cap = mint_cap::new_unregulated(Witness {}, &collection, ctx);
+        let mint_cap =
+            mint_cap::new<Witness, Nft<EXAMPLE_SYMBOL>>(Witness {}, &collection, option::none(), ctx);
 
         collection::add_domain(
             Witness {},

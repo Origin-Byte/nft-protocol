@@ -142,7 +142,7 @@ module nft_protocol::royalty_strategy_bps {
     ///
     /// The creator is the sender.
     /// The strategy has access to `TransferRequest` balance
-    public fun create_domain_and_add_strategy<T, W>(
+    public fun create_domain_and_add_strategy<T>(
         witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         bps: u64,
