@@ -6,6 +6,7 @@ module nft_protocol::venue_v2 {
     use sui::transfer;
     use sui::event;
     use sui::vec_set;
+    use sui::table::{Self, Table};
     use std::type_name::{Self, TypeName};
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
@@ -40,6 +41,7 @@ module nft_protocol::venue_v2 {
         supply: Option<Supply>,
         open: OpenSettings,
         proceeds: Proceeds,
+        warehouses: Table<ID, Warehouse>,
     }
 
     struct Policies has store {
