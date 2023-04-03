@@ -150,6 +150,26 @@ module nft_protocol::utils {
         assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
     }
 
+    public fun table_vec_from_vec<T: store>(
+        vec: vector<T>,
+        ctx: &mut TxContext
+    ): TableVec<T> {
+        let table = table_vec::empty<T>(ctx);
+
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            table_vec::push_back(&mut table, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+
+        table
+    }
+
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
     ///

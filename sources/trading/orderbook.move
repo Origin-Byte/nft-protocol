@@ -22,7 +22,7 @@ module nft_protocol::orderbook {
 
     use nft_protocol::ob_kiosk;
     use nft_protocol::trading;
-    use nft_protocol::transfer_request::{Self, TransferRequest};
+    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::utils;
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
     use std::ascii::String;
@@ -1134,7 +1134,7 @@ module nft_protocol::orderbook {
             &book.id,
             ctx,
         );
-        transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
+        ob_transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
         transfer_req
@@ -1172,7 +1172,7 @@ module nft_protocol::orderbook {
             &book.id,
             ctx,
         );
-        transfer_request::set_paid<T, FT>(
+        ob_transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(paid), *seller,
         );
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});

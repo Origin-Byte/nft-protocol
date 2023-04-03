@@ -20,7 +20,7 @@
 ///     to authorize transfers.
 module nft_protocol::transfer_allowlist {
     use nft_protocol::ob_kiosk;
-    use nft_protocol::transfer_request::{Self, TransferRequest};
+    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use std::option::{Self, Option};
@@ -227,7 +227,7 @@ module nft_protocol::transfer_allowlist {
         transfer_policy::add_rule<C, AllowlistRule, bool>(
             AllowlistRule {}, policy, cap, false,
         );
-        transfer_request::add_rule_to_originbyte_ecosystem<C, AllowlistRule>(policy, cap);
+        ob_transfer_request::add_rule_to_originbyte_ecosystem<C, AllowlistRule>(policy, cap);
     }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.
@@ -240,7 +240,7 @@ module nft_protocol::transfer_allowlist {
     ) {
         let auth = ob_kiosk::get_transfer_request_auth(req);
         assert_transferable<C>(allowlist, auth);
-        transfer_request::add_receipt(req, &AllowlistRule {});
+        ob_transfer_request::add_receipt(req, &AllowlistRule {});
     }
 
     // === Assertions ===
