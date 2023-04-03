@@ -5,10 +5,11 @@
 //     use sui::object::{Self, UID};
 //     use sui::tx_context::{Self, TxContext};
 
-//     use nft_protocol::utils_supply::{Self, Supply};
+//     use nft_protocol::nft::{Self, Nft};
+//     use nft_protocol::supply::{Self, Supply};
 //     use nft_protocol::mint_cap::{Self, MintCap};
 
-//     use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
+//     // use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
 
 //     /// `Metadata` supply is unregulated
 //     ///
@@ -23,12 +24,9 @@
 //     const EREGULATED_ARCHETYPE: u64 = 2;
 
 //     /// `Metadata` object
-//     struct Metadata<T: key + store> has key, store {
-//         /// `Metadata` ID
+//     struct Metadata<phantom C> has key, store {
 //         id: UID,
-//         /// Backing NFT
-//         metadata: T,
-//         /// NFT supply
+//         metadata: Nft<C>,
 //         supply: Option<Supply>,
 //     }
 
@@ -36,13 +34,15 @@
 //     ///
 //     /// Does not require that collection itself is unregulated as `Metadata`
 //     /// supply is independently regulated.
-//     public fun create<T: key + store>(
-//         metadata: T,
+//     public fun create<C>(
+//         metadata: Nft<C>,
 //         supply: Option<u64>,
+//         // Only matters if the supply is some
+//         frozen: bool,
 //         ctx: &mut TxContext,
-//     ): Metadata<T> {
+//     ): Metadata<C> {
 //         if (option::is_some(&supply)) {
-//             create_regulated(metadata, option::destroy_some(supply), ctx)
+//             create_regulated(metadata, option::destroy_some(supply), frozen, ctx)
 //         } else {
 //             create_unregulated(metadata, ctx)
 //         }
@@ -52,10 +52,10 @@
 //     ///
 //     /// Does not require that collection itself is unregulated as `Metadata`
 //     /// supply is independently regulated.
-//     public fun create_unregulated<T: key + store>(
-//         metadata: T,
+//     public fun create_unregulated<C>(
+//         metadata: Nft<C>,
 //         ctx: &mut TxContext,
-//     ): Metadata<T> {
+//     ): Metadata<C> {
 //         Metadata { id: object::new(ctx), metadata, supply: option::none() }
 //     }
 
@@ -63,15 +63,17 @@
 //     ///
 //     /// Does not require that collection itself is unregulated as `Metadata`
 //     /// supply is independently regulated.
-//     public fun create_regulated<T: key + store>(
-//         metadata: T,
+//     public fun create_regulated<C>(
+//         metadata: Nft<C>,
 //         supply: u64,
+//         frozen: bool,
 //         ctx: &mut TxContext,
-//     ): Metadata<T> {
+//     ): Metadata<C> {
 //         Metadata {
 //             id: object::new(ctx),
 //             metadata,
-//             supply: option::some(utils_supply::new(supply)),
+
+//             supply: option::some(supply::new(supply, frozen)),
 //         }
 //     }
 
@@ -80,11 +82,11 @@
 //     ///
 //     /// Does not require that collection itself is unregulated as `Metadata`
 //     /// supply is independently regulated.
-//     public entry fun create_unregulated_and_transfer<T: key + store>(
-//         metadata: T,
+//     public entry fun create_unregulated_and_transfer<C>(
+//         metadata: Nft<C>,
 //         ctx: &mut TxContext
 //     ) {
-//         let metadata = create(metadata, option::none(), ctx);
+//         let metadata = create(metadata, option::none(), false,  ctx);
 //         transfer::public_transfer(metadata, tx_context::sender(ctx));
 //     }
 
@@ -93,17 +95,18 @@
 //     ///
 //     /// Does not require that collection itself is regulated as `Metadata`
 //     /// supply is independently regulated.
-//     public entry fun create_regulated_and_transfer<T: key + store>(
-//         metadata: T,
+//     public entry fun create_regulated_and_transfer<C>(
+//         metadata: Nft<C>,
 //         quantity: u64,
+//         frozen: bool,
 //         ctx: &mut TxContext,
 //     ) {
-//         let metadata = create(metadata, option::some(quantity), ctx);
+//         let metadata = create(metadata, option::some(quantity), frozen, ctx);
 //         transfer::public_transfer(metadata, tx_context::sender(ctx));
 //     }
 
 //     /// Returns the `Metadata` `Nft`
-//     public fun borrow_metadata<T: key + store>(metadata: &Metadata<T>): &T {
+//     public fun borrow_metadata<C>(metadata: &Metadata<C>): &Nft<C> {
 //         &metadata.metadata
 //     }
 
@@ -112,9 +115,7 @@
 //     /// #### Panics
 //     ///
 //     /// Panics if `Metadata` supply is unregulated
-//     public fun borrow_supply<T: key + store>(
-//         metadata: &Metadata<T>,
-//     ): &Option<Supply> {
+//     public fun borrow_supply<C>(metadata: &Metadata<C>): &Option<Supply> {
 //         &metadata.supply
 //     }
 
@@ -127,20 +128,25 @@
 //     /// #### Panics
 //     ///
 //     /// Panics if supply is exceeded.
-//     public fun delegate<T: key + store>(
-//         mint_cap: &mut MintCap<T>,
-//         metadata: &mut Metadata<T>,
+//     public fun delegate<C>(
+//         mint_cap: &mut MintCap<Nft<C>>,
+//         metadata: &mut Metadata<C>,
 //         quantity: u64,
 //         ctx: &mut TxContext,
-//     ): LooseMintCap<T> {
+//     ): LooseMintCap<Nft<C>> {
 //         if (option::is_some(&metadata.supply)) {
 //             let supply = option::borrow_mut(&mut metadata.supply);
-//             utils_supply::increment(supply, quantity);
+//             supply::increment(supply, quantity);
 //         };
 
+//         let metadata_id = object::id(metadata);
+//         let nft = borrow_metadata(metadata);
+
 //         loose_mint_cap::new(
-//             mint_cap::delegate(mint_cap, quantity, ctx),
-//             object::id(metadata),
+//             mint_cap::split(mint_cap, quantity, ctx),
+//             metadata_id,
+//             *nft::name(nft),
+//             *nft::url(nft),
 //             ctx,
 //         )
 //     }
@@ -149,12 +155,12 @@
 //     // === Assertions ===
 
 //     /// Asserts that `Metadata` has a regulated supply
-//     public fun assert_regulated<T: key + store>(metadata: &Metadata<T>) {
+//     public fun assert_regulated<C>(metadata: &Metadata<C>) {
 //         assert!(option::is_some(&metadata.supply), EUNREGULATED_ARCHETYPE);
 //     }
 
 //     /// Asserts that `Metadata` has a regulated supply
-//     public fun assert_unregulated<T: key + store>(metadata: &Metadata<T>) {
+//     public fun assert_unregulated<C>(metadata: &Metadata<C>) {
 //         assert!(option::is_none(&metadata.supply), EREGULATED_ARCHETYPE);
 //     }
 // }
