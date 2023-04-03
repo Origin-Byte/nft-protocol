@@ -17,7 +17,7 @@ module nft_protocol::display_info {
     /// Call `display_info::borrow_domain` to borrow domain.
     const EExistingDisplay: u64 = 2;
 
-    struct DisplayInfo has store {
+    struct DisplayInfo has store, drop {
         name: String,
         description: String,
     }

@@ -19,7 +19,7 @@ module nft_protocol::symbol {
 
     // === Symbol ===
 
-    struct Symbol has store {
+    struct Symbol has store, drop {
         symbol: String,
     }
 
