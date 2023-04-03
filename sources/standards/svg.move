@@ -21,7 +21,7 @@ module nft_protocol::svg {
     const EExistingSvg: u64 = 2;
 
     /// Domain for storing an associated SVG data
-    struct Svg has store {
+    struct Svg has store, drop {
         svg: vector<u8>,
     }
 

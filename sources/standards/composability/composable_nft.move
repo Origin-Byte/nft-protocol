@@ -15,7 +15,7 @@ module nft_protocol::composable_nft {
     /// Parent and child types are not composable
     ///
     /// Call `composable_nft::add_relationship` to add parent child
-    /// relationship to the composability blueprint.
+    /// relationship to the composition.
     const ETYPES_NOT_COMPOSABLE: u64 = 1;
 
     /// Relationship between provided parent and child types is already defined
@@ -23,7 +23,7 @@ module nft_protocol::composable_nft {
 
     /// Exceeded composed type limit when calling `composable_nft::compose`
     ///
-    /// Set a higher type limit in the composability blueprint.
+    /// Set a higher type limit in the composability composition.
     const EEXCEEDED_TYPE_LIMIT: u64 = 3;
 
     /// Witness used to authenticate witness protected endpoints
@@ -32,48 +32,46 @@ module nft_protocol::composable_nft {
     /// Internal struct for indexing NFTs in `NftBagDomain`
     struct Key<phantom T> has drop, store {}
 
-    // === Blueprint ===
-
     /// Domain held in the Collection object, blueprinting all the composability
     /// between types.
     ///
-    /// Multiple blueprints can exist in each collection, therefore they are
+    /// Multiple compositions can exist in each collection, therefore they are
     /// generic on `S`, a schema marker.
     struct Composition<phantom Schema> has store {
         limits: VecMap<TypeName, u64>,
     }
 
-    public fun new_blueprint<Schema>(): Composition<Schema> {
+    public fun new_composition<Schema>(): Composition<Schema> {
         Composition {
             limits: vec_map::empty(),
         }
     }
 
-    /// Adds parent child relationship to `Blueprint`
+    /// Adds parent child relationship to `Composition`
     ///
     /// #### Panics
     ///
     /// Panics if parent child relationship already exists
     public fun add_relationship<Schema, Child>(
-        blueprint: &mut Composition<Schema>,
+        composition: &mut Composition<Schema>,
         limit: u64,
     ) {
         let child_type = type_name::get<Child>();
 
         assert!(
-            !has_child(blueprint, &child_type),
+            !has_child(composition, &child_type),
             ERELATIONSHIP_ALREADY_DEFINED,
         );
 
-        vec_map::insert(&mut blueprint.limits, child_type, limit);
+        vec_map::insert(&mut composition.limits, child_type, limit);
     }
 
-    /// Returns whether a parent child relationship exists in the blueprint
+    /// Returns whether a parent child relationship exists in the composition
     public fun has_child<Schema>(
-        blueprint: &Composition<Schema>,
+        composition: &Composition<Schema>,
         child_type: &TypeName,
     ): bool {
-        vec_map::contains(&blueprint.limits, child_type)
+        vec_map::contains(&composition.limits, child_type)
     }
 
     /// Get limit for given type
@@ -81,13 +79,13 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if parent child relationship was not defined on composability
-    /// blueprint.
+    /// composition.
     public fun get_limit<Schema>(
-        blueprint: &Composition<Schema>,
+        composition: &Composition<Schema>,
         child_type: &TypeName,
     ): u64 {
-        assert_composable(blueprint, child_type);
-        *vec_map::get(borrow_limits(blueprint), child_type)
+        assert_composable(composition, child_type);
+        *vec_map::get(borrow_limits(composition), child_type)
     }
 
     /// Borrow mutable limit for given type
@@ -95,27 +93,27 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if parent child relationship was not defined on composability
-    /// blueprint.
+    /// composition.
     public fun borrow_limit_mut<Schema>(
-        blueprint: &mut Composition<Schema>,
+        composition: &mut Composition<Schema>,
         child_type: &TypeName,
     ): &mut u64 {
-        assert_composable(blueprint, child_type);
-        vec_map::get_mut(borrow_limits_mut(blueprint), child_type)
+        assert_composable(composition, child_type);
+        vec_map::get_mut(borrow_limits_mut(composition), child_type)
     }
 
-    /// Borrow child limit from composability blueprint
+    /// Borrow child limit from composability composition
     public fun borrow_limits<Schema>(
-        blueprint: &Composition<Schema>,
+        composition: &Composition<Schema>,
     ): &VecMap<TypeName, u64> {
-        &blueprint.limits
+        &composition.limits
     }
 
-    /// Mutbaly borrow child limit from composability blueprint
+    /// Mutbaly borrow child limit from composability composition
     fun borrow_limits_mut<Schema>(
-        blueprint: &mut Composition<Schema>,
+        composition: &mut Composition<Schema>,
     ): &mut VecMap<TypeName, u64> {
-        &mut blueprint.limits
+        &mut composition.limits
     }
 
     /// Registers `Composition` on the given `Collection`
@@ -123,7 +121,7 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if `Composition` is already registered on the `Collection`.
-    public fun add_blueprint_domain<T, Schema, W: drop>(
+    public fun add_composition_domain<T, Schema, W: drop>(
         witness: W,
         collection: &mut Collection<T>,
         domain: Composition<Schema>,
@@ -137,7 +135,7 @@ module nft_protocol::composable_nft {
     ///
     /// * `Composition<Schema>` is not registered as a domain on the parent NFT
     /// * Parent child relationship is not defined on the composability
-    /// blueprint
+    /// composition
     /// * Parent or child NFT do not have corresponding `Type<Parent>` and
     /// `Type<Child>` domains registered
     /// * Limit of children is exceeded
@@ -150,12 +148,12 @@ module nft_protocol::composable_nft {
         child_nft: Child,
         collection: &Collection<T>,
     ) {
-        let blueprint: &Composition<Schema> =
+        let composition: &Composition<Schema> =
             collection::borrow_domain(collection);
 
         // Asserts that parent and child are composable
         let child_type = type_name::get<Child>();
-        let limit = get_limit(blueprint, &child_type);
+        let limit = get_limit(composition, &child_type);
 
         let nfts = nft_bag::borrow_domain_mut<Child>(parent_nft);
 
@@ -205,11 +203,11 @@ module nft_protocol::composable_nft {
     ///
     /// Panics if parent and child types are not composable.
     public fun assert_composable<S>(
-        blueprint: &Composition<S>,
+        composition: &Composition<S>,
         child_type: &TypeName,
     ) {
         assert!(
-            has_child(blueprint, child_type),
+            has_child(composition, child_type),
             ETYPES_NOT_COMPOSABLE,
         );
     }

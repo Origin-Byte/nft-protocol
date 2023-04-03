@@ -6,7 +6,6 @@ module nft_protocol::suitraders {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::url;
     use nft_protocol::tags;
     use nft_protocol::royalty;
     use nft_protocol::display_info;
@@ -15,7 +14,7 @@ module nft_protocol::suitraders {
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::collection_id;
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::mint_cap::{Self, MintCap};
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -29,6 +28,7 @@ module nft_protocol::suitraders {
         let sender = tx_context::sender(ctx);
         let collection: Collection<Nft<SUITRADERS>> =
             nft::create_collection(Witness {}, ctx);
+        let mint_cap = mint_cap::new_unregulated(Witness {}, &collection, ctx);
 
         collection::add_domain(
             Witness {},
@@ -106,9 +106,8 @@ module nft_protocol::suitraders {
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
-        nft::add_domain(Witness {}, &mut nft, display::new(name, description));
-
-        nft::add_domain(Witness {}, &mut nft, url::new(url));
+        nft::add_domain(Witness {}, &mut nft, display_info::new(name, description));
+        nft::add_domain(Witness {}, &mut nft, url);
 
         nft::add_domain(
             Witness {},

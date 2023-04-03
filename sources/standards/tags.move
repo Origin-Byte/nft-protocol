@@ -6,7 +6,7 @@ module nft_protocol::tags {
     // TODO: limit tags to three
     // Ability to add tags with vector<string>
     use sui::dynamic_field as df;
-    use sui::object::{Self, UID};
+    use sui::object::UID;
     use sui::tx_context::TxContext;
     use sui::bag::{Self, Bag};
 
@@ -87,13 +87,12 @@ module nft_protocol::tags {
     // === Tags ===
 
     struct Tags has store {
-        id: UID,
         tags: Bag
     }
 
     /// Creates empty `Tags`
     public fun empty(ctx: &mut TxContext): Tags {
-        Tags { id: object::new(ctx), tags: bag::new(ctx) }
+        Tags { tags: bag::new(ctx) }
     }
 
 
