@@ -1,18 +1,19 @@
 /// Utility functions
 module nft_protocol::utils {
+    use nft_protocol::err;
     use std::ascii;
     use std::string::{Self, String, sub_string};
     use std::type_name;
     use std::vector;
-
+    use sui::package::{Self, Publisher};
     use sui::vec_map::{Self, VecMap};
     use sui::table_vec::{Self, TableVec};
     use sui::tx_context::TxContext;
 
-    use nft_protocol::err;
-
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
-    const EMISMATCHED_KEY_VALUE_LENGTHS: u64 = 1;
+    const EMismatchedKeyValueLength: u64 = 1;
+
+    const EPackagePublisherMismatch: u64 = 2;
 
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
@@ -97,7 +98,7 @@ module nft_protocol::utils {
     ): VecMap<K, V> {
         assert!(
             vector::length(&keys) == vector::length(&values),
-            EMISMATCHED_KEY_VALUE_LENGTHS,
+            EMismatchedKeyValueLength,
         );
 
         let i = 0;

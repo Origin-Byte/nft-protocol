@@ -1,7 +1,6 @@
 module nft_protocol::footbytes {
     use std::string::{Self, String};
 
-    use sui::balance;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -13,7 +12,6 @@ module nft_protocol::footbytes {
     use nft_protocol::creators;
     use nft_protocol::metadata;
     use nft_protocol::metadata_bag;
-    use nft_protocol::royalties::{Self, TradePayment};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
 
@@ -80,21 +78,6 @@ module nft_protocol::footbytes {
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
         transfer::public_share_object(collection);
-    }
-
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<Nft<FOOTBYTES>, FT>,
-        collection: &mut Collection<Nft<FOOTBYTES>>,
-        ctx: &mut TxContext,
-    ) {
-        let b = royalties::balance_mut(Witness {}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
     public entry fun mint_nft_template(

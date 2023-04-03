@@ -1,10 +1,8 @@
 /// Reusable trading primitives.
 module nft_protocol::trading {
-    use nft_protocol::royalties;
     use std::option::{Self, Option};
     use sui::balance::{Self, Balance};
     use sui::coin;
-    use sui::object;
     use sui::transfer::public_transfer;
     use sui::tx_context::{TxContext};
 
@@ -64,50 +62,16 @@ module nft_protocol::trading {
         };
     }
 
-    /// Wraps the funds in an object which can be only unwrapped in a method
-    /// of the `C`ollection that deals with royalties.
-    public fun settle_funds_with_royalties<T, FT>(
-        paid: &mut Balance<FT>,
-        recipient: address,
-        maybe_commission: &mut Option<AskCommission>,
+    public fun transfer_ask_commission<FT>(
+        commission: &mut Option<AskCommission>,
+        source: &mut Balance<FT>,
         ctx: &mut TxContext,
     ) {
-        let amount = balance::value(paid);
+        if (option::is_some(commission)) {
+            let AskCommission { beneficiary, cut } =
+                option::extract(commission);
 
-        if (option::is_some(maybe_commission)) {
-            // the `p`aid amount for the NFT and the commission `c`ut
-
-            let AskCommission {
-                cut, beneficiary,
-            } = option::extract(maybe_commission);
-
-            // associates both payments with each other
-            let trade = object::new(ctx);
-
-            // `p` - `c` goes to seller
-            royalties::create_with_trade<T, FT>(
-                balance::split(paid, amount - cut),
-                recipient,
-                object::uid_to_inner(&trade),
-                ctx,
-            );
-            // `c` goes to the marketplace
-            royalties::create_with_trade<T, FT>(
-                balance::split(paid, cut),
-                beneficiary,
-                object::uid_to_inner(&trade),
-                ctx,
-            );
-
-            object::delete(trade);
-        } else {
-            // no commission, all `p` goes to seller
-
-            royalties::create<T, FT>(
-                balance::split(paid, amount),
-                recipient,
-                ctx,
-            );
+            public_transfer(coin::take(source, cut, ctx), beneficiary);
         };
     }
 
@@ -115,5 +79,17 @@ module nft_protocol::trading {
 
     public fun bid_commission_amount<FT>(bid: &BidCommission<FT>): u64 {
         balance::value(&bid.cut)
+    }
+
+    public fun bid_commission_beneficiary<FT>(bid: &BidCommission<FT>): address {
+        bid.beneficiary
+    }
+
+    public fun ask_commission_amount(ask: &AskCommission): u64 {
+        ask.cut
+    }
+
+    public fun ask_commission_beneficiary(ask: &AskCommission): address {
+        ask.beneficiary
     }
 }
