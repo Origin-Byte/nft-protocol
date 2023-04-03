@@ -8,7 +8,7 @@
 module nft_protocol::fixed_bid_v2 {
     use nft_protocol::launchpad_v2::{Self, LaunchCap};
     use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
-    use nft_protocol::venue_v2::{Self, Venue, NftCert};
+    use nft_protocol::venue_v2::{Self, Venue, NftCert, RedeemReceipt};
 
     // use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
@@ -88,31 +88,7 @@ module nft_protocol::fixed_bid_v2 {
 
     // === Entrypoints ===
 
-    /// Buy NFT for non-whitelisted sale
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Venue` does not exist, is not live, or is whitelisted or
-    /// wallet does not have the necessary funds.
-    public entry fun buy_nft_cert_and_transfer<T: key + store, FT>(
-        venue: &mut Venue,
-        wallet: &mut Coin<FT>,
-        // TODO: Put Quantity and Receiver inside VenueRequest to reduce params
-        quantity: u64,
-        // Receiver is not sender necessarily to allow for burner wallets
-        receiver: address,
-        request: VenueRequest,
-        clock: &Clock,
-        ctx: &mut TxContext,
-    ) {
-        venue_v2::assert_venue_request(venue, &request);
-        venue_v2::check_if_live(clock, venue);
-
-        let cert = buy_nft_cert_<T, FT>(venue, wallet, quantity, receiver, ctx);
-        public_transfer(cert, receiver);
-    }
-
-    /// Internal method to buy NFT
+    /// Method to buy NFT
     ///
     /// #### Panics
     ///
@@ -123,15 +99,13 @@ module nft_protocol::fixed_bid_v2 {
         wallet: &mut Coin<FT>,
         // TODO: Put Quantity and Receiver inside VenueRequest to reduce params
         quantity: u64,
-        receiver: address,
         request: VenueRequest,
         clock: &Clock,
-        ctx: &mut TxContext,
-    ): NftCert {
+    ): RedeemReceipt {
         venue_v2::assert_venue_request(venue, &request);
         venue_v2::check_if_live(clock, venue);
 
-        buy_nft_cert_<T, FT>(venue, wallet, quantity, receiver, ctx)
+        buy_nft_cert_<T, FT>(venue, wallet, quantity)
     }
 
 
@@ -145,9 +119,7 @@ module nft_protocol::fixed_bid_v2 {
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
         quantity: u64,
-        receiver: address,
-        ctx: &mut TxContext,
-    ): NftCert {
+    ): RedeemReceipt {
         let market = venue_v2::get_df<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
             FixedBidDfKey {}
@@ -166,12 +138,10 @@ module nft_protocol::fixed_bid_v2 {
         );
 
         // TODO: Allow for burner wallets
-        venue_v2::redeem_generic_cert(
+        venue_v2::get_redeem_receipt(
             Witness {},
             venue,
-            receiver,
             quantity,
-            ctx
         )
     }
 

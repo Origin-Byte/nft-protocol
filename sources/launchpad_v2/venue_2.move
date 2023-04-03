@@ -6,6 +6,8 @@ module nft_protocol::venue_v2 {
     use sui::transfer;
     use sui::event;
     use sui::vec_set;
+    use sui::linked_table::{Self, LinkedTable};
+    use sui::vec_map::{Self, VecMap};
     use sui::table::{Self, Table};
     use std::type_name::{Self, TypeName};
     use sui::tx_context::{Self, TxContext};
@@ -18,6 +20,7 @@ module nft_protocol::venue_v2 {
     use nft_protocol::launchpad_v2::{Self, LaunchCap};
     use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
     use nft_protocol::proceeds_v2::{Self, Proceeds};
+    use nft_protocol::warehouse_v2::{Self, Warehouse};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
 
@@ -41,7 +44,12 @@ module nft_protocol::venue_v2 {
         supply: Option<Supply>,
         open: OpenSettings,
         proceeds: Proceeds,
-        warehouses: Table<ID, Warehouse>,
+        inventories: VecMap<u64, InventoryData>,
+    }
+
+    struct InventoryData has store, copy, drop {
+        id: ID,
+        type: TypeName
     }
 
     struct Policies has store {
@@ -58,14 +66,21 @@ module nft_protocol::venue_v2 {
         live: bool,
     }
 
+    struct RedeemReceipt {
+        venue_id: ID,
+        nfts_bought: u64,
+    }
+
     struct NftCert has key, store {
         id: UID,
         venue_id: ID,
+        // Needs reflection because we can't know it always in advance
+        nft_type: TypeName,
         buyer: address,
-        nfts_bought: u64,
-        warehouse_id: vector<u64>,
+        inventory: ID,
+        index_scale: u64,
         // Relative index of the NFT in the Warehouse
-        relative_index: vector<u64>,
+        relative_index: u64,
     }
 
     /// Event signalling that `Nft` was sold by `Listing`
@@ -159,24 +174,18 @@ module nft_protocol::venue_v2 {
         }
     }
 
-    public fun redeem_generic_cert<AW: drop>(
+    public fun get_redeem_receipt<AW: drop>(
         _market_witness: AW,
         venue: &mut Venue,
-        buyer: address,
         nfts_bought: u64,
-        ctx: &mut TxContext,
-    ): NftCert {
+    ): RedeemReceipt {
         assert_called_from_market<AW>(venue);
 
         // Consider emitting events
 
-        NftCert {
-            id: object::new(ctx),
+        RedeemReceipt {
             venue_id: object::id(venue),
-            buyer,
             nfts_bought,
-            warehouse_id: vector::empty(),
-            relative_index: vector::empty(),
         }
     }
 
@@ -203,6 +212,73 @@ module nft_protocol::venue_v2 {
         df::borrow_mut<Key, Value>(&mut venue.id, key)
     }
 
+    // TODO: NEEDS TO BE Permissioned!
+    public fun get_certificate(
+        venue: &Venue,
+        nft_type: TypeName,
+        inventory_id: ID,
+        relative_index: u64,
+        index_scale: u64,
+        ctx: &mut TxContext,
+    ): NftCert {
+
+        NftCert {
+            id: object::new(ctx),
+            venue_id: object::id(venue),
+            nft_type,
+            buyer: tx_context::sender(ctx),
+            inventory: inventory_id,
+            index_scale,
+            relative_index,
+        }
+    }
+
+    // TODO: NEEDS TO BE Permissioned!
+    public fun consume_receipt(
+        receipt: RedeemReceipt,
+    ) {
+
+       let  RedeemReceipt {
+            venue_id: _,
+            nfts_bought: _,
+        } = receipt;
+    }
+
+    public fun get_invetories(venue: &Venue): &VecMap<u64, InventoryData> {
+        &venue.inventories
+    }
+
+    public fun get_venue_id(cert: &NftCert): ID {
+        cert.venue_id
+    }
+
+    public fun get_buyer(cert: &NftCert): address {
+        cert.buyer
+    }
+
+    public fun get_inventory(cert: &NftCert): ID {
+        cert.inventory
+    }
+
+    public fun get_relative_index(cert: &NftCert): u64 {
+        cert.relative_index
+    }
+
+    public fun get_index_scale(cert: &NftCert): u64 {
+        cert.index_scale
+    }
+
+    public fun get_inventory_data(
+        venue: &Venue,
+        index: u64,
+    ): (ID, TypeName) {
+        let inventories = get_invetories(venue);
+
+        let data = vec_map::get<u64, InventoryData>(inventories, &index);
+
+        (data.id, data.type)
+    }
+
     public fun assert_launch_cap(venue: &Venue, launch_cap: &LaunchCap) {
         assert!(
             venue.listing_id == launchpad_v2::listing_id(launch_cap),
@@ -216,5 +292,13 @@ module nft_protocol::venue_v2 {
 
     public fun assert_called_from_market<AW: drop>(venue: &Venue) {
         assert!(type_name::get<AW>() == venue.policies.market_policy, EMARKET_WITNESS_MISMATCH);
+    }
+
+    public fun assert_cert_buyer(cert: NftCert, ctx: &TxContext) {
+        assert!(cert.buyer == tx_context::sender(ctx), 0);
+    }
+
+    public fun assert_cert_inventory(cert: NftCert, inventory_id: ID) {
+        assert!(cert.inventory == inventory_id, 0);
     }
 }

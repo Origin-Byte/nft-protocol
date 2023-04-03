@@ -119,38 +119,6 @@ module nft_protocol::metadata {
         &metadata.supply
     }
 
-    /// Delegates metadata minting rights while maintaining `Collection` and
-    /// `Metadata` level supply invariants.
-    ///
-    /// Can only create a regulated `MintCap` from any `MintCap` therefore
-    /// quantity must be provided.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if supply is exceeded.
-    public fun delegate<C>(
-        mint_cap: &mut MintCap<Nft<C>>,
-        metadata: &mut Metadata<C>,
-        quantity: u64,
-        ctx: &mut TxContext,
-    ): LooseMintCap<Nft<C>> {
-        if (option::is_some(&metadata.supply)) {
-            let supply = option::borrow_mut(&mut metadata.supply);
-            supply::increment(supply, quantity);
-        };
-
-        let metadata_id = object::id(metadata);
-        let nft = borrow_metadata(metadata);
-
-        loose_mint_cap::new(
-            mint_cap::split(mint_cap, quantity, ctx),
-            metadata_id,
-            *nft::name(nft),
-            *nft::url(nft),
-            ctx,
-        )
-    }
-
 
     // === Assertions ===
 

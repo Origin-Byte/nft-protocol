@@ -7,7 +7,6 @@ module nft_protocol::metadata_bag {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::metadata::{Self, Metadata};
-    use nft_protocol::loose_mint_cap::LooseMintCap;
 
     /// `MetadataBagDomain` not registered on `Collection`
     ///
@@ -153,29 +152,6 @@ module nft_protocol::metadata_bag {
             object::id(&metadata),
             metadata,
         );
-    }
-
-    /// Delegates metadata minting rights while maintaining `Collection` and
-    /// `Metadata` level supply invariants.
-    ///
-    /// The argument of `RegulatedMintCap` implies that supply is at least
-    /// controlled at the `Collection` level.
-    ///
-    /// #### Panics
-    ///
-    /// * `MetadataBagDomain` is not registered on `Collection`
-    /// * `Metadata` does not exist
-    /// * Supply is exceeded
-    public fun delegate<C>(
-        mint_cap: &mut MintCap<Nft<C>>,
-        collection: &mut Collection<Nft<C>>,
-        metadata_id: ID,
-        quantity: u64,
-        ctx: &mut TxContext,
-    ): LooseMintCap<Nft<C>> {
-        let metadata_bag = borrow_metadata_bag_mut(collection);
-        let metadata = borrow_metadata_mut(metadata_bag, metadata_id);
-        metadata::delegate(mint_cap, metadata, quantity, ctx)
     }
 
     // === Assertions ===
