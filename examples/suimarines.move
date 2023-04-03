@@ -96,7 +96,7 @@ module nft_protocol::suimarines {
         transfer_allowlist::insert_collection<SUIMARINES, Witness>(
             &mut allowlist,
             &Witness {},
-            witness::from_witness(&Witness {}),
+            witness::from_witness<SUIMARINES, Witness>(Witness {}),
         );
 
         nft::add_collection_domain(

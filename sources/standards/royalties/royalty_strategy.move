@@ -38,7 +38,7 @@ module nft_protocol::royalty_strategy_bps {
     /// Creates a new strategy which can be then shared with `share` method.
     /// Optionally, add balance access policy
     public fun new<T>(
-        witness: &DelegatedWitness<T>,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         royalty_fee_bps: u64,
         ctx: &mut TxContext,
@@ -157,11 +157,11 @@ module nft_protocol::royalty_strategy_bps {
         );
 
         let royalty_strategy = new<T>(
-            &delegated_witness, collection, bps, ctx,
+            delegated_witness, collection, bps, ctx,
         );
         add_balance_access_cap(
             &mut royalty_strategy,
-            ob_transfer_request::grant_balance_access_cap(&delegated_witness),
+            ob_transfer_request::grant_balance_access_cap(delegated_witness),
         );
         share(royalty_strategy);
     }

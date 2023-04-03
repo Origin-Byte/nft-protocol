@@ -41,7 +41,7 @@ module nft_protocol::test_utils {
         transfer_allowlist::insert_collection<Foo, Witness>(
             &mut wl,
             &Witness {},
-            &witness::from_witness(&Witness {}),
+            witness::from_witness<Foo, Witness>(&Witness {}),
         );
 
         public_transfer(cap, creator);
