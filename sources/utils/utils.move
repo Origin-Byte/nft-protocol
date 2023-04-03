@@ -6,6 +6,8 @@ module nft_protocol::utils {
     use std::vector;
 
     use sui::vec_map::{Self, VecMap};
+    use sui::table_vec::{Self, TableVec};
+    use sui::tx_context::TxContext;
 
     use nft_protocol::err;
 
@@ -21,6 +23,26 @@ module nft_protocol::utils {
 
     public fun bps(): u16 {
         10_000
+    }
+
+    public fun table_vec_from_vec<T: store>(
+        vec: vector<T>,
+        ctx: &mut TxContext
+    ): TableVec<T> {
+        let table = table_vec::empty<T>(ctx);
+
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            table_vec::push_back(&mut table, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+
+        table
     }
 
     /// First generic `T` is any type, second generic is `Witness`.
