@@ -16,10 +16,12 @@ module nft_protocol::fixed_bid_v2 {
     use sui::coin::{Self, Coin};
     use sui::kiosk::Kiosk;
     use sui::clock::Clock;
+    use sui::transfer::public_transfer;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
-    use sui::transfer::public_transfer;
     use sui::tx_context::{Self, TxContext};
+
+    const EMAX_BUY_QUANTITY_SURPASSED: u64 = 1;
 
     /// Fixed price market object
     struct FixedBidMarket<phantom FT> has store {
@@ -27,8 +29,7 @@ module nft_protocol::fixed_bid_v2 {
         id: UID,
         /// Fixed price denominated in fungible-token, `FT`
         price: u64,
-        /// `Warehouse` or `Factory` that the market will redeem from
-        venue_id: ID,
+        max_buy: u64,
     }
 
     /// Witness used to authenticate witness protected endpoints
@@ -38,16 +39,18 @@ module nft_protocol::fixed_bid_v2 {
 
     // === Init functions ===
 
+    // TODO: make this public but access to venue permissioned
     /// Create a new `FixedBidMarket<FT>`
     ///
     /// Price is denominated in fungible token, `FT`, such as SUI.
     ///
     /// Requires that `Inventory` with given ID exists on the `Listing` that
     /// this market will be inserted into.
-    public fun new<FT>(
+    fun new<FT>(
         launch_cap: &LaunchCap,
         venue: &mut Venue,
         price: u64,
+        max_buy: u64,
         ctx: &mut TxContext,
     ): FixedBidMarket<FT> {
         venue_v2::assert_launch_cap(venue, launch_cap);
@@ -55,7 +58,7 @@ module nft_protocol::fixed_bid_v2 {
         FixedBidMarket {
             id: object::new(ctx),
             price,
-            venue_id: object::id(venue),
+            max_buy
         }
     }
 
@@ -72,9 +75,10 @@ module nft_protocol::fixed_bid_v2 {
         launch_cap: &LaunchCap,
         venue: &mut Venue,
         price: u64,
+        max_buy: u64,
         ctx: &mut TxContext,
     ) {
-        let market = new<FT>(launch_cap, venue, price, ctx);
+        let market = new<FT>(launch_cap, venue, price, max_buy, ctx);
 
         let venue_uid = venue_v2::uid_mut(venue, launch_cap);
 
@@ -93,6 +97,10 @@ module nft_protocol::fixed_bid_v2 {
     public entry fun buy_nft_cert_and_transfer<T: key + store, FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
+        // TODO: Put Quantity and Receiver inside VenueRequest to reduce params
+        quantity: u64,
+        // Receiver is not sender necessarily to allow for burner wallets
+        receiver: address,
         request: VenueRequest,
         clock: &Clock,
         ctx: &mut TxContext,
@@ -100,8 +108,8 @@ module nft_protocol::fixed_bid_v2 {
         venue_v2::assert_venue_request(venue, &request);
         venue_v2::check_if_live(clock, venue);
 
-        let nft = buy_nft_cert_<T, FT>(venue, wallet, ctx);
-        ob_kiosk::deposit_as_owner(buyer_safe, nft, ctx);
+        let cert = buy_nft_cert_<T, FT>(venue, wallet, quantity, receiver, ctx);
+        public_transfer(cert, receiver);
     }
 
     /// Internal method to buy NFT
@@ -113,6 +121,9 @@ module nft_protocol::fixed_bid_v2 {
     public fun buy_nft_cert<T: key + store, FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
+        // TODO: Put Quantity and Receiver inside VenueRequest to reduce params
+        quantity: u64,
+        receiver: address,
         request: VenueRequest,
         clock: &Clock,
         ctx: &mut TxContext,
@@ -120,7 +131,7 @@ module nft_protocol::fixed_bid_v2 {
         venue_v2::assert_venue_request(venue, &request);
         venue_v2::check_if_live(clock, venue);
 
-        buy_nft_cert_<T, FT>(venue, wallet, ctx)
+        buy_nft_cert_<T, FT>(venue, wallet, quantity, receiver, ctx)
     }
 
 
@@ -133,12 +144,35 @@ module nft_protocol::fixed_bid_v2 {
     fun buy_nft_cert_<T: key + store, FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
+        quantity: u64,
+        receiver: address,
         ctx: &mut TxContext,
     ): NftCert {
-        venue_v2::decrement_supply_if_any(Witness {}, venue);
-        let market = venue_v2::get_df<FixedBidDfKey, FixedBidMarket<FT>>(venue, FixedBidDfKey {});
+        let market = venue_v2::get_df<FixedBidDfKey, FixedBidMarket<FT>>(
+            venue,
+            FixedBidDfKey {}
+        );
 
-        venue_v2::redeem_generic_cert(Witness {}, venue, ctx)
+        assert!(quantity <= market.max_buy, EMAX_BUY_QUANTITY_SURPASSED);
+
+        venue_v2::decrement_supply_if_any(Witness {}, venue, quantity);
+
+        venue_v2::pay<Witness, FT, T>(
+            Witness {},
+            venue,
+            coin::balance_mut(wallet),
+            market.price,
+            quantity,
+        );
+
+        // TODO: Allow for burner wallets
+        venue_v2::redeem_generic_cert(
+            Witness {},
+            venue,
+            receiver,
+            quantity,
+            ctx
+        )
     }
 
     // === Modifier Functions ===
@@ -149,19 +183,40 @@ module nft_protocol::fixed_bid_v2 {
     ///
     /// Panics if transaction sender is not `Listing` admin.
     public entry fun set_price<FT>(
-        listing: &mut Listing,
-        venue_id: ID,
+        launch_cap: &LaunchCap,
+        venue: &mut Venue,
         new_price: u64,
-        ctx: &mut TxContext,
     ) {
-        listing::assert_listing_admin(listing, ctx);
+        venue_v2::assert_launch_cap(venue, launch_cap);
 
-        let market =
-            listing::market_internal_mut<FixedBidMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let market = venue_v2::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
+            venue,
+            launch_cap,
+            FixedBidDfKey {}
+        );
 
         market.price = new_price;
+    }
+
+    /// Change max_buy quantity
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not `Listing` admin.
+    public entry fun set_max_buy<FT>(
+        launch_cap: &LaunchCap,
+        venue: &mut Venue,
+        new_max_buy: u64,
+    ) {
+        venue_v2::assert_launch_cap(venue, launch_cap);
+
+        let market = venue_v2::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
+            venue,
+            launch_cap,
+            FixedBidDfKey {}
+        );
+
+        market.max_buy = new_max_buy;
     }
 
     // === Getter Functions ===
@@ -169,5 +224,10 @@ module nft_protocol::fixed_bid_v2 {
     /// Return market price
     public fun price<FT>(market: &FixedBidMarket<FT>): u64 {
         market.price
+    }
+
+    /// Return market price
+    public fun max_buy<FT>(market: &FixedBidMarket<FT>): u64 {
+        market.max_buy
     }
 }
