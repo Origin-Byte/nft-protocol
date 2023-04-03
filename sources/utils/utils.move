@@ -82,7 +82,7 @@ module nft_protocol::utils {
 
     public fun assert_same_module<T, Witness: drop>() {
         let (package_a, module_a, _) = get_package_module_type<T>();
-        let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
+        let (package_b, module_b, _) = get_package_module_type<Witness>();
 
         assert!(package_a == package_b, err::witness_source_mismatch());
         assert!(module_a == module_b, err::witness_source_mismatch());

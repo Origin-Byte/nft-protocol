@@ -332,7 +332,7 @@ module nft_protocol::nft {
         ctx: &mut TxContext,
     ): Collection<Nft<C>> {
         utils::assert_same_module_as_witness<C, W>();
-        collection::create<Witness, Nft<C>>(Witness {}, ctx)
+        collection::create<Nft<C>, Witness>(Witness {}, ctx)
     }
 
     /// Delegates `&mut UID` of `Collection<Nft<C>>`

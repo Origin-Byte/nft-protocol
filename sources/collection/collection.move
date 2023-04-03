@@ -271,6 +271,7 @@ module nft_protocol::collection {
     /// Panics if any domains are still registered on the `Collection`.
     public entry fun delete<T>(collection: Collection<T>) {
         let Collection { id, bag } = collection;
+        bag::destroy_empty(bag);
         object::delete(id);
     }
 
