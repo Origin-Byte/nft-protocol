@@ -44,7 +44,7 @@ module nft_protocol::suimarines {
         // in the chain.
         let publisher = sui::package::claim(witness, ctx);
         let (transfer_policy, transfer_policy_cap) =
-            nft_protocol::transfer_policy::new<SUIMARINES>(&publisher, ctx);
+            sui::transfer_policy::new<SUIMARINES>(&publisher, ctx);
         nft_protocol::transfer_allowlist::add_policy_rule(
             &mut transfer_policy,
             &transfer_policy_cap,
