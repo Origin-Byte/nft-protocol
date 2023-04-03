@@ -46,33 +46,67 @@ module nft_protocol::creators {
     ///
     /// By not attributing any `Creators`, nobody will ever be able to modify
     /// `Collection` domains.
-    public fun empty<T>(witness: &T): CreatorsDomain<T> {
-        from_creators(witness, vec_set::empty())
+    public fun empty<T, W: drop>(witness: W): CreatorsDomain<T> {
+        empty_delegated(witness::from_witness(witness))
+    }
+
+    /// Creates an empty `CreatorsDomain` object
+    ///
+    /// By not attributing any `Creators`, nobody will ever be able to modify
+    /// `Collection` domains.
+    public fun empty_delegated<T>(
+        witness: DelegatedWitness<T>,
+    ): CreatorsDomain<T> {
+        from_creators_delegated(witness, vec_set::empty())
     }
 
     /// Creates a `CreatorsDomain` object with only one creator
     ///
     /// Only the single `Creator` will ever be able to modify `Collection`
     /// domains.
-    public fun from_address<T, W>(
-        witness: &W,
+    public fun from_address<T, W: drop>(
+        witness: W,
+        who: address,
+    ): CreatorsDomain<T> {
+        from_address_delegated(witness::from_witness(witness), who)
+    }
+
+    /// Creates a `CreatorsDomain` object with only one creator
+    ///
+    /// Only the single `Creator` will ever be able to modify `Collection`
+    /// domains.
+    public fun from_address_delegated<T>(
+        witness: DelegatedWitness<T>,
         who: address,
     ): CreatorsDomain<T> {
         let creators = vec_set::empty();
         vec_set::insert(&mut creators, who);
 
-        from_creators(witness, creators)
+        from_creators_delegated(witness, creators)
     }
 
     /// Creates a `CreatorsDomain` with multiple creators
     ///
     /// Each attributed creator will be able to modify `Collection` domains.
-    public fun from_creators<T, W>(
-        witness: &W,
+    public fun from_creators<T, W: drop>(
+        witness: W,
+        creators: VecSet<address>,
+    ): CreatorsDomain<T> {
+        from_creators_delegated(
+            witness::from_witness(witness),
+            creators,
+        )
+    }
+
+    /// Creates a `CreatorsDomain` with multiple creators
+    ///
+    /// Each attributed creator will be able to modify `Collection` domains.
+    public fun from_creators_delegated<T>(
+        witness: DelegatedWitness<T>,
         creators: VecSet<address>,
     ): CreatorsDomain<T> {
         CreatorsDomain {
-            generator: witness::generator<T, W>(witness),
+            generator: witness::generator_delegated<T>(witness),
             creators,
         }
     }

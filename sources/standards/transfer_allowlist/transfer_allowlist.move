@@ -101,7 +101,7 @@ module nft_protocol::transfer_allowlist {
     public fun insert_collection<T, Admin>(
         self: &mut Allowlist,
         _allowlist_witness: &Admin,
-        _collection_witness: DelegatedWitness<T>,
+        _collection_witness: &DelegatedWitness<T>,
     ) {
         assert_admin_witness<Admin>(self);
         vec_set::insert(&mut self.collections, type_name::get<T>());

@@ -5,6 +5,7 @@ module nft_protocol::tribal_realms {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::url;
+    use nft_protocol::collection;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::display;
     use nft_protocol::mint_cap::{MintCap};
@@ -29,11 +30,13 @@ module nft_protocol::tribal_realms {
     fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
         let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
-        display::add_collection_display_domain(
-            &Witness {},
+        collection::add_domain(
+            Witness {},
             &mut collection,
-            string::utf8(b"TribalRealms"),
-            string::utf8(b"A composable NFT collection on Sui"),
+            display::new(
+                string::utf8(b"TribalRealms"),
+                string::utf8(b"A composable NFT collection on Sui"),
+            ),
         );
 
         // === Avatar composability ===
@@ -56,7 +59,7 @@ module nft_protocol::tribal_realms {
         );
 
         c_nft::add_blueprint_domain(
-            &Witness {}, &mut collection, avatar_blueprint,
+            Witness {}, &mut collection, avatar_blueprint,
         );
 
         // === Gun composability ===
@@ -69,7 +72,7 @@ module nft_protocol::tribal_realms {
         );
 
         c_nft::add_blueprint_domain(
-            &Witness {}, &mut collection, gun_blueprint,
+            Witness {}, &mut collection, gun_blueprint,
         );
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
@@ -87,13 +90,8 @@ module nft_protocol::tribal_realms {
         let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-
-        display::add_display_domain(&Witness {}, &mut nft, name, description);
-        url::add_url_domain(&Witness {}, &mut nft, url);
-
-        c_nft::add_type_domain<TRIBAL_REALMS, Witness, T>(
-            &Witness {}, &mut nft,
-        );
+        nft::add_domain(Witness {}, &mut nft, display::new(name, description));
+        nft::add_domain(Witness {}, &mut nft, url::new(url));
 
         warehouse::deposit_nft(warehouse, nft);
     }

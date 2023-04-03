@@ -23,7 +23,7 @@ module nft_protocol::test_utils {
         scenario: &mut Scenario,
     ): (ID, ID, ID) {
         let (cap, col) =
-            collection::create<Witness, Foo>(&Witness {}, ctx(scenario));
+            collection::create<Witness, Foo>(Witness {}, ctx(scenario));
 
         let col_id = object::id(&col);
         let cap_id = object::id(&cap);
@@ -41,7 +41,7 @@ module nft_protocol::test_utils {
         transfer_allowlist::insert_collection<Foo, Witness>(
             &mut wl,
             &Witness {},
-            witness::from_witness<Foo, Witness>(&Witness {}),
+            &witness::from_witness(&Witness {}),
         );
 
         public_transfer(cap, creator);

@@ -10,14 +10,20 @@ module nft_protocol::witness {
     /// Collection generic witness type
     struct Witness<phantom T> has copy, drop {}
 
-    /// Create a new `WitnessGenerator` from collection witness
-    public fun generator<T, W>(_witness: &W): WitnessGenerator<T> {
-        utils::assert_same_module_as_witness<T, W>();
+    /// Create a new `WitnessGenerator` from witness
+    public fun generator<T, W: drop>(witness: W): WitnessGenerator<T> {
+        generator_delegated(from_witness<T, W>(witness))
+    }
+
+    /// Create a new `WitnessGenerator` from delegated witness
+    public fun generator_delegated<T>(
+        _witness: Witness<T>,
+    ): WitnessGenerator<T> {
         WitnessGenerator {}
     }
 
-    /// Delegate a witness from collection witness
-    public fun from_witness<T, W>(_witness: &W): Witness<T> {
+    /// Delegate a delegated witness from arbitrary witness type
+    public fun from_witness<T, W: drop>(_witness: W): Witness<T> {
         utils::assert_same_module_as_witness<T, W>();
         Witness {}
     }

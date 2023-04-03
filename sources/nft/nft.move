@@ -26,15 +26,12 @@ module nft_protocol::nft {
     /// Domain not defined
     ///
     /// Call `collection::add_domain` to add domains
-    const EUNDEFINED_DOMAIN: u64 = 1;
+    const EUndefinedDomain: u64 = 1;
 
     /// Domain already defined
     ///
     /// Call `collection::borrow` to borrow domain
-    const EEXISTING_DOMAIN: u64 = 2;
-
-    /// Transaction sender not logical owner
-    const EINVALID_SENDER: u64 = 3;
+    const EExistingDomain: u64 = 2;
 
     /// Witness used to authorize collection creation
     struct Witness has drop {}
@@ -95,19 +92,8 @@ module nft_protocol::nft {
     ///
     /// `mint_cap::increment_supply` should be called when instantiating a new
     /// `Nft` using this method if you are tracking supply using `MintCap`.
-    ///
-    /// #### Usage
-    ///
-    /// ```
-    /// struct Witness has drop {}
-    /// struct SUIMARINES has drop {}
-    ///
-    /// fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-    ///     let nft = nft::new(&Witness {}, tx_context::sender(ctx), ctx);
-    /// }
-    /// ```
-    public fun new<C, W>(
-        _witness: &W,
+    public fun new<C, W: drop>(
+        _witness: W,
         name: string::String,
         url: Url,
         ctx: &mut TxContext,
@@ -127,15 +113,44 @@ module nft_protocol::nft {
         new_(name, url, ctx)
     }
 
-    /// Creates a `Collection<Nft<C>>` and corresponding `MintCap<Nft<C>>`
-    public fun new_collection<C>(
-        _witness: &C,
-        ctx: &mut TxContext,
-    ): (MintCap<Nft<C>>, Collection<Nft<C>>) {
-        collection::create<Witness, Nft<C>>(&Witness {}, ctx)
+    // === Domain Functions ===
+
+    /// Delegates a witness for wrapped NFTs
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness `W` does not originate from the same module as `C`.
+    public fun delegate_witness<C, W: drop>(
+        _witness: W,
+    ): DelegatedWitness<Nft<C>> {
+        utils::assert_same_module_as_witness<C, W>();
+        witness::from_witness<Nft<C>, Witness>(Witness {})
     }
 
-    // === Domain Functions ===
+    /// Delegates `&UID` for domain specified extensions of `Nft`
+    public fun borrow_uid<C>(nft: &Nft<C>): &UID {
+        &nft.id
+    }
+
+    /// Delegates `&mut UID` for domain specified extensions of `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness `W` does not originate from the same module as `C`.
+    public fun borrow_uid_mut<C, W: drop>(
+        witness: W,
+        nft: &mut Nft<C>,
+    ): &mut UID {
+        borrow_uid_delegated_mut(delegate_witness(witness), nft)
+    }
+
+    /// Delegates `&mut UID` for domain specified extensions of `Nft`
+    public fun borrow_uid_delegated_mut<C>(
+        _witness: DelegatedWitness<Nft<C>>,
+        nft: &mut Nft<C>,
+    ): &mut UID {
+        &mut nft.id
+    }
 
     /// Check whether `Nft` has a domain
     public fun has_domain<C, Domain: store>(nft: &Nft<C>): bool {
@@ -156,82 +171,41 @@ module nft_protocol::nft {
 
     /// Mutably borrow domain from `Nft`
     ///
-    /// Guarantees that domain can only be mutated by the module that
-    /// instantiated it. In other words, witness `W` must be defined in the
-    /// same module as domain.
-    ///
-    /// #### Usage
-    ///
-    /// ```
-    /// module nft_protocol::display {
-    ///     struct SUIMARINES has drop {}
-    ///     struct Witness has drop {}
-    ///
-    ///     struct DisplayDomain {
-    ///         id: UID,
-    ///         name: string::String,
-    ///     } has key, store
-    ///
-    ///     public fun domain_mut(nft: &mut Nft<C>): &mut DisplayDomain {
-    ///         let domain: &mut DisplayDomain =
-    ///             collection::borrow_domain_mut(Witness {}, collection);
-    ///     }
-    /// }
-    /// ```
+    /// Guarantees that `Nft<C>` domains can only be mutated by the module that
+    /// instantiated it.
     ///
     /// #### Panics
     ///
-    /// Panics when module attempts to mutably borrow a domain it did not
-    /// define itself or if domain is not present on the `Nft`.
-    ///
-    /// The module that actually added the domain to the `Nft` is not affected,
-    /// in effect, this means that you can register OriginByte standard domains
-    /// but OriginByte still controls access through any mutating methods it
-    /// exposes.
-    ///
-    /// ```
-    /// module nft_protocol::fake_display {
-    ///     use nft_protocol::display::DisplayDomain;
-    ///
-    ///     struct SUIMARINES has drop {}
-    ///     struct Witness has drop {}
-    ///
-    ///     public fun domain_mut<C>(nft: &mut Nft<C>): &mut DisplayDomain {
-    ///         // Call to `borrow_domain_mut` will panic due to `Witness` not originating from `nft_protocol::display`.
-    ///         let domain: &mut DisplayDomain =
-    ///             collection::borrow_domain_mut(Witness {}, collection);
-    ///     }
-    /// }
-    /// ```
-    public fun borrow_domain_mut<C, Domain: store, W: drop>(
-        _witness: W,
+    /// Panics if domain does not exist or if witness `W` does not originate
+    /// from the same module as `C`.
+    public fun borrow_domain_mut<C, W: drop, Domain: store>(
+        witness: W,
         nft: &mut Nft<C>,
     ): &mut Domain {
-        utils::assert_same_module_as_witness<Domain, W>();
-        assert_domain<C, Domain>(nft);
-
-        df::borrow_mut(&mut nft.id, utils::marker<Domain>())
+        borrow_domain_delegated_mut(
+            delegate_witness(witness),
+            nft,
+        )
     }
 
-    /// Delegates a witness for wrapped collections
-    public fun delegate_witness<C, W>(
-        _witness: &W,
-    ): DelegatedWitness<Nft<C>> {
-        utils::assert_same_module_as_witness<C, W>();
-        witness::from_witness<Nft<C>, Witness>(&Witness {})
-    }
-
-    /// Adds domain to `Nft`
+    /// Mutably borrow domain from `Nft`
+    ///
+    /// Guarantees that `Nft<C>` domains can only be mutated by the module that
+    /// instantiated it.
     ///
     /// #### Panics
     ///
-    /// Panics if domain already exists.
-    fun add_domain_<C, Domain: store>(
+    /// Panics if domain does not exist or if witness `W` does not originate
+    /// from the same module as `C`.
+    public fun borrow_domain_delegated_mut<C, Domain: store>(
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
-        domain: Domain,
-    ) {
-        assert_no_domain<C, Domain>(nft);
-        df::add(&mut nft.id, utils::marker<Domain>(), domain);
+    ): &mut Domain {
+        assert_domain<C, Domain>(nft);
+        df::borrow_mut(
+            borrow_uid_delegated_mut(witness, nft),
+            utils::marker<Domain>(),
+        )
     }
 
     /// Adds domain to `Nft`
@@ -241,9 +215,10 @@ module nft_protocol::nft {
     ///
     /// #### Panics
     ///
-    /// Panics if domain already exists.
-    public fun add_domain<C, W, Domain: store>(
-        witness: &W,
+    /// Panics if domain already exists or if witness `W` does not originate
+    /// from the same module as `C`.
+    public fun add_domain<C, Domain: store, W: drop>(
+        witness: W,
         nft: &mut Nft<C>,
         domain: Domain,
     ) {
@@ -258,66 +233,57 @@ module nft_protocol::nft {
     ///
     /// #### Panics
     ///
-    /// Panics if domain already exists.
+    /// Panics if domain already exists or if witness `W` does not originate
+    /// from the same module as `C`.
     public fun add_domain_delegated<C, Domain: store>(
-        _witness: DelegatedWitness<Nft<C>>,
+        witness: DelegatedWitness<Nft<C>>,
         nft: &mut Nft<C>,
         domain: Domain,
     ) {
-        add_domain_(nft, domain)
-    }
-
-    /// Adds domain to `Nft`
-    ///
-    /// Same as [add_domain](#add_domain) but uses `MintCap` to
-    /// authenticate the operation.
-    ///
-    /// Requires that transaction sender is the logical owner of the NFT.
-    /// Prevents entities delegated the sole right ot mint NFTs from
-    /// registering arbitrary domains on existing NFTs.
-    ///
-    /// #### Panics
-    ///
-    /// Panics transaction sender is not logical owner or if domain already
-    /// exists.
-    public fun add_domain_with_mint_cap<C, Domain: store>(
-        _mint_cap: &MintCap<Nft<C>>,
-        nft: &mut Nft<C>,
-        domain: Domain,
-    ) {
-        // assert_logical_owner(nft, ctx);
-        add_domain_(nft, domain)
+        assert_no_domain<C, Domain>(nft);
+        df::add(
+            borrow_uid_delegated_mut(witness, nft),
+            utils::marker<Domain>(),
+            domain,
+        );
     }
 
     /// Removes domain of type from `Nft`
     ///
-    /// #### Panics
+    /// ##### Panics
     ///
-    /// Panics when module attempts to remove a domain it did not define
-    /// itself or if domain of type is not present on the `Nft`. See
-    /// [borrow_domain_mut](#borrow_domain_mut).
-    ///
-    /// #### Usage
-    ///
-    /// ```
-    /// let display_domain: DisplayDomain = nft::remove_domain(Witness {}, &mut nft);
-    /// ```
+    /// Panics if domain doesnt exist or if witness `W` does not originate from
+    /// the same module as `C`.
     public fun remove_domain<C, W: drop, Domain: store>(
-        _witness: W,
+        witness: W,
         nft: &mut Nft<C>,
     ): Domain {
-        utils::assert_same_module_as_witness<W, Domain>();
         assert_domain<C, Domain>(nft);
-
-        df::remove(&mut nft.id, utils::marker<Domain>())
+        remove_domain_delegated(delegate_witness(witness), nft)
     }
 
-    /// Burns an `Nft`
+    /// Removes domain of type from `Nft`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if domain doesnt exist.
+    public fun remove_domain_delegated<C, Domain: store>(
+        witness: DelegatedWitness<Nft<C>>,
+        nft: &mut Nft<C>,
+    ): Domain {
+        assert_domain<C, Domain>(nft);
+        df::remove(
+            borrow_uid_delegated_mut(witness, nft),
+            utils::marker<Domain>(),
+        )
+    }
+
+    /// Deletes an `Nft`
     ///
     /// #### Panics
     ///
     /// Panics if any domains are still registered on the `Nft`.
-    public entry fun burn<C>(nft: Nft<C>) {
+    public entry fun delete<C>(nft: Nft<C>) {
         let Nft { id, name: _, url: _ } = nft;
         object::delete(id);
     }
@@ -329,7 +295,7 @@ module nft_protocol::nft {
         &nft.name
     }
 
-    /// Returns `Nft` name
+    /// Returns `Nft` URL
     public fun url<C>(nft: &Nft<C>): &Url {
         &nft.url
     }
@@ -358,6 +324,84 @@ module nft_protocol::nft {
         nft.url = url
     }
 
+    // === `Collection<Nft<C>>` functions ===
+
+    /// Creates a `Collection<Nft<C>>` and corresponding `MintCap<Nft<C>>`
+    public fun new_collection<C>(
+        _witness: &C,
+        ctx: &mut TxContext,
+    ): (MintCap<Nft<C>>, Collection<Nft<C>>) {
+        collection::create<Witness, Nft<C>>(Witness {}, ctx)
+    }
+
+    /// Delegates `&mut UID` of `Collection<Nft<C>>`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness `W` does not originate from the same module as `C`.
+    public fun borrow_collection_uid_mut<C, W: drop>(
+        witness: W,
+        collection: &mut Collection<Nft<C>>,
+    ): &mut UID {
+        collection::borrow_uid_delegated_mut(
+            delegate_witness(witness),
+            collection,
+        )
+    }
+
+    /// Mutably borrow domain from `Collection<Nft<C>>`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if domain does not exist or if witness `W` does not originate
+    /// from the same module as `C`.
+    public fun borrow_collection_domain_mut<C, Domain: store, W: drop>(
+        witness: W,
+        collection: &mut Collection<Nft<C>>,
+    ): &mut Domain {
+        collection::borrow_domain_delegated_mut(
+            delegate_witness(witness),
+            collection,
+        )
+    }
+
+    /// Adds domain to `Collection<Nft<C>>`
+    ///
+    /// Helper method that can be simply used without knowing what a delegated
+    /// witness is.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if domain already exists or if witness `W` does not originate
+    /// from the same module as `C`.
+    public fun add_collection_domain<C, Domain: store, W: drop>(
+        witness: W,
+        collection: &mut Collection<Nft<C>>,
+        domain: Domain,
+    ) {
+        collection::add_domain_delegated(
+            delegate_witness(witness),
+            collection,
+            domain,
+        )
+    }
+
+    /// Removes domain of type from `Collection<Nft<C>>`
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if domain doesnt exist or if witness `W` does not originate from
+    /// the same module as `C`.
+    public fun remove_collection_domain<C, Domain: store, W: drop>(
+        witness: W,
+        collection: &mut Collection<Nft<C>>,
+    ): Domain {
+        collection::remove_domain_delegated(
+            delegate_witness(witness),
+            collection,
+        )
+    }
+
     // === Assertions ===
 
     /// Assert that domain exists on `Nft`
@@ -366,7 +410,7 @@ module nft_protocol::nft {
     ///
     /// Panics if domain does not exist on `Nft`.
     public fun assert_domain<C, Domain: store>(nft: &Nft<C>) {
-        assert!(has_domain<C, Domain>(nft), EUNDEFINED_DOMAIN);
+        assert!(has_domain<C, Domain>(nft), EUndefinedDomain);
     }
 
     /// Assert that domain does not exist on `Nft`
@@ -375,7 +419,7 @@ module nft_protocol::nft {
     ///
     /// Panics if domain exists on `Nft`.
     public fun assert_no_domain<C, Domain: store>(nft: &Nft<C>) {
-        assert!(!has_domain<C, Domain>(nft), EEXISTING_DOMAIN);
+        assert!(!has_domain<C, Domain>(nft), EExistingDomain);
     }
 
     // === Test helpers ===

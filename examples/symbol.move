@@ -8,7 +8,7 @@ module nft_protocol::example_symbol {
     use sui::vec_set::{Self, VecSet};
 
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::display;
+    use nft_protocol::display::{Self, DisplayDomain};
     use nft_protocol::collection::{Self, Collection};
 
     /// One time witness is only instantiated in the init method
@@ -46,16 +46,16 @@ module nft_protocol::example_symbol {
         let (mint_cap, collection) = nft::new_collection(&witness, ctx);
 
         collection::add_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
-            display::new_display_domain(
+            display::new(
                 string::utf8(b"Symbol"),
                 string::utf8(b"Collection of unique symbols on Sui"),
             )
         );
 
         collection::add_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
             RegistryDomain { symbols: vec_set::empty() },
         );
@@ -70,26 +70,28 @@ module nft_protocol::example_symbol {
         ctx: &mut TxContext,
     ): Nft<EXAMPLE_SYMBOL> {
         let nft: Nft<EXAMPLE_SYMBOL> = nft::new(
-            &Witness {},
+            Witness {},
             domain.symbol, // name
             sui::url::new_unsafe_from_bytes(b""), // url
             ctx,
         );
 
-        nft::add_domain(&Witness {}, &mut nft, domain);
+        nft::add_domain(Witness {}, &mut nft, domain);
 
         nft
     }
 
     /// Extracts `SymbolDomain` by burning `Nft`
-    public fun burn_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
-        display::remove_display_domain(&Witness {}, &mut nft);
+    public fun delete_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
+        nft::remove_domain<EXAMPLE_SYMBOL, Witness, DisplayDomain>(
+            Witness {}, &mut nft,
+        );
 
         let symbol: SymbolDomain = nft::remove_domain(
             Witness {}, &mut nft,
         );
 
-        nft::burn(nft);
+        nft::delete(nft);
 
         symbol
     }
@@ -113,8 +115,8 @@ module nft_protocol::example_symbol {
         collection: &mut Collection<T>,
         nft: Nft<EXAMPLE_SYMBOL>,
     ) {
-        let domain = burn_nft(nft);
-        collection::add_domain(&Witness {}, collection, domain);
+        let domain = delete_nft(nft);
+        collection::add_domain(Witness {}, collection, domain);
     }
 
     /// Disassociate `SymbolDomain` from `Collection`

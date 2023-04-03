@@ -40,7 +40,7 @@ module nft_protocol::plugins {
     struct Witness has drop {}
 
     /// Creates a new `PluginDomain` object
-    fun new<C, W>(witness: &W): PluginDomain<C> {
+    fun new<T, W: drop>(witness: W): PluginDomain<T> {
         PluginDomain {
             generator: witness::generator(witness),
             packages: vec_set::empty(),
@@ -134,19 +134,6 @@ module nft_protocol::plugins {
     ): &mut PluginDomain<T> {
         assert_domain(collection);
         collection::borrow_domain_mut(Witness {}, collection)
-    }
-
-    /// Adds `PluginDomain` to `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `CreatorsDomain` already exists.
-    public fun add_plugin_domain<T, W>(
-        witness: &W,
-        collection: &mut Collection<T>,
-    ) {
-        let domain = new<T, W>(witness);
-        collection::add_domain(witness, collection, domain);
     }
 
     // === Assertions ===
