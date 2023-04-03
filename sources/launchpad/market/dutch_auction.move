@@ -76,31 +76,31 @@ module nft_protocol::dutch_auction {
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(inventory_id, reserve_price, ctx);
-        transfer::transfer(market, tx_context::sender(ctx));
+        transfer::public_transfer(market, tx_context::sender(ctx));
     }
 
     /// Initializes a `Venue` with `DutchAuctionMarket<FT>`
-    public entry fun init_venue<C, FT>(
+    public entry fun init_venue<T, FT>(
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ) {
-        create_venue<C, FT>(
+        create_venue<T, FT>(
             listing, inventory_id, is_whitelisted, reserve_price, ctx
         );
     }
 
     /// Creates a `Venue` with `DutchAuctionMarket<FT>`
-    public fun create_venue<C, FT>(
+    public fun create_venue<T, FT>(
         listing: &mut Listing,
         inventory_id: ID,
         is_whitelisted: bool,
         reserve_price: u64,
         ctx: &mut TxContext,
     ): ID {
-        listing::assert_inventory<C>(listing, inventory_id);
+        listing::assert_inventory<T>(listing, inventory_id);
 
         let market = new<FT>(inventory_id, reserve_price, ctx);
         listing::create_venue(listing, market, is_whitelisted, ctx)
@@ -217,7 +217,7 @@ module nft_protocol::dutch_auction {
     /// NFTs will be allocated to the winning biddeers.
     ///
     /// Permissioned endpoint to be called by `admin`.
-    public entry fun sale_conclude<C, FT>(
+    public entry fun sale_conclude<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         ctx: &mut TxContext,
@@ -230,7 +230,7 @@ module nft_protocol::dutch_auction {
         let market = listing::borrow_market<DutchAuctionMarket<FT>>(listing, venue_id);
 
         let inventory_id = market.inventory_id;
-        let supply = listing::supply<C>(listing, inventory_id);
+        let supply = listing::supply<T>(listing, inventory_id);
 
         // Auction could be drawing from an inventory with unregulated supply
         let nfts_to_sell = if (option::is_some(&supply)) {
@@ -254,7 +254,7 @@ module nft_protocol::dutch_auction {
 
         // Transfer NFTs to matching orders
         let inventory = listing::inventory_internal_mut<
-            C, DutchAuctionMarket<FT>, Witness
+            T, DutchAuctionMarket<FT>, Witness
         >(
             Witness {}, listing, venue_id, inventory_id
         );
@@ -267,13 +267,14 @@ module nft_protocol::dutch_auction {
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            inventory::redeem_pseudorandom_nft_and_transfer(inventory, owner, ctx);
+            let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
+            transfer::public_transfer(nft, owner);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);
             } else {
                 // Transfer bidding coins back to bid owner
-                transfer::transfer(coin::from_balance(amount, ctx), owner);
+                transfer::public_transfer(coin::from_balance(amount, ctx), owner);
             };
         };
 
@@ -282,7 +283,7 @@ module nft_protocol::dutch_auction {
         vector::destroy_empty(bids_to_fill);
 
         // Cancel all remaining orders if there are no NFTs left to sell
-        let inventory = listing::borrow_inventory<C>(listing, inventory_id);
+        let inventory = listing::borrow_inventory<T>(listing, inventory_id);
         if (inventory::is_empty(inventory)) {
             sale_cancel<FT>(listing, venue_id, ctx);
         }
@@ -400,7 +401,7 @@ module nft_protocol::dutch_auction {
                 let owner = bid.owner;
                 refund_bid(bid, &mut wallet, &owner);
 
-                transfer::transfer(wallet, owner);
+                transfer::public_transfer(wallet, owner);
             };
 
             vector::destroy_empty(price_level);

@@ -4,7 +4,7 @@ module nft_protocol::composable_nft {
     // TODO: some endpoint for reorder_children
     use std::type_name::{Self, TypeName};
 
-    use sui::transfer;
+    use sui::transfer::public_transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
@@ -153,9 +153,9 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if `Blueprint` is already registered on the `Collection`.
-    public fun add_blueprint_domain<C, W, Parent>(
+    public fun add_blueprint_domain<T, W, Parent>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         domain: Blueprint<Parent>,
     ) {
         collection::add_domain(witness, collection, domain);
@@ -174,7 +174,7 @@ module nft_protocol::composable_nft {
     public entry fun compose<C, Parent: store, Child: store>(
         parent_nft: &mut Nft<C>,
         child_nft: Nft<C>,
-        collection: &Collection<C>,
+        collection: &Collection<Nft<C>>,
     ) {
         let blueprint: &Blueprint<Parent> =
             collection::borrow_domain(collection);
@@ -222,7 +222,7 @@ module nft_protocol::composable_nft {
         ctx: &mut TxContext,
     ) {
         let nft = decompose<C, Parent, Child>(parent_nft, child_nft_id);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        public_transfer(nft, tx_context::sender(ctx));
     }
 
     // === Assertions ===

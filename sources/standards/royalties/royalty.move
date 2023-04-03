@@ -397,8 +397,8 @@ module nft_protocol::royalty {
     /// aggregate balance of the `RoyaltyDomain` registered on the `Collection`
     ///
     /// Requires that a `RoyaltyDomain` is registered on the collection
-    public fun collect_royalty<C, FT>(
-        collection: &mut Collection<C>,
+    public fun collect_royalty<T, FT>(
+        collection: &mut Collection<T>,
         source: &mut Balance<FT>,
         amount: u64,
     ) {
@@ -437,8 +437,8 @@ module nft_protocol::royalty {
     /// ##### Panics
     ///
     /// Panics if there is no aggregate for token `FT`.
-    public entry fun distribute_royalties<C, FT>(
-        collection: &mut Collection<C>,
+    public entry fun distribute_royalties<T, FT>(
+        collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
         let domain: &mut RoyaltyDomain =
@@ -486,7 +486,7 @@ module nft_protocol::royalty {
                     ctx,
                 );
 
-                transfer::transfer(wallet, *who);
+                transfer::public_transfer(wallet, *who);
             };
 
             i = i + 1;
@@ -496,8 +496,8 @@ module nft_protocol::royalty {
     // === Interoperability ===
 
     /// Get reference to `RoyaltyDomain`
-    public fun royalty_domain<C>(
-        collection: &Collection<C>,
+    public fun royalty_domain<T>(
+        collection: &Collection<T>,
     ): &RoyaltyDomain {
         collection::borrow_domain(collection)
     }
@@ -505,17 +505,17 @@ module nft_protocol::royalty {
     /// Get mutable reference to `RoyaltyDomain`
     ///
     /// Requires that `CreatorsDomain` is defined and sender is a creator
-    public fun royalty_domain_mut<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun royalty_domain_mut<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
     ): &mut RoyaltyDomain {
         collection::borrow_domain_mut(Witness {}, collection)
     }
 
     /// Registers `RoyaltyDomain` on the given `Collection`
-    public fun add_royalty_domain<C, W>(
+    public fun add_royalty_domain<T, W>(
         witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         domain: RoyaltyDomain,
     ) {
         collection::add_domain(witness, collection, domain);

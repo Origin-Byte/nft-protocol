@@ -32,9 +32,9 @@ module nft_protocol::creators {
     /// `CreatorsDomain` can additionally be frozen which will cause
     /// `assert_collection_has_creator` to always fail, therefore, allowing
     /// creators to lock in their NFT collection.
-    struct CreatorsDomain<phantom C> has store {
+    struct CreatorsDomain<phantom T> has store {
         /// Generator responsible for issuing delegated witnesses
-        generator: WitnessGenerator<C>,
+        generator: WitnessGenerator<T>,
         /// Creators that have the ability to mutate standard domains
         creators: VecSet<address>,
     }
@@ -46,7 +46,7 @@ module nft_protocol::creators {
     ///
     /// By not attributing any `Creators`, nobody will ever be able to modify
     /// `Collection` domains.
-    public fun empty<C>(witness: &C): CreatorsDomain<C> {
+    public fun empty<T>(witness: &T): CreatorsDomain<T> {
         from_creators(witness, vec_set::empty())
     }
 
@@ -54,10 +54,10 @@ module nft_protocol::creators {
     ///
     /// Only the single `Creator` will ever be able to modify `Collection`
     /// domains.
-    public fun from_address<C, W>(
+    public fun from_address<T, W>(
         witness: &W,
         who: address,
-    ): CreatorsDomain<C> {
+    ): CreatorsDomain<T> {
         let creators = vec_set::empty();
         vec_set::insert(&mut creators, who);
 
@@ -67,12 +67,12 @@ module nft_protocol::creators {
     /// Creates a `CreatorsDomain` with multiple creators
     ///
     /// Each attributed creator will be able to modify `Collection` domains.
-    public fun from_creators<C, W>(
+    public fun from_creators<T, W>(
         witness: &W,
         creators: VecSet<address>,
-    ): CreatorsDomain<C> {
+    ): CreatorsDomain<T> {
         CreatorsDomain {
-            generator: witness::generator<C, W>(witness),
+            generator: witness::generator<T, W>(witness),
             creators,
         }
     }
@@ -83,9 +83,9 @@ module nft_protocol::creators {
     ///
     /// Panics if creator was already attributed or `CreatorsDomain` is not
     /// registered on the `Collection`.
-    public fun add_creator<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun add_creator<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         who: address,
     ) {
         let domain = creators_domain_mut(collection);
@@ -100,8 +100,8 @@ module nft_protocol::creators {
     ///
     /// Panics if transaction sender is not a creator, if already attributed,
     /// or if `CreatorsDomain` is not registered on the `Collection`.
-    public entry fun add_creator_external<C>(
-        collection: &mut Collection<C>,
+    public entry fun add_creator_external<T>(
+        collection: &mut Collection<T>,
         who: address,
         ctx: &mut TxContext,
     ) {
@@ -117,10 +117,10 @@ module nft_protocol::creators {
     ///
     /// Panics if transaction sender was not a creator or `CreatorsDomain` was
     /// not registered on the `Collection`.
-    public fun delegate<C>(
-        collection: &Collection<C>,
+    public fun delegate<T>(
+        collection: &Collection<T>,
         ctx: &mut TxContext,
-    ): DelegatedWitness<C> {
+    ): DelegatedWitness<T> {
         let domain = creators_domain(collection);
         assert_creator(domain, &tx_context::sender(ctx));
         witness::delegate(&domain.generator)
@@ -129,21 +129,21 @@ module nft_protocol::creators {
     // === Getters ===
 
     /// Returns whether `CreatorsDomain` has no defined creators
-    public fun is_empty<C>(domain: &CreatorsDomain<C>): bool {
+    public fun is_empty<T>(domain: &CreatorsDomain<T>): bool {
         vec_set::is_empty(&domain.creators)
     }
 
     /// Returns whether address is a defined creator
-    public fun contains_creator<C>(
-        domain: &CreatorsDomain<C>,
+    public fun contains_creator<T>(
+        domain: &CreatorsDomain<T>,
         who: &address,
     ): bool {
         vec_set::contains(&domain.creators, who)
     }
 
     /// Returns the list of creators defined on the `CreatorsDomain`
-    public fun borrow_creators<C>(
-        domain: &CreatorsDomain<C>,
+    public fun borrow_creators<T>(
+        domain: &CreatorsDomain<T>,
     ): &VecSet<address> {
         &domain.creators
     }
@@ -155,9 +155,9 @@ module nft_protocol::creators {
     /// #### Panics
     ///
     /// Panics if `CreatorsDomain` is not registered on `Collection`.
-    public fun creators_domain<C>(
-        collection: &Collection<C>,
-    ): &CreatorsDomain<C> {
+    public fun creators_domain<T>(
+        collection: &Collection<T>,
+    ): &CreatorsDomain<T> {
         assert_domain(collection);
         collection::borrow_domain(collection)
     }
@@ -167,9 +167,9 @@ module nft_protocol::creators {
     /// #### Panics
     ///
     /// Panics if `CreatorsDomain` is not registered on `Collection`.
-    fun creators_domain_mut<C>(
-        collection: &mut Collection<C>,
-    ): &mut CreatorsDomain<C> {
+    fun creators_domain_mut<T>(
+        collection: &mut Collection<T>,
+    ): &mut CreatorsDomain<T> {
         assert_domain(collection);
         collection::borrow_domain_mut(Witness {}, collection)
     }
@@ -182,8 +182,8 @@ module nft_protocol::creators {
     ///
     /// Panics if `CreatorsDomain` is not defined or address is not an
     /// attributed creator.
-    public fun assert_creator<C>(
-        domain: &CreatorsDomain<C>,
+    public fun assert_creator<T>(
+        domain: &CreatorsDomain<T>,
         who: &address
     ) {
         assert!(contains_creator(domain, who), EUNDEFINED_ADDRESS);
@@ -194,9 +194,9 @@ module nft_protocol::creators {
     /// #### Panics
     ///
     /// Panics if `CreatorsDomain` is not defined on the `Collection`.
-    public fun assert_domain<C>(collection: &Collection<C>) {
+    public fun assert_domain<T>(collection: &Collection<T>) {
         assert!(
-            collection::has_domain<C, CreatorsDomain<C>>(collection),
+            collection::has_domain<T, CreatorsDomain<T>>(collection),
             EUNDEFINED_CREATORS_DOMAIN,
         )
     }

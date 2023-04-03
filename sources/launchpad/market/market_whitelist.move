@@ -62,7 +62,7 @@ module nft_protocol::market_whitelist {
         ctx: &mut TxContext,
     ) {
         let certificate = new(listing, venue_id, ctx);
-        transfer::transfer(certificate, recipient);
+        transfer::public_transfer(certificate, recipient);
     }
 
     /// Burns a `Certificate`
