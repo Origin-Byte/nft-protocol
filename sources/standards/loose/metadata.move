@@ -9,7 +9,7 @@ module nft_protocol::metadata {
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::mint_cap::{Self, MintCap};
 
-    use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
+    // use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
 
     /// `Metadata` supply is unregulated
     ///
