@@ -18,7 +18,7 @@ module nft_protocol::venue_v2 {
     use nft_protocol::supply::{Self, Supply};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::launchpad_v2::{Self, LaunchCap};
-    use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
+    use nft_protocol::request::{Self, Request as AuthRequest, PolicyCap, Policy as AuthPolicy};
     use nft_protocol::proceeds_v2::{Self, Proceeds};
     use nft_protocol::warehouse_v2::{Self, Warehouse};
 
@@ -29,38 +29,48 @@ module nft_protocol::venue_v2 {
 
     /// `Venue` object
     ///
-    /// `Venue` is a thin wrapper around a generic `Market` that handles
-    /// tracking live status and whitelist assertions. `Venue` itself is not
-    /// generic as to not require knowledge of the underlying market to
-    /// perform administrative operations.
+    /// `Venue` is the main abstraction that wraps all the logic around an NFT
+    /// primary sale. As such, it contains information about:
     ///
-    /// `Venue` is unprotected and relies on safely obtaining a mutable
-    /// reference.
+    /// - Authentication: What on-chain steps do users have to go through in
+    /// order to gain access to a sale?
+    /// - Market Making: What type of market primite does the sale use?
+    /// - Redemption: Upon a successful sale, how is it decided which NFT the
+    /// user receives? (i.e. Random vs. FIFO)
+    /// - Liveness: When is the primary sale live and how?
+    /// - Proceed: What logic is needed to run in order to withdraw the proceeds
+    /// from the sale?
     struct Venue has key, store {
         id: UID,
+        /// A `Venue` belongs to a `Listing` and therefore we store here
+        /// to what listing this obejct belongs to.
         listing_id: ID,
-        policy_cap: VenuePolicyCap,
+        policy_cap: PolicyCap,
         policies: Policies,
         supply: Option<Supply>,
-        open: OpenSettings,
+        schedule: Schedule,
         proceeds: Proceeds,
         inventories: VecMap<u64, InventoryData>,
     }
 
+    /// A wrapper for Inventory data
     struct InventoryData has store, copy, drop {
         id: ID,
         type: TypeName
     }
 
+    // A wrapper for all base policies in a venue
     struct Policies has store {
-        policy: VenuePolicy,
+        auth: AuthPolicy,
         // Here for discoverability and assertion.
-        redeem_policy: TypeName,
+        redemption: TypeName,
         // Here for discoverability and assertion.
-        market_policy: TypeName,
+        market: TypeName,
     }
 
-    struct OpenSettings has store {
+    // A wrapper for Liveness settings, it determines when a Venue is live
+    // or not.
+    struct Schedule has store {
         start_time: Option<u64>,
         close_time: Option<u64>,
         live: bool,
@@ -94,22 +104,18 @@ module nft_protocol::venue_v2 {
 
     public fun request_access(
         venue: &Venue,
-        ctx: &mut TxContext,
-    ): VenueRequest {
-        venue_request::new(
-            object::uid_to_inner(&venue.id),
-            ctx,
-        )
+    ): AuthRequest {
+        request::new(&venue.policies.auth)
     }
 
     public fun validate_access(
         venue: &Venue,
-        request: VenueRequest,
+        request: AuthRequest,
     ) {
         assert_venue_request(venue, &request);
         // TODO: Need to consider how validation work, also,
         // how to use burner wallets in the context of the launchpad
-        venue_request::confirm_request(&venue.policies.policy, request);
+        request::confirm_request(&venue.policies.auth, request);
     }
 
     public fun check_if_live(clock: &Clock, venue: &mut Venue): bool {
@@ -286,7 +292,7 @@ module nft_protocol::venue_v2 {
         );
     }
 
-    public fun assert_venue_request(venue: &Venue, request: &VenueRequest) {
+    public fun assert_venue_request(venue: &Venue, request: &AuthRequest) {
         assert!(venue_request::venue(request) == object::id(venue), 0);
     }
 
