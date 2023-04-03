@@ -6,20 +6,15 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::fixed_bid_v2 {
-    use nft_protocol::launchpad_v2::{Self, LaunchCap};
-    use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
-    use nft_protocol::venue_v2::{Self, Venue, NftCert, RedeemReceipt};
+    use nft_protocol::launchpad_v2::LaunchCap;
+    use nft_protocol::request::{Self, Request};
+    use nft_protocol::venue_v2::{Self, Venue, RedeemReceipt};
 
-    // use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::market_whitelist::{Self, Certificate};
-    use nft_protocol::ob_kiosk;
     use sui::coin::{Self, Coin};
-    use sui::kiosk::Kiosk;
     use sui::clock::Clock;
-    use sui::transfer::public_transfer;
     use sui::dynamic_field as df;
-    use sui::object::{Self, ID, UID};
-    use sui::tx_context::{Self, TxContext};
+    use sui::object::{Self, UID};
+    use sui::tx_context::TxContext;
 
     const EMAX_BUY_QUANTITY_SURPASSED: u64 = 1;
 
@@ -97,14 +92,15 @@ module nft_protocol::fixed_bid_v2 {
     public fun buy_nft_cert<T: key + store, FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
-        // TODO: Put Quantity and Receiver inside VenueRequest to reduce params
+        // TODO: Put Quantity and Receiver inside Request to reduce params
         quantity: u64,
-        request: VenueRequest,
+        request: Request,
         clock: &Clock,
     ): RedeemReceipt {
-        venue_v2::assert_venue_request(venue, &request);
+        venue_v2::assert_request(venue, &request);
         venue_v2::check_if_live(clock, venue);
 
+        request::confirm_request(venue_v2::auth_policy(venue),request);
         buy_nft_cert_<T, FT>(venue, wallet, quantity)
     }
 
@@ -120,14 +116,14 @@ module nft_protocol::fixed_bid_v2 {
         wallet: &mut Coin<FT>,
         quantity: u64,
     ): RedeemReceipt {
+        venue_v2::decrement_supply_if_any(Witness {}, venue, quantity);
+
         let market = venue_v2::get_df<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
             FixedBidDfKey {}
         );
 
         assert!(quantity <= market.max_buy, EMAX_BUY_QUANTITY_SURPASSED);
-
-        venue_v2::decrement_supply_if_any(Witness {}, venue, quantity);
 
         venue_v2::pay<Witness, FT, T>(
             Witness {},

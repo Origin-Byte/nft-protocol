@@ -1,11 +1,11 @@
 module nft_protocol::market_whitelist_2 {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::launchpad_v2::LaunchCap;
     use nft_protocol::venue_v2::{Self, Venue};
-    use nft_protocol::venue_request::{Self, VenueRequest};
+    use nft_protocol::request::{Self, Request};
 
     // TODO: There should be a way to create different types of whitelists
     // currently it's only possile to have one type.
@@ -60,18 +60,21 @@ module nft_protocol::market_whitelist_2 {
     public fun check_whitelist(
         venue: &Venue,
         cert: Certificate,
-        request: &mut VenueRequest,
+        request: &mut Request,
+        ctx: &mut TxContext,
     ) {
         assert_certificate(&cert, object::id(venue));
-        venue_v2::assert_venue_request(venue, request);
+        venue_v2::assert_request(venue, request);
 
         cert.quantity = cert.quantity - 1;
 
         if (cert.quantity == 0) {
             burn(cert)
+        } else {
+            transfer::public_transfer(cert, tx_context::sender(ctx));
         };
 
-        venue_request::add_receipt(request, &WhiteList {});
+        request::add_receipt(request, &WhiteList {});
     }
 
     /// Issue a new `Certificate` to an address

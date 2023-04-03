@@ -1,18 +1,11 @@
 module nft_protocol::pseudorand_redeem {
     use std::vector;
-    use std::option::{Self, Option};
-    use sui::clock::{Self, Clock};
-    use sui::transfer;
-    use sui::vec_set;
-    use sui::vec_map;
-    use std::type_name::{Self, TypeName};
-    use sui::tx_context::{Self, TxContext};
-    use sui::object::{Self, UID, ID};
+    use std::type_name::TypeName;
+    use sui::tx_context::TxContext;
+    use sui::object::ID;
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::launchpad_v2::{Self, LaunchCap};
-    use nft_protocol::venue_request::{Self, VenueRequest, VenuePolicyCap, VenuePolicy};
+    use nft_protocol::launchpad_v2::LaunchCap;
     use nft_protocol::venue_v2::{Self, Venue, RedeemReceipt, NftCert};
 
     use originmate::pseudorandom;

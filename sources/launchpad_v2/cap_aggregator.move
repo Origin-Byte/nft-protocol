@@ -1,30 +1,5 @@
 module nft_protocol::cap_aggregator {
-    use std::ascii::String;
-    use std::option::{Self, Option};
-    use std::type_name::{Self, TypeName};
-
-    use sui::event;
-    use sui::vec_set::{Self, VecSet};
-    use sui::transfer;
-    use sui::balance::{Self, Balance};
-    use sui::object::{Self, ID , UID};
-    use sui::dynamic_object_field as dof;
-    use sui::dynamic_field as df;
-    use sui::tx_context::{Self, TxContext};
-    use sui::object_table::{Self, ObjectTable};
-    use sui::object_bag::{Self, ObjectBag};
-
-    use nft_protocol::err;
-    use nft_protocol::utils;
-    use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
-    use nft_protocol::marketplace::{Self as mkt, Marketplace};
-    use nft_protocol::proceeds::{Self, Proceeds};
-    use nft_protocol::venue::{Self, Venue};
-    use nft_protocol::launchpad_v2::{Self, LaunchCap};
-
-    use originmate::typed_id::{Self, TypedID};
-    use originmate::object_box::{Self as obox, ObjectBox};
+    use sui::object::{ID , UID};
 
     struct CapAggregator has key, store {
         id: UID,

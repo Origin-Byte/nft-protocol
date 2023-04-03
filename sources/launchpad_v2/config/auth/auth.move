@@ -14,7 +14,7 @@ module nft_protocol::launchpad_auth {
 
     use nft_protocol::launchpad_v2::LaunchCap;
     use nft_protocol::venue_v2::{Self, Venue};
-    use nft_protocol::venue_request::{Self, VenueRequest};
+    use nft_protocol::request::{Self, Request};
 
     // TODO: There should be a way to create different types of whitelists
     // currently it's only possile to have one type.
@@ -61,10 +61,10 @@ module nft_protocol::launchpad_auth {
         signature: &vector<u8>,
         msg: &vector<u8>,
         hash: u8,
-        request: &mut VenueRequest,
+        request: &mut Request,
         ctx: &mut TxContext,
     ) {
-        venue_v2::assert_venue_request(venue, request);
+        venue_v2::assert_request(venue, request);
         let pubkey = venue_v2::get_df<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
 
         assert!(
@@ -88,7 +88,7 @@ module nft_protocol::launchpad_auth {
             EINCORRECT_MESSAGE_SENDER
         );
 
-        venue_request::add_receipt(request, &LaunchpadAuth {});
+        request::add_receipt(request, &LaunchpadAuth {});
     }
 
     /// Issue a new `Pubkey` and add it to the Venue as a dynamic field

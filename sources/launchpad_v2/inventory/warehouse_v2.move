@@ -17,7 +17,7 @@ module nft_protocol::warehouse_v2 {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
-    use nft_protocol::venue_v2::{Self, Venue, NftCert};
+    use nft_protocol::venue_v2::{Self, NftCert};
 
     use originmate::pseudorandom;
 
@@ -108,14 +108,16 @@ module nft_protocol::warehouse_v2 {
         ctx: &mut TxContext,
     ): T {
         // TODO: Assert type of NFT
-        venue_v2::assert_cert_buyer(certificate, ctx);
-        venue_v2::assert_cert_inventory(certificate, object::id(warehouse));
+        venue_v2::assert_cert_buyer(&certificate, ctx);
+        venue_v2::assert_cert_inventory(&certificate, object::id(warehouse));
 
         //
         let index = math::divide_and_round_up(
             warehouse.total_deposited * venue_v2::get_relative_index(&certificate),
             venue_v2::get_index_scale(&certificate)
         );
+
+        venue_v2::consume_certificate(certificate);
 
         redeem_nft_at_index<T>(warehouse, index)
     }

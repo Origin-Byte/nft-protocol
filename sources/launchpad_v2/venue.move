@@ -1,14 +1,8 @@
 module nft_protocol::venue_v2 {
     use std::ascii::String;
-    use std::vector;
     use std::option::{Self, Option};
     use sui::clock::{Self, Clock};
-    use sui::transfer;
-    use sui::event;
-    use sui::vec_set;
-    use sui::linked_table::{Self, LinkedTable};
     use sui::vec_map::{Self, VecMap};
-    use sui::table::{Self, Table};
     use std::type_name::{Self, TypeName};
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
@@ -16,11 +10,9 @@ module nft_protocol::venue_v2 {
     use sui::balance::{Self, Balance};
 
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::launchpad_v2::{Self, LaunchCap};
     use nft_protocol::request::{Self, Request as AuthRequest, PolicyCap, Policy as AuthPolicy};
     use nft_protocol::proceeds_v2::{Self, Proceeds};
-    use nft_protocol::warehouse_v2::{Self, Warehouse};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
 
@@ -112,7 +104,7 @@ module nft_protocol::venue_v2 {
         venue: &Venue,
         request: AuthRequest,
     ) {
-        assert_venue_request(venue, &request);
+        assert_request(venue, &request);
         // TODO: Need to consider how validation work, also,
         // how to use burner wallets in the context of the launchpad
         request::confirm_request(&venue.policies.auth, request);
@@ -122,24 +114,24 @@ module nft_protocol::venue_v2 {
         // If the venue is live, then check it there is a closing time,
         // if so, then check if the clock timestamp is bigger than the closing
         // time. If so, set venue.live to `false` and return `false`
-        if (venue.open.live == true) {
-            if (option::is_some(&venue.open.close_time)) {
-                if (clock::timestamp_ms(clock) > *option::borrow(&venue.open.close_time)) {
-                    venue.open.live = false;
+        if (venue.schedule.live == true) {
+            if (option::is_some(&venue.schedule.close_time)) {
+                if (clock::timestamp_ms(clock) > *option::borrow(&venue.schedule.close_time)) {
+                    venue.schedule.live = false;
                 };
             };
         } else {
             // If the venue is not live, then check it there is a start time,
             // if so, then check if the clock timestamp is bigger or equal to
             // the start time. If so, set venue.live to `true` and return `true`
-            if (option::is_some(&venue.open.start_time)) {
-                if (clock::timestamp_ms(clock) >= *option::borrow(&venue.open.start_time)) {
-                    venue.open.live = true;
+            if (option::is_some(&venue.schedule.start_time)) {
+                if (clock::timestamp_ms(clock) >= *option::borrow(&venue.schedule.start_time)) {
+                    venue.schedule.live = true;
                 };
             };
         };
 
-        venue.open.live
+        venue.schedule.live
     }
 
     /// Pay for `Nft` sale, direct fund to `Listing` proceeds, and emit sale
@@ -239,6 +231,24 @@ module nft_protocol::venue_v2 {
         }
     }
 
+    public fun consume_certificate(
+        // venue: &Venue,
+        cert: NftCert,
+    ) {
+
+        let NftCert {
+            id,
+            venue_id: _,
+            nft_type: _,
+            buyer: _,
+            inventory: _,
+            index_scale: _,
+            relative_index: _,
+        } = cert;
+
+        object::delete(id);
+    }
+
     // TODO: NEEDS TO BE Permissioned!
     public fun consume_receipt(
         receipt: RedeemReceipt,
@@ -285,6 +295,11 @@ module nft_protocol::venue_v2 {
         (data.id, data.type)
     }
 
+    public fun auth_policy(venue: &Venue): &AuthPolicy {
+        &venue.policies.auth
+    }
+
+
     public fun assert_launch_cap(venue: &Venue, launch_cap: &LaunchCap) {
         assert!(
             venue.listing_id == launchpad_v2::listing_id(launch_cap),
@@ -292,19 +307,19 @@ module nft_protocol::venue_v2 {
         );
     }
 
-    public fun assert_venue_request(venue: &Venue, request: &AuthRequest) {
-        assert!(venue_request::venue(request) == object::id(venue), 0);
+    public fun assert_request(venue: &Venue, request: &AuthRequest) {
+        assert!(request::policy_id(request) == object::id(&venue.policies.auth), 0);
     }
 
     public fun assert_called_from_market<AW: drop>(venue: &Venue) {
-        assert!(type_name::get<AW>() == venue.policies.market_policy, EMARKET_WITNESS_MISMATCH);
+        assert!(type_name::get<AW>() == venue.policies.market, EMARKET_WITNESS_MISMATCH);
     }
 
-    public fun assert_cert_buyer(cert: NftCert, ctx: &TxContext) {
+    public fun assert_cert_buyer(cert: &NftCert, ctx: &TxContext) {
         assert!(cert.buyer == tx_context::sender(ctx), 0);
     }
 
-    public fun assert_cert_inventory(cert: NftCert, inventory_id: ID) {
+    public fun assert_cert_inventory(cert: &NftCert, inventory_id: ID) {
         assert!(cert.inventory == inventory_id, 0);
     }
 }
