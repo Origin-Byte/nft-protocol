@@ -16,13 +16,13 @@ module nft_protocol::test_creators {
         let scenario = test_scenario::begin(CREATOR);
 
         let (mint_cap, collection) = collection::create<Witness, Foo>(
-            &Witness {}, ctx(&mut scenario),
+            Witness {}, ctx(&mut scenario),
         );
 
         collection::add_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
-            creators::from_address<Foo, Witness>(&Witness {}, CREATOR),
+            creators::from_address<Foo, Witness>(Witness {}, CREATOR),
         );
         creators::assert_domain(&collection);
 

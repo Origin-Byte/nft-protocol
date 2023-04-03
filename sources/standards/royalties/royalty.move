@@ -484,8 +484,8 @@ module nft_protocol::royalty {
     }
 
     /// Registers `RoyaltyDomain` on the given `Collection`
-    public fun add_royalty_domain<T, W>(
-        witness: &W,
+    public fun add_royalty_domain<T, W: drop>(
+        witness: W,
         collection: &mut Collection<T>,
         domain: RoyaltyDomain,
     ) {

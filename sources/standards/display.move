@@ -1,22 +1,21 @@
-/// Module of NFT domains for displaying standard information
-///
-/// Current display domains are:
-///     - DisplayDomain (For NFTs and Collections)
-///     - UrlDomain (For NFTs and Collections)
-///     - SymbolDomain (For Collections)
-///     - Attributes (For NFTs)
+/// Module of `DisplayDomain` used to provide a `Display` implementation
 module nft_protocol::display {
     use std::string::String;
-    use std::option::{Self, Option};
 
-    use sui::object::ID;
+    use sui::object::UID;
+    use sui::dynamic_field as df;
 
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::utils::{Self, Marker};
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
+    /// `DisplayDomain` was not defined
+    ///
+    /// Call `display::add_domain` to add `DisplayDomain`.
+    const EUndefinedDisplay: u64 = 1;
+
+    /// `DisplayDomain` already defined
+    ///
+    /// Call `display::borrow_domain` to borrow domain.
+    const EExistingDisplay: u64 = 2;
 
     struct DisplayDomain has drop, store {
         name: String,
@@ -34,7 +33,7 @@ module nft_protocol::display {
     }
 
     /// Creates a new `DisplayDomain` with name and description
-    public fun new_display_domain(
+    public fun new(
         name: String,
         description: String,
     ): DisplayDomain {
@@ -42,196 +41,90 @@ module nft_protocol::display {
     }
 
     /// Sets name of `DisplayDomain`
-    ///
-    /// Requires that `AttributionDomain` is defined and sender is a creator
     public fun set_name<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+        domain: &mut DisplayDomain,
         name: String,
     ) {
-        let domain: &mut DisplayDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
-
         domain.name = name;
     }
 
     /// Sets description of `DisplayDomain`
-    ///
-    /// Requires that `AttributionDomain` is defined and sender is a creator
     public fun set_description<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+        domain: &mut DisplayDomain,
         description: String,
     ) {
-        let domain: &mut DisplayDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
-
         domain.description = description;
     }
 
-    // ====== Interoperability ===
+    // === Interoperability ===
 
-    public fun display_domain<C>(
-        nft: &Nft<C>,
-    ): &DisplayDomain {
-        nft::borrow_domain(nft)
+    /// Returns whether `DisplayDomain` is registered on `Nft`
+    public fun has_domain(nft: &UID): bool {
+        df::exists_with_type<Marker<DisplayDomain>, DisplayDomain>(
+            nft, utils::marker(),
+        )
     }
 
-    public fun collection_display_domain<T>(
-        nft: &Collection<T>,
-    ): &DisplayDomain {
-        collection::borrow_domain(nft)
-    }
-
-    public fun add_display_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-        name: String,
-        description: String,
-    ) {
-        nft::add_domain(
-            witness, nft, new_display_domain(name, description),
-        );
-    }
-
-    public fun add_collection_display_domain<T, W>(
-        witness: &W,
-        collection: &mut Collection<T>,
-        name: String,
-        description: String,
-    ) {
-        collection::add_domain(
-            witness, collection, new_display_domain(name, description)
-        );
-    }
-
-    public fun remove_display_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-    ): DisplayDomain {
-        remove_display_domain_delegated(nft::delegate_witness(witness), nft)
-    }
-
-    public fun remove_display_domain_delegated<C>(
-        _witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
-    ): DisplayDomain {
-        nft::remove_domain<C, Witness, DisplayDomain>(Witness {}, nft)
-    }
-
-    // === SymbolDomain ===
-
-    struct SymbolDomain has store {
-        symbol: String,
-    }
-
-    /// Gets symbol of `SymbolDomain`
-    public fun symbol(domain: &SymbolDomain): &String {
-        &domain.symbol
-    }
-
-    /// Creates new `SymbolDomain` with a symbol
-    public fun new_symbol_domain(symbol: String): SymbolDomain {
-        SymbolDomain { symbol }
-    }
-
-    /// Sets name of `DisplayDomain`
+    /// Borrows `DisplayDomain` from `Nft`
     ///
-    /// Requires that `AttributionDomain` is defined and sender is a creator
-    public fun set_symbol<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
-        symbol: String,
-    ) {
-        let domain: &mut SymbolDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
-
-        domain.symbol = symbol;
-    }
-
-    // ====== Interoperability ===
-
-    public fun display_symbol<C>(nft: &Nft<C>): Option<String> {
-        if (!nft::has_domain<C, SymbolDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(*symbol(nft::borrow_domain<C, SymbolDomain>(nft)))
-    }
-
-    public fun display_collection_symbol<T>(
-        nft: &Collection<T>
-    ): Option<String> {
-        if (!collection::has_domain<T, SymbolDomain>(nft)) {
-            return option::none()
-        };
-
-        option::some(*symbol(collection::borrow_domain<T, SymbolDomain>(nft)))
-    }
-
-    public fun add_symbol_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-        symbol: String,
-    ) {
-        nft::add_domain(witness, nft, new_symbol_domain(symbol));
-    }
-
-    public fun add_collection_symbol_domain<T, W>(
-        witness: &W,
-        nft: &mut Collection<T>,
-        symbol: String,
-    ) {
-        collection::add_domain(witness, nft, new_symbol_domain(symbol));
-    }
-
-    // === CollectionIdDomain ===
-
-    struct CollectionIdDomain has store {
-        collection_id: ID,
-    }
-
-    /// Gets name of `CollectionIdDomain`
-    public fun collection_id(domain: &CollectionIdDomain): &ID {
-        &domain.collection_id
-    }
-
-    /// Creates a new `CollectionIdDomain` with name
-    public fun new_collection_id_domain(
-        collection_id: ID,
-    ): CollectionIdDomain {
-        CollectionIdDomain { collection_id }
-    }
-
-    /// Sets name of `CollectionIdDomain`
+    /// #### Panics
     ///
-    /// Requires that `AttributionDomain` is defined and sender is a creator
-    public fun set_collection_id<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
-        collection_id: ID,
-    ) {
-        let domain: &mut CollectionIdDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
-
-        domain.collection_id = collection_id;
+    /// Panics if `DisplayDomain` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &DisplayDomain {
+        assert_display(nft);
+        df::borrow(nft, utils::marker<DisplayDomain>())
     }
 
-    // ====== Interoperability ===
-
-    public fun collection_id_domain<C>(
-        nft: &Nft<C>,
-    ): &CollectionIdDomain {
-        nft::borrow_domain(nft)
+    /// Mutably borrows `DisplayDomain` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `DisplayDomain` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut DisplayDomain {
+        assert_display(nft);
+        df::borrow_mut(nft, utils::marker<DisplayDomain>())
     }
 
-    public fun add_collection_id_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-        collection_id: ID,
+    /// Adds `DisplayDomain` to `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `DisplayDomain` domain already exists
+    public fun add_domain(
+        nft: &mut UID,
+        domain: DisplayDomain,
     ) {
-        nft::add_domain(
-            witness, nft, new_collection_id_domain(collection_id),
-        );
+        assert_no_display(nft);
+        df::add(nft, utils::marker<DisplayDomain>(), domain);
+    }
+
+    /// Remove `DisplayDomain` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `DisplayDomain` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): DisplayDomain {
+        assert_display(nft);
+        df::remove(nft, utils::marker<DisplayDomain>())
+    }
+
+    // === Assertions ===
+
+    /// Asserts that `AttributesDomain` is registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `AttributesDomain` is not registered
+    public fun assert_display(nft: &UID) {
+        assert!(has_domain(nft), EUndefinedDisplay);
+    }
+
+    /// Asserts that `AttributesDomain` is not registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `AttributesDomain` is registered
+    public fun assert_no_display(nft: &UID) {
+        assert!(!has_domain(nft), EExistingDisplay);
     }
 }
