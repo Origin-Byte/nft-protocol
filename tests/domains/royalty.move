@@ -4,7 +4,8 @@ module nft_protocol::test_royalty {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::collection;
-    use nft_protocol::royalty::{Self, RoyaltyDomain};
+    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::royalty::RoyaltyDomain;
 
     struct Foo has drop {}
     struct Witness has drop {}
@@ -17,13 +18,8 @@ module nft_protocol::test_royalty {
 
         let collection = collection::create(Witness {}, ctx(&mut scenario));
 
-        let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
-        royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_constant_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(
-            Witness {},
-            &mut collection,
-            royalty,
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            &Witness {}, &mut collection, 100, ctx(&mut scenario),
         );
 
         collection::assert_domain<Foo, RoyaltyDomain>(&collection);

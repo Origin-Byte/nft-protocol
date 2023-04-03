@@ -23,6 +23,7 @@
 /// logic which requires multiple steps.
 /// With our protocol, automation can be set up by marketplaces.
 module nft_protocol::ob_transfer_request {
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use std::type_name::{Self, TypeName};
     use std::vector;
     use sui::balance::{Self, Balance};
@@ -78,6 +79,9 @@ module nft_protocol::ob_transfer_request {
     /// This is useful for policies which charge a fee from the payment.
     /// E.g., the fee can be deducted from the balance and the rest transferred
     /// to the beneficiary (NFT seller).
+    /// That's handy for orderbook trading - improves UX.
+    /// Otherwise, either the seller or the buyer would have to run
+    /// the trade resolution as another tx.
     ///
     /// Note that thorough review of the policy code is required because it
     /// gets access to all the funds used for trading.
@@ -87,6 +91,14 @@ module nft_protocol::ob_transfer_request {
     /// This isn't prevented in the standard Sui implementation either.
     /// The best prevention is a client side condition which fails the trade
     /// if royalty is too high.
+    ///
+    /// Typically, this is optional because there's another way of paying
+    /// royalties in which the strategy doesn't have to touch the
+    /// balance.
+    /// It's useful to avoid this for careful clients which prefer to have
+    /// precise control over how much royalty is paid and fail if it's over a
+    /// certain amount.
+    /// Therefore, creators can avoid this field.
     struct BalanceAccessCap<phantom T> has store, drop {}
 
     /// Stores balance on `TransferRequest` as dynamic field in the metadata.
@@ -124,7 +136,9 @@ module nft_protocol::ob_transfer_request {
     }
 
     /// Sets empty SUI token balance.
-    public fun set_no_paid<T>(self: &mut TransferRequest<T>) {
+    ///
+    /// Useful for apps which are not payment based.
+    public fun set_nothing_paid<T>(self: &mut TransferRequest<T>) {
         df::add(&mut self.metadata, BalanceDfKey {}, balance::zero<SUI>());
     }
 
@@ -156,19 +170,18 @@ module nft_protocol::ob_transfer_request {
     public fun into_sui<T>(
         self: TransferRequest<T>, ctx: &mut TxContext,
     ): SuiTransferRequest<T> {
+        let (paid_amount, _) = paid_in_sui(&self);
+        // the sui transfer policy doesn't support our balance association
+        // and therefore just send the coin to the beneficiary directly
+        distribute_balance_to_beneficiary<T, SUI>(&mut self, ctx);
+
         let TransferRequest {
             nft,
             originator,
             receipts: _,
-            beneficiary,
+            beneficiary: _,
             metadata,
         } = self;
-
-        // the sui transfer policy doesn't support our balance association
-        // and therefore just send the coin to the beneficiary directly
-        let balance: Balance<SUI> = df::remove(&mut metadata, BalanceDfKey {});
-        let paid_amount = balance::value<SUI>(&balance);
-        public_transfer(coin::from_balance(balance, ctx), beneficiary);
         object::delete(metadata);
 
         transfer_policy::new_request(
@@ -205,15 +218,10 @@ module nft_protocol::ob_transfer_request {
     /// Creates a new capability which enables the holder to get `&mut` access
     /// to a balance paid for an NFT.
     public fun grant_balance_access_cap<T>(
-        _cap: &TransferPolicyCap<T>,
+        _witness: DelegatedWitness<T>,
     ): BalanceAccessCap<T> { BalanceAccessCap {} }
 
     // === Request confirmation ===
-
-    /// Same as `confirm_request<T, SUI>`.
-    public fun confirm_request_in_sui<T>(
-        policy: &TransferPolicy<T>, self: TransferRequest<T>, ctx: &mut TxContext,
-    ) { confirm_request<T, SUI>(policy, self, ctx) }
 
     /// Allow a `TransferRequest` for the type `T`.
     /// The call is protected by the type constraint, as only the publisher of
@@ -223,35 +231,45 @@ module nft_protocol::ob_transfer_request {
     /// Kiosk trades will not be possible.
     /// If there is no transfer policy in the OB ecosystem, try using
     /// `into_sui` to convert the `TransferRequest` to the SUI ecosystem.
-    public fun confirm_request<T, FT>(
-        policy: &TransferPolicy<T>, self: TransferRequest<T>, ctx: &mut TxContext,
+    public fun confirm<T, FT>(
+        self: TransferRequest<T>, policy: &TransferPolicy<T>, ctx: &mut TxContext,
     ) {
+        distribute_balance_to_beneficiary<T, FT>(&mut self, ctx);
         let TransferRequest {
             metadata,
             nft: _,
             originator: _,
-            beneficiary,
+            beneficiary: _,
             receipts,
         } = self;
+        object::delete(metadata);
+
         let rules = df::borrow(transfer_policy::uid(policy), OringinbyteRulesDfKey {});
         let completed = vec_set::into_keys(receipts);
         let total = vector::length(&completed);
 
         assert!(total == vec_set::size(rules), EPolicyNotSatisfied);
-
         while (total > 0) {
             let rule_type = vector::pop_back(&mut completed);
             assert!(vec_set::contains(rules, &rule_type), EIllegalRule);
             total = total - 1;
         };
+    }
 
-        let balance: Balance<FT> = df::remove(&mut metadata, BalanceDfKey {});
+    /// Takes out the funds from the transfer request and sends them to the
+    /// originator.
+    /// This is useful if permissionless trade resolution is not necessary
+    /// and the royalties can be deducted from a specific `Balance` rather than
+    /// using `BalanceAccessCap`.
+    public fun distribute_balance_to_beneficiary<T, FT>(
+        self: &mut TransferRequest<T>, ctx: &mut TxContext,
+    ) {
+        let balance: Balance<FT> = df::remove(&mut self.metadata, BalanceDfKey {});
         if (balance::value(&balance) > 0) {
-            public_transfer(coin::from_balance(balance, ctx), beneficiary);
+            public_transfer(coin::from_balance(balance, ctx), self.beneficiary);
         } else {
             balance::destroy_zero(balance);
         };
-        object::delete(metadata);
     }
 
     // === Getters ===

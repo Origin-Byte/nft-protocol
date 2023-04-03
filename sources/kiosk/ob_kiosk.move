@@ -227,7 +227,7 @@ module nft_protocol::ob_kiosk {
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
-        assert_not_listed(ref);
+        assert_ref_not_listed(ref);
         vec_set::insert(&mut ref.auths, uid_to_address(entity_id));
         ref.is_exclusively_listed = true;
     }
@@ -456,51 +456,53 @@ module nft_protocol::ob_kiosk {
     // === NFT Accessors ===
 
     public fun borrow_nft_field_mut<OTW: drop, T: key + store, Field: store>(
-        kiosk: &mut Kiosk,
+        self: &mut Kiosk,
         collection: &Collection<OTW>,
         nft_id: TypedID<T>,
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
-        // TODO: Need to guarantee that NFT is not listed anywhere
+        let nft_id = typed_id::to_id(nft_id);
+        assert_not_listed<T>(self, nft_id);
         // TODO: Assert T lives in the OTW universe
         ap::assert_field_auth<OTW, T, Field>(collection, ctx);
 
-        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
-        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
+        let cap = pop_cap(self);
+        let nft = kiosk::take<T>(self, &cap, nft_id);
+        set_cap(self, cap);
 
         mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft)
     }
 
     public fun borrow_nft_mut<OTW: drop, T: key + store>(
-        kiosk: &mut Kiosk,
+        self: &mut Kiosk,
         collection: &Collection<OTW>,
         nft_id: TypedID<T>,
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
+        let nft_id = typed_id::to_id(nft_id);
+        assert_not_listed<T>(self, nft_id);
         // TODO: Assert T lives in the OTW universe
-        // TODO: Need to guarantee that NFT is not listed anywhere
         ap::assert_parent_auth<OTW, T>(collection, ctx);
 
-        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
-        let nft = kiosk::take<T>(kiosk, owner_cap, typed_id::to_id(nft_id));
+        let cap = pop_cap(self);
+        let nft = kiosk::take<T>(self, &cap, nft_id);
+        set_cap(self, cap);
 
         mut_lock::lock_nft_global<Witness, T>(Witness {}, nft)
     }
 
     public fun return_nft<OTW: drop, T: key + store>(
-        kiosk: &mut Kiosk,
+        self: &mut Kiosk,
         locked_nft: MutLock<T>,
         promise: ReturnPromise<T>,
     ) {
         // TODO: Assert T lives in the OTW universe
         let nft = mut_lock::unlock_nft(Witness {}, locked_nft, promise);
-        let owner_cap = df::borrow(ext(kiosk), KioskOwnerCapDfKey {});
 
-        kiosk::place<T>(kiosk, owner_cap, nft);
+        let cap = pop_cap(self);
+        kiosk::place<T>(self, &cap, nft);
+        set_cap(self, cap);
     }
-
-
-    // === Assertions and getters ===
 
     /// Immutably borrow an item from the `Kiosk`.
     public fun borrow<T: key + store>(_self: &mut Kiosk, _nft_id: ID): &T {
@@ -512,6 +514,8 @@ module nft_protocol::ob_kiosk {
 
         abort(0) // TODO: wait for new Sui version
     }
+
+    // === Assertions and getters ===
 
     public fun nft_type(self: &mut Kiosk, nft_id: ID): &TypeName {
         let refs = nft_refs_mut(self);
@@ -555,12 +559,20 @@ module nft_protocol::ob_kiosk {
         assert!(kiosk::has_item(self, nft_id), EMissingNft)
     }
 
-    public fun assert_not_exclusively_listed<I: key + store>(
+    public fun assert_not_exclusively_listed<T: key + store>(
         self: &mut Kiosk, nft_id: ID
     ) {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
         let ref = table::borrow(refs, nft_id);
         assert_ref_not_exclusively_listed(ref);
+    }
+
+    public fun assert_not_listed<T: key + store>(
+        self: &mut Kiosk, nft_id: ID
+    ) {
+        let refs = df::borrow(ext(self), NftRefsDfKey {});
+        let ref = table::borrow(refs, nft_id);
+        assert_ref_not_listed(ref);
     }
 
     public fun assert_is_ob_kiosk(self: &mut Kiosk) {
@@ -575,7 +587,7 @@ module nft_protocol::ob_kiosk {
         assert!(!ref.is_exclusively_listed, ENftAlreadyExclusivelyListed);
     }
 
-    fun assert_not_listed(ref: &NftRef) {
+    fun assert_ref_not_listed(ref: &NftRef) {
         assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
     }
 

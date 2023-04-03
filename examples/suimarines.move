@@ -6,11 +6,24 @@ module nft_protocol::suimarines {
     use sui::dynamic_field as df;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::Collection;
+    use nft_protocol::attributes;
+    use nft_protocol::collection_id;
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::creators;
+    use nft_protocol::display;
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
+    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::royalty;
+    use nft_protocol::symbol;
+    use nft_protocol::tags;
+    use nft_protocol::transfer_allowlist_domain;
+    use nft_protocol::transfer_allowlist;
+    use nft_protocol::url;
     use nft_protocol::utils;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::collection;
+    use nft_protocol::witness;
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;
@@ -46,6 +59,10 @@ module nft_protocol::suimarines {
         nft_protocol::transfer_allowlist::add_policy_rule(
             &mut transfer_policy,
             &transfer_policy_cap,
+        );
+
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            &Witness {}, &mut collection, 100, ctx,
         );
 
         transfer::public_transfer(publisher, sender);
