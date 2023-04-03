@@ -147,6 +147,8 @@ module nft_protocol::ob_transfer_request {
     ///
     /// Note that after this, the royalty enforcement is modelled after the
     /// sui ecosystem settings.
+    /// This means that the rules for closing the `SuiTransferRequest` must
+    /// be met according to `sui::transfer_policy::confirm_request`.
     ///
     /// The creator has to opt into that (Sui) ecosystem.
     /// All the receipts are reset and must be collected anew.
