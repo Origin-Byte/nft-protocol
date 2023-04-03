@@ -17,7 +17,7 @@ module nft_protocol::test_royalty {
     fun add_royalty() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let collection = collection::create(Witness {}, ctx(&mut scenario));
+        let collection = collection::create<Foo, Witness>(Witness {}, ctx(&mut scenario));
 
         let delegated_witness = witness::from_witness<Foo, Witness>(Witness {});
 

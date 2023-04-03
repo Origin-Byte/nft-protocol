@@ -4,6 +4,7 @@ module nft_protocol::suitraders {
     use std::string::{Self, String};
 
     use sui::transfer;
+    use sui::vec_set;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::attributes;
@@ -36,9 +37,7 @@ module nft_protocol::suitraders {
         collection::add_domain(
             Witness {},
             &mut collection,
-            creators::from_address_delegated<Nft<SUITRADERS>>(
-                nft::delegate_witness(Witness {}), sender,
-            ),
+            creators::new(vec_set::singleton(sender)),
         );
 
         // Register custom domains

@@ -158,10 +158,10 @@ module nft_protocol::royalty_strategy_bps {
         let royalty_strategy = new<T>(
             witness, collection, bps, ctx,
         );
-        add_balance_access_cap(
-            &mut royalty_strategy,
-            ob_transfer_request::grant_balance_access_cap(witness),
-        );
+        // add_balance_access_cap(
+        //     &mut royalty_strategy,
+        //     ob_transfer_request::grant_balance_access_cap(witness),
+        // );
         share(royalty_strategy);
     }
 }

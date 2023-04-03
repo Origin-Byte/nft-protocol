@@ -1,9 +1,10 @@
 #[test_only]
 module nft_protocol::test_creators {
     use sui::transfer;
+    use sui::vec_set;
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::creators::{Self};
+    use nft_protocol::creators::{Self, Creators};
     use nft_protocol::collection::{Self, Collection};
 
     struct Foo {}
@@ -22,10 +23,10 @@ module nft_protocol::test_creators {
         collection::add_domain(
             Witness {},
             &mut collection,
-            creators::from_address<Foo, Witness>(Witness {}, CREATOR),
+            creators::new(vec_set::singleton(CREATOR)),
         );
 
-        // collection::assert_domain<Foo, Creators<Collection<Foo>>>(&collection);
+        collection::assert_domain<Foo, Creators>(&collection);
 
         transfer::public_share_object(collection);
 

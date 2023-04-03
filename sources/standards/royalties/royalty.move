@@ -355,10 +355,10 @@ module nft_protocol::royalty {
     ///
     /// Requires that `CreatorsDomain` is defined and sender is a creator
     public fun royalty_domain_mut<T>(
-        _witness: DelegatedWitness<T>,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
     ): &mut RoyaltyDomain {
-        collection::borrow_domain_mut(Witness {}, collection)
+        collection::borrow_domain_delegated_mut(witness, collection)
     }
 
     /// Registers `RoyaltyDomain` on the given `Collection`
