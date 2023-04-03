@@ -10,7 +10,7 @@ module nft_protocol::test_display {
 
     use nft_protocol::url;
     use nft_protocol::attributes;
-    use nft_protocol::display;
+    use nft_protocol::display_info;
     use nft_protocol::symbol;
 
     struct Foo has key, store {
@@ -27,16 +27,16 @@ module nft_protocol::test_display {
 
         let nft = Foo { id: object::new(ctx) };
 
-        display::add_domain(
+        display_info::add_domain(
             &mut nft.id,
-            display::new(
+            display_info::new(
                 string::utf8(b"Suimarines-234"),
                 string::utf8(b"Collection of Suimarines"),
             ),
         );
 
         // If domain does not exist this function call will fail
-        display::borrow_domain(&nft.id);
+        display_info::borrow_domain(&nft.id);
 
         transfer::public_transfer(nft, CREATOR);
         test_scenario::end(scenario);
@@ -51,9 +51,7 @@ module nft_protocol::test_display {
 
         url::add_domain(
             &mut nft.id,
-            url::new(
-                sui::url::new_unsafe_from_bytes(b"https://originbyte.io/")
-            ),
+            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
         );
 
         // If domain does not exist this function call will fail

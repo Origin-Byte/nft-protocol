@@ -1,10 +1,11 @@
 #[test_only]
 module nft_protocol::test_creators {
     use sui::transfer;
+    use sui::vec_set;
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::creators;
-    use nft_protocol::collection;
+    use nft_protocol::creators::{Self, Creators};
+    use nft_protocol::collection::{Self, Collection};
 
     struct Foo {}
     struct Witness has drop {}
@@ -15,19 +16,19 @@ module nft_protocol::test_creators {
     fun add_attribution() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (mint_cap, collection) = collection::create<Witness, Foo>(
+        let collection: Collection<Foo> = collection::create<Foo, Witness>(
             Witness {}, ctx(&mut scenario),
         );
 
         collection::add_domain(
             Witness {},
             &mut collection,
-            creators::from_address<Foo, Witness>(Witness {}, CREATOR),
+            creators::new(vec_set::singleton(CREATOR)),
         );
-        creators::assert_domain(&collection);
+
+        collection::assert_domain<Foo, Creators>(&collection);
 
         transfer::public_share_object(collection);
-        transfer::public_transfer(mint_cap, CREATOR);
 
         test_scenario::end(scenario);
     }

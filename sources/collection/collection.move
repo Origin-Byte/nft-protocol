@@ -7,17 +7,17 @@
 /// information on one object and thus avoid redundancy, and to provide
 /// configuration data to NFTs.
 module nft_protocol::collection {
-    use std::option;
     use std::type_name::{Self, TypeName};
 
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::transfer;
+    use sui::bag::{Self, Bag};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
 
     use nft_protocol::witness;
-    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::witness::Witness as DelegatedWitness;
 
@@ -45,9 +45,11 @@ module nft_protocol::collection {
     /// [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See
     /// [borrow_domain_mut](#borrow_domain_mut).
-    struct Collection<phantom T> has key, store {
+    struct Collection<phantom W> has key, store {
         /// `Collection` ID
         id: UID,
+        // TODO: Delete
+        bag: Bag,
     }
 
     /// Event signalling that a `Collection` was minted
@@ -59,9 +61,6 @@ module nft_protocol::collection {
         /// Intended to allow users to filter by collections of interest.
         type_name: TypeName,
     }
-
-    /// Witness used to authorize collection creation
-    struct Witness has drop {}
 
     /// Creates a `Collection<T>` and corresponding `MintCap<T>`
     ///
@@ -78,22 +77,21 @@ module nft_protocol::collection {
     ///     let (mint_cap, collection) = collection::create(&witness, ctx);
     /// }
     /// ```
-    public fun create<W: drop, T>(
+    public fun create<T, W: drop>(
+        // TODO: Consider having only one Type parameter
         _witness: W,
         ctx: &mut TxContext,
-    ): (MintCap<T>, Collection<T>) {
+    ): Collection<T> {
         utils::assert_same_module_as_witness<T, W>();
 
         let id = object::new(ctx);
 
         event::emit(MintCollectionEvent {
             collection_id: object::uid_to_inner(&id),
-            type_name: type_name::get<T>(),
+            type_name: type_name::get<W>(),
         });
 
-        let cap = mint_cap::new(object::uid_to_inner(&id), option::none(), ctx);
-
-        (cap, Collection { id })
+        Collection { id, bag: bag::new(ctx) }
     }
 
     /// Creates a shared `Collection<T>` and corresponding `MintCap<T>`
@@ -101,14 +99,12 @@ module nft_protocol::collection {
     /// #### Panics
     ///
     /// Panics if witness is not defined in the same module as `T`.
-    public fun init_collection<W: drop, T>(
+    public fun init_collection<T, W: drop>(
         witness: W,
-        owner: address,
         ctx: &mut TxContext,
     ) {
-        let (mint_cap, collection) = create<W, T>(witness, ctx);
+        let collection = create<T, W>(witness, ctx);
         transfer::public_share_object(collection);
-        transfer::public_transfer(mint_cap, owner);
     }
 
     // === Domain Functions ===
@@ -275,7 +271,8 @@ module nft_protocol::collection {
     ///
     /// Panics if any domains are still registered on the `Collection`.
     public entry fun delete<T>(collection: Collection<T>) {
-        let Collection { id } = collection;
+        let Collection { id, bag } = collection;
+        bag::destroy_empty(bag);
         object::delete(id);
     }
 
@@ -301,5 +298,46 @@ module nft_protocol::collection {
         collection: &Collection<T>
     ) {
         assert!(!has_domain<T, Domain>(collection), EExistingDomain);
+    }
+
+    public fun get_bag_as_publisher<T>(
+        pub: &Publisher,
+        collection: &Collection<T>,
+    ): &Bag {
+        assert!(package::from_package<T>(pub), 0);
+        &collection.bag
+    }
+
+    public fun get_bag_mut_as_publisher<T>(
+        pub: &Publisher,
+        collection: &mut Collection<T>,
+    ): &mut Bag {
+        assert!(package::from_package<T>(pub), 0);
+        &mut collection.bag
+    }
+
+    public fun get_bag_as_witness<T, W: drop>(
+        _witness: W,
+        collection: &Collection<T>,
+    ): &Bag {
+        utils::assert_same_module<T, W>();
+        &collection.bag
+    }
+
+    public fun get_bag_mut_as_witness<T, W: drop>(
+        _witness: W,
+        collection: &mut Collection<T>,
+    ): &mut Bag {
+        utils::assert_same_module<T, W>();
+        &mut collection.bag
+    }
+
+    public fun get_bag_field<T, W: drop, Field: store>(
+        _witness: W,
+        collection: &Collection<T>,
+    ): &Field {
+        utils::assert_same_module<Field, W>();
+        // It's up that field to implement correct collection witness access control.
+        bag::borrow(&collection.bag, type_name::get<Field>())
     }
 }

@@ -5,10 +5,14 @@ module nft_protocol::utils {
     use std::string::{Self, String, sub_string};
     use std::type_name;
     use std::vector;
+
+    use sui::vec_set::{Self, VecSet};
     use sui::package::{Self, Publisher};
-    use sui::vec_map::{Self, VecMap};
     use sui::table_vec::{Self, TableVec};
+    use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
+    use sui::object::{Self, ID, UID};
+
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
     const EMismatchedKeyValueLength: u64 = 1;
@@ -18,12 +22,8 @@ module nft_protocol::utils {
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
 
-    public fun marker<T>(): Marker<T> {
-        Marker<T> {}
-    }
-
-    public fun bps(): u16 {
-        10_000
+    struct UidType<phantom T> has drop {
+        id: ID,
     }
 
     public fun table_vec_from_vec<T: store>(
@@ -45,6 +45,105 @@ module nft_protocol::utils {
 
         table
     }
+
+    public fun insert_vec_in_vec_set<T: store + copy + drop>(
+        set: &mut VecSet<T>,
+        vec: vector<T>,
+    ) {
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            vec_set::insert(set, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+    }
+
+    public fun insert_vec_in_table<T: store>(
+        table: &mut TableVec<T>,
+        vec: vector<T>,
+    ) {
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            table_vec::push_back(table, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+    }
+
+    public fun marker<T>(): Marker<T> {
+        Marker<T> {}
+    }
+
+    public fun bps(): u16 {
+        10_000
+    }
+
+    public fun assert_with_witness<W: drop, T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+        assert_same_module_as_witness<T, W>();
+    }
+
+    public fun assert_with_consumable_witness<T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+    }
+
+    public fun uid_type_to_inner<T: key>(uid: &UidType<T>): ID {
+        uid.id
+    }
+
+    public fun proof_of_type<T: key>(uid: &UID, object: &T): UidType<T> {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
+
+        UidType<T> { id: uid_id }
+    }
+
+    public fun assert_uid_type<T: key>(uid: &UID, uid_type: &UidType<T>) {
+        assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
+    }
+
+    public fun assert_uid_type_<T: key>(uid: &UID, object: &T) {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
+    }
+
+    public fun assert_same_module<T, Witness: drop>() {
+        let (package_a, module_a, _) = get_package_module_type<T>();
+        let (package_b, module_b, _) = get_package_module_type<Witness>();
+
+        assert!(package_a == package_b, err::witness_source_mismatch());
+        assert!(module_a == module_b, err::witness_source_mismatch());
+    }
+
+    public fun assert_same_module_<A, B, C>() {
+        let (package_a, module_a, _) = get_package_module_type<A>();
+        let (package_b, module_b, _) = get_package_module_type<B>();
+        let (package_c, module_c, _) = get_package_module_type<C>();
+
+        assert!(package_a == package_b && package_b == package_c, err::witness_source_mismatch());
+        assert!(module_a == module_b && module_b == module_c, err::witness_source_mismatch());
+    }
+
+    // TODO: deprecate in favor of assert_same_module as it is more generic?
+    // TODO: Rearrange the order of witnesses from <T, W> to <W, T>
 
     public fun assert_package_publisher<C>(pub: &Publisher) {
         assert!(package::from_package<C>(pub), EPackagePublisherMismatch);

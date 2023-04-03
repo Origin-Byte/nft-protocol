@@ -1,6 +1,9 @@
 #[test_only]
 module nft_protocol::test_utils {
-    use nft_protocol::collection;
+    use std::option;
+
+    use nft_protocol::mint_cap;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
@@ -22,13 +25,16 @@ module nft_protocol::test_utils {
         creator: address,
         scenario: &mut Scenario,
     ): (ID, ID, ID) {
-        let (cap, col) =
-            collection::create<Witness, Foo>(Witness {}, ctx(scenario));
+        let collection: Collection<Foo> =
+            collection::create(Witness {}, ctx(scenario));
 
-        let col_id = object::id(&col);
-        let cap_id = object::id(&cap);
+        let mint_cap =
+            mint_cap::new<Witness, Foo>(Witness {}, &collection, option::none(), ctx(scenario));
 
-        public_share_object(col);
+        let col_id = object::id(&collection);
+        let cap_id = object::id(&mint_cap);
+
+        public_share_object(collection);
         test_scenario::next_tx(scenario, creator);
 
         transfer_allowlist::init_allowlist(&Witness {}, ctx(scenario));
@@ -39,12 +45,12 @@ module nft_protocol::test_utils {
         let wl_id = object::id(&wl);
 
         transfer_allowlist::insert_collection<Foo, Witness>(
-            &Witness {},
-            witness::from_witness(Witness {}),
             &mut wl,
+            &Witness {},
+            witness::from_witness<Foo, Witness>(Witness {}),
         );
 
-        public_transfer(cap, creator);
+        public_transfer(mint_cap, creator);
         test_scenario::return_shared(wl);
 
         (col_id, cap_id, wl_id)

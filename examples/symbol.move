@@ -2,13 +2,15 @@
 /// allows associating them with collections
 module nft_protocol::example_symbol {
     use std::string::{Self, String};
+    use std::option;
 
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
+    use nft_protocol::mint_cap;
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::display::{Self, DisplayDomain};
+    use nft_protocol::display_info::{Self, DisplayInfo};
     use nft_protocol::collection::{Self, Collection};
 
     /// One time witness is only instantiated in the init method
@@ -42,13 +44,16 @@ module nft_protocol::example_symbol {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
-        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
+    fun init(_witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+        let collection: Collection<Nft<EXAMPLE_SYMBOL>> =
+            nft::create_collection(Witness {}, ctx);
+        let mint_cap =
+            mint_cap::new<Witness, Nft<EXAMPLE_SYMBOL>>(Witness {}, &collection, option::none(), ctx);
 
         collection::add_domain(
             Witness {},
             &mut collection,
-            display::new(
+            display_info::new(
                 string::utf8(b"Symbol"),
                 string::utf8(b"Collection of unique symbols on Sui"),
             )
@@ -83,9 +88,7 @@ module nft_protocol::example_symbol {
 
     /// Extracts `SymbolDomain` by burning `Nft`
     public fun delete_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
-        nft::remove_domain<EXAMPLE_SYMBOL, Witness, DisplayDomain>(
-            Witness {}, &mut nft,
-        );
+        let _: DisplayInfo = nft::remove_domain(Witness {}, &mut nft);
 
         let symbol: SymbolDomain = nft::remove_domain(
             Witness {}, &mut nft,

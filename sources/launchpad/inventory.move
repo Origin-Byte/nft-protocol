@@ -24,8 +24,6 @@ module nft_protocol::inventory {
     /// Call `from_factory` to create an `Inventory` from `Factory`
     const ENOT_FACTORY: u64 = 2;
 
-    struct Witness has drop {}
-
     /// A type-erased wrapper around `Warehouse` and `Factory`
     struct Inventory<phantom T> has key, store {
         /// `Inventory` ID
