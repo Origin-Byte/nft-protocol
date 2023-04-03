@@ -46,6 +46,10 @@ module nft_protocol::utils {
         table
     }
 
+    public fun assert_package_publisher<C>(pub: &Publisher) {
+        assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
+    }
+
     /// First generic `T` is any type, second generic is `Witness`.
     /// `Witness` is a type always in form "struct Witness has drop {}"
     ///
