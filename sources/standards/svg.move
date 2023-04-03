@@ -9,9 +9,8 @@ module nft_protocol::svg {
     use sui::object::UID;
 
     use nft_protocol::utils::{
-        assert_with_consumable_witness, UidType
+        assert_with_witness, UidType, marker, Marker
     };
-    use nft_protocol::consumable_witness::{Self as cw, ConsumableWitness};
 
     /// No field object `Svg` defined as a dynamic field.
     const EUNDEFINED_SVG_FIELD: u64 = 1;
@@ -24,38 +23,35 @@ module nft_protocol::svg {
         svg: vector<u8>,
     }
 
-    struct SvgKey has store, copy, drop {}
-
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
 
-    // === Insert with ConsumableWitness ===
+    // === Insert with module specific Witness ===
 
 
-    /// Adds `Svg` as a dynamic field with key `SvgKey`.
+    /// Adds `Svg` as a dynamic field with key `Marker<Svg>`.
     /// It adds svg from a `vector<u8>`
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Svg`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun add_svg<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun add_svg<W:drop, T: key>(
+        _witness: W,
         nft_uid: &mut UID,
         nft_type: UidType<T>,
         svg_vec: vector<u8>,
     ) {
         assert_has_not_svg(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_with_witness<W, T>(nft_uid, nft_type);
 
         let svg = new(svg_vec);
 
-        cw::consume<T, Svg>(consumable, &mut svg);
-        df::add(nft_uid, SvgKey {}, svg);
+        df::add(nft_uid, marker<Svg>(), svg);
     }
 
 
@@ -75,7 +71,7 @@ module nft_protocol::svg {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SvgKey` does not exist.
+    /// Panics if dynamic field with `Marker<Svg>` does not exist.
     public fun borrow_svg(
         nft_uid: &UID,
     ): &Svg {
@@ -83,22 +79,22 @@ module nft_protocol::svg {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_svg(nft_uid);
-        df::borrow(nft_uid, SvgKey {})
+        df::borrow(nft_uid, marker<Svg>())
     }
 
     /// Borrows Mutably the `Svg` field.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Svg`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SvgKey` does not exist.
+    /// Panics if dynamic field with `Marker<Svg>` does not exist.
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun borrow_svg_mut<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun borrow_svg_mut<W: drop, T: key>(
+        _witness: W,
         nft_uid: &mut UID,
         nft_type: UidType<T>
     ): &mut Svg {
@@ -106,13 +102,12 @@ module nft_protocol::svg {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_svg(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let svg = df::borrow_mut<SvgKey, Svg>(
+        let svg = df::borrow_mut<Marker<Svg>, Svg>(
             nft_uid,
-            SvgKey {}
+            marker<Svg>()
         );
-        cw::consume<T, Svg>(consumable, svg);
 
         svg
     }
@@ -123,17 +118,17 @@ module nft_protocol::svg {
 
     /// Sets SVG data of `Svg` field in the NFT of type `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Svg`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SvgKey` does not exist.
+    /// Panics if dynamic field with `Marker<Svg>` does not exist.
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun set_svg<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun set_svg<W: drop, T: key>(
+        _witness: W,
         nft_uid: &mut UID,
         nft_type: UidType<T>,
         svg_vec: vector<u8>,
@@ -142,28 +137,26 @@ module nft_protocol::svg {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_svg(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_with_witness<W, T>(nft_uid, nft_type);
 
         let svg = borrow_mut_internal(nft_uid);
         svg.svg = svg_vec;
-
-        cw::consume<T, Svg>(consumable, svg);
     }
 
 
     /// Sets SVG data of `Svg` field in the NFT of type `T`.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a
-    /// `ConsumableWitness` for the specific type `T` and field `Svg`.
+    /// Endpoint is protected as it relies on safetly obtaining a witness
+    /// from the contract exporting the type `T`.
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `SvgKey` does not exist.
+    /// Panics if dynamic field with `Marker<Svg>` does not exist.
     ///
     /// Panics if `nft_uid` does not correspond to `nft_type.id`,
     /// in other words, it panics if `nft_uid` is not of type `T`.
-    public fun burn_svg<T: key>(
-        consumable: ConsumableWitness<T>,
+    public fun burn_svg<W: drop, T: key>(
+        _witness: W,
         nft_uid: &mut UID,
         nft_type: UidType<T>
     ): vector<u8> {
@@ -171,10 +164,9 @@ module nft_protocol::svg {
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_svg(nft_uid);
-        assert_with_consumable_witness(nft_uid, nft_type);
+        assert_with_witness<W, T>(nft_uid, nft_type);
 
-        let svg = df::remove<SvgKey, Svg>(nft_uid, SvgKey {});
-        cw::consume<T, Svg>(consumable, &mut svg);
+        let svg = df::remove<Marker<Svg>, Svg>(nft_uid, marker<Svg>());
 
         burn_svg_(svg)
     }
@@ -222,9 +214,9 @@ module nft_protocol::svg {
     fun borrow_mut_internal(
         nft_uid: &mut UID,
     ): &mut Svg {
-        df::borrow_mut<SvgKey, Svg>(
+        df::borrow_mut<Marker<Svg>, Svg>(
             nft_uid,
-            SvgKey {}
+            marker<Svg>()
         )
     }
 
@@ -232,11 +224,11 @@ module nft_protocol::svg {
     // === Assertions & Helpers ===
 
 
-    /// Checks that a given NFT has a dynamic field with `SvgKey`
+    /// Checks that a given NFT has a dynamic field with `Marker<Svg>`
     public fun has_svg(
         nft_uid: &UID,
     ): bool {
-        df::exists_(nft_uid, SvgKey {})
+        df::exists_(nft_uid, marker<Svg>())
     }
 
     public fun assert_has_svg(nft_uid: &UID) {
