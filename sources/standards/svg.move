@@ -1,49 +1,43 @@
-/// Module of the `SvgDomain`
+/// Module of the `Svg`
 ///
 /// Used to associate SVG data with `Collection` or `Nft`.
 ///
-/// Composable NFTs with children registering `SvgDomain` can declare them with
-/// `ComposableSvgDomain` to compose all SVG data into one definition.
+/// Composable NFTs with children registering `Svg` can declare them with
+/// `ComposableSvg` to compose all SVG data into one definition.
 module nft_protocol::svg {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{Self, Marker};
 
-    /// `SvgDomain` was not defined
+    /// `Svg` was not defined
     ///
-    /// Call `svg::add_domain` to add `SvgDomain`.
+    /// Call `svg::add_domain` to add `Svg`.
     const EUndefinedSvg: u64 = 1;
 
-    /// `SvgDomain` already defined
+    /// `Svg` already defined
     ///
     /// Call `svg::borrow_domain` to borrow domain.
     const EExistingSvg: u64 = 2;
 
     /// Domain for storing an associated SVG data
-    struct SvgDomain has store {
+    struct Svg has store, drop {
         svg: vector<u8>,
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
-
-    /// Creates new `SvgDomain`
-    public fun new(svg: vector<u8>): SvgDomain {
-        SvgDomain { svg }
+    /// Creates new `Svg`
+    public fun new(svg: vector<u8>): Svg {
+        Svg { svg }
     }
 
-    /// Borrow SVG from `SvgDomain`
-    public fun borrow_svg(domain: &SvgDomain): &vector<u8> {
+    /// Borrow SVG from `Svg`
+    public fun get_svg(domain: &Svg): &vector<u8> {
         &domain.svg
     }
 
-    /// Sets SVG data of `SvgDomain`
-    ///
-    /// `ComposableSvgDomain` will not be automatically updated and
-    /// `composable_svg::regenerate` must be called
+    /// Set Svg` field
     public fun set_svg<C>(
-        domain: &mut SvgDomain,
+        domain: &mut Svg,
         svg: vector<u8>,
     ) {
         domain.svg = svg;
@@ -51,72 +45,72 @@ module nft_protocol::svg {
 
     // === Interoperability ===
 
-    /// Returns whether `SvgDomain` is registered on `Nft`
+    /// Returns whether `Svg` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
-        df::exists_with_type<Marker<SvgDomain>, SvgDomain>(
+        df::exists_with_type<Marker<Svg>, Svg>(
             nft, utils::marker(),
         )
     }
 
-    /// Borrows `SvgDomain` from `Nft`
+    /// Borrows `Svg` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SvgDomain` is not registered on the `Nft`
-    public fun borrow_domain(nft: &UID): &SvgDomain {
+    /// Panics if `Svg` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &Svg {
         assert_svg(nft);
-        df::borrow(nft, utils::marker<SvgDomain>())
+        df::borrow(nft, utils::marker<Svg>())
     }
 
-    /// Mutably borrows `SvgDomain` from `Nft`
+    /// Mutably borrows `Svg` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SvgDomain` is not registered on the `Nft`
-    public fun borrow_domain_mut(nft: &mut UID): &mut SvgDomain {
+    /// Panics if `Svg` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut Svg {
         assert_svg(nft);
-        df::borrow_mut(nft, utils::marker<SvgDomain>())
+        df::borrow_mut(nft, utils::marker<Svg>())
     }
 
-    /// Adds `SvgDomain` to `Nft`
+    /// Adds `Svg` to `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SvgDomain` domain already exists
+    /// Panics if `Svg` domain already exists
     public fun add_domain(
         nft: &mut UID,
-        domain: SvgDomain,
+        domain: Svg,
     ) {
         assert_no_svg(nft);
-        df::add(nft, utils::marker<SvgDomain>(), domain);
+        df::add(nft, utils::marker<Svg>(), domain);
     }
 
-    /// Remove `SvgDomain` from `Nft`
+    /// Remove `Svg` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SvgDomain` domain doesnt exist
-    public fun remove_domain(nft: &mut UID): SvgDomain {
+    /// Panics if `Svg` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): Svg {
         assert_svg(nft);
-        df::remove(nft, utils::marker<SvgDomain>())
+        df::remove(nft, utils::marker<Svg>())
     }
 
     // === Assertions ===
 
-    /// Asserts that `SvgDomain` is registered on `Nft`
+    /// Borrows Mutably the `Svg` field.
     ///
     /// #### Panics
     ///
-    /// Panics if `SvgDomain` is not registered
+    /// Panics if `Svg` is not registered
     public fun assert_svg(nft: &UID) {
         assert!(has_domain(nft), EUndefinedSvg);
     }
 
-    /// Asserts that `SvgDomain` is not registered on `Nft`
+    /// Asserts that `Svg` is not registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `SvgDomain` is registered
+    /// Panics if `Svg` is registered
     public fun assert_no_svg(nft: &UID) {
         assert!(!has_domain(nft), EExistingSvg);
     }

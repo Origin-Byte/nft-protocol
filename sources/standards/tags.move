@@ -3,21 +3,21 @@
 /// This domain allows wallets to organize the NFT display based on categories,
 /// such as Art, Profile Picture, Collectibles, etc.
 module nft_protocol::tags {
-    // TODO: Consider if we should add a wrapper domain Tags {bag} such that
-    // wallet can always query this domain instead of having to query all domains
-    // and figure out which ones are tags or not.
+    // TODO: limit tags to three
+    // Ability to add tags with vector<string>
     use sui::dynamic_field as df;
-    use sui::object::{Self, UID};
+    use sui::object::UID;
     use sui::tx_context::TxContext;
+    use sui::bag::{Self, Bag};
 
     use nft_protocol::utils::{Self, Marker};
 
-    /// `TagsDomain` was not defined
+    /// `Tags` was not defined
     ///
     /// Call `tags::add_domain` to add `TagsDomain`.
     const EUndefinedTags: u64 = 1;
 
-    /// `TagsDomain` already defined
+    /// `Tags` already defined
     ///
     /// Call `tags::borrow_domain` to borrow domain.
     const EExistingTags: u64 = 2;
@@ -84,109 +84,99 @@ module nft_protocol::tags {
         License {}
     }
 
-    // === TagDomain ===
+    // === Tags ===
 
-    struct TagDomain has store {
-        id: UID,
+    struct Tags has store {
+        tags: Bag
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
-
-    public fun empty(ctx: &mut TxContext): TagDomain {
-        TagDomain { id: object::new(ctx) }
+    /// Creates empty `Tags`
+    public fun empty(ctx: &mut TxContext): Tags {
+        Tags { tags: bag::new(ctx) }
     }
 
-    public fun has_tag<T: store + drop>(domain: &TagDomain): bool {
-        utils::assert_same_module_as_witness<T, Witness>();
-        df::exists_with_type<Marker<T>, T>(&domain.id, utils::marker<T>())
-    }
 
-    /// Adds tag to `TagDomain`
-    public fun add_tag<T: store + drop>(
-        domain: &mut TagDomain,
-        tag: T,
+    /// Adds tag to `Tags`
+    public fun add_tag<Tag: store + drop>(
+        tags: &mut Tags,
+        tag: Tag,
     ) {
-        utils::assert_same_module_as_witness<T, Witness>();
-        df::add(&mut domain.id, utils::marker<T>(), tag)
+        bag::add(&mut tags.tags, utils::marker<Tag>(), tag);
     }
 
-    /// Removes tag from `TagDomain`
-    public fun remove_tag<T: store + drop>(
-        domain: &mut TagDomain,
-    ) {
-        utils::assert_same_module_as_witness<T, Witness>();
-        let _: T = df::remove(&mut domain.id, utils::marker<T>());
+    /// Removes tag from `Tags`
+    public fun remove_tag<Tag: store + drop>(tags: &mut Tags) {
+        let _: Tag = bag::remove(&mut tags.tags, utils::marker<Tag>());
     }
 
     // === Interoperability ===
 
-    /// Returns whether `TagDomain` is registered on `Nft`
+    /// Returns whether `Tags` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
-        df::exists_with_type<Marker<TagDomain>, TagDomain>(
+        df::exists_with_type<Marker<Tags>, Tags>(
             nft, utils::marker(),
         )
     }
 
-    /// Borrows `TagDomain` from `Nft`
+    /// Borrows `Tags` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TagDomain` is not registered on the `Nft`
-    public fun borrow_domain(nft: &UID): &TagDomain {
+    /// Panics if `Tags` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &Tags {
         assert_tags(nft);
-        df::borrow(nft, utils::marker<TagDomain>())
+        df::borrow(nft, utils::marker<Tags>())
     }
 
-    /// Mutably borrows `TagDomain` from `Nft`
+    /// Mutably borrows `Tags` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TagDomain` is not registered on the `Nft`
-    public fun borrow_domain_mut(nft: &mut UID): &mut TagDomain {
+    /// Panics if `Tags` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut Tags {
         assert_tags(nft);
-        df::borrow_mut(nft, utils::marker<TagDomain>())
+        df::borrow_mut(nft, utils::marker<Tags>())
     }
 
-    /// Adds `TagDomain` to `Nft`
+    /// Adds `Tags` to `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TagDomain` domain already exists
+    /// Panics if `Tags` domain already exists
     public fun add_domain(
         nft: &mut UID,
-        domain: TagDomain,
+        domain: Tags,
     ) {
         assert_no_tags(nft);
-        df::add(nft, utils::marker<TagDomain>(), domain);
+        df::add(nft, utils::marker<Tags>(), domain);
     }
 
-    /// Remove `TagDomain` from `Nft`
+    /// Remove `Tags` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TagDomain` domain doesnt exist
-    public fun remove_domain(nft: &mut UID): TagDomain {
+    /// Panics if `Tags` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): Tags {
         assert_tags(nft);
-        df::remove(nft, utils::marker<TagDomain>())
+        df::remove(nft, utils::marker<Tags>())
     }
 
     // === Assertions ===
 
-    /// Asserts that `TagDomain` is registered on `Nft`
+    /// Asserts that `Tags` is registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TagDomain` is not registered
+    /// Panics if `Tags` is not registered
     public fun assert_tags(nft: &UID) {
         assert!(has_domain(nft), EUndefinedTags);
     }
 
-    /// Asserts that `TagDomain` is not registered on `Nft`
+    /// Asserts that `Tags` is not registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TagDomain` is registered
+    /// Panics if `Tags` is registered
     public fun assert_no_tags(nft: &UID) {
         assert!(!has_domain(nft), EExistingTags);
     }

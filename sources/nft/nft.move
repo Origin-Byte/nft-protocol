@@ -327,11 +327,12 @@ module nft_protocol::nft {
     // === `Collection<Nft<C>>` functions ===
 
     /// Creates a `Collection<Nft<C>>` and corresponding `MintCap<Nft<C>>`
-    public fun new_collection<C>(
-        _witness: &C,
+    public fun create_collection<C, W: drop>(
+        _witness: W,
         ctx: &mut TxContext,
-    ): (MintCap<Nft<C>>, Collection<Nft<C>>) {
-        collection::create<Witness, Nft<C>>(Witness {}, ctx)
+    ): Collection<Nft<C>> {
+        utils::assert_same_module_as_witness<C, W>();
+        collection::create<Nft<C>, Witness>(Witness {}, ctx)
     }
 
     /// Delegates `&mut UID` of `Collection<Nft<C>>`

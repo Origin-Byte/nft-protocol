@@ -6,6 +6,7 @@ module nft_protocol::footbytes {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::creators;
+    use nft_protocol::display_info;
     use nft_protocol::display;
     use nft_protocol::metadata_bag;
     use nft_protocol::metadata;
@@ -27,7 +28,8 @@ module nft_protocol::footbytes {
     struct Witness has drop {}
 
     fun init(witness: FOOTBYTES, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(witness, ctx);
+        let collection = nft::create_collection(witness, ctx);
+        let mint_cap = mint_cap::new_unregulated(Witness {}, &collection, ctx);
 
         collection::add_domain(
             Witness {},
@@ -41,7 +43,7 @@ module nft_protocol::footbytes {
         collection::add_domain(
             Witness {},
             &mut collection,
-            display::new(
+            display_info::new(
                 string::utf8(b"Football digital stickers"),
                 string::utf8(b"A NFT collection of football player collectibles"),
             ),
@@ -89,8 +91,8 @@ module nft_protocol::footbytes {
         let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-        nft::add_domain(Witness {}, &mut nft, display::new(name, description));
-        nft::add_domain(Witness {}, &mut nft, url::new(url));
+        nft::add_domain(Witness {}, &mut nft, display_info::new(name, description));
+        nft::add_domain(Witness {}, &mut nft, url);
 
         let metadata = metadata::create_regulated(nft, supply, ctx);
         metadata_bag::add_metadata_to_collection(mint_cap, collection, metadata);

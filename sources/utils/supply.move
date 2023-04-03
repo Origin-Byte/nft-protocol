@@ -4,7 +4,7 @@
 /// actions. It tracks the current supply and guarantees that it cannot surpass
 /// the maximum supply defined. Among others, this is used to keep track of
 /// NFT supply for collections.
-module nft_protocol::supply {
+module nft_protocol::utils_supply {
     use nft_protocol::err;
 
     /// `Supply` tracks supply parameters

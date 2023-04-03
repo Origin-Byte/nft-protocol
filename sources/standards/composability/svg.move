@@ -1,6 +1,6 @@
-/// Module of `ComposableSvgDomain`
+/// Module of `ComposableSvg`
 ///
-/// `ComposableSvgDomain` does not itself compose NFTs but serves as a display
+/// `ComposableSvg` does not itself compose NFTs but serves as a display
 /// standard provider for NFTs which register `SvgDomain` and are composed
 /// within `NftBagDomain`.
 module nft_protocol::composable_svg {
@@ -17,23 +17,23 @@ module nft_protocol::composable_svg {
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::utils::{Self, Marker};
 
-    /// `ComposableSvgDomain` was not defined
+    /// `ComposableSvg` was not defined
     ///
-    /// Call `composable_svg::add` or to add `ComposableSvgDomain`.
+    /// Call `composable_svg::add` or to add `ComposableSvg`.
     const EUndefinedComposableSvg: u64 = 1;
 
-    /// `ComposableSvgDomain` already defined
+    /// `ComposableSvg` already defined
     ///
     /// Call `composable_svg::borrow` to borrow domain.
     const EExistingComposableSvg: u64 = 2;
 
-    /// `ComposableSvgDomain` did not compose NFT with given ID
+    /// `ComposableSvg` did not compose NFT with given ID
     ///
     /// Call `composable_svg::deregister` with an NFT ID that exists.
     const EUndefinedNft: u64 = 3;
 
     /// Domain for providing composed SVG data
-    struct ComposableSvgDomain has store {
+    struct ComposableSvg has store {
         /// NFTs which are being composed
         nfts: vector<ID>,
         /// Attributes of root `svg` tag
@@ -45,8 +45,8 @@ module nft_protocol::composable_svg {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-    /// Creates new `ComposableSvgDomain` with no predefined NFTs
-    public fun new(): ComposableSvgDomain {
+    /// Creates new `ComposableSvg` with no predefined NFTs
+    public fun new(): ComposableSvg {
         let attributes = vec_map::empty();
         vec_map::insert(
             &mut attributes,
@@ -54,34 +54,34 @@ module nft_protocol::composable_svg {
             ascii::string(b"http://www.w3.org/2000/svg"),
         );
 
-        ComposableSvgDomain {
+        ComposableSvg {
             nfts: vector::empty(),
             attributes,
             svg: vector::empty(),
         }
     }
 
-    /// Borrows root tag attributes from `ComposableSvgDomain`
+    /// Borrows root tag attributes from `ComposableSvg`
     public fun borrow_attributes(
-        domain: &ComposableSvgDomain,
+        domain: &ComposableSvg,
     ): &VecMap<String, String> {
         &domain.attributes
     }
 
-    /// Borrows registered NFTs from `ComposableSvgDomain`
-    public fun borrow_nfts(domain: &ComposableSvgDomain): &vector<ID> {
+    /// Borrows registered NFTs from `ComposableSvg`
+    public fun borrow_nfts(domain: &ComposableSvg): &vector<ID> {
         &domain.nfts
     }
 
     /// Registers NFT whose SVG data should be composed within the final
     /// composed SVG
     ///
-    /// `ComposableSvgDomain` will not be automatically updated so
+    /// `ComposableSvg` will not be automatically updated so
     /// `composable_svg::regenerate` must be called.
     ///
     /// #### Panics
     ///
-    /// - `ComposableSvgDomain` doesn't exist
+    /// - `ComposableSvg` doesn't exist
     /// - `NftBagDomain` doesn't exist
     /// - NFT was of a different collection type
     /// - NFT wasn't composed
@@ -101,14 +101,14 @@ module nft_protocol::composable_svg {
     }
 
     /// Deregisters NFT whose SVG data is being composed within
-    /// `ComposableSvgDomain`
+    /// `ComposableSvg`
     ///
-    /// `ComposableSvgDomain` will not be automatically updated so
+    /// `ComposableSvg` will not be automatically updated so
     /// `composable_svg::regenerate` must be called.
     ///
     /// #### Panics
     ///
-    /// - `ComposableSvgDomain` doesn't exist
+    /// - `ComposableSvg` doesn't exist
     /// - NFT wasn't composed
     public fun deregister<T: key + store>(
         _witness: DelegatedWitness<T>,
@@ -130,7 +130,7 @@ module nft_protocol::composable_svg {
     ///
     /// #### Panics
     ///
-    /// - `ComposableSvgDomain` is not registered
+    /// - `ComposableSvg` is not registered
     /// - `NftBagDomain` is not registered
     /// - Composed type was not `Nft<C>`
     public fun regenerate<C>(nft: &mut UID) {
@@ -171,7 +171,7 @@ module nft_protocol::composable_svg {
                 // TODO: Sui needs to allow obtaining `&UID`
                 let nft = nft::borrow_uid(nft_bag::borrow(nft_bag, *nft_id));
                 if (svg::has_domain(nft)) {
-                    let nft_svg = svg::borrow_svg(svg::borrow_domain(nft));
+                    let nft_svg = svg::get_svg(svg::borrow_domain(nft));
 
                     // TODO: Somehow consider serializing id attribute
                     vector::append(&mut svg, b"<g>");
@@ -190,72 +190,72 @@ module nft_protocol::composable_svg {
 
     // === Interoperability ===
 
-    /// Returns whether `ComposableSvgDomain` is registered on `Nft`
+    /// Returns whether `ComposableSvg` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
-        df::exists_with_type<Marker<ComposableSvgDomain>, ComposableSvgDomain>(
+        df::exists_with_type<Marker<ComposableSvg>, ComposableSvg>(
             nft, utils::marker(),
         )
     }
 
-    /// Borrows `ComposableSvgDomain` from `Nft`
+    /// Borrows `ComposableSvg` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `ComposableSvgDomain` is not registered on the `Nft`
-    public fun borrow_domain(nft: &UID): &ComposableSvgDomain {
+    /// Panics if `ComposableSvg` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &ComposableSvg {
         assert_composable_svg(nft);
-        df::borrow(nft, utils::marker<ComposableSvgDomain>())
+        df::borrow(nft, utils::marker<ComposableSvg>())
     }
 
-    /// Mutably borrows `ComposableSvgDomain` from `Nft`
+    /// Mutably borrows `ComposableSvg` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `ComposableSvgDomain` is not registered on the `Nft`
-    public fun borrow_domain_mut(nft: &mut UID): &mut ComposableSvgDomain {
+    /// Panics if `ComposableSvg` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut ComposableSvg {
         assert_composable_svg(nft);
-        df::borrow_mut(nft, utils::marker<ComposableSvgDomain>())
+        df::borrow_mut(nft, utils::marker<ComposableSvg>())
     }
 
-    /// Adds `ComposableSvgDomain` to `Nft`
+    /// Adds `ComposableSvg` to `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `ComposableSvgDomain` domain already exists
+    /// Panics if `ComposableSvg` domain already exists
     public fun add_domain(
         nft: &mut UID,
-        domain: ComposableSvgDomain,
+        domain: ComposableSvg,
     ) {
         assert_no_composable_svg(nft);
-        df::add(nft, utils::marker<ComposableSvgDomain>(), domain);
+        df::add(nft, utils::marker<ComposableSvg>(), domain);
     }
 
-    /// Remove `ComposableSvgDomain` from `Nft`
+    /// Remove `ComposableSvg` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `ComposableSvgDomain` domain doesnt exist
-    public fun remove_domain(nft: &mut UID): ComposableSvgDomain {
+    /// Panics if `ComposableSvg` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): ComposableSvg {
         assert_composable_svg(nft);
-        df::remove(nft, utils::marker<ComposableSvgDomain>())
+        df::remove(nft, utils::marker<ComposableSvg>())
     }
 
     // === Assertions ===
 
-    /// Asserts that `ComposableSvgDomain` is registered on `Nft`
+    /// Asserts that `ComposableSvg` is registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `ComposableSvgDomain` is not registered
+    /// Panics if `ComposableSvg` is not registered
     public fun assert_composable_svg(nft: &UID) {
         assert!(has_domain(nft), EUndefinedComposableSvg);
     }
 
-    /// Asserts that `ComposableSvgDomain` is not registered on `Nft`
+    /// Asserts that `ComposableSvg` is not registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `ComposableSvgDomain` is registered
+    /// Panics if `ComposableSvg` is registered
     public fun assert_no_composable_svg(nft: &UID) {
         assert!(!has_domain(nft), EExistingComposableSvg);
     }

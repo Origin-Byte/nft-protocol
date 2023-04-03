@@ -143,12 +143,11 @@ module nft_protocol::royalty_strategy_bps {
     /// The creator is the sender.
     /// The strategy has access to `TransferRequest` balance
     public fun create_domain_and_add_strategy<T, W>(
-        witness: &W,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         bps: u64,
         ctx: &mut TxContext,
     ) {
-        let delegated_witness = nft_protocol::witness::from_witness(witness);
         let royalty_domain = royalty::from_address(sender(ctx), ctx);
         royalty::add_royalty_domain(
             witness,
@@ -157,11 +156,11 @@ module nft_protocol::royalty_strategy_bps {
         );
 
         let royalty_strategy = new<T>(
-            delegated_witness, collection, bps, ctx,
+            witness, collection, bps, ctx,
         );
         add_balance_access_cap(
             &mut royalty_strategy,
-            ob_transfer_request::grant_balance_access_cap(delegated_witness),
+            ob_transfer_request::grant_balance_access_cap(witness),
         );
         share(royalty_strategy);
     }

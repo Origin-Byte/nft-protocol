@@ -5,11 +5,11 @@ module nft_protocol::example_simple {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::mint_cap;
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::display;
-    use nft_protocol::url;
+    use nft_protocol::display_info;
     use nft_protocol::mint_cap::MintCap;
-    use nft_protocol::supply_domain;
+    use nft_protocol::supply;
 
     /// One time witness is only instantiated in the init method
     struct EXAMPLE_SIMPLE has drop {}
@@ -22,13 +22,15 @@ module nft_protocol::example_simple {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
-        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
+    fun init(_witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
+        let collection: Collection<Nft<EXAMPLE_SIMPLE>> =
+            nft::create_collection(Witness {}, ctx);
+        let mint_cap = mint_cap::new_unregulated(Witness {}, &collection, ctx);
 
         nft::add_collection_domain(
             Witness {},
             &mut collection,
-            display::new(
+            display_info::new(
                 string::utf8(b"Simple"),
                 string::utf8(b"Simple collection on Sui"),
             )
@@ -37,11 +39,11 @@ module nft_protocol::example_simple {
         nft::add_collection_domain(
             Witness {},
             &mut collection,
-            supply_domain::new(mint_cap, 1000, true),
+            supply::new(mint_cap, 1000, true),
         );
 
         // Request a `MintCap` that has the right to mint 1000 NFTs
-        let mint_cap = supply_domain::delegate<Nft<EXAMPLE_SIMPLE>>(
+        let mint_cap = supply::delegate<Nft<EXAMPLE_SIMPLE>>(
             nft::borrow_collection_domain_mut(Witness {}, &mut collection),
             1000,
             ctx,
@@ -64,8 +66,10 @@ module nft_protocol::example_simple {
         let nft: Nft<EXAMPLE_SIMPLE> = nft::new(
             Witness {}, name, url, ctx,
         );
-        nft::add_domain(Witness {}, &mut nft, display::new(name, description));
-        nft::add_domain(Witness {}, &mut nft, url::new(url));
+        nft::add_domain(
+            Witness {}, &mut nft, display_info::new(name, description),
+        );
+        nft::add_domain(Witness {}, &mut nft, url);
 
         transfer::public_transfer(nft, tx_context::sender(ctx));
     }

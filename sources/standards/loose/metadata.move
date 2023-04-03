@@ -5,7 +5,7 @@ module nft_protocol::metadata {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::utils_supply::{Self, Supply};
     use nft_protocol::mint_cap::{Self, MintCap};
 
     use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
@@ -71,7 +71,7 @@ module nft_protocol::metadata {
         Metadata {
             id: object::new(ctx),
             metadata,
-            supply: option::some(supply::new(supply)),
+            supply: option::some(utils_supply::new(supply)),
         }
     }
 
@@ -135,7 +135,7 @@ module nft_protocol::metadata {
     ): LooseMintCap<T> {
         if (option::is_some(&metadata.supply)) {
             let supply = option::borrow_mut(&mut metadata.supply);
-            supply::increment(supply, quantity);
+            utils_supply::increment(supply, quantity);
         };
 
         loose_mint_cap::new(
