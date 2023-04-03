@@ -12,7 +12,7 @@ module nft_protocol::royalty_strategy_bps {
     use sui::object::{Self, UID};
     use sui::transfer_policy::{Self, TransferPolicyCap};
     use sui::transfer::share_object;
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{sender, TxContext};
 
     /// A shared object which can be used to add receipts of type
     /// `BpsRoyaltyStrategyRule` to `TransferRequest`.
@@ -38,7 +38,7 @@ module nft_protocol::royalty_strategy_bps {
     /// Creates a new strategy which can be then shared with `share` method.
     /// Optionally, add balance access policy
     public fun new<T>(
-        witness: DelegatedWitness<T>,
+        witness: &DelegatedWitness<T>,
         collection: &mut Collection<T>,
         royalty_fee_bps: u64,
         ctx: &mut TxContext,
@@ -132,23 +132,37 @@ module nft_protocol::royalty_strategy_bps {
             royalty_rate,
         )
     }
-}
 
-module nft_protocol::royalty_strategy_constant {
-    struct ConstantRoyaltyStrategy has drop, store {
-        /// Constant royalty charged
-        royalty_fee: u64,
-    }
+    // === Helpers ===
 
-    public fun new(royalty_fee: u64): ConstantRoyaltyStrategy {
-        ConstantRoyaltyStrategy { royalty_fee}
-    }
+    /// 1. Creates a new `RoyaltyDomain`
+    /// 2. Assigns it to the collection
+    /// 3. Creates a new shared `BpsRoyaltyStrategy`
+    /// 4. Assigns it to the domain
+    ///
+    /// The creator is the sender.
+    /// The strategy has access to `TransferRequest` balance
+    public fun create_domain_and_add_strategy<T, W>(
+        witness: &W,
+        collection: &mut Collection<T>,
+        bps: u64,
+        ctx: &mut TxContext,
+    ) {
+        let delegated_witness = nft_protocol::witness::from_witness(witness);
+        let royalty_domain = royalty::from_address(sender(ctx), ctx);
+        royalty::add_royalty_domain(
+            witness,
+            collection,
+            royalty_domain,
+        );
 
-    public fun royalty_fee(domain: &ConstantRoyaltyStrategy): u64 {
-        domain.royalty_fee
-    }
-
-    public fun calculate(domain: &ConstantRoyaltyStrategy): u64  {
-        royalty_fee(domain)
+        let royalty_strategy = new<T>(
+            &delegated_witness, collection, bps, ctx,
+        );
+        add_balance_access_cap(
+            &mut royalty_strategy,
+            ob_transfer_request::grant_balance_access_cap(&delegated_witness),
+        );
+        share(royalty_strategy);
     }
 }

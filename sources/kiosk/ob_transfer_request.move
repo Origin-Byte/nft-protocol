@@ -218,7 +218,7 @@ module nft_protocol::ob_transfer_request {
     /// Creates a new capability which enables the holder to get `&mut` access
     /// to a balance paid for an NFT.
     public fun grant_balance_access_cap<T>(
-        _witness: DelegatedWitness<T>,
+        _witness: &DelegatedWitness<T>,
     ): BalanceAccessCap<T> { BalanceAccessCap {} }
 
     // === Request confirmation ===

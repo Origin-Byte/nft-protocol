@@ -5,16 +5,16 @@ module nft_protocol::suitraders {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::url;
-    use nft_protocol::tags;
-    use nft_protocol::royalty;
-    use nft_protocol::display;
-    use nft_protocol::creators;
     use nft_protocol::attributes;
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::collection;
+    use nft_protocol::creators;
+    use nft_protocol::display;
     use nft_protocol::mint_cap::{Self, MintCap};
+    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::tags;
+    use nft_protocol::url;
+    use nft_protocol::warehouse::{Self, Warehouse};
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -55,12 +55,8 @@ module nft_protocol::suitraders {
             string::utf8(b"SUITR"),
         );
 
-        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
-        royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(
-            &Witness {},
-            &mut collection,
-            royalty,
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            &Witness {}, &mut collection, 100, ctx,
         );
 
         let tags = tags::empty(ctx);

@@ -7,19 +7,19 @@ module nft_protocol::suimarines {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::url;
-    use nft_protocol::tags;
-    use nft_protocol::royalty;
-    use nft_protocol::display;
-    use nft_protocol::witness;
-    use nft_protocol::creators;
     use nft_protocol::attributes;
-    use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::transfer_allowlist;
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::collection;
+    use nft_protocol::creators;
+    use nft_protocol::display;
+    use nft_protocol::mint_cap::{Self, MintCap};
+    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::tags;
     use nft_protocol::transfer_allowlist_domain;
+    use nft_protocol::transfer_allowlist;
+    use nft_protocol::url;
+    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::witness;
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;
@@ -78,19 +78,19 @@ module nft_protocol::suimarines {
             string::utf8(b"SUIM"),
         );
 
-        let royalty = royalty::from_address(sender, ctx);
-        royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(&Witness {}, &mut collection, royalty);
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            &Witness {}, &mut collection, 100, ctx,
+        );
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
         tags::add_collection_tag_domain(&Witness {}, &mut collection, tags);
 
         let allowlist = transfer_allowlist::create(&Witness {}, ctx);
-        transfer_allowlist::insert_collection<Nft<SUIMARINES>, Witness>(
+        transfer_allowlist::insert_collection<SUIMARINES, Witness>(
+            &mut allowlist,
             &Witness {},
             witness::from_witness(&Witness {}),
-            &mut allowlist,
         );
 
         collection::add_domain(
