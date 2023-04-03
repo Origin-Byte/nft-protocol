@@ -19,7 +19,6 @@ module nft_protocol::suimarines {
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::collection;
     use nft_protocol::collection_id;
     use nft_protocol::transfer_allowlist_domain;
 
@@ -51,7 +50,7 @@ module nft_protocol::suimarines {
             &transfer_policy_cap,
         );
 
-        collection::add_domain(
+        nft::add_collection_domain(
             Witness {},
             &mut collection,
             creators::from_address_delegated<Nft<SUIMARINES>>(
@@ -60,7 +59,7 @@ module nft_protocol::suimarines {
         );
 
         // Register custom domains
-        collection::add_domain(
+        nft::add_collection_domain(
             Witness {},
             &mut collection,
             display::new(
@@ -69,7 +68,7 @@ module nft_protocol::suimarines {
             ),
         );
 
-        collection::add_domain(
+        nft::add_collection_domain(
             Witness {},
             &mut collection,
             url::new(
@@ -77,7 +76,7 @@ module nft_protocol::suimarines {
             ),
         );
 
-        collection::add_domain(
+        nft::add_collection_domain(
             Witness {},
             &mut collection,
             symbol::new(string::utf8(b"SUIM")),
@@ -89,7 +88,7 @@ module nft_protocol::suimarines {
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        collection::add_domain(Witness {}, &mut collection, tags);
+        nft::add_collection_domain(Witness {}, &mut collection, tags);
 
         let allowlist = transfer_allowlist::create(&Witness {}, ctx);
         transfer_allowlist::insert_collection<Nft<SUIMARINES>, Witness>(
@@ -98,7 +97,7 @@ module nft_protocol::suimarines {
             &mut allowlist,
         );
 
-        collection::add_domain(
+        nft::add_collection_domain(
             Witness {},
             &mut collection,
             transfer_allowlist_domain::from_id(object::id(&allowlist)),

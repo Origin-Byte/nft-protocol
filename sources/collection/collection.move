@@ -113,12 +113,12 @@ module nft_protocol::collection {
 
     // === Domain Functions ===
 
-    /// Delegates `&UID` for domain specified extensions of `Nft`
+    /// Delegates `&UID` for domain specified extensions of `Collection`
     public fun borrow_uid<T>(collection: &Collection<T>): &UID {
         &collection.id
     }
 
-    /// Delegates `&mut UID` for domain specified extensions of `Nft`
+    /// Delegates `&mut UID` for domain specified extensions of `Collection`
     ///
     /// #### Panics
     ///
@@ -133,7 +133,7 @@ module nft_protocol::collection {
         )
     }
 
-    /// Delegates `&mut UID` for domain specified extensions of `Nft`
+    /// Delegates `&mut UID` for domain specified extensions of `Collection`
     public fun borrow_uid_delegated_mut<T>(
         _witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
@@ -162,7 +162,7 @@ module nft_protocol::collection {
         df::borrow(&collection.id, utils::marker<Domain>())
     }
 
-    /// Mutably borrow domain from `Nft`
+    /// Mutably borrow domain from `Collection`
     ///
     /// Guarantees that `Collection<T>` domains can only be mutated by the
     /// module that instantiated it.
@@ -237,7 +237,7 @@ module nft_protocol::collection {
         df::add(&mut collection.id, utils::marker<Domain>(), domain);
     }
 
-    /// Removes domain of type from `Nft`
+    /// Removes domain of type from `Collection`
     ///
     /// ##### Panics
     ///
@@ -247,14 +247,13 @@ module nft_protocol::collection {
         witness: W,
         collection: &mut Collection<T>,
     ): Domain {
-        assert_domain<T, Domain>(collection);
         remove_domain_delegated(
             witness::from_witness(witness),
             collection,
         )
     }
 
-    /// Removes domain of type from `Nft`
+    /// Removes domain of type from `Collection`
     ///
     /// ##### Panics
     ///
@@ -270,7 +269,7 @@ module nft_protocol::collection {
         )
     }
 
-    /// Deletes an `Nft`
+    /// Deletes an `Collection`
     ///
     /// #### Panics
     ///
