@@ -7,10 +7,12 @@ module nft_protocol::utils {
     use std::vector;
 
     use sui::vec_set::{Self, VecSet};
-    use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
     use sui::table_vec::{Self, TableVec};
     use sui::vec_map::{Self, VecMap};
+    use sui::tx_context::TxContext;
+    use sui::object::{Self, ID, UID};
+
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
     const EMismatchedKeyValueLength: u64 = 1;
@@ -19,6 +21,10 @@ module nft_protocol::utils {
 
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
+
+    struct UidType<phantom T> has drop {
+        id: ID,
+    }
 
     public fun table_vec_from_vec<T: store>(
         vec: vector<T>,
@@ -78,6 +84,45 @@ module nft_protocol::utils {
 
     public fun bps(): u16 {
         10_000
+    }
+
+    public fun assert_with_witness<W: drop, T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+        assert_same_module_as_witness<T, W>();
+    }
+
+    public fun assert_with_consumable_witness<T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+    }
+
+    public fun uid_type_to_inner<T: key>(uid: &UidType<T>): ID {
+        uid.id
+    }
+
+    public fun proof_of_type<T: key>(uid: &UID, object: &T): UidType<T> {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
+
+        UidType<T> { id: uid_id }
+    }
+
+    public fun assert_uid_type<T: key>(uid: &UID, uid_type: &UidType<T>) {
+        assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
+    }
+
+    public fun assert_uid_type_<T: key>(uid: &UID, object: &T) {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
     }
 
     public fun assert_same_module<T, Witness: drop>() {

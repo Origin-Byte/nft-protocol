@@ -45,7 +45,7 @@ module nft_protocol::collection {
     /// [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See
     /// [borrow_domain_mut](#borrow_domain_mut).
-    struct Collection<phantom T> has key, store {
+    struct Collection<phantom W> has key, store {
         /// `Collection` ID
         id: UID,
         // TODO: Delete
@@ -78,6 +78,7 @@ module nft_protocol::collection {
     /// }
     /// ```
     public fun create<T, W: drop>(
+        // TODO: Consider having only one Type parameter
         _witness: W,
         ctx: &mut TxContext,
     ): Collection<T> {
@@ -87,7 +88,7 @@ module nft_protocol::collection {
 
         event::emit(MintCollectionEvent {
             collection_id: object::uid_to_inner(&id),
-            type_name: type_name::get<T>(),
+            type_name: type_name::get<W>(),
         });
 
         Collection { id, bag: bag::new(ctx) }
