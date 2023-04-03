@@ -2,26 +2,20 @@ module nft_protocol::composable_nft {
     // TODO: Ideally we would allow for multiple NFTs to be composed together in a single
     // transaction
     // TODO: some endpoint for reorder_children
-    // TODO: functions to remove relations, already composed NFTs remain until their decomposed
-    // TODO: Add entry funtions for change_composition_limit___
     use std::type_name::{Self, TypeName};
 
-    use sui::transfer;
-    use sui::dynamic_field as df;
-    use sui::linked_table::{Self, LinkedTable};
-    use sui::table::{Self, Table};
+    use sui::transfer::public_transfer;
     use sui::object::{ID, UID};
     use sui::tx_context::{Self, TxContext};
+    use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::items;
-    use nft_protocol::utils::{
-        Self, assert_with_witness, UidType, marker, Marker
-    };
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::nft_bag;
 
     /// Parent and child types are not composable
     ///
     /// Call `composable_nft::add_relationship` to add parent child
-    /// relationship to the composability blueprint.
+    /// relationship to the composition.
     const ETYPES_NOT_COMPOSABLE: u64 = 1;
 
     /// Relationship between provided parent and child types is already defined
@@ -29,211 +23,161 @@ module nft_protocol::composable_nft {
 
     /// Exceeded composed type limit when calling `composable_nft::compose`
     ///
-    /// Set a higher type limit in the composability blueprint.
+    /// Set a higher type limit in the composability composition.
     const EEXCEEDED_TYPE_LIMIT: u64 = 3;
-
-    /// No field object `Compositions` defined as a dynamic field.
-    const EUNDEFINED_COMPOSITIONS_FIELD: u64 = 5;
-
-    /// Field object `Compositions` already defined as dynamic field.
-    const ECOMPOSITIONS_FIELD_ALREADY_EXISTS: u64 = 6;
-
-    // === Compositions ===
-
-    struct Compositions has store {
-        rules: Table<TypeName, LinkedTable<TypeName, u64>>
-    }
 
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
+    /// Internal struct for indexing NFTs in `NftBagDomain`
+    struct Key<phantom T> has drop, store {}
 
-    // === Insert with module specific Witness ===
-
-
-    /// Adds `Compositions` as a dynamic field with key `Marker<Compositions>`.
+    /// Domain held in the Collection object, blueprinting all the composability
+    /// between types.
     ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun init_compositions<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
-        ctx: &mut TxContext,
-    ) {
-        assert_has_not_compositions(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        let compositions = new(ctx);
-        df::add(object_uid, marker<Compositions>(), compositions);
+    /// Multiple compositions can exist in each collection, therefore they are
+    /// generic on `S`, a schema marker.
+    struct Composition<phantom Schema> has store {
+        limits: VecMap<TypeName, u64>,
     }
 
-
-    // === Get for call from external Module ===
-
-
-    /// Creates new `Compositions`
-    public fun new(ctx: &mut TxContext): Compositions {
-        Compositions {
-            rules: table::new<TypeName, LinkedTable<TypeName, u64>>(ctx)
+    public fun new_composition<Schema>(): Composition<Schema> {
+        Composition {
+            limits: vec_map::empty(),
         }
     }
 
-
-    // === Field Borrow Functions ===
-
-
-    /// Borrows immutably the `Compositions` field.
+    /// Adds parent child relationship to `Composition`
     ///
     /// #### Panics
-    ///
-    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
-    public fun borrow_compositions(
-        object_uid: &UID,
-    ): &Compositions {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_compositions(object_uid);
-        df::borrow(object_uid, marker<Compositions>())
-    }
-
-
-    /// Borrows Mutably the `Compositions` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_compositions_mut<W: drop, T: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>
-    ): &mut Compositions {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_compositions(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
-
-        df::borrow_mut(object_uid, marker<Compositions>())
-    }
-
-    /// Borrows Mutably the `Compositions` field.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
-    ///
-    /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_child_mut<W: drop, Parent: key + store, Child: key + store>(
-        _witness: W,
-        parent_uid: &mut UID,
-        parent_type: UidType<Parent>,
-        child_id: ID,
-    ): &mut Child {
-        // `df::borrow` fails if there is no such dynamic field,
-        // however asserting it here allows for a more straightforward
-        // error message
-        assert_has_compositions(parent_uid);
-        assert_with_witness<W, Parent>(parent_uid, parent_type);
-
-        items::borrow_nft_mut_(Witness {}, parent_uid, parent_type, child_id)
-    }
-
-
-    // === Writer Functions ===
-
-
-    /// Inserts parent child relationship to `Compositions` object field
-    /// in object `T`.
-    ///
-    /// Endpoint is protected as it relies on safetly obtaining a witness
-    /// from the contract exporting the type `T`.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if dynamic field with `Marker<Compositions>` does not exist.
-    ///
-    /// Panics if `object_uid` does not correspond to `object_type.id`,
-    /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if parent child relationship already exists
-    public fun insert_relation_<W: drop, T: key, Parent: key, Child: key>(
-        _witness: W,
-        object_uid: &mut UID,
-        object_type: UidType<T>,
+    public fun add_relationship<Schema, Child>(
+        composition: &mut Composition<Schema>,
         limit: u64,
     ) {
-        assert_has_compositions(object_uid);
-        utils::assert_same_module_<T, Child, Parent>();
-        assert_with_witness<W, T>(object_uid, object_type);
+        let child_type = type_name::get<Child>();
 
-        let compositions = df::borrow_mut<Marker<Compositions>, Compositions>(
-            object_uid,
-            marker<Compositions>()
+        assert!(
+            !has_child(composition, &child_type),
+            ERELATIONSHIP_ALREADY_DEFINED,
         );
 
-        let parent_type = type_name::get<Parent>();
-        let parent_row = table::borrow_mut(&mut compositions.rules, parent_type);
-
-        assert_new_relationship<Child>(parent_row);
-
-        let child_type = type_name::get<Child>();
-        linked_table::push_back(parent_row, child_type, limit);
+        vec_map::insert(&mut composition.limits, child_type, limit);
     }
 
-    /// Compose child NFT into parent NFT.
+    /// Returns whether a parent child relationship exists in the composition
+    public fun has_child<Schema>(
+        composition: &Composition<Schema>,
+        child_type: &TypeName,
+    ): bool {
+        vec_map::contains(&composition.limits, child_type)
+    }
+
+    /// Get limit for given type
     ///
     /// #### Panics
     ///
-    /// * `Blueprint<Parent>` is not registered as a domain on the parent NFT
+    /// Panics if parent child relationship was not defined on composability
+    /// composition.
+    public fun get_limit<Schema>(
+        composition: &Composition<Schema>,
+        child_type: &TypeName,
+    ): u64 {
+        assert_composable(composition, child_type);
+        *vec_map::get(borrow_limits(composition), child_type)
+    }
+
+    /// Borrow mutable limit for given type
+    ///
+    /// #### Panics
+    ///
+    /// Panics if parent child relationship was not defined on composability
+    /// composition.
+    public fun borrow_limit_mut<Schema>(
+        composition: &mut Composition<Schema>,
+        child_type: &TypeName,
+    ): &mut u64 {
+        assert_composable(composition, child_type);
+        vec_map::get_mut(borrow_limits_mut(composition), child_type)
+    }
+
+    /// Borrow child limit from composability composition
+    public fun borrow_limits<Schema>(
+        composition: &Composition<Schema>,
+    ): &VecMap<TypeName, u64> {
+        &composition.limits
+    }
+
+    /// Mutbaly borrow child limit from composability composition
+    fun borrow_limits_mut<Schema>(
+        composition: &mut Composition<Schema>,
+    ): &mut VecMap<TypeName, u64> {
+        &mut composition.limits
+    }
+
+    /// Registers `Composition` on the given `Collection`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Composition` is already registered on the `Collection`.
+    public fun add_composition_domain<T, Schema, W: drop>(
+        witness: W,
+        collection: &mut Collection<T>,
+        domain: Composition<Schema>,
+    ) {
+        collection::add_domain(witness, collection, domain);
+    }
+
+    /// Compose child NFT into parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// * `Composition<Schema>` is not registered as a domain on the parent NFT
     /// * Parent child relationship is not defined on the composability
-    /// blueprint
+    /// composition
     /// * Parent or child NFT do not have corresponding `Type<Parent>` and
     /// `Type<Child>` domains registered
     /// * Limit of children is exceeded
-    public entry fun compose<Parent: key + store, Child: key + store>(
-        parent_uid: &mut UID,
-        parent_type: UidType<Parent>,
+    public fun compose<
+        T: key + store,
+        Schema,
+        Child: key + store
+    >(
+        parent_nft: &mut UID,
         child_nft: Child,
-        compositions: &Compositions,
+        collection: &Collection<T>,
     ) {
-        // TODO: Assert has item, if not create
-        utils::assert_uid_type(parent_uid, &parent_type);
+        let composition: &Composition<Schema> =
+            collection::borrow_domain(collection);
 
         // Asserts that parent and child are composable
         let child_type = type_name::get<Child>();
-        let limit = get_composition_limit<Parent,Child>(compositions);
+        let limit = get_limit(composition, &child_type);
 
-        let items = items::borrow_items(parent_uid);
+        let nfts = nft_bag::borrow_domain_mut<Child>(parent_nft);
 
         assert!(
-            items::count<Child>(items) < *limit,
+            nft_bag::count<Child, Key<Child>>(nfts) < limit,
             EEXCEEDED_TYPE_LIMIT,
         );
 
-        items::add_child(Witness {}, parent_uid, &parent_type, child_nft);
+        nft_bag::compose(Key<Child> {}, nfts, child_nft);
+    }
+
+    /// Decomposes NFT with given ID from parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no NFT with given ID composed
+    public fun decompose<T: key + store>(
+        parent_nft: &mut UID,
+        child_nft_id: ID,
+    ): T {
+        // TODO: Should check whether this NFT is allowed to be decomposed
+        // somehow
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        nft_bag::decompose(Key<T> {}, nfts, child_nft_id)
     }
 
     /// Decomposes NFT with given ID from parent NFT and transfers to
@@ -242,123 +186,29 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if there is no NFT with given ID composed
-    public entry fun decompose_and_transfer<C, Parent: key + store, Child: key + store>(
-        parent_uid: &mut UID,
-        parent_type: UidType<Parent>,
-        child_id: ID,
+    public fun decompose_and_transfer<T: key + store>(
+        parent_nft: &mut UID,
+        child_nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        let nft = decompose<C, Parent, Child>(parent_uid, parent_type, child_id);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        let nft = decompose<T>(parent_nft, child_nft_id);
+        public_transfer(nft, tx_context::sender(ctx));
     }
 
-    /// Decomposes NFT with given ID from parent NFT
-    ///
-    /// #### Panics
-    ///
-    /// Panics if there is no NFT with given ID composed
-    public fun decompose<C, Parent: key + store, Child: key + store>(
-        parent_uid: &mut UID,
-        parent_type: UidType<Parent>,
-        child_id: ID,
-    ): Child {
-        // TODO: Assert has item
-        utils::assert_uid_type(parent_uid, &parent_type);
-
-        items::remove_child(Witness {}, parent_uid, &parent_type, child_id)
-    }
-
-
-    // === Getter Functions & Static Mutability Accessors ===
-
-    /// Get composability limit for a given `Parent` - `Child` relationship
-    /// from `Compositions` object.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if parent child relationship was not defined on composability
-    /// blueprint.
-    public fun get_composition_limit<Parent, Child>(
-        compositions: &Compositions,
-    ): &u64 {
-        // assert_composable<Parent>(blueprint, child_type);
-        let parent_type = type_name::get<Parent>();
-        let parent_row = table::borrow(&compositions.rules, parent_type);
-
-        let child_type = type_name::get<Child>();
-        linked_table::borrow<TypeName, u64>(parent_row, child_type)
-    }
-
-    /// Change composability limit for a given `Parent` - `Child` relationship
-    /// from `Compositions` object.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if parent child relationship was not defined on composability
-    /// blueprint.
-    public fun change_composition_limit___<Parent: key, Child: key>(
-        compositions: &mut Compositions,
-        new_limit: u64,
-    ) {
-        // assert_composable<Parent>(blueprint, child_type);
-        let parent_type = type_name::get<Parent>();
-        let parent_row = table::borrow_mut(&mut compositions.rules, parent_type);
-
-        let child_type = type_name::get<Child>();
-        let limit = linked_table::borrow_mut<TypeName, u64>(parent_row, child_type);
-
-        *limit = new_limit;
-    }
-
-
-    // === Assertions & Helpers ===
-
-    /// Returns whether a parent child relationship exists in the blueprint
-    public fun has_child<Child>(
-        parent_row: &LinkedTable<TypeName, u64>,
-    ): bool {
-        let child_type = type_name::get<Child>();
-
-        linked_table::contains<TypeName, u64>(parent_row, child_type)
-    }
-
-
-    public fun assert_new_relationship<Child>(
-        parent_row: &LinkedTable<TypeName, u64>,
-    ) {
-        assert!(
-            !has_child<Child>(parent_row),
-            ERELATIONSHIP_ALREADY_DEFINED,
-        );
-    }
+    // === Assertions ===
 
     /// Assert that parent and child types are composable
     ///
     /// #### Panics
     ///
     /// Panics if parent and child types are not composable.
-    public fun assert_composable<Child>(
-        parent_row: &LinkedTable<TypeName, u64>,
+    public fun assert_composable<S>(
+        composition: &Composition<S>,
         child_type: &TypeName,
     ) {
         assert!(
-            has_child<Child>(parent_row),
+            has_child(composition, child_type),
             ETYPES_NOT_COMPOSABLE,
         );
-    }
-
-    /// Checks that a given NFT has a dynamic field with `ItemsKey`
-    public fun has_compositions(
-        object_uid: &UID,
-    ): bool {
-        df::exists_(object_uid, marker<Compositions>())
-    }
-
-    public fun assert_has_compositions(object_uid: &UID) {
-        assert!(has_compositions(object_uid), EUNDEFINED_COMPOSITIONS_FIELD);
-    }
-
-    public fun assert_has_not_compositions(object_uid: &UID) {
-        assert!(!has_compositions(object_uid), ECOMPOSITIONS_FIELD_ALREADY_EXISTS);
     }
 }

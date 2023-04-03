@@ -47,7 +47,7 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
-            &Witness {},
+            Witness {},
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
@@ -67,12 +67,12 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
-            &Witness {},
+            Witness {},
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
 
-        nft::borrow_domain_mut<Foo, DomainA, Witness>(
+        nft::borrow_domain_mut<Foo, Witness, DomainA>(
             Witness {}, &mut nft
         );
 
@@ -81,7 +81,7 @@ module nft_protocol::test_nft {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft::EEXISTING_DOMAIN)]
+    #[expected_failure(abort_code = nft::EExistingDomain)]
     fun fails_adding_duplicate_domain() {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
@@ -89,14 +89,14 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
-            &Witness {},
+            Witness {},
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
 
         // This second call will fail
         nft::add_domain(
-            &Witness {},
+            Witness {},
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
@@ -114,13 +114,13 @@ module nft_protocol::test_nft {
         let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
-            &Witness {},
+            Witness {},
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
 
         nft::borrow_domain<Foo, DomainA>(&nft);
-        nft::borrow_domain_mut<Foo, DomainA, FakeWitness>(
+        nft::borrow_domain_mut<Foo, FakeWitness, DomainA>(
             fake_witness::new(), &mut nft
         );
 

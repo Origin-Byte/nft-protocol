@@ -1,20 +1,15 @@
 module nft_protocol::access_policy {
     use std::type_name::{Self, TypeName};
-    use std::vector;
 
     use sui::event;
     use sui::bag;
-    use sui::dynamic_field as df;
     use sui::package::{Self, Publisher};
-    use sui::transfer;
     use sui::table::{Self, Table};
-    use sui::table_vec::{Self, TableVec};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
-    use nft_protocol::utils::{Self, UidType};
+    use nft_protocol::utils;
     use nft_protocol::collection::{Self, Collection};
 
     /// When trying to create an access policy when it already exists

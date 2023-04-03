@@ -13,15 +13,11 @@
 /// `UnregulatedMintCap` is that they may not be used to further delegate more
 /// mint capabilities.
 module nft_protocol::mint_pass {
-    use std::option::{Self, Option};
-
     use sui::tx_context::TxContext;
-    use sui::object::{Self, UID, ID};
+    use sui::object::{Self, UID};
     use sui::bcs;
     use sui::dynamic_field as df;
 
-    use nft_protocol::collection::Collection;
-    use nft_protocol::utils;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::supply::{Self, Supply};
 

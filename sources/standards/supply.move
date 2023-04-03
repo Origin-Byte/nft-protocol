@@ -10,21 +10,13 @@
 /// of the current supply, whilst unregulated policies have no supply
 /// constraints nor they keep track of the number of minted objects.
 module nft_protocol::supply {
-    use sui::transfer;
-    use sui::object;
-    use sui::tx_context::TxContext;
-
     use nft_protocol::err;
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::supply::{Self};
-    use nft_protocol::witness::Witness as DelegatedWitness;
 
     use sui::object::UID;
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{
-        Self, assert_with_witness, UidType
+        assert_with_witness, UidType
     };
 
     friend nft_protocol::warehouse;
