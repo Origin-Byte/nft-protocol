@@ -5,11 +5,11 @@ module nft_protocol::example_simple {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::mint_cap;
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::collection;
-    use nft_protocol::display;
-    use nft_protocol::url;
+    use nft_protocol::display_info;
     use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::supply;
 
     /// One time witness is only instantiated in the init method
     struct EXAMPLE_SIMPLE has drop {}
@@ -22,31 +22,31 @@ module nft_protocol::example_simple {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
-        let (mint_cap, collection) = nft::new_collection(
-            &witness, ctx
-        );
+    fun init(_witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
+        let collection: Collection<Nft<EXAMPLE_SIMPLE>> =
+            nft::create_collection(Witness {}, ctx);
+        let mint_cap = mint_cap::new_unregulated(Witness {}, &collection, ctx);
 
-        collection::add_domain(
-            &Witness {},
+        nft::add_collection_domain(
+            Witness {},
             &mut collection,
-            display::new_display_domain(
+            display_info::new(
                 string::utf8(b"Simple"),
                 string::utf8(b"Simple collection on Sui"),
             )
         );
 
-        nft_protocol::supply_domain::regulate(
-            &Witness {},
-            mint_cap,
+        nft::add_collection_domain(
+            Witness {},
             &mut collection,
-            1000,
-            true
+            supply::new(mint_cap, 1000, true),
         );
 
         // Request a `MintCap` that has the right to mint 1000 NFTs
-        let mint_cap = nft_protocol::supply_domain::delegate(
-            &mut collection, 1000, ctx,
+        let mint_cap = supply::delegate<Nft<EXAMPLE_SIMPLE>>(
+            nft::borrow_collection_domain_mut(Witness {}, &mut collection),
+            1000,
+            ctx,
         );
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
@@ -64,15 +64,53 @@ module nft_protocol::example_simple {
         let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft: Nft<EXAMPLE_SIMPLE> = nft::new(
-            &Witness {}, name, url, ctx,
+            Witness {}, name, url, ctx,
         );
-
-        display::add_display_domain(
-            &Witness {}, &mut nft, name, description,
+        nft::add_domain(
+            Witness {}, &mut nft, display_info::new(name, description),
         );
-
-        url::add_url_domain(&Witness {}, &mut nft, url);
+        nft::add_domain(Witness {}, &mut nft, url);
 
         transfer::public_transfer(nft, tx_context::sender(ctx));
+    }
+
+    // === Integration test ===
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+
+    #[test_only]
+    use nft_protocol::collection::Collection;
+
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun test_example_simple() {
+        let scenario = test_scenario::begin(USER);
+
+        init(EXAMPLE_SIMPLE {}, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+
+        assert!(test_scenario::has_most_recent_shared<Collection<Nft<EXAMPLE_SIMPLE>>>(), 0);
+
+        let mint_cap = test_scenario::take_from_address<MintCap<Nft<EXAMPLE_SIMPLE>>>(
+            &scenario, USER,
+        );
+
+        mint_nft(
+            string::utf8(b"Simple NFT"),
+            string::utf8(b"A simple NFT on Sui"),
+            b"https://originbyte.io/",
+            &mint_cap,
+            ctx(&mut scenario)
+        );
+
+        test_scenario::return_to_address(USER, mint_cap);
+        test_scenario::next_tx(&mut scenario, USER);
+
+        assert!(test_scenario::has_most_recent_for_address<Nft<EXAMPLE_SIMPLE>>(USER), 0);
+
+        test_scenario::end(scenario);
     }
 }

@@ -1,7 +1,7 @@
 module nft_protocol::ob_kiosk {
     use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::access_policy::{Self as ap, AccessPolicy};
+    use nft_protocol::collection::Collection;
+    use nft_protocol::access_policy as ap;
     use originmate::typed_id::{Self, TypedID};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use std::type_name::{Self, TypeName};

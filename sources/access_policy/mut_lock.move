@@ -1,7 +1,7 @@
 module nft_protocol::mut_lock {
     use std::type_name::{Self, TypeName};
     use std::option::{Self, Option};
-    use sui::object::{Self, UID, ID};
+    use sui::object::{Self, ID};
     use nft_protocol::utils;
 
     const ELOCK_PROMISE_MISMATCH: u64 = 1;
@@ -73,8 +73,11 @@ module nft_protocol::mut_lock {
             ELOCK_AUTHORITY_MISMATCH
         );
 
-        let MutLock { nft, authority, field } = locked_nft;
+        let MutLock { nft, authority: _, field: _ } = locked_nft;
+
         assert!(promise.nft_id == object::id(&nft), ELOCK_PROMISE_MISMATCH);
+
+        let ReturnPromise { nft_id: _ } = promise;
 
         nft
     }

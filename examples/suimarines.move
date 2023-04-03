@@ -1,27 +1,16 @@
 module nft_protocol::suimarines {
-    use std::ascii;
-    use std::string::{Self, String};
-    use std::vector;
+    use std::string::String;
 
     use sui::object::{Self, UID};
-    use sui::balance;
     use sui::transfer;
     use sui::dynamic_field as df;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft::{Self, Nft};
+    use nft_protocol::collection::Collection;
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
-    use nft_protocol::tags;
     use nft_protocol::utils;
-    use nft_protocol::royalty;
-    use nft_protocol::witness;
-    use nft_protocol::creators;
-    use nft_protocol::attributes;
-    use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::transfer_allowlist;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::collection;
-    use nft_protocol::transfer_allowlist_domain;
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;
@@ -44,8 +33,8 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
-
-        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
+        let collection: Collection<Submarine> =
+            collection::create(Witness {}, ctx);
 
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included
@@ -59,7 +48,6 @@ module nft_protocol::suimarines {
             &transfer_policy_cap,
         );
 
-        transfer::public_transfer(mint_cap, sender);
         transfer::public_transfer(publisher, sender);
         transfer::public_transfer(transfer_policy_cap, sender);
         transfer::public_share_object(transfer_policy);
@@ -72,7 +60,6 @@ module nft_protocol::suimarines {
 
         let nft = mut_lock::borrow_nft_as_witness(Witness {}, locked_nft);
 
-        // TODO: Change FIELDS to use MARKER INSTEAD OF KEY!
         let field = df::remove(&mut nft.id, utils::marker<Field>());
 
         let promise = mut_lock::issue_return_field_promise<Field>();

@@ -15,23 +15,20 @@ module nft_protocol::test_royalty {
     fun add_royalty() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (mint_cap, collection) =
-            collection::create(&Witness {}, ctx(&mut scenario));
+        let collection = collection::create(Witness {}, ctx(&mut scenario));
 
         let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
         royalty::add_proportional_royalty(&mut royalty, 100);
         royalty::add_constant_royalty(&mut royalty, 100);
         royalty::add_royalty_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
             royalty,
         );
 
-        // If domain does not exist this function call will fail
-        collection::borrow_domain<Foo, RoyaltyDomain>(&collection);
+        collection::assert_domain<Foo, RoyaltyDomain>(&collection);
 
         transfer::public_share_object(collection);
-        transfer::public_transfer(mint_cap, CREATOR);
 
         test_scenario::end(scenario);
     }
