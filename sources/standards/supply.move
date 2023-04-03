@@ -49,8 +49,8 @@ module nft_protocol::supply {
     /// Witness used to authenticate witness protected endpoints
     struct Witness has drop {}
 
-
-    // === Insert with module specific Witness ===
+    /// Key struct used to store Attributes in dynamic fields
+    struct SupplyKey has store, copy, drop {}
 
 
     // === Insert with module specific Witness ===
@@ -105,8 +105,8 @@ module nft_protocol::supply {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
-        assert_has_supply<T>(object_uid);
-        df::borrow(object_uid, marker<Supply<T>>())
+        assert_has_supply(object_uid);
+        df::borrow(object_uid, SupplyKey {})
     }
 
     /// Borrows Mutably the `Supply` field.
@@ -116,7 +116,7 @@ module nft_protocol::supply {
     ///
     /// #### Panics
     ///
-    /// Panics if dynamic field with `Marker<Supply<T>>` does not exist.
+    /// Panics if dynamic field with `SupplyKey` does not exist.
     ///
     /// Panics if `object_uid` does not correspond to `object_type.id`,
     /// in other words, it panics if `object_uid` is not of type `T`.
@@ -169,7 +169,7 @@ module nft_protocol::supply {
 
         let supply = df::borrow_mut<SupplyKey, Supply>(
             object_uid,
-            marker<Supply<T>>()
+            SupplyKey {}
         );
 
         assert_not_frozen(supply);
@@ -205,7 +205,7 @@ module nft_protocol::supply {
 
         let supply = df::borrow_mut<SupplyKey, Supply>(
             object_uid,
-            marker<Supply<T>>()
+            SupplyKey {}
         );
 
         assert_not_frozen(supply);
@@ -242,7 +242,7 @@ module nft_protocol::supply {
 
         let supply = df::borrow_mut<SupplyKey, Supply>(
             object_uid,
-            marker<Supply<T>>()
+            SupplyKey {}
         );
 
         assert_not_frozen(supply);
@@ -387,10 +387,10 @@ module nft_protocol::supply {
 
 
     /// Checks that a given NFT has a dynamic field with `AttributesKey`
-    public fun has_supply<T: key>(
+    public fun has_supply(
         object_uid: &UID,
     ): bool {
-        df::exists_(object_uid, marker<Supply<T>>())
+        df::exists_(object_uid, SupplyKey {})
     }
 
     /// Asserts that current supply is zero
@@ -408,11 +408,11 @@ module nft_protocol::supply {
         assert!(!supply.frozen, err::supply_frozen())
     }
 
-    public fun assert_has_supply<T: key>(object_uid: &UID) {
-        assert!(has_supply<T>(object_uid), EUNDEFINED_SUPPLY_FIELD);
+    public fun assert_has_supply(object_uid: &UID) {
+        assert!(has_supply(object_uid), EUNDEFINED_SUPPLY_FIELD);
     }
 
-    public fun assert_has_not_supply<T: key>(object_uid: &UID) {
-        assert!(!has_supply<T>(object_uid), ESUPPLY_FIELD_ALREADY_EXISTS);
+    public fun assert_has_not_supply(object_uid: &UID) {
+        assert!(!has_supply(object_uid), ESUPPLY_FIELD_ALREADY_EXISTS);
     }
 }
