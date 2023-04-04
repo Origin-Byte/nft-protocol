@@ -47,11 +47,20 @@ module nft_protocol::example_symbol {
     fun init(_witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
         let collection: Collection<Nft<EXAMPLE_SYMBOL>> =
             nft::create_collection(Witness {}, ctx);
-        let mint_cap =
-            mint_cap::new<Witness, Nft<EXAMPLE_SYMBOL>>(Witness {}, &collection, option::none(), ctx);
 
-        collection::add_domain(
-            Witness {},
+        let delegated_witness = nft::delegate_witness<EXAMPLE_SYMBOL, Witness>(
+            Witness {}
+        );
+
+        let mint_cap =mint_cap::new_from_delegated<Nft<EXAMPLE_SYMBOL>>(
+            delegated_witness,
+            &collection,
+            option::none(),
+            ctx
+        );
+
+        collection::add_domain_delegated(
+            delegated_witness,
             &mut collection,
             display_info::new(
                 string::utf8(b"Symbol"),
@@ -59,8 +68,8 @@ module nft_protocol::example_symbol {
             )
         );
 
-        collection::add_domain(
-            Witness {},
+        collection::add_domain_delegated(
+            delegated_witness,
             &mut collection,
             RegistryDomain { symbols: vec_set::empty() },
         );
@@ -134,5 +143,18 @@ module nft_protocol::example_symbol {
         let nft = mint_nft(domain, ctx);
 
         transfer::public_transfer(nft, tx_context::sender(ctx));
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(USER);
+        init(EXAMPLE_SYMBOL {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
     }
 }

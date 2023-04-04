@@ -28,6 +28,7 @@ module nft_protocol::suitraders {
 
     fun init(_witness: SUITRADERS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+
         let collection: Collection<Nft<SUITRADERS>> =
             nft::create_collection(Witness {}, ctx);
 
@@ -118,5 +119,18 @@ module nft_protocol::suitraders {
         nft::add_domain(Witness {}, &mut nft, collection_id::from_mint_cap(mint_cap));
 
         warehouse::deposit_nft(warehouse, nft);
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(USER);
+        init(SUITRADERS {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
     }
 }
