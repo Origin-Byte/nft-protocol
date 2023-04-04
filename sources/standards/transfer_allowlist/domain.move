@@ -9,7 +9,7 @@ module nft_protocol::transfer_allowlist_domain {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils;
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
     use sui::object::{Self, ID};
     use sui::package::Publisher;
     use sui::vec_set::{Self, VecSet};
@@ -50,21 +50,21 @@ module nft_protocol::transfer_allowlist_domain {
     /// Now, off chain clients can use this information to discover the ID
     /// and use it in relevant txs.
     public fun add_id<T>(
-        _witness: DelegatedWitness<T>,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         al: &mut Allowlist,
     ) {
-        let domain = transfer_allowlist_domain_mut(collection);
+        let domain = transfer_allowlist_domain_mut(witness, collection);
         vec_set::insert(&mut domain.allowlists, object::id(al));
     }
 
     /// Removes existing allowlist from `TransferAllowlistDomain`.
     public fun remove_id<T>(
-        _witness: DelegatedWitness<T>,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         id: ID,
     ) {
-        let domain = transfer_allowlist_domain_mut(collection);
+        let domain = transfer_allowlist_domain_mut(witness, collection);
         vec_set::remove(&mut domain.allowlists, &id);
     }
 
@@ -75,8 +75,9 @@ module nft_protocol::transfer_allowlist_domain {
         al: &mut Allowlist,
     ) {
         utils::assert_package_publisher<C>(collection_pub);
+        let witness = witness::from_publisher(collection_pub);
 
-        let domain = transfer_allowlist_domain_mut(collection);
+        let domain = transfer_allowlist_domain_mut(witness, collection);
         vec_set::insert(&mut domain.allowlists, object::id(al));
     }
 
@@ -87,8 +88,9 @@ module nft_protocol::transfer_allowlist_domain {
         id: ID,
     ) {
         utils::assert_package_publisher<C>(collection_pub);
+        let witness = witness::from_publisher(collection_pub);
 
-        let domain = transfer_allowlist_domain_mut(collection);
+        let domain = transfer_allowlist_domain_mut(witness, collection);
         vec_set::remove(&mut domain.allowlists, &id);
     }
 
@@ -121,10 +123,11 @@ module nft_protocol::transfer_allowlist_domain {
     ///
     /// Panics if `TransferAllowlistDomain` is not registered on `Collection`.
     fun transfer_allowlist_domain_mut<T>(
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
     ): &mut TransferAllowlistDomain {
         assert_domain(collection);
-        collection::borrow_domain_mut(Witness {}, collection)
+        collection::borrow_domain_delegated_mut(witness, collection)
     }
 
     // === Assertions ===
