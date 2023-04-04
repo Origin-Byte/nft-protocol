@@ -77,7 +77,7 @@ module nft_protocol::venue {
         ctx: &mut TxContext
     ) {
         let venue = new(market, is_whitelisted, ctx);
-        transfer::transfer(venue, tx_context::sender(ctx));
+        transfer::public_transfer(venue, tx_context::sender(ctx));
     }
 
     /// Set market's live status

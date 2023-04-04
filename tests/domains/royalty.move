@@ -4,7 +4,9 @@ module nft_protocol::test_royalty {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::collection;
-    use nft_protocol::royalty::{Self, RoyaltyDomain};
+    use nft_protocol::witness;
+    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::royalty::RoyaltyDomain;
 
     struct Foo has drop {}
     struct Witness has drop {}
@@ -15,23 +17,17 @@ module nft_protocol::test_royalty {
     fun add_royalty() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let (mint_cap, collection) =
-            collection::create(&Foo {}, ctx(&mut scenario));
+        let collection = collection::create<Foo, Witness>(Witness {}, ctx(&mut scenario));
 
-        let royalty = royalty::from_address(CREATOR, ctx(&mut scenario));
-        royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_constant_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(
-            &Witness {},
-            &mut collection,
-            royalty,
+        let delegated_witness = witness::from_witness<Foo, Witness>(Witness {});
+
+        royalty_strategy_bps::create_domain_and_add_strategy<Foo>(
+            delegated_witness, &mut collection, 100, ctx(&mut scenario),
         );
 
-        // If domain does not exist this function call will fail
-        collection::borrow_domain<Foo, RoyaltyDomain>(&collection);
+        collection::assert_domain<Foo, RoyaltyDomain>(&collection);
 
-        transfer::share_object(collection);
-        transfer::transfer(mint_cap, CREATOR);
+        transfer::public_share_object(collection);
 
         test_scenario::end(scenario);
     }

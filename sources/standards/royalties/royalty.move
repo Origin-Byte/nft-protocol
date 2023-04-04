@@ -8,66 +8,29 @@
 /// account all royalty strategies defined on the domain, as the OriginByte
 /// standard does not know how to read strategies not otherwise defined by it.
 ///
-/// The module relies on an external contract to drive the royalty gathering
-/// and dirtribution flow.
+/// The module relies on an external contract to drive the royalty gathering.
 module nft_protocol::royalty {
-    use std::fixed_point32;
-
-    use sui::coin;
-    use sui::transfer;
-    use sui::balance::{Self, Balance};
-    use sui::tx_context::{Self, TxContext};
-    use sui::dynamic_field as df;
-    use sui::vec_map::{Self, VecMap};
-    use sui::object::{Self, UID};
-
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::err;
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::royalty_strategy_constant::{
-        Self, ConstantRoyaltyStrategy
-    };
+    use std::fixed_point32;
+    use sui::balance::{Self, Balance};
+    use sui::coin;
+    use sui::dynamic_field as df;
+    use sui::object::{Self, UID, ID};
+    use sui::transfer;
+    use sui::tx_context::{Self, TxContext};
+    use sui::vec_map::{Self, VecMap};
+    use sui::vec_set::{Self, VecSet};
 
     // === RoyaltyDomain ===
 
-    /// `RoyaltyDomain` stores royalty strategies for `Collection` and
-    /// distributes them among creators
-    ///
-    /// ##### Usage
-    ///
-    /// `RoyaltyDomain` can only calculate royalties owed and distribute them
-    /// to shareholders, as a result, it relies on trusted price execution.
-    ///
-    /// The usage example shows how to derive the owed royalties from the
-    /// example collection, `Suimarines`, which uses `TradePayment` as the
-    /// price oracle, but is also responsible for deconstructing it. For more
-    /// information read [royalties](./royalties.html).
-    ///
-    /// ```
-    /// module nft_protocol::suimarines {
-    ///     struct Witness has drop {}
-    ///
-    ///     public entry fun collect_royalty<FT>(
-    ///         payment: &mut TradePayment<SUIMARINES, FT>,
-    ///         collection: &mut Collection<SUIMARINES>,
-    ///         ctx: &mut TxContext,
-    ///     ) {
-    ///         let b = royalties::balance_mut(Witness {}, payment);
-    ///
-    ///         let domain = royalty::royalty_domain(collection);
-    ///         let royalty_owed =
-    ///             royalty::calculate_proportional_royalty(domain, balance::value(b));
-    ///
-    ///         royalty::collect_royalty(collection, b, royalty_owed);
-    ///         royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
-    ///     }
-    /// }
-    /// ```
+    /// `RoyaltyDomain` stores royalties for `Collection` and
+    /// distributes them among creators.
     struct RoyaltyDomain has store {
         /// Royalty strategies
-        strategies: UID,
+        strategies: VecSet<ID>,
         /// Aggregates received royalties across different coins
         aggregations: UID,
         /// Royalty share received by addresses
@@ -102,12 +65,11 @@ module nft_protocol::royalty {
     ///
     /// Panics if total sum of creator basis point share is not equal to 10000
     public fun from_shares(
-        royalty_shares_bps: VecMap<address, u16>,
-        ctx: &mut TxContext,
+        royalty_shares_bps: VecMap<address, u16>, ctx: &mut TxContext,
     ): RoyaltyDomain {
         assert_total_shares(&royalty_shares_bps);
         RoyaltyDomain {
-            strategies: object::new(ctx),
+            strategies: vec_set::empty(),
             aggregations: object::new(ctx),
             royalty_shares_bps,
         }
@@ -262,131 +224,18 @@ module nft_protocol::royalty {
 
     // === Royalties ===
 
-    /// Add a generic royalty strategy
-    ///
-    /// Royalty strategies which are not part of the OriginByte standard must
-    /// implement their own calculation methods. Prefer using
-    /// `add_proportional_royalty` and `add_constant_royalty` if only adding
-    /// standard royalty strategies.
-    ///
-    /// ##### Panics
-    ///
-    /// Panics if royalty strategy of the same type was already registered
-    public fun add_royalty_strategy<Strategy: drop + store>(
-        domain: &mut RoyaltyDomain,
-        strategy: Strategy,
-    ) {
-        df::add(
-            &mut domain.strategies,
-            utils::marker<Strategy>(),
-            strategy,
-        );
+    /// Informs the client about the royalty strategy.
+    public fun remove_strategy(domain: &mut RoyaltyDomain, strategy: ID) {
+        vec_set::remove(&mut domain.strategies, &strategy);
     }
 
-    /// Remove a royalty strategy
-    ///
-    /// Prefer using `remove_proportional_royalty` and
-    /// `remove_constant_royalty` if only removing standard royalty strategies.
-    ///
-    /// ##### Panics
-    ///
-    /// Panics if strategy was not defined
-    public fun remove_strategy<Strategy: drop + store>(
-        domain: &mut RoyaltyDomain,
-    ): Strategy {
-        df::remove(&mut domain.strategies, utils::marker<Strategy>())
+    /// Informs the client about the royalty strategy.
+    public fun add_strategy(domain: &mut RoyaltyDomain, strategy: ID) {
+        vec_set::insert(&mut domain.strategies, strategy);
     }
 
-    /// Check whether a royalty strategy is defined
-    public fun contains_strategy<Strategy: drop + store>(
-        domain: &RoyaltyDomain,
-    ): bool {
-        df::exists_with_type<Marker<Strategy>, Strategy>(
-            &domain.strategies, utils::marker<Strategy>()
-        )
-    }
-
-    /// Borrow a royalty strategy
-    ///
-    /// ##### Panics
-    ///
-    /// Panics if strategy was not defined
-    public fun borrow_strategy<Strategy: drop + store>(
-        domain: &RoyaltyDomain,
-    ): &Strategy {
-        df::borrow(
-            &domain.strategies,
-            utils::marker<Strategy>(),
-        )
-    }
-
-    /// Mutably borrow a royalty strategy
-    ///
-    /// ##### Panics
-    ///
-    /// Panics if strategy was not defined
-    public fun borrow_strategy_mut<Strategy: drop + store>(
-        domain: &mut RoyaltyDomain,
-    ): &mut Strategy {
-        df::borrow_mut(&mut domain.strategies, utils::marker<Strategy>())
-    }
-
-    // === Standard royalty domains ===
-
-    /// Add proportional royalty policy
-    public fun add_proportional_royalty(
-        domain: &mut RoyaltyDomain,
-        royalty_fee_bps: u64,
-    ) {
-        let strategy = royalty_strategy_bps::new(royalty_fee_bps);
-        add_royalty_strategy(domain, strategy);
-    }
-
-    /// Add constant royalty policy
-    public fun add_constant_royalty(
-        domain: &mut RoyaltyDomain,
-        royalty_fee: u64,
-    ) {
-        let strategy = royalty_strategy_constant::new(royalty_fee);
-        add_royalty_strategy(domain, strategy);
-    }
-
-    /// Remove proportional royalty policy
-    public fun remove_proportional_royalty(
-        domain: &mut RoyaltyDomain,
-    ): BpsRoyaltyStrategy {
-        remove_strategy<BpsRoyaltyStrategy>(domain)
-    }
-
-    /// Remove constant royalty policy
-    public fun remove_constant_royalty(
-        domain: &mut RoyaltyDomain,
-    ): ConstantRoyaltyStrategy {
-        remove_strategy<ConstantRoyaltyStrategy>(domain)
-    }
-
-    /// Calculate how many tokens are due for the defined proportional royalty
-    /// strategy.
-    ///
-    /// Zero if strategy is undefined.
-    public fun calculate_proportional_royalty(
-        domain: &RoyaltyDomain,
-        amount: u64,
-    ): u64 {
-        let strategy = borrow_strategy<BpsRoyaltyStrategy>(domain);
-        royalty_strategy_bps::calculate(strategy, amount)
-    }
-
-    /// Calculate how many tokens are due for the defined constant royalty
-    /// strategy.
-    ///
-    /// Zero if strategy is undefined.
-    public fun calculate_constant_royalty(
-        domain: &RoyaltyDomain,
-    ): u64 {
-        let strategy = borrow_strategy<ConstantRoyaltyStrategy>(domain);
-        royalty_strategy_constant::calculate(strategy)
-    }
+    /// Returns the list of royalty strategies registered on the `RoyaltyDomain`
+    public fun strategies(domain: &RoyaltyDomain): &VecSet<ID> { &domain.strategies }
 
     // === Utils ===
 
@@ -397,8 +246,8 @@ module nft_protocol::royalty {
     /// aggregate balance of the `RoyaltyDomain` registered on the `Collection`
     ///
     /// Requires that a `RoyaltyDomain` is registered on the collection
-    public fun collect_royalty<C, FT>(
-        collection: &mut Collection<C>,
+    public fun collect_royalty<T, FT>(
+        collection: &mut Collection<T>,
         source: &mut Balance<FT>,
         amount: u64,
     ) {
@@ -437,8 +286,8 @@ module nft_protocol::royalty {
     /// ##### Panics
     ///
     /// Panics if there is no aggregate for token `FT`.
-    public entry fun distribute_royalties<C, FT>(
-        collection: &mut Collection<C>,
+    public entry fun distribute_royalties<T, FT>(
+        collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
         let domain: &mut RoyaltyDomain =
@@ -486,7 +335,7 @@ module nft_protocol::royalty {
                     ctx,
                 );
 
-                transfer::transfer(wallet, *who);
+                transfer::public_transfer(wallet, *who);
             };
 
             i = i + 1;
@@ -496,8 +345,8 @@ module nft_protocol::royalty {
     // === Interoperability ===
 
     /// Get reference to `RoyaltyDomain`
-    public fun royalty_domain<C>(
-        collection: &Collection<C>,
+    public fun royalty_domain<T>(
+        collection: &Collection<T>,
     ): &RoyaltyDomain {
         collection::borrow_domain(collection)
     }
@@ -505,20 +354,20 @@ module nft_protocol::royalty {
     /// Get mutable reference to `RoyaltyDomain`
     ///
     /// Requires that `CreatorsDomain` is defined and sender is a creator
-    public fun royalty_domain_mut<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun royalty_domain_mut<T>(
+        witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
     ): &mut RoyaltyDomain {
-        collection::borrow_domain_mut(Witness {}, collection)
+        collection::borrow_domain_delegated_mut(witness, collection)
     }
 
     /// Registers `RoyaltyDomain` on the given `Collection`
-    public fun add_royalty_domain<C, W>(
-        witness: &W,
-        collection: &mut Collection<C>,
+    public fun add_royalty_domain<T>(
+        witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         domain: RoyaltyDomain,
     ) {
-        collection::add_domain(witness, collection, domain);
+        collection::add_domain_delegated(witness, collection, domain);
     }
 
     // === Utils ===

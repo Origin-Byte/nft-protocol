@@ -1,203 +1,178 @@
-/// Module of Collection `CreatorsDomain`
+/// Module of Collection `Creators`
 ///
-/// `CreatorsDomain` tracks all collection creators, used to authenticate
-/// mutable operations on other OriginByte standard domains.
+/// `Creators` tracks all collection creators.
 module nft_protocol::creators {
     use sui::vec_set::{Self, VecSet};
-    use sui::tx_context::{Self, TxContext};
+    use sui::object::UID;
+    use sui::dynamic_field as df;
 
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::witness::{
-        Self, WitnessGenerator, Witness as DelegatedWitness
-    };
+    use nft_protocol::utils::{Self, Marker};
 
     /// `CreatorsDomain` was not defined on `Collection`
     ///
-    /// Call `collection::add_domain` to add `CreatorsDomain`.
-    const EUNDEFINED_CREATORS_DOMAIN: u64 = 1;
+    /// Call `creators::add_domain` to add `Creators`.
+    const EUndefinedCreators: u64 = 1;
 
     /// Address was not attributed as a creator
     ///
-    /// Call `add_creator` or `add_creator_external` to attribute the creator.
-    const EUNDEFINED_ADDRESS: u64 = 2;
+    /// Call `add_creator` to attribute the creator
+    const EExistingCreators: u64 = 2;
 
-    /// `CreatorsDomain` tracks collection creators
-    ///
-    /// #### Usage
-    ///
-    /// Originbyte Standard domains will authenticate mutable operations for
-    /// transaction senders which are creators using
-    /// `assert_collection_has_creator`.
-    ///
-    /// `CreatorsDomain` can additionally be frozen which will cause
-    /// `assert_collection_has_creator` to always fail, therefore, allowing
-    /// creators to lock in their NFT collection.
-    struct CreatorsDomain<phantom C> has store {
-        /// Generator responsible for issuing delegated witnesses
-        generator: WitnessGenerator<C>,
+    /// Address was not attributed as a creator
+    const EUndefinedAddress: u64 = 3;
+
+    /// `Creators` tracks collection creators
+    struct Creators has store {
         /// Creators that have the ability to mutate standard domains
         creators: VecSet<address>,
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
-
-    /// Creates an empty `CreatorsDomain` object
+    /// Creates an empty `Creators` object
     ///
     /// By not attributing any `Creators`, nobody will ever be able to modify
     /// `Collection` domains.
-    public fun empty<C>(witness: &C): CreatorsDomain<C> {
-        from_creators(witness, vec_set::empty())
+    public fun empty(): Creators {
+        Creators {
+            creators: vec_set::empty(),
+        }
     }
 
-    /// Creates a `CreatorsDomain` object with only one creator
+    /// Creates an new `Creators` object
     ///
-    /// Only the single `Creator` will ever be able to modify `Collection`
-    /// domains.
-    public fun from_address<C, W>(
-        witness: &W,
-        who: address,
-    ): CreatorsDomain<C> {
-        let creators = vec_set::empty();
-        vec_set::insert(&mut creators, who);
-
-        from_creators(witness, creators)
-    }
-
-    /// Creates a `CreatorsDomain` with multiple creators
-    ///
-    /// Each attributed creator will be able to modify `Collection` domains.
-    public fun from_creators<C, W>(
-        witness: &W,
-        creators: VecSet<address>,
-    ): CreatorsDomain<C> {
-        CreatorsDomain {
-            generator: witness::generator<C, W>(witness),
+    /// By not attributing any `Creators`, nobody will ever be able to modify
+    /// `Collection` domains.
+    public fun new(creators: VecSet<address>): Creators {
+        Creators {
             creators,
         }
     }
 
-    /// Attributes the given address as a creator on the `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if creator was already attributed or `CreatorsDomain` is not
-    /// registered on the `Collection`.
-    public fun add_creator<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
-        who: address,
-    ) {
-        let domain = creators_domain_mut(collection);
-        vec_set::insert(&mut domain.creators, who);
-    }
+    // === Field Borrow Functions ===
 
-    /// Attributes the given address as a creator on the `Collection`
-    ///
-    /// Same as `add_creator` but as an entry function.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender is not a creator, if already attributed,
-    /// or if `CreatorsDomain` is not registered on the `Collection`.
-    public entry fun add_creator_external<C>(
-        collection: &mut Collection<C>,
-        who: address,
-        ctx: &mut TxContext,
-    ) {
-        add_creator(delegate(collection, ctx), collection, who);
-    }
-
-    /// Create a delegated witness
-    ///
-    /// Delegated witness can be used to authorize mutating operations across
-    /// most OriginByte domains.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender was not a creator or `CreatorsDomain` was
-    /// not registered on the `Collection`.
-    public fun delegate<C>(
-        collection: &Collection<C>,
-        ctx: &mut TxContext,
-    ): DelegatedWitness<C> {
-        let domain = creators_domain(collection);
-        assert_creator(domain, &tx_context::sender(ctx));
-        witness::delegate(&domain.generator)
-    }
-
-    // === Getters ===
-
-    /// Returns whether `CreatorsDomain` has no defined creators
-    public fun is_empty<C>(domain: &CreatorsDomain<C>): bool {
+    /// Returns whether `Creators` has no defined creators
+    public fun is_empty(domain: &Creators): bool {
         vec_set::is_empty(&domain.creators)
     }
 
     /// Returns whether address is a defined creator
-    public fun contains_creator<C>(
-        domain: &CreatorsDomain<C>,
+    public fun contains_creator(
+        creators: &Creators,
         who: &address,
     ): bool {
-        vec_set::contains(&domain.creators, who)
+        vec_set::contains(&creators.creators, who)
     }
 
-    /// Returns the list of creators defined on the `CreatorsDomain`
-    public fun borrow_creators<C>(
-        domain: &CreatorsDomain<C>,
+    /// Returns the list of creators defined on the `Creators`
+    public fun get_Creators(
+        domain: &Creators,
     ): &VecSet<address> {
         &domain.creators
     }
 
-    // === Interoperability ===
-
-    /// Borrows `CreatorsDomain` from `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `CreatorsDomain` is not registered on `Collection`.
-    public fun creators_domain<C>(
-        collection: &Collection<C>,
-    ): &CreatorsDomain<C> {
-        assert_domain(collection);
-        collection::borrow_domain(collection)
+    /// Borrows immutably the `Creators` field.
+    //
+    // TODO: Unsafe to arbitrarily add creator, should check that sender is
+    // already a creator
+    public fun add_creator(
+        creators: &mut Creators,
+        who: address,
+    ) {
+        vec_set::insert(&mut creators.creators, who);
     }
 
-    /// Mutably borrows `CreatorsDomain` from `Collection`
+    /// Removes address from `Creators` field in object `T`
+    //
+    // TODO: Unsafe to arbitrarily add remove, should check that sender is
+    // already a creator
+    public fun remove_creator(
+        creators: &mut Creators,
+        who: address,
+    ) {
+        vec_set::remove(&mut creators.creators, &who);
+    }
+
+    // === Interoperability ===
+
+    /// Returns whether `Creators` is registered on `Nft`
+    public fun has_domain(nft: &UID): bool {
+        df::exists_with_type<Marker<Creators>, Creators>(
+            nft, utils::marker(),
+        )
+    }
+
+    /// Borrows `Creators` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `CreatorsDomain` is not registered on `Collection`.
-    fun creators_domain_mut<C>(
-        collection: &mut Collection<C>,
-    ): &mut CreatorsDomain<C> {
-        assert_domain(collection);
-        collection::borrow_domain_mut(Witness {}, collection)
+    /// Panics if `Creators` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &Creators {
+        assert_Creators(nft);
+        df::borrow(nft, utils::marker<Creators>())
+    }
+
+    /// Mutably borrows `Creators` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Creators` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut Creators {
+        assert_Creators(nft);
+        df::borrow_mut(nft, utils::marker<Creators>())
+    }
+
+    /// Adds `Creators` to `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Creators` domain already exists
+    public fun add_domain(
+        nft: &mut UID,
+        domain: Creators,
+    ) {
+        assert_no_Creators(nft);
+        df::add(nft, utils::marker<Creators>(), domain);
+    }
+
+    /// Remove `Creators` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Creators` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): Creators {
+        assert_Creators(nft);
+        df::remove(nft, utils::marker<Creators>())
     }
 
     // === Assertions ===
 
-    /// Asserts that address is a creator attributed in `CreatorsDomain`
+    /// Asserts that address is a creator attributed in `Creators`
     ///
     /// #### Panics
     ///
-    /// Panics if `CreatorsDomain` is not defined or address is not an
+    /// Panics if `Creators` is not defined or address is not an
     /// attributed creator.
-    public fun assert_creator<C>(
-        domain: &CreatorsDomain<C>,
+    public fun assert_creator(
+        domain: &Creators,
         who: &address
     ) {
-        assert!(contains_creator(domain, who), EUNDEFINED_ADDRESS);
+        assert!(contains_creator(domain, who), EUndefinedAddress);
     }
 
-    /// Asserts that `CreatorsDomain` is defined on the `Collection`
+    /// Asserts that `Creators` is registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `CreatorsDomain` is not defined on the `Collection`.
-    public fun assert_domain<C>(collection: &Collection<C>) {
-        assert!(
-            collection::has_domain<C, CreatorsDomain<C>>(collection),
-            EUNDEFINED_CREATORS_DOMAIN,
-        )
+    /// Panics if `Creators` is not registered
+    public fun assert_Creators(nft: &UID) {
+        assert!(has_domain(nft), EUndefinedCreators);
+    }
+
+    /// Asserts that `Creators` is not registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Creators` is registered
+    public fun assert_no_Creators(nft: &UID) {
+        assert!(!has_domain(nft), EExistingCreators);
     }
 }

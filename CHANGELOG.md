@@ -6,6 +6,18 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2023-04-04
+
+### Changed
+- Protocol Type Freedom: The wrapper `Nft<T>` is now optional
+- Kiosk integration: `Safe` has been deprecated in favor of `Kiosk`
+
+## [0.27.0] - 2023-03-29
+
+### Changed
+
+- Upgraded to Sui 0.29.0
+
 ## [0.26.0] - 2023-03-17
 
 ### Changed

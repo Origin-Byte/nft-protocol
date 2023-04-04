@@ -2,15 +2,15 @@
 /// allows associating them with collections
 module nft_protocol::example_symbol {
     use std::string::{Self, String};
+    use std::option;
 
-    use sui::sui::SUI;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::orderbook;
+    use nft_protocol::mint_cap;
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::display;
+    use nft_protocol::display_info::{Self, DisplayInfo};
     use nft_protocol::collection::{Self, Collection};
 
     /// One time witness is only instantiated in the init method
@@ -44,28 +44,29 @@ module nft_protocol::example_symbol {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
-        let (mint_cap, collection) = collection::create(&witness, ctx);
+    fun init(_witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+        let collection: Collection<Nft<EXAMPLE_SYMBOL>> =
+            nft::create_collection(Witness {}, ctx);
+        let mint_cap =
+            mint_cap::new<Witness, Nft<EXAMPLE_SYMBOL>>(Witness {}, &collection, option::none(), ctx);
 
         collection::add_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
-            display::new_display_domain(
+            display_info::new(
                 string::utf8(b"Symbol"),
                 string::utf8(b"Collection of unique symbols on Sui"),
             )
         );
 
         collection::add_domain(
-            &Witness {},
+            Witness {},
             &mut collection,
             RegistryDomain { symbols: vec_set::empty() },
         );
 
-        orderbook::create<EXAMPLE_SYMBOL, SUI>(ctx);
-
-        transfer::transfer(mint_cap, tx_context::sender(ctx));
-        transfer::share_object(collection);
+        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(collection);
     }
 
     /// Mint `Nft` from `SymbolDomain`
@@ -74,34 +75,33 @@ module nft_protocol::example_symbol {
         ctx: &mut TxContext,
     ): Nft<EXAMPLE_SYMBOL> {
         let nft: Nft<EXAMPLE_SYMBOL> = nft::new(
-            &Witness {},
+            Witness {},
             domain.symbol, // name
             sui::url::new_unsafe_from_bytes(b""), // url
-            tx_context::sender(ctx), // owner
             ctx,
         );
 
-        nft::add_domain(&Witness {}, &mut nft, domain);
+        nft::add_domain(Witness {}, &mut nft, domain);
 
         nft
     }
 
     /// Extracts `SymbolDomain` by burning `Nft`
-    public fun burn_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
-        display::remove_display_domain(&Witness {}, &mut nft);
+    public fun delete_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
+        let _: DisplayInfo = nft::remove_domain(Witness {}, &mut nft);
 
         let symbol: SymbolDomain = nft::remove_domain(
             Witness {}, &mut nft,
         );
 
-        nft::burn(nft);
+        nft::delete(nft);
 
         symbol
     }
 
     /// Call to mint an NFT with globally unique symbol
     public entry fun mint_symbol(
-        collection: &mut Collection<EXAMPLE_SYMBOL>,
+        collection: &mut Collection<Nft<EXAMPLE_SYMBOL>>,
         symbol: String,
         ctx: &mut TxContext,
     ) {
@@ -110,29 +110,29 @@ module nft_protocol::example_symbol {
 
         let nft = mint_nft(register(registry, symbol), ctx);
 
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Associate `SymbolDomain` to `Collection`
-    public entry fun associate<C>(
-        collection: &mut Collection<C>,
+    public entry fun associate<T>(
+        collection: &mut Collection<T>,
         nft: Nft<EXAMPLE_SYMBOL>,
     ) {
-        let domain = burn_nft(nft);
-        collection::add_domain(&Witness {}, collection, domain);
+        let domain = delete_nft(nft);
+        collection::add_domain(Witness {}, collection, domain);
     }
 
     /// Disassociate `SymbolDomain` from `Collection`
-    public fun disassociate<C, W>(
+    public fun disassociate<T, W>(
         _witness: &W,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
-        nft_protocol::utils::assert_same_module_as_witness<C, W>();
+        nft_protocol::utils::assert_same_module_as_witness<T, W>();
 
         let domain: SymbolDomain = collection::remove_domain(Witness {}, collection);
         let nft = mint_nft(domain, ctx);
 
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 }

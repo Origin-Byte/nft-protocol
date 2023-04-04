@@ -1,4 +1,4 @@
-/// Module of the `AttributesDomain`
+/// Module of the `Attributes`
 ///
 /// Used to register string attributes on NFTs.
 ///
@@ -8,49 +8,40 @@ module nft_protocol::attributes {
     use std::ascii::{Self, String};
 
     use sui::vec_map::{Self, VecMap};
+    use sui::object::UID;
+    use sui::dynamic_field as df;
 
-    use nft_protocol::utils;
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+    use nft_protocol::utils::{Self, Marker};
 
-    /// `AttributesDomain` was not defined
+    /// `Attributes` was not defined
     ///
-    /// Call `attributes::add` to add `AttributesDomain`.
-    const EUNDEFINED_ATTRIBUTES_DOMAIN: u64 = 1;
+    /// Call `attributes::add_domain` to add `Attributes`.
+    const EUndefinedAttributes: u64 = 1;
 
-    /// `AttributesDomain` already defined
+    /// `Attributes` already defined
     ///
-    /// Call `attributes::borrow` to borrow domain.
-    const EEXISTING_DOMAIN: u64 = 2;
+    /// Call `attributes::borrow_domain` to borrow domain.
+    const EExistingAttributes: u64 = 2;
 
     /// Domain for storing NFT string attributes
     ///
     /// Changes are replicated to `ComposableUrl` domain as URL parameters.
-    struct AttributesDomain has store {
+    struct Attributes has store, drop {
         /// Map of attributes
         map: VecMap<String, String>,
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
-
-    /// Creates new `AttributesDomain`
-    ///
-    /// Need to ensure that `UrlDomain` is updated with attributes if they
-    /// exist therefore function cannot be public.
-    fun new(map: VecMap<String, String>): AttributesDomain {
-        AttributesDomain { map }
+    /// Creates new `Attributes`
+    public fun new(map: VecMap<String, String>): Attributes {
+        Attributes { map }
     }
 
-    /// Creates empty `AttributesDomain`
-    ///
-    /// Need to ensure that `UrlDomain` is updated with attributes if they
-    /// exist therefore function cannot be public.
-    fun empty(): AttributesDomain {
-        AttributesDomain { map: vec_map::empty() }
+    /// Creates empty `Attributes`
+    public fun empty(): Attributes {
+        Attributes { map: vec_map::empty() }
     }
 
-    /// Creates new `AttributesDomain` from vectors of keys and values
+    /// Creates new `Attributes` from vectors of keys and values
     ///
     /// Need to ensure that `UrlDomain` is updated with attributes if they
     /// exist therefore function cannot be public.
@@ -58,37 +49,69 @@ module nft_protocol::attributes {
     /// #### Panics
     ///
     /// Panics if keys and values vectors have different lengths
-    fun from_vec(
+    public fun from_vec(
         keys: vector<String>,
         values: vector<String>,
-    ): AttributesDomain {
+    ): Attributes {
         let map = utils::from_vec_to_map<String, String>(keys, values);
         new(map)
     }
 
-    /// Borrows underlying attribute map of `AttributesDomain`
-    public fun borrow_attributes(
-        domain: &AttributesDomain,
+    /// Immutably borrows underlying attribute map of `Attributes`
+    public fun get_attributes(
+        attributes: &Attributes,
     ): &VecMap<String, String> {
-        &domain.map
+        &attributes.map
     }
 
-    /// Mutably borrows underlying attribute map of `AttributesDomain`
+    /// Mutably borrows underlying attribute map of `Attributes`
     ///
     /// Endpoint is unprotected as it relies on safetly obtaining a mutable
-    /// reference to `AttributesDomain`.
-    public fun borrow_attributes_mut(
-        domain: &mut AttributesDomain,
+    /// reference to `Attributes`.
+    public fun get_attributes_mut(
+        attributes: &mut Attributes,
     ): &mut VecMap<String, String> {
-        &mut domain.map
+        &mut attributes.map
+    }
+
+    /// Inserts attribute to `Attributes` field in the NFT of type `T`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Attributes` are not registered on NFT.
+    public fun insert_attribute<W: drop, T: key>(
+        attributes: &mut Attributes,
+        attribute_key: String,
+        attribute_value: String,
+    ) {
+        vec_map::insert(
+            get_attributes_mut(attributes),
+            attribute_key,
+            attribute_value,
+        );
+    }
+
+    /// Removes attribute from `Attributes`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Attributes` dont exist.
+    public fun remove_attribute<W: drop, T: key>(
+        attributes: &mut Attributes,
+        attribute_key: &String,
+    ) {
+        vec_map::remove(
+            get_attributes_mut(attributes),
+            attribute_key,
+        );
     }
 
     /// Serializes attributes as URL parameters
-    public fun as_url_parameters(domain: &AttributesDomain): vector<u8> {
+    public fun as_url_parameters(attributes: &Attributes): vector<u8> {
         let parameters = vector::empty<u8>();
 
-        let attributes = borrow_attributes(domain);
-        let size = vec_map::size(attributes);
+        let attributes_map = get_attributes(attributes);
+        let size = vec_map::size(attributes_map);
 
         // Check if we even expect URL parameters
         if (size > 0) {
@@ -97,7 +120,7 @@ module nft_protocol::attributes {
 
         let idx = 0;
         while (idx < size) {
-            let (key, value) = vec_map::get_entry_by_idx(attributes, idx);
+            let (key, value) = vec_map::get_entry_by_idx(attributes_map, idx);
 
             vector::append(&mut parameters, ascii::into_bytes(*key));
             vector::append(&mut parameters, b"=");
@@ -116,9 +139,11 @@ module nft_protocol::attributes {
 
     // === Interoperability ===
 
-    /// Returns whether `AttributesDomain` is registered on `Nft`
-    public fun has_domain<C>(nft: &Nft<C>): bool {
-        nft::has_domain<C, AttributesDomain>(nft)
+    /// Returns whether `Attributes` is registered on `Nft`
+    public fun has_domain(nft: &UID): bool {
+        df::exists_with_type<Marker<Attributes>, Attributes>(
+            nft, utils::marker(),
+        )
     }
 
     /// Borrows `UrlDomain` from `Nft`
@@ -126,9 +151,9 @@ module nft_protocol::attributes {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` is not registered on the `Nft`
-    public fun borrow_domain<C>(nft: &Nft<C>): &AttributesDomain {
+    public fun borrow_domain(nft: &UID): &Attributes {
         assert_attributes(nft);
-        nft::borrow_domain<C, AttributesDomain>(nft)
+        df::borrow(nft, utils::marker<Attributes>())
     }
 
     /// Mutably borrows `UrlDomain` from `Nft`
@@ -136,107 +161,51 @@ module nft_protocol::attributes {
     /// #### Panics
     ///
     /// Panics if `UrlDomain` is not registered on the `Nft`
-    public fun borrow_domain_mut<C>(
-        _witness: DelegatedWitness<C>,
-        nft: &mut Nft<C>,
-    ): &mut AttributesDomain {
+    public fun borrow_domain_mut(nft: &mut UID): &mut Attributes {
         assert_attributes(nft);
-        nft::borrow_domain_mut(Witness {}, nft)
+        df::borrow_mut(nft, utils::marker<Attributes>())
     }
 
-    /// Adds `AttributesDomain` to `Nft`
+    /// Adds `Attributes` to `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `AttributesDomain` domain already exists
-    public fun add_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-        map: VecMap<String, String>,
+    /// Panics if `Attributes` domain already exists
+    public fun add_domain(
+        nft: &mut UID,
+        domain: Attributes,
     ) {
-        add_domain_delegated(witness::from_witness(witness), nft, map)
+        assert_no_attributes(nft);
+        df::add(nft, utils::marker<Attributes>(), domain);
     }
 
-    /// Adds `AttributesDomain` to `Nft`
+    /// Remove `Attributes` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `AttributesDomain` domain already exists
-    public fun add_domain_delegated<C>(
-        witness: DelegatedWitness<C>,
-        nft: &mut Nft<C>,
-        map: VecMap<String, String>,
-    ) {
-        assert!(!has_domain(nft), EEXISTING_DOMAIN);
-        nft::add_domain_delegated(witness, nft, new(map));
-    }
-
-    /// Adds `AttributesDomain` to `Nft`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `AttributesDomain` domain already exists
-    public fun add_empty_domain<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-    ) {
-        add_empty_domain_delegated(witness::from_witness(witness), nft)
-    }
-
-    /// Adds `AttributesDomain` to `Nft`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `AttributesDomain` domain already exists
-    public fun add_empty_domain_delegated<C>(
-        witness: DelegatedWitness<C>,
-        nft: &mut Nft<C>,
-    ) {
-        assert!(!has_domain(nft), EEXISTING_DOMAIN);
-        nft::add_domain_delegated(witness, nft, empty());
-    }
-
-    /// Adds `AttributesDomain` to `Nft` from vector of keys and values
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `AttributesDomain` domain already exists or keys and values
-    /// vectors have different lengths
-    public fun add_domain_from_vec<C, W>(
-        witness: &W,
-        nft: &mut Nft<C>,
-        keys: vector<String>,
-        values: vector<String>,
-    ) {
-        add_domain_from_vec_delegated(
-            witness::from_witness(witness), nft, keys, values,
-        )
-    }
-
-    /// Adds `AttributesDomain` to `Nft` from vector of keys and values
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `AttributesDomain` domain already exists or keys and values
-    /// vectors have different lengths
-    public fun add_domain_from_vec_delegated<C>(
-        witness: DelegatedWitness<C>,
-        nft: &mut Nft<C>,
-        keys: vector<String>,
-        values: vector<String>,
-    ) {
-        assert!(!has_domain(nft), EEXISTING_DOMAIN);
-        nft::add_domain_delegated(witness, nft, from_vec(keys, values));
+    /// Panics if `Attributes` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): Attributes {
+        assert_attributes(nft);
+        df::remove(nft, utils::marker<Attributes>())
     }
 
     // === Assertions ===
 
-    /// Asserts that `AttributesDomain` is registered on `Nft`
+    /// Asserts that `Attributes` is registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `AttributesDomain` is not registered
-    public fun assert_attributes<C>(nft: &Nft<C>) {
-        assert!(has_domain(nft), EUNDEFINED_ATTRIBUTES_DOMAIN);
+    /// Panics if `Attributes` is not registered
+    public fun assert_attributes(nft: &UID) {
+        assert!(has_domain(nft), EUndefinedAttributes);
+    }
+
+    /// Asserts that `Attributes` is not registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Attributes` is registered
+    public fun assert_no_attributes(nft: &UID) {
+        assert!(!has_domain(nft), EExistingAttributes);
     }
 }

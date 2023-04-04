@@ -16,7 +16,7 @@ module nft_protocol::test_assert_same_module_as_witness {
         // itself depends on the deployed version. An example of an address would be:
         // 22122de69059b544f3c5f35ce78854a9b926fa0d
 
-        assert!(string::length(&package_addr) == 40, 0);
+        assert!(string::length(&package_addr) == 64, 0);
         assert!(module_name == string::utf8(b"test_assert_same_module_as_witness"), 0);
         assert!(type_name == string::utf8(b"Witness"), 0);
     }
