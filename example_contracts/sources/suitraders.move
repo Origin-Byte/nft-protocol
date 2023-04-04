@@ -17,7 +17,6 @@ module suitraders::suitraders {
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
     use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::witness;
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
