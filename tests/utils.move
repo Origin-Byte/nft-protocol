@@ -30,7 +30,7 @@ module nft_protocol::test_utils {
         );
 
         let mint_cap = mint_cap::new_unregulated(
-            delegated_witness, object::id(&collection), ctx(scenario),
+            delegated_witness, &collection, ctx(scenario),
         );
 
         let col_id = object::id(&collection);

@@ -4,7 +4,6 @@
 /// Basically any collection which adds itself to this allowlist is saying:
 /// we're ok with anyone transferring NFTs.
 module nft_protocol::origin_sui {
-    use sui::object;
     use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
 
@@ -70,7 +69,7 @@ module nft_protocol::origin_sui {
             collection::create(delegated_witness, ctx(&mut scenario));
 
         let mint_cap = mint_cap::new_unregulated(
-            delegated_witness, object::id(&collection), ctx(&mut scenario),
+            delegated_witness, &collection, ctx(&mut scenario),
         );
 
         collection::add_domain(

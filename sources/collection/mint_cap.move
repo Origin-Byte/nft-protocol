@@ -18,6 +18,7 @@ module nft_protocol::mint_cap {
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
+    use nft_protocol::collection::Collection;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::supply::{Self, Supply};
 
@@ -40,44 +41,44 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap`
-    public fun new<T>(
+    public fun new<T, U>(
         witness: DelegatedWitness<T>,
-        collection_id: ID,
+        collection: &Collection<U>,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
         if (option::is_some(&supply)) {
             new_regulated(
-                witness, collection_id, option::destroy_some(supply), ctx,
+                witness, collection, option::destroy_some(supply), ctx,
             )
         } else {
-            new_unregulated(witness, collection_id, ctx)
+            new_unregulated(witness, collection, ctx)
         }
     }
 
     /// Create a new `MintCap` with unregulated supply
-    public fun new_unregulated<T>(
+    public fun new_unregulated<T, U>(
         _witness: DelegatedWitness<T>,
-        collection_id: ID,
+        collection: &Collection<U>,
         ctx: &mut TxContext,
     ): MintCap<T> {
         MintCap {
             id: object::new(ctx),
-            collection_id,
+            collection_id: object::id(collection),
             supply: option::none(),
         }
     }
 
     /// Create a new `MintCap` with regulated supply
-    public fun new_regulated<T>(
+    public fun new_regulated<T, U>(
         _witness: DelegatedWitness<T>,
-        collection_id: ID,
+        collection: &Collection<U>,
         supply: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
         MintCap {
             id: object::new(ctx),
-            collection_id,
+            collection_id: object::id(collection),
             // The supply is always set to frozen for safety
             supply: option::some(supply::new(supply, true)),
         }
