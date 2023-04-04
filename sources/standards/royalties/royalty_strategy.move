@@ -1,5 +1,5 @@
 module nft_protocol::bps_royalty_strategy {
-    use nft_protocol::collection::Collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::frozen_publisher::{Self, FrozenPublisher};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
     use nft_protocol::royalty;

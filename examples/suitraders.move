@@ -53,7 +53,7 @@ module nft_protocol::suitraders {
             ),
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy(
+        bps_royalty_strategy::create_domain_and_add_strategy(
             delegated_witness, &mut collection, 100, ctx,
         );
 
