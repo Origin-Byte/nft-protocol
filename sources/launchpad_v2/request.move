@@ -3,24 +3,21 @@
 ///
 /// We have adapted this pattern to work for any generic authorization pattern.
 module nft_protocol::request {
-    use std::type_name::{Self, TypeName};
     use std::vector;
+    use std::type_name::{Self, TypeName};
+
+    use sui::tx_context::TxContext;
     use sui::object::{Self, ID, UID};
     use sui::vec_set::{Self, VecSet};
 
-    /// A completed rule is not set in the `TransferPolicy`.
+    /// A completed rule is not set in the `Policy`.
     const EIllegalRule: u64 = 1;
-    /// Conversion of our transfer request to the one exposed by the sui library
-    /// is only permitted for SUI token.
-    const EOnlyTransferRequestOfSuiToken: u64 = 2;
-    /// The number of receipts does not match the `TransferPolicy` requirement.
-    const EPolicyNotSatisfied: u64 = 3;
+    /// The number of receipts does not match the `Policy` requirement.
+    const EPolicyNotSatisfied: u64 = 2;
+    const EPolicyCapMismatch: u64 = 3;
 
-    /// A "Hot Potato" forcing the buyer to get a transfer permission
-    /// from the item type (`T`) owner on purchase attempt.
-    ///
-    /// We create some helper methods for SUI token, but also support any
-    /// fungible token.
+    /// A "Hot Potato" forcing the buyer to get a auth permission
+    /// from the a purchase attempt from a market `Venue`.
     struct Request {
         policy_id: ID,
         /// Collected Receipts.
@@ -42,10 +39,57 @@ module nft_protocol::request {
     }
 
     /// A Capability granting the owner permission to add/remove rules as well
-    /// as to `withdraw` and `destroy_and_withdraw` the `TransferPolicy`.
+    /// as to `withdraw` and `destroy_and_withdraw` the `Policy`.
     struct PolicyCap has key, store {
         id: UID,
         policy_id: ID
+    }
+
+    public fun empty_policy(ctx: &mut TxContext): (Policy, PolicyCap) {
+        let policy_uid = object::new(ctx);
+        let policy_id = object::uid_to_inner(&policy_uid);
+
+        let policy = Policy {
+            id: policy_uid,
+            rules: vec_set::empty(),
+        };
+
+        let cap = PolicyCap {
+            id: object::new(ctx),
+            policy_id,
+        };
+
+        (policy, cap)
+    }
+
+    public fun new_policy(
+        rules: VecSet<TypeName>,
+        ctx: &mut TxContext
+    ): (Policy, PolicyCap) {
+        let policy_uid = object::new(ctx);
+        let policy_id = object::uid_to_inner(&policy_uid);
+
+        let policy = Policy {
+            id: policy_uid,
+            rules,
+        };
+
+        let cap = PolicyCap {
+            id: object::new(ctx),
+            policy_id,
+        };
+
+        (policy, cap)
+    }
+
+    public fun add_rule(
+        policy: &mut Policy,
+        policy_cap: &PolicyCap,
+        rule: TypeName,
+    ) {
+        assert_policy_cap(policy, policy_cap);
+
+        vec_set::insert(&mut policy.rules, rule);
     }
 
     /// Construct a new `Request` hot potato which requires an
@@ -69,7 +113,7 @@ module nft_protocol::request {
 
     /// Allow a `TransferRequest` for the type `T`.
     /// The call is protected by the type constraint, as only the publisher of
-    /// the `T` can get `TransferPolicy<T>`.
+    /// the `T` can get `Policy<T>`.
     ///
     /// Note: unless there's a policy for `T` to allow transfers,
     /// Kiosk trades will not be possible.
@@ -111,6 +155,17 @@ module nft_protocol::request {
 
     public fun policy_id_from_cap(cap: &PolicyCap): ID {
         cap.policy_id
+    }
+
+    // === Assertions ===
+
+    public fun assert_policy_cap(
+        policy: &mut Policy,
+        policy_cap: &PolicyCap,
+    ) {
+        assert!(
+            object::id(policy) == policy_cap.policy_id, EPolicyCapMismatch
+        );
     }
 
 }

@@ -16,9 +16,6 @@ module nft_protocol::launchpad_auth {
     use nft_protocol::venue_v2::{Self, Venue};
     use nft_protocol::request::{Self, Request};
 
-    // TODO: There should be a way to create different types of whitelists
-    // currently it's only possile to have one type.
-
     const EINCORRECT_SIGNATURE: u64 = 1;
     const EINCORRECT_MESSAGE_COUNTER: u64 = 2;
     const EINCORRECT_MESSAGE_SENDER: u64 = 3;
@@ -32,30 +29,43 @@ module nft_protocol::launchpad_auth {
     // Type collected by receipt Hot Potato
     struct LaunchpadAuth has drop {}
 
+    // Dynamic field key used to store `Pubkey` in `Venue`
     struct PubkeyDfKey has store, copy, drop {}
 
-    /// Create a new `Certificate`
+
+    /// Issue a new `Pubkey` and add it to the Venue as a dynamic field
+    /// with field key `PubkeyDfKey`.
     ///
-    /// Can be used by owner to participate in the provided market.
+    /// This public key is used to verify if a given message sent by the
+    /// user has been signed by the venue authority (i.e. Creator/Marketplace client).
     ///
     /// #### Panics
     ///
-    /// Panics if transaction sender is not `Listing` admin
-    public fun new(
+    /// Panics if `LaunchCap` does not match the `Venue`
+    public fun add_pubkey(
         launch_cap: &LaunchCap,
-        venue: &Venue,
+        venue: &mut Venue,
         pubkey: vector<u8>,
         ctx: &mut TxContext,
-    ): Pubkey {
+    ) {
         venue_v2::assert_launch_cap(venue, launch_cap);
+        register_policy(launch_cap, venue);
 
-        Pubkey {
-            id: object::new(ctx),
-            counter: 0,
-            key: pubkey,
-        }
+        let pubkey = new_(pubkey, ctx);
+
+        let venue_uid = venue_v2::uid_mut(venue, launch_cap);
+        df::add(venue_uid, PubkeyDfKey {}, pubkey);
     }
 
+    /// Verifies if a given message sent by the user has been signed by the
+    /// venue authority (i.e. Creator/Marketplace client).
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Request` does not match the `Venue`.
+    /// Panics if the signature is invalid.
+    /// Panics if the signature is valid but the message
+    /// has the incorrect counter.
     public fun verify(
         venue: &Venue,
         signature: &vector<u8>,
@@ -91,23 +101,27 @@ module nft_protocol::launchpad_auth {
         request::add_receipt(request, &LaunchpadAuth {});
     }
 
-    /// Issue a new `Pubkey` and add it to the Venue as a dynamic field
-    /// with field key `PubkeyDfKey`.
-    ///
-    /// Can be used by owner to participate in the provided market.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender is not `Listing` admin
-    public entry fun add_pubkey(
-        launch_cap: &LaunchCap,
-        venue: &mut Venue,
+
+    // === Private Functions ===
+
+    /// Create a new `Pubkey`
+    fun new_(
         pubkey: vector<u8>,
         ctx: &mut TxContext,
-    ) {
-        let pubkey = new(launch_cap, venue, pubkey, ctx);
-        let venue_uid = venue_v2::uid_mut(venue, launch_cap);
+    ): Pubkey {
+        Pubkey {
+            id: object::new(ctx),
+            counter: 0,
+            key: pubkey,
+        }
+    }
 
-        df::add(venue_uid, PubkeyDfKey {}, pubkey);
+
+    /// Registers Authentication Rule in `Venue`'s `AuthPolicy`
+    fun register_policy(
+        launch_cap: &LaunchCap,
+        venue: &mut Venue,
+    ) {
+        venue_v2::register_rule(LaunchpadAuth {}, launch_cap, venue);
     }
 }
