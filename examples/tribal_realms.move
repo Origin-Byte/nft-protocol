@@ -6,12 +6,13 @@ module nft_protocol::tribal_realms {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::mint_cap;
-    use nft_protocol::collection::Collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::composable_nft::{Self as c_nft};
+    use nft_protocol::witness;
 
     /// One time witness is only instantiated in the init method
     struct TRIBAL_REALMS has drop {}
@@ -29,22 +30,20 @@ module nft_protocol::tribal_realms {
     struct Witness has drop {}
 
     fun init(_witness: TRIBAL_REALMS, ctx: &mut TxContext) {
-        let collection: Collection<Nft<TRIBAL_REALMS>> =
-            nft::create_collection(Witness {}, ctx);
+        let delegated_witness = witness::from_witness(Witness {});
 
-        let delegated_witness = nft::delegate_witness<TRIBAL_REALMS, Witness>(
-            Witness {}
-        );
+        let collection: Collection<TRIBAL_REALMS> =
+            collection::create(delegated_witness, ctx);
 
-        let mint_cap =mint_cap::new_from_delegated<Nft<TRIBAL_REALMS>>(
+        let mint_cap = mint_cap::new(
             delegated_witness,
             &collection,
             option::none(),
             ctx
         );
 
-        nft::add_collection_domain(
-            Witness {},
+        collection::add_domain(
+            delegated_witness,
             &mut collection,
             display_info::new(
                 string::utf8(b"TribalRealms"),
@@ -65,8 +64,8 @@ module nft_protocol::tribal_realms {
             &mut avatar_blueprint, 1,
         );
 
-        nft::add_collection_domain(
-            Witness {}, &mut collection, avatar_blueprint,
+        collection::add_domain(
+            delegated_witness, &mut collection, avatar_blueprint,
         );
 
         // === Gun composability ===
@@ -76,8 +75,8 @@ module nft_protocol::tribal_realms {
             &mut gun_blueprint, 1,
         );
 
-        nft::add_collection_domain(
-            Witness {}, &mut collection, gun_blueprint,
+        collection::add_domain(
+            delegated_witness, &mut collection, gun_blueprint,
         );
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
@@ -88,15 +87,21 @@ module nft_protocol::tribal_realms {
         name: String,
         description: String,
         url: vector<u8>,
-        mint_cap: &mut MintCap<Nft<TRIBAL_REALMS>>,
+        mint_cap: &mut MintCap<TRIBAL_REALMS>,
         warehouse: &mut Warehouse<Nft<TRIBAL_REALMS>>,
         ctx: &mut TxContext,
     ) {
         let url = sui::url::new_unsafe_from_bytes(url);
 
+        let delegated_witness = witness::from_witness(Witness {});
+
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-        nft::add_domain(Witness {}, &mut nft, display_info::new(name, description));
-        nft::add_domain(Witness {}, &mut nft, url);
+
+        nft::add_domain(
+            delegated_witness, &mut nft, display_info::new(name, description),
+        );
+
+        nft::add_domain(delegated_witness, &mut nft, url);
 
         warehouse::deposit_nft(warehouse, nft);
     }
@@ -107,7 +112,7 @@ module nft_protocol::tribal_realms {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun it_inits_collection() {
+    fun test_example_tribal_realms() {
         let scenario = test_scenario::begin(USER);
         init(TRIBAL_REALMS {}, ctx(&mut scenario));
 

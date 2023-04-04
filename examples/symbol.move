@@ -9,6 +9,7 @@ module nft_protocol::example_symbol {
     use sui::vec_set::{Self, VecSet};
 
     use nft_protocol::mint_cap;
+    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::display_info::{Self, DisplayInfo};
     use nft_protocol::collection::{Self, Collection};
@@ -45,21 +46,18 @@ module nft_protocol::example_symbol {
 
     /// Called during contract publishing
     fun init(_witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
-        let collection: Collection<Nft<EXAMPLE_SYMBOL>> =
-            nft::create_collection(Witness {}, ctx);
+        let delegated_witness = witness::from_witness(Witness {});
+        let collection: Collection<EXAMPLE_SYMBOL> =
+            collection::create(delegated_witness, ctx);
 
-        let delegated_witness = nft::delegate_witness<EXAMPLE_SYMBOL, Witness>(
-            Witness {}
-        );
-
-        let mint_cap =mint_cap::new_from_delegated<Nft<EXAMPLE_SYMBOL>>(
+        let mint_cap = mint_cap::new<EXAMPLE_SYMBOL>(
             delegated_witness,
             &collection,
             option::none(),
             ctx
         );
 
-        collection::add_domain_delegated(
+        collection::add_domain(
             delegated_witness,
             &mut collection,
             display_info::new(
@@ -68,7 +66,7 @@ module nft_protocol::example_symbol {
             )
         );
 
-        collection::add_domain_delegated(
+        collection::add_domain(
             delegated_witness,
             &mut collection,
             RegistryDomain { symbols: vec_set::empty() },
@@ -83,24 +81,28 @@ module nft_protocol::example_symbol {
         domain: SymbolDomain,
         ctx: &mut TxContext,
     ): Nft<EXAMPLE_SYMBOL> {
+        let delegated_witness = witness::from_witness(Witness {});
+
         let nft: Nft<EXAMPLE_SYMBOL> = nft::new(
-            Witness {},
+            delegated_witness,
             domain.symbol, // name
             sui::url::new_unsafe_from_bytes(b""), // url
             ctx,
         );
 
-        nft::add_domain(Witness {}, &mut nft, domain);
+        nft::add_domain(delegated_witness, &mut nft, domain);
 
         nft
     }
 
     /// Extracts `SymbolDomain` by burning `Nft`
     public fun delete_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
-        let _: DisplayInfo = nft::remove_domain(Witness {}, &mut nft);
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let _: DisplayInfo = nft::remove_domain(delegated_witness, &mut nft);
 
         let symbol: SymbolDomain = nft::remove_domain(
-            Witness {}, &mut nft,
+            delegated_witness, &mut nft,
         );
 
         nft::delete(nft);
@@ -114,8 +116,10 @@ module nft_protocol::example_symbol {
         symbol: String,
         ctx: &mut TxContext,
     ) {
+        let delegated_witness = witness::from_witness(Witness {});
+
         let registry: &mut RegistryDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
+            collection::borrow_domain_mut(delegated_witness, collection);
 
         let nft = mint_nft(register(registry, symbol), ctx);
 
@@ -127,19 +131,19 @@ module nft_protocol::example_symbol {
         collection: &mut Collection<T>,
         nft: Nft<EXAMPLE_SYMBOL>,
     ) {
+        let delegated_witness = witness::from_witness(Witness {});
+
         let domain = delete_nft(nft);
-        collection::add_domain(Witness {}, collection, domain);
+        collection::add_domain(delegated_witness, collection, domain);
     }
 
     /// Disassociate `SymbolDomain` from `Collection`
     public fun disassociate<T, W>(
-        _witness: &W,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
-        nft_protocol::utils::assert_same_module_as_witness<T, W>();
-
-        let domain: SymbolDomain = collection::remove_domain(Witness {}, collection);
+        let domain: SymbolDomain = collection::remove_domain(witness, collection);
         let nft = mint_nft(domain, ctx);
 
         transfer::public_transfer(nft, tx_context::sender(ctx));
@@ -151,7 +155,7 @@ module nft_protocol::example_symbol {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun it_inits_collection() {
+    fun test_example_symbol() {
         let scenario = test_scenario::begin(USER);
         init(EXAMPLE_SYMBOL {}, ctx(&mut scenario));
 
