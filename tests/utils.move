@@ -25,11 +25,14 @@ module nft_protocol::test_utils {
         creator: address,
         scenario: &mut Scenario,
     ): (ID, ID, ID) {
-        let collection: Collection<Foo> =
-            collection::create(Witness {}, ctx(scenario));
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<Foo> = collection::create(
+            delegated_witness, ctx(scenario),
+        );
 
         let mint_cap =
-            mint_cap::new<Witness, Foo>(Witness {}, &collection, option::none(), ctx(scenario));
+            mint_cap::new(delegated_witness, &collection, option::none(), ctx(scenario));
 
         let col_id = object::id(&collection);
         let cap_id = object::id(&mint_cap);

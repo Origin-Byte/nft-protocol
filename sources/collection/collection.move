@@ -169,14 +169,11 @@ module nft_protocol::collection {
 
     /// Removes domain of type from `Collection`
     ///
-    /// Allows domain contracts to remove the domains it defined from
-    /// `Collection`.
-    ///
     /// ##### Panics
     ///
     /// Panics if domain doesnt exist.
     public fun remove_domain<T, Domain: store>(
-        _witness: DelegatedWitness<Domain>,
+        _witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
     ): Domain {
         assert_domain<T, Domain>(collection);

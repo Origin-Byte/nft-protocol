@@ -7,7 +7,7 @@ module nft_protocol::example_simple {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection;
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+    use nft_protocol::witness;
     use nft_protocol::mint_cap;
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::display_info;
@@ -24,8 +24,8 @@ module nft_protocol::example_simple {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
-        let delegated_witness = witness::from_witness(witness);
+    fun init(_witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
+        let delegated_witness = witness::from_witness(Witness {});
 
         let collection: Collection<EXAMPLE_SIMPLE> =
             collection::create(delegated_witness, ctx);
@@ -33,8 +33,8 @@ module nft_protocol::example_simple {
         let mint_cap =
             mint_cap::new(delegated_witness, &collection, option::none(), ctx);
 
-        nft::add_collection_domain(
-            Witness {},
+        collection::add_domain(
+            delegated_witness,
             &mut collection,
             display_info::new(
                 string::utf8(b"Simple"),
@@ -88,9 +88,9 @@ module nft_protocol::example_simple {
         init(EXAMPLE_SIMPLE {}, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
 
-        assert!(test_scenario::has_most_recent_shared<Collection<Nft<EXAMPLE_SIMPLE>>>(), 0);
+        assert!(test_scenario::has_most_recent_shared<Collection<EXAMPLE_SIMPLE>>(), 0);
 
-        let mint_cap = test_scenario::take_from_address<MintCap<Nft<EXAMPLE_SIMPLE>>>(
+        let mint_cap = test_scenario::take_from_address<MintCap<EXAMPLE_SIMPLE>>(
             &scenario, USER,
         );
 

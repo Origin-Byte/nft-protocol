@@ -5,14 +5,6 @@ module nft_protocol::err {
 
     // === Supply ===
 
-    public fun supply_regulated(): u64 {
-        return Prefix + 100
-    }
-
-    public fun supply_not_regulated(): u64 {
-        return Prefix + 101
-    }
-
     public fun supply_is_not_zero(): u64 {
         return Prefix + 102
     }

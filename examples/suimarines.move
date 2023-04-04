@@ -34,9 +34,10 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+
         let delegated_witness = witness::from_witness(Witness {});
         let collection: Collection<SUIMARINES> =
-            collection::create(Witness {}, ctx);
+            collection::create(delegated_witness, ctx);
 
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included
@@ -49,8 +50,6 @@ module nft_protocol::suimarines {
             &mut transfer_policy,
             &transfer_policy_cap,
         );
-
-        let delegated_witness = witness::from_witness<SUIMARINES, Witness>(Witness {});
 
         royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES>(
             delegated_witness, &mut collection, 100, ctx,
@@ -120,7 +119,7 @@ module nft_protocol::suimarines {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun it_inits_collection() {
+    fun test_example_suimarines() {
         let scenario = test_scenario::begin(USER);
         init(SUIMARINES {}, ctx(&mut scenario));
 

@@ -64,18 +64,20 @@ module nft_protocol::origin_sui {
             USER,
         );
 
-        let collection =
-            collection::create<ORIGIN_SUI, Witness>(Witness {}, ctx(&mut scenario));
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<ORIGIN_SUI> =
+            collection::create(delegated_witness, ctx(&mut scenario));
 
         let mint_cap = mint_cap::new(
-            Witness {},
+            delegated_witness,
             &collection,
             option::none(),
             ctx(&mut scenario)
         );
 
         collection::add_domain(
-            Witness {},
+            delegated_witness,
             &mut collection,
             transfer_allowlist_domain::empty(),
         );

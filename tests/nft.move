@@ -1,18 +1,8 @@
 #[test_only]
-module nft_protocol::fake_witness {
-    // TODO: To move to utils
-    struct FakeWitness has drop {}
-
-    public fun new(): FakeWitness {
-        FakeWitness {}
-    }
-}
-
-#[test_only]
 module nft_protocol::test_nft {
-    use nft_protocol::fake_witness::{Self, FakeWitness};
     use nft_protocol::nft::{Self, Nft};
     use nft_protocol::utils;
+    use nft_protocol::witness;
 
     use sui::object::{Self, UID};
     use sui::test_scenario::{Self, ctx};
@@ -44,10 +34,12 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
+        let delegated_witness = witness::from_witness(Witness {});
+
         let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
-            Witness {},
+            delegated_witness,
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
@@ -64,16 +56,18 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
+        let delegated_witness = witness::from_witness(Witness {});
+
         let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
-            Witness {},
+            delegated_witness,
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
 
-        nft::borrow_domain_mut<Foo, Witness, DomainA>(
-            Witness {}, &mut nft
+        let _: &mut DomainA = nft::borrow_domain_mut(
+            delegated_witness, &mut nft
         );
 
         public_transfer(nft, OWNER);
@@ -86,42 +80,21 @@ module nft_protocol::test_nft {
         let scenario = test_scenario::begin(OWNER);
         let ctx = ctx(&mut scenario);
 
+        let delegated_witness = witness::from_witness(Witness {});
+
         let nft = nft::test_mint<Foo>(ctx);
 
         nft::add_domain(
-            Witness {},
+            delegated_witness,
             &mut nft,
             DomainA { id: object::new(ctx) },
         );
 
         // This second call will fail
         nft::add_domain(
-            Witness {},
+            delegated_witness,
             &mut nft,
             DomainA { id: object::new(ctx) },
-        );
-
-        public_transfer(nft, OWNER);
-        test_scenario::end(scenario);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = 13370600, location = nft_protocol::utils)]
-    fun fails_borrowing_domain_mut_if_wrong_witness() {
-        let scenario = test_scenario::begin(OWNER);
-        let ctx = ctx(&mut scenario);
-
-        let nft = nft::test_mint<Foo>(ctx);
-
-        nft::add_domain(
-            Witness {},
-            &mut nft,
-            DomainA { id: object::new(ctx) },
-        );
-
-        nft::borrow_domain<Foo, DomainA>(&nft);
-        nft::borrow_domain_mut<Foo, FakeWitness, DomainA>(
-            fake_witness::new(), &mut nft
         );
 
         public_transfer(nft, OWNER);

@@ -10,7 +10,7 @@ module nft_protocol::mint_and_sell {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::listing;
     use nft_protocol::warehouse;
-
+    use nft_protocol::witness;
     use nft_protocol::test_listing;
 
     struct Foo has key, store {
@@ -27,8 +27,12 @@ module nft_protocol::mint_and_sell {
         // 1. Create collection
         let scenario = test_scenario::begin(CREATOR);
 
-        let collection: Collection<Foo> =
-            collection::create(Witness {}, ctx(&mut scenario));
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<Foo> = collection::create(
+            delegated_witness, ctx(&mut scenario),
+        );
+
         transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
@@ -79,8 +83,12 @@ module nft_protocol::mint_and_sell {
         // 1. Create collection and add domains
         let scenario = test_scenario::begin(CREATOR);
 
-        let collection: Collection<Foo> =
-            collection::create(Witness {}, ctx(&mut scenario));
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<Foo> = collection::create(
+            delegated_witness, ctx(&mut scenario),
+        );
+
         transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
