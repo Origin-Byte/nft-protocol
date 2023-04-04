@@ -194,7 +194,7 @@ module nft_protocol::bps_royalty_strategy {
         share(royalty_strategy);
     }
 
-    /// === Display standard ===
+    // === Display standard ===
 
     struct BPS_ROYALTY_STRATEGY has drop {}
 

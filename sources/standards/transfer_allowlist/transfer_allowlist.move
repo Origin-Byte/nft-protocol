@@ -295,7 +295,7 @@ module nft_protocol::transfer_allowlist {
         assert_authority(allowlist, auth);
     }
 
-    /// === Display standard ===
+    // === Display standard ===
 
     struct TRANSFER_ALLOWLIST has drop {}
 

@@ -20,17 +20,21 @@
 module nft_protocol::orderbook {
     // TODO: eviction of lowest bid/highest ask on OOM
 
+    use nft_protocol::frozen_publisher::{Self, FrozenPublisher};
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::trading;
+    use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
     use std::ascii::String;
     use std::option::{Self, Option};
+    use std::string::utf8;
     use std::type_name;
     use std::vector;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
+    use sui::display::{Self, Display};
     use sui::event;
     use sui::kiosk::Kiosk;
     use sui::object::{Self, ID, UID};
@@ -664,6 +668,34 @@ module nft_protocol::orderbook {
     public fun is_buy_nft_protected(
         protected_actions: &WitnessProtectedActions
     ): bool { protected_actions.buy_nft }
+
+    // === Display standard ===
+
+    struct ORDERBOOK has drop {}
+
+    fun init(otw: ORDERBOOK, ctx: &mut TxContext) {
+        frozen_publisher::freeze_from_otw(otw, ctx);
+    }
+
+    /// Creates a new `Display` with some default settings.
+    public fun new_standard<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        pub: &FrozenPublisher,
+        ctx: &mut TxContext,
+    ): Display<Orderbook<T, FT>> {
+        let display =
+            frozen_publisher::new_display_for_inner_generic<Orderbook<T, FT>, T>(witness, pub, ctx);
+
+        display::add(&mut display, utf8(b"name"), utf8(b"Orderbook"));
+        display::add(&mut display, utf8(b"link"), utils::originbyte_docs_url());
+        display::add(
+            &mut display,
+            utf8(b"description"),
+            utf8(b"Trading platform for NFTs"),
+        );
+
+        display
+    }
 
     // === Priv fns ===
 
