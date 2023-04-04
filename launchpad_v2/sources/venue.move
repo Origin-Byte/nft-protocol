@@ -9,9 +9,10 @@ module launchpad_v2::venue {
     use sui::dynamic_field as df;
     use sui::balance::{Self, Balance};
 
+    use nft_protocol::utils;
     use nft_protocol::supply::{Self, Supply};
     use launchpad_v2::launchpad::{Self, LaunchCap};
-    use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap, Policy as AuthPolicy};
+    use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap as AuthPolicyCap, Policy as AuthPolicy};
     use launchpad_v2::proceeds::{Self, Proceeds};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
@@ -37,7 +38,6 @@ module launchpad_v2::venue {
         /// A `Venue` belongs to a `Listing` and therefore we store here
         /// to what listing this obejct belongs to.
         listing_id: ID,
-        policy_cap: PolicyCap,
         policies: Policies,
         supply: Option<Supply>,
         schedule: Schedule,
@@ -92,6 +92,12 @@ module launchpad_v2::venue {
         ft_type: String,
         nft_type: String,
         buyer: address,
+    }
+
+    public fun empty(
+        launch_cap: &LaunchCap,
+    ) {
+
     }
 
     public fun request_access(
@@ -297,6 +303,25 @@ module launchpad_v2::venue {
 
     public fun auth_policy(venue: &Venue): &AuthPolicy {
         &venue.policies.auth
+    }
+
+    public fun register_rule<RuleType: drop>(
+        _witness: RuleType,
+        launch_cap: &LaunchCap,
+        venue: &mut Venue,
+    ) {
+        let cap = df::remove<TypeName, AuthPolicyCap>(&mut venue.id, type_name::get<AuthPolicyCap>());
+        let policy = auth_policy_mut(venue, launch_cap);
+
+        request::add_rule(policy, &cap, type_name::get<RuleType>());
+
+        df::add<TypeName, AuthPolicyCap>(&mut venue.id, type_name::get<AuthPolicyCap>(), cap);
+    }
+
+
+    public fun auth_policy_mut(venue: &mut Venue, launch_cap: &LaunchCap): &mut AuthPolicy {
+        assert_launch_cap(venue, launch_cap);
+        &mut venue.policies.auth
     }
 
 
