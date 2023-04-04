@@ -20,6 +20,7 @@ module nft_protocol::mint_cap {
 
     use nft_protocol::collection::Collection;
     use nft_protocol::utils;
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::supply::{Self, Supply};
 
     /// `MintCap` is unregulated when expected regulated
@@ -56,6 +57,24 @@ module nft_protocol::mint_cap {
         ctx: &mut TxContext,
     ): MintCap<T> {
         utils::assert_same_module_as_witness<T, W>();
+
+        let collection_id = object::id(collection);
+
+        if (option::is_some(&supply)) {
+            new_regulated(
+                collection_id, option::destroy_some(supply), ctx,
+            )
+        } else {
+            new_unregulated(collection_id, ctx)
+        }
+    }
+
+    public fun new_from_delegated<T>(
+        _witness: DelegatedWitness<T>,
+        collection: &Collection<T>,
+        supply: Option<u64>,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
 
         let collection_id = object::id(collection);
 

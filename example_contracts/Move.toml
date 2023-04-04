@@ -1,7 +1,7 @@
 [package]
-name = "NftProtocol"
+name = "Suitraders"
 version = "0.28.0"
-published-at = "0x30ac932177f6c7bb1ee142838f0faa8b0ac65f250455567c761c39d84c02082d"
+published-at = "0x7e63f9bf18329e9ff548b899e0587b1bd2affab4b1086ef280410f2d2420ab7f"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -14,5 +14,8 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.29.0
 rev = "f5242d0415b35fe48344e83cfd60924725fed23d"
 
+[dependencies.NftProtocol]
+local = "../"
+
 [addresses]
-nft_protocol = "0x30ac932177f6c7bb1ee142838f0faa8b0ac65f250455567c761c39d84c02082d"
+suitraders = "0x7e63f9bf18329e9ff548b899e0587b1bd2affab4b1086ef280410f2d2420ab7f"
