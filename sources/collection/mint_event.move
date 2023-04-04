@@ -58,6 +58,7 @@ module nft_protocol::mint_event {
     ) {
         // Assert that there is a supply in mint cap
         mint_cap::assert_regulated(mint_cap);
+        mint_cap::increment_supply(mint_cap, 1);
 
         let type = type_name::get<T>();
         let object_id = object::id(object);
@@ -77,6 +78,7 @@ module nft_protocol::mint_event {
         // Assert that there is a supply in mint cap
         mint_cap::assert_regulated(mint_cap);
         assert!(mint_cap::is_frozen(mint_cap), 0);
+        mint_cap::increment_supply(mint_cap, 1);
 
         let type = type_name::get<T>();
         let object_id = object::id(object);

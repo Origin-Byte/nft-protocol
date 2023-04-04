@@ -168,7 +168,7 @@ module nft_protocol::bidding {
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         let nft_id = object::id(&nft);
-        ob_kiosk::deposit(buyers_kiosk, nft);
+        ob_kiosk::deposit(buyers_kiosk, nft, ctx);
         let transfer_req = ob_transfer_request::new<T>(
             nft_id,
             uid_to_address(&bid.id),
