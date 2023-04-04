@@ -7,13 +7,14 @@ module nft_protocol::composable_svg {
     use std::ascii::{Self, String};
     use std::vector;
 
-    use sui::object::{UID, ID};
+    use sui::object::{Self, UID, ID};
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_field as df;
+    use sui::vec_set::{Self, VecSet};
 
     use nft_protocol::svg;
     use nft_protocol::nft_bag;
-    use nft_protocol::nft::{Self, Nft};
+    // use nft_protocol::nft::{Self, Nft};
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::utils::{Self, Marker};
 
@@ -39,6 +40,11 @@ module nft_protocol::composable_svg {
         /// Attributes of root `svg` tag
         attributes: VecMap<String, String>,
         /// Composed SVG data
+        svg: vector<u8>,
+    }
+
+    struct HotPotato {
+        children: VecSet<ID>,
         svg: vector<u8>,
     }
 
@@ -85,19 +91,21 @@ module nft_protocol::composable_svg {
     /// - `NftBagDomain` doesn't exist
     /// - NFT was of a different collection type
     /// - NFT wasn't composed
-    public fun register<C>(
-        _witness: DelegatedWitness<Nft<C>>,
+    public fun register<C, Parent: key + store, Child: key + store>(
+        _witness: DelegatedWitness<C>,
         parent_nft: &mut UID,
-        child_nft_id: ID,
+        child_nft: &mut UID,
     ) {
-        let nft_bag_domain = nft_bag::borrow_domain_mut(parent_nft);
+        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
+        let child_id = object::uid_to_inner(child_nft);
+
+        nft_bag::assert_composed(nft_bag, child_id);
 
         // Assert that child NFT exists and it has `SvgDomain`
-        let child_nft = nft_bag::borrow<Nft<C>>(nft_bag_domain, child_nft_id);
-        svg::assert_svg(nft::borrow_uid(child_nft));
+        svg::assert_svg(child_nft);
 
-        let domain = borrow_domain_mut(parent_nft);
-        vector::push_back(&mut domain.nfts, child_nft_id);
+        let composable_svg = borrow_domain_mut(parent_nft);
+        vector::push_back(&mut composable_svg.nfts, child_id);
     }
 
     /// Deregisters NFT whose SVG data is being composed within
@@ -110,17 +118,24 @@ module nft_protocol::composable_svg {
     ///
     /// - `ComposableSvg` doesn't exist
     /// - NFT wasn't composed
-    public fun deregister<T: key + store>(
-        _witness: DelegatedWitness<T>,
+    public fun deregister<C, Parent: key + store, Child: key + store>(
+        _witness: DelegatedWitness<C>,
         parent_nft: &mut UID,
-        child_nft_id: ID,
+        child_nft: &mut UID,
     ) {
-        let domain = borrow_domain_mut(parent_nft);
+        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
+        let child_id = object::uid_to_inner(child_nft);
 
-        let (has_entry, idx) = vector::index_of(&domain.nfts, &child_nft_id);
+        let composable_svg = borrow_domain_mut(parent_nft);
+
+        let (has_entry, idx) = vector::index_of(&composable_svg.nfts, &child_id);
         assert!(has_entry, EUndefinedNft);
 
-        vector::remove(&mut domain.nfts, idx);
+        vector::remove(&mut composable_svg.nfts, idx);
+    }
+
+    public fun start_render_svg(parent_nft: &mut UID): HotPotato {
+        HotPotato { children: get_children_ids(parent), svg: b"<svg " }
     }
 
     /// Regenerates composed SVG data
