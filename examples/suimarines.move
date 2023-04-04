@@ -112,4 +112,17 @@ module nft_protocol::suimarines {
             index,
         }
     }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(USER);
+        init(SUIMARINES {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
+    }
 }

@@ -31,8 +31,17 @@ module nft_protocol::tribal_realms {
     fun init(_witness: TRIBAL_REALMS, ctx: &mut TxContext) {
         let collection: Collection<Nft<TRIBAL_REALMS>> =
             nft::create_collection(Witness {}, ctx);
-        let mint_cap =
-            mint_cap::new<Witness, Nft<TRIBAL_REALMS>>(Witness {}, &collection, option::none(), ctx);
+
+        let delegated_witness = nft::delegate_witness<TRIBAL_REALMS, Witness>(
+            Witness {}
+        );
+
+        let mint_cap =mint_cap::new_from_delegated<Nft<TRIBAL_REALMS>>(
+            delegated_witness,
+            &collection,
+            option::none(),
+            ctx
+        );
 
         nft::add_collection_domain(
             Witness {},
@@ -90,5 +99,18 @@ module nft_protocol::tribal_realms {
         nft::add_domain(Witness {}, &mut nft, url);
 
         warehouse::deposit_nft(warehouse, nft);
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(USER);
+        init(TRIBAL_REALMS {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
     }
 }
