@@ -158,7 +158,7 @@ module nft_protocol::fixed_price {
         venue::assert_is_not_whitelisted(venue);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        ob_kiosk::deposit_as_owner(buyer_safe, nft, ctx);
+        ob_kiosk::deposit(buyer_safe, nft, ctx);
     }
 
     /// Buy NFT for whitelisted sale
@@ -204,7 +204,7 @@ module nft_protocol::fixed_price {
         market_whitelist::burn(whitelist_token);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        ob_kiosk::deposit_as_owner(safe, nft, ctx);
+        ob_kiosk::deposit(safe, nft, ctx);
     }
 
     /// Internal method to buy NFT
