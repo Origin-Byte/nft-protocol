@@ -3,7 +3,7 @@ module nft_protocol::test_royalty {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness;
     use nft_protocol::bps_royalty_strategy;
     use nft_protocol::royalty::RoyaltyDomain;
@@ -17,11 +17,13 @@ module nft_protocol::test_royalty {
     fun add_royalty() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let collection = collection::create<Foo, Witness>(Witness {}, ctx(&mut scenario));
+        let delegated_witness = witness::from_witness(Witness {});
 
-        let delegated_witness = witness::from_witness<Foo, Witness>(Witness {});
+        let collection: Collection<Foo> = collection::create(
+            delegated_witness, ctx(&mut scenario),
+        );
 
-        bps_royalty_strategy::create_domain_and_add_strategy<Foo>(
+        bps_royalty_strategy::create_domain_and_add_strategy(
             delegated_witness, &mut collection, 100, ctx(&mut scenario),
         );
 

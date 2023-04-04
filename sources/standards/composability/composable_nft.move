@@ -9,6 +9,7 @@ module nft_protocol::composable_nft {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
 
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::nft_bag;
 
@@ -122,7 +123,7 @@ module nft_protocol::composable_nft {
     ///
     /// Panics if `Composition` is already registered on the `Collection`.
     public fun add_composition_domain<T, Schema, W: drop>(
-        witness: W,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         domain: Composition<Schema>,
     ) {

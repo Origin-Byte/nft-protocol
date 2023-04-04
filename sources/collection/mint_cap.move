@@ -19,7 +19,6 @@ module nft_protocol::mint_cap {
     use sui::object::{Self, UID, ID};
 
     use nft_protocol::collection::Collection;
-    use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::supply::{Self, Supply};
 
@@ -50,14 +49,12 @@ module nft_protocol::mint_cap {
         supply: Option<Supply>,
     }
 
-    public fun new<W: drop, T>(
-        _witness: W,
+    public fun new<T>(
+        _witness: DelegatedWitness<T>,
         collection: &Collection<T>,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        utils::assert_same_module_as_witness<T, W>();
-
         let collection_id = object::id(collection);
 
         if (option::is_some(&supply)) {

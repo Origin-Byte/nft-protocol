@@ -57,7 +57,11 @@ module nft_protocol::bps_royalty_strategy {
         ctx: &mut TxContext,
     ): BpsRoyaltyStrategy<T> {
         let id = object::new(ctx);
-        let domain = royalty::royalty_domain_mut(witness, collection);
+
+        let domain = royalty::borrow_domain_mut(
+            collection::borrow_uid_mut(witness, collection),
+        );
+
         royalty::add_strategy(domain, object::uid_to_inner(&id));
 
         BpsRoyaltyStrategy {
@@ -178,7 +182,7 @@ module nft_protocol::bps_royalty_strategy {
         ctx: &mut TxContext,
     ) {
         let royalty_domain = royalty::from_address(sender(ctx), ctx);
-        royalty::add_royalty_domain(
+        collection::add_domain(
             witness,
             collection,
             royalty_domain,

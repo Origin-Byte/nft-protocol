@@ -32,7 +32,8 @@ module nft_protocol::origin_sui {
     ) {
         assert!(package::from_package<C>(pub), 0);
 
-        transfer_allowlist_domain::add_id_with_cap(pub, collection, allowlist);
+        let delegated_witness = witness::from_publisher(pub);
+        transfer_allowlist_domain::add_id(delegated_witness, collection, allowlist);
 
         let delegated_witness = witness::from_witness<ORIGIN_SUI, Witness>(Witness {});
 
@@ -52,7 +53,7 @@ module nft_protocol::origin_sui {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun it_inserts_collection() {
+    fun test_example_free_for_all() {
         let scenario = test_scenario::begin(USER);
 
         init(ORIGIN_SUI {}, ctx(&mut scenario));
@@ -64,18 +65,20 @@ module nft_protocol::origin_sui {
             USER,
         );
 
-        let collection =
-            collection::create<ORIGIN_SUI, Witness>(Witness {}, ctx(&mut scenario));
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<ORIGIN_SUI> =
+            collection::create(delegated_witness, ctx(&mut scenario));
 
         let mint_cap = mint_cap::new(
-            Witness {},
+            delegated_witness,
             &collection,
             option::none(),
             ctx(&mut scenario)
         );
 
         collection::add_domain(
-            Witness {},
+            delegated_witness,
             &mut collection,
             transfer_allowlist_domain::empty(),
         );
