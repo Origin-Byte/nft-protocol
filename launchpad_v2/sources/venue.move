@@ -8,8 +8,8 @@ module launchpad_v2::venue {
     use sui::object::{Self, UID, ID};
     use sui::dynamic_field as df;
     use sui::balance::{Self, Balance};
+    use sui::transfer;
 
-    use nft_protocol::utils;
     use nft_protocol::supply::{Self, Supply};
     use launchpad_v2::launchpad::{Self, LaunchCap};
     use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap as AuthPolicyCap, Policy as AuthPolicy};
@@ -39,6 +39,8 @@ module launchpad_v2::venue {
         /// to what listing this obejct belongs to.
         listing_id: ID,
         policies: Policies,
+        // TODO: There is a problem here, because what happens if you exhaust one
+        // Warehouse but not the other? You have to implement relative index accross inventories as well?
         supply: Option<Supply>,
         schedule: Schedule,
         proceeds: Proceeds,
@@ -53,15 +55,24 @@ module launchpad_v2::venue {
 
     // A wrapper for all base policies in a venue
     struct Policies has store {
+        auth_cap: AuthPolicyCap,
         auth: AuthPolicy,
         // Here for discoverability and assertion.
-        redemption: TypeName,
+        redeem_method: TypeName,
         // Here for discoverability and assertion.
         market: TypeName,
     }
 
-    // A wrapper for Liveness settings, it determines when a Venue is live
-    // or not.
+    /// A wrapper for Liveness settings, it determines when a Venue is live
+    /// or not.
+    /// There are two methods in which the administrators can set up the
+    /// schedule:
+    ///
+    /// - Either toggle the live status manually, in case there
+    /// is no `start_time` nor `close_time`.
+    /// - The liveness status gets toggled automatically when the runtime Clock
+    /// is within the period defined by `start_time` and `close_time`. For more
+    /// see `check_if_live`.
     struct Schedule has store {
         start_time: Option<u64>,
         close_time: Option<u64>,
@@ -94,18 +105,93 @@ module launchpad_v2::venue {
         buyer: address,
     }
 
-    public fun empty(
-        launch_cap: &LaunchCap,
-    ) {
+    // === Instantiators ===
 
+    // Initiates and new `Venue` and returns it.
+    public fun new<Market, RedeemMethod>(
+        launch_cap: &LaunchCap,
+        supply: Option<Supply>,
+        start_time: Option<u64>,
+        close_time: Option<u64>,
+        ctx: &mut TxContext,
+    ): Venue {
+        Venue {
+            id: object::new(ctx),
+            listing_id: launchpad::listing_id(launch_cap),
+            policies: init_policies<Market, RedeemMethod>(ctx),
+            supply,
+            schedule: init_schedule(start_time, close_time),
+            proceeds: proceeds::empty(ctx),
+            inventories: vec_map::empty()
+        }
     }
 
+    // Initiates and new `Venue` and shares it.
+    public fun create_and_share<Market, RedeemMethod>(
+        launch_cap: &LaunchCap,
+        supply: Option<Supply>,
+        start_time: Option<u64>,
+        close_time: Option<u64>,
+        ctx: &mut TxContext,
+    ) {
+        let venue = new<Market, RedeemMethod>(
+            launch_cap,
+            supply,
+            start_time,
+            close_time,
+            ctx,
+        );
+
+        transfer::public_share_object(venue);
+    }
+
+    // Initiates and new `Policies` object and returns it.
+    public fun init_policies<Market, RedeemMethod>(
+        ctx: &mut TxContext,
+    ): Policies {
+        let (auth_policy, auth_cap) = request::empty_policy(ctx);
+
+        Policies {
+            auth_cap: auth_cap,
+            auth: auth_policy,
+            redeem_method: type_name::get<RedeemMethod>(),
+            market: type_name::get<Market>()
+        }
+    }
+
+    // Initiates and new `Schedule` object and returns it.
+    public fun init_schedule(
+        start_time: Option<u64>,
+        close_time: Option<u64>,
+    ): Schedule {
+        Schedule {
+            start_time,
+            close_time,
+            live: false,
+        }
+    }
+
+    // === Venue Management ===
+
+    // === AuthRequest ===
+
+    /// To initiate a purchase, users have to perform a batch of programmable
+    /// transactions. The client starts by calling this function, which will
+    /// return an `AuthRequest` containing all the tasks required for the
+    /// client to perform in order to gain access to the sale.
     public fun request_access(
         venue: &Venue,
     ): AuthRequest {
         request::new(&venue.policies.auth)
     }
 
+    /// To gain access to a sale, users have to perform a batch of programmable
+    /// transactions. This functions is intended to be called inside the scope of
+    /// the market. By calling this function, the market's scope will give back
+    /// the `AuthRequest` containing a proof that all the tasks required
+    /// were completed. If so, the request is consumed and the sale follows.
+    /// If not all the requires tasks were performed, then this function will
+    /// fail.
     public fun validate_access(
         venue: &Venue,
         request: AuthRequest,
@@ -116,6 +202,17 @@ module launchpad_v2::venue {
         request::confirm_request(&venue.policies.auth, request);
     }
 
+    // === Schedule ===
+
+    /// It can be called either externally (off-chain), or by the market contracts
+    /// to assert if the the sale is live. If the runtime clock is within the
+    /// bounds defined by the `start_time` and `close_time` this function will
+    /// toggle the field `live` to `true` and will return `true`. If the runtime
+    /// is out of the bounds defined, then the field `live` will be toggled
+    /// to `false` and will return `false`.
+    ///
+    /// If there is no `start_time` not `close_time` then it will simply return
+    /// the field `live`.
     public fun check_if_live(clock: &Clock, venue: &mut Venue): bool {
         // If the venue is live, then check it there is a closing time,
         // if so, then check if the clock timestamp is bigger than the closing
@@ -140,8 +237,11 @@ module launchpad_v2::venue {
         venue.schedule.live
     }
 
+    // === Protected Endpoints ===
+
     /// Pay for `Nft` sale, direct fund to `Listing` proceeds, and emit sale
-    /// events.
+    /// events. This endpoint is protected and can only be called by the
+    /// Market Policy module.
     ///
     /// Will charge `price` from the provided `Balance` object.
     ///
@@ -166,6 +266,11 @@ module launchpad_v2::venue {
         }
     }
 
+    /// Decrements global venue supply by the quantity sold by the market module.
+    /// This endpoint is protected and can only be called by the Market Policy module.
+    ///
+    /// The market module should ensure that when calling this function, it should
+    /// also call `get_redeem_receipt` for the same `quantity`.
     public fun decrement_supply_if_any<AW: drop>(
         _market_witness: AW,
         venue: &mut Venue,
@@ -178,6 +283,7 @@ module launchpad_v2::venue {
         }
     }
 
+    ///
     public fun get_redeem_receipt<AW: drop>(
         _market_witness: AW,
         venue: &mut Venue,
