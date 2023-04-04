@@ -83,6 +83,8 @@ module nft_protocol::example_symbol {
         domain: SymbolDomain,
         ctx: &mut TxContext,
     ): Nft<EXAMPLE_SYMBOL> {
+        let delegated_witness = nft::delegate_witness(Witness {});
+
         let nft: Nft<EXAMPLE_SYMBOL> = nft::new(
             Witness {},
             domain.symbol, // name
@@ -90,17 +92,19 @@ module nft_protocol::example_symbol {
             ctx,
         );
 
-        nft::add_domain(Witness {}, &mut nft, domain);
+        nft::add_domain(delegated_witness, &mut nft, domain);
 
         nft
     }
 
     /// Extracts `SymbolDomain` by burning `Nft`
     public fun delete_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
-        let _: DisplayInfo = nft::remove_domain(Witness {}, &mut nft);
+        let delegated_witness = nft::delegate_witness(Witness {});
+
+        let _: DisplayInfo = nft::remove_domain(delegated_witness, &mut nft);
 
         let symbol: SymbolDomain = nft::remove_domain(
-            Witness {}, &mut nft,
+            delegated_witness, &mut nft,
         );
 
         nft::delete(nft);

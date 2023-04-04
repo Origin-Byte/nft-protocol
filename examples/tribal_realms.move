@@ -94,9 +94,15 @@ module nft_protocol::tribal_realms {
     ) {
         let url = sui::url::new_unsafe_from_bytes(url);
 
+        let delegated_witness = nft::delegate_witness(Witness {});
+
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-        nft::add_domain(Witness {}, &mut nft, display_info::new(name, description));
-        nft::add_domain(Witness {}, &mut nft, url);
+
+        nft::add_domain(
+            delegated_witness, &mut nft, display_info::new(name, description),
+        );
+
+        nft::add_domain(delegated_witness, &mut nft, url);
 
         warehouse::deposit_nft(warehouse, nft);
     }

@@ -103,20 +103,26 @@ module nft_protocol::suitraders {
         warehouse: &mut Warehouse<Nft<SUITRADERS>>,
         ctx: &mut TxContext,
     ) {
+        let delegated_witness = nft::delegate_witness(Witness {});
         let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
-        nft::add_domain(Witness {}, &mut nft, display_info::new(name, description));
-        nft::add_domain(Witness {}, &mut nft, url);
+        nft::add_domain(
+            delegated_witness, &mut nft, display_info::new(name, description),
+        );
+
+        nft::add_domain(delegated_witness, &mut nft, url);
 
         nft::add_domain(
-            Witness {},
+            delegated_witness,
             &mut nft,
             attributes::from_vec(attribute_keys, attribute_values),
         );
 
-        nft::add_domain(Witness {}, &mut nft, collection_id::from_mint_cap(mint_cap));
+        nft::add_domain(
+            delegated_witness, &mut nft, collection_id::from_mint_cap(mint_cap),
+        );
 
         warehouse::deposit_nft(warehouse, nft);
     }

@@ -34,6 +34,7 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+        let delegated_witness = witness::from_witness(Witness {});
         let collection: Collection<SUIMARINES> =
             collection::create(Witness {}, ctx);
 
