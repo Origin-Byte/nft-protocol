@@ -71,7 +71,7 @@ module nft_protocol::ob_kiosk {
         nft_type: TypeName,
     }
 
-    /// Configures how deposits without owner cap are limited
+    /// Configures how deposits without owner signing are limited
     /// Stored under `DepositSettingDfKey` as a dynamic field.
     struct DepositSetting has store, drop {
         /// Enables depositing any collection, bypassing enabled deposits
@@ -161,6 +161,9 @@ module nft_protocol::ob_kiosk {
 
     // === Deposit to the Kiosk ===
 
+    /// Always works if the sender is the owner.
+    /// Fails if permissionless deposits are not enabled for `T`.
+    /// See `DepositSetting`.
     public fun deposit<T: key + store>(
         self: &mut Kiosk, nft: T, ctx: &mut TxContext,
     ) {
