@@ -17,27 +17,20 @@ module nft_protocol::mint_cap {
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
+    use sui::package::Publisher;
 
+    use nft_protocol::utils;
     use nft_protocol::collection::Collection;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::supply::{Self, Supply};
 
     /// `MintCap` is unregulated when expected regulated
-    const EMINT_CAP_UNREGULATED: u64 = 1;
+    const EMintCapUnregulated: u64 = 1;
 
     /// `MintCap` is regulated when expected unregulated
-    const EMINT_CAP_REGULATED: u64 = 2;
+    const EMintCapRegulated: u64 = 2;
 
-    /// `MintCap` is regulated when expected unregulated
-    const EMINT_CAP_SUPPLY_FROZEN: u64 = 2;
-
-    // === MintCap ===
-
-    /// `MintCap<T>` delegates the capability to it's owner to mint `T`.
-    /// There is only one `MintCap` per `Collection<T>`.
-    ///
-    /// This pattern is useful as `MintCap` can be made shared allowing users
-    /// to mint NFTs themselves, such as in a name service application.
+    /// `MintCap<T>` delegates the capability of it's owner to mint `T`
     struct MintCap<phantom T> has key, store {
         /// `MintCap` ID
         id: UID,
@@ -49,62 +42,84 @@ module nft_protocol::mint_cap {
         supply: Option<Supply>,
     }
 
-    public fun new<T>(
+    /// Create a new `MintCap`
+    public fun new<T, C>(
         _witness: DelegatedWitness<T>,
-        collection: &Collection<T>,
+        collection: &Collection<C>,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        let collection_id = object::id(collection);
+        utils::assert_same_module<T, C>();
 
         if (option::is_some(&supply)) {
-            new_regulated(
-                collection_id, option::destroy_some(supply), ctx,
+            new_regulated_(
+                collection, option::destroy_some(supply), ctx,
             )
         } else {
-            new_unregulated(collection_id, ctx)
+            new_unregulated_(collection, ctx)
         }
     }
 
-    public fun new_from_delegated<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &Collection<T>,
+    public fun new_from_publisher<T, C>(
+        pub: &Publisher,
+        collection: &Collection<C>,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
-
-        let collection_id = object::id(collection);
+        utils::assert_package_publisher<C>(pub);
+        utils::assert_same_module<T, C>();
 
         if (option::is_some(&supply)) {
-            new_regulated(
-                collection_id, option::destroy_some(supply), ctx,
+            new_regulated_(
+                collection, option::destroy_some(supply), ctx,
             )
         } else {
-            new_unregulated(collection_id, ctx)
+            new_unregulated_(collection, ctx)
         }
     }
 
     /// Create a new `MintCap` with unregulated supply
-    fun new_unregulated<T>(
-        collection_id: ID,
+    public fun new_unregulated<T, C>(
+        _witness: DelegatedWitness<T>,
+        collection: &Collection<C>,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        utils::assert_same_module<T, C>();
+        new_unregulated_(collection, ctx)
+    }
+
+    /// Create a new `MintCap` with regulated supply
+    public fun new_regulated<T, C>(
+        _witness: DelegatedWitness<T>,
+        collection: &Collection<C>,
+        supply: u64,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        utils::assert_same_module<T, C>();
+        new_regulated_(collection, supply, ctx)
+    }
+
+    /// Create a new `MintCap` with unregulated supply
+    fun new_unregulated_<T, U>(
+        collection: &Collection<U>,
         ctx: &mut TxContext,
     ): MintCap<T> {
         MintCap {
             id: object::new(ctx),
-            collection_id,
+            collection_id: object::id(collection),
             supply: option::none(),
         }
     }
 
     /// Create a new `MintCap` with regulated supply
-    fun new_regulated<T>(
-        collection_id: ID,
+    fun new_regulated_<T, U>(
+        collection: &Collection<U>,
         supply: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
         MintCap {
             id: object::new(ctx),
-            collection_id,
+            collection_id: object::id(collection),
             // The supply is always set to frozen for safety
             supply: option::some(supply::new(supply, true)),
         }
@@ -206,20 +221,27 @@ module nft_protocol::mint_cap {
 
     /// Delete `MintCap`
     public fun delete_mint_cap<T>(mint_cap: MintCap<T>) {
-        // TODO: Should delete Supply object if any, otherwise it becomes
-        // a stale object
         let MintCap { id, collection_id: _, supply: _ } = mint_cap;
-
         object::delete(id);
     }
 
     // === Assertions ===
 
+    /// Assert that `MintCap` has regulated supply
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `MintCap` is unregulated.
     public fun assert_regulated<T>(mint_cap: &MintCap<T>) {
-        assert!(option::is_some(&mint_cap.supply), EMINT_CAP_UNREGULATED)
+        assert!(option::is_some(&mint_cap.supply), EMintCapUnregulated)
     }
 
+    /// Assert that `MintCap` has unregulated supply
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `MintCap` is regulated.
     public fun assert_unregulated<T>(mint_cap: &MintCap<T>) {
-        assert!(option::is_none(&mint_cap.supply), EMINT_CAP_REGULATED)
+        assert!(option::is_none(&mint_cap.supply), EMintCapRegulated)
     }
 }

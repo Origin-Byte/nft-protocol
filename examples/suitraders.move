@@ -1,6 +1,5 @@
 module nft_protocol::suitraders {
     use std::ascii;
-    use std::option;
     use std::string::{Self, String};
 
     use sui::transfer;
@@ -34,8 +33,9 @@ module nft_protocol::suitraders {
         let collection: Collection<SUITRADERS> =
             collection::create(delegated_witness, ctx);
 
-        let mint_cap =
-            mint_cap::new<SUITRADERS>(delegated_witness, &collection, option::none(), ctx);
+        let mint_cap = mint_cap::new_unregulated(
+            delegated_witness, &collection, ctx,
+        );
 
         collection::add_domain(
             delegated_witness,
