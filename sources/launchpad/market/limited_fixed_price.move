@@ -18,6 +18,7 @@ module nft_protocol::limited_fixed_price {
     use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
 
+    use nft_protocol::witness;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::market_whitelist::{Self, Certificate};
     use nft_protocol::ob_kiosk;
@@ -228,7 +229,7 @@ module nft_protocol::limited_fixed_price {
         venue::assert_is_not_whitelisted(venue);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        ob_kiosk::deposit_as_owner(buyer_kiosk, nft, ctx);
+        ob_kiosk::deposit(buyer_kiosk, nft, ctx);
     }
 
     /// Buy NFT for whitelisted sale
@@ -274,7 +275,7 @@ module nft_protocol::limited_fixed_price {
         market_whitelist::burn(whitelist_token);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        ob_kiosk::deposit_as_owner(kiosk, nft, ctx);
+        ob_kiosk::deposit(kiosk, nft, ctx);
     }
 
     /// Internal method to buy NFT
@@ -289,10 +290,10 @@ module nft_protocol::limited_fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): T {
-        let market =
-            listing::market_internal_mut<LimitedFixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let market = listing::market_internal_mut<LimitedFixedPriceMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         let owner = tx_context::sender(ctx);
         increment_count(market, owner);
@@ -300,8 +301,8 @@ module nft_protocol::limited_fixed_price {
         let price = market.price;
         let inventory_id = market.inventory_id;
 
-        listing::buy_pseudorandom_nft<T, FT, LimitedFixedPriceMarket<FT>, Witness>(
-            Witness {},
+        listing::buy_pseudorandom_nft<T, FT, LimitedFixedPriceMarket<FT>>(
+            delegated_witness,
             listing,
             inventory_id,
             venue_id,
@@ -330,10 +331,10 @@ module nft_protocol::limited_fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let market =
-            listing::market_internal_mut<LimitedFixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let market = listing::market_internal_mut<LimitedFixedPriceMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         assert!(new_limit >= market.limit, EDECREASED_LIMIT);
 
@@ -353,10 +354,10 @@ module nft_protocol::limited_fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let market =
-            listing::market_internal_mut<LimitedFixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let market = listing::market_internal_mut<LimitedFixedPriceMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         market.price = new_price;
     }

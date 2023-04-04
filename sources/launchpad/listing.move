@@ -40,7 +40,7 @@ module nft_protocol::listing {
     use sui::object_bag::{Self, ObjectBag};
 
     use nft_protocol::err;
-    use nft_protocol::utils;
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::inventory::{Self, Inventory};
     use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
@@ -274,10 +274,9 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
-    /// - `MarketWitness` does not correspond to `Market` type
     /// - No supply is available from underlying `Inventory`
     public fun buy_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
-        witness: MarketWitness,
+        witness: DelegatedWitness<Market>,
         listing: &mut Listing,
         inventory_id: ID,
         venue_id: ID,
@@ -285,7 +284,7 @@ module nft_protocol::listing {
         price: u64,
         balance: &mut Balance<FT>,
     ): T {
-        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
+        let inventory = inventory_internal_mut(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_nft(inventory);
@@ -305,10 +304,9 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
-    /// - `MarketWitness` does not correspond to `Market` type
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
-    public fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
-        witness: MarketWitness,
+    public fun buy_pseudorandom_nft<T: key + store, FT, Market: store>(
+        witness: DelegatedWitness<Market>,
         listing: &mut Listing,
         inventory_id: ID,
         venue_id: ID,
@@ -317,7 +315,7 @@ module nft_protocol::listing {
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
+        let inventory = inventory_internal_mut(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
@@ -339,12 +337,11 @@ module nft_protocol::listing {
     /// #### Panics
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
-    /// - `MarketWitness` does not correspond to `Market` type
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
     /// - `user_commitment` does not match the hashed commitment in
     /// `RedeemCommitment`
-    public fun buy_random_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
-        witness: MarketWitness,
+    public fun buy_random_nft<T: key + store, FT, Market: store>(
+        witness: DelegatedWitness<Market>,
         listing: &mut Listing,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -355,7 +352,7 @@ module nft_protocol::listing {
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        let inventory = inventory_internal_mut<T, Market, MarketWitness>(
+        let inventory = inventory_internal_mut(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_random_nft(
@@ -700,16 +697,11 @@ module nft_protocol::listing {
     ///
     /// `Venue` and inventories are unprotected therefore only market modules
     /// registered on a `Venue` can gain mutable access to it.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if witness does not originate from the same module as market.
-    public fun venue_internal_mut<Market: store, Witness: drop>(
-        _witness: Witness,
+    public fun venue_internal_mut<Market: store>(
+        _witness: DelegatedWitness<Market>,
         listing: &mut Listing,
         venue_id: ID,
     ): &mut Venue {
-        utils::assert_same_module_as_witness<Market, Witness>();
         let venue = borrow_venue_mut(listing, venue_id);
         venue::assert_market<Market>(venue);
 
@@ -720,17 +712,12 @@ module nft_protocol::listing {
     ///
     /// `Market` is unprotected therefore only market modules registered
     /// on a `Venue` can gain mutable access to it.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if witness does not originate from the same module as market.
-    public fun market_internal_mut<Market: store, Witness: drop>(
-        witness: Witness,
+    public fun market_internal_mut<Market: store>(
+        witness: DelegatedWitness<Market>,
         listing: &mut Listing,
         venue_id: ID,
     ): &mut Market {
-        let venue =
-            venue_internal_mut<Market, Witness>(witness, listing, venue_id);
+        let venue = venue_internal_mut(witness, listing, venue_id);
         venue::borrow_market_mut<Market>(venue)
     }
 
@@ -775,17 +762,13 @@ module nft_protocol::listing {
     ///
     /// `Warehouse` is unprotected therefore only market modules
     /// registered on a `Venue` can gain mutable access to it.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if witness does not originate from the same module as market.
-    public fun inventory_internal_mut<T, Market: store, Witness: drop>(
-        witness: Witness,
+    public fun inventory_internal_mut<T, Market: store>(
+        witness: DelegatedWitness<Market>,
         listing: &mut Listing,
         venue_id: ID,
         inventory_id: ID,
     ): &mut Inventory<T> {
-        venue_internal_mut<Market, Witness>(witness, listing, venue_id);
+        venue_internal_mut(witness, listing, venue_id);
         borrow_inventory_mut(listing, inventory_id)
     }
 

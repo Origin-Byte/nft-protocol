@@ -4,6 +4,7 @@ module nft_protocol::test_creators {
     use sui::vec_set;
     use sui::test_scenario::{Self, ctx};
 
+    use nft_protocol::witness;
     use nft_protocol::creators::{Self, Creators};
     use nft_protocol::collection::{Self, Collection};
 
@@ -16,12 +17,14 @@ module nft_protocol::test_creators {
     fun add_attribution() {
         let scenario = test_scenario::begin(CREATOR);
 
-        let collection: Collection<Foo> = collection::create<Foo, Witness>(
-            Witness {}, ctx(&mut scenario),
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<Foo> = collection::create(
+            delegated_witness, ctx(&mut scenario),
         );
 
         collection::add_domain(
-            Witness {},
+            delegated_witness,
             &mut collection,
             creators::new(vec_set::singleton(CREATOR)),
         );

@@ -34,22 +34,21 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+        let publisher = sui::package::claim(witness, ctx);
+
+        let delegated_witness = witness::from_witness(Witness {});
         let collection: Collection<SUIMARINES> =
-            collection::create(Witness {}, ctx);
+            collection::create(delegated_witness, ctx);
 
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included
         // in the chain.
-        let publisher = sui::package::claim(witness, ctx);
-
         let (transfer_policy, transfer_policy_cap) =
             sui::transfer_policy::new<SUIMARINES>(&publisher, ctx);
         nft_protocol::transfer_allowlist::add_policy_rule(
             &mut transfer_policy,
             &transfer_policy_cap,
         );
-
-        let delegated_witness = witness::from_witness<SUIMARINES, Witness>(Witness {});
 
         royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES>(
             delegated_witness, &mut collection, 100, ctx,
@@ -111,5 +110,18 @@ module nft_protocol::suimarines {
             name,
             index,
         }
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(USER);
+        init(SUIMARINES {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
     }
 }
