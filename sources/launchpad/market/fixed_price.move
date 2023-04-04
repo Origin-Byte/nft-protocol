@@ -6,15 +6,17 @@
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
 module nft_protocol::fixed_price {
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::market_whitelist::{Self, Certificate};
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::venue;
     use sui::coin::{Self, Coin};
     use sui::kiosk::Kiosk;
     use sui::object::{Self, ID, UID};
     use sui::transfer::public_transfer;
     use sui::tx_context::{Self, TxContext};
+
+    use nft_protocol::listing::{Self, Listing};
+    use nft_protocol::market_whitelist::{Self, Certificate};
+    use nft_protocol::ob_kiosk;
+    use nft_protocol::venue;
+    use nft_protocol::witness;
 
     /// Fixed price market object
     struct FixedPriceMarket<phantom FT> has key, store {
@@ -146,11 +148,11 @@ module nft_protocol::fixed_price {
     ///
     /// Panics if `Venue` does not exist, is not live, or is whitelisted or
     /// wallet does not have the necessary funds.
-    public entry fun buy_nft_into_safe<T: key + store, FT>(
+    public entry fun buy_nft_into_kiosk<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         wallet: &mut Coin<FT>,
-        buyer_safe: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
         let venue = listing::borrow_venue(listing, venue_id);
@@ -158,7 +160,7 @@ module nft_protocol::fixed_price {
         venue::assert_is_not_whitelisted(venue);
 
         let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
-        ob_kiosk::deposit(buyer_safe, nft, ctx);
+        ob_kiosk::deposit(buyer_kiosk, nft, ctx);
     }
 
     /// Buy NFT for whitelisted sale
@@ -226,8 +228,9 @@ module nft_protocol::fixed_price {
         let price = market.price;
         let inventory_id = market.inventory_id;
 
-        listing::buy_pseudorandom_nft<T, FT, FixedPriceMarket<FT>, Witness>(
-            Witness {},
+        let delegated_witness = witness::from_witness(Witness {});
+        listing::buy_pseudorandom_nft<T, FT, FixedPriceMarket<FT>>(
+            delegated_witness,
             listing,
             inventory_id,
             venue_id,
@@ -253,10 +256,10 @@ module nft_protocol::fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let market =
-            listing::market_internal_mut<FixedPriceMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let market = listing::market_internal_mut<FixedPriceMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         market.price = new_price;
     }

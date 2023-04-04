@@ -1,8 +1,10 @@
 #[test_only]
 module nft_protocol::test_assert_same_module_as_witness {
-    use nft_protocol::utils::{get_package_module_type, assert_same_module_as_witness};
-    use nft_protocol::test_foo;
     use std::string;
+
+    use nft_protocol::utils;
+    use nft_protocol::witness::assert_same_module_as_witness;
+    use nft_protocol::test_foo;
 
     struct Witness has drop {}
     struct Witness2 has drop {}
@@ -10,7 +12,7 @@ module nft_protocol::test_assert_same_module_as_witness {
 
     #[test]
     public fun it_returns_package_module_type() {
-        let (package_addr, module_name, type_name) = get_package_module_type<Witness>();
+        let (package_addr, module_name, type_name) = utils::get_package_module_type<Witness>();
 
         // We can only test the length of the package address, since the address
         // itself depends on the deployed version. An example of an address would be:
@@ -32,13 +34,13 @@ module nft_protocol::test_assert_same_module_as_witness {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370600, location = nft_protocol::utils)]
-    public fun it_must_same_package() {
+    #[expected_failure(abort_code = nft_protocol::witness::EInvalidWitnessModule)]
+    public fun it_must_same_module() {
         assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, test_foo::Witness>();
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370601, location = nft_protocol::utils)]
+    #[expected_failure(abort_code = nft_protocol::witness::EInvalidWitness)]
     public fun it_must_be_witness() {
         assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, Witness2>();
     }
