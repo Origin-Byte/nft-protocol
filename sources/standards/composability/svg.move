@@ -130,7 +130,6 @@ module nft_protocol::composable_svg {
         parent_nft: &mut UID,
         child_nft: &mut UID,
     ) {
-        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
         let child_id = object::uid_to_inner(child_nft);
 
         let composable_svg = borrow_domain_mut(parent_nft);
@@ -153,7 +152,6 @@ module nft_protocol::composable_svg {
     /// - `ComposableSvg` is not registered
     /// - `NftBagDomain` is not registered
     public fun start_render_svg<Parent: key + store>(parent_nft: &mut UID): HotPotato {
-        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
         let composable_svg = borrow_domain_mut(parent_nft);
         let attributes = borrow_attributes(composable_svg);
 
@@ -191,10 +189,7 @@ module nft_protocol::composable_svg {
     ///
     /// - `ComposableSvg` is not registered
     /// - `NftBagDomain` is not registered
-    public fun render_child<Parent: key + store>(hp: &mut HotPotato, parent_nft: &mut UID, child: &mut UID) {
-        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
-        let composable_svg = borrow_domain_mut(parent_nft);
-
+    public fun render_child(hp: &mut HotPotato, child: &mut UID) {
         let nft_svg = svg::get_svg(svg::borrow_domain(child));
 
         // TODO: Somehow consider serializing id attribute

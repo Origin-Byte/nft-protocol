@@ -4,17 +4,22 @@ module nft_protocol::example_symbol {
     use std::string::{Self, String};
 
     use sui::transfer;
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
     use nft_protocol::mint_cap;
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::display_info::{Self, DisplayInfo};
+    use nft_protocol::witness;
+    use nft_protocol::display_info;
     use nft_protocol::collection::{Self, Collection};
 
     /// One time witness is only instantiated in the init method
     struct EXAMPLE_SYMBOL has drop {}
+
+    struct ExampleNft has key, store {
+        id: UID,
+        symbol: Symbol,
+    }
 
     /// Used for authorization of other protected actions.
     ///
@@ -22,23 +27,31 @@ module nft_protocol::example_symbol {
     struct Witness has drop {}
 
     /// Domain holding a globally unique symbol
-    struct SymbolDomain has store {
+    struct SymbolCap has key, store {
+        id: UID,
+        /// Unique symbol
+        symbol: String,
+    }
+
+    struct Symbol has store {
         /// Unique symbol
         symbol: String,
     }
 
     /// Collection domain responsible for storing symbols already registered
-    struct RegistryDomain has store {
+    struct Registry has store {
         /// Registered symbols
         symbols: VecSet<String>,
     }
 
     /// Adds registration to `RegistryDomain` and returns unique `SymbolDomain`
     fun register(
-        registry: &mut RegistryDomain, symbol: String,
-    ): SymbolDomain {
+        registry: &mut Registry,
+        symbol: String,
+        ctx: &mut TxContext,
+    ): SymbolCap {
         vec_set::insert(&mut registry.symbols, symbol);
-        SymbolDomain { symbol }
+        SymbolCap { id: object::new(ctx), symbol }
     }
 
     // === Contract functions ===
@@ -65,85 +78,42 @@ module nft_protocol::example_symbol {
         collection::add_domain(
             delegated_witness,
             &mut collection,
-            RegistryDomain { symbols: vec_set::empty() },
+            Registry { symbols: vec_set::empty() },
         );
 
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
         transfer::public_share_object(collection);
     }
 
-    /// Mint `Nft` from `SymbolDomain`
+    /// Mint `Nft` with `Symbol` from unique `SymbolCap`
     public fun mint_nft(
-        domain: SymbolDomain,
+        cap: &SymbolCap,
         ctx: &mut TxContext,
-    ): Nft<EXAMPLE_SYMBOL> {
-        let delegated_witness = witness::from_witness(Witness {});
-
-        let nft: Nft<EXAMPLE_SYMBOL> = nft::new(
-            delegated_witness,
-            domain.symbol, // name
-            sui::url::new_unsafe_from_bytes(b""), // url
-            ctx,
-        );
-
-        nft::add_domain(delegated_witness, &mut nft, domain);
+    ): ExampleNft {
+        let nft = ExampleNft {
+            id: object::new(ctx),
+            symbol: Symbol {symbol: cap.symbol}
+        };
 
         nft
     }
 
-    /// Extracts `SymbolDomain` by burning `Nft`
-    public fun delete_nft(nft: Nft<EXAMPLE_SYMBOL>): SymbolDomain {
-        let delegated_witness = witness::from_witness(Witness {});
-
-        let _: DisplayInfo = nft::remove_domain(delegated_witness, &mut nft);
-
-        let symbol: SymbolDomain = nft::remove_domain(
-            delegated_witness, &mut nft,
-        );
-
-        nft::delete(nft);
-
-        symbol
-    }
-
-    /// Call to mint an NFT with globally unique symbol
+    /// Call to mint an globally unique NFT Symbol
     public entry fun mint_symbol(
-        collection: &mut Collection<Nft<EXAMPLE_SYMBOL>>,
+        collection: &mut Collection<EXAMPLE_SYMBOL>,
         symbol: String,
         ctx: &mut TxContext,
     ) {
         let delegated_witness = witness::from_witness(Witness {});
 
-        let registry: &mut RegistryDomain =
+        let registry: &mut Registry =
             collection::borrow_domain_mut(delegated_witness, collection);
 
-        let nft = mint_nft(register(registry, symbol), ctx);
+        let cap = register(registry, symbol, ctx);
 
-        transfer::public_transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(cap, tx_context::sender(ctx));
     }
 
-    /// Associate `SymbolDomain` to `Collection`
-    public entry fun associate<T>(
-        collection: &mut Collection<T>,
-        nft: Nft<EXAMPLE_SYMBOL>,
-    ) {
-        let delegated_witness = witness::from_witness(Witness {});
-
-        let domain = delete_nft(nft);
-        collection::add_domain(delegated_witness, collection, domain);
-    }
-
-    /// Disassociate `SymbolDomain` from `Collection`
-    public fun disassociate<T, W>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
-        ctx: &mut TxContext,
-    ) {
-        let domain: SymbolDomain = collection::remove_domain(witness, collection);
-        let nft = mint_nft(domain, ctx);
-
-        transfer::public_transfer(nft, tx_context::sender(ctx));
-    }
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
