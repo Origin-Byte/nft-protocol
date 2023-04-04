@@ -5,10 +5,10 @@
 ///
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
-module nft_protocol::fixed_bid_v2 {
-    use nft_protocol::launchpad_v2::LaunchCap;
-    use nft_protocol::request::{Self, Request};
-    use nft_protocol::venue_v2::{Self, Venue, RedeemReceipt};
+module launchpad_v2::fixed_bid {
+    use launchpad_v2::launchpad::LaunchCap;
+    use launchpad_v2::request::{Self, Request};
+    use launchpad_v2::venue::{Self, Venue, RedeemReceipt};
 
     use sui::coin::{Self, Coin};
     use sui::clock::Clock;
@@ -48,7 +48,7 @@ module nft_protocol::fixed_bid_v2 {
         max_buy: u64,
         ctx: &mut TxContext,
     ): FixedBidMarket<FT> {
-        venue_v2::assert_launch_cap(venue, launch_cap);
+        venue::assert_launch_cap(venue, launch_cap);
 
         FixedBidMarket {
             id: object::new(ctx),
@@ -75,7 +75,7 @@ module nft_protocol::fixed_bid_v2 {
     ) {
         let market = new<FT>(launch_cap, venue, price, max_buy, ctx);
 
-        let venue_uid = venue_v2::uid_mut(venue, launch_cap);
+        let venue_uid = venue::uid_mut(venue, launch_cap);
 
         df::add(venue_uid, FixedBidDfKey {}, market);
     }
@@ -97,10 +97,10 @@ module nft_protocol::fixed_bid_v2 {
         request: Request,
         clock: &Clock,
     ): RedeemReceipt {
-        venue_v2::assert_request(venue, &request);
-        venue_v2::check_if_live(clock, venue);
+        venue::assert_request(venue, &request);
+        venue::check_if_live(clock, venue);
 
-        request::confirm_request(venue_v2::auth_policy(venue),request);
+        request::confirm_request(venue::auth_policy(venue),request);
         buy_nft_cert_<T, FT>(venue, wallet, quantity)
     }
 
@@ -116,16 +116,16 @@ module nft_protocol::fixed_bid_v2 {
         wallet: &mut Coin<FT>,
         quantity: u64,
     ): RedeemReceipt {
-        venue_v2::decrement_supply_if_any(Witness {}, venue, quantity);
+        venue::decrement_supply_if_any(Witness {}, venue, quantity);
 
-        let market = venue_v2::get_df<FixedBidDfKey, FixedBidMarket<FT>>(
+        let market = venue::get_df<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
             FixedBidDfKey {}
         );
 
         assert!(quantity <= market.max_buy, EMAX_BUY_QUANTITY_SURPASSED);
 
-        venue_v2::pay<Witness, FT, T>(
+        venue::pay<Witness, FT, T>(
             Witness {},
             venue,
             coin::balance_mut(wallet),
@@ -134,7 +134,7 @@ module nft_protocol::fixed_bid_v2 {
         );
 
         // TODO: Allow for burner wallets
-        venue_v2::get_redeem_receipt(
+        venue::get_redeem_receipt(
             Witness {},
             venue,
             quantity,
@@ -153,9 +153,9 @@ module nft_protocol::fixed_bid_v2 {
         venue: &mut Venue,
         new_price: u64,
     ) {
-        venue_v2::assert_launch_cap(venue, launch_cap);
+        venue::assert_launch_cap(venue, launch_cap);
 
-        let market = venue_v2::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
+        let market = venue::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
             launch_cap,
             FixedBidDfKey {}
@@ -174,9 +174,9 @@ module nft_protocol::fixed_bid_v2 {
         venue: &mut Venue,
         new_max_buy: u64,
     ) {
-        venue_v2::assert_launch_cap(venue, launch_cap);
+        venue::assert_launch_cap(venue, launch_cap);
 
-        let market = venue_v2::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
+        let market = venue::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
             launch_cap,
             FixedBidDfKey {}

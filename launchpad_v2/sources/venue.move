@@ -1,4 +1,4 @@
-module nft_protocol::venue_v2 {
+module launchpad_v2::venue {
     use std::ascii::String;
     use std::option::{Self, Option};
     use sui::clock::{Self, Clock};
@@ -10,9 +10,9 @@ module nft_protocol::venue_v2 {
     use sui::balance::{Self, Balance};
 
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::launchpad_v2::{Self, LaunchCap};
-    use nft_protocol::request::{Self, Request as AuthRequest, PolicyCap, Policy as AuthPolicy};
-    use nft_protocol::proceeds_v2::{Self, Proceeds};
+    use launchpad_v2::launchpad::{Self, LaunchCap};
+    use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap, Policy as AuthPolicy};
+    use launchpad_v2::proceeds::{Self, Proceeds};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
 
@@ -154,7 +154,7 @@ module nft_protocol::venue_v2 {
         let index = 0;
         while (quantity > index) {
             let funds = balance::split(balance, price);
-            proceeds_v2::add(&mut venue.proceeds, funds, 1);
+            proceeds::add(&mut venue.proceeds, funds, 1);
 
             index = index + 1;
         }
@@ -302,7 +302,7 @@ module nft_protocol::venue_v2 {
 
     public fun assert_launch_cap(venue: &Venue, launch_cap: &LaunchCap) {
         assert!(
-            venue.listing_id == launchpad_v2::listing_id(launch_cap),
+            venue.listing_id == launchpad::listing_id(launch_cap),
             ELAUNCHCAP_VENUE_MISMATCH
         );
     }

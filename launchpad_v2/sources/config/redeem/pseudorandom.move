@@ -1,12 +1,12 @@
-module nft_protocol::pseudorand_redeem {
+module launchpad_v2::pseudorand_redeem {
     use std::vector;
     use std::type_name::TypeName;
     use sui::tx_context::TxContext;
     use sui::object::ID;
     use sui::dynamic_field as df;
 
-    use nft_protocol::launchpad_v2::LaunchCap;
-    use nft_protocol::venue_v2::{Self, Venue, RedeemReceipt, NftCert};
+    use launchpad_v2::launchpad::LaunchCap;
+    use launchpad_v2::venue::{Self, Venue, RedeemReceipt, NftCert};
 
     use originmate::pseudorandom;
 
@@ -35,7 +35,7 @@ module nft_protocol::pseudorand_redeem {
         nft_precision: u64,
         kiosk_precision: u64,
     ): PseudoRandRedeem {
-        venue_v2::assert_launch_cap(venue, launch_cap);
+        venue::assert_launch_cap(venue, launch_cap);
 
         PseudoRandRedeem { nft_precision, kiosk_precision, counter: 0 }
     }
@@ -55,7 +55,7 @@ module nft_protocol::pseudorand_redeem {
         safe_precision: u64,
     ) {
         let rand_redeem = new(launch_cap, venue, nft_precision, safe_precision);
-        let venue_uid = venue_v2::uid_mut(venue, launch_cap);
+        let venue_uid = venue::uid_mut(venue, launch_cap);
 
         df::add(venue_uid, PseudoRandRedeemDfKey {}, rand_redeem);
     }
@@ -80,9 +80,9 @@ module nft_protocol::pseudorand_redeem {
         ctx: &mut TxContext,
     ): NftCert {
         // TODO: Assert Receipt Venue matches Venue
-        venue_v2::consume_receipt(receipt);
+        venue::consume_receipt(receipt);
 
-        let rand_redeem = venue_v2::get_df<PseudoRandRedeemDfKey, PseudoRandRedeem>(
+        let rand_redeem = venue::get_df<PseudoRandRedeemDfKey, PseudoRandRedeem>(
             venue, PseudoRandRedeemDfKey {}
         );
         // TO add back
@@ -100,7 +100,7 @@ module nft_protocol::pseudorand_redeem {
 
         let (inv_id, inv_type) = get_inventory_data(venue, inv_index);
 
-        venue_v2::get_certificate(
+        venue::get_certificate(
             venue,
             inv_type,
             inv_id,
@@ -114,7 +114,7 @@ module nft_protocol::pseudorand_redeem {
         venue: &Venue,
         index: u64,
     ): (ID, TypeName) {
-        venue_v2::get_inventory_data(venue, index)
+        venue::get_inventory_data(venue, index)
     }
 
 

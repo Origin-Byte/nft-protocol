@@ -1,5 +1,5 @@
 /// Module of `Factory` type
-module nft_protocol::factory {
+module launchpad_v2::factory {
     use std::vector;
 
     use sui::object::{Self, UID};
@@ -10,7 +10,7 @@ module nft_protocol::factory {
     use nft_protocol::mint_pass::{Self, MintPass};
     // use nft_protocol::loose_mint_cap::{Self, LooseMintCap};
     use nft_protocol::mint_cap::{MintCap};
-    use nft_protocol::venue_v2::{Self, NftCert};
+    use launchpad_v2::venue::{Self, NftCert};
 
     /// `Warehouse` does not have NFT at specified index
     ///
@@ -79,16 +79,16 @@ module nft_protocol::factory {
         ctx: &mut TxContext,
     ): MintPass<T> {
         // TODO: Assert type of NFT
-        venue_v2::assert_cert_buyer(&certificate, ctx);
-        venue_v2::assert_cert_inventory(&certificate, object::id(factory));
+        venue::assert_cert_buyer(&certificate, ctx);
+        venue::assert_cert_inventory(&certificate, object::id(factory));
 
         //
         let index = math::divide_and_round_up(
-            factory.total_deposited * venue_v2::get_relative_index(&certificate),
-            venue_v2::get_index_scale(&certificate)
+            factory.total_deposited * venue::get_relative_index(&certificate),
+            venue::get_index_scale(&certificate)
         );
 
-        venue_v2::consume_certificate(certificate);
+        venue::consume_certificate(certificate);
 
         redeem_mint_pass_at_index<T>(factory, index, ctx)
     }

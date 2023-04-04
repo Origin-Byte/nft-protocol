@@ -1,11 +1,11 @@
-module nft_protocol::market_whitelist_2 {
+module launchpad_v2::market_whitelist_2 {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::launchpad_v2::LaunchCap;
-    use nft_protocol::venue_v2::{Self, Venue};
-    use nft_protocol::request::{Self, Request};
+    use launchpad_v2::launchpad::LaunchCap;
+    use launchpad_v2::venue::{Self, Venue};
+    use launchpad_v2::request::{Self, Request};
 
     // TODO: There should be a way to create different types of whitelists
     // currently it's only possile to have one type.
@@ -46,7 +46,7 @@ module nft_protocol::market_whitelist_2 {
         quantity: u64,
         ctx: &mut TxContext,
     ): Certificate {
-        venue_v2::assert_launch_cap(venue, launch_cap);
+        venue::assert_launch_cap(venue, launch_cap);
 
         let certificate = Certificate {
             id: object::new(ctx),
@@ -64,7 +64,7 @@ module nft_protocol::market_whitelist_2 {
         ctx: &mut TxContext,
     ) {
         assert_certificate(&cert, object::id(venue));
-        venue_v2::assert_request(venue, request);
+        venue::assert_request(venue, request);
 
         cert.quantity = cert.quantity - 1;
 

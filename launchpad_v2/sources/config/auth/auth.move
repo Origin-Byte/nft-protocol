@@ -5,16 +5,16 @@
 /// The encrypted message is then decrypted by this module
 /// which asserts that the counter matches and the user address
 /// in the message match the ctx sender
-module nft_protocol::launchpad_auth {
+module launchpad_v2::launchpad_auth {
     use sui::bcs;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
     use sui::ecdsa_k1;
 
-    use nft_protocol::launchpad_v2::LaunchCap;
-    use nft_protocol::venue_v2::{Self, Venue};
-    use nft_protocol::request::{Self, Request};
+    use launchpad_v2::launchpad::LaunchCap;
+    use launchpad_v2::venue::{Self, Venue};
+    use launchpad_v2::request::{Self, Request};
 
     // TODO: There should be a way to create different types of whitelists
     // currently it's only possile to have one type.
@@ -47,7 +47,7 @@ module nft_protocol::launchpad_auth {
         pubkey: vector<u8>,
         ctx: &mut TxContext,
     ): Pubkey {
-        venue_v2::assert_launch_cap(venue, launch_cap);
+        venue::assert_launch_cap(venue, launch_cap);
 
         Pubkey {
             id: object::new(ctx),
@@ -64,8 +64,8 @@ module nft_protocol::launchpad_auth {
         request: &mut Request,
         ctx: &mut TxContext,
     ) {
-        venue_v2::assert_request(venue, request);
-        let pubkey = venue_v2::get_df<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
+        venue::assert_request(venue, request);
+        let pubkey = venue::get_df<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
 
         assert!(
             ecdsa_k1::secp256k1_verify(signature, &pubkey.key, msg, hash),
@@ -106,7 +106,7 @@ module nft_protocol::launchpad_auth {
         ctx: &mut TxContext,
     ) {
         let pubkey = new(launch_cap, venue, pubkey, ctx);
-        let venue_uid = venue_v2::uid_mut(venue, launch_cap);
+        let venue_uid = venue::uid_mut(venue, launch_cap);
 
         df::add(venue_uid, PubkeyDfKey {}, pubkey);
     }

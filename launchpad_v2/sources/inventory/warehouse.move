@@ -8,7 +8,7 @@
 /// `Warehouse` is an unprotected type that can be constructed independently
 /// before it is merged to a `Venue`, allowing `Warehouse` to be constructed
 /// while avoiding shared consensus transactions on `Listing`.
-module nft_protocol::warehouse_v2 {
+module launchpad_v2::warehouse {
     use std::vector;
 
     use sui::transfer;
@@ -17,7 +17,7 @@ module nft_protocol::warehouse_v2 {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
-    use nft_protocol::venue_v2::{Self, NftCert};
+    use launchpad_v2::venue::{Self, NftCert};
 
     use originmate::pseudorandom;
 
@@ -108,16 +108,16 @@ module nft_protocol::warehouse_v2 {
         ctx: &mut TxContext,
     ): T {
         // TODO: Assert type of NFT
-        venue_v2::assert_cert_buyer(&certificate, ctx);
-        venue_v2::assert_cert_inventory(&certificate, object::id(warehouse));
+        venue::assert_cert_buyer(&certificate, ctx);
+        venue::assert_cert_inventory(&certificate, object::id(warehouse));
 
         //
         let index = math::divide_and_round_up(
-            warehouse.total_deposited * venue_v2::get_relative_index(&certificate),
-            venue_v2::get_index_scale(&certificate)
+            warehouse.total_deposited * venue::get_relative_index(&certificate),
+            venue::get_index_scale(&certificate)
         );
 
-        venue_v2::consume_certificate(certificate);
+        venue::consume_certificate(certificate);
 
         redeem_nft_at_index<T>(warehouse, index)
     }

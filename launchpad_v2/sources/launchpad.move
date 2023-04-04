@@ -1,4 +1,4 @@
-module nft_protocol::launchpad_v2 {
+module launchpad_v2::launchpad {
     use std::ascii::String;
     use std::type_name::{Self, TypeName};
 

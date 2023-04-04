@@ -2,7 +2,7 @@
 /// Mysten team.
 ///
 /// We have adapted this pattern to work for any generic authorization pattern.
-module nft_protocol::request {
+module launchpad_v2::request {
     use std::type_name::{Self, TypeName};
     use std::vector;
     use sui::object::{Self, ID, UID};
