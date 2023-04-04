@@ -135,9 +135,8 @@ module nft_protocol::suitraders {
     const CREATOR: address = @0xA1C04;
 
     #[test]
-    fun test_examples_suitraders() {
+    fun it_inits_collection() {
         let scenario = test_scenario::begin(CREATOR);
-
         init(SUITRADERS {}, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, CREATOR);
 
@@ -150,6 +149,36 @@ module nft_protocol::suitraders {
         test_scenario::return_to_address(CREATOR, mint_cap);
         test_scenario::next_tx(&mut scenario, CREATOR);
 
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_mints_nft() {
+        let scenario = test_scenario::begin(CREATOR);
+        init(SUITRADERS {}, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let  mint_cap = test_scenario::take_from_address<MintCap<Nft<SUITRADERS>>>(
+            &scenario,
+            CREATOR,
+        );
+
+        let warehouse = warehouse::new<Nft<SUITRADERS>>(ctx(&mut scenario));
+
+        mint_nft(
+            string::utf8(b"SuiTudor Jones"),
+            string::utf8(b"GOAT level trader"),
+            b"https://originbyte.io/",
+            vector[ascii::string(b"avg_return")],
+            vector[ascii::string(b"24%")],
+            &mut mint_cap,
+            &mut warehouse,
+            ctx(&mut scenario)
+        );
+
+        transfer::public_transfer(warehouse, CREATOR);
+        test_scenario::return_to_address(CREATOR, mint_cap);
         test_scenario::end(scenario);
     }
 }
