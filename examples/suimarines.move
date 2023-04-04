@@ -35,7 +35,7 @@ module nft_protocol::suimarines {
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
         let collection: Collection<SUIMARINES> =
-            collection::create(Witness {}, ctx);
+            collection::create(witness, ctx);
 
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included

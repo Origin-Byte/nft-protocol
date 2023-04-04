@@ -79,7 +79,7 @@ module nft_protocol::attributes {
     /// #### Panics
     ///
     /// Panics if `Attributes` are not registered on NFT.
-    public fun insert_attribute<W: drop, T: key>(
+    public fun insert_attribute(
         attributes: &mut Attributes,
         attribute_key: String,
         attribute_value: String,
@@ -96,7 +96,7 @@ module nft_protocol::attributes {
     /// #### Panics
     ///
     /// Panics if `Attributes` dont exist.
-    public fun remove_attribute<W: drop, T: key>(
+    public fun remove_attribute(
         attributes: &mut Attributes,
         attribute_key: &String,
     ) {

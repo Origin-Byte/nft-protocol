@@ -246,8 +246,8 @@ module nft_protocol::royalty {
     /// aggregate balance of the `RoyaltyDomain` registered on the `Collection`
     ///
     /// Requires that a `RoyaltyDomain` is registered on the collection
-    public fun collect_royalty<T, FT>(
-        collection: &mut Collection<T>,
+    public fun collect_royalty<C: drop, FT>(
+        collection: &mut Collection<C>,
         source: &mut Balance<FT>,
         amount: u64,
     ) {
@@ -286,8 +286,8 @@ module nft_protocol::royalty {
     /// ##### Panics
     ///
     /// Panics if there is no aggregate for token `FT`.
-    public entry fun distribute_royalties<T, FT>(
-        collection: &mut Collection<T>,
+    public entry fun distribute_royalties<C: drop, FT>(
+        collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
         let domain: &mut RoyaltyDomain =
@@ -345,8 +345,8 @@ module nft_protocol::royalty {
     // === Interoperability ===
 
     /// Get reference to `RoyaltyDomain`
-    public fun royalty_domain<T>(
-        collection: &Collection<T>,
+    public fun royalty_domain<C: drop>(
+        collection: &Collection<C>,
     ): &RoyaltyDomain {
         collection::borrow_domain(collection)
     }
@@ -354,17 +354,17 @@ module nft_protocol::royalty {
     /// Get mutable reference to `RoyaltyDomain`
     ///
     /// Requires that `CreatorsDomain` is defined and sender is a creator
-    public fun royalty_domain_mut<T>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    public fun royalty_domain_mut<C: drop>(
+        witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
     ): &mut RoyaltyDomain {
         collection::borrow_domain_delegated_mut(witness, collection)
     }
 
     /// Registers `RoyaltyDomain` on the given `Collection`
-    public fun add_royalty_domain<T>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    public fun add_royalty_domain<C: drop>(
+        witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
         domain: RoyaltyDomain,
     ) {
         collection::add_domain_delegated(witness, collection, domain);

@@ -121,9 +121,9 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if `Composition` is already registered on the `Collection`.
-    public fun add_composition_domain<T, Schema, W: drop>(
+    public fun add_composition_domain<C: drop, Schema, W: drop>(
         witness: W,
-        collection: &mut Collection<T>,
+        collection: &mut Collection<C>,
         domain: Composition<Schema>,
     ) {
         collection::add_domain(witness, collection, domain);

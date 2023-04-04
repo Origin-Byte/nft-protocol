@@ -37,12 +37,12 @@ module nft_protocol::royalty_strategy_bps {
     ///
     /// Creates a new strategy which can be then shared with `share` method.
     /// Optionally, add balance access policy
-    public fun new<T>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    public fun new<C: drop>(
+        witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
         royalty_fee_bps: u64,
         ctx: &mut TxContext,
-    ): BpsRoyaltyStrategy<T> {
+    ): BpsRoyaltyStrategy<C> {
         let id = object::new(ctx);
         let domain = royalty::royalty_domain_mut(witness, collection);
         royalty::add_strategy(domain, object::uid_to_inner(&id));
@@ -79,13 +79,13 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     /// Transfers the royalty to the collection royalty aggregator.
-    public fun collect_royalties<T, FT>(
-        collection: &mut Collection<T>,
-        strategy: &mut BpsRoyaltyStrategy<T>,
+    public fun collect_royalties<C: drop, FT>(
+        collection: &mut Collection<C>,
+        strategy: &mut BpsRoyaltyStrategy<C>,
     ) {
         let balance = balances::borrow_mut(&mut strategy.aggregator);
         let amount = balance::value(balance);
-        royalty::collect_royalty<T, FT>(collection, balance, amount);
+        royalty::collect_royalty<C, FT>(collection, balance, amount);
     }
 
     /// Uses the balance associated with the request to deduct royalty.
@@ -142,9 +142,9 @@ module nft_protocol::royalty_strategy_bps {
     ///
     /// The creator is the sender.
     /// The strategy has access to `TransferRequest` balance
-    public fun create_domain_and_add_strategy<T>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    public fun create_domain_and_add_strategy<C: drop>(
+        witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
         bps: u64,
         ctx: &mut TxContext,
     ) {
@@ -155,7 +155,7 @@ module nft_protocol::royalty_strategy_bps {
             royalty_domain,
         );
 
-        let royalty_strategy = new<T>(
+        let royalty_strategy = new<C>(
             witness, collection, bps, ctx,
         );
         // add_balance_access_cap(

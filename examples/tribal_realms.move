@@ -28,11 +28,11 @@ module nft_protocol::tribal_realms {
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(_witness: TRIBAL_REALMS, ctx: &mut TxContext) {
-        let collection: Collection<Nft<TRIBAL_REALMS>> =
-            nft::create_collection(Witness {}, ctx);
+    fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
+        let collection: Collection<TRIBAL_REALMS> =
+            nft::create_collection(witness, ctx);
         let mint_cap =
-            mint_cap::new<Witness, Nft<TRIBAL_REALMS>>(Witness {}, &collection, option::none(), ctx);
+            mint_cap::new_from_delegated<Witness, TRIBAL_REALMS>(Witness {}, &collection, option::none(), ctx);
 
         nft::add_collection_domain(
             Witness {},
@@ -79,7 +79,7 @@ module nft_protocol::tribal_realms {
         name: String,
         description: String,
         url: vector<u8>,
-        mint_cap: &mut MintCap<Nft<TRIBAL_REALMS>>,
+        mint_cap: &mut MintCap<TRIBAL_REALMS>,
         warehouse: &mut Warehouse<Nft<TRIBAL_REALMS>>,
         ctx: &mut TxContext,
     ) {

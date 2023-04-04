@@ -44,11 +44,11 @@ module nft_protocol::example_symbol {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(_witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
-        let collection: Collection<Nft<EXAMPLE_SYMBOL>> =
-            nft::create_collection(Witness {}, ctx);
+    fun init(witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+        let collection: Collection<EXAMPLE_SYMBOL> =
+            nft::create_collection(witness, ctx);
         let mint_cap =
-            mint_cap::new<Witness, Nft<EXAMPLE_SYMBOL>>(Witness {}, &collection, option::none(), ctx);
+            mint_cap::new<Witness, EXAMPLE_SYMBOL>(Witness {}, &collection, option::none(), ctx);
 
         collection::add_domain(
             Witness {},

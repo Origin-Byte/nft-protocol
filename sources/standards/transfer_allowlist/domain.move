@@ -49,9 +49,9 @@ module nft_protocol::transfer_allowlist_domain {
     /// Adds new allowlist to `TransferAllowlistDomain`.
     /// Now, off chain clients can use this information to discover the ID
     /// and use it in relevant txs.
-    public fun add_id<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    public fun add_id<C: drop>(
+        _witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
         al: &mut Allowlist,
     ) {
         let domain = transfer_allowlist_domain_mut(collection);
@@ -59,9 +59,9 @@ module nft_protocol::transfer_allowlist_domain {
     }
 
     /// Removes existing allowlist from `TransferAllowlistDomain`.
-    public fun remove_id<T>(
-        _witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    public fun remove_id<C: drop>(
+        _witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
         id: ID,
     ) {
         let domain = transfer_allowlist_domain_mut(collection);
@@ -69,7 +69,7 @@ module nft_protocol::transfer_allowlist_domain {
     }
 
     /// Like [`add_id`] but as an endpoint
-    public entry fun add_id_with_cap<C>(
+    public entry fun add_id_with_cap<C: drop>(
         collection_pub: &Publisher,
         collection: &mut Collection<C>,
         al: &mut Allowlist,
@@ -81,7 +81,7 @@ module nft_protocol::transfer_allowlist_domain {
     }
 
     /// Like [`remove_id`] but as an endpoint
-    public entry fun remove_id_with_cap<C>(
+    public entry fun remove_id_with_cap<C: drop>(
         collection_pub: &Publisher,
         collection: &mut Collection<C>,
         id: ID,
@@ -108,9 +108,11 @@ module nft_protocol::transfer_allowlist_domain {
     /// #### Panics
     ///
     /// Panics if `TransferAllowlistDomain` is not registered on `Collection`.
-    public fun transfer_allowlist_domain<T>(
-        collection: &Collection<T>,
+    public fun transfer_allowlist_domain<OTW: drop, W: drop>(
+        witness: W,
+        collection: &Collection<OTW>,
     ): &TransferAllowlistDomain {
+        utils::assert_same_module_as_witness<OTW, W>();
         assert_domain(collection);
         collection::borrow_domain(collection)
     }
@@ -120,8 +122,8 @@ module nft_protocol::transfer_allowlist_domain {
     /// #### Panics
     ///
     /// Panics if `TransferAllowlistDomain` is not registered on `Collection`.
-    fun transfer_allowlist_domain_mut<T>(
-        collection: &mut Collection<T>,
+    fun transfer_allowlist_domain_mut<OTW: drop>(
+        collection: &mut Collection<OTW>,
     ): &mut TransferAllowlistDomain {
         assert_domain(collection);
         collection::borrow_domain_mut(Witness {}, collection)
@@ -134,9 +136,9 @@ module nft_protocol::transfer_allowlist_domain {
     /// #### Panics
     ///
     /// Panics if `TransferAllowlistDomain` is not defined on the `Collection`.
-    public fun assert_domain<T>(collection: &Collection<T>) {
+    public fun assert_domain<OTW: drop>(collection: &Collection<OTW>) {
         assert!(
-            collection::has_domain<T, TransferAllowlistDomain>(collection),
+            collection::has_domain<OTW, TransferAllowlistDomain>(collection),
             EUNDEFINED_TRANSFER_ALLOWLIST_DOMAIN,
         )
     }

@@ -37,11 +37,10 @@ module nft_protocol::display_info {
     /// #### Panics
     ///
     /// Panics if dynamic field with `Marker<DisplayInfo>` does not exist.
-    public fun change_name<W: drop, T: key>(
-        object_uid: &mut UID,
+    public fun change_name(
+        display_info: &mut DisplayInfo,
         new_name: String,
     ) {
-        let display_info = borrow_domain_mut(object_uid);
         display_info.name = new_name;
     }
 
@@ -54,11 +53,10 @@ module nft_protocol::display_info {
     /// #### Panics
     ///
     /// Panics if dynamic field with `Marker<DisplayInfo>` does not exist.
-    public fun change_description<W: drop, T: key>(
-        object_uid: &mut UID,
+    public fun change_description(
+        display_info: &mut DisplayInfo,
         new_description: String,
     ) {
-        let display_info = borrow_domain_mut(object_uid);
         display_info.description = new_description;
     }
 

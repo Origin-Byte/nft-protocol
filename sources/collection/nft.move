@@ -49,7 +49,7 @@ module nft_protocol::nft {
     /// modelled after [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See
     /// [borrow_domain_mut](#borrow_domain_mut).
-    struct Nft<phantom C> has key, store {
+    struct Nft<phantom T> has key, store {
         /// `Nft` ID
         id: UID,
         /// `Nft` name
@@ -62,23 +62,23 @@ module nft_protocol::nft {
     struct MintNftEvent has copy, drop {
         /// ID of the `Nft` that was minted
         nft_id: ID,
-        /// Type name of `Nft<C>` one-time witness `C`
+        /// Type name of `Nft<T>`
         ///
         /// Intended to allow users to filter by collections of interest.
         nft_type: ascii::String,
     }
 
     /// Create a new `Nft`
-    fun new_<C>(
+    fun new_<T>(
         name: string::String,
         url: Url,
         ctx: &mut TxContext,
-    ): Nft<C> {
+    ): Nft<T> {
         let id = object::new(ctx);
 
         event::emit(MintNftEvent {
             nft_id: object::uid_to_inner(&id),
-            nft_type: type_name::into_string(type_name::get<C>()),
+            nft_type: type_name::into_string(type_name::get<Nft<T>>()),
         });
 
         Nft { id, name, url }
@@ -92,23 +92,23 @@ module nft_protocol::nft {
     ///
     /// `mint_cap::increment_supply` should be called when instantiating a new
     /// `Nft` using this method if you are tracking supply using `MintCap`.
-    public fun new<C, W: drop>(
-        _witness: W,
+    public fun new<T, C: drop>(
+        _witness: C,
         name: string::String,
         url: Url,
         ctx: &mut TxContext,
-    ): Nft<C> {
-        utils::assert_same_module_as_witness<C, W>();
+    ): Nft<T> {
+        utils::assert_same_module_as_witness<T, C>();
         new_(name, url, ctx)
     }
 
     /// Create a new `Nft` using `MintCap`
-    public fun from_mint_cap<C>(
-        mint_cap: &mut MintCap<Nft<C>>,
+    public fun from_mint_cap<T>(
+        mint_cap: &mut MintCap<T>,
         name: string::String,
         url: Url,
         ctx: &mut TxContext,
-    ): Nft<C> {
+    ): Nft<T> {
         mint_cap::increment_supply(mint_cap, 1);
         new_(name, url, ctx)
     }
@@ -120,15 +120,15 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if witness `W` does not originate from the same module as `C`.
-    public fun delegate_witness<C, W: drop>(
+    public fun delegate_witness<T, W: drop>(
         _witness: W,
-    ): DelegatedWitness<Nft<C>> {
-        utils::assert_same_module_as_witness<C, W>();
-        witness::from_witness<Nft<C>, Witness>(Witness {})
+    ): DelegatedWitness<T> {
+        utils::assert_same_module_as_witness<T, W>();
+        witness::from_witness<T, Witness>(Witness {})
     }
 
     /// Delegates `&UID` for domain specified extensions of `Nft`
-    public fun borrow_uid<C>(nft: &Nft<C>): &UID {
+    public fun borrow_uid<T>(nft: &Nft<T>): &UID {
         &nft.id
     }
 
@@ -137,23 +137,23 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if witness `W` does not originate from the same module as `C`.
-    public fun borrow_uid_mut<C, W: drop>(
+    public fun borrow_uid_mut<T, W: drop>(
         witness: W,
-        nft: &mut Nft<C>,
+        nft: &mut Nft<T>,
     ): &mut UID {
         borrow_uid_delegated_mut(delegate_witness(witness), nft)
     }
 
     /// Delegates `&mut UID` for domain specified extensions of `Nft`
-    public fun borrow_uid_delegated_mut<C>(
-        _witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+    public fun borrow_uid_delegated_mut<T>(
+        _witness: DelegatedWitness<T>,
+        nft: &mut Nft<T>,
     ): &mut UID {
         &mut nft.id
     }
 
     /// Check whether `Nft` has a domain
-    public fun has_domain<C, Domain: store>(nft: &Nft<C>): bool {
+    public fun has_domain<T, Domain: store>(nft: &Nft<T>): bool {
         df::exists_with_type<Marker<Domain>, Domain>(
             &nft.id, utils::marker<Domain>(),
         )
@@ -164,23 +164,23 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain is not present on the `Nft`
-    public fun borrow_domain<C, Domain: store>(nft: &Nft<C>): &Domain {
-        assert_domain<C, Domain>(nft);
+    public fun borrow_domain<T, Domain: store>(nft: &Nft<T>): &Domain {
+        assert_domain<T, Domain>(nft);
         df::borrow(&nft.id, utils::marker<Domain>())
     }
 
     /// Mutably borrow domain from `Nft`
     ///
-    /// Guarantees that `Nft<C>` domains can only be mutated by the module that
+    /// Guarantees that `Nft<T>` domains can only be mutated by the module that
     /// instantiated it.
     ///
     /// #### Panics
     ///
     /// Panics if domain does not exist or if witness `W` does not originate
     /// from the same module as `C`.
-    public fun borrow_domain_mut<C, W: drop, Domain: store>(
+    public fun borrow_domain_mut<T, W: drop, Domain: store>(
         witness: W,
-        nft: &mut Nft<C>,
+        nft: &mut Nft<T>,
     ): &mut Domain {
         borrow_domain_delegated_mut(
             delegate_witness(witness),
@@ -190,18 +190,18 @@ module nft_protocol::nft {
 
     /// Mutably borrow domain from `Nft`
     ///
-    /// Guarantees that `Nft<C>` domains can only be mutated by the module that
+    /// Guarantees that `Nft<T>` domains can only be mutated by the module that
     /// instantiated it.
     ///
     /// #### Panics
     ///
     /// Panics if domain does not exist or if witness `W` does not originate
     /// from the same module as `C`.
-    public fun borrow_domain_delegated_mut<C, Domain: store>(
-        witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+    public fun borrow_domain_delegated_mut<T, Domain: store>(
+        witness: DelegatedWitness<T>,
+        nft: &mut Nft<T>,
     ): &mut Domain {
-        assert_domain<C, Domain>(nft);
+        assert_domain<T, Domain>(nft);
         df::borrow_mut(
             borrow_uid_delegated_mut(witness, nft),
             utils::marker<Domain>(),
@@ -217,9 +217,9 @@ module nft_protocol::nft {
     ///
     /// Panics if domain already exists or if witness `W` does not originate
     /// from the same module as `C`.
-    public fun add_domain<C, Domain: store, W: drop>(
+    public fun add_domain<T, Domain: store, W: drop>(
         witness: W,
-        nft: &mut Nft<C>,
+        nft: &mut Nft<T>,
         domain: Domain,
     ) {
         add_domain_delegated(
@@ -235,12 +235,12 @@ module nft_protocol::nft {
     ///
     /// Panics if domain already exists or if witness `W` does not originate
     /// from the same module as `C`.
-    public fun add_domain_delegated<C, Domain: store>(
-        witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+    public fun add_domain_delegated<T, Domain: store>(
+        witness: DelegatedWitness<T>,
+        nft: &mut Nft<T>,
         domain: Domain,
     ) {
-        assert_no_domain<C, Domain>(nft);
+        assert_no_domain<T, Domain>(nft);
         df::add(
             borrow_uid_delegated_mut(witness, nft),
             utils::marker<Domain>(),
@@ -254,11 +254,11 @@ module nft_protocol::nft {
     ///
     /// Panics if domain doesnt exist or if witness `W` does not originate from
     /// the same module as `C`.
-    public fun remove_domain<C, W: drop, Domain: store>(
+    public fun remove_domain<T, W: drop, Domain: store>(
         witness: W,
-        nft: &mut Nft<C>,
+        nft: &mut Nft<T>,
     ): Domain {
-        assert_domain<C, Domain>(nft);
+        assert_domain<T, Domain>(nft);
         remove_domain_delegated(delegate_witness(witness), nft)
     }
 
@@ -267,11 +267,11 @@ module nft_protocol::nft {
     /// ##### Panics
     ///
     /// Panics if domain doesnt exist.
-    public fun remove_domain_delegated<C, Domain: store>(
-        witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+    public fun remove_domain_delegated<T, Domain: store>(
+        witness: DelegatedWitness<T>,
+        nft: &mut Nft<T>,
     ): Domain {
-        assert_domain<C, Domain>(nft);
+        assert_domain<T, Domain>(nft);
         df::remove(
             borrow_uid_delegated_mut(witness, nft),
             utils::marker<Domain>(),
@@ -283,7 +283,7 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if any domains are still registered on the `Nft`.
-    public entry fun delete<C>(nft: Nft<C>) {
+    public entry fun delete<T>(nft: Nft<T>) {
         let Nft { id, name: _, url: _ } = nft;
         object::delete(id);
     }
@@ -291,12 +291,12 @@ module nft_protocol::nft {
     // === Static Properties ===
 
     /// Returns `Nft` name
-    public fun name<C>(nft: &Nft<C>): &string::String {
+    public fun name<T>(nft: &Nft<T>): &string::String {
         &nft.name
     }
 
     /// Returns `Nft` URL
-    public fun url<C>(nft: &Nft<C>): &Url {
+    public fun url<T>(nft: &Nft<T>): &Url {
         &nft.url
     }
 
@@ -304,9 +304,9 @@ module nft_protocol::nft {
     ///
     /// Caution when changing properties of loose NFTs as the changes will
     /// not be propagated to the template.
-    public fun set_name<C>(
-        _witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+    public fun set_name<T>(
+        _witness: DelegatedWitness<T>,
+        nft: &mut Nft<T>,
         name: string::String,
     ) {
         nft.name = name
@@ -316,33 +316,32 @@ module nft_protocol::nft {
     ///
     /// Caution when changing properties of loose NFTs as the changes will
     /// not be propagated to the template.
-    public fun set_url<C>(
-        _witness: DelegatedWitness<Nft<C>>,
-        nft: &mut Nft<C>,
+    public fun set_url<T>(
+        _witness: DelegatedWitness<T>,
+        nft: &mut Nft<T>,
         url: Url,
     ) {
         nft.url = url
     }
 
-    // === `Collection<Nft<C>>` functions ===
+    // === `Collection<C>` functions ===
 
-    /// Creates a `Collection<Nft<C>>` and corresponding `MintCap<Nft<C>>`
-    public fun create_collection<C, W: drop>(
-        _witness: W,
+    /// Creates a `Collection<C>` and corresponding `MintCap<Nft<T>>`
+    public fun create_collection<C: drop, W: drop>(
+        witness: W,
         ctx: &mut TxContext,
-    ): Collection<Nft<C>> {
-        utils::assert_same_module_as_witness<C, W>();
-        collection::create<Nft<C>, Witness>(Witness {}, ctx)
+    ): Collection<C> {
+        collection::create<C, W>(witness, ctx)
     }
 
-    /// Delegates `&mut UID` of `Collection<Nft<C>>`
+    /// Delegates `&mut UID` of `Collection<C>`
     ///
     /// #### Panics
     ///
     /// Panics if witness `W` does not originate from the same module as `C`.
-    public fun borrow_collection_uid_mut<C, W: drop>(
+    public fun borrow_collection_uid_mut<C: drop, W: drop>(
         witness: W,
-        collection: &mut Collection<Nft<C>>,
+        collection: &mut Collection<C>,
     ): &mut UID {
         collection::borrow_uid_delegated_mut(
             delegate_witness(witness),
@@ -350,15 +349,15 @@ module nft_protocol::nft {
         )
     }
 
-    /// Mutably borrow domain from `Collection<Nft<C>>`
+    /// Mutably borrow domain from `Collection<C>`
     ///
     /// #### Panics
     ///
     /// Panics if domain does not exist or if witness `W` does not originate
     /// from the same module as `C`.
-    public fun borrow_collection_domain_mut<C, Domain: store, W: drop>(
+    public fun borrow_collection_domain_mut<C: drop, Domain: store, W: drop>(
         witness: W,
-        collection: &mut Collection<Nft<C>>,
+        collection: &mut Collection<C>,
     ): &mut Domain {
         collection::borrow_domain_delegated_mut(
             delegate_witness(witness),
@@ -366,7 +365,7 @@ module nft_protocol::nft {
         )
     }
 
-    /// Adds domain to `Collection<Nft<C>>`
+    /// Adds domain to `Collection<C>`
     ///
     /// Helper method that can be simply used without knowing what a delegated
     /// witness is.
@@ -375,9 +374,9 @@ module nft_protocol::nft {
     ///
     /// Panics if domain already exists or if witness `W` does not originate
     /// from the same module as `C`.
-    public fun add_collection_domain<C, Domain: store, W: drop>(
+    public fun add_collection_domain<C: drop, Domain: store, W: drop>(
         witness: W,
-        collection: &mut Collection<Nft<C>>,
+        collection: &mut Collection<C>,
         domain: Domain,
     ) {
         collection::add_domain_delegated(
@@ -387,15 +386,15 @@ module nft_protocol::nft {
         )
     }
 
-    /// Removes domain of type from `Collection<Nft<C>>`
+    /// Removes domain of type from `Collection<C>`
     ///
     /// ##### Panics
     ///
     /// Panics if domain doesnt exist or if witness `W` does not originate from
     /// the same module as `C`.
-    public fun remove_collection_domain<C, Domain: store, W: drop>(
+    public fun remove_collection_domain<C: drop, Domain: store, W: drop>(
         witness: W,
-        collection: &mut Collection<Nft<C>>,
+        collection: &mut Collection<C>,
     ): Domain {
         collection::remove_domain_delegated(
             delegate_witness(witness),
@@ -410,8 +409,8 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain does not exist on `Nft`.
-    public fun assert_domain<C, Domain: store>(nft: &Nft<C>) {
-        assert!(has_domain<C, Domain>(nft), EUndefinedDomain);
+    public fun assert_domain<T, Domain: store>(nft: &Nft<T>) {
+        assert!(has_domain<T, Domain>(nft), EUndefinedDomain);
     }
 
     /// Assert that domain does not exist on `Nft`
@@ -419,15 +418,15 @@ module nft_protocol::nft {
     /// #### Panics
     ///
     /// Panics if domain exists on `Nft`.
-    public fun assert_no_domain<C, Domain: store>(nft: &Nft<C>) {
-        assert!(!has_domain<C, Domain>(nft), EExistingDomain);
+    public fun assert_no_domain<T, Domain: store>(nft: &Nft<T>) {
+        assert!(!has_domain<T, Domain>(nft), EExistingDomain);
     }
 
     // === Test helpers ===
 
     #[test_only]
     /// Create `Nft` without access to `MintCap` or derivatives
-    public fun test_mint<C>(ctx: &mut TxContext): Nft<C> {
+    public fun test_mint<T>(ctx: &mut TxContext): Nft<T> {
         new_(std::string::utf8(b""), sui::url::new_unsafe_from_bytes(b""), ctx)
     }
 }
