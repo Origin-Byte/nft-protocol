@@ -8,13 +8,12 @@
 module nft_protocol::transfer_allowlist_domain {
     use sui::object::{Self, UID, ID};
     use sui::vec_set::{Self, VecSet};
-    use sui::package::Publisher;
     use sui::dynamic_field as df;
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+    use nft_protocol::witness::Witness as DelegatedWitness;
 
     /// `TransferAllowlistDomain` was not registered
     ///
@@ -79,28 +78,6 @@ module nft_protocol::transfer_allowlist_domain {
             collection::borrow_uid_mut(witness, collection),
         );
         vec_set::remove(&mut domain.allowlists, &id);
-    }
-
-    /// Like [`add_id`] but as an endpoint
-    //
-    // TODO: Should deprecate, use `add_id` directly instead
-    public entry fun add_id_with_cap<T>(
-        collection_pub: &Publisher,
-        collection: &mut Collection<T>,
-        al: &mut Allowlist,
-    ) {
-        add_id(witness::from_publisher<T>(collection_pub), collection, al)
-    }
-
-    /// Like [`remove_id`] but as an endpoint
-    //
-    // TODO: Should deprecate, use `remove_id` directly instead
-    public entry fun remove_id_with_cap<T>(
-        collection_pub: &Publisher,
-        collection: &mut Collection<T>,
-        id: ID,
-    ) {
-        remove_id(witness::from_publisher<T>(collection_pub), collection, id)
     }
 
     // === Getters ===
