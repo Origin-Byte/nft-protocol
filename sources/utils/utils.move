@@ -46,6 +46,21 @@ module nft_protocol::utils {
         table
     }
 
+    public fun vec_set_from_vec<T: store + copy + drop>(
+        vec: &vector<T>,
+    ): VecSet<T> {
+        let set = vec_set::empty<T>();
+        let len = vector::length(vec);
+
+        while (len > 0) {
+            let elem = vector::borrow(vec, len);
+            vec_set::insert(&mut set, *elem);
+
+            len = len - 1;
+        };
+        set
+    }
+
     public fun insert_vec_in_vec_set<T: store + copy + drop>(
         set: &mut VecSet<T>,
         vec: vector<T>,

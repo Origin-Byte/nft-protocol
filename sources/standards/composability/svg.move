@@ -33,6 +33,11 @@ module nft_protocol::composable_svg {
     /// Call `composable_svg::deregister` with an NFT ID that exists.
     const EUndefinedNft: u64 = 3;
 
+    /// Tried to call `finish_render_svg` when the `HotPotato` was still
+    /// not empty. In other words, hot_potato.children still has elements
+    /// in it. Consider calling `render_child` to remove those elements.
+    const EReRenderingIncomplete: u64 = 3;
+
     /// Domain for providing composed SVG data
     struct ComposableSvg has store {
         /// NFTs which are being composed
@@ -43,6 +48,8 @@ module nft_protocol::composable_svg {
         svg: vector<u8>,
     }
 
+    /// Hot Potato struct to ensure the client re-renders the ComposableSVG
+    /// completely upon calling `start_render_svg`
     struct HotPotato {
         children: VecSet<ID>,
         svg: vector<u8>,
@@ -134,11 +141,9 @@ module nft_protocol::composable_svg {
         vector::remove(&mut composable_svg.nfts, idx);
     }
 
-    public fun start_render_svg(parent_nft: &mut UID): HotPotato {
-        HotPotato { children: get_children_ids(parent), svg: b"<svg " }
-    }
-
-    /// Regenerates composed SVG data
+    /// Initialises the re-rendering of the composed SVG data. It returns a
+    /// `HotPotato` object, thus forcing the client to subsequently call
+    /// `render_child` for each child nft in `nfts`.
     ///
     /// NFTs which were removed from `NftBagDomain` or whose `SvgDomain`
     /// was unregistered will be skipped.
@@ -147,18 +152,18 @@ module nft_protocol::composable_svg {
     ///
     /// - `ComposableSvg` is not registered
     /// - `NftBagDomain` is not registered
-    /// - Composed type was not `Nft<C>`
-    public fun regenerate<C>(nft: &mut UID) {
-        let composable_svg_domain = borrow_domain(nft);
+    public fun start_render_svg<Parent: key + store>(parent_nft: &mut UID): HotPotato {
+        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
+        let composable_svg = borrow_domain_mut(parent_nft);
+        let attributes = borrow_attributes(composable_svg);
 
         let svg = vector::empty();
 
-        // Serialize `svg` tag
-        let attributes = borrow_attributes(composable_svg_domain);
         vector::append(&mut svg, b"<svg");
 
         let idx = 0;
         let size = vec_map::size(attributes);
+
         while (idx < size) {
             let (key, value) = vec_map::get_entry_by_idx(attributes, idx);
 
@@ -173,34 +178,50 @@ module nft_protocol::composable_svg {
 
         vector::append(&mut svg, b">");
 
-        // Serialize NFT tags
-        let nfts = borrow_nfts(composable_svg_domain);
-        let nft_bag = nft_bag::borrow_domain<Nft<C>>(nft);
+        let children = utils::vec_set_from_vec(&composable_svg.nfts);
 
-        let idx = 0;
-        let size = vector::length(nfts);
-        while (idx < size) {
-            let nft_id = vector::borrow(nfts, idx);
+        HotPotato { children, svg }
+    }
 
-            if (nft_bag::has(nft_bag, *nft_id)) {
-                // TODO: Sui needs to allow obtaining `&UID`
-                let nft = nft::borrow_uid(nft_bag::borrow(nft_bag, *nft_id));
-                if (svg::has_domain(nft)) {
-                    let nft_svg = svg::get_svg(svg::borrow_domain(nft));
+    /// Adds SVG data from Child NFT to Parent NFT's ComposableSvg domain.
+    /// It received a mutable reference to the `HotPotato` and registers
+    /// the action.
+    ///
+    /// #### Panics
+    ///
+    /// - `ComposableSvg` is not registered
+    /// - `NftBagDomain` is not registered
+    public fun render_child<Parent: key + store>(hp: &mut HotPotato, parent_nft: &mut UID, child: &mut UID) {
+        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
+        let composable_svg = borrow_domain_mut(parent_nft);
 
-                    // TODO: Somehow consider serializing id attribute
-                    vector::append(&mut svg, b"<g>");
-                    vector::append(&mut svg, *nft_svg);
-                    vector::append(&mut svg, b"</g>");
-                }
-            };
+        let nft_svg = svg::get_svg(svg::borrow_domain(child));
 
-            idx = idx + 1;
-        };
+        // TODO: Somehow consider serializing id attribute
+        vector::append(&mut hp.svg, b"<g>");
+        vector::append(&mut hp.svg, *nft_svg);
+        vector::append(&mut hp.svg, b"</g>");
 
+        vec_set::remove(&mut hp.children, object::uid_as_inner(child));
+    }
+
+
+    /// Finishes the compositions of the SVG data in the Parent's ComposableSvg domain.
+    /// It consumes the hot potato `HotPotato`, signaling the end of the
+    /// programmable batch of transactions.
+    ///
+    /// #### Panics
+    ///
+    /// - `ComposableSvg` is not registered
+    /// - `NftBagDomain` is not registered
+    /// - If `HotPotato` is not empty, in words if it still has children
+    public fun finish_render_svg(hp: HotPotato, parent_nft: &mut UID) {
+        let HotPotato { children, svg } = hp;
         vector::append(&mut svg, b"</svg>");
-        let composable_svg_domain = borrow_domain_mut(nft);
-        composable_svg_domain.svg = svg;
+
+        assert!(vec_set::size(&children) == 0, EReRenderingIncomplete);
+        let composable_svg: &mut ComposableSvg = borrow_domain_mut(parent_nft);
+        composable_svg.svg = svg;
     }
 
     // === Interoperability ===
