@@ -106,7 +106,7 @@ module nft_protocol::utils {
         nft_type: UidType<T>
     ) {
         assert_uid_type(nft_uid, &nft_type);
-        assert_same_module_as_witness<T, W>();
+        assert_same_module<T, W>();
     }
 
     public fun assert_with_consumable_witness<T: key>(
@@ -140,7 +140,7 @@ module nft_protocol::utils {
         assert!(uid_id == object_id, 0);
     }
 
-    public fun assert_same_module<T, Witness: drop>() {
+    public fun assert_same_module<T, Witness>() {
         let (package_a, module_a, _) = get_package_module_type<T>();
         let (package_b, module_b, _) = get_package_module_type<Witness>();
 
@@ -162,31 +162,6 @@ module nft_protocol::utils {
 
     public fun assert_package_publisher<C>(pub: &Publisher) {
         assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
-    }
-
-    /// First generic `T` is any type, second generic is `Witness`.
-    /// `Witness` is a type always in form "struct Witness has drop {}"
-    ///
-    /// In this method, we check that `T` is exported by the same _module_.
-    /// That is both package ID, package name and module name must match.
-    /// Additionally, with accordance to the convention above, the second
-    /// generic `Witness` must be named `Witness` as a type.
-    ///
-    /// # Example
-    /// It's useful to assert that a one-time-witness is exported by the same
-    /// contract as `Witness`.
-    /// That's because one-time-witness is often used as a convention for
-    /// initiating e.g. a collection name.
-    /// However, it cannot be instantiated outside of the `init` function.
-    /// Therefore, the collection contract can export `Witness` which serves as
-    /// an auth token at a later stage.
-    public fun assert_same_module_as_witness<T, Witness>() {
-        let (package_a, module_a, _) = get_package_module_type<T>();
-        let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
-
-        assert!(package_a == package_b, err::witness_source_mismatch());
-        assert!(module_a == module_b, err::witness_source_mismatch());
-        assert!(witness_type == string::utf8(b"Witness"), err::must_be_witness());
     }
 
     public fun get_package_module_type<T>(): (String, String, String) {

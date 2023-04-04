@@ -1,6 +1,5 @@
 module nft_protocol::suitraders {
     use std::ascii;
-    use std::option;
     use std::string::{Self, String};
 
     use sui::transfer;
@@ -17,6 +16,7 @@ module nft_protocol::suitraders {
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
     use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::witness;
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -27,24 +27,24 @@ module nft_protocol::suitraders {
     struct Witness has drop {}
 
     fun init(_witness: SUITRADERS, ctx: &mut TxContext) {
+        let delegated_witness = witness::from_witness(Witness {});
         let sender = tx_context::sender(ctx);
 
-        let collection: Collection<Nft<SUITRADERS>> =
-            nft::create_collection(Witness {}, ctx);
+        let collection: Collection<SUITRADERS> =
+            collection::create(delegated_witness, ctx);
 
-        let delegated_witness = nft::delegate_witness<SUITRADERS, Witness>(Witness {});
+        let mint_cap = mint_cap::new_unregulated(
+            delegated_witness, &collection, ctx,
+        );
 
-        let mint_cap =
-            mint_cap::new_from_delegated<Nft<SUITRADERS>>(delegated_witness, &collection, option::none(), ctx);
-
-        collection::add_domain_delegated(
+        collection::add_domain(
             delegated_witness,
             &mut collection,
             creators::new(vec_set::singleton(sender)),
         );
 
         // Register custom domains
-        collection::add_domain_delegated(
+        collection::add_domain(
             delegated_witness,
             &mut collection,
             display_info::new(
@@ -53,13 +53,13 @@ module nft_protocol::suitraders {
             ),
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy<Nft<SUITRADERS>>(
+        royalty_strategy_bps::create_domain_and_add_strategy(
             delegated_witness, &mut collection, 100, ctx,
         );
 
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        collection::add_domain_delegated(delegated_witness, &mut collection, tags);
+        collection::add_domain(delegated_witness, &mut collection, tags);
 
         let listing = nft_protocol::listing::new(
             tx_context::sender(ctx),
@@ -87,9 +87,8 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        transfer::public_share_object(listing);
-
         transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_share_object(listing);
         transfer::public_share_object(collection);
     }
 
@@ -99,37 +98,57 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &mut MintCap<Nft<SUITRADERS>>,
+        mint_cap: &mut MintCap<SUITRADERS>,
         warehouse: &mut Warehouse<Nft<SUITRADERS>>,
         ctx: &mut TxContext,
     ) {
+        let delegated_witness = witness::from_witness(Witness {});
         let url = sui::url::new_unsafe_from_bytes(url);
 
         let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
 
-        nft::add_domain(Witness {}, &mut nft, display_info::new(name, description));
-        nft::add_domain(Witness {}, &mut nft, url);
+        nft::add_domain(
+            delegated_witness, &mut nft, display_info::new(name, description),
+        );
+
+        nft::add_domain(delegated_witness, &mut nft, url);
 
         nft::add_domain(
-            Witness {},
+            delegated_witness,
             &mut nft,
             attributes::from_vec(attribute_keys, attribute_values),
         );
 
-        nft::add_domain(Witness {}, &mut nft, collection_id::from_mint_cap(mint_cap));
+        nft::add_domain(
+            delegated_witness, &mut nft, collection_id::from_mint_cap(mint_cap),
+        );
 
         warehouse::deposit_nft(warehouse, nft);
     }
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
+
     #[test_only]
     const USER: address = @0xA1C04;
 
     #[test]
-    fun it_inits_collection() {
+    fun test_examples_suitraders() {
         let scenario = test_scenario::begin(USER);
+
         init(SUITRADERS {}, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, USER);
+
+        assert!(test_scenario::has_most_recent_shared<Collection<SUITRADERS>>(), 0);
+
+        let mint_cap = test_scenario::take_from_address<MintCap<SUITRADERS>>(
+            &scenario, USER,
+        );
+
+        // TODO: Add mint function test
+
+        test_scenario::return_to_address(USER, mint_cap);
+        test_scenario::next_tx(&mut scenario, USER);
 
         test_scenario::end(scenario);
     }

@@ -10,11 +10,8 @@
 ///
 /// The module relies on an external contract to drive the royalty gathering.
 module nft_protocol::royalty {
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::err;
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::Witness as DelegatedWitness;
     use std::fixed_point32;
+
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::dynamic_field as df;
@@ -24,7 +21,16 @@ module nft_protocol::royalty {
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
 
-    // === RoyaltyDomain ===
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::err;
+    use nft_protocol::utils::{Self, Marker};
+    use nft_protocol::witness;
+
+    /// Field object `RoyaltyDomain` already defined as dynamic field.
+    const EExistingRoyalty: u64 = 1;
+
+    /// Plugins was not defined on `RoyaltyDomain`
+    const EUndefinedRoyalty: u64 = 2;
 
     /// `RoyaltyDomain` stores royalties for `Collection` and
     /// distributes them among creators.
@@ -251,10 +257,9 @@ module nft_protocol::royalty {
         source: &mut Balance<FT>,
         amount: u64,
     ) {
-        // Bypass creator check as anyone should be able to transfer royalties
-        // to the collection.
+        let delegated_witness = witness::from_witness(Witness {});
         let domain: &mut RoyaltyDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
+            collection::borrow_domain_mut(delegated_witness, collection);
 
         let aggregations = &mut domain.aggregations;
 
@@ -285,13 +290,14 @@ module nft_protocol::royalty {
     ///
     /// ##### Panics
     ///
-    /// Panics if there is no aggregate for token `FT`.
-    public entry fun distribute_royalties<T, FT>(
+    /// Panics if there is no aggregate for token `FT`.\
+    public fun distribute_royalties<T, FT>(
         collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
+        let delegated_witness = witness::from_witness(Witness {});
         let domain: &mut RoyaltyDomain =
-            collection::borrow_domain_mut(Witness {}, collection);
+            collection::borrow_domain_mut(delegated_witness, collection);
 
         let shares = &domain.royalty_shares_bps;
         let aggregate: &mut Balance<FT> = df::borrow_mut(
@@ -344,33 +350,57 @@ module nft_protocol::royalty {
 
     // === Interoperability ===
 
-    /// Get reference to `RoyaltyDomain`
-    public fun royalty_domain<T>(
-        collection: &Collection<T>,
-    ): &RoyaltyDomain {
-        collection::borrow_domain(collection)
+    /// Returns whether `RoyaltyDomain` is registered on `Nft`
+    public fun has_domain(nft: &UID): bool {
+        df::exists_with_type<Marker<RoyaltyDomain>, RoyaltyDomain>(
+            nft, utils::marker(),
+        )
     }
 
-    /// Get mutable reference to `RoyaltyDomain`
+    /// Borrows `RoyaltyDomain` from `Nft`
     ///
-    /// Requires that `CreatorsDomain` is defined and sender is a creator
-    public fun royalty_domain_mut<T>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
-    ): &mut RoyaltyDomain {
-        collection::borrow_domain_delegated_mut(witness, collection)
+    /// #### Panics
+    ///
+    /// Panics if `RoyaltyDomain` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &RoyaltyDomain {
+        assert_royalty(nft);
+        df::borrow(nft, utils::marker<RoyaltyDomain>())
     }
 
-    /// Registers `RoyaltyDomain` on the given `Collection`
-    public fun add_royalty_domain<T>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
+    /// Mutably borrows `RoyaltyDomain` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `RoyaltyDomain` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut RoyaltyDomain {
+        assert_royalty(nft);
+        df::borrow_mut(nft, utils::marker<RoyaltyDomain>())
+    }
+
+    /// Adds `RoyaltyDomain` to `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `RoyaltyDomain` domain already exists
+    public fun add_domain(
+        nft: &mut UID,
         domain: RoyaltyDomain,
     ) {
-        collection::add_domain_delegated(witness, collection, domain);
+        assert_no_royalty(nft);
+        df::add(nft, utils::marker<RoyaltyDomain>(), domain);
     }
 
-    // === Utils ===
+    /// Remove `Plugins` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Plugins` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): RoyaltyDomain {
+        assert_royalty(nft);
+        df::remove(nft, utils::marker<RoyaltyDomain>())
+    }
+
+    // === Assertions ===
 
     /// Asserts that no share attributions exist
     fun assert_empty(domain: &RoyaltyDomain) {
@@ -398,5 +428,23 @@ module nft_protocol::royalty {
         };
 
         assert!(bps_total == utils::bps(), err::invalid_total_share_of_royalties());
+    }
+
+    /// Asserts that `RoyaltyDomain` is registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `RoyaltyDomain` is not registered
+    public fun assert_royalty(nft: &UID) {
+        assert!(has_domain(nft), EUndefinedRoyalty);
+    }
+
+    /// Asserts that `RoyaltyDomain` is not registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `RoyaltyDomain` is registered
+    public fun assert_no_royalty(nft: &UID) {
+        assert!(!has_domain(nft), EExistingRoyalty);
     }
 }
