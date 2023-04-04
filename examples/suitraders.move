@@ -137,6 +137,7 @@ module nft_protocol::suitraders {
     #[test]
     fun it_inits_collection() {
         let scenario = test_scenario::begin(CREATOR);
+
         init(SUITRADERS {}, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, CREATOR);
 
@@ -159,12 +160,12 @@ module nft_protocol::suitraders {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let  mint_cap = test_scenario::take_from_address<MintCap<Nft<SUITRADERS>>>(
+        let  mint_cap = test_scenario::take_from_address<MintCap<Suitrader>>(
             &scenario,
             CREATOR,
         );
 
-        let warehouse = warehouse::new<Nft<SUITRADERS>>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Suitrader>(ctx(&mut scenario));
 
         mint_nft(
             string::utf8(b"SuiTudor Jones"),

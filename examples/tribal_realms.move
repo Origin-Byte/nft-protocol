@@ -151,7 +151,7 @@ module nft_protocol::tribal_realms {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun test_example_tribal_realms() {
+    fun it_inits_collection() {
         let scenario = test_scenario::begin(USER);
         init(TRIBAL_REALMS {}, ctx(&mut scenario));
 

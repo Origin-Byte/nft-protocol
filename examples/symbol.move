@@ -121,7 +121,7 @@ module nft_protocol::example_symbol {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun test_example_symbol() {
+    fun it_inits_collection() {
         let scenario = test_scenario::begin(USER);
         init(EXAMPLE_SYMBOL {}, ctx(&mut scenario));
 

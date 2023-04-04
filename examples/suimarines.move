@@ -118,7 +118,7 @@ module nft_protocol::suimarines {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun test_example_suimarines() {
+    fun it_inits_collection() {
         let scenario = test_scenario::begin(USER);
         init(SUIMARINES {}, ctx(&mut scenario));
 

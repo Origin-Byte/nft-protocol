@@ -88,7 +88,7 @@ module nft_protocol::example_simple {
     const USER: address = @0xA1C04;
 
     #[test]
-    fun test_example_simple() {
+    fun it_inits_collection() {
         let scenario = test_scenario::begin(USER);
 
         init(EXAMPLE_SIMPLE {}, ctx(&mut scenario));
