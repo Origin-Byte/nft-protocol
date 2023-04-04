@@ -17,7 +17,9 @@ module nft_protocol::mint_cap {
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
+    use sui::package::Publisher;
 
+    use nft_protocol::utils;
     use nft_protocol::collection::Collection;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::supply::{Self, Supply};
@@ -41,24 +43,64 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap`
-    public fun new<T, U>(
-        witness: DelegatedWitness<T>,
-        collection: &Collection<U>,
+    public fun new<T, C>(
+        _witness: DelegatedWitness<T>,
+        collection: &Collection<C>,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
+        utils::assert_same_module<T, C>();
+
         if (option::is_some(&supply)) {
-            new_regulated(
-                witness, collection, option::destroy_some(supply), ctx,
+            new_regulated_(
+                collection, option::destroy_some(supply), ctx,
             )
         } else {
-            new_unregulated(witness, collection, ctx)
+            new_unregulated_(collection, ctx)
+        }
+    }
+
+    public fun new_from_publisher<T, C>(
+        pub: &Publisher,
+        collection: &Collection<C>,
+        supply: Option<u64>,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        utils::assert_package_publisher<C>(pub);
+        utils::assert_same_module<T, C>();
+
+        if (option::is_some(&supply)) {
+            new_regulated_(
+                collection, option::destroy_some(supply), ctx,
+            )
+        } else {
+            new_unregulated_(collection, ctx)
         }
     }
 
     /// Create a new `MintCap` with unregulated supply
-    public fun new_unregulated<T, U>(
+    public fun new_unregulated<T, C>(
         _witness: DelegatedWitness<T>,
+        collection: &Collection<C>,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        utils::assert_same_module<T, C>();
+        new_unregulated_(collection, ctx)
+    }
+
+    /// Create a new `MintCap` with regulated supply
+    public fun new_regulated<T, C>(
+        _witness: DelegatedWitness<T>,
+        collection: &Collection<C>,
+        supply: u64,
+        ctx: &mut TxContext,
+    ): MintCap<T> {
+        utils::assert_same_module<T, C>();
+        new_regulated_(collection, supply, ctx)
+    }
+
+    /// Create a new `MintCap` with unregulated supply
+    fun new_unregulated_<T, U>(
         collection: &Collection<U>,
         ctx: &mut TxContext,
     ): MintCap<T> {
@@ -70,8 +112,7 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap` with regulated supply
-    public fun new_regulated<T, U>(
-        _witness: DelegatedWitness<T>,
+    fun new_regulated_<T, U>(
         collection: &Collection<U>,
         supply: u64,
         ctx: &mut TxContext,
