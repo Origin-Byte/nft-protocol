@@ -1,7 +1,5 @@
 #[test_only]
 module nft_protocol::test_utils {
-    use std::option;
-
     use nft_protocol::mint_cap;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness;
@@ -31,8 +29,9 @@ module nft_protocol::test_utils {
             delegated_witness, ctx(scenario),
         );
 
-        let mint_cap =
-            mint_cap::new(delegated_witness, &collection, option::none(), ctx(scenario));
+        let mint_cap = mint_cap::new_unregulated(
+            delegated_witness, object::id(&collection), ctx(scenario),
+        );
 
         let col_id = object::id(&collection);
         let cap_id = object::id(&mint_cap);

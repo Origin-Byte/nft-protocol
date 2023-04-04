@@ -1,9 +1,9 @@
 /// Implements a simple NFT collection contract
 module nft_protocol::example_simple {
     use std::string::{Self, String};
-    use std::option;
 
     use sui::transfer;
+    use sui::object;
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection;
@@ -30,8 +30,9 @@ module nft_protocol::example_simple {
         let collection: Collection<EXAMPLE_SIMPLE> =
             collection::create(delegated_witness, ctx);
 
-        let mint_cap =
-            mint_cap::new(delegated_witness, &collection, option::none(), ctx);
+        let mint_cap = mint_cap::new_unregulated(
+            delegated_witness, object::id(&collection), ctx,
+        );
 
         collection::add_domain(
             delegated_witness,
