@@ -34,6 +34,7 @@ module nft_protocol::suimarines {
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+        let publisher = sui::package::claim(witness, ctx);
 
         let delegated_witness = witness::from_witness(Witness {});
         let collection: Collection<SUIMARINES> =
@@ -42,8 +43,6 @@ module nft_protocol::suimarines {
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included
         // in the chain.
-        let publisher = sui::package::claim(witness, ctx);
-
         let (transfer_policy, transfer_policy_cap) =
             sui::transfer_policy::new<SUIMARINES>(&publisher, ctx);
         nft_protocol::transfer_allowlist::add_policy_rule(
