@@ -294,4 +294,29 @@ module nft_protocol::transfer_allowlist {
         assert_collection<T>(allowlist);
         assert_authority(allowlist, auth);
     }
+
+    /// === Display standard ===
+
+    struct TRANSFER_ALLOWLIST has drop {}
+
+    use sui::package;
+    use sui::display;
+    use std::string::utf8;
+    use sui::transfer::public_share_object;
+
+    fun init(otw: TRANSFER_ALLOWLIST, ctx: &mut TxContext) {
+        let publisher = package::claim(otw, ctx);
+        let display = display::new<Allowlist>(&publisher, ctx);
+
+        display::add(&mut display, utf8(b"name"), utf8(b"Transfer Allowlist"));
+        display::add(&mut display, utf8(b"link"), utils::originbyte_docs_url());
+        display::add(
+            &mut display,
+            utf8(b"description"),
+            utf8(b"Which authorities can transfer NFTs of which collections"),
+        );
+
+        public_share_object(display);
+        package::burn_publisher(publisher);
+    }
 }

@@ -5,7 +5,7 @@ module nft_protocol::test_royalty {
 
     use nft_protocol::collection;
     use nft_protocol::witness;
-    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::bps_royalty_strategy;
     use nft_protocol::royalty::RoyaltyDomain;
 
     struct Foo has drop {}
@@ -21,7 +21,7 @@ module nft_protocol::test_royalty {
 
         let delegated_witness = witness::from_witness<Foo, Witness>(Witness {});
 
-        royalty_strategy_bps::create_domain_and_add_strategy<Foo>(
+        bps_royalty_strategy::create_domain_and_add_strategy<Foo>(
             delegated_witness, &mut collection, 100, ctx(&mut scenario),
         );
 

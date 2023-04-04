@@ -14,7 +14,7 @@ module nft_protocol::suitraders {
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::bps_royalty_strategy;
     use nft_protocol::tags;
     use nft_protocol::warehouse::{Self, Warehouse};
 
@@ -53,7 +53,7 @@ module nft_protocol::suitraders {
             ),
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy<Nft<SUITRADERS>>(
+        bps_royalty_strategy::create_domain_and_add_strategy<Nft<SUITRADERS>>(
             delegated_witness, &mut collection, 100, ctx,
         );
 

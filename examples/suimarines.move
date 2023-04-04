@@ -8,7 +8,7 @@ module nft_protocol::suimarines {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
-    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::bps_royalty_strategy;
     use nft_protocol::utils;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
@@ -51,7 +51,7 @@ module nft_protocol::suimarines {
 
         let delegated_witness = witness::from_witness<SUIMARINES, Witness>(Witness {});
 
-        royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES>(
+        bps_royalty_strategy::create_domain_and_add_strategy<SUIMARINES>(
             delegated_witness, &mut collection, 100, ctx,
         );
 

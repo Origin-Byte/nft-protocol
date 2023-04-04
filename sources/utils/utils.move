@@ -2,7 +2,7 @@
 module nft_protocol::utils {
     use nft_protocol::err;
     use std::ascii;
-    use std::string::{Self, String, sub_string};
+    use std::string::{Self, String, utf8, sub_string};
     use std::type_name;
     use std::vector;
 
@@ -24,6 +24,10 @@ module nft_protocol::utils {
 
     struct UidType<phantom T> has drop {
         id: ID,
+    }
+
+    public fun originbyte_docs_url(): String {
+        utf8(b"https://docs.originbyte.io")
     }
 
     public fun table_vec_from_vec<T: store>(
@@ -175,11 +179,15 @@ module nft_protocol::utils {
     }
 
     public fun get_package_module_type<T>(): (String, String, String) {
-        let delimiter = string::utf8(b"::");
 
         let t = string::utf8(ascii::into_bytes(
             type_name::into_string(type_name::get<T>())
         ));
+        get_package_module_type_raw(t)
+    }
+
+    public fun get_package_module_type_raw(t: String): (String, String, String) {
+        let delimiter = string::utf8(b"::");
 
         // TBD: this can probably be hard-coded as all hex addrs are 32 bytes
         let package_delimiter_index = string::index_of(&t, &delimiter);
