@@ -47,7 +47,10 @@ module launchpad_v2::warehouse {
     const EINVALID_COMMITMENT: u64 = 5;
 
 
-    /// `Warehouse` object which stores NFTs of type `T`
+    struct Witness has drop {}
+
+
+    /// `Warehouse` object which stores NFTs
     ///
     /// The reason that the type is limited is to easily support random
     /// withdrawals. If multiple types are allowed then user will not be able
@@ -107,17 +110,17 @@ module launchpad_v2::warehouse {
         certificate: NftCert,
         ctx: &mut TxContext,
     ): T {
-        // TODO: Assert type of NFT
+        venue::assert_nft_type<T>(&certificate);
         venue::assert_cert_buyer(&certificate, ctx);
         venue::assert_cert_inventory(&certificate, object::id(warehouse));
 
         //
         let index = math::divide_and_round_up(
-            warehouse.total_deposited * venue::get_relative_index(&certificate),
-            venue::get_index_scale(&certificate)
+            warehouse.total_deposited * venue::cert_relative_index(&certificate),
+            venue::cert_index_scale(&certificate)
         );
 
-        venue::consume_certificate(certificate);
+        venue::consume_certificate(Witness {}, warehouse, certificate);
 
         redeem_nft_at_index<T>(warehouse, index)
     }

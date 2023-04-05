@@ -10,6 +10,8 @@ module launchpad_v2::proceeds {
     // TODO: reconsider `Proceeds.total` to accomodate for multiple FTs
     use sui::coin;
     use sui::transfer;
+    use sui::vec_map::VecMap;
+    use sui::table::{Self, Table};
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
     use sui::balance::{Self, Balance};
@@ -21,6 +23,7 @@ module launchpad_v2::proceeds {
         id: UID,
         // Quantity of NFTs sold
         qt_sold: QtSold,
+        stakeholders: Table<address, u64>
     }
 
     // Quantity of NFTs Sold
@@ -40,6 +43,18 @@ module launchpad_v2::proceeds {
         Proceeds {
             id: object::new(ctx),
             qt_sold: QtSold {collected: 0, total: 0},
+            stakeholders: table::new(ctx)
+        }
+    }
+
+    public fun create(
+        stakeholders: VecMap<address, u64>,
+        ctx: &mut TxContext,
+    ): Proceeds {
+        Proceeds {
+            id: object::new(ctx),
+            qt_sold: QtSold {collected: 0, total: 0},
+            stakeholders: utils::table_from_vec_map(stakeholders, ctx)
         }
     }
 
