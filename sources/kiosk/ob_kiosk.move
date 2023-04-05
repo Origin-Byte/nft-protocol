@@ -325,7 +325,10 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ) {
         assert_permission(source, ctx);
+        // could result in a royalty free trading by everyone wrapping over our
+        // kiosk
         assert!(kiosk::owner(source) != PermissionlessAddr, ENotAuthorized);
+        // both kiosks are owned by the same user
         assert!(kiosk::owner(source) == kiosk::owner(target), ENotOwner);
 
         let refs = df::borrow_mut(ext(source), NftRefsDfKey {});
@@ -530,6 +533,10 @@ module nft_protocol::ob_kiosk {
     }
 
     public fun can_deposit_permissionlessly<T>(self: &mut Kiosk): bool {
+        if (kiosk::owner(self) == PermissionlessAddr) {
+            return true
+        };
+
         let settings = deposit_setting_mut(self);
         settings.enable_any_deposit ||
             vec_set::contains(
