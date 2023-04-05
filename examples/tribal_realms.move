@@ -109,14 +109,14 @@ module nft_protocol::tribal_realms {
             mood,
         };
 
-        mint_event::mint_with_supply(mint_cap, &nft);
+        mint_event::mint(mint_cap, &nft);
         warehouse::deposit_nft(warehouse, nft);
     }
 
     public entry fun mint_hat(
         type: String,
         // Does not need to be mut because supply is unregulated
-        mint_cap: &MintCap<Hat>,
+        mint_cap: &mut MintCap<Hat>,
         warehouse: &mut Warehouse<Hat>,
         ctx: &mut TxContext,
     ) {
@@ -132,7 +132,7 @@ module nft_protocol::tribal_realms {
     public entry fun mint_glasses(
         type: String,
         // Does not need to be mut because supply is unregulated
-        mint_cap: &MintCap<Glasses>,
+        mint_cap: &mut MintCap<Glasses>,
         warehouse: &mut Warehouse<Glasses>,
         ctx: &mut TxContext,
     ) {
