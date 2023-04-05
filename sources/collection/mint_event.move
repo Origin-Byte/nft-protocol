@@ -30,28 +30,6 @@ module nft_protocol::mint_event {
         object: ID,
     }
 
-    struct MintEventHandle {
-        /// ID of the `Collection` of the object `T`
-        collection_id: ID,
-        /// Type name of `Collection<T>` one-time witness `T`
-        ///
-        /// Intended to allow users to filter by collections of interest.
-        type_name: TypeName,
-        /// ID of the minted object
-        object: ID,
-    }
-
-    struct BurnEventHandle {
-        /// ID of the `Collection` of the object `T`
-        collection_id: ID,
-        /// Type name of `Collection<T>` one-time witness `T`
-        ///
-        /// Intended to allow users to filter by collections of interest.
-        type_name: TypeName,
-        /// ID of the burned object
-        object: ID,
-    }
-
     public fun mint<T: key>(
         mint_cap: &mut MintCap<T>,
         object: &T,
