@@ -7,7 +7,7 @@ module nft_protocol::inventory {
     use std::option::{Self, Option};
 
     use sui::transfer;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
@@ -57,7 +57,7 @@ module nft_protocol::inventory {
         warehouse::deposit_nft(warehouse, nft);
     }
 
-    /// Redeems NFT from `Inventory`
+    /// Redeems NFT from `Inventory` sequentially
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Inventory`.
@@ -73,7 +73,7 @@ module nft_protocol::inventory {
         warehouse::redeem_nft(warehouse)
     }
 
-    /// Redeems NFT from `Inventory` and transfers to owner
+    /// Redeems NFT from `Inventory` sequentially and transfers to owner
     ///
     /// See `redeem_nft` for more details
     ///
@@ -86,6 +86,79 @@ module nft_protocol::inventory {
     ) {
         let nft = redeem_nft(inventory);
         transfer::public_transfer(nft, tx_context::sender(ctx));
+    }
+
+    /// Redeems NFT from specific index in `Inventory`
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if underlying type is not a `Warehouse` and index does not
+    /// exist.
+    public fun redeem_nft_at_index<T: key + store>(
+        inventory: &mut Inventory<T>,
+        index: u64,
+    ): T {
+        // TODO: This will be restuctured before merge to main
+        assert!(is_warehouse(inventory), 0);
+
+        let warehouse = borrow_warehouse_mut(inventory);
+        warehouse::redeem_nft_at_index(warehouse, index)
+    }
+
+    /// Redeems NFT from specific index in `Inventory` and transfers to sender
+    ///
+    /// See `redeem_nft_at_index` for more details.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if underlying type is not a `Warehouse` and index does not
+    /// exist.
+    public entry fun redeem_nft_at_index_and_transfer<T: key + store>(
+        inventory: &mut Inventory<T>,
+        index: u64,
+        ctx: &mut TxContext,
+    ) {
+        let nft = redeem_nft_at_index(inventory, index);
+        transfer::transfer(nft, tx_context::sender(ctx));
+    }
+
+    /// Redeems NFT with specific ID from `Inventory`
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Inventory`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if underlying type is not a `Warehouse` and NFT with ID does not
+    /// exist.
+    public fun redeem_nft_with_id<T: key + store>(
+        inventory: &mut Inventory<T>,
+        nft_id: ID,
+    ): T {
+        // TODO: This will be restuctured before merge to main
+        assert!(is_warehouse(inventory), 0);
+
+        let warehouse = borrow_warehouse_mut(inventory);
+        warehouse::redeem_nft_with_id(warehouse, nft_id)
+    }
+
+    /// Redeems NFT from specific index in `Warehouse` and transfers to sender
+    ///
+    /// See `redeem_nft_with_id` for more details.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if index does not exist in `Warehouse`.
+    public entry fun redeem_nft_with_id_and_transfer<T: key + store>(
+        inventory: &mut Inventory<T>,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        let nft = redeem_nft_with_id(inventory, nft_id);
+        transfer::transfer(nft, tx_context::sender(ctx));
     }
 
     /// Pseudo-randomly redeems NFT from `Inventory`
