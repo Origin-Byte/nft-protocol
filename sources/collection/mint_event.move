@@ -52,59 +52,21 @@ module nft_protocol::mint_event {
         object: ID,
     }
 
-    public fun mint_with_supply<T: key>(
-        mint_cap: &mut MintCap<T>,
-        object: &T,
-    ) {
-        // Assert that there is a supply in mint cap
-        mint_cap::assert_regulated(mint_cap);
-        mint_cap::increment_supply(mint_cap, 1);
-
-        let type = type_name::get<T>();
-        let object_id = object::id(object);
-
-        event::emit(
-            MintEvent<T> {
-                collection_id: mint_cap::collection_id(mint_cap),
-                type_name: type,
-                object: object_id,
-        });
-    }
-
-    public fun mint_with_supply_frozen<T: key>(
-        mint_cap: &mut MintCap<T>,
-        object: &T,
-    ) {
-        // Assert that there is a supply in mint cap
-        mint_cap::assert_regulated(mint_cap);
-        mint_cap::increment_supply(mint_cap, 1);
-
-        let type = type_name::get<T>();
-        let object_id = object::id(object);
-
-        event::emit(
-            MintEvent<T> {
-                collection_id: mint_cap::collection_id(mint_cap),
-                type_name: type,
-                object: object_id,
-        });
-    }
-
     public fun mint<T: key>(
-        mint_cap: &MintCap<T>,
+        mint_cap: &mut MintCap<T>,
         object: &T,
     ) {
-        // Assert that there is a unlimited supply in mint cap
-        mint_cap::assert_unregulated(mint_cap);
+        if (mint_cap::has_supply(mint_cap)) {
+            mint_cap::increment_supply(mint_cap, 1);
+        };
 
         let type = type_name::get<T>();
         let object_id = object::id(object);
 
-        event::emit(
-            MintEvent<T> {
-                collection_id: mint_cap::collection_id(mint_cap),
-                type_name: type,
-                object: object_id,
+        event::emit(MintEvent<T> {
+            collection_id: mint_cap::collection_id(mint_cap),
+            type_name: type,
+            object: object_id,
         });
     }
 }
