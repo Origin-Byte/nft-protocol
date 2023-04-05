@@ -100,7 +100,7 @@ module launchpad_v2::fixed_bid {
         venue::assert_request(venue, &request);
         venue::check_if_live(clock, venue);
 
-        request::confirm_request(venue::auth_policy(venue),request);
+        request::confirm_request(venue::get_auth_policy(venue),request);
         buy_nft_cert_<T, FT>(venue, wallet, quantity)
     }
 

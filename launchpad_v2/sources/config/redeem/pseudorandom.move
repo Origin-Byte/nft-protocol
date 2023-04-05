@@ -20,6 +20,8 @@ module launchpad_v2::pseudorand_redeem {
         counter: u64,
     }
 
+    struct Witness has drop {}
+
     struct PseudoRandRedeemDfKey has store, copy, drop {}
 
     /// Create a new `Certificate`
@@ -79,8 +81,7 @@ module launchpad_v2::pseudorand_redeem {
         receipt: RedeemReceipt,
         ctx: &mut TxContext,
     ): NftCert {
-        // TODO: Assert Receipt Venue matches Venue
-        venue::consume_receipt(receipt);
+        venue::consume_receipt(Witness {}, venue, receipt);
 
         let rand_redeem = venue::get_df<PseudoRandRedeemDfKey, PseudoRandRedeem>(
             venue, PseudoRandRedeemDfKey {}
@@ -101,6 +102,7 @@ module launchpad_v2::pseudorand_redeem {
         let (inv_id, inv_type) = get_inventory_data(venue, inv_index);
 
         venue::get_certificate(
+            Witness {},
             venue,
             inv_type,
             inv_id,
