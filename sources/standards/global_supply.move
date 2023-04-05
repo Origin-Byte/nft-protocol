@@ -43,6 +43,10 @@ module nft_protocol::global_supply {
     /// Creates a `GlobalSupply`
     ///
     /// `MintCap<T>` should be unique for the entire contract.
+    ///
+    /// Total quantity that can be delegated is bounded by the underlying
+    /// `MintCap<T>`, it is recommended to construct `GlobalSupply<T>` using
+    /// an unregulated `MintCap<T>`.
     public fun new<T>(
         mint_cap: MintCap<T>,
         supply: u64,
