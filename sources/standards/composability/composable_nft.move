@@ -4,37 +4,44 @@ module nft_protocol::composable_nft {
     // TODO: some endpoint for reorder_children
     use std::type_name::{Self, TypeName};
 
+    use sui::dynamic_field as df;
     use sui::transfer::public_transfer;
     use sui::object::{ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft_bag;
+
+    /// `Composition` was not defined
+    ///
+    /// Call `composable_nft::add_domain` to add `Composition`.
+    const EUndefinedComposition: u64 = 1;
+
+    /// `Composition` already defined
+    ///
+    /// Call `composable_nft::borrow_domain` to borrow domain.
+    const EExistingComposition: u64 = 2;
 
     /// Parent and child types are not composable
     ///
     /// Call `composable_nft::add_relationship` to add parent child
     /// relationship to the composition.
-    const ETYPES_NOT_COMPOSABLE: u64 = 1;
+    const EChildNotComposable: u64 = 3;
 
     /// Relationship between provided parent and child types is already defined
-    const ERELATIONSHIP_ALREADY_DEFINED: u64 = 2;
+    const EExistingRelationship: u64 = 4;
 
     /// Exceeded composed type limit when calling `composable_nft::compose`
     ///
     /// Set a higher type limit in the composability composition.
-    const EEXCEEDED_TYPE_LIMIT: u64 = 3;
-
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
+    const EExceededLimit: u64 = 5;
 
     /// Internal struct for indexing NFTs in `NftBagDomain`
     struct Key<phantom T> has drop, store {}
 
-    /// Domain held in the Collection object, blueprinting all the composability
-    /// between types.
+    /// Object that defines type-limiting composabiilty rules for NFTs stored
+    /// in `NftBag`.
     ///
     /// Multiple compositions can exist in each collection, therefore they are
     /// generic on `S`, a schema marker.
@@ -61,7 +68,7 @@ module nft_protocol::composable_nft {
 
         assert!(
             !has_child(composition, &child_type),
-            ERELATIONSHIP_ALREADY_DEFINED,
+            EExistingRelationship,
         );
 
         vec_map::insert(&mut composition.limits, child_type, limit);
@@ -117,19 +124,6 @@ module nft_protocol::composable_nft {
         &mut composition.limits
     }
 
-    /// Registers `Composition` on the given `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Composition` is already registered on the `Collection`.
-    public fun add_composition_domain<T, Schema, W: drop>(
-        witness: DelegatedWitness<T>,
-        collection: &mut Collection<T>,
-        domain: Composition<Schema>,
-    ) {
-        collection::add_domain(witness, collection, domain);
-    }
-
     /// Compose child NFT into parent NFT
     ///
     /// #### Panics
@@ -140,18 +134,11 @@ module nft_protocol::composable_nft {
     /// * Parent or child NFT do not have corresponding `Type<Parent>` and
     /// `Type<Child>` domains registered
     /// * Limit of children is exceeded
-    public fun compose<
-        T: key + store,
-        Schema,
-        Child: key + store
-    >(
+    public fun compose<Schema, Child: key + store>(
+        composition: &Composition<Schema>,
         parent_nft: &mut UID,
         child_nft: Child,
-        collection: &Collection<T>,
     ) {
-        let composition: &Composition<Schema> =
-            collection::borrow_domain(collection);
-
         // Asserts that parent and child are composable
         let child_type = type_name::get<Child>();
         let limit = get_limit(composition, &child_type);
@@ -160,7 +147,7 @@ module nft_protocol::composable_nft {
 
         assert!(
             nft_bag::count<Child, Key<Child>>(nfts) < limit,
-            EEXCEEDED_TYPE_LIMIT,
+            EExceededLimit,
         );
 
         nft_bag::compose(Key<Child> {}, nfts, child_nft);
@@ -196,6 +183,58 @@ module nft_protocol::composable_nft {
         public_transfer(nft, tx_context::sender(ctx));
     }
 
+    // === Interoperability ===
+
+    /// Returns whether `Composition` is registered on `Nft`
+    public fun has_domain<Schema>(nft: &UID): bool {
+        df::exists_with_type<Marker<Composition<Schema>>, Composition<Schema>>(
+            nft, utils::marker(),
+        )
+    }
+
+    /// Borrows `Composition` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Composition` is not registered on the `Nft`
+    public fun borrow_domain<Schema>(nft: &UID): &Composition<Schema> {
+        assert_attributes<Schema>(nft);
+        df::borrow(nft, utils::marker<Composition<Schema>>())
+    }
+
+    /// Mutably borrows `Composition` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Composition` is not registered on the `Nft`
+    public fun borrow_domain_mut<Schema>(nft: &mut UID): &mut Composition<Schema> {
+        assert_attributes<Schema>(nft);
+        df::borrow_mut(nft, utils::marker<Composition<Schema>>())
+    }
+
+    /// Adds `Composition` to `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Composition` domain already exists
+    public fun add_domain<Schema>(
+        nft: &mut UID,
+        domain: Composition<Schema>,
+    ) {
+        assert_no_attributes<Schema>(nft);
+        df::add(nft, utils::marker<Composition<Schema>>(), domain);
+    }
+
+    /// Remove `Composition` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Composition` domain doesnt exist
+    public fun remove_domain<Schema>(nft: &mut UID): Composition<Schema> {
+        assert_attributes<Schema>(nft);
+        df::remove(nft, utils::marker<Composition<Schema>>())
+    }
+
     // === Assertions ===
 
     /// Assert that parent and child types are composable
@@ -209,7 +248,25 @@ module nft_protocol::composable_nft {
     ) {
         assert!(
             has_child(composition, child_type),
-            ETYPES_NOT_COMPOSABLE,
+            EChildNotComposable,
         );
+    }
+
+    /// Asserts that `Composition` is registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Composition` is not registered
+    public fun assert_attributes<Schema>(nft: &UID) {
+        assert!(has_domain<Schema>(nft), EUndefinedComposition);
+    }
+
+    /// Asserts that `Composition` is not registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Composition` is registered
+    public fun assert_no_attributes<Schema>(nft: &UID) {
+        assert!(!has_domain<Schema>(nft), EExistingComposition);
     }
 }

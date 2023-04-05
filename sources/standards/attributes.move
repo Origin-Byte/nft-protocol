@@ -43,9 +43,6 @@ module nft_protocol::attributes {
 
     /// Creates new `Attributes` from vectors of keys and values
     ///
-    /// Need to ensure that `UrlDomain` is updated with attributes if they
-    /// exist therefore function cannot be public.
-    ///
     /// #### Panics
     ///
     /// Panics if keys and values vectors have different lengths
@@ -146,21 +143,21 @@ module nft_protocol::attributes {
         )
     }
 
-    /// Borrows `UrlDomain` from `Nft`
+    /// Borrows `Attributes` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered on the `Nft`
+    /// Panics if `Attributes` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &Attributes {
         assert_attributes(nft);
         df::borrow(nft, utils::marker<Attributes>())
     }
 
-    /// Mutably borrows `UrlDomain` from `Nft`
+    /// Mutably borrows `Attributes` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered on the `Nft`
+    /// Panics if `Attributes` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut Attributes {
         assert_attributes(nft);
         df::borrow_mut(nft, utils::marker<Attributes>())
