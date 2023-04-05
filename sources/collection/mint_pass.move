@@ -56,8 +56,7 @@ module nft_protocol::mint_pass {
 
         MintPass {
             id: object::new(ctx),
-            // The supply is always set to frozen for safety
-            supply: supply::new(supply, true),
+            supply: supply::new(supply),
         }
     }
 
@@ -70,8 +69,7 @@ module nft_protocol::mint_pass {
 
         MintPass {
             id: object::new(ctx),
-            // The supply is always set to frozen for safety
-            supply: supply::new(supply, true),
+            supply: supply::new(supply),
         }
     }
 
@@ -116,11 +114,6 @@ module nft_protocol::mint_pass {
         supply::get_current(&mint_pass.supply)
     }
 
-    public fun is_frozen<T>(mint_pass: &MintPass<T>): bool {
-        let supply = get_supply(mint_pass);
-        supply::is_frozen(supply)
-    }
-
     public fun get_supply<T>(mint_pass: &MintPass<T>): &Supply {
         &mint_pass.supply
     }
@@ -156,10 +149,9 @@ module nft_protocol::mint_pass {
 
         MintPass {
             id: object::new(ctx),
-            supply: supply::new(supply, true),
+            supply: supply::new(supply),
         }
     }
-
 
     /// Merge two `MintCap` together
     public fun merge<T: key>(

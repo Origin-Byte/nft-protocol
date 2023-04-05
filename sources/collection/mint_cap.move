@@ -97,7 +97,7 @@ module nft_protocol::mint_cap {
             id: object::new(ctx),
             collection_id: object::id(collection),
             // The supply is always set to frozen for safety
-            supply: option::some(supply::new(supply, true)),
+            supply: option::some(supply::new(supply)),
         }
     }
 
@@ -160,7 +160,7 @@ module nft_protocol::mint_cap {
     /// #### Panics
     ///
     /// Panics if quantity exceeds available supply.
-    public fun split<T: key>(
+    public fun split<T>(
         mint_cap: &mut MintCap<T>,
         quantity: u64,
         ctx: &mut TxContext,
@@ -169,8 +169,7 @@ module nft_protocol::mint_cap {
             supply::split(
                 option::borrow_mut(&mut mint_cap.supply), quantity)
         } else {
-            // New supply object is frozen for safety
-            supply::new(quantity, true)
+            supply::new(quantity)
         };
 
         MintCap {
@@ -182,7 +181,7 @@ module nft_protocol::mint_cap {
 
 
     /// Merge two `MintCap` together
-    public fun merge<T: key>(
+    public fun merge<T>(
         mint_cap: &mut MintCap<T>,
         other: MintCap<T>,
     ) {

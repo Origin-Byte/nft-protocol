@@ -3,28 +3,6 @@
 module nft_protocol::err {
     const Prefix: u64 = 13370000;
 
-    // === Supply ===
-
-    public fun supply_is_not_zero(): u64 {
-        return Prefix + 102
-    }
-
-    public fun supply_frozen(): u64 {
-        return Prefix + 104
-    }
-
-    public fun supply_not_frozen(): u64 {
-        return Prefix + 105
-    }
-
-    public fun max_supply_cannot_be_below_current_supply(): u64 {
-        return Prefix + 106
-    }
-
-    public fun supply_maxed_out(): u64 {
-        return Prefix + 107
-    }
-
     // === Marketplace ===
 
     public fun wrong_marketplace_admin(): u64 {
