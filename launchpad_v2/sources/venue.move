@@ -29,6 +29,8 @@ module launchpad_v2::venue {
 
     const EINVENTORY_CERTIFICATE_MISMATCH: u64 = 6;
 
+    const ENFT_TYPE_CERTIFICATE_MISMATCH: u64 = 7;
+
     /// `Venue` object
     ///
     /// `Venue` is the main abstraction that wraps all the logic around an NFT
@@ -647,6 +649,10 @@ module launchpad_v2::venue {
 
     public fun assert_cert_buyer(cert: &NftCert, ctx: &TxContext) {
         assert!(cert.buyer == tx_context::sender(ctx), EBUYER_CERTIFICATE_MISMATCH);
+    }
+
+    public fun assert_nft_type<T: key + store>(cert: &NftCert) {
+        assert!(cert.nft_type == type_name::get<T>(), ENFT_TYPE_CERTIFICATE_MISMATCH);
     }
 
     public fun assert_cert_inventory(cert: &NftCert, inventory_id: ID) {

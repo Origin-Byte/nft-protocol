@@ -17,6 +17,8 @@ module launchpad_v2::factory {
     /// Call `Warehouse::redeem_nft_at_index` with an index that exists.
     const EINDEX_OUT_OF_BOUNDS: u64 = 3;
 
+    struct Witness has drop {}
+
     /// `Factory` is an inventory that can mint loose NFTs
     ///
     /// Each `Factory` may only mint NFTs from a single collection.
@@ -53,18 +55,6 @@ module launchpad_v2::factory {
         }
     }
 
-    // /// Borrow `LooseMintCap`
-    // fun borrow_mint_cap<C>(factory: &Factory<C>): &LooseMintCap<C> {
-    //     &factory.mint_cap
-    // }
-
-    // /// Mutably borrow `LooseMintCap`
-    // fun borrow_mint_cap_mut<C>(
-    //     factory: &mut Factory<C>,
-    // ): &mut LooseMintCap<C> {
-    //     &mut factory.mint_cap
-    // }
-
     /// Mints NFT from `Factory`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
@@ -78,17 +68,16 @@ module launchpad_v2::factory {
         certificate: NftCert,
         ctx: &mut TxContext,
     ): MintPass<T> {
-        // TODO: Assert type of NFT
+        venue::assert_nft_type<T>(&certificate);
         venue::assert_cert_buyer(&certificate, ctx);
         venue::assert_cert_inventory(&certificate, object::id(factory));
 
-        //
         let index = math::divide_and_round_up(
-            factory.total_deposited * venue::get_relative_index(&certificate),
-            venue::get_index_scale(&certificate)
+            factory.total_deposited * venue::cert_relative_index(&certificate),
+            venue::cert_index_scale(&certificate)
         );
 
-        venue::consume_certificate(certificate);
+        venue::consume_certificate(Witness {}, factory, certificate);
 
         redeem_mint_pass_at_index<T>(factory, index, ctx)
     }
