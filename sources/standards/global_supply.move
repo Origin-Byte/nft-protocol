@@ -141,7 +141,7 @@ module nft_protocol::global_supply {
     /// #### Panics
     ///
     /// Panics if supply is frozen.
-    public entry fun increase_max_supply<T>(
+    public fun increase_max_supply<T>(
         supply: &mut GlobalSupply<T>,
         value: u64,
     ) {
@@ -155,7 +155,7 @@ module nft_protocol::global_supply {
     ///
     /// Panics if supply is frozen or if new maximum supply is smaller than
     /// current supply.
-    public entry fun decrease_max_supply<T>(
+    public fun decrease_max_supply<T>(
         supply: &mut GlobalSupply<T>,
         value: u64
     ) {
