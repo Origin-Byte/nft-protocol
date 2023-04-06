@@ -38,7 +38,7 @@ module nft_protocol::nft_bag {
     const EInvalidAuthority: u64 = 4;
 
     /// `NftBagDomain` object
-    struct NftBagDomain<phantom T: key + store> has store {
+    struct NftBagDomain has store {
         /// `NftBagDomain` ID
         id: UID,
         /// Authorities which are allowed to withdraw NFTs
@@ -54,7 +54,7 @@ module nft_protocol::nft_bag {
     struct Witness has drop {}
 
     /// Creates new `NftBagDomain`
-    public fun new<T: key + store>(ctx: &mut TxContext): NftBagDomain<T> {
+    public fun new(ctx: &mut TxContext): NftBagDomain {
         NftBagDomain {
             id: object::new(ctx),
             authorities: vector::empty(),
@@ -64,8 +64,8 @@ module nft_protocol::nft_bag {
 
     /// Returns whether NFT with given ID is composed within provided
     /// `NftBagDomain`
-    public fun has<T: key + store>(
-        container: &NftBagDomain<T>,
+    public fun has(
+        container: &NftBagDomain,
         nft_id: ID,
     ): bool {
         dof::exists_(&container.id, nft_id)
@@ -77,7 +77,7 @@ module nft_protocol::nft_bag {
     ///
     /// Panics if `Nft` was not composed within the `NftBagDomain`.
     public fun borrow<T: key + store>(
-        container: &NftBagDomain<T>,
+        container: &NftBagDomain,
         nft_id: ID,
     ): &T {
         assert_composed(container, nft_id);
@@ -90,7 +90,7 @@ module nft_protocol::nft_bag {
     ///
     /// Panics if `Nft` was not composed within the `NftBagDomain`.
     public fun borrow_mut<T: key + store>(
-        container: &mut NftBagDomain<T>,
+        container: &mut NftBagDomain,
         nft_id: ID,
     ): &mut T {
         assert_composed(container, nft_id);
@@ -121,9 +121,9 @@ module nft_protocol::nft_bag {
     }
 
     /// Get index of authority
-    fun get_authority_idx<T: key + store>(
+    fun get_authority_idx(
         authority_type: &TypeName,
-        domain: &NftBagDomain<T>,
+        domain: &NftBagDomain,
     ): Option<u64> {
         let (has_authority, idx_opt) =
             vector::index_of(&domain.authorities, authority_type);
@@ -136,9 +136,9 @@ module nft_protocol::nft_bag {
     }
 
     /// Get index of authority or inserts a new one if it did not already exist
-    fun get_or_insert_authority_idx<T: key + store>(
+    fun get_or_insert_authority_idx(
         authority_type: TypeName,
-        domain: &mut NftBagDomain<T>,
+        domain: &mut NftBagDomain,
     ): u64 {
         let idx_opt = get_authority_idx(&authority_type, domain);
 
@@ -154,7 +154,7 @@ module nft_protocol::nft_bag {
     /// Composes child NFT into `NftBagDomain`
     public fun compose<T: key + store, Auth: drop>(
         _authority: Auth,
-        domain: &mut NftBagDomain<T>,
+        domain: &mut NftBagDomain,
         child_nft: T,
     ) {
         let authority_type = type_name::get<Auth>();
@@ -186,7 +186,7 @@ module nft_protocol::nft_bag {
     /// Panics if child `Nft` does not exist.
     public fun decompose<T: key + store, Auth: drop>(
         _authority: Auth,
-        domain: &mut NftBagDomain<T>,
+        domain: &mut NftBagDomain,
         child_nft_id: ID,
     ): T {
         // Identify index of authority that this `Nft` should be composed using
@@ -218,7 +218,7 @@ module nft_protocol::nft_bag {
     }
 
     /// Counts how many NFTs are registered under the given authority
-    public fun count<T: key + store, Auth>(domain: &NftBagDomain<T>): u64 {
+    public fun count<T: key + store, Auth>(domain: &NftBagDomain): u64 {
         let authority_type = type_name::get<Auth>();
 
         let authority_idx = get_authority_idx(&authority_type, domain);
@@ -248,8 +248,8 @@ module nft_protocol::nft_bag {
     // === Interoperability ===
 
     /// Returns whether `NftBagDomain` is registered on `Nft`
-    public fun has_domain<T: key + store>(nft: &UID): bool {
-        df::exists_with_type<Marker<NftBagDomain<T>>, NftBagDomain<T>>(
+    public fun has_domain(nft: &UID): bool {
+        df::exists_with_type<Marker<NftBagDomain>, NftBagDomain>(
             nft, utils::marker(),
         )
     }
@@ -259,9 +259,9 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `NftBagDomain` is not registered on the `Nft`
-    public fun borrow_domain<T: key + store>(nft: &UID): &NftBagDomain<T> {
-        assert_nft_bag<T>(nft);
-        df::borrow(nft, utils::marker<NftBagDomain<T>>())
+    public fun borrow_domain(nft: &UID): &NftBagDomain {
+        assert_nft_bag(nft);
+        df::borrow(nft, utils::marker<NftBagDomain>())
     }
 
     /// Mutably borrows `NftBagDomain` from `Nft`
@@ -269,11 +269,11 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `NftBagDomain` is not registered on the `Nft`
-    public fun borrow_domain_mut<T: key + store>(
+    public fun borrow_domain_mut(
         nft: &mut UID,
-    ): &mut NftBagDomain<T> {
-        assert_nft_bag<T>(nft);
-        df::borrow_mut(nft, utils::marker<NftBagDomain<T>>())
+    ): &mut NftBagDomain {
+        assert_nft_bag(nft);
+        df::borrow_mut(nft, utils::marker<NftBagDomain>())
     }
 
     /// Adds `NftBagDomain` to `Nft`
@@ -281,12 +281,12 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `NftBagDomain` domain already exists
-    public fun add_domain<T: key + store>(
+    public fun add_domain(
         nft: &mut UID,
-        domain: NftBagDomain<T>,
+        domain: NftBagDomain,
     ) {
-        assert_no_nft_bag<T>(nft);
-        df::add(nft, utils::marker<NftBagDomain<T>>(), domain);
+        assert_no_nft_bag(nft);
+        df::add(nft, utils::marker<NftBagDomain>(), domain);
     }
 
     /// Remove `NftBagDomain` from `Nft`
@@ -294,9 +294,9 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `NftBagDomain` domain doesnt exist
-    public fun remove_domain<T: key + store>(nft: &mut UID): NftBagDomain<T> {
-        assert_nft_bag<T>(nft);
-        df::remove(nft, utils::marker<NftBagDomain<T>>())
+    public fun remove_domain(nft: &mut UID): NftBagDomain {
+        assert_nft_bag(nft);
+        df::remove(nft, utils::marker<NftBagDomain>())
     }
 
     // === Assertions ===
@@ -306,8 +306,8 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `NftBagDomain` is not registered
-    public fun assert_nft_bag<T: key + store>(nft: &UID) {
-        assert!(has_domain<T>(nft), EUndefinedNftBag);
+    public fun assert_nft_bag(nft: &UID) {
+        assert!(has_domain(nft), EUndefinedNftBag);
     }
 
     /// Asserts that `NftBagDomain` is not registered on `Nft`
@@ -315,8 +315,8 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `NftBagDomain` is registered
-    public fun assert_no_nft_bag<T: key + store>(nft: &UID) {
-        assert!(!has_domain<T>(nft), EExistingNftBag);
+    public fun assert_no_nft_bag(nft: &UID) {
+        assert!(!has_domain(nft), EExistingNftBag);
     }
 
     /// Assert that NFT with given ID is composed within the `NftBagDomain`
@@ -324,8 +324,8 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if NFT is not composed.
-    public fun assert_composed<T: key + store>(
-        container: &NftBagDomain<T>,
+    public fun assert_composed(
+        container: &NftBagDomain,
         nft_id: ID,
     ) {
         assert!(has(container, nft_id), EUndefinedNft)

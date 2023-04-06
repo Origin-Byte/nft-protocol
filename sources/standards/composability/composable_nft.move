@@ -143,7 +143,7 @@ module nft_protocol::composable_nft {
         let child_type = type_name::get<Child>();
         let limit = get_limit(composition, &child_type);
 
-        let nfts = nft_bag::borrow_domain_mut<Child>(parent_nft);
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
 
         assert!(
             nft_bag::count<Child, Key<Child>>(nfts) < limit,
