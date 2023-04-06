@@ -3,6 +3,7 @@ module nft_protocol::example_simple {
     use std::string::{Self, String};
     use std::option;
 
+    use sui::display;
     use sui::url::{Self, Url};
     use sui::transfer;
     use sui::object::{Self, UID};
@@ -33,7 +34,16 @@ module nft_protocol::example_simple {
 
     /// Called during contract publishing
     fun init(witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
+        // Setup `Display`
         let publisher = sui::package::claim(witness, ctx);
+
+        let display = display::new<SimpleNft>(&publisher, ctx);
+        display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
+        display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
+        transfer::public_transfer(display, @0x2);
+
+        // Setup `Collection`
         let delegated_witness = witness::from_witness(Witness {});
 
         let collection: Collection<EXAMPLE_SIMPLE> =
@@ -103,7 +113,7 @@ module nft_protocol::example_simple {
         mint_nft(
             string::utf8(b"Simple NFT"),
             string::utf8(b"A simple NFT on Sui"),
-            b"https://originbyte.io/",
+            b"originbyte.io",
             &mint_cap,
             ctx(&mut scenario)
         );

@@ -4,6 +4,7 @@ module nft_protocol::suitraders {
     use std::string::{Self, String};
 
     use sui::url::{Self, Url};
+    use sui::display;
     use sui::transfer;
     use sui::object::{Self, UID};
     use sui::vec_set;
@@ -37,10 +38,19 @@ module nft_protocol::suitraders {
     }
 
     fun init(witness: SUITRADERS, ctx: &mut TxContext) {
+        // Setup `Display`
         let publisher = sui::package::claim(witness, ctx);
 
-        let delegated_witness = witness::from_witness(Witness {});
+        let display = display::new<Suitrader>(&publisher, ctx);
+        display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
+        display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
+        display::add(&mut display, string::utf8(b"attributes"), string::utf8(b"{attributes}"));
+        transfer::public_transfer(display, @0x2);
+
+        // Setup `Collection`
         let sender = tx_context::sender(ctx);
+        let delegated_witness = witness::from_witness(Witness {});
 
         let collection: Collection<SUITRADERS> =
             collection::create(delegated_witness, ctx);
