@@ -1,7 +1,8 @@
 module nft_protocol::suimarines {
-    use std::string::String;
+    use std::string::{Self, String};
 
     use sui::object::{Self, UID};
+    use sui::display;
     use sui::transfer;
     use sui::dynamic_field as df;
     use sui::tx_context::{Self, TxContext};
@@ -33,10 +34,17 @@ module nft_protocol::suimarines {
     struct Witness has drop {}
 
     fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        let sender = tx_context::sender(ctx);
+        // Setup `Display`
         let publisher = sui::package::claim(witness, ctx);
 
+        let display = display::new<Submarine>(&publisher, ctx);
+        display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        transfer::public_transfer(display, @0x2);
+
+        // Setup `Collection`
+        let sender = tx_context::sender(ctx);
         let delegated_witness = witness::from_witness(Witness {});
+
         let collection: Collection<SUIMARINES> =
             collection::create(delegated_witness, ctx);
 
