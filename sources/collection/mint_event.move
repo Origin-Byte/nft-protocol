@@ -1,4 +1,5 @@
 module nft_protocol::mint_event {
+    // TODO: Add burn function
     use std::type_name::{Self, TypeName};
 
     use sui::event;
