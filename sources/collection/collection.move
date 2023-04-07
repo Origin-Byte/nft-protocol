@@ -10,9 +10,7 @@ module nft_protocol::collection {
     use std::type_name::{Self, TypeName};
 
     use sui::event;
-    use sui::package::{Self, Publisher};
     use sui::transfer;
-    use sui::bag::{Self, Bag};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
@@ -47,8 +45,6 @@ module nft_protocol::collection {
     struct Collection<phantom W> has key, store {
         /// `Collection` ID
         id: UID,
-        // TODO: Delete
-        bag: Bag,
     }
 
     /// Event signalling that a `Collection` was minted
@@ -78,7 +74,7 @@ module nft_protocol::collection {
             type_name: type_name::get<C>(),
         });
 
-        Collection { id, bag: bag::new(ctx) }
+        Collection { id }
     }
 
     /// Creates a shared `Collection<C>`, where `C` will typically be the
@@ -190,8 +186,7 @@ module nft_protocol::collection {
     ///
     /// Panics if any domains are still registered on the `Collection`.
     public entry fun delete<C>(collection: Collection<C>) {
-        let Collection { id, bag } = collection;
-        bag::destroy_empty(bag);
+        let Collection { id } = collection;
         object::delete(id);
     }
 
@@ -217,27 +212,5 @@ module nft_protocol::collection {
         collection: &Collection<C>
     ) {
         assert!(!has_domain<C, Domain>(collection), EExistingDomain);
-    }
-
-    public fun get_bag<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &Collection<C>,
-    ): &Bag {
-        &collection.bag
-    }
-
-    public fun get_bag_mut<C>(
-        _witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
-    ): &mut Bag {
-        &mut collection.bag
-    }
-
-    public fun get_bag_field<C, Field: store>(
-        _witness: DelegatedWitness<C>,
-        collection: &Collection<C>,
-    ): &Field {
-        // It's up that field to implement correct collection witness access control.
-        bag::borrow(&collection.bag, type_name::get<Field>())
     }
 }

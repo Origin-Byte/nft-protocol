@@ -1,14 +1,18 @@
 module nft_protocol::access_policy {
+    // TODO: Add accessors to Kiosk once merged
+    // get_mutable_access_by_sender
+    // get_mutable_access_by_uid
+    // get_mutable_access_by_token
+    // get_mutable_access_by_ott
     use std::type_name::{Self, TypeName};
 
     use sui::event;
-    use sui::bag;
-    use sui::package::{Self, Publisher};
     use sui::table::{Self, Table};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
+    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::utils;
     use nft_protocol::collection::{Self, Collection};
 
@@ -17,12 +21,6 @@ module nft_protocol::access_policy {
 
     const EFIELD_ACCESS_DENIED: u64 = 2;
     const EPARENT_ACCESS_DENIED: u64 = 3;
-
-    // TODO: Add accessors to Kiosk once merged
-    // get_mutable_access_by_sender
-    // get_mutable_access_by_uid
-    // get_mutable_access_by_token
-    // get_mutable_access_by_ott
 
     struct AccessPolicy<phantom T: key + store> has key, store {
         id: UID,
@@ -52,19 +50,15 @@ module nft_protocol::access_policy {
         version: u64,
     }
 
-    public fun create_empty<OTW: drop, T: key + store>(
-        pub: &Publisher,
-        collection: &mut Collection<OTW>,
+    // === Instantiators ===
+
+   /// Creates a new `AccessPolicy<T>` and returns it.
+   ///
+   /// This endpoint is witness protected on the type `T` level.
+    public fun create_empty<T: key + store>(
+        _witness: DelegatedWitness<T>,
         ctx: &mut TxContext,
     ): AccessPolicy<T> {
-        // This assert is redundant because it's being asserted
-        // downstream in assert_no_access_policy
-        assert!(package::from_package<OTW>(pub), 0);
-        // TODO: We should not assert that OTW and T are from the
-        // same package, because T maybe be an extended type from the collection
-        // using some plugin --> need to reconsider
-        assert!(package::from_package<T>(pub), 0);
-        assert_no_access_policy<OTW, T>(pub, collection);
 
         let id = object::new(ctx);
 
@@ -85,40 +79,115 @@ module nft_protocol::access_policy {
         }
     }
 
-    fun empty_parent_access(): VecSet<address> {
-        vec_set::empty()
+    /// Creates a new `AccessPolicy<T>` and adds it to the Collection object.
+    ///
+    /// This endpoint is witness protected on a collection `C` level.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if domain already exists.
+    public fun add_empty<C: drop, T: key + store>(
+        witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
+        ctx: &mut TxContext,
+    ) {
+        utils::assert_same_module<T, C>();
+
+        let id = object::new(ctx);
+
+        event::emit(NewPolicyEvent {
+            policy_id: object::uid_to_inner(&id),
+            type_name: type_name::get<T>(),
+            version: 1,
+        });
+
+        let parent_access = empty_parent_access();
+        let field_access = empty_field_access(ctx);
+
+        let access_policy = AccessPolicy<T> {
+            id,
+            version: 1,
+            parent_access,
+            field_access,
+        };
+
+        collection::add_domain(witness, collection, access_policy);
     }
 
-    fun empty_field_access(ctx: &mut TxContext): Table<TypeName, VecSet<address>> {
-        table::new(ctx)
-    }
 
-    public fun add_parent_access<OTW: drop, T: key + store>(
-        pub: &Publisher,
+    // === Access Policy Management ===
+
+    /// Adds a vector of addresses to the access policy `AccessPolicy<T>`
+    /// to the `parent_access` list. Addresses with Parent Access have
+    /// write-access to all the fields in the given NFT of type `T`.
+    ///
+    /// This endpoint is witness protected on the type `T` level.
+    public fun add_parent_access_to_policy<T: key + store>(
+        _witness: DelegatedWitness<T>,
         access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
     ) {
-        assert!(package::from_package<OTW>(pub), 0);
-        // TODO: We should not assert that OTW and T are from the
-        // same package, because T maybe be an extended type from the collection
-        // using some plugin --> need to reconsider
-        assert!(package::from_package<T>(pub), 0);
+        utils::insert_vec_in_vec_set(
+            &mut access_policy.parent_access,
+            addresses
+        );
+    }
+
+    /// Adds a vector of addresses to the access policy `AccessPolicy<T>`
+    /// to the `field_access` list. Addresses with Field Access have
+    /// write-access to the field `Field` in the given NFT of type `T`.
+    ///
+    /// This endpoint is witness protected on the type `T` level.
+    public fun add_field_access_to_policy<T: key + store, Field: store>(
+        _witness: DelegatedWitness<T>,
+        access_policy: &mut AccessPolicy<T>,
+        addresses: vector<address>,
+    ) {
+        // Get table vec
+        let vec_set = table::borrow_mut(
+            &mut access_policy.field_access, type_name::get<Field>()
+        );
+
+        utils::insert_vec_in_vec_set(vec_set, addresses);
+    }
+
+
+    /// Adds a vector of addresses to the access policy `AccessPolicy<T>`
+    /// to the `parent_access` list. Addresses with Parent Access have
+    /// write-access to all the fields in the given NFT of type `T`.
+    ///
+    /// This endpoint is witness protected on a collection `C` level.
+    public fun add_parent_access<C: drop, T: key + store>(
+        witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
+        addresses: vector<address>,
+    ) {
+        utils::assert_same_module<T, C>();
+
+        let access_policy = collection::borrow_domain_mut<C, AccessPolicy<T>>(
+            witness,
+            collection
+        );
 
         utils::insert_vec_in_vec_set(&mut access_policy.parent_access, addresses);
     }
 
-    //
-    public fun add_field_access<OTW: drop, T: key + store, Field: store>(
-        pub: &Publisher,
-        access_policy: &mut AccessPolicy<T>,
+    /// Adds a vector of addresses to the access policy `AccessPolicy<T>`
+    /// to the `field_access` list. Addresses with Field Access have
+    /// write-access to the field `Field` in the given NFT of type `T`.
+    ///
+    /// This endpoint is witness protected on a collection `C` level.
+    public fun add_field_access<C: drop, T: key + store, Field: store>(
+        witness: DelegatedWitness<C>,
+        collection: &mut Collection<C>,
         addresses: vector<address>,
     ) {
-        assert!(package::from_package<OTW>(pub), 0);
-        // TODO: We should not assert that OTW and T are from the
-        // same package, because T maybe be an extended type from the collection
-        // using some plugin --> need to reconsider
-        assert!(package::from_package<T>(pub), 0);
+        utils::assert_same_module<T, C>();
 
+        let access_policy = collection::borrow_domain_mut<C, AccessPolicy<T>>(
+            witness,
+            collection
+        );
 
         // Get table vec
         let vec_set = table::borrow_mut(
@@ -151,12 +220,11 @@ module nft_protocol::access_policy {
     //     }
     // }
 
-    public fun assert_field_auth<OTW: drop, T: key + store, Field: store>(
-        collection: &Collection<OTW>,
+    public fun assert_field_auth<C: drop, T: key + store, Field: store>(
+        collection: &Collection<C>,
         ctx: &TxContext,
     ) {
-        let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
-            Witness {},
+        let access_policy = collection::borrow_domain<C, AccessPolicy<T>>(
             collection
         );
 
@@ -170,12 +238,11 @@ module nft_protocol::access_policy {
         );
     }
 
-    public fun assert_parent_auth<OTW: drop, T: key + store>(
-        collection: &Collection<OTW>,
+    public fun assert_parent_auth<C: drop, T: key + store>(
+        collection: &Collection<C>,
         ctx: &TxContext,
     ) {
-        let access_policy = collection::get_bag_field<OTW, Witness, AccessPolicy<T>>(
-            Witness {},
+        let access_policy = collection::borrow_domain<C, AccessPolicy<T>>(
             collection
         );
 
@@ -186,16 +253,22 @@ module nft_protocol::access_policy {
     }
 
 
-    fun assert_no_access_policy<OTW: drop, T: key + store>(
-        pub: &Publisher,
-        collection: &Collection<OTW>
+    fun assert_no_access_policy<C: drop, T: key + store>(
+        collection: &Collection<C>
     ) {
-        let bag = collection::get_bag_as_publisher(pub, collection);
-
         assert!(
-            !bag::contains(bag, type_name::get<AccessPolicy<T>>()),
+            !collection::has_domain<C, AccessPolicy<T>>(collection),
             EACCESS_POLICY_ALREADY_EXISTS
         );
+    }
+
+
+    fun empty_parent_access(): VecSet<address> {
+        vec_set::empty()
+    }
+
+    fun empty_field_access(ctx: &mut TxContext): Table<TypeName, VecSet<address>> {
+        table::new(ctx)
     }
 
 }
