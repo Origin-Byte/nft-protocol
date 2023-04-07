@@ -1,19 +1,21 @@
 module nft_protocol::ob_kiosk {
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
-    use nft_protocol::collection::Collection;
     use nft_protocol::access_policy as ap;
-    use originmate::typed_id::{Self, TypedID};
+    use nft_protocol::collection::Collection;
+    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
+    use nft_protocol::utils;
+    use originmate::typed_id::{Self, TypedID};
+    use std::string::utf8;
     use std::type_name::{Self, TypeName};
+    use sui::display;
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, uid_mut as ext};
     use sui::object::{Self, ID, UID, uid_to_address};
+    use sui::package;
     use sui::table::{Self, Table};
-    use sui::transfer::{public_share_object};
+    use sui::transfer::{transfer, public_share_object};
     use sui::tx_context::{TxContext, sender};
     use sui::vec_set::{Self, VecSet};
-
-    struct Witness has drop {}
 
     // === Errors ===
 
@@ -51,6 +53,25 @@ module nft_protocol::ob_kiosk {
     const PermissionlessAddr: address = @0xb;
 
     // === Structs ===
+
+    /// In the context of Originbyte, we use this type to prove module access.
+    /// Only this module can instantiate this type.
+    struct Witness has drop {}
+
+    /// Only OB kiosks owned by actual users (not permissionless) have this
+    /// honorary token.
+    ///
+    /// Is created when a kiosk is assigned to a user.
+    /// It cannot be transferred and has no meaning in the context of on-chain
+    /// logic.
+    /// It serves purely as a discovery mechanism for off-chain clients.
+    /// They get query objects with filter by this type, owned by a specific
+    /// address.
+    struct OwnerToken has key {
+        id: UID,
+        kiosk: ID,
+        owner: address,
+    }
 
     /// Inner accounting type.
     /// Stored under `NftRefsDfKey` as a dynamic field.
@@ -99,7 +120,7 @@ module nft_protocol::ob_kiosk {
     }
 
     /// All functions which would normally verify that the owner is the signer
-    /// are calleable.
+    /// are callable.
     /// This means that the kiosk MUST be wrapped.
     /// Otherwise, anyone could call those functions.
     public fun new_permissionless(_ctx: &mut TxContext): Kiosk {
@@ -123,11 +144,19 @@ module nft_protocol::ob_kiosk {
     /// permissionless.
     /// The address that is set as the owner of the kiosk is the address that
     /// will remain the owner forever.
-    public fun set_permissionless_to_permissioned(_self: &mut Kiosk, _user: address) {
+    public fun set_permissionless_to_permissioned(
+        _self: &mut Kiosk, _user: address, _ctx: &mut TxContext
+    ) {
         // assert!(kiosk::owner(self) == PermissionlessAddr, EKioskNotPermissionless);
         // let cap = pop_cap(self);
         // let nft = kiosk::set_owner_custom(self, &cap, user);
         // set_cap(self, cap);
+
+        // transfer(OwnerToken {
+        //     id: object::new(ctx),
+        //     kiosk: object::id(&kiosk),
+        //     owner: user,
+        // }, user);
 
         abort(0) // TODO: wait for new Sui version
     }
@@ -155,6 +184,12 @@ module nft_protocol::ob_kiosk {
             enable_any_deposit: true,
             collections_with_enabled_deposits: vec_set::empty(),
         });
+
+        transfer(OwnerToken {
+            id: object::new(ctx),
+            kiosk: object::id(&kiosk),
+            owner: sender(ctx),
+        }, sender(ctx));
 
         kiosk
     }
@@ -365,7 +400,7 @@ module nft_protocol::ob_kiosk {
         df::borrow(metadata, AuthTransferRequestDfKey {})
     }
 
-    // === Delisting of NFTs ===
+    // === De-listing of NFTs ===
 
     /// Removes _all_ entities from access to the NFT.
     /// Cannot be performed if the NFT is exclusively listed.
@@ -632,5 +667,27 @@ module nft_protocol::ob_kiosk {
 
     fun set_cap(self: &mut Kiosk, cap: kiosk::KioskOwnerCap) {
         df::add(ext(self), KioskOwnerCapDfKey {}, cap);
+    }
+
+    // === Display standard ===
+
+    struct OB_KIOSK has drop {}
+
+    fun init(otw: OB_KIOSK, ctx: &mut TxContext) {
+        let publisher = package::claim(otw, ctx);
+        let display = display::new<OwnerToken>(&publisher, ctx);
+
+        display::add(&mut display, utf8(b"name"), utf8(b"Originbyte Kiosk"));
+        display::add(&mut display, utf8(b"link"), utils::originbyte_docs_url());
+        display::add(&mut display, utf8(b"owner"), utf8(b"{owner}"));
+        display::add(&mut display, utf8(b"kiosk"), utf8(b"{kiosk}"));
+        display::add(
+            &mut display,
+            utf8(b"description"),
+            utf8(b"Stores NFTs, manages listings, sales and more!"),
+        );
+
+        public_share_object(display);
+        package::burn_publisher(publisher);
     }
 }
