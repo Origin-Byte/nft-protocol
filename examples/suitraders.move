@@ -46,7 +46,8 @@ module nft_protocol::suitraders {
         display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
         display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
         display::add(&mut display, string::utf8(b"attributes"), string::utf8(b"{attributes}"));
-        transfer::public_transfer(display, @0x2);
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
 
         // Setup `Collection`
         let sender = tx_context::sender(ctx);

@@ -64,7 +64,8 @@ module nft_protocol::example_symbol {
 
         let display = display::new<SymbolCap>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{symbol}"));
-        transfer::public_transfer(display, @0x2);
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
 
         // Setup `Collection`
         let delegated_witness = witness::from_witness(Witness {});
