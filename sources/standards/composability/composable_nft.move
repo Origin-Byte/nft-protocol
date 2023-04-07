@@ -26,7 +26,7 @@ module nft_protocol::composable_nft {
     /// Parent and child types are not composable
     ///
     /// Call `composable_nft::add_relationship` to add parent child
-    /// relationship to the composition.
+    /// relationship to the `Composition`.
     const EChildNotComposable: u64 = 3;
 
     /// Relationship between provided parent and child types is already defined
@@ -34,7 +34,7 @@ module nft_protocol::composable_nft {
 
     /// Exceeded composed type limit when calling `composable_nft::compose`
     ///
-    /// Set a higher type limit in the composability composition.
+    /// Set a higher type limit in the `Composition`.
     const EExceededLimit: u64 = 5;
 
     /// Internal struct for indexing NFTs in `NftBagDomain`
@@ -49,29 +49,11 @@ module nft_protocol::composable_nft {
         limits: VecMap<TypeName, u64>,
     }
 
+    /// Create new `Composition`
     public fun new_composition<Schema>(): Composition<Schema> {
         Composition {
             limits: vec_map::empty(),
         }
-    }
-
-    /// Adds parent child relationship to `Composition`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if parent child relationship already exists
-    public fun add_relationship<Schema, Child>(
-        composition: &mut Composition<Schema>,
-        limit: u64,
-    ) {
-        let child_type = type_name::get<Child>();
-
-        assert!(
-            !has_child(composition, &child_type),
-            EExistingRelationship,
-        );
-
-        vec_map::insert(&mut composition.limits, child_type, limit);
     }
 
     /// Returns whether a parent child relationship exists in the composition
@@ -107,7 +89,7 @@ module nft_protocol::composable_nft {
         child_type: &TypeName,
     ): &mut u64 {
         assert_composable(composition, child_type);
-        vec_map::get_mut(borrow_limits_mut(composition), child_type)
+        vec_map::get_mut(&mut composition.limits, child_type)
     }
 
     /// Borrow child limit from composability composition
@@ -117,11 +99,23 @@ module nft_protocol::composable_nft {
         &composition.limits
     }
 
-    /// Mutbaly borrow child limit from composability composition
-    fun borrow_limits_mut<Schema>(
+    /// Adds parent child relationship to `Composition`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if parent child relationship already exists
+    public fun insert_relationship<Schema, Child>(
         composition: &mut Composition<Schema>,
-    ): &mut VecMap<TypeName, u64> {
-        &mut composition.limits
+        limit: u64,
+    ) {
+        let child_type = type_name::get<Child>();
+
+        assert!(
+            !has_child(composition, &child_type),
+            EExistingRelationship,
+        );
+
+        vec_map::insert(&mut composition.limits, child_type, limit);
     }
 
     /// Compose child NFT into parent NFT
@@ -146,6 +140,23 @@ module nft_protocol::composable_nft {
         );
 
         nft_bag::compose(Key<Child> {}, nfts, child_nft);
+    }
+
+    /// Composes child NFT into parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// * `NftBag` is not registered on the parent `Nft`
+    /// * Parent or child NFT do not have corresponding `Type<Parent>` and
+    /// `Type<Child>` domains registered
+    /// * Limit of children is exceeded
+    public fun compose_into_nft<Schema, Child: key + store>(
+        composition: &Composition<Schema>,
+        parent_nft: &mut UID,
+        child_nft: Child,
+    ) {
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        compose(composition, nfts, child_nft);
     }
 
     /// Decomposes NFT with given ID from parent NFT
@@ -177,56 +188,92 @@ module nft_protocol::composable_nft {
         public_transfer(nft, tx_context::sender(ctx));
     }
 
+    /// Decomposes child NFT from parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `NftBag` is not registered on the parent `Nft`
+    public fun decompose_from_nft<T: key + store>(
+        parent_nft: &mut UID,
+        child_nft_id: ID,
+    ): T {
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        decompose(nfts, child_nft_id)
+    }
+
+    /// Decomposes child NFT from parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `NftBag` is not registered on the parent `Nft`
+    public fun decompose_from_nft_and_transfer<T: key + store>(
+        parent_nft: &mut UID,
+        child_nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        let nft = decompose_from_nft<T>(parent_nft, child_nft_id);
+        public_transfer(nft, tx_context::sender(ctx));
+    }
+
     // === Interoperability ===
 
-    /// Returns whether `Composition` is registered on `Nft`
-    public fun has_domain<Schema>(nft: &UID): bool {
+    /// Returns whether `Composition` is registered on collection
+    public fun has_domain<Schema>(collection: &UID): bool {
         df::exists_with_type<Marker<Composition<Schema>>, Composition<Schema>>(
-            nft, utils::marker(),
+            collection, utils::marker(),
         )
     }
 
-    /// Borrows `Composition` from `Nft`
+    /// Borrows `Composition` from collection
     ///
     /// #### Panics
     ///
-    /// Panics if `Composition` is not registered on the `Nft`
-    public fun borrow_domain<Schema>(nft: &UID): &Composition<Schema> {
-        assert_attributes<Schema>(nft);
-        df::borrow(nft, utils::marker<Composition<Schema>>())
+    /// Panics if `Composition` is not registered on the collection
+    public fun borrow_domain<Schema>(collection: &UID): &Composition<Schema> {
+        assert_attributes<Schema>(collection);
+        df::borrow(collection, utils::marker<Composition<Schema>>())
     }
 
-    /// Mutably borrows `Composition` from `Nft`
+    /// Mutably borrows `Composition` from collection
     ///
     /// #### Panics
     ///
-    /// Panics if `Composition` is not registered on the `Nft`
-    public fun borrow_domain_mut<Schema>(nft: &mut UID): &mut Composition<Schema> {
-        assert_attributes<Schema>(nft);
-        df::borrow_mut(nft, utils::marker<Composition<Schema>>())
+    /// Panics if `Composition` is not registered on the collection
+    public fun borrow_domain_mut<Schema>(
+        collection: &mut UID,
+    ): &mut Composition<Schema> {
+        assert_attributes<Schema>(collection);
+        df::borrow_mut(collection, utils::marker<Composition<Schema>>())
     }
 
-    /// Adds `Composition` to `Nft`
+    /// Adds `Composition` to collection
     ///
     /// #### Panics
     ///
     /// Panics if `Composition` domain already exists
     public fun add_domain<Schema>(
-        nft: &mut UID,
+        collection: &mut UID,
         domain: Composition<Schema>,
     ) {
-        assert_no_attributes<Schema>(nft);
-        df::add(nft, utils::marker<Composition<Schema>>(), domain);
+        assert_no_attributes<Schema>(collection);
+        df::add(collection, utils::marker<Composition<Schema>>(), domain);
     }
 
-    /// Remove `Composition` from `Nft`
+    /// Create a new `Composition` and register it on a collection
+    public fun add_new_composition<Schema>(collection: &mut UID) {
+        add_domain(collection, new_composition<Schema>())
+    }
+
+    /// Remove `Composition` from collection
     ///
     /// #### Panics
     ///
     /// Panics if `Composition` domain doesnt exist
-    public fun remove_domain<Schema>(nft: &mut UID): Composition<Schema> {
-        assert_attributes<Schema>(nft);
-        df::remove(nft, utils::marker<Composition<Schema>>())
+    public fun remove_domain<Schema>(
+        collection: &mut UID,
+    ): Composition<Schema> {
+        assert_attributes<Schema>(collection);
+        df::remove(collection, utils::marker<Composition<Schema>>())
     }
 
     // === Assertions ===
@@ -246,21 +293,21 @@ module nft_protocol::composable_nft {
         );
     }
 
-    /// Asserts that `Composition` is registered on `Nft`
+    /// Asserts that `Composition` is registered on collection
     ///
     /// #### Panics
     ///
     /// Panics if `Composition` is not registered
-    public fun assert_attributes<Schema>(nft: &UID) {
-        assert!(has_domain<Schema>(nft), EUndefinedComposition);
+    public fun assert_attributes<Schema>(collection: &UID) {
+        assert!(has_domain<Schema>(collection), EUndefinedComposition);
     }
 
-    /// Asserts that `Composition` is not registered on `Nft`
+    /// Asserts that `Composition` is not registered on collection
     ///
     /// #### Panics
     ///
     /// Panics if `Composition` is registered
-    public fun assert_no_attributes<Schema>(nft: &UID) {
-        assert!(!has_domain<Schema>(nft), EExistingComposition);
+    public fun assert_no_attributes<Schema>(collection: &UID) {
+        assert!(!has_domain<Schema>(collection), EExistingComposition);
     }
 }

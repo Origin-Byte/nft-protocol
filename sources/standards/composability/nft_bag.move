@@ -9,10 +9,11 @@ module nft_protocol::nft_bag {
     use std::type_name::{Self, TypeName};
 
     use sui::dynamic_object_field as dof;
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
     use sui::vec_map::{Self, VecMap};
     use sui::dynamic_field as df;
+    use sui::transfer;
 
     use nft_protocol::utils::{Self, Marker};
 
@@ -170,7 +171,7 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `NftBag` is not registered on the parent `Nft`
-    public fun compose_nft<T: key + store, Auth: drop>(
+    public fun compose_into_nft<T: key + store, Auth: drop>(
         authority: Auth,
         parent_nft: &mut UID,
         child_nft: T,
@@ -203,18 +204,48 @@ module nft_protocol::nft_bag {
         dof::remove(&mut domain.id, child_nft_id)
     }
 
+    /// Decomposes NFT with given ID from `NftBag` and transfers to receiver
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no NFT with given ID composed
+    public fun decompose_and_transfer<T: key + store, Auth: drop>(
+        authority: Auth,
+        domain: &mut NftBag,
+        child_nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        let nft = decompose<T, Auth>(authority, domain, child_nft_id);
+        transfer::public_transfer(nft, tx_context::sender(ctx));
+    }
+
     /// Decomposes child NFT from parent NFT
     ///
     /// #### Panics
     ///
     /// Panics if `NftBag` is not registered on the parent `Nft`
-    public fun decompose_nft<T: key + store, Auth: drop>(
+    public fun decompose_from_nft<T: key + store, Auth: drop>(
         authority: Auth,
         parent_nft: &mut UID,
         child_nft_id: ID,
     ): T {
         let domain = borrow_domain_mut(parent_nft);
         decompose(authority, domain, child_nft_id)
+    }
+
+    /// Decomposes NFT with given ID from `NftBag` and transfers to receiver
+    ///
+    /// #### Panics
+    ///
+    /// Panics if there is no NFT with given ID composed
+    public fun decompose_from_nft_and_transfer<T: key + store, Auth: drop>(
+        authority: Auth,
+        parent_nft: &mut UID,
+        child_nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        let nft = decompose_from_nft<T, Auth>(authority, parent_nft, child_nft_id);
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Counts how many NFTs are registered under the given authority
@@ -287,6 +318,11 @@ module nft_protocol::nft_bag {
     ) {
         assert_no_nft_bag(nft);
         df::add(nft, utils::marker<NftBag>(), domain);
+    }
+
+    /// Creates a new `NftBag` and inserts it into NFT
+    public fun add_new(nft: &mut UID, ctx: &mut TxContext) {
+        add_domain(nft, new(ctx));
     }
 
     /// Remove `NftBag` from `Nft`
