@@ -1,3 +1,33 @@
+/// We publish our extension to `sui::kiosk::Kiosk` object.
+/// We extend the functionality of the base object with the aim to provide
+/// better client experience and royalty enforcement.
+/// This module closely co-operates with `ob_transfer_request` module.
+///
+/// When working with this module, you use the base type in your function
+/// signatures but call functions in this module to access the functionality.
+/// We hide the `sui::kiosk::KioskOwnerCap` type, it cannot be accessed.
+///
+/// Differences over the base object:
+/// - Once a OB `Kiosk` is owned by a user address, it can never change owner.
+/// This mitigates royalty enforcement avoidance by trading `KioskOwnerCap`s.
+/// - Authorization with `tx_context::sender` rather than an `OwnerCap`.
+/// This means one less object to keep track of.
+/// - Permissionless deposits configuration.
+/// This means deposits can be made without the owner signature.
+/// - NFTs can be optionally always live in `Kiosk`, hence creating an option
+/// for a bullet proof royalty enforcement.
+/// While the base type attempts to replicate this functionality, due to the
+/// necessity of using `KioskOwnerCap` for deposits, it is not possible to
+/// use it in context of trading where seller is the one matching the trade.
+/// - NFTs can be listed for a specific entity, be it a smart contract or a user.
+/// Only allowed entities (by the owner) can withdraw NFTs.
+/// - There is no `sui::kiosk::PurchaseCap` for exclusive listings.
+/// We provide a unified interface for exclusive and non-exclusive listing.
+/// Also, once less object to keep track of.
+/// - We don't have functionality to list NFTs within the `Kiosk` itself.
+/// Rather, clients are encouraged to use the liquidity layer.
+/// - Permissionless `Kiosk` needs to signer, apps don't have to wrap both
+/// the `KioskOwnerCap` and the `Kiosk` in a smart contract.
 module nft_protocol::ob_kiosk {
     use nft_protocol::access_policy as ap;
     use nft_protocol::collection::Collection;
@@ -114,7 +144,40 @@ module nft_protocol::ob_kiosk {
 
     // === Instantiators ===
 
-    /// Calls `new`
+    /// Creates a new Kiosk in the OB ecosystem.
+    /// By default, all deposits are allowed permissionlessly.
+    ///
+    /// The scope of deposits can be controlled with
+    /// - `restrict_deposits` to allow only owner to deposit;
+    /// - `enable_any_deposit` to again set deposits to be permissionless;
+    /// - `disable_deposits_of_collection` to prevent specific collection to
+    ///     deposit (ignored if all deposits enabled)
+    /// - `enable_deposits_of_collection` to again specific collection to deposit
+    ///     (useful in conjunction with restricting all deposits)
+    ///
+    /// Note that those collections which have restricted deposits will NOT be
+    /// allowed to be transferred to the kiosk even on trades.
+    public fun new(ctx: &mut TxContext): Kiosk {
+        let (kiosk, kiosk_cap) = kiosk::new(ctx);
+        let kiosk_ext = ext(&mut kiosk);
+
+        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
+        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
+        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
+            enable_any_deposit: true,
+            collections_with_enabled_deposits: vec_set::empty(),
+        });
+
+        transfer(OwnerToken {
+            id: object::new(ctx),
+            kiosk: object::id(&kiosk),
+            owner: sender(ctx),
+        }, sender(ctx));
+
+        kiosk
+    }
+
+    /// Calls `new` and shares the kiosk
     public fun create_for_sender(ctx: &mut TxContext) {
         public_share_object(new(ctx));
     }
@@ -159,39 +222,6 @@ module nft_protocol::ob_kiosk {
         // }, user);
 
         abort(0) // TODO: wait for new Sui version
-    }
-
-    /// Creates a new Kiosk in the OB ecosystem.
-    /// By default, all deposits are allowed permissionlessly.
-    ///
-    /// The scope of deposits can be controlled with
-    /// - `restrict_deposits` to allow only owner to deposit;
-    /// - `enable_any_deposit` to again set deposits to be permissionless;
-    /// - `disable_deposits_of_collection` to prevent specific collection to
-    ///     deposit (ignored if all deposits enabled)
-    /// - `enable_deposits_of_collection` to again specific collection to deposit
-    ///     (useful in conjunction with restricting all deposits)
-    ///
-    /// Note that those collections which have restricted deposits will NOT be
-    /// allowed to be transferred to the kiosk even on trades.
-    public fun new(ctx: &mut TxContext): Kiosk {
-        let (kiosk, kiosk_cap) = kiosk::new(ctx);
-        let kiosk_ext = ext(&mut kiosk);
-
-        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
-        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
-        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
-            enable_any_deposit: true,
-            collections_with_enabled_deposits: vec_set::empty(),
-        });
-
-        transfer(OwnerToken {
-            id: object::new(ctx),
-            kiosk: object::id(&kiosk),
-            owner: sender(ctx),
-        }, sender(ctx));
-
-        kiosk
     }
 
     // === Deposit to the Kiosk ===
