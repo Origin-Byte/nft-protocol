@@ -62,7 +62,7 @@ module nft_protocol::example_symbol {
         let collection: Collection<EXAMPLE_SYMBOL> =
             collection::create(delegated_witness, ctx);
 
-        let mint_cap = mint_cap::new_unregulated(
+        let mint_cap = mint_cap::new_unlimited(
             delegated_witness, &collection, ctx,
         );
 

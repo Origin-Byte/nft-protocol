@@ -29,7 +29,7 @@ module nft_protocol::test_utils {
             delegated_witness, ctx(scenario),
         );
 
-        let mint_cap = mint_cap::new_unregulated(
+        let mint_cap = mint_cap::new_unlimited(
             delegated_witness, &collection, ctx(scenario),
         );
 
