@@ -104,7 +104,7 @@ module nft_protocol::composable_nft {
     /// #### Panics
     ///
     /// Panics if parent child relationship already exists
-    public fun insert_relationship<Schema, Child>(
+    public fun add_relationship<Schema, Child>(
         composition: &mut Composition<Schema>,
         limit: u64,
     ) {

@@ -73,10 +73,10 @@ module nft_protocol::tribal_realms {
         // === Avatar composability ===
 
         let avatar_blueprint = c_nft::new_composition<Avatar>();
-        c_nft::insert_relationship<Avatar, Hat>(
+        c_nft::add_relationship<Avatar, Hat>(
             &mut avatar_blueprint, 1,
         );
-        c_nft::insert_relationship<Avatar, Glasses>(
+        c_nft::add_relationship<Avatar, Glasses>(
             &mut avatar_blueprint, 1,
         );
 
