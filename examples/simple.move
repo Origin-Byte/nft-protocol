@@ -41,7 +41,8 @@ module nft_protocol::example_simple {
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
         display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
-        transfer::public_transfer(display, @0x2);
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
 
         // Setup `Collection`
         let delegated_witness = witness::from_witness(Witness {});
