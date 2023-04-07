@@ -24,11 +24,13 @@ module nft_protocol::transfer_allowlist {
     use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use std::option::{Self, Option};
+    use std::string::utf8;
     use std::type_name::{Self, TypeName};
+    use sui::display;
     use sui::object::{Self, UID};
-    use sui::package::Publisher;
+    use sui::package::{Self, Publisher};
     use sui::transfer_policy;
-    use sui::transfer;
+    use sui::transfer::{Self, public_share_object};
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
@@ -293,5 +295,25 @@ module nft_protocol::transfer_allowlist {
     public fun assert_transferable<T>(allowlist: &Allowlist, auth: &TypeName) {
         assert_collection<T>(allowlist);
         assert_authority(allowlist, auth);
+    }
+
+    // === Display standard ===
+
+    struct TRANSFER_ALLOWLIST has drop {}
+
+    fun init(otw: TRANSFER_ALLOWLIST, ctx: &mut TxContext) {
+        let publisher = package::claim(otw, ctx);
+        let display = display::new<Allowlist>(&publisher, ctx);
+
+        display::add(&mut display, utf8(b"name"), utf8(b"Transfer Allowlist"));
+        display::add(&mut display, utf8(b"link"), utils::originbyte_docs_url());
+        display::add(
+            &mut display,
+            utf8(b"description"),
+            utf8(b"Which authorities can transfer NFTs of which collections"),
+        );
+
+        public_share_object(display);
+        package::burn_publisher(publisher);
     }
 }
