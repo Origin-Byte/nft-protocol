@@ -112,7 +112,7 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &mut MintCap<Suitrader>,
+        mint_cap: &MintCap<Suitrader>,
         warehouse: &mut Warehouse<Suitrader>,
         ctx: &mut TxContext,
     ) {
@@ -124,7 +124,7 @@ module nft_protocol::suitraders {
             attributes: attributes::from_vec(attribute_keys, attribute_values)
         };
 
-        mint_event::mint(mint_cap, &nft);
+        mint_event::mint_unlimited(mint_cap, &nft);
         warehouse::deposit_nft(warehouse, nft);
     }
 
