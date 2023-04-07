@@ -11,7 +11,7 @@ module nft_protocol::composable_nft {
     use sui::vec_map::{Self, VecMap};
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::nft_bag;
+    use nft_protocol::nft_bag::{Self, NftBag};
 
     /// `Composition` was not defined
     ///
@@ -128,22 +128,17 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// * `Composition<Schema>` is not registered as a domain on the parent NFT
-    /// * Parent child relationship is not defined on the composability
-    /// composition
     /// * Parent or child NFT do not have corresponding `Type<Parent>` and
     /// `Type<Child>` domains registered
     /// * Limit of children is exceeded
     public fun compose<Schema, Child: key + store>(
         composition: &Composition<Schema>,
-        parent_nft: &mut UID,
+        nfts: &mut NftBag,
         child_nft: Child,
     ) {
         // Asserts that parent and child are composable
         let child_type = type_name::get<Child>();
         let limit = get_limit(composition, &child_type);
-
-        let nfts = nft_bag::borrow_domain_mut(parent_nft);
 
         assert!(
             nft_bag::count<Child, Key<Child>>(nfts) < limit,
@@ -159,12 +154,11 @@ module nft_protocol::composable_nft {
     ///
     /// Panics if there is no NFT with given ID composed
     public fun decompose<T: key + store>(
-        parent_nft: &mut UID,
+        nfts: &mut NftBag,
         child_nft_id: ID,
     ): T {
         // TODO: Should check whether this NFT is allowed to be decomposed
         // somehow
-        let nfts = nft_bag::borrow_domain_mut(parent_nft);
         nft_bag::decompose(Key<T> {}, nfts, child_nft_id)
     }
 
@@ -175,11 +169,11 @@ module nft_protocol::composable_nft {
     ///
     /// Panics if there is no NFT with given ID composed
     public fun decompose_and_transfer<T: key + store>(
-        parent_nft: &mut UID,
+        nfts: &mut NftBag,
         child_nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        let nft = decompose<T>(parent_nft, child_nft_id);
+        let nft = decompose<T>(nfts, child_nft_id);
         public_transfer(nft, tx_context::sender(ctx));
     }
 
