@@ -55,7 +55,7 @@ module nft_protocol::access_policy {
    /// Creates a new `AccessPolicy<T>` and returns it.
    ///
    /// This endpoint is witness protected on the type `T` level.
-    public fun create_empty<T: key + store>(
+    public fun create_new<T: key + store>(
         _witness: DelegatedWitness<T>,
         ctx: &mut TxContext,
     ): AccessPolicy<T> {
@@ -86,7 +86,7 @@ module nft_protocol::access_policy {
     /// #### Panics
     ///
     /// Panics if domain already exists.
-    public fun add_empty<C: drop, T: key + store>(
+    public fun add_new<C: drop, T: key + store>(
         witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
