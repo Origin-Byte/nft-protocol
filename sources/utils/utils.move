@@ -2,7 +2,7 @@
 module nft_protocol::utils {
     use nft_protocol::err;
     use std::ascii;
-    use std::string::{Self, String, sub_string};
+    use std::string::{Self, String, utf8, sub_string};
     use std::type_name;
     use std::vector;
 
@@ -125,6 +125,10 @@ module nft_protocol::utils {
 
     public fun bps(): u16 {
         10_000
+    }
+
+    public fun originbyte_docs_url(): String {
+        utf8(b"https://docs.originbyte.io")
     }
 
     public fun assert_with_witness<W: drop, T: key>(
