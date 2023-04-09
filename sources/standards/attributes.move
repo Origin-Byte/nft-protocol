@@ -31,6 +31,8 @@ module nft_protocol::attributes {
         map: VecMap<String, String>,
     }
 
+    // === Static Instantiators ===
+
     /// Creates new `Attributes`
     public fun new(map: VecMap<String, String>): Attributes {
         Attributes { map }
@@ -43,13 +45,68 @@ module nft_protocol::attributes {
 
     /// Creates new `Attributes` from vectors of keys and values
     ///
-    /// Need to ensure that `UrlDomain` is updated with attributes if they
-    /// exist therefore function cannot be public.
-    ///
     /// #### Panics
     ///
     /// Panics if keys and values vectors have different lengths
     public fun from_vec(
+        keys: vector<String>,
+        values: vector<String>,
+    ): Attributes {
+        let map = utils::from_vec_to_map<String, String>(keys, values);
+        new(map)
+    }
+
+    // === Dynamic Instantiators ===
+
+    /// Creates new `Attributes` and adds it to the object UID as a
+    /// dynamic field with Key `Marker<Attributes>`. Note that `object_uid` can
+    /// be the UID of an NFT or in general any object that has a UID.
+    ///
+    /// Caution: The Key `Marker<Attributes>` is not defined in this module
+    /// and it is permissionless, which means that anyone can instantiate it.
+    /// As a result NFT creators must be mindful when sharing &mut UID because
+    /// anyone with untethered access to &mut UID can mutate this field.
+    ///
+    /// #### Panics
+    ///
+    /// If the object already has a dynamic field with this Key
+    public fun add_new(
+        object_uid: &mut UID,
+        map: VecMap<String, String>
+    ) {
+        df::add(object_uid, utils::marker<Attributes>(), new(map));
+    }
+
+    /// Creates empty `Attributes` and adds it to the object UID as a
+    /// dynamic field with Key `Marker<Attributes>`. Note that `object_uid`
+    /// can be the UID of an NFT or in general any object that has a UID.
+    ///
+    /// Caution: The Key `Marker<Attributes>` is not defined in this module
+    /// and it is permissionless, which means that anyone can instantiate it.
+    /// As a result NFT creators must be mindful when sharing &mut UID because
+    /// anyone with untethered access to &mut UID can mutate this field.
+    ///
+    /// #### Panics
+    ///
+    /// If the object already has a dynamic field with this Key
+    public fun add_empty(nft_uid: &mut UID) {
+        df::add(nft_uid, utils::marker<Attributes>(), empty());
+    }
+
+    /// Creates new `Attributes` from vectors of keys and values and adds it
+    /// to the object UID as a dynamic field with Key `Marker<Attributes>`.
+    /// Note that `object_uid` can be the UID of an NFT or in general
+    /// any object that has a UID.
+    ///
+    /// Caution: The Key `Marker<Attributes>` is not defined in this module
+    /// and it is permissionless, which means that anyone can instantiate it.
+    /// As a result NFT creators must be mindful when sharing &mut UID because
+    /// anyone with untethered access to &mut UID can mutate this field.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if keys and values vectors have different lengths
+    public fun add_from_vec(
         keys: vector<String>,
         values: vector<String>,
     ): Attributes {
@@ -146,21 +203,21 @@ module nft_protocol::attributes {
         )
     }
 
-    /// Borrows `UrlDomain` from `Nft`
+    /// Borrows `Attributes` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered on the `Nft`
+    /// Panics if `Attributes` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &Attributes {
         assert_attributes(nft);
         df::borrow(nft, utils::marker<Attributes>())
     }
 
-    /// Mutably borrows `UrlDomain` from `Nft`
+    /// Mutably borrows `Attributes` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `UrlDomain` is not registered on the `Nft`
+    /// Panics if `Attributes` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut Attributes {
         assert_attributes(nft);
         df::borrow_mut(nft, utils::marker<Attributes>())

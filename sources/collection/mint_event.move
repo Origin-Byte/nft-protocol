@@ -1,4 +1,5 @@
 module nft_protocol::mint_event {
+    // TODO: Add burn function
     use std::type_name::{Self, TypeName};
 
     use sui::event;
@@ -30,13 +31,28 @@ module nft_protocol::mint_event {
         object: ID,
     }
 
-    public fun mint<T: key>(
+    public fun mint_unlimited<T: key>(
+        mint_cap: &MintCap<T>,
+        object: &T,
+    ) {
+        mint_cap::assert_unlimited(mint_cap);
+
+        let type = type_name::get<T>();
+        let object_id = object::id(object);
+
+        event::emit(MintEvent<T> {
+            collection_id: mint_cap::collection_id(mint_cap),
+            type_name: type,
+            object: object_id,
+        });
+    }
+
+    public fun mint_limited<T: key>(
         mint_cap: &mut MintCap<T>,
         object: &T,
     ) {
-        if (mint_cap::has_supply(mint_cap)) {
-            mint_cap::increment_supply(mint_cap, 1);
-        };
+        mint_cap::assert_limited(mint_cap);
+        mint_cap::increment_supply(mint_cap, 1);
 
         let type = type_name::get<T>();
         let object_id = object::id(object);

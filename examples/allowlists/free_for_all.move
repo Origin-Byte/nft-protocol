@@ -68,7 +68,7 @@ module nft_protocol::origin_sui {
         let collection: Collection<ORIGIN_SUI> =
             collection::create(delegated_witness, ctx(&mut scenario));
 
-        let mint_cap = mint_cap::new_unregulated(
+        let mint_cap = mint_cap::new_unlimited(
             delegated_witness, &collection, ctx(&mut scenario),
         );
 

@@ -51,7 +51,7 @@ module nft_protocol::mint_pass {
         supply: u64,
         ctx: &mut TxContext,
     ): MintPass<T> {
-        mint_cap::assert_regulated(mint_cap);
+        mint_cap::assert_limited(mint_cap);
         mint_cap::increment_supply(mint_cap, supply);
 
         MintPass {
@@ -66,7 +66,7 @@ module nft_protocol::mint_pass {
         supply: u64,
         ctx: &mut TxContext,
     ): MintPass<T> {
-        mint_cap::assert_unregulated(mint_cap);
+        mint_cap::assert_unlimited(mint_cap);
 
         MintPass {
             id: object::new(ctx),
