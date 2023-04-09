@@ -1,9 +1,8 @@
 module nft_protocol::access_policy {
-    // TODO: Add accessors to Kiosk once merged
-    // get_mutable_access_by_sender
-    // get_mutable_access_by_uid
-    // get_mutable_access_by_token
-    // get_mutable_access_by_ott
+    // TODO: Consider adding functionality for one time tokens
+    // Borrow NFT from &UID (Programmatic entity)
+    // Borrow NFT from with Token
+    // Borrow NFT with one-time Token
     use std::type_name::{Self, TypeName};
 
     use sui::event;
@@ -31,16 +30,6 @@ module nft_protocol::access_policy {
     }
 
     struct Witness has drop {}
-
-    // struct AccessToken<phantom T: key + store> has key, store {
-    //     id: UID,
-    //     version: u64,
-    // }
-
-    // struct OneTimeToken<phantom T: key + store> has key {
-    //     id: UID,
-    //     version: u64,
-    // }
 
     /// Event signalling that a `AccessPolicy` was created
     struct NewPolicyEvent has copy, drop {

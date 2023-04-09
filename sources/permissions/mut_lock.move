@@ -3,6 +3,7 @@ module nft_protocol::mut_lock {
     use std::option::{Self, Option};
     use sui::object::{Self, ID, UID};
     use sui::tx_context::TxContext;
+    use sui::dynamic_field as df;
     use nft_protocol::utils;
 
     const ELOCK_PROMISE_MISMATCH: u64 = 1;
@@ -101,27 +102,27 @@ module nft_protocol::mut_lock {
         &mut locked_nft.nft
     }
 
-    public fun issue_return_field_promise<Field: store>(
-    ): ReturnFieldPromise<Field> {
-        ReturnFieldPromise {}
+    public fun borrow_field_with_promise<Field: store>(
+        nft_uid: &mut UID
+    ): (Field, ReturnFieldPromise<Field>) {
+        let field = df::remove(nft_uid, utils::marker<Field>());
+
+        (field, ReturnFieldPromise {})
     }
 
     // TODO: We need to explore more the security aspects of this function,
     // I am worried the client could swap MutLocks and ReturnFieldPromises
     // and somehow get away with something. It's hard to reason about this
-    public fun consume_field_promise<W: drop, T: key + store, Field: store>(
-        // Creator Witness: Only the creator's contract should have
-        // the ability to operate on the inner object extract a field
-        _witness: W,
-        // Just here for proof
-        _locked_nft: &MutLock<T>,
-        // Just here for proof
-        _field: &Field,
+    public fun consume_field_promise<Field: store>(
+        // Creator Control: Only the creator's contract should have
+        // the ability to operate on the inner object extract a field, this is
+        // built in because only the creator can define how to get &mut UID
+        nft_uid: &mut UID,
+        field: Field,
         promise: ReturnFieldPromise<Field>,
     ) {
-        utils::assert_same_module<T, W>();
+        df::add(nft_uid, utils::marker<Field>(), field);
 
         let ReturnFieldPromise {} = promise;
     }
-
 }
