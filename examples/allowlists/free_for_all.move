@@ -24,6 +24,7 @@ module nft_protocol::free_for_all {
         package::claim_and_keep(otw, ctx);
     }
 
+    /// TODO: add policy rule
     public entry fun insert_collection<C>(
         pub: &Publisher,
         collection: &mut Collection<C>,

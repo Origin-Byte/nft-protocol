@@ -133,9 +133,19 @@ module nft_protocol::transfer_allowlist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public entry fun remove_itself<T>(
-        self: &mut Allowlist,
-        collection_pub: &Publisher,
+    public fun remove_itself<T>(
+        _witness: DelegatedWitness<T>, self: &mut Allowlist,
+    ) {
+        vec_set::remove(&mut self.collections, &type_name::get<T>());
+    }
+
+    /// Any collection is allowed to remove itself from any allowlist at any
+    /// time.
+    ///
+    /// It's always the creator's right to decide at any point what authorities
+    /// can transfer NFTs of that collection.
+    public fun remove_itself_with_publisher<T>(
+        self: &mut Allowlist, collection_pub: &Publisher,
     ) {
         utils::assert_package_publisher<T>(collection_pub);
         vec_set::remove(&mut self.collections, &type_name::get<T>());
@@ -143,8 +153,8 @@ module nft_protocol::transfer_allowlist {
 
     /// The allowlist owner can remove any collection at any point.
     public fun remove_collection<T, Admin: drop>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
         vec_set::remove(&mut self.collections, &type_name::get<T>());
@@ -152,8 +162,8 @@ module nft_protocol::transfer_allowlist {
 
     /// Removes all collections from this list.
     public fun clear_collections<Admin: drop>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
         self.collections = vec_set::empty();
@@ -162,8 +172,8 @@ module nft_protocol::transfer_allowlist {
     /// To insert a new authority into a list we need confirmation by the
     /// allowlist authority (via witness.)
     public fun insert_authority<Admin: drop, Auth>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
 
@@ -185,8 +195,8 @@ module nft_protocol::transfer_allowlist {
     /// If this is the last authority in the list, we do NOT go back to a free
     /// for all allowlist.
     public fun remove_authority<Admin: drop, Auth>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
 
@@ -199,13 +209,13 @@ module nft_protocol::transfer_allowlist {
     // === Transfers ===
 
     /// Checks whether given authority witness is in the allowlist, and also
-    /// whether given collection witness (C) is in the allowlist.
+    /// whether given collection witness (T) is in the allowlist.
     public fun can_be_transferred<T>(self: &Allowlist, auth: &TypeName): bool {
         contains_authority(self, auth) &&
             contains_collection<T>(self)
     }
 
-    /// Returns whether `Allowlist` contains collection `C`
+    /// Returns whether `Allowlist` contains collection `T`
     public fun contains_collection<T>(self: &Allowlist): bool {
         vec_set::contains(&self.collections, &type_name::get<T>())
     }
