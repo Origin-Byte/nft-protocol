@@ -3,7 +3,6 @@ module nft_protocol::suimarines {
     use std::option;
 
     use sui::transfer;
-    use sui::dynamic_field as df;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
@@ -11,7 +10,6 @@ module nft_protocol::suimarines {
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::utils;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
 
