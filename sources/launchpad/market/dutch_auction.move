@@ -24,6 +24,7 @@ module nft_protocol::dutch_auction {
 
     use nft_protocol::err;
     use nft_protocol::venue;
+    use nft_protocol::witness;
     use nft_protocol::listing::{Self, Listing};
     use nft_protocol::inventory;
     use nft_protocol::market_whitelist::{Self, Certificate};
@@ -117,10 +118,10 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        let venue =
-            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
@@ -143,10 +144,10 @@ module nft_protocol::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        let venue =
-            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         venue::assert_is_live(venue);
         venue::assert_is_whitelisted(venue);
@@ -177,10 +178,10 @@ module nft_protocol::dutch_auction {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let market =
-            listing::market_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let market = listing::market_internal_mut<DutchAuctionMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         cancel_bid_(market, wallet, price, tx_context::sender(ctx))
     }
@@ -200,10 +201,10 @@ module nft_protocol::dutch_auction {
         // the listing admin
         listing::assert_listing_admin(listing, ctx);
 
-        let venue =
-            listing::venue_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         cancel_auction<FT>(
             venue::borrow_market_mut(venue),
@@ -242,10 +243,10 @@ module nft_protocol::dutch_auction {
         };
 
         // Determine matching orders
-        let market =
-            listing::market_internal_mut<DutchAuctionMarket<FT>, Witness>(
-                Witness {}, listing, venue_id
-            );
+        let delegated_witness = witness::from_witness(Witness {});
+        let market = listing::market_internal_mut<DutchAuctionMarket<FT>>(
+            delegated_witness, listing, venue_id
+        );
 
         // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
         // Investigate whether this logic should be paginated
@@ -254,9 +255,9 @@ module nft_protocol::dutch_auction {
 
         // Transfer NFTs to matching orders
         let inventory = listing::inventory_internal_mut<
-            T, DutchAuctionMarket<FT>, Witness
+            T, DutchAuctionMarket<FT>
         >(
-            Witness {}, listing, venue_id, inventory_id
+            delegated_witness, listing, venue_id, inventory_id
         );
 
         let total_funds = balance::zero<FT>();

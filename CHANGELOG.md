@@ -6,6 +6,20 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2023-04-04
+
+### Added
+- Added `Quorum` as an abstraction for managin Administrative object
+- Added `AccessPolicy` to manage granular mutable access to NFTs in the `Kiosk`
+- Added `Launchpad` V2 with the plans of deprecating Launchpad V1 running up to mainnet
+- Added `MutLock`, `ReturnPromise` and `ReturnFieldPromise` for controlling the flow
+  of borrowing an NFT from the Kiosk for mutation
+- Added `CapAggregator` for grouping Capability objects of the same concern.
+
+### Changed
+- Protocol Type Freedom: The wrapper `Nft<T>` is now optional
+- Kiosk integration: `Safe` has been deprecated in favor of `Kiosk`
+
 ## [0.27.0] - 2023-03-29
 
 ### Changed

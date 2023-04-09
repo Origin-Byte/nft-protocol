@@ -3,38 +3,36 @@
 ///
 /// Ownership of `MintCap` is necessary to mint NFTs and can also be used to
 /// delegate the permission to mint NFTs (but not modify collections) using
-/// `RegulatedMintCap` and `UnregulatedMintCap`.
+/// `limitedMintCap` and `unlimitedMintCap`.
 ///
-/// Multiple `RegulatedMintCap` and `UnregulatedMintCap` can be created
+/// Multiple `limitedMintCap` and `unlimitedMintCap` can be created
 /// therefore the objects must be securely protected against malicious
 /// access.
 ///
-/// An additional restriction placed upon `RegulatedMintCap` and
-/// `UnregulatedMintCap` is that they may not be used to further delegate more
+/// An additional restriction placed upon `limitedMintCap` and
+/// `unlimitedMintCap` is that they may not be used to further delegate more
 /// mint capabilities.
 module nft_protocol::mint_cap {
     use std::option::{Self, Option};
+    use std::type_name::{Self, TypeName};
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
+    use sui::types;
 
     use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::utils;
 
-    friend nft_protocol::collection;
+    /// `MintCap` is unlimited when expected limited
+    const EMintCapunlimited: u64 = 1;
 
-    /// `MintCap` is unregulated when expected regulated
-    const EUnregulated: u64 = 1;
+    /// `MintCap` is limited when expected unlimited
+    const EMintCaplimited: u64 = 2;
 
-    /// `MintCap` is regulated when expected unregulated
-    const ERegulated: u64 = 2;
+    /// Parameter is not a OTW
+    const ENotOneTimeWitness: u64 = 3;
 
-    // === MintCap ===
-
-    /// `MintCap<T>` delegates the capability to it's owner to mint `T`.
-    /// There is only one `MintCap` per `Collection<T>`.
-    ///
-    /// This pattern is useful as `MintCap` can be made shared allowing users
-    /// to mint NFTs themselves, such as in a name service application.
+    /// `MintCap<T>` delegates the capability of it's owner to mint `T`
     struct MintCap<phantom T> has key, store {
         /// `MintCap` ID
         id: UID,
@@ -42,42 +40,63 @@ module nft_protocol::mint_cap {
         ///
         /// Intended for discovery.
         collection_id: ID,
+        /// The `T` does not necessarily have to match collection's generic.
+        /// The collection is typically used with OTW, while `MintCap` can also
+        /// be used for individual NFT types.
+        collection_type: TypeName,
         /// Supply that `MintCap` can mint
         supply: Option<Supply>,
     }
 
-    public(friend) fun new<T>(
+    /// Create a new `MintCap`
+    public fun new<OTW: drop, T>(
+        otw: &OTW,
         collection_id: ID,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
         if (option::is_some(&supply)) {
-            new_regulated(
-                collection_id, option::destroy_some(supply), ctx,
+            new_limited(
+                otw, collection_id, option::destroy_some(supply), ctx,
             )
         } else {
-            new_unregulated(collection_id, ctx)
+            new_unlimited(otw, collection_id, ctx)
         }
     }
 
-    /// Create a new `MintCap` with unregulated supply
-    public(friend) fun new_unregulated<T>(
+    /// Create a new `MintCap` with unlimited supply
+    public fun new_unlimited<OTW: drop, T>(
+        otw: &OTW,
         collection_id: ID,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        MintCap { id: object::new(ctx), collection_id, supply: option::none() }
+        assert!(types::is_one_time_witness(otw), ENotOneTimeWitness);
+        utils::assert_same_module<OTW, T>();
+
+        MintCap {
+            id: object::new(ctx),
+            collection_type: type_name::get<OTW>(),
+            collection_id,
+            supply: option::none(),
+        }
     }
 
-    /// Create a new `MintCap` with regulated supply
-    public(friend) fun new_regulated<T>(
+    /// Create a new `MintCap` with limited supply
+    public fun new_limited<OTW: drop, T>(
+        otw: &OTW,
         collection_id: ID,
         supply: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
+        assert!(types::is_one_time_witness(otw), ENotOneTimeWitness);
+        utils::assert_same_module<OTW, T>();
+
         MintCap {
             id: object::new(ctx),
             collection_id,
-            supply: option::some(supply::new(supply)),
+            collection_type: type_name::get<OTW>(),
+            // The supply is always set to frozen for safety
+            supply: option::some(supply::new(supply, true)),
         }
     }
 
@@ -86,14 +105,34 @@ module nft_protocol::mint_cap {
         mint_cap.collection_id
     }
 
+    /// Returns `C` of `Collection<C>` associated with `MintCap`
+    public fun collection_type<T>(mint_cap: &MintCap<T>): &TypeName {
+        &mint_cap.collection_type
+    }
+
     /// Return remaining supply
     ///
     /// #### Panics
     ///
-    /// Panics if supply is unregulated.
+    /// Panics if supply is unlimited.
     public fun supply<T>(mint_cap: &MintCap<T>): u64 {
-        assert_regulated(mint_cap);
-        supply::supply(option::borrow(&mint_cap.supply))
+        assert_limited(mint_cap);
+        supply::get_current(option::borrow(&mint_cap.supply))
+    }
+
+    /// Returns backing `Supply`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if suppy is unlimited.
+    public fun get_supply<T>(mint_cap: &MintCap<T>): &Supply {
+        assert_limited(mint_cap);
+        option::borrow(&mint_cap.supply)
+    }
+
+    /// Returns whether `MintCap` has limited supply
+    public fun has_supply<T>(mint_cap: &MintCap<T>): bool {
+        option::is_some(&mint_cap.supply)
     }
 
     /// Returns ID of `Collection` associated with `MintCap`
@@ -113,40 +152,48 @@ module nft_protocol::mint_cap {
         mint_cap: &mut MintCap<T>,
         quantity: u64,
     ) {
+        // TODO: Should assert that is limited
         if (option::is_some(&mint_cap.supply)) {
             supply::increment(option::borrow_mut(&mut mint_cap.supply), quantity);
         }
     }
 
-    /// Create a new `MintCap` by delegating supply from unregulated or
-    /// regulated `MintCap`.
-    public fun delegate<T>(
+    /// Create a new `MintCap` by delegating supply from unlimited or
+    /// limited `MintCap`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if quantity exceeds available supply.
+    public fun split<T: key>(
         mint_cap: &mut MintCap<T>,
         quantity: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
         let supply = if (option::is_some(&mint_cap.supply)) {
-            supply::split(option::borrow_mut(&mut mint_cap.supply), quantity)
+            supply::split(
+                option::borrow_mut(&mut mint_cap.supply), quantity)
         } else {
-            supply::new(quantity)
+            // New supply object is frozen for safety
+            supply::new(quantity, true)
         };
 
         MintCap {
             id: object::new(ctx),
             collection_id: mint_cap.collection_id,
+            collection_type: mint_cap.collection_type,
             supply: option::some(supply),
         }
     }
 
+
     /// Merge two `MintCap` together
-    public fun merge<T>(
+    public fun merge<T: key>(
         mint_cap: &mut MintCap<T>,
         other: MintCap<T>,
     ) {
-        let MintCap { id, collection_id: _, supply } = other;
+        let MintCap { id, supply, collection_id: _, collection_type: _  } = other;
 
-        if (option::is_some(&supply)) {
-            assert_unregulated(mint_cap);
+        if (option::is_some(&supply) && option::is_some(&mint_cap.supply)) {
             supply::merge(
                 option::borrow_mut(&mut mint_cap.supply),
                 option::destroy_some(supply),
@@ -158,17 +205,28 @@ module nft_protocol::mint_cap {
 
     /// Delete `MintCap`
     public fun delete_mint_cap<T>(mint_cap: MintCap<T>) {
-        let MintCap { id, collection_id: _, supply: _ } = mint_cap;
+        let MintCap { id, collection_id: _, supply: _, collection_type: _ } =
+            mint_cap;
         object::delete(id);
     }
 
     // === Assertions ===
 
-    public fun assert_regulated<T>(mint_cap: &MintCap<T>) {
-        assert!(option::is_some(&mint_cap.supply), EUnregulated)
+    /// Assert that `MintCap` has limited supply
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `MintCap` is unlimited.
+    public fun assert_limited<T>(mint_cap: &MintCap<T>) {
+        assert!(option::is_some(&mint_cap.supply), EMintCapunlimited)
     }
 
-    public fun assert_unregulated<T>(mint_cap: &MintCap<T>) {
-        assert!(option::is_none(&mint_cap.supply), ERegulated)
+    /// Assert that `MintCap` has unlimited supply
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `MintCap` is limited.
+    public fun assert_unlimited<T>(mint_cap: &MintCap<T>) {
+        assert!(option::is_none(&mint_cap.supply), EMintCaplimited)
     }
 }

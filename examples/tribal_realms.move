@@ -2,99 +2,166 @@ module nft_protocol::tribal_realms {
     use std::string::{Self, String};
 
     use sui::transfer;
+    use sui::url::{Self, Url};
     use sui::tx_context::{Self, TxContext};
+    use sui::object::{Self, UID};
 
-    use nft_protocol::url;
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::display;
+    use nft_protocol::mint_event;
+    use nft_protocol::mint_cap;
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::composable_nft::{Self as c_nft};
+    use nft_protocol::witness;
 
     /// One time witness is only instantiated in the init method
     struct TRIBAL_REALMS has drop {}
 
-    /// Types
-    struct Avatar has copy, drop, store {}
-    struct Skin has copy, drop, store {}
-    struct Hat has copy, drop, store {}
-    struct Glasses has copy, drop, store {}
-    struct Gun has copy, drop, store {}
+    struct Avatar has key, store {
+        id: UID,
+        name: String,
+        url: Url,
+        color: String,
+        mood: String,
+    }
+
+    struct Hat has key, store {
+        id: UID,
+        type: String,
+    }
+
+    struct Glasses has key, store {
+        id: UID,
+        type: String
+    }
 
     /// Can be used for authorization of other actions post-creation. It is
     /// vital that this struct is not freely given to any contract, because it
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
+    fun init(otw: TRIBAL_REALMS, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
 
-        display::add_collection_display_domain(
-            &Witness {},
+        // Init Collection
+        let collection: Collection<TRIBAL_REALMS> = collection::create(dw, ctx);
+
+        let collection_id = object::id(&collection);
+
+        // Init MintCap
+        // Creates a regulated mint cap for Avatar
+        let mint_cap_1 = mint_cap::new_limited<TRIBAL_REALMS, Avatar>(
+            &otw, collection_id, 10000, ctx,
+        );
+        // Creates unregulated mint cap for the rest
+        let mint_cap_2 = mint_cap::new_unlimited<TRIBAL_REALMS, Hat>(
+            &otw, collection_id, ctx,
+        );
+        let mint_cap_3 = mint_cap::new_unlimited<TRIBAL_REALMS, Glasses>(
+            &otw, collection_id, ctx,
+        );
+
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Add name and description to Collection
+        collection::add_domain(
+            dw,
             &mut collection,
-            string::utf8(b"TribalRealms"),
-            string::utf8(b"A composable NFT collection on Sui"),
+            display_info::new(
+                string::utf8(b"TribalRealms"),
+                string::utf8(b"A composable NFT collection on Sui"),
+            ),
         );
 
         // === Avatar composability ===
 
-        let avatar_blueprint = c_nft::new_blueprint<Avatar>(ctx);
+        let avatar_blueprint = c_nft::new_composition<Avatar>();
         c_nft::add_relationship<Avatar, Hat>(
-            &mut avatar_blueprint,
-            1, // limit
-            1, // order
+            &mut avatar_blueprint, 1,
         );
         c_nft::add_relationship<Avatar, Glasses>(
-            &mut avatar_blueprint,
-            1, // limit
-            1, // order
-        );
-        c_nft::add_relationship<Avatar, Gun>(
-            &mut avatar_blueprint,
-            1, // limit
-            1, // order
+            &mut avatar_blueprint, 1,
         );
 
-        c_nft::add_blueprint_domain(
-            &Witness {}, &mut collection, avatar_blueprint,
+        collection::add_domain(
+            dw, &mut collection, avatar_blueprint,
         );
 
-        // === Gun composability ===
-
-        let gun_blueprint = c_nft::new_blueprint<Gun>(ctx);
-        c_nft::add_relationship<Gun, Skin>(
-            &mut gun_blueprint,
-            1, // limit
-            1, // order
-        );
-
-        c_nft::add_blueprint_domain(
-            &Witness {}, &mut collection, gun_blueprint,
-        );
-
-        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_transfer(mint_cap_1, sender);
+        transfer::public_transfer(mint_cap_2, sender);
+        transfer::public_transfer(mint_cap_3, sender);
+        transfer::public_transfer(publisher, sender);
         transfer::public_share_object(collection);
     }
 
-    public entry fun mint_nft<T: drop + store>(
+    public entry fun mint_avatar(
         name: String,
-        description: String,
+        color: String,
+        mood: String,
         url: vector<u8>,
-        mint_cap: &mut MintCap<Nft<TRIBAL_REALMS>>,
-        warehouse: &mut Warehouse<Nft<TRIBAL_REALMS>>,
+        // Need to be mut because supply is capped at 10_000 Avatars
+        mint_cap: &mut MintCap<Avatar>,
+        warehouse: &mut Warehouse<Avatar>,
         ctx: &mut TxContext,
     ) {
-        let url = sui::url::new_unsafe_from_bytes(url);
+        let nft = Avatar {
+            id: object::new(ctx),
+            name,
+            url: url::new_unsafe_from_bytes(url),
+            color,
+            mood,
+        };
 
-        let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-
-        display::add_display_domain(&Witness {}, &mut nft, name, description);
-        url::add_url_domain(&Witness {}, &mut nft, url);
-
-        c_nft::add_type_domain<TRIBAL_REALMS, Witness, T>(
-            &Witness {}, &mut nft,
-        );
-
+        mint_event::mint_limited(mint_cap, &nft);
         warehouse::deposit_nft(warehouse, nft);
+    }
+
+    public entry fun mint_hat(
+        type: String,
+        // Does not need to be mut because supply is unregulated
+        mint_cap: &MintCap<Hat>,
+        warehouse: &mut Warehouse<Hat>,
+        ctx: &mut TxContext,
+    ) {
+        let nft = Hat {
+            id: object::new(ctx),
+            type,
+        };
+
+        mint_event::mint_unlimited(mint_cap, &nft);
+        warehouse::deposit_nft(warehouse, nft);
+    }
+
+    public entry fun mint_glasses(
+        type: String,
+        // Does not need to be mut because supply is unregulated
+        mint_cap: &MintCap<Glasses>,
+        warehouse: &mut Warehouse<Glasses>,
+        ctx: &mut TxContext,
+    ) {
+        let nft = Glasses {
+            id: object::new(ctx),
+            type,
+        };
+
+        mint_event::mint_unlimited(mint_cap, &nft);
+        warehouse::deposit_nft(warehouse, nft);
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(USER);
+        init(TRIBAL_REALMS {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
     }
 }

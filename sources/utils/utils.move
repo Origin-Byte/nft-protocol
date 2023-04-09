@@ -1,28 +1,55 @@
 /// Utility functions
 module nft_protocol::utils {
+    use nft_protocol::err;
     use std::ascii;
-    use std::string::{Self, String, sub_string};
+    use std::string::{Self, String, utf8, sub_string};
     use std::type_name;
     use std::vector;
 
-    use sui::vec_map::{Self, VecMap};
+    use sui::vec_set::{Self, VecSet};
+    use sui::package::{Self, Publisher};
+    use sui::table::{Self, Table};
     use sui::table_vec::{Self, TableVec};
+    use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
+    use sui::object::{Self, ID, UID};
 
-    use nft_protocol::err;
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
-    const EMISMATCHED_KEY_VALUE_LENGTHS: u64 = 1;
+    const EMismatchedKeyValueLength: u64 = 1;
+
+    const EPackagePublisherMismatch: u64 = 2;
 
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
 
-    public fun marker<T>(): Marker<T> {
-        Marker<T> {}
+    struct UidType<phantom T> has drop {
+        id: ID,
     }
 
-    public fun bps(): u16 {
-        10_000
+
+    public fun table_from_vec_map<K: copy +  store + drop, T: store>(
+        vec: VecMap<K, T>,
+        ctx: &mut TxContext
+    ): Table<K, T> {
+        let table = table::new<K, T>(ctx);
+
+        let (keys, vals) = vec_map::into_keys_values(vec);
+
+        let len = vector::length(&vals);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vals);
+            let key = vector::pop_back(&mut keys);
+            table::add(&mut table, key, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vals);
+        vector::destroy_empty(keys);
+
+        table
     }
 
     public fun table_vec_from_vec<T: store>(
@@ -45,29 +72,126 @@ module nft_protocol::utils {
         table
     }
 
-    /// First generic `T` is any type, second generic is `Witness`.
-    /// `Witness` is a type always in form "struct Witness has drop {}"
-    ///
-    /// In this method, we check that `T` is exported by the same _module_.
-    /// That is both package ID, package name and module name must match.
-    /// Additionally, with accordance to the convention above, the second
-    /// generic `Witness` must be named `Witness` as a type.
-    ///
-    /// # Example
-    /// It's useful to assert that a one-time-witness is exported by the same
-    /// contract as `Witness`.
-    /// That's because one-time-witness is often used as a convention for
-    /// initiating e.g. a collection name.
-    /// However, it cannot be instantiated outside of the `init` function.
-    /// Therefore, the collection contract can export `Witness` which serves as
-    /// an auth token at a later stage.
-    public fun assert_same_module_as_witness<T, Witness>() {
+    public fun vec_set_from_vec<T: store + copy + drop>(
+        vec: &vector<T>,
+    ): VecSet<T> {
+        let set = vec_set::empty<T>();
+        let len = vector::length(vec);
+
+        while (len > 0) {
+            let elem = vector::borrow(vec, len);
+            vec_set::insert(&mut set, *elem);
+
+            len = len - 1;
+        };
+        set
+    }
+
+    public fun insert_vec_in_vec_set<T: store + copy + drop>(
+        set: &mut VecSet<T>,
+        vec: vector<T>,
+    ) {
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            vec_set::insert(set, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+    }
+
+    public fun insert_vec_in_table<T: store>(
+        table: &mut TableVec<T>,
+        vec: vector<T>,
+    ) {
+        let len = vector::length(&vec);
+
+        while (len > 0) {
+            let elem = vector::pop_back(&mut vec);
+            table_vec::push_back(table, elem);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(vec);
+    }
+
+    public fun marker<T>(): Marker<T> {
+        Marker<T> {}
+    }
+
+    public fun bps(): u16 {
+        10_000
+    }
+
+    public fun originbyte_docs_url(): String {
+        utf8(b"https://docs.originbyte.io")
+    }
+
+    public fun assert_with_witness<W: drop, T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+        assert_same_module<T, W>();
+    }
+
+    public fun assert_with_consumable_witness<T: key>(
+        nft_uid: &UID,
+        nft_type: UidType<T>
+    ) {
+        assert_uid_type(nft_uid, &nft_type);
+    }
+
+    public fun uid_type_to_inner<T: key>(uid: &UidType<T>): ID {
+        uid.id
+    }
+
+    public fun proof_of_type<T: key>(uid: &UID, object: &T): UidType<T> {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
+
+        UidType<T> { id: uid_id }
+    }
+
+    public fun assert_uid_type<T: key>(uid: &UID, uid_type: &UidType<T>) {
+        assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
+    }
+
+    public fun assert_uid_type_<T: key>(uid: &UID, object: &T) {
+        let uid_id = object::uid_to_inner(uid);
+        let object_id = object::id(object);
+
+        assert!(uid_id == object_id, 0);
+    }
+
+    public fun assert_same_module<T, Witness>() {
         let (package_a, module_a, _) = get_package_module_type<T>();
-        let (package_b, module_b, witness_type) = get_package_module_type<Witness>();
+        let (package_b, module_b, _) = get_package_module_type<Witness>();
 
         assert!(package_a == package_b, err::witness_source_mismatch());
         assert!(module_a == module_b, err::witness_source_mismatch());
-        assert!(witness_type == string::utf8(b"Witness"), err::must_be_witness());
+    }
+
+    public fun assert_same_module_<A, B, C>() {
+        let (package_a, module_a, _) = get_package_module_type<A>();
+        let (package_b, module_b, _) = get_package_module_type<B>();
+        let (package_c, module_c, _) = get_package_module_type<C>();
+
+        assert!(package_a == package_b && package_b == package_c, err::witness_source_mismatch());
+        assert!(module_a == module_b && module_b == module_c, err::witness_source_mismatch());
+    }
+
+    // TODO: deprecate in favor of assert_same_module as it is more generic?
+    // TODO: Rearrange the order of witnesses from <T, W> to <W, T>
+
+    public fun assert_package_publisher<C>(pub: &Publisher) {
+        assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
     }
 
     public fun get_package_module_type<T>(): (String, String, String) {
@@ -97,7 +221,7 @@ module nft_protocol::utils {
     ): VecMap<K, V> {
         assert!(
             vector::length(&keys) == vector::length(&values),
-            EMISMATCHED_KEY_VALUE_LENGTHS,
+            EMismatchedKeyValueLength,
         );
 
         let i = 0;

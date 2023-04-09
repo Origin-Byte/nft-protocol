@@ -1,4 +1,4 @@
-/// `TransferAllowlistDomain` tracks allowlist objects which can be used for
+/// `TransferAllowlistDomain` tracks allowlist objects that can be used for
 /// transferring a collection's NFT.
 ///
 /// #### Important
@@ -6,17 +6,26 @@
 /// It is not authoritative and it's the responsibility of the collection
 /// creator to keep it up to date.
 module nft_protocol::transfer_allowlist_domain {
+    use sui::object::{Self, UID, ID};
     use sui::vec_set::{Self, VecSet};
-    use sui::object::{Self, ID};
+    use sui::dynamic_field as df;
 
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::transfer_allowlist::Allowlist;
+    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::transfer_allowlist::{Allowlist, CollectionControlCap};
 
-    /// `TransferAllowlistDomain` was not defined on `Collection`
+    /// `TransferAllowlistDomain` was not registered
     ///
-    /// Call `collection::add_domain` to add `TransferAllowlistDomain`.
-    const EUNDEFINED_TRANSFER_ALLOWLIST_DOMAIN: u64 = 1;
+    /// Call `transfer_allowlist_domain::add_domain` to add
+    /// `TransferAllowlistDomain`.
+    const EUndefinedTransferAllowlist: u64 = 1;
+
+    /// `TransferAllowlistDomain` already registered
+    ///
+    /// Call `transfer_allowlist_domain::borrow_domain` to borrow
+    /// `TransferAllowlistDomain`.
+    const EExistingTransferAllowlist: u64 = 1;
 
     /// `TransferAllowlistDomain` tracks allowlists which authorize transfer
     /// of NFTs.
@@ -49,41 +58,25 @@ module nft_protocol::transfer_allowlist_domain {
     /// Now, off chain clients can use this information to discover the ID
     /// and use it in relevant txs.
     public fun add_id<T>(
-        _witness: DelegatedWitness<T>,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         al: &mut Allowlist,
     ) {
-        let domain = transfer_allowlist_domain_mut(collection);
+        let domain = borrow_domain_mut(
+            collection::borrow_uid_mut(witness, collection),
+        );
         vec_set::insert(&mut domain.allowlists, object::id(al));
     }
 
     /// Removes existing allowlist from `TransferAllowlistDomain`.
     public fun remove_id<T>(
-        _witness: DelegatedWitness<T>,
+        witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         id: ID,
     ) {
-        let domain = transfer_allowlist_domain_mut(collection);
-        vec_set::remove(&mut domain.allowlists, &id);
-    }
-
-    /// Like [`add_id`] but as an endpoint
-    public entry fun add_id_with_cap<T>(
-        _cap: &CollectionControlCap<T>,
-        collection: &mut Collection<T>,
-        al: &mut Allowlist,
-    ) {
-        let domain = transfer_allowlist_domain_mut(collection);
-        vec_set::insert(&mut domain.allowlists, object::id(al));
-    }
-
-    /// Like [`remove_id`] but as an endpoint
-    public entry fun remove_id_with_cap<T>(
-        _cap: &CollectionControlCap<T>,
-        collection: &mut Collection<T>,
-        id: ID,
-    ) {
-        let domain = transfer_allowlist_domain_mut(collection);
+        let domain = borrow_domain_mut(
+            collection::borrow_uid_mut(witness, collection),
+        );
         vec_set::remove(&mut domain.allowlists, &id);
     }
 
@@ -98,41 +91,76 @@ module nft_protocol::transfer_allowlist_domain {
 
     // === Interoperability ===
 
-    /// Borrows `TransferAllowlistDomain` from `Collection`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `TransferAllowlistDomain` is not registered on `Collection`.
-    public fun transfer_allowlist_domain<T>(
-        collection: &Collection<T>,
-    ): &TransferAllowlistDomain {
-        assert_domain(collection);
-        collection::borrow_domain(collection)
+    /// Returns whether `TransferAllowlistDomain` is registered on `Nft`
+    public fun has_domain(nft: &UID): bool {
+        df::exists_with_type<
+            Marker<TransferAllowlistDomain>,
+            TransferAllowlistDomain,
+        >(
+            nft, utils::marker(),
+        )
     }
 
-    /// Mutably borrows `TransferAllowlistDomain` from `Collection`
+    /// Borrows `TransferAllowlistDomain` from `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TransferAllowlistDomain` is not registered on `Collection`.
-    fun transfer_allowlist_domain_mut<T>(
-        collection: &mut Collection<T>,
-    ): &mut TransferAllowlistDomain {
-        assert_domain(collection);
-        collection::borrow_domain_mut(Witness {}, collection)
+    /// Panics if `TransferAllowlistDomain` is not registered on the `Nft`
+    public fun borrow_domain(nft: &UID): &TransferAllowlistDomain {
+        assert_transfer_allowlist(nft);
+        df::borrow(nft, utils::marker<TransferAllowlistDomain>())
+    }
+
+    /// Mutably borrows `TransferAllowlistDomain` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferAllowlistDomain` is not registered on the `Nft`
+    public fun borrow_domain_mut(nft: &mut UID): &mut TransferAllowlistDomain {
+        assert_transfer_allowlist(nft);
+        df::borrow_mut(nft, utils::marker<TransferAllowlistDomain>())
+    }
+
+    /// Adds `TransferAllowlistDomain` to `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferAllowlistDomain` domain already exists
+    public fun add_domain(
+        nft: &mut UID,
+        domain: TransferAllowlistDomain,
+    ) {
+        assert_no_transfer_allowlist(nft);
+        df::add(nft, utils::marker<TransferAllowlistDomain>(), domain);
+    }
+
+    /// Remove `TransferAllowlistDomain` from `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferAllowlistDomain` domain doesnt exist
+    public fun remove_domain(nft: &mut UID): TransferAllowlistDomain {
+        assert_transfer_allowlist(nft);
+        df::remove(nft, utils::marker<TransferAllowlistDomain>())
     }
 
     // === Assertions ===
 
-    /// Asserts that `TransferAllowlistDomain` is defined on the `Collection`
+    /// Asserts that `TransferAllowlistDomain` is registered on `Nft`
     ///
     /// #### Panics
     ///
-    /// Panics if `TransferAllowlistDomain` is not defined on the `Collection`.
-    public fun assert_domain<T>(collection: &Collection<T>) {
-        assert!(
-            collection::has_domain<T, TransferAllowlistDomain>(collection),
-            EUNDEFINED_TRANSFER_ALLOWLIST_DOMAIN,
-        )
+    /// Panics if `TransferAllowlistDomain` is not registered
+    public fun assert_transfer_allowlist(nft: &UID) {
+        assert!(has_domain(nft), EUndefinedTransferAllowlist);
+    }
+
+    /// Asserts that `TransferAllowlistDomain` is not registered on `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferAllowlistDomain` is registered
+    public fun assert_no_transfer_allowlist(nft: &UID) {
+        assert!(!has_domain(nft), EExistingTransferAllowlist);
     }
 }

@@ -1,22 +1,24 @@
 module nft_protocol::suitraders {
     use std::ascii;
+    use std::option;
     use std::string::{Self, String};
 
-    use sui::balance;
+    use sui::url::{Self, Url};
     use sui::transfer;
+    use sui::object::{Self, UID};
+    use sui::vec_set;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::nft::{Self, Nft};
-    use nft_protocol::url;
-    use nft_protocol::tags;
-    use nft_protocol::royalty;
-    use nft_protocol::display;
+    use nft_protocol::mint_event;
     use nft_protocol::creators;
-    use nft_protocol::attributes;
-    use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::royalties::{Self, TradePayment};
+    use nft_protocol::attributes::{Self, Attributes};
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
+    use nft_protocol::royalty_strategy_bps;
+    use nft_protocol::tags;
+    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::witness;
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -26,64 +28,73 @@ module nft_protocol::suitraders {
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let (mint_cap, collection) = nft::new_collection(&witness, ctx);
+    struct Suitrader has key, store {
+        id: UID,
+        name: String,
+        description: String,
+        url: Url,
+        attributes: Attributes,
+    }
 
+    fun init(otw: SUITRADERS, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
+
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
+
+        // Init Collection
+        let collection: Collection<SUITRADERS> =
+            collection::create(dw, ctx);
+
+        // Creates an unregulated mint cap
+        let mint_cap = mint_cap::new<SUITRADERS, Suitrader>(
+            &otw, object::id(&collection), option::none(), ctx,
+        );
+
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Add name and description to Collection
         collection::add_domain(
-            &Witness {},
+            dw,
             &mut collection,
-            creators::from_address<Nft<SUITRADERS>, Witness>(
-                &Witness {}, tx_context::sender(ctx),
+            display_info::new(
+                string::utf8(b"Suimarines"),
+                string::utf8(b"A unique NFT collection of Suimarines on Sui"),
             ),
         );
 
-        // Register custom domains
-        display::add_collection_display_domain(
-            &Witness {},
+        // Creators domain
+        collection::add_domain(
+            dw,
             &mut collection,
-            string::utf8(b"Suitraders"),
-            string::utf8(b"A unique NFT collection of Suitraders on Sui"),
+            creators::new(vec_set::singleton(sender)),
         );
 
-        url::add_collection_url_domain(
-            &Witness {},
-            &mut collection,
-            sui::url::new_unsafe_from_bytes(b"https://originbyte.io/"),
+        // Royalties
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            dw, &mut collection, 100, ctx,
         );
 
-        display::add_collection_symbol_domain(
-            &Witness {},
-            &mut collection,
-            string::utf8(b"SUITR"),
-        );
-
-        let royalty = royalty::from_address(tx_context::sender(ctx), ctx);
-        royalty::add_proportional_royalty(&mut royalty, 100);
-        royalty::add_royalty_domain(
-            &Witness {},
-            &mut collection,
-            royalty,
-        );
-
+        // Tags
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        tags::add_collection_tag_domain(
-            &Witness {},
-            &mut collection,
-            tags,
-        );
+        collection::add_domain(dw, &mut collection, tags);
 
+        // Setup primary market. Note that this step can also be done
+        // not in the init function but on the client side by calling
+        // the launchpad functions directly
         let listing = nft_protocol::listing::new(
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
-            @0xfb6f8982534d9ec059764346a67de63e01ecbf80,
+            tx_context::sender(ctx),
+            tx_context::sender(ctx),
             ctx,
         );
 
-        let inventory_id = nft_protocol::listing::create_warehouse<Nft<SUITRADERS>>(
+        let inventory_id = nft_protocol::listing::create_warehouse<Suitrader>(
             &mut listing, ctx
         );
 
-        nft_protocol::fixed_price::init_venue<Nft<SUITRADERS>, sui::sui::SUI>(
+        nft_protocol::fixed_price::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -91,7 +102,7 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_venue<Nft<SUITRADERS>, sui::sui::SUI>(
+        nft_protocol::dutch_auction::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -99,26 +110,10 @@ module nft_protocol::suitraders {
             ctx,
         );
 
+        transfer::public_transfer(publisher, sender);
+        transfer::public_transfer(mint_cap, sender);
         transfer::public_share_object(listing);
-
-        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
         transfer::public_share_object(collection);
-    }
-
-    /// Calculates and transfers royalties to the `RoyaltyDomain`
-    public entry fun collect_royalty<FT>(
-        payment: &mut TradePayment<Nft<SUITRADERS>, FT>,
-        collection: &mut Collection<Nft<SUITRADERS>>,
-        ctx: &mut TxContext,
-    ) {
-        let b = royalties::balance_mut(Witness {}, payment);
-
-        let domain = royalty::royalty_domain(collection);
-        let royalty_owed =
-            royalty::calculate_proportional_royalty(domain, balance::value(b));
-
-        royalty::collect_royalty(collection, b, royalty_owed);
-        royalties::transfer_remaining_to_beneficiary(Witness {}, payment, ctx);
     }
 
     public entry fun mint_nft(
@@ -127,28 +122,74 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &mut MintCap<Nft<SUITRADERS>>,
-        warehouse: &mut Warehouse<Nft<SUITRADERS>>,
+        mint_cap: &MintCap<Suitrader>,
+        warehouse: &mut Warehouse<Suitrader>,
         ctx: &mut TxContext,
     ) {
-        let url = sui::url::new_unsafe_from_bytes(url);
+        let nft = Suitrader {
+            id: object::new(ctx),
+            name,
+            description,
+            url: url::new_unsafe_from_bytes(url),
+            attributes: attributes::from_vec(attribute_keys, attribute_values)
+        };
 
-        let nft = nft::from_mint_cap(mint_cap, name, url, ctx);
-
-        display::add_display_domain(
-            &Witness {}, &mut nft, name, description,
-        );
-
-        url::add_url_domain(&Witness {}, &mut nft, url);
-
-        attributes::add_domain_from_vec(
-            &Witness {}, &mut nft, attribute_keys, attribute_values,
-        );
-
-        display::add_collection_id_domain(
-            &Witness {}, &mut nft, mint_cap::collection_id(mint_cap),
-        );
-
+        mint_event::mint_unlimited(mint_cap, &nft);
         warehouse::deposit_nft(warehouse, nft);
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+
+    #[test_only]
+    const CREATOR: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        init(SUITRADERS {}, ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        assert!(test_scenario::has_most_recent_shared<Collection<SUITRADERS>>(), 0);
+
+        let mint_cap = test_scenario::take_from_address<MintCap<Suitrader>>(
+            &scenario, CREATOR,
+        );
+
+        test_scenario::return_to_address(CREATOR, mint_cap);
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun it_mints_nft() {
+        let scenario = test_scenario::begin(CREATOR);
+        init(SUITRADERS {}, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        let  mint_cap = test_scenario::take_from_address<MintCap<Suitrader>>(
+            &scenario,
+            CREATOR,
+        );
+
+        let warehouse = warehouse::new<Suitrader>(ctx(&mut scenario));
+
+        mint_nft(
+            string::utf8(b"SuiTudor Jones"),
+            string::utf8(b"GOAT level trader"),
+            b"https://originbyte.io/",
+            vector[ascii::string(b"avg_return")],
+            vector[ascii::string(b"24%")],
+            &mut mint_cap,
+            &mut warehouse,
+            ctx(&mut scenario)
+        );
+
+        transfer::public_transfer(warehouse, CREATOR);
+        test_scenario::return_to_address(CREATOR, mint_cap);
+        test_scenario::end(scenario);
     }
 }

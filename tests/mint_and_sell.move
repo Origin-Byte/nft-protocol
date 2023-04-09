@@ -7,10 +7,10 @@ module nft_protocol::mint_and_sell {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::fixed_price;
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::listing;
     use nft_protocol::warehouse;
-
+    use nft_protocol::witness;
     use nft_protocol::test_listing;
 
     struct Foo has key, store {
@@ -27,8 +27,12 @@ module nft_protocol::mint_and_sell {
         // 1. Create collection
         let scenario = test_scenario::begin(CREATOR);
 
-        let (mint_cap, collection) =
-            collection::create<Witness, Foo>(&Witness {}, ctx(&mut scenario));
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<Foo> = collection::create(
+            delegated_witness, ctx(&mut scenario),
+        );
+
         transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
@@ -69,7 +73,6 @@ module nft_protocol::mint_and_sell {
         test_scenario::return_to_address(CREATOR, bought_nft);
 
         // Return objects and end test
-        transfer::public_transfer(mint_cap, CREATOR);
         transfer::public_transfer(wallet, CREATOR);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
@@ -80,8 +83,12 @@ module nft_protocol::mint_and_sell {
         // 1. Create collection and add domains
         let scenario = test_scenario::begin(CREATOR);
 
-        let (mint_cap, collection) =
-            collection::create<Witness, Foo>(&Witness {}, ctx(&mut scenario));
+        let delegated_witness = witness::from_witness(Witness {});
+
+        let collection: Collection<Foo> = collection::create(
+            delegated_witness, ctx(&mut scenario),
+        );
+
         transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
@@ -130,7 +137,6 @@ module nft_protocol::mint_and_sell {
         test_scenario::return_to_address(CREATOR, bought_nft);
 
         // Return objects and end test
-        transfer::public_transfer(mint_cap, CREATOR);
         transfer::public_transfer(wallet, CREATOR);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
