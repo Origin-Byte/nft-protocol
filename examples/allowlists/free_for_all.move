@@ -3,9 +3,10 @@
 ///
 /// Basically any collection which adds itself to this allowlist is saying:
 /// we're ok with anyone transferring NFTs.
-module nft_protocol::origin_sui {
+module nft_protocol::free_for_all {
     use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
+    use sui::object;
 
     use nft_protocol::mint_cap;
     use nft_protocol::witness;
@@ -13,14 +14,14 @@ module nft_protocol::origin_sui {
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
-    struct ORIGIN_SUI has drop {}
+    struct FREE_FOR_ALL has drop {}
 
     struct Witness has drop {}
 
-    fun init(witness: ORIGIN_SUI, ctx: &mut TxContext) {
+    fun init(otw: FREE_FOR_ALL, ctx: &mut TxContext) {
         transfer_allowlist::init_allowlist(&Witness {}, ctx);
 
-        package::claim_and_keep(witness, ctx);
+        package::claim_and_keep(otw, ctx);
     }
 
     public entry fun insert_collection<C>(
@@ -33,7 +34,7 @@ module nft_protocol::origin_sui {
         let delegated_witness = witness::from_publisher(pub);
         transfer_allowlist_domain::add_id(delegated_witness, collection, allowlist);
 
-        let delegated_witness = witness::from_witness<ORIGIN_SUI, Witness>(Witness {});
+        let delegated_witness = witness::from_witness<FREE_FOR_ALL, Witness>(Witness {});
 
         transfer_allowlist::insert_collection(
             allowlist, &Witness {}, delegated_witness,
@@ -49,12 +50,14 @@ module nft_protocol::origin_sui {
 
     #[test_only]
     const USER: address = @0xA1C04;
+    #[test_only]
+    struct SomeRandomType has drop {}
 
     #[test]
     fun test_example_free_for_all() {
         let scenario = test_scenario::begin(USER);
 
-        init(ORIGIN_SUI {}, ctx(&mut scenario));
+        init(FREE_FOR_ALL {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -65,11 +68,15 @@ module nft_protocol::origin_sui {
 
         let delegated_witness = witness::from_witness(Witness {});
 
-        let collection: Collection<ORIGIN_SUI> =
+        // This could technically be any Collection, we use FREE_FOR_ALL as
+        // the Collection OTW because we cannot claim a mint cap if we don't
+        // have access to an OTW. To avoid having to create another OTW we just
+        // the one instantiated in this contract.
+        let collection: Collection<FREE_FOR_ALL> =
             collection::create(delegated_witness, ctx(&mut scenario));
 
-        let mint_cap = mint_cap::new_unregulated(
-            delegated_witness, &collection, ctx(&mut scenario),
+        let mint_cap = mint_cap::new_unlimited<FREE_FOR_ALL, SomeRandomType>(
+            &FREE_FOR_ALL {}, object::id(&collection), ctx(&mut scenario),
         );
 
         collection::add_domain(

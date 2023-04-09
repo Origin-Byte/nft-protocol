@@ -17,7 +17,8 @@ module nft_protocol::witness {
     /// Collection witness generator
     struct WitnessGenerator<phantom T> has store {}
 
-    /// Collection generic witness type
+    /// Delegated witness of a generic type. The type `T` can either be
+    /// the One-Time Witness of a collection or the type of an NFT itself.
     struct Witness<phantom T> has copy, drop {}
 
     /// Create a new `WitnessGenerator` from witness
@@ -42,6 +43,7 @@ module nft_protocol::witness {
     /// Useful for contracts which don't support our protocol the easy way,
     /// but use the standard of publisher.
     public fun from_publisher<T>(publisher: &Publisher): Witness<T> {
+        // TODO: How can we toggle this ability on and off?
         utils::assert_package_publisher<T>(publisher);
         Witness {}
     }

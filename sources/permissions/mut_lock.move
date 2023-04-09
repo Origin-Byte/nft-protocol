@@ -13,10 +13,10 @@ module nft_protocol::mut_lock {
     struct MutLock<T> has key {
         id: UID,
         nft: T,
-        // We add authority as type name because otherwise
-        // we have 4 generics in the extract function
+        // We add authority as type name to simplify the API
+        // and avoid 4 generics in the extract function
         authority: TypeName,
-        // We add type reflection here because it's an option,
+        // We add type reflection here due to it being an option,
         // since the borrow can occur globally, in which case the
         // Option is None
         field: Option<TypeName>,

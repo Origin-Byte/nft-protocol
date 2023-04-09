@@ -36,29 +36,27 @@ module nft_protocol::suitraders {
         attributes: Attributes,
     }
 
-    fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        let publisher = sui::package::claim(witness, ctx);
-
-        let delegated_witness = witness::from_witness(Witness {});
+    fun init(otw: SUITRADERS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
+
+        // Init Collection
         let collection: Collection<SUITRADERS> =
-            collection::create(delegated_witness, ctx);
+            collection::create(dw, ctx);
 
         // Creates an unregulated mint cap
-        let mint_cap = mint_cap::new_from_publisher<Suitrader, SUITRADERS>(
-            &publisher, &collection, option::none(), ctx,
+        let mint_cap = mint_cap::new<SUITRADERS, Suitrader>(
+            &otw, object::id(&collection), option::none(), ctx,
         );
 
-        collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            creators::new(vec_set::singleton(sender)),
-        );
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
 
-        // Register custom domains
+        // Add name and description to Collection
         collection::add_domain(
-            delegated_witness,
+            dw,
             &mut collection,
             display_info::new(
                 string::utf8(b"Suimarines"),
@@ -66,14 +64,26 @@ module nft_protocol::suitraders {
             ),
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy(
-            delegated_witness, &mut collection, 100, ctx,
+        // Creators domain
+        collection::add_domain(
+            dw,
+            &mut collection,
+            creators::new(vec_set::singleton(sender)),
         );
 
+        // Royalties
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            dw, &mut collection, 100, ctx,
+        );
+
+        // Tags
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        collection::add_domain(delegated_witness, &mut collection, tags);
+        collection::add_domain(dw, &mut collection, tags);
 
+        // Setup primary market. Note that this step can also be done
+        // not in the init function but on the client side by calling
+        // the launchpad functions directly
         let listing = nft_protocol::listing::new(
             tx_context::sender(ctx),
             tx_context::sender(ctx),
@@ -100,8 +110,8 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        transfer::public_transfer(publisher, tx_context::sender(ctx));
-        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_transfer(publisher, sender);
+        transfer::public_transfer(mint_cap, sender);
         transfer::public_share_object(listing);
         transfer::public_share_object(collection);
     }
@@ -112,7 +122,7 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &mut MintCap<Suitrader>,
+        mint_cap: &MintCap<Suitrader>,
         warehouse: &mut Warehouse<Suitrader>,
         ctx: &mut TxContext,
     ) {
@@ -124,7 +134,7 @@ module nft_protocol::suitraders {
             attributes: attributes::from_vec(attribute_keys, attribute_values)
         };
 
-        mint_event::mint(mint_cap, &nft);
+        mint_event::mint_unlimited(mint_cap, &nft);
         warehouse::deposit_nft(warehouse, nft);
     }
 
