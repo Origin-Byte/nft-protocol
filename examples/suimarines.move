@@ -62,8 +62,8 @@ module nft_protocol::suimarines {
             &transfer_policy_cap,
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES>(
-            dw, &mut collection, 100, ctx,
+        royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES, Submarine>(
+            witness::from_witness(Witness {}), &mut collection, 100, ctx,
         );
 
         transfer::public_transfer(mint_cap, sender);
