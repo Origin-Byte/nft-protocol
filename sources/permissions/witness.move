@@ -39,6 +39,13 @@ module nft_protocol::witness {
         Witness {}
     }
 
+    /// Converts witness of one type to witness of another type.
+    /// Both types must be from the same module.
+    public fun into<T1, T2>(_witness: Witness<T1>): Witness<T2> {
+        assert_same_module<T1, T2>();
+        Witness {}
+    }
+
     /// Creates a delegated witness from a package publisher.
     /// Useful for contracts which don't support our protocol the easy way,
     /// but use the standard of publisher.
@@ -51,6 +58,15 @@ module nft_protocol::witness {
     /// Delegate a collection generic witness
     public fun delegate<T>(_generator: &WitnessGenerator<T>): Witness<T> {
         Witness {}
+    }
+
+    /// Assert that two types are exported by the same module.
+    public fun assert_same_module<T1, T2>() {
+        let (package_a, module_a, _) = utils::get_package_module_type<T1>();
+        let (package_b, module_b, _) = utils::get_package_module_type<T2>();
+
+        assert!(package_a == package_b, EInvalidWitnessPackage);
+        assert!(module_a == module_b, EInvalidWitnessModule);
     }
 
     /// First generic `T` is any type, second generic is `Witness`.
