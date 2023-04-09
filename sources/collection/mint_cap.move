@@ -17,12 +17,8 @@ module nft_protocol::mint_cap {
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
-    use sui::package::Publisher;
+    use sui::types;
 
-    use nft_protocol::utils;
-    use nft_protocol::witness;
-    use nft_protocol::collection::Collection;
-    use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::supply::{Self, Supply};
 
     /// `MintCap` is unlimited when expected limited
@@ -30,6 +26,9 @@ module nft_protocol::mint_cap {
 
     /// `MintCap` is limited when expected unlimited
     const EMintCaplimited: u64 = 2;
+
+    /// Parameter is not a OTW
+    const ENotOneTimeWitness: u64 = 3;
 
     /// `MintCap<T>` delegates the capability of it's owner to mint `T`
     struct MintCap<phantom T> has key, store {
@@ -44,58 +43,48 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap`
-    public fun new<T, C>(
-        witness: DelegatedWitness<T>,
-        collection: &Collection<C>,
+    public fun new<OTW: drop, T>(
+        otw: &OTW,
+        collection_id: ID,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
         if (option::is_some(&supply)) {
             new_limited(
-                witness, collection, option::destroy_some(supply), ctx,
+                otw, collection_id, option::destroy_some(supply), ctx,
             )
         } else {
-            new_unlimited(witness, collection, ctx)
+            new_unlimited(otw, collection_id, ctx)
         }
     }
 
-    public fun new_from_publisher<T, C>(
-        pub: &Publisher,
-        collection: &Collection<C>,
-        supply: Option<u64>,
-        ctx: &mut TxContext,
-    ): MintCap<T> {
-        let delegated_witness = witness::from_publisher(pub);
-        new(delegated_witness, collection, supply, ctx)
-    }
-
     /// Create a new `MintCap` with unlimited supply
-    public fun new_unlimited<T, C>(
-        _witness: DelegatedWitness<T>,
-        collection: &Collection<C>,
+    public fun new_unlimited<OTW: drop, T>(
+        otw: &OTW,
+        collection_id: ID,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        utils::assert_same_module<T, C>();
+        assert!(types::is_one_time_witness(otw), ENotOneTimeWitness);
 
         MintCap {
             id: object::new(ctx),
-            collection_id: object::id(collection),
+            collection_id,
             supply: option::none(),
         }
     }
 
     /// Create a new `MintCap` with limited supply
-    public fun new_limited<T, C>(
-        _witness: DelegatedWitness<T>,
-        collection: &Collection<C>,
+    public fun new_limited<OTW: drop, T>(
+        otw: &OTW,
+        collection_id: ID,
         supply: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        utils::assert_same_module<T, C>();
+        assert!(types::is_one_time_witness(otw), ENotOneTimeWitness);
 
         MintCap {
             id: object::new(ctx),
-            collection_id: object::id(collection),
+            collection_id,
             // The supply is always set to frozen for safety
             supply: option::some(supply::new(supply, true)),
         }

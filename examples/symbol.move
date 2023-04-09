@@ -8,7 +8,6 @@ module nft_protocol::example_symbol {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::mint_cap;
     use nft_protocol::witness;
     use nft_protocol::display_info;
     use nft_protocol::collection::{Self, Collection};
@@ -57,14 +56,10 @@ module nft_protocol::example_symbol {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(_witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+    fun init(_otw: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
         let delegated_witness = witness::from_witness(Witness {});
         let collection: Collection<EXAMPLE_SYMBOL> =
             collection::create(delegated_witness, ctx);
-
-        let mint_cap = mint_cap::new_unlimited(
-            delegated_witness, &collection, ctx,
-        );
 
         collection::add_domain(
             delegated_witness,
@@ -81,7 +76,6 @@ module nft_protocol::example_symbol {
             Registry { symbols: vec_set::empty() },
         );
 
-        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
         transfer::public_share_object(collection);
     }
 

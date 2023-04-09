@@ -1,6 +1,5 @@
 module nft_protocol::tribal_realms {
     use std::string::{Self, String};
-    use std::option;
 
     use sui::transfer;
     use sui::url::{Self, Url};
@@ -42,27 +41,35 @@ module nft_protocol::tribal_realms {
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: TRIBAL_REALMS, ctx: &mut TxContext) {
-        let publisher = sui::package::claim(witness, ctx);
-        let delegated_witness = witness::from_witness(Witness {});
+    fun init(otw: TRIBAL_REALMS, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
 
-        let collection: Collection<TRIBAL_REALMS> =
-            collection::create(delegated_witness, ctx);
+        // Init Collection
+        let collection: Collection<TRIBAL_REALMS> = collection::create(dw, ctx);
 
+        let collection_id = object::id(&collection);
+
+        // Init MintCap
         // Creates a regulated mint cap for Avatar
-        let mint_cap_1 = mint_cap::new_from_publisher<Avatar, TRIBAL_REALMS>(
-            &publisher, &collection, option::some(10000), ctx,
+        let mint_cap_1 = mint_cap::new_limited<TRIBAL_REALMS, Avatar>(
+            &otw, collection_id, 10000, ctx,
         );
         // Creates unregulated mint cap for the rest
-        let mint_cap_2 = mint_cap::new_from_publisher<Hat, TRIBAL_REALMS>(
-            &publisher, &collection, option::none(), ctx,
+        let mint_cap_2 = mint_cap::new_unlimited<TRIBAL_REALMS, Hat>(
+            &otw, collection_id, ctx,
         );
-        let mint_cap_3 = mint_cap::new_from_publisher<Glasses, TRIBAL_REALMS>(
-            &publisher, &collection, option::none(), ctx,
+        let mint_cap_3 = mint_cap::new_unlimited<TRIBAL_REALMS, Glasses>(
+            &otw, collection_id, ctx,
         );
 
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Add name and description to Collection
         collection::add_domain(
-            delegated_witness,
+            dw,
             &mut collection,
             display_info::new(
                 string::utf8(b"TribalRealms"),
@@ -81,13 +88,13 @@ module nft_protocol::tribal_realms {
         );
 
         collection::add_domain(
-            delegated_witness, &mut collection, avatar_blueprint,
+            dw, &mut collection, avatar_blueprint,
         );
 
-        transfer::public_transfer(mint_cap_1, tx_context::sender(ctx));
-        transfer::public_transfer(mint_cap_2, tx_context::sender(ctx));
-        transfer::public_transfer(mint_cap_3, tx_context::sender(ctx));
-        transfer::public_transfer(publisher, tx_context::sender(ctx));
+        transfer::public_transfer(mint_cap_1, sender);
+        transfer::public_transfer(mint_cap_2, sender);
+        transfer::public_transfer(mint_cap_3, sender);
+        transfer::public_transfer(publisher, sender);
         transfer::public_share_object(collection);
     }
 

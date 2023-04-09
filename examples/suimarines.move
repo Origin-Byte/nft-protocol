@@ -1,13 +1,15 @@
 module nft_protocol::suimarines {
     use std::string::String;
+    use std::option;
 
-    use sui::object::{Self, UID};
     use sui::transfer;
     use sui::dynamic_field as df;
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::utils;
     use nft_protocol::warehouse::{Self, Warehouse};
@@ -32,13 +34,23 @@ module nft_protocol::suimarines {
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: SUIMARINES, ctx: &mut TxContext) {
+    fun init(otw: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
-        let publisher = sui::package::claim(witness, ctx);
 
-        let delegated_witness = witness::from_witness(Witness {});
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
+
+        // Init Collection
         let collection: Collection<SUIMARINES> =
-            collection::create(delegated_witness, ctx);
+            collection::create(dw, ctx);
+
+        // Init MintCap with unlimited supply
+        let mint_cap = mint_cap::new<SUIMARINES, Submarine>(
+            &otw, object::id(&collection), option::none(), ctx,
+        );
+
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
 
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included
@@ -51,9 +63,10 @@ module nft_protocol::suimarines {
         );
 
         royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES>(
-            delegated_witness, &mut collection, 100, ctx,
+            dw, &mut collection, 100, ctx,
         );
 
+        transfer::public_transfer(mint_cap, sender);
         transfer::public_transfer(publisher, sender);
         transfer::public_transfer(transfer_policy_cap, sender);
         transfer::public_share_object(transfer_policy);
@@ -85,6 +98,7 @@ module nft_protocol::suimarines {
     }
 
     public entry fun mint_nft(
+        _mint_cap: &MintCap<Submarine>,
         name: String,
         index: u64,
         warehouse: &mut Warehouse<Submarine>,
