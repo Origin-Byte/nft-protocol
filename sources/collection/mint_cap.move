@@ -71,7 +71,7 @@ module nft_protocol::mint_cap {
         ctx: &mut TxContext,
     ): MintCap<T> {
         assert!(types::is_one_time_witness(otw), ENotOneTimeWitness);
-        utils::assert_same_module<OTW, T>();
+        utils::assert_same_package<OTW, T>();
 
         MintCap {
             id: object::new(ctx),
@@ -89,7 +89,7 @@ module nft_protocol::mint_cap {
         ctx: &mut TxContext,
     ): MintCap<T> {
         assert!(types::is_one_time_witness(otw), ENotOneTimeWitness);
-        utils::assert_same_module<OTW, T>();
+        utils::assert_same_package<OTW, T>();
 
         MintCap {
             id: object::new(ctx),

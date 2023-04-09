@@ -80,7 +80,7 @@ module nft_protocol::access_policy {
         collection: &mut Collection<C>,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_module<T, C>();
+        utils::assert_same_package<C, T>();
 
         let id = object::new(ctx);
 
@@ -151,7 +151,7 @@ module nft_protocol::access_policy {
         collection: &mut Collection<C>,
         addresses: vector<address>,
     ) {
-        utils::assert_same_module<T, C>();
+        utils::assert_same_package<C, T>();
 
         let access_policy = collection::borrow_domain_mut<C, AccessPolicy<T>>(
             witness,
@@ -171,7 +171,7 @@ module nft_protocol::access_policy {
         collection: &mut Collection<C>,
         addresses: vector<address>,
     ) {
-        utils::assert_same_module<T, C>();
+        utils::assert_same_package<C, T>();
 
         let access_policy = collection::borrow_domain_mut<C, AccessPolicy<T>>(
             witness,

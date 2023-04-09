@@ -74,10 +74,9 @@ module nft_protocol::suimarines {
     public fun get_nft_field<Field: store>(
         locked_nft: &mut MutLock<Submarine>,
     ): (Field, ReturnFieldPromise<Field>) {
-        let nft = mut_lock::borrow_nft_as_witness(
-            Witness {},
-            locked_nft
-        );
+        let dw = witness::from_witness(Witness {});
+        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+
         mut_lock::borrow_field_with_promise<Field>(&mut nft.id)
     }
 
@@ -86,15 +85,10 @@ module nft_protocol::suimarines {
         field: Field,
         promise: ReturnFieldPromise<Field>
     ) {
-        let nft = mut_lock::borrow_nft_as_witness(
-            Witness {},
-            locked_nft
-        );
-        mut_lock::consume_field_promise(
-            &mut nft.id,
-            field,
-            promise
-        );
+        let dw = witness::from_witness(Witness {});
+        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+
+        mut_lock::consume_field_promise(&mut nft.id, field, promise);
     }
 
     public entry fun mint_nft(
