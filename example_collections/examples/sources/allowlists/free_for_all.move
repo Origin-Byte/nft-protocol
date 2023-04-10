@@ -6,9 +6,7 @@
 module examples::free_for_all {
     use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
-    use sui::object;
 
-    use nft_protocol::mint_cap;
     use nft_protocol::witness;
     use nft_protocol::collection::Collection;
     use nft_protocol::transfer_allowlist_domain;
@@ -48,6 +46,10 @@ module examples::free_for_all {
     use sui::transfer;
     #[test_only]
     use nft_protocol::collection;
+    #[test_only]
+    use nft_protocol::mint_cap;
+    #[test_only]
+    use sui::object;
 
     #[test_only]
     const USER: address = @0xA1C04;

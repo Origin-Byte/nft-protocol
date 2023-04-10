@@ -1,0 +1,24 @@
+[package]
+name = "Loose"
+version = "1.0.0"
+published-at = "0x"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-framework"
+# devnet-0.29.0
+rev = "82c9c80c11488858f1d3930f47ec9f335a566683"
+
+[dependencies.Originmate]
+git = "https://github.com/Origin-Byte/originmate.git"
+# devnet-0.29.0
+rev = "f5242d0415b35fe48344e83cfd60924725fed23d"
+
+[dependencies.Loose]
+local = "../"
+
+[dependencies.NftProtocol]
+local = "../../../"
+
+[addresses]
+gun_extensions = "0x"

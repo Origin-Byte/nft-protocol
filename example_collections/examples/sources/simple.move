@@ -8,7 +8,7 @@ module examples::example_simple {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness;
     use nft_protocol::mint_cap;
     use nft_protocol::display_info;
@@ -86,9 +86,6 @@ module examples::example_simple {
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
-
-    #[test_only]
-    use nft_protocol::collection::Collection;
 
     #[test_only]
     const USER: address = @0xA1C04;
