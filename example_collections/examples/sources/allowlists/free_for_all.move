@@ -3,12 +3,10 @@
 ///
 /// Basically any collection which adds itself to this allowlist is saying:
 /// we're ok with anyone transferring NFTs.
-module nft_protocol::free_for_all {
+module examples::free_for_all {
     use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
-    use sui::object;
 
-    use nft_protocol::mint_cap;
     use nft_protocol::witness;
     use nft_protocol::collection::Collection;
     use nft_protocol::transfer_allowlist_domain;
@@ -48,6 +46,10 @@ module nft_protocol::free_for_all {
     use sui::transfer;
     #[test_only]
     use nft_protocol::collection;
+    #[test_only]
+    use nft_protocol::mint_cap;
+    #[test_only]
+    use std::option;
 
     #[test_only]
     const USER: address = @0xA1C04;
@@ -76,8 +78,8 @@ module nft_protocol::free_for_all {
         let collection: Collection<FREE_FOR_ALL> =
             collection::create(delegated_witness, ctx(&mut scenario));
 
-        let mint_cap = mint_cap::new_unlimited<FREE_FOR_ALL, SomeRandomType>(
-            &FREE_FOR_ALL {}, object::id(&collection), ctx(&mut scenario),
+        let mint_cap = mint_cap::new<FREE_FOR_ALL, SomeRandomType>(
+            delegated_witness, &collection, option::none(), ctx(&mut scenario),
         );
 
         collection::add_domain(

@@ -12,7 +12,7 @@ module nft_protocol::utils {
     use sui::table_vec::{Self, TableVec};
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
-    use sui::object::{Self, ID, UID};
+    use sui::object::{Self, UID};
 
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
@@ -22,11 +22,6 @@ module nft_protocol::utils {
 
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
-
-    struct UidType<phantom T> has drop {
-        id: ID,
-    }
-
 
     public fun table_from_vec_map<K: copy +  store + drop, T: store>(
         vec: VecMap<K, T>,
@@ -131,38 +126,6 @@ module nft_protocol::utils {
         utf8(b"https://docs.originbyte.io")
     }
 
-    public fun assert_with_witness<W: drop, T: key>(
-        nft_uid: &UID,
-        nft_type: UidType<T>
-    ) {
-        assert_uid_type(nft_uid, &nft_type);
-        assert_same_module<T, W>();
-    }
-
-    public fun assert_with_consumable_witness<T: key>(
-        nft_uid: &UID,
-        nft_type: UidType<T>
-    ) {
-        assert_uid_type(nft_uid, &nft_type);
-    }
-
-    public fun uid_type_to_inner<T: key>(uid: &UidType<T>): ID {
-        uid.id
-    }
-
-    public fun proof_of_type<T: key>(uid: &UID, object: &T): UidType<T> {
-        let uid_id = object::uid_to_inner(uid);
-        let object_id = object::id(object);
-
-        assert!(uid_id == object_id, 0);
-
-        UidType<T> { id: uid_id }
-    }
-
-    public fun assert_uid_type<T: key>(uid: &UID, uid_type: &UidType<T>) {
-        assert!(*object::uid_as_inner(uid) == uid_type.id, 0);
-    }
-
     public fun assert_uid_type_<T: key>(uid: &UID, object: &T) {
         let uid_id = object::uid_to_inner(uid);
         let object_id = object::id(object);
@@ -170,12 +133,19 @@ module nft_protocol::utils {
         assert!(uid_id == object_id, 0);
     }
 
-    public fun assert_same_module<T, Witness>() {
-        let (package_a, module_a, _) = get_package_module_type<T>();
-        let (package_b, module_b, _) = get_package_module_type<Witness>();
+    public fun assert_same_module<A, B>() {
+        let (package_a, module_a, _) = get_package_module_type<A>();
+        let (package_b, module_b, _) = get_package_module_type<B>();
 
         assert!(package_a == package_b, err::witness_source_mismatch());
         assert!(module_a == module_b, err::witness_source_mismatch());
+    }
+
+    public fun assert_same_package<A, B>() {
+        assert!(
+            get_package<A>() == get_package<B>(),
+            err::witness_source_mismatch()
+        );
     }
 
     public fun assert_same_module_<A, B, C>() {
@@ -187,11 +157,20 @@ module nft_protocol::utils {
         assert!(module_a == module_b && module_b == module_c, err::witness_source_mismatch());
     }
 
-    // TODO: deprecate in favor of assert_same_module as it is more generic?
-    // TODO: Rearrange the order of witnesses from <T, W> to <W, T>
-
     public fun assert_package_publisher<C>(pub: &Publisher) {
         assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
+    }
+
+    public fun get_package<T>(): String {
+        let delimiter = string::utf8(b"::");
+
+        let t = string::utf8(ascii::into_bytes(
+            type_name::into_string(type_name::get<T>())
+        ));
+
+        let package_addr = sub_string(&t, 0, string::index_of(&t, &delimiter));
+
+        package_addr
     }
 
     public fun get_package_module_type<T>(): (String, String, String) {

@@ -1,5 +1,5 @@
 /// Implements a simple NFT collection contract
-module nft_protocol::example_simple {
+module examples::example_simple {
     use std::string::{Self, String};
     use std::option;
 
@@ -8,7 +8,7 @@ module nft_protocol::example_simple {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection;
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness;
     use nft_protocol::mint_cap;
     use nft_protocol::display_info;
@@ -35,6 +35,9 @@ module nft_protocol::example_simple {
     fun init(otw: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
@@ -44,11 +47,8 @@ module nft_protocol::example_simple {
 
         // Init MintCap with unlimited supply
         let mint_cap = mint_cap::new<EXAMPLE_SIMPLE, SimpleNft>(
-            &otw, object::id(&collection), option::none(), ctx,
+            dw, &collection, option::none(), ctx,
         );
-
-        // Init Publisher
-        let publisher = sui::package::claim(otw, ctx);
 
         collection::add_domain(
             dw,
@@ -86,9 +86,6 @@ module nft_protocol::example_simple {
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
-
-    #[test_only]
-    use nft_protocol::collection::Collection;
 
     #[test_only]
     const USER: address = @0xA1C04;

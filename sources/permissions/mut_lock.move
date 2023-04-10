@@ -4,7 +4,9 @@ module nft_protocol::mut_lock {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
+
     use nft_protocol::utils;
+    use nft_protocol::witness::{Witness as DelegatedWitness};
 
     const ELOCK_PROMISE_MISMATCH: u64 = 1;
     const ELOCK_AUTHORITY_MISMATCH: u64 = 2;
@@ -91,14 +93,12 @@ module nft_protocol::mut_lock {
         nft
     }
 
-    public fun borrow_nft_as_witness<W: drop, T: key + store>(
+    public fun borrow_nft_as_witness<T: key + store>(
         // Creator Witness: Only the creator's contract should have
         // the ability to operate on the inner object extract a field
-        _witness: W,
+        _witness: DelegatedWitness<T>,
         locked_nft: &mut MutLock<T>,
     ): &mut T {
-        utils::assert_same_module<T, W>();
-
         &mut locked_nft.nft
     }
 
