@@ -19,7 +19,7 @@ The ecosystem is partitioned into three critical components:
 ## Resources
 
 - Protocol contract:
-  - [DevNet](https://explorer.sui.io/object/0xa0e7500b1b8420f6e6d187d3f2f10b886ebc9d583f40754b4576ca9d3844b845?network=devnet)
+  - [DevNet](https://explorer.sui.io/object/0x5059fd556b397110f4443a76bc921e35370d91948ccef5c4e97a11bfb74840f7?network=devnet)
   - TestNet --> SOON!
 - LaunchpadV2 contract:
   - [DevNet](https://explorer.sui.io/object/0x5eaad46595682d86cd878948c2f1e933d9df02b563fd49726620e4e936550f84?network=devnet)
