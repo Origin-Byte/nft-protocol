@@ -8,6 +8,7 @@
 /// configuration data to NFTs.
 module nft_protocol::collection {
     use std::type_name::{Self, TypeName};
+    use std::option::Option;
 
     use sui::event;
     use sui::transfer;
@@ -16,6 +17,7 @@ module nft_protocol::collection {
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{Self, Marker};
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::witness::Witness as DelegatedWitness;
 
     /// Domain not defined
@@ -75,6 +77,30 @@ module nft_protocol::collection {
         });
 
         Collection { id }
+    }
+
+    /// Creates a `Collection<T>`, and a `MintCap<T>` and returns it.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if witness is not defined in the same module as `C`.
+    public fun create_with_mint_cap<T>(
+        witness: DelegatedWitness<T>,
+        supply: Option<u64>,
+        ctx: &mut TxContext,
+    ): (Collection<T>, MintCap<T>) {
+        let id = object::new(ctx);
+
+        event::emit(MintCollectionEvent {
+            collection_id: object::uid_to_inner(&id),
+            type_name: type_name::get<T>(),
+        });
+
+        let collection = Collection { id };
+
+        let mint_cap = mint_cap::new(witness, object::id(&collection), supply, ctx);
+
+        (collection, mint_cap)
     }
 
     /// Creates a shared `Collection<C>`, where `C` will typically be the

@@ -8,9 +8,8 @@ module loose::deadbytes {
     use sui::package::{Self, Publisher};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::witness;
-    use nft_protocol::mint_cap::{Self};
 
 
     /// One time witness is only instantiated in the init method
@@ -36,12 +35,9 @@ module loose::deadbytes {
         let dw = witness::from_witness(Witness {});
 
         // Init Collection
-        let collection: Collection<DEADBYTES> =
-            collection::create(dw, ctx);
-
-        // Init MintCap with unlimited supply
-        let mint_cap = mint_cap::new<DEADBYTES, DeadByte>(
-            dw, &collection, option::none(), ctx,
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<DeadByte>(
+            dw, option::none(), ctx
         );
 
         let publisher = package::claim<DEADBYTES>(otw, ctx);
@@ -50,13 +46,6 @@ module loose::deadbytes {
         transfer::public_transfer(publisher, sender);
         transfer::public_share_object(collection);
     }
-
-    // public fun mint_metadata<T: key> (
-    //     pub: &Publisher,
-    //     json: String,
-    // ) {
-
-    // }
 
     public fun mint_gun_metadata<T: key>(
         pub: &Publisher,

@@ -70,18 +70,16 @@ module nft_protocol::access_policy {
 
     /// Creates a new `AccessPolicy<T>` and adds it to the Collection object.
     ///
-    /// This endpoint is witness protected on a collection `C` level.
+    /// This endpoint is witness protected on a collection `T` level.
     ///
     /// #### Panics
     ///
     /// Panics if domain already exists.
-    public fun add_new<C: drop, T: key + store>(
-        witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun add_new<T: key + store>(
+        witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
-        utils::assert_same_package<C, T>();
-
         let id = object::new(ctx);
 
         event::emit(NewPolicyEvent {
@@ -146,14 +144,12 @@ module nft_protocol::access_policy {
     /// write-access to all the fields in the given NFT of type `T`.
     ///
     /// This endpoint is witness protected on a collection `C` level.
-    public fun add_parent_access<C: drop, T: key + store>(
-        witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun add_parent_access<T: key + store>(
+        witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         addresses: vector<address>,
     ) {
-        utils::assert_same_package<C, T>();
-
-        let access_policy = collection::borrow_domain_mut<C, AccessPolicy<T>>(
+        let access_policy = collection::borrow_domain_mut<T, AccessPolicy<T>>(
             witness,
             collection
         );
@@ -166,14 +162,12 @@ module nft_protocol::access_policy {
     /// write-access to the field `Field` in the given NFT of type `T`.
     ///
     /// This endpoint is witness protected on a collection `C` level.
-    public fun add_field_access<C: drop, T: key + store, Field: store>(
-        witness: DelegatedWitness<C>,
-        collection: &mut Collection<C>,
+    public fun add_field_access<T: key + store, Field: store>(
+        witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
         addresses: vector<address>,
     ) {
-        utils::assert_same_package<C, T>();
-
-        let access_policy = collection::borrow_domain_mut<C, AccessPolicy<T>>(
+        let access_policy = collection::borrow_domain_mut<T, AccessPolicy<T>>(
             witness,
             collection
         );

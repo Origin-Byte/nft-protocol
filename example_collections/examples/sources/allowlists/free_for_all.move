@@ -47,8 +47,6 @@ module examples::free_for_all {
     #[test_only]
     use nft_protocol::collection;
     #[test_only]
-    use nft_protocol::mint_cap;
-    #[test_only]
     use std::option;
 
     #[test_only]
@@ -71,15 +69,8 @@ module examples::free_for_all {
 
         let delegated_witness = witness::from_witness(Witness {});
 
-        // This could technically be any Collection, we use FREE_FOR_ALL as
-        // the Collection OTW because we cannot claim a mint cap if we don't
-        // have access to an OTW. To avoid having to create another OTW we just
-        // the one instantiated in this contract.
-        let collection: Collection<FREE_FOR_ALL> =
-            collection::create(delegated_witness, ctx(&mut scenario));
-
-        let mint_cap = mint_cap::new<FREE_FOR_ALL, SomeRandomType>(
-            delegated_witness, &collection, option::none(), ctx(&mut scenario),
+        let (collection, mint_cap) = collection::create_with_mint_cap<SomeRandomType>(
+            delegated_witness, option::none(), ctx(&mut scenario)
         );
 
         collection::add_domain(

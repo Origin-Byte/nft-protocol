@@ -19,10 +19,8 @@ module nft_protocol::mint_cap {
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
-    use nft_protocol::utils;
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::collection::Collection;
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+    use nft_protocol::witness::Witness as DelegatedWitness;
 
     /// `MintCap` is unlimited when expected limited
     const EMintCapunlimited: u64 = 1;
@@ -50,52 +48,46 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap`
-    public fun new<C, T>(
-        witness: DelegatedWitness<C>,
-        collection: &Collection<C>,
+    public fun new<T>(
+        witness: DelegatedWitness<T>,
+        collection_id: ID,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        let dw = witness::into<C, T>(witness);
-
         if (option::is_some(&supply)) {
             new_limited(
-                dw, collection, option::destroy_some(supply), ctx,
+                witness, collection_id, option::destroy_some(supply), ctx,
             )
         } else {
-            new_unlimited(dw, collection, ctx)
+            new_unlimited(witness, collection_id, ctx)
         }
     }
 
     /// Create a new `MintCap` with unlimited supply
-    public fun new_unlimited<C, T>(
+    public fun new_unlimited<T>(
         _witness: DelegatedWitness<T>,
-        collection: &Collection<C>,
+        collection_id: ID,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        utils::assert_same_package<C, T>();
-
         MintCap {
             id: object::new(ctx),
-            collection_type: type_name::get<C>(),
-            collection_id: object::id(collection),
+            collection_type: type_name::get<T>(),
+            collection_id,
             supply: option::none(),
         }
     }
 
     /// Create a new `MintCap` with limited supply
-    public fun new_limited<C, T>(
+    public fun new_limited<T>(
         _witness: DelegatedWitness<T>,
-        collection: &Collection<C>,
+        collection_id: ID,
         supply: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        utils::assert_same_package<C, T>();
-
         MintCap {
             id: object::new(ctx),
-            collection_id: object::id(collection),
-            collection_type: type_name::get<C>(),
+            collection_id,
+            collection_type: type_name::get<T>(),
             // The supply is always set to frozen for safety
             supply: option::some(supply::new(supply, true)),
         }
