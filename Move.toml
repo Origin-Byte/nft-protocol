@@ -1,7 +1,7 @@
 [package]
 name = "NftProtocol"
 version = "0.28.0"
-published-at = "0xbd94da5175950f599a33c0c3506da95533782811172bc416dd39ff69e8b7266f"
+published-at = "0x5059fd556b397110f4443a76bc921e35370d91948ccef5c4e97a11bfb74840f7"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -12,7 +12,7 @@ rev = "82c9c80c11488858f1d3930f47ec9f335a566683"
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.29.0
-rev = "28604c58389363582fcf29fad12516b6fdfe51a3"
+rev = "be1922aeef3941d1ba846d2295c94fc9ef68a8e1"
 
 [addresses]
-nft_protocol = "0xbd94da5175950f599a33c0c3506da95533782811172bc416dd39ff69e8b7266f"
+nft_protocol = "0x5059fd556b397110f4443a76bc921e35370d91948ccef5c4e97a11bfb74840f7"
