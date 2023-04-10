@@ -1,0 +1,125 @@
+module nft_protocol::swoots {
+    use std::string::{Self, String};
+
+    use sui::transfer;
+    use sui::tx_context::{Self, TxContext};
+    use sui::object::{Self, UID};
+
+    use nft_protocol::mint_event;
+    use nft_protocol::mint_cap;
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::display_info;
+    use nft_protocol::mint_cap::{MintCap};
+    use nft_protocol::warehouse::{Self, Warehouse};
+    use nft_protocol::composable_nft::{Self as c_nft};
+    use nft_protocol::witness;
+
+    use nft_protocol::swoots_background::{Self, Background};
+    use nft_protocol::swoots_clothes::{Self, Clothes};
+    use nft_protocol::swoots_eyewear::{Self, Eyewear};
+    use nft_protocol::swoots_face::{Self, Face};
+    use nft_protocol::swoots_fur::{Self, Fur};
+    use nft_protocol::swoots_head::{Self, Head};
+
+    /// One time witness is only instantiated in the init method
+    struct SWOOTS has drop {}
+
+    struct Swoot has key, store {
+        id: UID,
+        background: Background,
+        clothes: Clothes,
+        eyewear: Eyewear,
+        face: Face,
+        fur: Fur,
+        head: Head,
+    }
+
+    /// Can be used for authorization of other actions post-creation. It is
+    /// vital that this struct is not freely given to any contract, because it
+    /// serves as an auth token.
+    struct Witness has drop {}
+
+    fun init(otw: SWOOTS, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
+
+        // Init Collection
+        let collection: Collection<SWOOTS> = collection::create(dw, ctx);
+
+        let collection_id = object::id(&collection);
+
+        // Init MintCap
+        // Creates a regulated mint cap for Avatar
+        let mint_cap_1 = mint_cap::new_limited<SWOOTS, Background>(
+            &otw, collection_id, 10_000, ctx,
+        );
+
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Add name and description to Collection
+        collection::add_domain(
+            dw,
+            &mut collection,
+            display_info::new(
+                string::utf8(b"Swoot"),
+                string::utf8(b"A composable NFT collection on Sui"),
+            ),
+        );
+
+        // === Avatar composability ===
+
+        let blueprint = c_nft::new_composition<Swoot>();
+        c_nft::add_relationship<Swoot, Background>(&mut blueprint, 1);
+        c_nft::add_relationship<Swoot, Clothes>(&mut blueprint, 1);
+        c_nft::add_relationship<Swoot, Eyewear>(&mut blueprint, 1);
+        c_nft::add_relationship<Swoot, Face>(&mut blueprint, 1);
+        c_nft::add_relationship<Swoot, Fur>(&mut blueprint, 1);
+        c_nft::add_relationship<Swoot, Head>(&mut blueprint, 1);
+
+        collection::add_domain(dw, &mut collection, blueprint);
+
+        transfer::public_transfer(mint_cap_1, sender);
+        transfer::public_transfer(publisher, sender);
+        transfer::public_share_object(collection);
+    }
+
+    public entry fun mint_swoot(
+        background: String,
+        clothes: String,
+        eyewear: String,
+        face: String,
+        fur: String,
+        head: String,
+        mint_cap: &mut MintCap<Swoot>,
+        warehouse: &mut Warehouse<Swoot>,
+        ctx: &mut TxContext,
+    ) {
+        let nft = Swoot {
+            id: object::new(ctx),
+            background: swoots_background::mint_background_(background, ctx),
+            clothes: swoots_clothes::mint_clothes_(clothes, ctx),
+            eyewear: swoots_eyewear::mint_eyewear_(eyewear, ctx),
+            face: swoots_face::mint_face_(face, ctx),
+            fur: swoots_fur::mint_fur_(fur, ctx),
+            head: swoots_head::mint_head_(head, ctx),
+        };
+
+        mint_event::mint_limited(mint_cap, &nft);
+        warehouse::deposit_nft(warehouse, nft);
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const USER: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(USER);
+        init(SWOOTS {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
+    }
+}

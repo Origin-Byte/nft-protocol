@@ -12,7 +12,7 @@ module nft_protocol::utils {
     use sui::table_vec::{Self, TableVec};
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
-    use sui::object::{Self, ID, UID};
+    use sui::object::{Self, UID};
 
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
