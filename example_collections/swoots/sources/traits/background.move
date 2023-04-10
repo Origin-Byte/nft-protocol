@@ -1,10 +1,10 @@
-module nft_protocol::swoots_background {
+module swoots::background {
     use std::string::String;
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
 
-    friend nft_protocol::swoots;
+    friend swoots::swoots;
 
     struct Background has key, store {
         id: UID,

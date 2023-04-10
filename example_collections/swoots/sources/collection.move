@@ -1,4 +1,4 @@
-module nft_protocol::swoots {
+module swoots::swoots {
     use std::string::{Self, String};
 
     use sui::transfer;
@@ -14,12 +14,12 @@ module nft_protocol::swoots {
     use nft_protocol::composable_nft::{Self as c_nft};
     use nft_protocol::witness;
 
-    use nft_protocol::swoots_background::{Self, Background};
-    use nft_protocol::swoots_clothes::{Self, Clothes};
-    use nft_protocol::swoots_eyewear::{Self, Eyewear};
-    use nft_protocol::swoots_face::{Self, Face};
-    use nft_protocol::swoots_fur::{Self, Fur};
-    use nft_protocol::swoots_head::{Self, Head};
+    use swoots::background::{Self, Background};
+    use swoots::clothes::{Self, Clothes};
+    use swoots::eyewear::{Self, Eyewear};
+    use swoots::face::{Self, Face};
+    use swoots::fur::{Self, Fur};
+    use swoots::head::{Self, Head};
 
     /// One time witness is only instantiated in the init method
     struct SWOOTS has drop {}
@@ -98,12 +98,12 @@ module nft_protocol::swoots {
     ) {
         let nft = Swoot {
             id: object::new(ctx),
-            background: swoots_background::mint_background_(background, ctx),
-            clothes: swoots_clothes::mint_clothes_(clothes, ctx),
-            eyewear: swoots_eyewear::mint_eyewear_(eyewear, ctx),
-            face: swoots_face::mint_face_(face, ctx),
-            fur: swoots_fur::mint_fur_(fur, ctx),
-            head: swoots_head::mint_head_(head, ctx),
+            background: background::mint_background_(background, ctx),
+            clothes: clothes::mint_clothes_(clothes, ctx),
+            eyewear: eyewear::mint_eyewear_(eyewear, ctx),
+            face: face::mint_face_(face, ctx),
+            fur: fur::mint_fur_(fur, ctx),
+            head: head::mint_head_(head, ctx),
         };
 
         mint_event::mint_limited(mint_cap, &nft);

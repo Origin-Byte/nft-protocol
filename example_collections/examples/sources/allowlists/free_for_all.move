@@ -3,7 +3,7 @@
 ///
 /// Basically any collection which adds itself to this allowlist is saying:
 /// we're ok with anyone transferring NFTs.
-module nft_protocol::free_for_all {
+module examples::free_for_all {
     use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
     use sui::object;

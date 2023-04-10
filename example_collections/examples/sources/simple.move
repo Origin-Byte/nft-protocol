@@ -1,5 +1,5 @@
 /// Implements a simple NFT collection contract
-module nft_protocol::example_simple {
+module examples::example_simple {
     use std::string::{Self, String};
     use std::option;
 

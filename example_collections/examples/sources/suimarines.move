@@ -1,4 +1,4 @@
-module nft_protocol::suimarines {
+module examples::suimarines {
     use std::string::String;
     use std::option;
 

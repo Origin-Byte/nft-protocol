@@ -1,4 +1,4 @@
-// module nft_protocol::gun_types {
+// module loose::gun_types {
 //     use std::string::{Self, utf8, String};
 //     use std::option;
 

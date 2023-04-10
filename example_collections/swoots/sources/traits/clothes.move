@@ -1,21 +1,21 @@
-module nft_protocol::swoots_face {
+module swoots::clothes {
     use std::string::String;
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
 
-    friend nft_protocol::swoots;
+    friend swoots::swoots;
 
-    struct Face has key, store {
+    struct Clothes has key, store {
         id: UID,
         type: String
     }
 
-    public(friend) fun mint_face_(
+    public(friend) fun mint_clothes_(
         type: String,
         ctx: &mut TxContext,
-    ): Face {
-        Face {
+    ): Clothes {
+        Clothes {
             id: object::new(ctx),
             type,
         }

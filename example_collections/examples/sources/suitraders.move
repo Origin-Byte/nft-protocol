@@ -1,4 +1,4 @@
-module nft_protocol::suitraders {
+module examples::suitraders {
     use std::ascii;
     use std::option;
     use std::string::{Self, String};

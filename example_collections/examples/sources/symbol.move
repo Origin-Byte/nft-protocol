@@ -1,6 +1,6 @@
 /// Implements a contract that mints NFTs with a globally unique symbol and
 /// allows associating them with collections
-module nft_protocol::example_symbol {
+module examples::example_symbol {
     use std::string::{Self, String};
 
     use sui::transfer;

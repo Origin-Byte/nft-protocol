@@ -1,10 +1,10 @@
-module nft_protocol::swoots_head {
+module swoots::head {
     use std::string::String;
 
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
 
-    friend nft_protocol::swoots;
+    friend swoots::swoots;
 
     struct Head has key, store {
         id: UID,

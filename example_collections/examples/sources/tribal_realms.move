@@ -1,4 +1,4 @@
-module nft_protocol::tribal_realms {
+module examples::tribal_realms {
     use std::string::{Self, String};
 
     use sui::transfer;
