@@ -108,6 +108,7 @@ module nft_protocol::composable_nft {
         composition: &mut Composition<Schema>,
         limit: u64,
     ) {
+        // TODO: Needs assertion for type Child -- check same package
         let child_type = type_name::get<Child>();
 
         assert!(

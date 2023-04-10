@@ -8,8 +8,7 @@ module swoots::swoots {
     use sui::object::{Self, UID};
 
     use nft_protocol::mint_event;
-    use nft_protocol::mint_cap;
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::warehouse::{Self, Warehouse};
@@ -57,13 +56,9 @@ module swoots::swoots {
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
-        // Init Collection
-        let collection: Collection<SWOOTS> = collection::create(dw, ctx);
-
-        // Init MintCap
-        // Creates a regulated mint cap for Avatar
-        let mint_cap_1 = mint_cap::new<SWOOTS, Swoot>(
-            dw, &collection, option::some(10_000), ctx,
+        // Init Collection & MintCap with limited 10_000 supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<Swoot>(
+            dw, option::some(10_000), ctx
         );
 
         // Add name and description to Collection
@@ -88,7 +83,7 @@ module swoots::swoots {
 
         collection::add_domain(dw, &mut collection, blueprint);
 
-        transfer::public_transfer(mint_cap_1, sender);
+        transfer::public_transfer(mint_cap, sender);
         transfer::public_transfer(publisher, sender);
         transfer::public_share_object(collection);
     }

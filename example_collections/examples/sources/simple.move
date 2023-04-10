@@ -9,9 +9,8 @@ module examples::example_simple {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::witness;
-    use nft_protocol::mint_cap;
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::MintCap;
 
@@ -50,13 +49,9 @@ module examples::example_simple {
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
-        // Init Collection
-        let collection: Collection<EXAMPLE_SIMPLE> =
-            collection::create(dw, ctx);
-
-        // Init MintCap with unlimited supply
-        let mint_cap = mint_cap::new<EXAMPLE_SIMPLE, SimpleNft>(
-            dw, &collection, option::none(), ctx,
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<SimpleNft>(
+            dw, option::none(), ctx
         );
 
         collection::add_domain(
@@ -95,6 +90,8 @@ module examples::example_simple {
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    use nft_protocol::collection::Collection;
 
     #[test_only]
     const USER: address = @0xA1C04;
@@ -106,7 +103,7 @@ module examples::example_simple {
         init(EXAMPLE_SIMPLE {}, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
 
-        assert!(test_scenario::has_most_recent_shared<Collection<EXAMPLE_SIMPLE>>(), 0);
+        assert!(test_scenario::has_most_recent_shared<Collection<SimpleNft>>(), 0);
 
         let mint_cap = test_scenario::take_from_address<MintCap<SimpleNft>>(
             &scenario, USER,

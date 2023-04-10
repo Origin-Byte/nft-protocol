@@ -1,13 +1,12 @@
 module nft_protocol::royalty_strategy_bps {
     use std::fixed_point32;
     use std::option::{Self, Option};
-    use std::type_name::{Self, TypeName};
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
     use nft_protocol::royalty;
     use nft_protocol::utils;
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+    use nft_protocol::witness::{Witness as DelegatedWitness};
 
     use originmate::balances::{Self, Balances};
 
@@ -24,9 +23,6 @@ module nft_protocol::royalty_strategy_bps {
         id: UID,
         /// Royalty charged on trades in basis points
         royalty_fee_bps: u64,
-        /// `C` of `Collection<C>` is not necessarily equal to `T`.
-        /// We use OTW for `C`.
-        collection_type: TypeName,
         /// Allows this middleware to touch the balance paid.
         /// The balance is deducted from the transfer request.
         /// See the docs for `BalanceAccessCap` for more info.
@@ -44,18 +40,16 @@ module nft_protocol::royalty_strategy_bps {
     ///
     /// Creates a new strategy which can be then shared with `share` method.
     /// Optionally, add balance access policy
-    public fun new<C, T>(
+    public fun new<T>(
         witness: DelegatedWitness<T>,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         royalty_fee_bps: u64,
         ctx: &mut TxContext,
     ): BpsRoyaltyStrategy<T> {
-        witness::assert_same_module<C, T>();
-
         let id = object::new(ctx);
 
         let domain = royalty::borrow_domain_mut(
-            collection::borrow_uid_mut(witness::into(witness), collection),
+            collection::borrow_uid_mut(witness, collection),
         );
 
         royalty::add_strategy(domain, object::uid_to_inner(&id));
@@ -63,7 +57,6 @@ module nft_protocol::royalty_strategy_bps {
         BpsRoyaltyStrategy {
             id,
             royalty_fee_bps,
-            collection_type: type_name::get<C>(),
             access_cap: option::none(),
             aggregator: balances::new(ctx),
         }
@@ -93,14 +86,12 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     /// Transfers the royalty to the collection royalty aggregator.
-    public fun collect_royalties<C, T, FT>(
-        collection: &mut Collection<C>, strategy: &mut BpsRoyaltyStrategy<T>,
+    public fun collect_royalties<T, FT>(
+        collection: &mut Collection<T>, strategy: &mut BpsRoyaltyStrategy<T>,
     ) {
-        witness::assert_same_module<C, T>();
-
         let balance = balances::borrow_mut(&mut strategy.aggregator);
         let amount = balance::value(balance);
-        royalty::collect_royalty<C, FT>(collection, balance, amount);
+        royalty::collect_royalty<T, FT>(collection, balance, amount);
     }
 
     /// Uses the balance associated with the request to deduct royalty.
@@ -156,20 +147,16 @@ module nft_protocol::royalty_strategy_bps {
     ///
     /// The creator is the sender.
     /// The strategy has access to `TransferRequest` balance
-    public fun create_domain_and_add_strategy<C, T>(
+    public fun create_domain_and_add_strategy<T>(
         witness: DelegatedWitness<T>,
-        collection: &mut Collection<C>,
+        collection: &mut Collection<T>,
         bps: u64,
         ctx: &mut TxContext,
     ) {
         let royalty_domain = royalty::from_address(sender(ctx), ctx);
-        collection::add_domain(
-            witness::into(witness),
-            collection,
-            royalty_domain,
-        );
+        collection::add_domain( witness, collection, royalty_domain);
 
-        let royalty_strategy = new<C, T>(witness, collection, bps, ctx);
+        let royalty_strategy = new(witness, collection, bps, ctx);
         add_balance_access_cap(
             &mut royalty_strategy,
             ob_transfer_request::grant_balance_access_cap(witness),

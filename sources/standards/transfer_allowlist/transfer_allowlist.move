@@ -277,11 +277,11 @@ module nft_protocol::transfer_allowlist {
         );
     }
 
-    /// Assert that `C` may be transferred using this `Allowlist`
+    /// Assert that `T` may be transferred using this `Allowlist`
     ///
     /// #### Panics
     ///
-    /// Panics if `C` may not be transferred.
+    /// Panics if `T` may not be transferred.
     public fun assert_collection<T>(allowlist: &Allowlist) {
         assert!(
             contains_collection<T>(allowlist), EInvalidCollection,
