@@ -6,7 +6,7 @@ module nft_protocol::royalty_strategy_bps {
     use nft_protocol::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
     use nft_protocol::royalty;
     use nft_protocol::utils;
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::witness::{Witness as DelegatedWitness};
 
     use originmate::balances::{Self, Balances};
 
@@ -87,8 +87,7 @@ module nft_protocol::royalty_strategy_bps {
 
     /// Transfers the royalty to the collection royalty aggregator.
     public fun collect_royalties<T, FT>(
-        collection: &mut Collection<T>,
-        strategy: &mut BpsRoyaltyStrategy<T>,
+        collection: &mut Collection<T>, strategy: &mut BpsRoyaltyStrategy<T>,
     ) {
         let balance = balances::borrow_mut(&mut strategy.aggregator);
         let amount = balance::value(balance);
@@ -97,8 +96,7 @@ module nft_protocol::royalty_strategy_bps {
 
     /// Uses the balance associated with the request to deduct royalty.
     public fun confirm_transfer<T, FT>(
-        self: &mut BpsRoyaltyStrategy<T>,
-        req: &mut TransferRequest<T>,
+        self: &mut BpsRoyaltyStrategy<T>, req: &mut TransferRequest<T>,
     ) {
         let cap = option::borrow(&self.access_cap);
         let (paid, _) = ob_transfer_request::paid_in_ft_mut<T, FT>(req, cap);
@@ -156,19 +154,13 @@ module nft_protocol::royalty_strategy_bps {
         ctx: &mut TxContext,
     ) {
         let royalty_domain = royalty::from_address(sender(ctx), ctx);
-        collection::add_domain(
-            witness,
-            collection,
-            royalty_domain,
-        );
+        collection::add_domain( witness, collection, royalty_domain);
 
-        let royalty_strategy = new<T>(
-            witness, collection, bps, ctx,
+        let royalty_strategy = new(witness, collection, bps, ctx);
+        add_balance_access_cap(
+            &mut royalty_strategy,
+            ob_transfer_request::grant_balance_access_cap(witness),
         );
-        // add_balance_access_cap(
-        //     &mut royalty_strategy,
-        //     ob_transfer_request::grant_balance_access_cap(witness),
-        // );
         share(royalty_strategy);
     }
 }

@@ -1,16 +1,16 @@
-module nft_protocol::suimarines {
+module examples::suimarines {
     use std::string::{Self, String};
-
-    use sui::object::{Self, UID};
+    use std::option;
     use sui::display;
+
     use sui::transfer;
-    use sui::dynamic_field as df;
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::utils;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
 
@@ -33,21 +33,25 @@ module nft_protocol::suimarines {
     /// serves as an auth token.
     struct Witness has drop {}
 
-    fun init(witness: SUIMARINES, ctx: &mut TxContext) {
-        // Setup `Display`
-        let publisher = sui::package::claim(witness, ctx);
+    fun init(otw: SUIMARINES, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
 
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Init Display
         let display = display::new<Submarine>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
-        // Setup `Collection`
-        let sender = tx_context::sender(ctx);
-        let delegated_witness = witness::from_witness(Witness {});
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
 
-        let collection: Collection<SUIMARINES> =
-            collection::create(delegated_witness, ctx);
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<Submarine>(
+            dw, option::none(), ctx
+        );
 
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included
@@ -59,10 +63,11 @@ module nft_protocol::suimarines {
             &transfer_policy_cap,
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES>(
-            delegated_witness, &mut collection, 100, ctx,
+        royalty_strategy_bps::create_domain_and_add_strategy<Submarine>(
+            witness::from_witness(Witness {}), &mut collection, 100, ctx,
         );
 
+        transfer::public_transfer(mint_cap, sender);
         transfer::public_transfer(publisher, sender);
         transfer::public_transfer(transfer_policy_cap, sender);
         transfer::public_share_object(transfer_policy);
@@ -72,14 +77,10 @@ module nft_protocol::suimarines {
     public fun get_nft_field<Field: store>(
         locked_nft: &mut MutLock<Submarine>,
     ): (Field, ReturnFieldPromise<Field>) {
+        let dw = witness::from_witness(Witness {});
+        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
 
-        let nft = mut_lock::borrow_nft_as_witness(Witness {}, locked_nft);
-
-        let field = df::remove(&mut nft.id, utils::marker<Field>());
-
-        let promise = mut_lock::issue_return_field_promise<Field>();
-
-        (field, promise)
+        mut_lock::borrow_field_with_promise<Field>(&mut nft.id)
     }
 
     public fun return_nft_field<Field: store>(
@@ -87,13 +88,14 @@ module nft_protocol::suimarines {
         field: Field,
         promise: ReturnFieldPromise<Field>
     ) {
-        mut_lock::consume_field_promise(Witness {}, locked_nft, &field, promise);
-        let nft = mut_lock::borrow_nft_as_witness(Witness {}, locked_nft);
+        let dw = witness::from_witness(Witness {});
+        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
 
-        df::add(&mut nft.id, utils::marker<Field>(), field);
+        mut_lock::consume_field_promise(&mut nft.id, field, promise);
     }
 
     public entry fun mint_nft(
+        _mint_cap: &MintCap<Submarine>,
         name: String,
         index: u64,
         warehouse: &mut Warehouse<Submarine>,
@@ -124,11 +126,11 @@ module nft_protocol::suimarines {
     #[test_only]
     use sui::test_scenario::{Self, ctx};
     #[test_only]
-    const USER: address = @0xA1C04;
+    const CREATOR: address = @0xA1C04;
 
     #[test]
     fun it_inits_collection() {
-        let scenario = test_scenario::begin(USER);
+        let scenario = test_scenario::begin(CREATOR);
         init(SUIMARINES {}, ctx(&mut scenario));
 
         test_scenario::end(scenario);

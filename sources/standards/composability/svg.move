@@ -103,7 +103,7 @@ module nft_protocol::composable_svg {
         parent_nft: &mut UID,
         child_nft: &mut UID,
     ) {
-        let nft_bag = nft_bag::borrow_domain_mut<Parent>(parent_nft);
+        let nft_bag = nft_bag::borrow_domain_mut(parent_nft);
         let child_id = object::uid_to_inner(child_nft);
 
         nft_bag::assert_composed(nft_bag, child_id);

@@ -3,26 +3,26 @@
 ///
 /// Basically any collection which adds itself to this allowlist is saying:
 /// we're ok with anyone transferring NFTs.
-module nft_protocol::origin_sui {
+module examples::free_for_all {
     use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
 
-    use nft_protocol::mint_cap;
     use nft_protocol::witness;
     use nft_protocol::collection::Collection;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
 
-    struct ORIGIN_SUI has drop {}
+    struct FREE_FOR_ALL has drop {}
 
     struct Witness has drop {}
 
-    fun init(witness: ORIGIN_SUI, ctx: &mut TxContext) {
+    fun init(otw: FREE_FOR_ALL, ctx: &mut TxContext) {
         transfer_allowlist::init_allowlist(&Witness {}, ctx);
 
-        package::claim_and_keep(witness, ctx);
+        package::claim_and_keep(otw, ctx);
     }
 
+    /// TODO: add policy rule
     public entry fun insert_collection<C>(
         pub: &Publisher,
         collection: &mut Collection<C>,
@@ -33,7 +33,7 @@ module nft_protocol::origin_sui {
         let delegated_witness = witness::from_publisher(pub);
         transfer_allowlist_domain::add_id(delegated_witness, collection, allowlist);
 
-        let delegated_witness = witness::from_witness<ORIGIN_SUI, Witness>(Witness {});
+        let delegated_witness = witness::from_witness<FREE_FOR_ALL, Witness>(Witness {});
 
         transfer_allowlist::insert_collection(
             allowlist, &Witness {}, delegated_witness,
@@ -46,15 +46,19 @@ module nft_protocol::origin_sui {
     use sui::transfer;
     #[test_only]
     use nft_protocol::collection;
+    #[test_only]
+    use std::option;
 
     #[test_only]
     const USER: address = @0xA1C04;
+    #[test_only]
+    struct SomeRandomType has drop {}
 
     #[test]
     fun test_example_free_for_all() {
         let scenario = test_scenario::begin(USER);
 
-        init(ORIGIN_SUI {}, ctx(&mut scenario));
+        init(FREE_FOR_ALL {}, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, USER);
 
@@ -65,11 +69,8 @@ module nft_protocol::origin_sui {
 
         let delegated_witness = witness::from_witness(Witness {});
 
-        let collection: Collection<ORIGIN_SUI> =
-            collection::create(delegated_witness, ctx(&mut scenario));
-
-        let mint_cap = mint_cap::new_unregulated(
-            delegated_witness, &collection, ctx(&mut scenario),
+        let (collection, mint_cap) = collection::create_with_mint_cap<SomeRandomType>(
+            delegated_witness, option::none(), ctx(&mut scenario)
         );
 
         collection::add_domain(

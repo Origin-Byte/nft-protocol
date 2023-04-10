@@ -1,6 +1,6 @@
 /// Implements a contract that mints NFTs with a globally unique symbol and
 /// allows associating them with collections
-module nft_protocol::example_symbol {
+module examples::example_symbol {
     use std::string::{Self, String};
 
     use sui::display;
@@ -9,7 +9,6 @@ module nft_protocol::example_symbol {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::mint_cap;
     use nft_protocol::witness;
     use nft_protocol::display_info;
     use nft_protocol::collection::{Self, Collection};
@@ -58,24 +57,20 @@ module nft_protocol::example_symbol {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(witness: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+    fun init(otw: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+
         // Setup `Display`
-        let publisher = sui::package::claim(witness, ctx);
+        let publisher = sui::package::claim(otw, ctx);
 
         let display = display::new<SymbolCap>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{symbol}"));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
-        // Setup `Collection`
         let delegated_witness = witness::from_witness(Witness {});
 
         let collection: Collection<EXAMPLE_SYMBOL> =
             collection::create(delegated_witness, ctx);
-
-        let mint_cap = mint_cap::new_unregulated(
-            delegated_witness, &collection, ctx,
-        );
 
         collection::add_domain(
             delegated_witness,
@@ -92,7 +87,6 @@ module nft_protocol::example_symbol {
             Registry { symbols: vec_set::empty() },
         );
 
-        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
         transfer::public_transfer(publisher, tx_context::sender(ctx));
         transfer::public_share_object(collection);
     }

@@ -1,4 +1,4 @@
-module nft_protocol::suitraders {
+module examples::suitraders {
     use std::ascii;
     use std::option;
     use std::string::{Self, String};
@@ -13,9 +13,9 @@ module nft_protocol::suitraders {
     use nft_protocol::mint_event;
     use nft_protocol::creators;
     use nft_protocol::attributes::{Self, Attributes};
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::display_info;
-    use nft_protocol::mint_cap::{Self, MintCap};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
     use nft_protocol::warehouse::{Self, Warehouse};
@@ -37,10 +37,13 @@ module nft_protocol::suitraders {
         attributes: Attributes,
     }
 
-    fun init(witness: SUITRADERS, ctx: &mut TxContext) {
-        // Setup `Display`
-        let publisher = sui::package::claim(witness, ctx);
+    fun init(otw: SUITRADERS, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
 
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Init Display
         let display = display::new<Suitrader>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
@@ -49,27 +52,17 @@ module nft_protocol::suitraders {
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
-        // Setup `Collection`
-        let sender = tx_context::sender(ctx);
-        let delegated_witness = witness::from_witness(Witness {});
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
 
-        let collection: Collection<SUITRADERS> =
-            collection::create(delegated_witness, ctx);
-
-        // Creates an unregulated mint cap
-        let mint_cap = mint_cap::new_from_publisher<Suitrader, SUITRADERS>(
-            &publisher, &collection, option::none(), ctx,
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<Suitrader>(
+            dw, option::none(), ctx
         );
 
+        // Add name and description to Collection
         collection::add_domain(
-            delegated_witness,
-            &mut collection,
-            creators::new(vec_set::singleton(sender)),
-        );
-
-        // Register custom domains
-        collection::add_domain(
-            delegated_witness,
+            dw,
             &mut collection,
             display_info::new(
                 string::utf8(b"Suimarines"),
@@ -77,14 +70,26 @@ module nft_protocol::suitraders {
             ),
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy(
-            delegated_witness, &mut collection, 100, ctx,
+        // Creators domain
+        collection::add_domain(
+            dw,
+            &mut collection,
+            creators::new(vec_set::singleton(sender)),
         );
 
+        // Royalties
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            dw, &mut collection, 100, ctx,
+        );
+
+        // Tags
         let tags = tags::empty(ctx);
         tags::add_tag(&mut tags, tags::art());
-        collection::add_domain(delegated_witness, &mut collection, tags);
+        collection::add_domain(dw, &mut collection, tags);
 
+        // Setup primary market. Note that this step can also be done
+        // not in the init function but on the client side by calling
+        // the launchpad functions directly
         let listing = nft_protocol::listing::new(
             tx_context::sender(ctx),
             tx_context::sender(ctx),
@@ -111,8 +116,8 @@ module nft_protocol::suitraders {
             ctx,
         );
 
-        transfer::public_transfer(publisher, tx_context::sender(ctx));
-        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
+        transfer::public_transfer(publisher, sender);
+        transfer::public_transfer(mint_cap, sender);
         transfer::public_share_object(listing);
         transfer::public_share_object(collection);
     }
@@ -123,7 +128,7 @@ module nft_protocol::suitraders {
         url: vector<u8>,
         attribute_keys: vector<ascii::String>,
         attribute_values: vector<ascii::String>,
-        mint_cap: &mut MintCap<Suitrader>,
+        mint_cap: &MintCap<Suitrader>,
         warehouse: &mut Warehouse<Suitrader>,
         ctx: &mut TxContext,
     ) {
@@ -135,12 +140,14 @@ module nft_protocol::suitraders {
             attributes: attributes::from_vec(attribute_keys, attribute_values)
         };
 
-        mint_event::mint(mint_cap, &nft);
+        mint_event::mint_unlimited(mint_cap, &nft);
         warehouse::deposit_nft(warehouse, nft);
     }
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    use nft_protocol::collection::Collection;
 
     #[test_only]
     const CREATOR: address = @0xA1C04;
@@ -152,7 +159,7 @@ module nft_protocol::suitraders {
         init(SUITRADERS {}, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        assert!(test_scenario::has_most_recent_shared<Collection<SUITRADERS>>(), 0);
+        assert!(test_scenario::has_most_recent_shared<Collection<Suitrader>>(), 0);
 
         let mint_cap = test_scenario::take_from_address<MintCap<Suitrader>>(
             &scenario, CREATOR,
@@ -171,7 +178,7 @@ module nft_protocol::suitraders {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let  mint_cap = test_scenario::take_from_address<MintCap<Suitrader>>(
+        let mint_cap = test_scenario::take_from_address<MintCap<Suitrader>>(
             &scenario,
             CREATOR,
         );

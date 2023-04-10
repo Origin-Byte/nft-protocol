@@ -24,11 +24,13 @@ module nft_protocol::transfer_allowlist {
     use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use std::option::{Self, Option};
+    use std::string::utf8;
     use std::type_name::{Self, TypeName};
+    use sui::display;
     use sui::object::{Self, UID};
-    use sui::package::Publisher;
+    use sui::package::{Self, Publisher};
     use sui::transfer_policy;
-    use sui::transfer;
+    use sui::transfer::{Self, public_share_object};
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
@@ -131,9 +133,19 @@ module nft_protocol::transfer_allowlist {
     ///
     /// It's always the creator's right to decide at any point what authorities
     /// can transfer NFTs of that collection.
-    public entry fun remove_itself<T>(
-        self: &mut Allowlist,
-        collection_pub: &Publisher,
+    public fun remove_itself<T>(
+        _witness: DelegatedWitness<T>, self: &mut Allowlist,
+    ) {
+        vec_set::remove(&mut self.collections, &type_name::get<T>());
+    }
+
+    /// Any collection is allowed to remove itself from any allowlist at any
+    /// time.
+    ///
+    /// It's always the creator's right to decide at any point what authorities
+    /// can transfer NFTs of that collection.
+    public fun remove_itself_with_publisher<T>(
+        self: &mut Allowlist, collection_pub: &Publisher,
     ) {
         utils::assert_package_publisher<T>(collection_pub);
         vec_set::remove(&mut self.collections, &type_name::get<T>());
@@ -141,8 +153,8 @@ module nft_protocol::transfer_allowlist {
 
     /// The allowlist owner can remove any collection at any point.
     public fun remove_collection<T, Admin: drop>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
         vec_set::remove(&mut self.collections, &type_name::get<T>());
@@ -150,8 +162,8 @@ module nft_protocol::transfer_allowlist {
 
     /// Removes all collections from this list.
     public fun clear_collections<Admin: drop>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
         self.collections = vec_set::empty();
@@ -160,8 +172,8 @@ module nft_protocol::transfer_allowlist {
     /// To insert a new authority into a list we need confirmation by the
     /// allowlist authority (via witness.)
     public fun insert_authority<Admin: drop, Auth>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
 
@@ -183,8 +195,8 @@ module nft_protocol::transfer_allowlist {
     /// If this is the last authority in the list, we do NOT go back to a free
     /// for all allowlist.
     public fun remove_authority<Admin: drop, Auth>(
-        self: &mut Allowlist,
         _allowlist_witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
 
@@ -197,13 +209,13 @@ module nft_protocol::transfer_allowlist {
     // === Transfers ===
 
     /// Checks whether given authority witness is in the allowlist, and also
-    /// whether given collection witness (C) is in the allowlist.
+    /// whether given collection witness (T) is in the allowlist.
     public fun can_be_transferred<T>(self: &Allowlist, auth: &TypeName): bool {
         contains_authority(self, auth) &&
             contains_collection<T>(self)
     }
 
-    /// Returns whether `Allowlist` contains collection `C`
+    /// Returns whether `Allowlist` contains collection `T`
     public fun contains_collection<T>(self: &Allowlist): bool {
         vec_set::contains(&self.collections, &type_name::get<T>())
     }
@@ -265,11 +277,11 @@ module nft_protocol::transfer_allowlist {
         );
     }
 
-    /// Assert that `C` may be transferred using this `Allowlist`
+    /// Assert that `T` may be transferred using this `Allowlist`
     ///
     /// #### Panics
     ///
-    /// Panics if `C` may not be transferred.
+    /// Panics if `T` may not be transferred.
     public fun assert_collection<T>(allowlist: &Allowlist) {
         assert!(
             contains_collection<T>(allowlist), EInvalidCollection,
@@ -293,5 +305,25 @@ module nft_protocol::transfer_allowlist {
     public fun assert_transferable<T>(allowlist: &Allowlist, auth: &TypeName) {
         assert_collection<T>(allowlist);
         assert_authority(allowlist, auth);
+    }
+
+    // === Display standard ===
+
+    struct TRANSFER_ALLOWLIST has drop {}
+
+    fun init(otw: TRANSFER_ALLOWLIST, ctx: &mut TxContext) {
+        let publisher = package::claim(otw, ctx);
+        let display = display::new<Allowlist>(&publisher, ctx);
+
+        display::add(&mut display, utf8(b"name"), utf8(b"Transfer Allowlist"));
+        display::add(&mut display, utf8(b"link"), utils::originbyte_docs_url());
+        display::add(
+            &mut display,
+            utf8(b"description"),
+            utf8(b"Which authorities can transfer NFTs of which collections"),
+        );
+
+        public_share_object(display);
+        package::burn_publisher(publisher);
     }
 }

@@ -15,10 +15,6 @@ module nft_protocol::supply {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{
-        assert_with_witness, UidType
-    };
-
     friend nft_protocol::warehouse;
 
     /// No field object `Attributes` defined as a dynamic field.
@@ -59,15 +55,12 @@ module nft_protocol::supply {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun add_supply<W: drop, T: key>(
-        _witness: W,
+    public fun add_supply<T: key>(
         object_uid: &mut UID,
-        object_type: UidType<T>,
         max: u64,
         frozen: bool,
     ) {
         assert_has_not_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
 
         let supply = new(max, frozen);
         df::add(object_uid, SupplyKey {}, supply);
@@ -114,16 +107,13 @@ module nft_protocol::supply {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if Witness `W` does not match `T`'s module.
-    public fun borrow_supply_mut<W: drop, T: key>(
-        _witness: W,
+    public fun borrow_supply_mut<T: key>(
         object_uid: &mut UID,
-        object_type: UidType<T>
     ): &mut Supply {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
 
         df::borrow_mut(object_uid, SupplyKey {})
     }
@@ -147,17 +137,14 @@ module nft_protocol::supply {
     /// Panics if Witness `W` does not match `T`'s module.
     ///
     /// Panics if supply is frozen.
-    public fun increase_supply_ceil<W: drop, T: key>(
-        _witness: W,
+    public fun increase_supply_ceil<T: key>(
         object_uid: &mut UID,
-        object_type: UidType<T>,
         value: u64,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
 
         let supply = df::borrow_mut<SupplyKey, Supply>(
             object_uid,
@@ -183,17 +170,14 @@ module nft_protocol::supply {
     /// Panics if Witness `W` does not match `T`'s module.
     ///
     /// Panics if value is supperior to current supply.
-    public fun decrease_supply_ceil<W:drop, T: key>(
-        _witness: W,
+    public fun decrease_supply_ceil<T: key>(
         object_uid: &mut UID,
-        object_type: UidType<T>,
         value: u64,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
 
         let supply = df::borrow_mut<SupplyKey, Supply>(
             object_uid,
@@ -221,16 +205,13 @@ module nft_protocol::supply {
     /// in other words, it panics if `object_uid` is not of type `T`.
     ///
     /// Panics if supply is frozen already.
-    public fun freeze_supply<W: drop, T: key>(
-        _witness: W,
+    public fun freeze_supply<T: key>(
         object_uid: &mut UID,
-        object_type: UidType<T>,
     ) {
         // `df::borrow` fails if there is no such dynamic field,
         // however asserting it here allows for a more straightforward
         // error message
         assert_has_supply(object_uid);
-        assert_with_witness<W, T>(object_uid, object_type);
 
         let supply = df::borrow_mut<SupplyKey, Supply>(
             object_uid,

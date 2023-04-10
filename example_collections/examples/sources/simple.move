@@ -1,5 +1,5 @@
 /// Implements a simple NFT collection contract
-module nft_protocol::example_simple {
+module examples::example_simple {
     use std::string::{Self, String};
     use std::option;
 
@@ -11,7 +11,6 @@ module nft_protocol::example_simple {
 
     use nft_protocol::collection;
     use nft_protocol::witness;
-    use nft_protocol::mint_cap;
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::MintCap;
 
@@ -33,10 +32,13 @@ module nft_protocol::example_simple {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(witness: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
-        // Setup `Display`
-        let publisher = sui::package::claim(witness, ctx);
+    fun init(otw: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
+        let sender = tx_context::sender(ctx);
 
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Init Display
         let display = display::new<SimpleNft>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
@@ -44,19 +46,16 @@ module nft_protocol::example_simple {
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
-        // Setup `Collection`
-        let delegated_witness = witness::from_witness(Witness {});
+        // Get the Delegated Witness
+        let dw = witness::from_witness(Witness {});
 
-        let collection: Collection<EXAMPLE_SIMPLE> =
-            collection::create(delegated_witness, ctx);
-
-        // Creates an unregulated mint cap
-        let mint_cap = mint_cap::new_from_publisher<SimpleNft, EXAMPLE_SIMPLE>(
-            &publisher, &collection, option::none(), ctx,
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<SimpleNft>(
+            dw, option::none(), ctx
         );
 
         collection::add_domain(
-            delegated_witness,
+            dw,
             &mut collection,
             display_info::new(
                 string::utf8(b"Simple"),
@@ -64,8 +63,8 @@ module nft_protocol::example_simple {
             )
         );
 
-        transfer::public_transfer(mint_cap, tx_context::sender(ctx));
-        transfer::public_transfer(publisher, tx_context::sender(ctx));
+        transfer::public_transfer(mint_cap, sender);
+        transfer::public_transfer(publisher, sender);
         transfer::public_share_object(collection);
     }
 
@@ -91,7 +90,6 @@ module nft_protocol::example_simple {
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
-
     #[test_only]
     use nft_protocol::collection::Collection;
 
@@ -105,7 +103,7 @@ module nft_protocol::example_simple {
         init(EXAMPLE_SIMPLE {}, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
 
-        assert!(test_scenario::has_most_recent_shared<Collection<EXAMPLE_SIMPLE>>(), 0);
+        assert!(test_scenario::has_most_recent_shared<Collection<SimpleNft>>(), 0);
 
         let mint_cap = test_scenario::take_from_address<MintCap<SimpleNft>>(
             &scenario, USER,
