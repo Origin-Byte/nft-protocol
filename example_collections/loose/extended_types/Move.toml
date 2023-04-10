@@ -1,5 +1,5 @@
 [package]
-name = "Loose"
+name = "GunExtensions"
 version = "1.0.0"
 published-at = "0x"
 
@@ -14,11 +14,11 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.29.0
 rev = "f5242d0415b35fe48344e83cfd60924725fed23d"
 
-[dependencies.Loose]
-local = "../"
-
 [dependencies.NftProtocol]
 local = "../../../"
+
+[dependencies.Loose]
+local = "../main_contract/"
 
 [addresses]
 gun_extensions = "0x"

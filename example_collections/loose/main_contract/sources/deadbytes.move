@@ -2,7 +2,7 @@ module loose::deadbytes {
     use std::string::{utf8, String};
     use std::option;
 
-    use sui::object::{Self, UID};
+    use sui::object::UID;
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
@@ -41,7 +41,7 @@ module loose::deadbytes {
 
         // Init MintCap with unlimited supply
         let mint_cap = mint_cap::new<DEADBYTES, DeadByte>(
-            &otw, object::id(&collection), option::none(), ctx,
+            dw, &collection, option::none(), ctx,
         );
 
         let publisher = package::claim<DEADBYTES>(otw, ctx);
@@ -80,5 +80,18 @@ module loose::deadbytes {
 
         // TODO: should this be owned or shared?
         transfer::public_transfer(display, tx_context::sender(ctx));
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    const CREATOR: address = @0xA1C04;
+
+    #[test]
+    fun it_inits_collection() {
+        let scenario = test_scenario::begin(CREATOR);
+        init(DEADBYTES {}, ctx(&mut scenario));
+
+        test_scenario::end(scenario);
     }
 }

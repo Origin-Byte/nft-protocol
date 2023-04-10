@@ -49,7 +49,7 @@ module examples::free_for_all {
     #[test_only]
     use nft_protocol::mint_cap;
     #[test_only]
-    use sui::object;
+    use std::option;
 
     #[test_only]
     const USER: address = @0xA1C04;
@@ -78,8 +78,8 @@ module examples::free_for_all {
         let collection: Collection<FREE_FOR_ALL> =
             collection::create(delegated_witness, ctx(&mut scenario));
 
-        let mint_cap = mint_cap::new_unlimited<FREE_FOR_ALL, SomeRandomType>(
-            &FREE_FOR_ALL {}, object::id(&collection), ctx(&mut scenario),
+        let mint_cap = mint_cap::new<FREE_FOR_ALL, SomeRandomType>(
+            delegated_witness, &collection, option::none(), ctx(&mut scenario),
         );
 
         collection::add_domain(

@@ -1,5 +1,6 @@
 module examples::tribal_realms {
     use std::string::{Self, String};
+    use std::option;
 
     use sui::transfer;
     use sui::url::{Self, Url};
@@ -43,29 +44,28 @@ module examples::tribal_realms {
 
     fun init(otw: TRIBAL_REALMS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
         // Init Collection
         let collection: Collection<TRIBAL_REALMS> = collection::create(dw, ctx);
 
-        let collection_id = object::id(&collection);
-
         // Init MintCap
         // Creates a regulated mint cap for Avatar
-        let mint_cap_1 = mint_cap::new_limited<TRIBAL_REALMS, Avatar>(
-            &otw, collection_id, 10000, ctx,
+        let mint_cap_1 = mint_cap::new<TRIBAL_REALMS, Avatar>(
+            dw, &collection, option::some(10000), ctx,
         );
         // Creates unregulated mint cap for the rest
-        let mint_cap_2 = mint_cap::new_unlimited<TRIBAL_REALMS, Hat>(
-            &otw, collection_id, ctx,
+        let mint_cap_2 = mint_cap::new<TRIBAL_REALMS, Hat>(
+            dw, &collection, option::none(),ctx,
         );
-        let mint_cap_3 = mint_cap::new_unlimited<TRIBAL_REALMS, Glasses>(
-            &otw, collection_id, ctx,
+        let mint_cap_3 = mint_cap::new<TRIBAL_REALMS, Glasses>(
+            dw, &collection, option::none(), ctx,
         );
-
-        // Init Publisher
-        let publisher = sui::package::claim(otw, ctx);
 
         // Add name and description to Collection
         collection::add_domain(

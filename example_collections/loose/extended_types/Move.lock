@@ -4,6 +4,17 @@
 version = 0
 
 dependencies = [
+  { name = "Loose" },
+  { name = "NftProtocol" },
+  { name = "Originmate" },
+  { name = "Sui" },
+]
+
+[[move.package]]
+name = "Loose"
+source = { local = "../main_contract" }
+
+dependencies = [
   { name = "NftProtocol" },
   { name = "Originmate" },
   { name = "Sui" },

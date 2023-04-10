@@ -35,6 +35,9 @@ module examples::example_simple {
     fun init(otw: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
@@ -44,11 +47,8 @@ module examples::example_simple {
 
         // Init MintCap with unlimited supply
         let mint_cap = mint_cap::new<EXAMPLE_SIMPLE, SimpleNft>(
-            &otw, object::id(&collection), option::none(), ctx,
+            dw, &collection, option::none(), ctx,
         );
-
-        // Init Publisher
-        let publisher = sui::package::claim(otw, ctx);
 
         collection::add_domain(
             dw,

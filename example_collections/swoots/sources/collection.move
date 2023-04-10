@@ -1,5 +1,6 @@
 module swoots::swoots {
     use std::string::{Self, String};
+    use std::option;
 
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
@@ -47,12 +48,10 @@ module swoots::swoots {
         // Init Collection
         let collection: Collection<SWOOTS> = collection::create(dw, ctx);
 
-        let collection_id = object::id(&collection);
-
         // Init MintCap
         // Creates a regulated mint cap for Avatar
-        let mint_cap_1 = mint_cap::new_limited<SWOOTS, Background>(
-            &otw, collection_id, 10_000, ctx,
+        let mint_cap_1 = mint_cap::new<SWOOTS, Swoot>(
+            dw, &collection, option::some(10_000), ctx,
         );
 
         // Init Publisher
