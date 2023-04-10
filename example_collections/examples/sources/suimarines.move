@@ -1,6 +1,7 @@
 module examples::suimarines {
-    use std::string::String;
+    use std::string::{Self, String};
     use std::option;
+    use sui::display;
 
     use sui::transfer;
     use sui::object::{Self, UID};
@@ -37,6 +38,12 @@ module examples::suimarines {
 
         // Init Publisher
         let publisher = sui::package::claim(otw, ctx);
+
+        // Init Display
+        let display = display::new<Submarine>(&publisher, ctx);
+        display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
 
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});

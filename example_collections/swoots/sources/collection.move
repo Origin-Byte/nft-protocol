@@ -3,6 +3,7 @@ module swoots::swoots {
     use std::option;
 
     use sui::transfer;
+    use sui::display;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID};
 
@@ -42,6 +43,17 @@ module swoots::swoots {
 
     fun init(otw: SWOOTS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+
+        // Init Publisher
+        let publisher = sui::package::claim(otw, ctx);
+
+        // Init Display
+        let display = display::new<Swoot>(&publisher, ctx);
+        display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
+
+
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
@@ -53,9 +65,6 @@ module swoots::swoots {
         let mint_cap_1 = mint_cap::new<SWOOTS, Swoot>(
             dw, &collection, option::some(10_000), ctx,
         );
-
-        // Init Publisher
-        let publisher = sui::package::claim(otw, ctx);
 
         // Add name and description to Collection
         collection::add_domain(

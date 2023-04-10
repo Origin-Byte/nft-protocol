@@ -4,10 +4,10 @@ module loose::deadbytes {
 
     use sui::object::UID;
     use sui::transfer;
+    use sui::display;
+    use sui::package::{Self, Publisher};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::package::{Self, Publisher};
-    use nft_protocol::display;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::witness;
     use nft_protocol::mint_cap::{Self};

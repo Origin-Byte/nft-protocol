@@ -3,6 +3,7 @@
 module examples::example_symbol {
     use std::string::{Self, String};
 
+    use sui::display;
     use sui::transfer;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
@@ -56,8 +57,18 @@ module examples::example_symbol {
     // === Contract functions ===
 
     /// Called during contract publishing
-    fun init(_otw: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+    fun init(otw: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
+
+        // Setup `Display`
+        let publisher = sui::package::claim(otw, ctx);
+
+        let display = display::new<SymbolCap>(&publisher, ctx);
+        display::add(&mut display, string::utf8(b"name"), string::utf8(b"{symbol}"));
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
+
         let delegated_witness = witness::from_witness(Witness {});
+
         let collection: Collection<EXAMPLE_SYMBOL> =
             collection::create(delegated_witness, ctx);
 
@@ -76,6 +87,7 @@ module examples::example_symbol {
             Registry { symbols: vec_set::empty() },
         );
 
+        transfer::public_transfer(publisher, tx_context::sender(ctx));
         transfer::public_share_object(collection);
     }
 

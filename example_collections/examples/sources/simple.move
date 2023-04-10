@@ -3,6 +3,7 @@ module examples::example_simple {
     use std::string::{Self, String};
     use std::option;
 
+    use sui::display;
     use sui::url::{Self, Url};
     use sui::transfer;
     use sui::object::{Self, UID};
@@ -37,6 +38,14 @@ module examples::example_simple {
 
         // Init Publisher
         let publisher = sui::package::claim(otw, ctx);
+
+        // Init Display
+        let display = display::new<SimpleNft>(&publisher, ctx);
+        display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
+        display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
 
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
@@ -106,7 +115,7 @@ module examples::example_simple {
         mint_nft(
             string::utf8(b"Simple NFT"),
             string::utf8(b"A simple NFT on Sui"),
-            b"https://originbyte.io/",
+            b"originbyte.io",
             &mint_cap,
             ctx(&mut scenario)
         );
