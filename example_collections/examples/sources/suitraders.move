@@ -13,9 +13,9 @@ module examples::suitraders {
     use nft_protocol::mint_event;
     use nft_protocol::creators;
     use nft_protocol::attributes::{Self, Attributes};
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::display_info;
-    use nft_protocol::mint_cap::{Self, MintCap};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
     use nft_protocol::warehouse::{Self, Warehouse};
@@ -55,13 +55,9 @@ module examples::suitraders {
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
-        // Init Collection
-        let collection: Collection<SUITRADERS> =
-            collection::create(dw, ctx);
-
-        // Creates an unregulated mint cap
-        let mint_cap = mint_cap::new<SUITRADERS, Suitrader>(
-            dw, &collection, option::none(), ctx,
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<Suitrader>(
+            dw, option::none(), ctx
         );
 
         // Add name and description to Collection
@@ -150,6 +146,8 @@ module examples::suitraders {
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    use nft_protocol::collection::Collection;
 
     #[test_only]
     const CREATOR: address = @0xA1C04;
@@ -161,7 +159,7 @@ module examples::suitraders {
         init(SUITRADERS {}, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        assert!(test_scenario::has_most_recent_shared<Collection<SUITRADERS>>(), 0);
+        assert!(test_scenario::has_most_recent_shared<Collection<Suitrader>>(), 0);
 
         let mint_cap = test_scenario::take_from_address<MintCap<Suitrader>>(
             &scenario, CREATOR,

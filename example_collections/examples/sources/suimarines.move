@@ -7,9 +7,9 @@ module examples::suimarines {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
-    use nft_protocol::mint_cap::{Self, MintCap};
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
@@ -48,13 +48,9 @@ module examples::suimarines {
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
 
-        // Init Collection
-        let collection: Collection<SUIMARINES> =
-            collection::create(dw, ctx);
-
-        // Init MintCap with unlimited supply
-        let mint_cap = mint_cap::new<SUIMARINES, Submarine>(
-            dw, &collection, option::none(), ctx,
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<Submarine>(
+            dw, option::none(), ctx
         );
 
         // Creates a new policy and registers an allowlist rule to it.
@@ -67,7 +63,7 @@ module examples::suimarines {
             &transfer_policy_cap,
         );
 
-        royalty_strategy_bps::create_domain_and_add_strategy<SUIMARINES, Submarine>(
+        royalty_strategy_bps::create_domain_and_add_strategy<Submarine>(
             witness::from_witness(Witness {}), &mut collection, 100, ctx,
         );
 

@@ -8,8 +8,7 @@ module examples::tribal_realms {
     use sui::object::{Self, UID};
 
     use nft_protocol::mint_event;
-    use nft_protocol::mint_cap;
-    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::collection;
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::warehouse::{Self, Warehouse};
@@ -49,28 +48,25 @@ module examples::tribal_realms {
         let publisher = sui::package::claim(otw, ctx);
 
         // Get the Delegated Witness
-        let dw = witness::from_witness(Witness {});
+        let dw_1 = witness::from_witness(Witness {});
 
-        // Init Collection
-        let collection: Collection<TRIBAL_REALMS> = collection::create(dw, ctx);
-
-        // Init MintCap
-        // Creates a regulated mint cap for Avatar
-        let mint_cap_1 = mint_cap::new<TRIBAL_REALMS, Avatar>(
-            dw, &collection, option::some(10000), ctx,
+        // Init Avatar Collection & MintCap with limited 10_000 supply
+        let (coll_avatar, mint_cap_avatar) = collection::create_with_mint_cap<Avatar>(
+            dw_1, option::some(10_000), ctx
         );
-        // Creates unregulated mint cap for the rest
-        let mint_cap_2 = mint_cap::new<TRIBAL_REALMS, Hat>(
-            dw, &collection, option::none(),ctx,
+        // Init AvaHattar Collection & MintCap with unlimited supply
+        let (coll_hat, mint_cap_hat) = collection::create_with_mint_cap<Hat>(
+            witness::from_witness(Witness {}), option::none(), ctx
         );
-        let mint_cap_3 = mint_cap::new<TRIBAL_REALMS, Glasses>(
-            dw, &collection, option::none(), ctx,
+        // Init Glasses Collection & MintCap with unlimited supply
+        let (coll_glasses, mint_cap_glasses) = collection::create_with_mint_cap<Glasses>(
+            witness::from_witness(Witness {}), option::none(), ctx
         );
 
         // Add name and description to Collection
         collection::add_domain(
-            dw,
-            &mut collection,
+            dw_1,
+            &mut coll_avatar,
             display_info::new(
                 string::utf8(b"TribalRealms"),
                 string::utf8(b"A composable NFT collection on Sui"),
@@ -88,14 +84,16 @@ module examples::tribal_realms {
         );
 
         collection::add_domain(
-            dw, &mut collection, avatar_blueprint,
+            dw_1, &mut coll_avatar, avatar_blueprint,
         );
 
-        transfer::public_transfer(mint_cap_1, sender);
-        transfer::public_transfer(mint_cap_2, sender);
-        transfer::public_transfer(mint_cap_3, sender);
+        transfer::public_transfer(mint_cap_avatar, sender);
+        transfer::public_transfer(mint_cap_hat, sender);
+        transfer::public_transfer(mint_cap_glasses, sender);
         transfer::public_transfer(publisher, sender);
-        transfer::public_share_object(collection);
+        transfer::public_share_object(coll_avatar);
+        transfer::public_share_object(coll_hat);
+        transfer::public_share_object(coll_glasses);
     }
 
     public entry fun mint_avatar(
