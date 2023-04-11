@@ -720,4 +720,36 @@ module nft_protocol::ob_kiosk {
         public_share_object(display);
         package::burn_publisher(publisher);
     }
+
+    // === Test-only accessors ===
+
+    #[test_only]
+    public fun assert_kiosk_owner_cap(self: &mut Kiosk) {
+        let owner_cap = df::remove(ext(self), KioskOwnerCapDfKey {});
+
+        assert!(kiosk::has_access(self, &owner_cap), 0);
+
+        df::add(ext(self), KioskOwnerCapDfKey {}, owner_cap);
+    }
+
+    #[test_only]
+    public fun nft_refs(self: &mut Kiosk): &Table<ID, NftRef> {
+        df::borrow(ext(self), NftRefsDfKey {})
+    }
+
+    #[test_only]
+    public fun assert_deposit_setting_permissionless(self: &mut Kiosk) {
+        let settings = df::borrow<DepositSettingDfKey, DepositSetting>(
+            ext(self), DepositSettingDfKey {}
+        );
+
+        assert!(settings.enable_any_deposit == true, 0);
+    }
+
+    #[test_only]
+    public fun assert_listed(self: &mut Kiosk, nft_id: ID) {
+        let refs = df::borrow(ext(self), NftRefsDfKey {});
+        let ref = table::borrow<ID, NftRef>(refs, nft_id);
+        assert!(vec_set::size(&ref.auths) > 0, 0);
+    }
 }
