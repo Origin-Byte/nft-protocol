@@ -154,7 +154,7 @@ module nft_protocol::royalty_strategy_bps {
         ctx: &mut TxContext,
     ) {
         let royalty_domain = royalty::from_address(sender(ctx), ctx);
-        collection::add_domain( witness, collection, royalty_domain);
+        collection::add_domain(witness, collection, royalty_domain);
 
         let royalty_strategy = new(witness, collection, bps, ctx);
         add_balance_access_cap(

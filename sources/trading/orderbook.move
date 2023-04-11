@@ -61,7 +61,9 @@ module nft_protocol::orderbook {
 
     // === Structs ===
 
-    /// Witness used to authenticate witness protected endpoints
+    /// Add this witness type to allowlists via
+    /// `transfer_allowlist::insert_authority` to allow orderbook trades with
+    /// that allowlist.
     struct Witness has drop {}
 
     /// A critbit order book implementation. Contains two ordered trees:
