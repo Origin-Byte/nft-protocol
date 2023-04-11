@@ -527,7 +527,7 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = typed_id::to_id(nft_id);
-        assert_not_listed<T>(self, nft_id);
+        assert_not_listed(self, nft_id);
         // TODO: Assert T lives in the OTW universe
         ap::assert_field_auth<OTW, T, Field>(collection, ctx);
 
@@ -545,7 +545,7 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = typed_id::to_id(nft_id);
-        assert_not_listed<T>(self, nft_id);
+        assert_not_listed(self, nft_id);
         // TODO: Assert T lives in the OTW universe
         ap::assert_parent_auth<OTW, T>(collection, ctx);
 
@@ -636,7 +636,7 @@ module nft_protocol::ob_kiosk {
         assert!(kiosk::has_item(self, nft_id), EMissingNft)
     }
 
-    public fun assert_not_exclusively_listed<T: key + store>(
+    public fun assert_not_exclusively_listed(
         self: &mut Kiosk, nft_id: ID
     ) {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
@@ -644,7 +644,7 @@ module nft_protocol::ob_kiosk {
         assert_ref_not_exclusively_listed(ref);
     }
 
-    public fun assert_not_listed<T: key + store>(
+    public fun assert_not_listed(
         self: &mut Kiosk, nft_id: ID
     ) {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
@@ -751,5 +751,14 @@ module nft_protocol::ob_kiosk {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
         let ref = table::borrow<ID, NftRef>(refs, nft_id);
         assert!(vec_set::size(&ref.auths) > 0, 0);
+    }
+
+    #[test_only]
+    public fun assert_exclusively_listed(
+        self: &mut Kiosk, nft_id: ID
+    ) {
+        let refs = df::borrow(ext(self), NftRefsDfKey {});
+        let ref = table::borrow<ID, NftRef>(refs, nft_id);
+        assert!(ref.is_exclusively_listed, 0);
     }
 }
