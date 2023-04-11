@@ -492,9 +492,9 @@ module examples::testract {
     #[test_only]
     const USER: address = @0xA1C04;
 
-    /// Calls all logic in this test package.
-    ///
-    /// See the function docs for more information on how they fit in.
+    // Calls all logic in this test package.
+    //
+    // See the function docs for more information on how they fit in.
     #[test]
     fun it_works() {
         let scenario = test_scenario::begin(USER);
