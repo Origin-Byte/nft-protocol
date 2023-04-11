@@ -22,7 +22,7 @@ module nft_protocol::royalty_strategy_bps {
     struct BpsRoyaltyStrategy<phantom T> has key {
         id: UID,
         /// Royalty charged on trades in basis points
-        royalty_fee_bps: u64,
+        royalty_fee_bps: u16,
         /// Allows this middleware to touch the balance paid.
         /// The balance is deducted from the transfer request.
         /// See the docs for `BalanceAccessCap` for more info.
@@ -43,7 +43,7 @@ module nft_protocol::royalty_strategy_bps {
     public fun new<T>(
         witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
-        royalty_fee_bps: u64,
+        royalty_fee_bps: u16,
         ctx: &mut TxContext,
     ): BpsRoyaltyStrategy<T> {
         let id = object::new(ctx);
@@ -120,7 +120,7 @@ module nft_protocol::royalty_strategy_bps {
         ob_transfer_request::add_receipt(req, &BpsRoyaltyStrategyRule {});
     }
 
-    public fun royalty_fee_bps<T>(self: &BpsRoyaltyStrategy<T>): u64 {
+    public fun royalty_fee_bps<T>(self: &BpsRoyaltyStrategy<T>): u16 {
         self.royalty_fee_bps
     }
 
@@ -128,7 +128,7 @@ module nft_protocol::royalty_strategy_bps {
         // TODO: Need to consider implementing Decimals module for increased
         // precision, or wait for native support
         let royalty_rate = fixed_point32::create_from_rational(
-            royalty_fee_bps(self),
+            (royalty_fee_bps(self) as u64),
             (utils::bps() as u64)
         );
 
@@ -150,7 +150,7 @@ module nft_protocol::royalty_strategy_bps {
     public fun create_domain_and_add_strategy<T>(
         witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
-        bps: u64,
+        bps: u16,
         ctx: &mut TxContext,
     ) {
         let royalty_domain = royalty::from_address(sender(ctx), ctx);

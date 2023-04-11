@@ -356,7 +356,7 @@ module nft_protocol::orderbook {
     /// If there exists a bid with higher offer than `requested_tokens`, then
     /// trade is immediately executed.
     /// In such a case, a new shared object [`TradeIntermediate`] is created.
-    /// Otherwise we exclusively lock the NFT in t he seller's kiosk for the
+    /// Otherwise we exclusively lock the NFT in the seller's kiosk for the
     /// orderbook to collect later.
     ///
     /// * the sender must be owner of kiosk
