@@ -4,9 +4,11 @@ module nft_protocol::test_utils {
 
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
-    use sui::package;
+    use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
+    use sui::package::{Self, Publisher};
 
     use nft_protocol::witness;
+    use nft_protocol::ob_transfer_request;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
 
@@ -33,6 +35,7 @@ module nft_protocol::test_utils {
     public fun seller(): address { SELLER }
     public fun fake_address(): address { FAKE_ADDRESS }
 
+    #[test_only]
     public fun init_collection_foo(
         ctx: &mut TxContext
     ): (Collection<Foo>, MintCap<Foo>) {
@@ -41,13 +44,19 @@ module nft_protocol::test_utils {
         )
     }
 
+    #[test_only]
     public fun get_random_nft(ctx: &mut TxContext): Foo {
         Foo { id: object::new(ctx)}
     }
 
-    public fun get_package(scenario: &mut Scenario): Publisher {
-        package::test_claim<TEST_UTILS>(TEST_UTILS {}, ctx(&mut scenario))
+    #[test_only]
+    public fun get_publisher(ctx: &mut TxContext): Publisher {
+        package::test_claim<TEST_UTILS>(TEST_UTILS {}, ctx)
+    }
 
+    #[test_only]
+    public fun init_transfer_policy(publisher: &Publisher, ctx: &mut TxContext): (TransferPolicy<Foo>, TransferPolicyCap<Foo>) {
+        ob_transfer_request::init_policy<Foo>(publisher, ctx)
     }
 
 

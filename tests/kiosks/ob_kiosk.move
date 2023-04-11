@@ -30,9 +30,13 @@ module nft_protocol::test_ob_kiosk {
     use sui::test_scenario::{Self, ctx};
     use sui::kiosk::{Self, Kiosk};
     use sui::transfer;
+    use sui::sui::SUI;
     use sui::object;
     use sui::table;
+    // use std::debug;
+    // use std::string;
 
+    use nft_protocol::ob_transfer_request;
     use nft_protocol::ob_kiosk::{Self, OwnerToken};
     use nft_protocol::test_utils::{Self, Foo, seller, fake_address};
 
@@ -149,12 +153,94 @@ module nft_protocol::test_ob_kiosk {
         // 5. Assert listing
         ob_kiosk::assert_listed(&mut kiosk, nft_id);
 
-        // 6. Assert NFT can be transferred..
-        // TODO: Create TransferPolicy
+        // 6. Create TransferPolicy
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
 
-        // 6. Return objects and end tx
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+        // 7. Assert NFT can be transferred..
+
+        // Fetch empty TransferPolicy
+        // Init Buyer's Kiosk
+        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        // Transfer NFT and get
+        let request = ob_kiosk::transfer_delegated<Foo>(
+            &mut kiosk,
+            &mut buyer_kiosk,
+            nft_id,
+            &rand_entity,
+            ctx(&mut scenario)
+        );
+
+        // Consumer the TransferReceipt<Foo>
+        ob_transfer_request::set_nothing_paid(&mut request);
+        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        // 8. Return objects and end tx
+        transfer::public_share_object(buyer_kiosk);
+        transfer::public_share_object(tx_policy);
+        transfer::public_transfer(publisher, seller());
+        transfer::public_transfer(policy_cap, seller());
         object::delete(rand_entity);
         test_scenario::return_shared(kiosk);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENotAuthorized)]
+    public fun test_kiosk_transfer_without_auth() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Deposit NFT
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        transfer::public_share_object(kiosk);
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 6. Create TransferPolicy
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+        // 7. Assert NFT cannot be transferred..
+
+        // Fetch empty TransferPolicy
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        // Init Buyer's Kiosk
+        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        // Transfer NFT and get
+        let rand_entity = object::new(ctx(&mut scenario));
+
+        let request = ob_kiosk::transfer_delegated<Foo>(
+            &mut kiosk,
+            &mut buyer_kiosk,
+            nft_id,
+            &rand_entity,
+            ctx(&mut scenario)
+        );
+
+        // Consumer the TransferReceipt<Foo>
+        ob_transfer_request::set_nothing_paid(&mut request);
+        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        // 8. Return objects and end tx
+        transfer::public_share_object(buyer_kiosk);
+        transfer::public_share_object(tx_policy);
+        transfer::public_transfer(publisher, seller());
+        transfer::public_transfer(policy_cap, seller());
+        object::delete(rand_entity);
+        test_scenario::return_shared(kiosk);
+
         test_scenario::end(scenario);
     }
 
