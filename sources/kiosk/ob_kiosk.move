@@ -355,7 +355,7 @@ module nft_protocol::ob_kiosk {
     }
 
     /// Similar to `withdraw_nft` but the entity is a signer instead of UID.
-    /// The owner doesn't can always initiate a withdraw.
+    /// The owner can always initiate a withdraw.
     ///
     /// A withdraw can be prevented with an allowlist.
     public fun withdraw_nft_signed<T: key + store>(
@@ -373,7 +373,7 @@ module nft_protocol::ob_kiosk {
         originator: address,
         ctx: &mut TxContext,
     ): (T, TransferRequest<T>) {
-        check_entity_and_pop_ref(self, originator, nft_id, ctx);
+        check_entity_and_pop_ref(self, originator, nft_id);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
@@ -669,7 +669,7 @@ module nft_protocol::ob_kiosk {
     }
 
     fun check_entity_and_pop_ref(
-        self: &mut Kiosk, entity: address, nft_id: ID, ctx: &mut TxContext,
+        self: &mut Kiosk, entity: address, nft_id: ID
     ) {
         let refs = nft_refs_mut(self);
         // NFT is being transferred - destroy the ref
@@ -678,7 +678,7 @@ module nft_protocol::ob_kiosk {
         // OR
         // entity MUST be included in the map
         assert!(
-            sender(ctx) == entity || vec_set::contains(&ref.auths, &entity),
+            entity == kiosk::owner(self) || vec_set::contains(&ref.auths, &entity),
             ENotAuthorized,
         );
     }

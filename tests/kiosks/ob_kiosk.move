@@ -1,7 +1,6 @@
 // TODO: Functions to test:
-// Try to auth_exclusive twice
-// Try to withdraw NFT and work/fail with user and entity
 // Use transfer_signed with Owner/Random signer to work/fail
+// Try to withdraw NFT and work/fail with user and entity
 // transfer_between_owned
 // fails transfer_between_owned if no owner
 
@@ -30,6 +29,7 @@ module nft_protocol::test_ob_kiosk {
     use sui::sui::SUI;
     use sui::object;
     use sui::table;
+    use sui::tx_context;
     // use std::debug;
     // use std::string;
 
@@ -343,6 +343,228 @@ module nft_protocol::test_ob_kiosk {
         // 8. Return objects and end tx
         object::delete(rand_entity);
         object::delete(rand_entity_2);
+        test_scenario::return_shared(kiosk);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENftAlreadyListed)]
+    public fun test_kiosk_try_to_list_exclusive_twice() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Deposit NFT
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        transfer::public_share_object(kiosk);
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 4. Insert a TransferAuth for an entity
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        let rand_entity = object::new(ctx(&mut scenario));
+        ob_kiosk::auth_exclusive_transfer(&mut kiosk, nft_id, &rand_entity, ctx(&mut scenario));
+
+        // 5. Assert listing
+        ob_kiosk::assert_exclusively_listed(&mut kiosk, nft_id);
+
+        // 6. Create TransferPolicy
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let rand_entity_2 = object::new(ctx(&mut scenario));
+        ob_kiosk::auth_exclusive_transfer(&mut kiosk, nft_id, &rand_entity_2, ctx(&mut scenario));
+
+        // 5. Assert listing
+        ob_kiosk::assert_listed(&mut kiosk, nft_id);
+
+        // 8. Return objects and end tx
+        object::delete(rand_entity);
+        object::delete(rand_entity_2);
+        test_scenario::return_shared(kiosk);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_kiosk_transfer_signed_as_owner() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Deposit NFT
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        transfer::public_share_object(kiosk);
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 4. Create TransferPolicy
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        // 5. Assert NFT can be transferred..
+
+        // Init Buyer's Kiosk
+        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // Transfer NFT and get
+        let request = ob_kiosk::transfer_signed(
+            &mut kiosk,
+            &mut buyer_kiosk,
+            nft_id,
+            ctx(&mut scenario)
+        );
+
+        // Consumer the TransferReceipt<Foo>
+        ob_transfer_request::set_nothing_paid(&mut request);
+        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        // 6. Return objects and end tx
+        transfer::public_share_object(buyer_kiosk);
+        transfer::public_share_object(tx_policy);
+        transfer::public_transfer(publisher, seller());
+        transfer::public_transfer(policy_cap, seller());
+        test_scenario::return_shared(kiosk);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_kiosk_transfer_signed_as_auth_address() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Deposit NFT
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        transfer::public_share_object(kiosk);
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 4. Insert a TransferAuth for an authorised address other than owner
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        let authorised_address: address = @0xA2C99;
+        ob_kiosk::auth_transfer(&mut kiosk, nft_id, authorised_address, ctx(&mut scenario));
+
+        // 5. Assert listing
+        ob_kiosk::assert_listed(&mut kiosk, nft_id);
+
+        // 6. Create TransferPolicy
+        test_scenario::next_tx(&mut scenario, authorised_address);
+
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        // 7. Assert NFT can be transferred..
+
+        // Init Buyer's Kiosk
+        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // Asserting that sender is effectively the authorised_address and not the owner
+        assert!(tx_context::sender(ctx(&mut scenario)) == authorised_address, 0);
+
+        // Transfer NFT and get
+        let request = ob_kiosk::transfer_signed(
+            &mut kiosk,
+            &mut buyer_kiosk,
+            nft_id,
+            ctx(&mut scenario)
+        );
+
+        // Consumer the TransferReceipt<Foo>
+        ob_transfer_request::set_nothing_paid(&mut request);
+        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        // 8. Return objects and end tx
+        transfer::public_share_object(buyer_kiosk);
+        transfer::public_share_object(tx_policy);
+        transfer::public_transfer(publisher, seller());
+        transfer::public_transfer(policy_cap, seller());
+        test_scenario::return_shared(kiosk);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENotAuthorized)]
+    public fun test_kiosk_transfer_signed_as_unauth_address() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Deposit NFT
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        transfer::public_share_object(kiosk);
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 4. Insert a TransferAuth for an authorised address other than owner
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        let unauthorised_address: address = @0xA2C99;
+
+        // 5. Create TransferPolicy
+        test_scenario::next_tx(&mut scenario, unauthorised_address);
+
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        // 6. Assert NFT can be transferred..
+
+        // Init Buyer's Kiosk
+        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // Asserting that sender is effectively the authorised_address and not the owner
+        assert!(tx_context::sender(ctx(&mut scenario)) == unauthorised_address, 0);
+
+        // Transfer NFT and get
+        let request = ob_kiosk::transfer_signed(
+            &mut kiosk,
+            &mut buyer_kiosk,
+            nft_id,
+            ctx(&mut scenario)
+        );
+
+        // Consumer the TransferReceipt<Foo>
+        ob_transfer_request::set_nothing_paid(&mut request);
+        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        // 7. Return objects and end tx
+        transfer::public_share_object(buyer_kiosk);
+        transfer::public_share_object(tx_policy);
+        transfer::public_transfer(publisher, seller());
+        transfer::public_transfer(policy_cap, seller());
         test_scenario::return_shared(kiosk);
 
         test_scenario::end(scenario);
