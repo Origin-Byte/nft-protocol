@@ -9,7 +9,7 @@
 /// order that they are declared.
 /// Read the created objects from those txs as you'll need some as inputs to the
 /// next transactions.
-/// We start the module with a `it_works` test which shows how those txs should
+/// We start the module with a `test_example_testract` test which shows how those txs should
 /// be called in order.
 module examples::testract {
     use nft_protocol::bidding;
@@ -496,7 +496,7 @@ module examples::testract {
     //
     // See the function docs for more information on how they fit in.
     #[test]
-    fun it_works() {
+    fun test_example_testract() {
         let scenario = test_scenario::begin(USER);
         let wallet = sui::coin::mint_for_testing(1_000_000, ctx(&mut scenario));
 
