@@ -226,8 +226,6 @@ module nft_protocol::listing {
     }
 
     /// Emits `NftSoldEvent` for provided `Nft`
-    ///
-    /// Buyer is set to the `logical_owner` of the `Nft`.
     public fun emit_sold_event<FT, T: key>(
         nft: &T,
         price: u64,

@@ -77,7 +77,7 @@ module nft_protocol::err {
         return Prefix + 303
     }
 
-    // === Safe ===
+    // === Kiosk ===
 
     public fun safe_cap_mismatch(): u64 {
         return Prefix + 400
