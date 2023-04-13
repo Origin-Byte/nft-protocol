@@ -133,28 +133,11 @@ module nft_protocol::utils {
         assert!(uid_id == object_id, 0);
     }
 
-    public fun assert_same_module<A, B>() {
-        let (package_a, module_a, _) = get_package_module_type<A>();
-        let (package_b, module_b, _) = get_package_module_type<B>();
-
-        assert!(package_a == package_b, err::witness_source_mismatch());
-        assert!(module_a == module_b, err::witness_source_mismatch());
-    }
-
     public fun assert_same_package<A, B>() {
         assert!(
             get_package<A>() == get_package<B>(),
             err::witness_source_mismatch()
         );
-    }
-
-    public fun assert_same_module_<A, B, C>() {
-        let (package_a, module_a, _) = get_package_module_type<A>();
-        let (package_b, module_b, _) = get_package_module_type<B>();
-        let (package_c, module_c, _) = get_package_module_type<C>();
-
-        assert!(package_a == package_b && package_b == package_c, err::witness_source_mismatch());
-        assert!(module_a == module_b && module_b == module_c, err::witness_source_mismatch());
     }
 
     public fun assert_package_publisher<C>(pub: &Publisher) {

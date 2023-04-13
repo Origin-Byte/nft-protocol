@@ -60,8 +60,8 @@ module examples::testract {
     /// Store publisher, mint_cap and collection object IDs.
     /// You'll need those for subsequent txs.
     fun init(witness: TESTRACT, ctx: &mut TxContext) {
-        let (collection, mint_cap) = collection::create_with_mint_cap<TestNft>(
-            col_wit(), option::none(), ctx
+        let (collection, mint_cap) = collection::create_with_mint_cap<TESTRACT, TestNft>(
+            &witness, option::none(), ctx
         );
 
         add_domains(&mut collection, ctx);

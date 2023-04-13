@@ -16,11 +16,12 @@ module nft_protocol::mint_cap {
     use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
 
+    use sui::types;
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
+    use nft_protocol::witness;
     use nft_protocol::supply::{Self, Supply};
-    use nft_protocol::witness::Witness as DelegatedWitness;
 
     /// `MintCap` is unlimited when expected limited
     const EMintCapunlimited: u64 = 1;
@@ -28,7 +29,8 @@ module nft_protocol::mint_cap {
     /// `MintCap` is limited when expected unlimited
     const EMintCaplimited: u64 = 2;
 
-    /// Parameter is not a OTW
+    /// Expected one-time witness as `OTW` type paremeter to initialize
+    /// `MintCap`
     const ENotOneTimeWitness: u64 = 3;
 
     /// `MintCap<T>` delegates the capability of it's owner to mint `T`
@@ -48,8 +50,12 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap`
-    public fun new<T>(
-        witness: DelegatedWitness<T>,
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `OTW` is from a different module than `T`.
+    public fun new<OTW: drop, T>(
+        witness: &OTW,
         collection_id: ID,
         supply: Option<u64>,
         ctx: &mut TxContext,
@@ -64,11 +70,18 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap` with unlimited supply
-    public fun new_unlimited<T>(
-        _witness: DelegatedWitness<T>,
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `OTW` is from a different module than `T`.
+    public fun new_unlimited<OTW: drop, T>(
+        witness: &OTW,
         collection_id: ID,
         ctx: &mut TxContext,
     ): MintCap<T> {
+        witness::assert_same_module<OTW, T>();
+        assert!(types::is_one_time_witness(witness), ENotOneTimeWitness);
+
         MintCap {
             id: object::new(ctx),
             collection_type: type_name::get<T>(),
@@ -78,12 +91,19 @@ module nft_protocol::mint_cap {
     }
 
     /// Create a new `MintCap` with limited supply
-    public fun new_limited<T>(
-        _witness: DelegatedWitness<T>,
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `OTW` is from a different module than `T`.
+    public fun new_limited<OTW: drop, T>(
+        witness: &OTW,
         collection_id: ID,
         supply: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
+        witness::assert_same_module<OTW, T>();
+        assert!(types::is_one_time_witness(witness), ENotOneTimeWitness);
+
         MintCap {
             id: object::new(ctx),
             collection_id,
@@ -162,7 +182,7 @@ module nft_protocol::mint_cap {
         quantity: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        let supply = if (option::is_some(&mint_cap.supply)) {
+        let supply = if (has_supply(mint_cap)) {
             supply::split(
                 option::borrow_mut(&mut mint_cap.supply), quantity)
         } else {

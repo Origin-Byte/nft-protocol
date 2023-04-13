@@ -43,6 +43,11 @@ module swoots::swoots {
     fun init(otw: SWOOTS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
+        // Init Collection & MintCap with limited 10_000 supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<SWOOTS, Swoot>(
+            &otw, option::some(10_000), ctx
+        );
+
         // Init Publisher
         let publisher = sui::package::claim(otw, ctx);
 
@@ -52,14 +57,8 @@ module swoots::swoots {
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
-
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
-
-        // Init Collection & MintCap with limited 10_000 supply
-        let (collection, mint_cap) = collection::create_with_mint_cap<Swoot>(
-            dw, option::some(10_000), ctx
-        );
 
         // Add name and description to Collection
         collection::add_domain(
