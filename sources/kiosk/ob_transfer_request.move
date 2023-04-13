@@ -76,6 +76,12 @@ module nft_protocol::ob_transfer_request {
         metadata: UID,
     }
 
+    /// TLDR:
+    /// * + easier interface
+    /// * + pay royalties from what's been paid
+    /// * + permissionless trade resolution
+    /// * - less client control
+    ///
     /// Policies which own this capability get mutable access the balance of
     /// `TransferRequest<T>`.
     ///
@@ -279,9 +285,15 @@ module nft_protocol::ob_transfer_request {
     /// This is useful if permissionless trade resolution is not necessary
     /// and the royalties can be deducted from a specific `Balance` rather than
     /// using `BalanceAccessCap`.
+    ///
+    /// Is idempotent.
     public fun distribute_balance_to_beneficiary<T, FT>(
         self: &mut TransferRequest<T>, ctx: &mut TxContext,
     ) {
+        if (!df::exists_(&self.metadata, BalanceDfKey {})) {
+            return
+        };
+
         let balance: Balance<FT> = df::remove(&mut self.metadata, BalanceDfKey {});
         if (balance::value(&balance) > 0) {
             public_transfer(coin::from_balance(balance, ctx), self.beneficiary);

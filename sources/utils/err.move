@@ -39,10 +39,6 @@ module nft_protocol::err {
         return Prefix + 211
     }
 
-    public fun wrong_listing_admin(): u64 {
-        return Prefix + 212
-    }
-
     public fun wrong_fee_policy_type(): u64 {
         return Prefix + 213
     }
@@ -77,7 +73,7 @@ module nft_protocol::err {
         return Prefix + 303
     }
 
-    // === Safe ===
+    // === Kiosk ===
 
     public fun safe_cap_mismatch(): u64 {
         return Prefix + 400

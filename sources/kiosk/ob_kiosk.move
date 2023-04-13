@@ -127,7 +127,7 @@ module nft_protocol::ob_kiosk {
     struct DepositSetting has store, drop {
         /// Enables depositing any collection, bypassing enabled deposits
         enable_any_deposit: bool,
-        /// Collections which can be deposited into the `Safe`
+        /// Collections which can be deposited into the `Kiosk`
         collections_with_enabled_deposits: VecSet<TypeName>,
     }
 

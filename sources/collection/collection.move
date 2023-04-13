@@ -18,7 +18,7 @@ module nft_protocol::collection {
 
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
 
     /// Domain not defined
     ///
@@ -59,36 +59,48 @@ module nft_protocol::collection {
         type_name: TypeName,
     }
 
-    /// Creates a shared `Collection<C>`, where `C` will typically be the
-    /// One-Time Witness of the collection.
+    /// Creates a `Collection<T>`
+    ///
+    /// `T` will typically be the one-time witness for the contract and can be
+    /// created using the shorthand `create_from_otw`.
+    public fun create<T>(
+        _witness: DelegatedWitness<T>,
+        ctx: &mut TxContext,
+    ): Collection<T> {
+        create_(ctx)
+    }
+
+    /// Creates a `Collection<T>` from the one-time witness of the contract
     ///
     /// #### Panics
     ///
-    /// Panics if witness is not defined in the same module as `C`.
-    public fun create<C>(
-        _witness: DelegatedWitness<C>,
+    /// Panics if one-time witness is not defined in the same module as `T`.
+    public fun create_from_otw<OTW: drop, T>(
+        _witness: &OTW,
         ctx: &mut TxContext,
-    ): Collection<C> {
-        let id = object::new(ctx);
-
-        event::emit(MintCollectionEvent {
-            collection_id: object::uid_to_inner(&id),
-            type_name: type_name::get<C>(),
-        });
-
-        Collection { id }
+    ): Collection<T> {
+        witness::assert_same_module<OTW, T>();
+        create_(ctx)
     }
 
     /// Creates a `Collection<T>`, and a `MintCap<T>` and returns it.
     ///
     /// #### Panics
     ///
-    /// Panics if witness is not defined in the same module as `C`.
-    public fun create_with_mint_cap<T>(
-        witness: DelegatedWitness<T>,
+    /// Panics if one-time witness is not defined in the same module as `T`.
+    public fun create_with_mint_cap<OTW: drop, T>(
+        witness: &OTW,
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): (Collection<T>, MintCap<T>) {
+        let collection = create_from_otw(witness, ctx);
+        let mint_cap = mint_cap::new(witness, object::id(&collection), supply, ctx);
+
+        (collection, mint_cap)
+    }
+
+    /// Create a `Collection<T>`
+    fun create_<T>(ctx: &mut TxContext): Collection<T> {
         let id = object::new(ctx);
 
         event::emit(MintCollectionEvent {
@@ -96,15 +108,12 @@ module nft_protocol::collection {
             type_name: type_name::get<T>(),
         });
 
-        let collection = Collection { id };
-
-        let mint_cap = mint_cap::new(witness, object::id(&collection), supply, ctx);
-
-        (collection, mint_cap)
+        Collection { id }
     }
 
     /// Creates a shared `Collection<C>`, where `C` will typically be the
     /// One-Time Witness of the collection.
+    ///
     /// #### Panics
     ///
     /// Panics if witness is not defined in the same module as `C`.
