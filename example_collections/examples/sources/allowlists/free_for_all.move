@@ -67,8 +67,8 @@ module examples::free_for_all {
 
         let delegated_witness = witness::from_witness(Witness {});
 
-        let (collection, mint_cap) = collection::create_with_mint_cap<SomeRandomType>(
-            delegated_witness, option::none(), ctx(&mut scenario)
+        let (collection, mint_cap) = collection::create_with_mint_cap<FREE_FOR_ALL, SomeRandomType>(
+            &FREE_FOR_ALL {}, option::none(), ctx(&mut scenario)
         );
 
         collection::add_domain(

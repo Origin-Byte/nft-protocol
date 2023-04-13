@@ -9,8 +9,6 @@ module loose::deadbytes {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection;
-    use nft_protocol::witness;
-
 
     /// One time witness is only instantiated in the init method
     struct DEADBYTES has drop {}
@@ -31,15 +29,12 @@ module loose::deadbytes {
     fun init(otw: DEADBYTES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
-        // Get the Delegated Witness
-        let dw = witness::from_witness(Witness {});
-
-        // Init Collection
         // Init Collection & MintCap with unlimited supply
-        let (collection, mint_cap) = collection::create_with_mint_cap<DeadByte>(
-            dw, option::none(), ctx
+        let (collection, mint_cap) = collection::create_with_mint_cap<DEADBYTES, DeadByte>(
+            &otw, option::none(), ctx
         );
 
+        // Init Publisher
         let publisher = package::claim<DEADBYTES>(otw, ctx);
 
         transfer::public_transfer(mint_cap, sender);
