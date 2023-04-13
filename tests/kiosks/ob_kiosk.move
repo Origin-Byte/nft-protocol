@@ -732,6 +732,117 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::end(scenario);
     }
 
+    #[test]
+    public fun test_kiosk_withdraw_as_auth_entity() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Deposit NFT
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        transfer::public_share_object(kiosk);
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 4. Insert a TransferAuth for an authorised address other than owner
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        let rand_entity = object::new(ctx(&mut scenario));
+        ob_kiosk::auth_transfer(&mut kiosk, nft_id, object::uid_to_address(&rand_entity), ctx(&mut scenario));
+
+        // 5. Assert listing
+        ob_kiosk::assert_listed(&mut kiosk, nft_id);
+
+        // 6. Create TransferPolicy
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        // 7. Get NFT
+        let (nft, request) = ob_kiosk::withdraw_nft<Foo>(
+            &mut kiosk,
+            nft_id,
+            &rand_entity,
+            ctx(&mut scenario)
+        );
+
+        // Consumer the TransferReceipt<Foo>
+        ob_transfer_request::set_nothing_paid(&mut request);
+        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        // 8. Return objects and end tx
+        transfer::public_transfer(nft, seller());
+        transfer::public_share_object(tx_policy);
+        transfer::public_transfer(publisher, seller());
+        transfer::public_transfer(policy_cap, seller());
+        test_scenario::return_shared(kiosk);
+        object::delete(rand_entity);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENotAuthorized)]
+    public fun test_kiosk_withdraw_as_unauth_entity() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Deposit NFT
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        transfer::public_share_object(kiosk);
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 4. Insert a TransferAuth for an authorised address other than owner
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        let rand_entity = object::new(ctx(&mut scenario));
+
+        // 5. Create TransferPolicy
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        // 6. Get NFT
+        let (nft, request) = ob_kiosk::withdraw_nft<Foo>(
+            &mut kiosk,
+            nft_id,
+            &rand_entity,
+            ctx(&mut scenario)
+        );
+
+        // Consumer the TransferReceipt<Foo>
+        ob_transfer_request::set_nothing_paid(&mut request);
+        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        // 7. Return objects and end tx
+        transfer::public_transfer(nft, seller());
+        transfer::public_share_object(tx_policy);
+        transfer::public_transfer(publisher, seller());
+        transfer::public_transfer(policy_cap, seller());
+        test_scenario::return_shared(kiosk);
+        object::delete(rand_entity);
+
+        test_scenario::end(scenario);
+    }
+
     fun check_new_kiosk(kiosk: &mut Kiosk, kiosk_owner: address) {
         // 1. Check all static fields
         assert!(kiosk::owner(kiosk) == kiosk_owner, 0);
