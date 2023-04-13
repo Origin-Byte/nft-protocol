@@ -60,7 +60,7 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = venue::EVENUE_NOT_LIVE)]
+    #[expected_failure(abort_code = venue::EVenueNotLive)]
     fun try_bid_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -185,7 +185,7 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = venue::EVENUE_WHITELISTED)]
+    #[expected_failure(abort_code = venue::EVenueWhitelisted)]
     fun try_bid_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -455,7 +455,7 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370212, location = nft_protocol::listing)]
+    #[expected_failure(abort_code = listing::EWrongAdmin)]
     fun try_cancel_auction() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -549,7 +549,7 @@ module nft_protocol::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370212, location = nft_protocol::listing)]
+    #[expected_failure(abort_code = listing::EWrongAdmin)]
     fun try_conclude_auction() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);

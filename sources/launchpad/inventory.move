@@ -122,7 +122,7 @@ module nft_protocol::inventory {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft_at_index(inventory, index);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Redeems NFT with specific ID from `Inventory`
@@ -158,7 +158,7 @@ module nft_protocol::inventory {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft_with_id(inventory, nft_id);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Pseudo-randomly redeems NFT from `Inventory`

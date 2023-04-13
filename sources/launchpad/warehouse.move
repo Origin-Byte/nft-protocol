@@ -245,7 +245,7 @@ module nft_protocol::warehouse {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft_with_id(warehouse, nft_id);
-        transfer::transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Pseudo-randomly redeems NFT from `Warehouse`
