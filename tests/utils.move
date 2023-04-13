@@ -7,7 +7,6 @@ module nft_protocol::test_utils {
     use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use sui::package::{Self, Publisher};
 
-    use nft_protocol::witness;
     use nft_protocol::ob_transfer_request;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
@@ -39,8 +38,8 @@ module nft_protocol::test_utils {
     public fun init_collection_foo(
         ctx: &mut TxContext
     ): (Collection<Foo>, MintCap<Foo>) {
-        collection::create_with_mint_cap<Foo>(
-            witness::from_witness(Witness {}), option::none(), ctx
+        collection::create_with_mint_cap<TEST_UTILS, Foo>(
+            &TEST_UTILS {}, option::none(), ctx
         )
     }
 
