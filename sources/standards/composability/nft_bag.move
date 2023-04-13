@@ -201,6 +201,7 @@ module nft_protocol::nft_bag {
         let authority_type = type_name::get<Auth>();
         assert!(authority == &authority_type, EInvalidAuthority);
 
+        vec_map::remove_entry_by_idx(&mut domain.nfts, idx);
         dof::remove(&mut domain.id, child_nft_id)
     }
 

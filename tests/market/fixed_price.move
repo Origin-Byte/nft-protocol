@@ -57,7 +57,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = venue::EVENUE_NOT_LIVE)]
+    #[expected_failure(abort_code = venue::EVenueNotLive)]
     fun try_buy_not_live() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -140,11 +140,7 @@ module nft_protocol::test_fixed_price {
         assert!(balance::value(proceeds::balance<SUI>(proceeds)) == 10, 0);
 
         // Check NFT was transferred with correct logical owner
-        let nft = test_scenario::take_from_address<Foo>(
-            &scenario, BUYER
-        );
-
-        test_scenario::return_to_address(BUYER, nft);
+        assert!(test_scenario::has_most_recent_for_address<Foo>(BUYER), 0);
 
         transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);
@@ -152,7 +148,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = venue::EVENUE_WHITELISTED)]
+    #[expected_failure(abort_code = venue::EVenueWhitelisted)]
     fun try_buy_whitelisted_nft() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -222,7 +218,7 @@ module nft_protocol::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = 13370212, location = nft_protocol::listing)]
+    #[expected_failure(abort_code = listing::EWrongAdmin)]
     fun try_change_price() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
