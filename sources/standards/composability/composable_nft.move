@@ -1,7 +1,4 @@
 module nft_protocol::composable_nft {
-    // TODO: Ideally we would allow for multiple NFTs to be composed together in a single
-    // transaction
-    // TODO: some endpoint for reorder_children
     use std::type_name::{Self, TypeName};
 
     use sui::dynamic_field as df;
@@ -37,7 +34,7 @@ module nft_protocol::composable_nft {
     /// Set a higher type limit in the `Composition`.
     const EExceededLimit: u64 = 5;
 
-    /// Internal struct for indexing NFTs in `NftBagDomain`
+    /// Internal struct for indexing NFTs in `NftBag`
     struct Key<phantom T> has drop, store {}
 
     /// Object that defines type-limiting composabiilty rules for NFTs stored
@@ -136,7 +133,7 @@ module nft_protocol::composable_nft {
         let limit = get_limit(composition, &child_type);
 
         assert!(
-            nft_bag::count<Child, Key<Child>>(nfts) < limit,
+            nft_bag::count<Key<Child>>(nfts) < limit,
             EExceededLimit,
         );
 
