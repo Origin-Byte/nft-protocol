@@ -644,9 +644,7 @@ module nft_protocol::ob_kiosk {
         assert_ref_not_exclusively_listed(ref);
     }
 
-    public fun assert_not_listed(
-        self: &mut Kiosk, nft_id: ID
-    ) {
+    public fun assert_not_listed(self: &mut Kiosk, nft_id: ID) {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
         let ref = table::borrow(refs, nft_id);
         assert_ref_not_listed(ref);
