@@ -11,7 +11,7 @@ module launchpad_v2::venue {
     use sui::balance::{Self, Balance};
     use sui::transfer;
 
-    use nft_protocol::utils;
+    use nft_protocol::witness;
     use nft_protocol::supply::{Self, Supply};
     use launchpad_v2::launchpad::{Self, LaunchCap};
     use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap as AuthPolicyCap, Policy as AuthPolicy};
@@ -643,7 +643,7 @@ module launchpad_v2::venue {
     }
 
     public fun assert_called_from_inventory<IW: drop, INV: key + store>(inv: &INV, cert:  &NftCert) {
-        utils::assert_same_module<INV, IW>();
+        witness::assert_same_module<INV, IW>();
         assert!(object::id(inv) == cert.inventory, EINVENTORY_ID_MISMATCH);
     }
 
