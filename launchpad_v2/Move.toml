@@ -1,7 +1,7 @@
 [package]
 name = "LaunchpadV2"
 version = "0.29.0"
-published-at = "0x"
+published-at = "0x1fab4337fffe7a079009c9b77a7132b43246413b7194fabcca9d620c8066a197"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -17,4 +17,4 @@ rev = "538bc0d65e5df9e8c8fb0ee4ce21da6aa9129394"
 local = "../"
 
 [addresses]
-launchpad_v2 = "0x"
+launchpad_v2 = "0x1fab4337fffe7a079009c9b77a7132b43246413b7194fabcca9d620c8066a197"
