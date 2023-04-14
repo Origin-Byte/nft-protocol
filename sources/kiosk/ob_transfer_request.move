@@ -26,11 +26,14 @@ module nft_protocol::ob_transfer_request {
     use nft_protocol::witness::Witness as DelegatedWitness;
     use std::type_name::{Self, TypeName};
     use std::vector;
+    // use std::debug;
+    // use std::string;
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
     use sui::sui::SUI;
+    use sui::package::Publisher;
     use sui::transfer_policy::{Self, TransferPolicy, TransferPolicyCap, TransferRequest as SuiTransferRequest};
     use sui::transfer::public_transfer;
     use sui::tx_context::TxContext;
@@ -197,6 +200,23 @@ module nft_protocol::ob_transfer_request {
 
     // === TransferPolicy ===
 
+    /// Helper for initiating a `TransferPolicy` with OriginByte Rules.
+    /// We extend the functionality of `TransferPolicy` by inserting our
+    /// Originbyte `VecSet<TypeName>` into it.
+    public fun init_policy<T>(
+        publisher: &Publisher,
+        ctx: &mut TxContext
+    ): (TransferPolicy<T>, TransferPolicyCap<T>) {
+        let (policy, cap) =
+            sui::transfer_policy::new<T>(publisher, ctx);
+
+        let ext = transfer_policy::uid_mut_as_owner(&mut policy, &cap);
+
+        df::add(ext, OringinbyteRulesDfKey {}, vec_set::empty<TypeName>());
+
+        (policy, cap)
+    }
+
     /// We extend the functionality of `TransferPolicy` by inserting our
     /// Originbyte `VecSet<TypeName>` into it.
     /// These rules work with our custom `TransferRequest`.
@@ -249,11 +269,9 @@ module nft_protocol::ob_transfer_request {
             receipts,
         } = self;
         object::delete(metadata);
-
         let rules = df::borrow(transfer_policy::uid(policy), OringinbyteRulesDfKey {});
         let completed = vec_set::into_keys(receipts);
         let total = vector::length(&completed);
-
         assert!(total == vec_set::size(rules), EPolicyNotSatisfied);
         while (total > 0) {
             let rule_type = vector::pop_back(&mut completed);

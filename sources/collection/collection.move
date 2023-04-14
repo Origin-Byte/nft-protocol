@@ -44,7 +44,7 @@ module nft_protocol::collection {
     /// [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system),
     /// where their domains are accessible by type. See
     /// [borrow_domain_mut](#borrow_domain_mut).
-    struct Collection<phantom W> has key, store {
+    struct Collection<phantom T> has key, store {
         /// `Collection` ID
         id: UID,
     }
