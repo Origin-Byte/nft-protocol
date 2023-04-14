@@ -179,10 +179,8 @@ module nft_protocol::bidding {
 
     /// If a user wants to cancel their position, they get their coins back.
     /// Both offer and commission (if set) are given back.
-    public fun close_bid<FT>(
-        bid: &mut Bid<FT>, kiosk: &mut Kiosk, ctx: &mut TxContext,
-    ) {
-        close_bid_(bid, kiosk, ctx);
+    public fun close_bid<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
+        close_bid_(bid, ctx);
     }
 
     /// === Helpers ===
@@ -272,11 +270,7 @@ module nft_protocol::bidding {
         transfer_req
     }
 
-    fun close_bid_<FT>(
-        bid: &mut Bid<FT>,
-        kiosk: &mut Kiosk,
-        ctx: &mut TxContext,
-    ) {
+    fun close_bid_<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
         let sender = sender(ctx);
         assert!(bid.buyer == sender, err::sender_not_owner());
 
@@ -300,7 +294,5 @@ module nft_protocol::bidding {
             price: total,
             ft_type: *type_name::borrow_string(&type_name::get<FT>()),
         });
-
-        ob_kiosk::remove_auth_transfer(kiosk, bid.nft, &bid.id)
     }
 }

@@ -12,30 +12,28 @@ module nft_protocol::venue {
     use sui::object::{Self, UID};
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
-
     /// `Venue` is not live
     ///
     /// Call `Venue::set_live` or `Listing::sale_on` to make it live.
-    const EVENUE_NOT_LIVE: u64 = 1;
+    const EVenueNotLive: u64 = 1;
 
     /// `Venue` whitelisted
     ///
     /// Ensure that `Venue` is not whitelisted when calling `Venue::new` or
     /// call `Venue::set_whitelisted`.
-    const EVENUE_WHITELISTED: u64 = 2;
+    const EVenueWhitelisted: u64 = 2;
 
     /// `Venue` not whitelisted
     ///
     /// Ensure that `Venue` is whitelisted when calling `Venue::new` or call
     /// `Venue::set_whitelisted`.
-    const EVENUE_NOT_WHITELISETED: u64 = 3;
+    const EVenueNotWhitelisted: u64 = 3;
 
     /// `Venue` market accessed with incorrect type
     ///
     /// Ensure that the type argument provided to `Venue::borrow_market`
     /// corresponds to the underlying market.
-    const EVENUE_INCORRECT_MARKET_TYPE: u64 = 4;
+    const EVenueIncorrectMarketType: u64 = 4;
 
     /// `Venue` object
     ///
@@ -54,6 +52,8 @@ module nft_protocol::venue {
         is_whitelisted: bool,
     }
 
+    struct Key has drop, copy, store {}
+
     /// Create a new `Venue`
     public fun new<Market: store>(
         market: Market,
@@ -61,7 +61,7 @@ module nft_protocol::venue {
         ctx: &mut TxContext
     ): Venue {
         let venue_id = object::new(ctx);
-        df::add(&mut venue_id, utils::marker<Market>(), market);
+        df::add(&mut venue_id, Key {}, market);
 
         Venue {
             id: venue_id,
@@ -123,7 +123,7 @@ module nft_protocol::venue {
         venue: &Venue,
     ): &Market {
         assert_market<Market>(venue);
-        df::borrow(&venue.id, utils::marker<Market>())
+        df::borrow(&venue.id, Key {})
     }
 
     /// Mutably borrow `Venue` market
@@ -138,7 +138,21 @@ module nft_protocol::venue {
         venue: &mut Venue,
     ): &mut Market {
         assert_market<Market>(venue);
-        df::borrow_mut(&mut venue.id, utils::marker<Market>())
+        df::borrow_mut(&mut venue.id, Key {})
+    }
+
+    /// Deconstruct `Venue` returning the underlying market
+    ///
+    /// #### Panics
+    ///
+    /// Panics if underlying market does not match the provided type.
+    public fun delete<Market: store>(venue: Venue): Market {
+        let market = df::remove(&mut venue.id, Key {});
+
+        let Venue { id, is_live: _, is_whitelisted: _ } = venue;
+        object::delete(id);
+
+        market
     }
 
     // === Assertions ===
@@ -149,9 +163,7 @@ module nft_protocol::venue {
     ///
     /// Panics if incorrect type was provided
     public fun assert_market<Market: store>(venue: &Venue): bool {
-        df::exists_with_type<Marker<Market>, Market>(
-            &venue.id, utils::marker<Market>()
-        )
+        df::exists_with_type<Key, Market>(&venue.id, Key {})
     }
 
     /// Asserts that `Venue` is live
@@ -160,7 +172,7 @@ module nft_protocol::venue {
     ///
     /// Panics if `Venue` is not live
     public fun assert_is_live(venue: &Venue) {
-        assert!(is_live(venue), EVENUE_NOT_LIVE);
+        assert!(is_live(venue), EVenueNotLive);
     }
 
     /// Asserts that `Venue` is whitelisted
@@ -169,7 +181,7 @@ module nft_protocol::venue {
     ///
     /// Panics if `Venue` is not whitelisted
     public fun assert_is_whitelisted(venue: &Venue) {
-        assert!(is_whitelisted(venue), EVENUE_NOT_WHITELISETED);
+        assert!(is_whitelisted(venue), EVenueNotWhitelisted);
     }
 
     /// Asserts that `Venue` is not whitelisted
@@ -178,6 +190,6 @@ module nft_protocol::venue {
     ///
     /// Panics if `Venue` is whitelisted
     public fun assert_is_not_whitelisted(venue: &Venue) {
-        assert!(!is_whitelisted(venue), EVENUE_WHITELISTED);
+        assert!(!is_whitelisted(venue), EVenueWhitelisted);
     }
 }

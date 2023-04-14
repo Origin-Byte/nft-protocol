@@ -7,7 +7,7 @@ module examples::free_for_all {
     use sui::tx_context::TxContext;
     use sui::package::{Self, Publisher};
 
-    use nft_protocol::witness;
+    use nft_protocol::witness::{Self, from_witness, Witness as DelegatedWitness};
     use nft_protocol::collection::Collection;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
@@ -17,7 +17,7 @@ module examples::free_for_all {
     struct Witness has drop {}
 
     fun init(otw: FREE_FOR_ALL, ctx: &mut TxContext) {
-        transfer_allowlist::init_allowlist(&Witness {}, ctx);
+        transfer_allowlist::init_allowlist(from_witness<FREE_FOR_ALL, Witness>(Witness {}), ctx);
 
         package::claim_and_keep(otw, ctx);
     }
@@ -30,13 +30,11 @@ module examples::free_for_all {
     ) {
         assert!(package::from_package<C>(pub), 0);
 
-        let delegated_witness = witness::from_publisher(pub);
+        let delegated_witness: DelegatedWitness<C> = witness::from_publisher(pub);
         transfer_allowlist_domain::add_id(delegated_witness, collection, allowlist);
 
-        let delegated_witness = witness::from_witness<FREE_FOR_ALL, Witness>(Witness {});
-
         transfer_allowlist::insert_collection(
-            allowlist, &Witness {}, delegated_witness,
+            from_witness<FREE_FOR_ALL, Witness>(Witness {}), delegated_witness, allowlist
         );
     }
 
@@ -69,8 +67,8 @@ module examples::free_for_all {
 
         let delegated_witness = witness::from_witness(Witness {});
 
-        let (collection, mint_cap) = collection::create_with_mint_cap<SomeRandomType>(
-            delegated_witness, option::none(), ctx(&mut scenario)
+        let (collection, mint_cap) = collection::create_with_mint_cap<FREE_FOR_ALL, SomeRandomType>(
+            &FREE_FOR_ALL {}, option::none(), ctx(&mut scenario)
         );
 
         collection::add_domain(

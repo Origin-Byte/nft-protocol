@@ -20,28 +20,33 @@ module nft_protocol::warehouse {
 
     /// `Warehouse` does not have NFTs left to withdraw
     ///
-    /// Call `Warehouse::deposit_nft` or `Listing::add_nft` to add NFTs.
+    /// Call `warehouse::deposit_nft` or `listing::add_nft` to add NFTs.
     const EEMPTY: u64 = 1;
 
     /// `Warehouse` still has NFTs left to withdraw
     ///
-    /// Call `Warehouse::redeem_nft` or a `Listing` market to withdraw remaining
+    /// Call `warehouse::redeem_nft` or a `Listing` market to withdraw remaining
     /// NFTs.
     const ENOT_EMPTY: u64 = 2;
 
     /// `Warehouse` does not have NFT at specified index
     ///
-    /// Call `Warehouse::redeem_nft_at_index` with an index that exists.
+    /// Call `warehouse::redeem_nft_at_index` with an index that exists.
     const EINDEX_OUT_OF_BOUNDS: u64 = 3;
+
+    /// `Warehouse` did not contain NFT object with given ID
+    ///
+    /// Call `warehouse::redeem_nft_with_id` with an ID that exists.
+    const EINVALID_NFT_ID: u64 = 4;
 
     /// Attempted to construct a `RedeemCommitment` with a hash length
     /// different than 32 bytes
-    const EINVALID_COMMITMENT_LENGTH: u64 = 4;
+    const EINVALID_COMMITMENT_LENGTH: u64 = 5;
 
     /// Commitment in `RedeemCommitment` did not match original value committed
     ///
-    /// Call `Warehosue::random_redeem_nft` with the correct commitment.
-    const EINVALID_COMMITMENT: u64 = 5;
+    /// Call `warehouse::random_redeem_nft` with the correct commitment.
+    const EINVALID_COMMITMENT: u64 = 6;
 
     /// Used for the client to commit a pseudo-random
     struct RedeemCommitment has key {
@@ -101,7 +106,7 @@ module nft_protocol::warehouse {
         dof::add(&mut warehouse.id, nft_id, nft);
     }
 
-    /// Redeems NFT from `Warehouse`
+    /// Redeems NFT from `Warehouse` sequentially
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
@@ -121,7 +126,7 @@ module nft_protocol::warehouse {
         dof::remove(&mut warehouse.id, vector::pop_back(nfts))
     }
 
-    /// Redeems NFT from `Warehouse` and transfers to sender
+    /// Redeems NFT from `Warehouse` sequentially and transfers to sender
     ///
     /// See `redeem_nft` for more details.
     ///
@@ -188,6 +193,58 @@ module nft_protocol::warehouse {
         ctx: &mut TxContext,
     ) {
         let nft = redeem_nft_at_index(warehouse, index);
+        transfer::public_transfer(nft, tx_context::sender(ctx));
+    }
+
+    /// Redeems NFT with specific ID from `Warehouse`
+    ///
+    /// Does not retain original order of NFTs in the bookkeeping vector.
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Warehouse`.
+    ///
+    /// `Warehouse` may not change the logical owner of an `Nft` when
+    /// redeeming as this would allow royalties to be trivially bypassed.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if NFT with ID does not exist in `Warehouse`.
+    public fun redeem_nft_with_id<T: key + store>(
+        warehouse: &mut Warehouse<T>,
+        nft_id: ID,
+    ): T {
+        let nfts = &mut warehouse.nfts;
+        let supply = vector::length(nfts);
+
+        let idx = 0;
+        while (idx < supply) {
+            let t_nft_id = vector::borrow(nfts, idx);
+
+            if (&nft_id == t_nft_id) {
+                return redeem_nft_at_index(warehouse, idx)
+            };
+
+            idx = idx + 1;
+        };
+
+        assert!(false, EINVALID_NFT_ID);
+        // Provide correct return type signature but will fail eitherway
+        redeem_nft_at_index(warehouse, idx)
+    }
+
+    /// Redeems NFT from specific index in `Warehouse` and transfers to sender
+    ///
+    /// See `redeem_nft_with_id` for more details.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if index does not exist in `Warehouse`.
+    public entry fun redeem_nft_with_id_and_transfer<T: key + store>(
+        warehouse: &mut Warehouse<T>,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        let nft = redeem_nft_with_id(warehouse, nft_id);
         transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 

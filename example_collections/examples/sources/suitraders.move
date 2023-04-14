@@ -40,6 +40,11 @@ module examples::suitraders {
     fun init(otw: SUITRADERS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<SUITRADERS, Suitrader>(
+            &otw, option::none(), ctx
+        );
+
         // Init Publisher
         let publisher = sui::package::claim(otw, ctx);
 
@@ -54,11 +59,6 @@ module examples::suitraders {
 
         // Get the Delegated Witness
         let dw = witness::from_witness(Witness {});
-
-        // Init Collection & MintCap with unlimited supply
-        let (collection, mint_cap) = collection::create_with_mint_cap<Suitrader>(
-            dw, option::none(), ctx
-        );
 
         // Add name and description to Collection
         collection::add_domain(
