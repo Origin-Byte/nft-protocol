@@ -143,6 +143,11 @@ module nft_protocol::creators {
         df::remove(nft, utils::marker<Creators>())
     }
 
+    /// Delete a `Creators` object
+    public fun delete(creators: Creators) {
+        let Creators { creators: _ } = creators;
+    }
+
     // === Assertions ===
 
     /// Asserts that address is a creator attributed in `Creators`

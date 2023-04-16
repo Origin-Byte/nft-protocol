@@ -144,6 +144,11 @@ module nft_protocol::transfer_allowlist_domain {
         df::remove(nft, utils::marker<TransferAllowlistDomain>())
     }
 
+    /// Delete a `TransferAllowlistDomain` object
+    public fun delete(allowlists: TransferAllowlistDomain) {
+        let TransferAllowlistDomain { allowlists: _ } = allowlists;
+    }
+
     // === Assertions ===
 
     /// Asserts that `TransferAllowlistDomain` is registered on `Nft`
