@@ -58,7 +58,6 @@ module nft_protocol::test_utils {
         ob_transfer_request::init_policy<Foo>(publisher, ctx)
     }
 
-
     // TODO: This will be reintroduced
     // public fun create_collection_and_allowlist(
     //     creator: address,
