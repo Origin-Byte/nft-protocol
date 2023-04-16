@@ -520,16 +520,15 @@ module nft_protocol::ob_kiosk {
 
     // === NFT Accessors ===
 
-    public fun borrow_nft_field_mut<OTW: drop, T: key + store, Field: store>(
+    public fun borrow_nft_field_mut<T: key + store, Field: store>(
         self: &mut Kiosk,
-        collection: &Collection<OTW>,
+        collection: &Collection<T>,
         nft_id: TypedID<T>,
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = typed_id::to_id(nft_id);
         assert_not_listed(self, nft_id);
-        // TODO: Assert T lives in the OTW universe
-        ap::assert_field_auth<OTW, T, Field>(collection, ctx);
+        ap::assert_field_auth<T, Field>(collection, ctx);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);

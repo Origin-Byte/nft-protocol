@@ -203,11 +203,11 @@ module nft_protocol::access_policy {
     //     }
     // }
 
-    public fun assert_field_auth<C: drop, T: key + store, Field: store>(
-        collection: &Collection<C>,
+    public fun assert_field_auth<T: key + store, Field: store>(
+        collection: &Collection<T>,
         ctx: &TxContext,
     ) {
-        let access_policy = collection::borrow_domain<C, AccessPolicy<T>>(
+        let access_policy = collection::borrow_domain<T, AccessPolicy<T>>(
             collection
         );
 
