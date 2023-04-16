@@ -60,7 +60,7 @@ module nft_protocol::transfer_allowlist_domain {
     public fun add_id<T>(
         witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
-        al: &mut Allowlist,
+        al: &Allowlist,
     ) {
         let domain = borrow_domain_mut(
             collection::borrow_uid_mut(witness, collection),

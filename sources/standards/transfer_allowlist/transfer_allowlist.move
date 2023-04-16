@@ -85,7 +85,9 @@ module nft_protocol::transfer_allowlist {
     // === Management ===
 
     /// Creates a new `Allowlist`
-    public fun create<Admin>(_witness: &Admin, ctx: &mut TxContext): Allowlist {
+    public fun create<Admin>(
+        _witness: DelegatedWitness<Admin>, ctx: &mut TxContext,
+    ): Allowlist {
         Allowlist {
             id: object::new(ctx),
             admin_witness: type_name::get<Admin>(),
@@ -95,15 +97,16 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Creates and shares a new `Allowlist`
-    public fun init_allowlist<Admin>(witness: &Admin, ctx: &mut TxContext) {
-        let allowlist = create(witness, ctx);
-        transfer::public_share_object(allowlist);
+    public fun init_allowlist<Admin>(
+        witness: DelegatedWitness<Admin>, ctx: &mut TxContext,
+    ) {
+        transfer::public_share_object(create(witness, ctx));
     }
 
     public fun insert_collection<T, Admin>(
-        self: &mut Allowlist,
-        _allowlist_witness: &Admin,
+        _allowlist_witness: DelegatedWitness<Admin>,
         _collection_witness: DelegatedWitness<T>,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
         vec_set::insert(&mut self.collections, type_name::get<T>());
@@ -118,9 +121,9 @@ module nft_protocol::transfer_allowlist {
     /// However, we opt for witness protection to give the allowlist owner a way
     /// to combat spam.
     public fun insert_collection_with_publisher<T, Admin>(
+        _witness: DelegatedWitness<Admin>,
         self: &mut Allowlist,
         collection_pub: &Publisher,
-        _allowlist_witness: &Admin,
     ) {
         utils::assert_package_publisher<T>(collection_pub);
         assert_admin_witness<Admin>(self);
@@ -152,18 +155,16 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// The allowlist owner can remove any collection at any point.
-    public fun remove_collection<T, Admin: drop>(
-        _allowlist_witness: Admin,
-        self: &mut Allowlist,
+    public fun remove_collection<T, Admin>(
+        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
         vec_set::remove(&mut self.collections, &type_name::get<T>());
     }
 
     /// Removes all collections from this list.
-    public fun clear_collections<Admin: drop>(
-        _allowlist_witness: Admin,
-        self: &mut Allowlist,
+    public fun clear_collections<Admin>(
+        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
         self.collections = vec_set::empty();
@@ -171,9 +172,8 @@ module nft_protocol::transfer_allowlist {
 
     /// To insert a new authority into a list we need confirmation by the
     /// allowlist authority (via witness.)
-    public fun insert_authority<Admin: drop, Auth>(
-        _allowlist_witness: Admin,
-        self: &mut Allowlist,
+    public fun insert_authority<Admin, Auth>(
+        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
 
@@ -194,9 +194,8 @@ module nft_protocol::transfer_allowlist {
     ///
     /// If this is the last authority in the list, we do NOT go back to a free
     /// for all allowlist.
-    public fun remove_authority<Admin: drop, Auth>(
-        _allowlist_witness: Admin,
-        self: &mut Allowlist,
+    public fun remove_authority<Admin, Auth>(
+        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
 
@@ -221,9 +220,7 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Returns whether `Allowlist` contains type
-    public fun contains_authority(
-        self: &Allowlist, auth: &TypeName,
-    ): bool {
+    public fun contains_authority(self: &Allowlist, auth: &TypeName): bool {
         if (option::is_none(&self.authorities)) {
             // If no authorities are defined this effectively means that all
             // authorities are registered.

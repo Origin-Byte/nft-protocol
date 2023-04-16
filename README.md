@@ -19,11 +19,9 @@ The ecosystem is partitioned into three critical components:
 ## Resources
 
 - Protocol contract:
-  - [DevNet](https://explorer.sui.io/object/0xe8eb600429f7f391d3a9e8112288a4fa1e752239dc1f3d44b66672e85b153c2c?network=devnet)
-  - [TestNet](https://explorer.sui.io/object/0x86ed6bc882fa476f20db8d21256a20cc7c841b9e1a37c356daa5406f92412f3c)
+  - [TestNet](https://explorer.sui.io/object/0x7f37d6f86facc20063f3e19b95ac84d973ac2cfd64406c561c26921a57b578b2)
 - LaunchpadV2 contract:
-  - [DevNet](https://explorer.sui.io/object/0x322af0117dc1dc52cb2d3e7a2bcf6b5ceeb6380bbbc1f787ba23c6768089602f?network=devnet)
-  - [TestNet](https://explorer.sui.io/object/0xea9a3c40d87483546d0a4b25720e6009a36b4bed0903fcd71d904903d6369754)
+  - [TestNet](https://explorer.sui.io/object/0x1fab4337fffe7a079009c9b77a7132b43246413b7194fabcca9d620c8066a197)
 
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/)

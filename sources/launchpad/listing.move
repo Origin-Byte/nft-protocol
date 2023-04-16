@@ -53,13 +53,17 @@ module nft_protocol::listing {
     /// `Venue` was not defined on `Listing`
     ///
     /// Call `Listing::init_venue` to initialize a `Venue`
-    const EUNDEFINED_VENUE: u64 = 1;
+    const EUndefinedVenue: u64 = 1;
 
     /// `Warehouse` or `Factory` was not defined on `Listing`
     ///
     /// Initialize `Warehouse` using `Listing::init_warehouse` or insert one
     /// using `Listing::add_warehouse`.
-    const EUNDEFINED_INVENTORY: u64 = 3;
+    const EUndefinedInventory: u64 = 2;
+
+    /// Transaction sender was not `Listing` admin when calling protected
+    /// endpoint
+    const EWrongAdmin: u64 = 3;
 
     struct Listing has key, store {
         id: UID,
@@ -226,8 +230,6 @@ module nft_protocol::listing {
     }
 
     /// Emits `NftSoldEvent` for provided `Nft`
-    ///
-    /// Buyer is set to the `logical_owner` of the `Nft`.
     public fun emit_sold_event<FT, T: key>(
         nft: &T,
         price: u64,
@@ -253,13 +255,11 @@ module nft_protocol::listing {
     public fun pay_and_emit_sold_event<FT, T: key>(
         listing: &mut Listing,
         nft: &T,
-        balance: &mut Balance<FT>,
-        price: u64,
+        funds: Balance<FT>,
         buyer: address,
     ) {
-        let funds = balance::split(balance, price);
+        emit_sold_event<FT, T>(nft, balance::value(&funds), buyer);
         pay(listing, funds, 1);
-        emit_sold_event<FT, T>(nft, price, buyer);
     }
 
     /// Buys an NFT from an `Inventory`
@@ -281,14 +281,13 @@ module nft_protocol::listing {
         inventory_id: ID,
         venue_id: ID,
         buyer: address,
-        price: u64,
-        balance: &mut Balance<FT>,
+        funds: Balance<FT>,
     ): T {
         let inventory = inventory_internal_mut(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_nft(inventory);
-        pay_and_emit_sold_event(listing, &nft, balance, price, buyer);
+        pay_and_emit_sold_event(listing, &nft, funds, buyer);
         nft
     }
 
@@ -311,15 +310,14 @@ module nft_protocol::listing {
         inventory_id: ID,
         venue_id: ID,
         buyer: address,
-        price: u64,
-        balance: &mut Balance<FT>,
+        funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
         let inventory = inventory_internal_mut(
             witness, listing, venue_id, inventory_id,
         );
         let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
-        pay_and_emit_sold_event(listing, &nft, balance, price, buyer);
+        pay_and_emit_sold_event(listing, &nft, funds, buyer);
         nft
     }
 
@@ -348,8 +346,7 @@ module nft_protocol::listing {
         inventory_id: ID,
         venue_id: ID,
         buyer: address,
-        price: u64,
-        balance: &mut Balance<FT>,
+        funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
         let inventory = inventory_internal_mut(
@@ -358,7 +355,7 @@ module nft_protocol::listing {
         let nft = inventory::redeem_random_nft(
             inventory, commitment, user_commitment, ctx,
         );
-        pay_and_emit_sold_event(listing, &nft, balance, price, buyer);
+        pay_and_emit_sold_event(listing, &nft, funds, buyer);
         nft
     }
 
@@ -721,6 +718,22 @@ module nft_protocol::listing {
         venue::borrow_market_mut<Market>(venue)
     }
 
+    /// Remove venue from `Listing`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the `Venue` did not exist or delegated witness did not match
+    /// the market being removed.
+    public fun remove_venue<Market: store>(
+        _witness: DelegatedWitness<Market>,
+        listing: &mut Listing,
+        venue_id: ID,
+    ): Venue {
+        let venue = object_table::remove(&mut listing.venues, venue_id);
+        venue::assert_market<Market>(&venue);
+        venue
+    }
+
     /// Returns whether `Inventory` with given ID exists
     public fun contains_inventory<T>(
         listing: &Listing,
@@ -758,9 +771,9 @@ module nft_protocol::listing {
         object_bag::borrow_mut(&mut listing.inventories, inventory_id)
     }
 
-    /// Mutably borrow a `Warehouse`
+    /// Mutably borrow an `Inventory`
     ///
-    /// `Warehouse` is unprotected therefore only market modules
+    /// `Inventory` is unprotected therefore only market modules
     /// registered on a `Venue` can gain mutable access to it.
     public fun inventory_internal_mut<T, Market: store>(
         witness: DelegatedWitness<Market>,
@@ -769,6 +782,23 @@ module nft_protocol::listing {
         inventory_id: ID,
     ): &mut Inventory<T> {
         venue_internal_mut(witness, listing, venue_id);
+        borrow_inventory_mut(listing, inventory_id)
+    }
+
+    /// Mutably borrow an `Inventory`
+    ///
+    /// `Inventory` is unprotected therefore admin is allowed to access it
+    /// directly._
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not an admin or inventory does not exist.
+    public fun inventory_admin_mut<T>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        ctx: &mut TxContext,
+    ): &mut Inventory<T> {
+        assert_listing_admin(listing, ctx);
         borrow_inventory_mut(listing, inventory_id)
     }
 
@@ -801,8 +831,7 @@ module nft_protocol::listing {
 
     public fun assert_listing_admin(listing: &Listing, ctx: &mut TxContext) {
         assert!(
-            tx_context::sender(ctx) == listing.admin,
-            err::wrong_listing_admin()
+            tx_context::sender(ctx) == listing.admin, EWrongAdmin,
         );
     }
 
@@ -829,14 +858,13 @@ module nft_protocol::listing {
     }
 
     public fun assert_venue(listing: &Listing, venue_id: ID) {
-        assert!(contains_venue(listing, venue_id), EUNDEFINED_VENUE);
+        assert!(contains_venue(listing, venue_id), EUndefinedVenue);
     }
 
     public fun assert_inventory<T>(listing: &Listing, inventory_id: ID) {
         // Inventory can be either `Warehouse` or `Factory`
         assert!(
-            contains_inventory<T>(listing, inventory_id),
-            EUNDEFINED_INVENTORY,
+            contains_inventory<T>(listing, inventory_id), EUndefinedInventory,
         );
     }
 }

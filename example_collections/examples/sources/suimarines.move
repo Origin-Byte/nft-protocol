@@ -36,6 +36,11 @@ module examples::suimarines {
     fun init(otw: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
+        // Init Collection & MintCap with unlimited supply
+        let (collection, mint_cap) = collection::create_with_mint_cap<SUIMARINES, Submarine>(
+            &otw, option::none(), ctx
+        );
+
         // Init Publisher
         let publisher = sui::package::claim(otw, ctx);
 
@@ -44,14 +49,6 @@ module examples::suimarines {
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
-
-        // Get the Delegated Witness
-        let dw = witness::from_witness(Witness {});
-
-        // Init Collection & MintCap with unlimited supply
-        let (collection, mint_cap) = collection::create_with_mint_cap<Submarine>(
-            dw, option::none(), ctx
-        );
 
         // Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included

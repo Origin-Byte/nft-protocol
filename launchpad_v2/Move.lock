@@ -11,7 +11,7 @@ dependencies = [
 
 [[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "de632da6adf673d746155a1624c60a761567c215", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "NftProtocol"
@@ -24,7 +24,7 @@ dependencies = [
 
 [[move.package]]
 name = "Originmate"
-source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "a1585a6fc7813e9b84ce128d3fb9551f9233633a", subdir = "" }
+source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "538bc0d65e5df9e8c8fb0ee4ce21da6aa9129394", subdir = "" }
 
 dependencies = [
   { name = "Sui" },
@@ -32,7 +32,7 @@ dependencies = [
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "de632da6adf673d746155a1624c60a761567c215", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
