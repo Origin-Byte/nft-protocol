@@ -24,6 +24,19 @@ module nft_protocol::mut_lock {
         field: Option<TypeName>,
     }
 
+    struct SessionToken<T> has key {
+        id: UID,
+        nft: T,
+        // We add authority as type name to simplify the API
+        // and avoid 4 generics in the extract function
+        authority: TypeName,
+        // We add type reflection here due to it being an option,
+        // since the borrow can occur globally, in which case the
+        // Option is None
+        field: Option<TypeName>,
+        timeout: u64,
+    }
+
     struct ReturnPromise<phantom T> { nft_id: ID }
 
     struct ReturnFieldPromise<phantom Field> {}
@@ -124,5 +137,22 @@ module nft_protocol::mut_lock {
         df::add(nft_uid, utils::marker<Field>(), field);
 
         let ReturnFieldPromise {} = promise;
+    }
+
+    public fun issue_session_token<Auth: drop, T: key + store, Field: store>(
+        _auth: Auth,
+        nft: T,
+        timeout: u64,
+        ctx: &mut TxContext,
+    ) {
+        let nft_id = object::id(&nft);
+
+        let session_token = SessionToken {
+            id: object::new(ctx),
+            nft,
+            authority: type_name::get<Auth>(),
+            field: option::some(type_name::get<Field>()),
+            timeout,
+        };
     }
 }

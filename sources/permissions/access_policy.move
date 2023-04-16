@@ -24,6 +24,7 @@ module nft_protocol::access_policy {
     struct AccessPolicy<phantom T: key + store> has key, store {
         id: UID,
         version: u64,
+        owner_signoff: bool,
         parent_access: VecSet<address>,
         // TODO: Consider if TypeName is safe here
         field_access: Table<TypeName, VecSet<address>>,
@@ -46,6 +47,7 @@ module nft_protocol::access_policy {
    /// This endpoint is witness protected on the type `T` level.
     public fun create_new<T: key + store>(
         _witness: DelegatedWitness<T>,
+        owner_signoff: bool,
         ctx: &mut TxContext,
     ): AccessPolicy<T> {
 
@@ -63,6 +65,7 @@ module nft_protocol::access_policy {
         AccessPolicy {
             id,
             version: 1,
+            owner_signoff,
             parent_access,
             field_access,
         }
@@ -78,6 +81,7 @@ module nft_protocol::access_policy {
     public fun add_new<T: key + store>(
         witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
+        owner_signoff: bool,
         ctx: &mut TxContext,
     ) {
         let id = object::new(ctx);
@@ -94,6 +98,7 @@ module nft_protocol::access_policy {
         let access_policy = AccessPolicy<T> {
             id,
             version: 1,
+            owner_signoff,
             parent_access,
             field_access,
         };
@@ -221,11 +226,11 @@ module nft_protocol::access_policy {
         );
     }
 
-    public fun assert_parent_auth<C: drop, T: key + store>(
-        collection: &Collection<C>,
+    public fun assert_parent_auth<T: key + store>(
+        collection: &Collection<T>,
         ctx: &TxContext,
     ) {
-        let access_policy = collection::borrow_domain<C, AccessPolicy<T>>(
+        let access_policy = collection::borrow_domain<T, AccessPolicy<T>>(
             collection
         );
 
@@ -235,16 +240,24 @@ module nft_protocol::access_policy {
         );
     }
 
+    public fun needs_owner_signoff<T: key + store>(
+        collection: &Collection<T>,
+    ): bool {
+        let access_policy = collection::borrow_domain<T, AccessPolicy<T>>(
+            collection
+        );
 
-    fun assert_no_access_policy<C: drop, T: key + store>(
-        collection: &Collection<C>
+        access_policy.owner_signoff
+    }
+
+    fun assert_no_access_policy<T: key + store>(
+        collection: &Collection<T>
     ) {
         assert!(
-            !collection::has_domain<C, AccessPolicy<T>>(collection),
+            !collection::has_domain<T, AccessPolicy<T>>(collection),
             EACCESS_POLICY_ALREADY_EXISTS
         );
     }
-
 
     fun empty_parent_access(): VecSet<address> {
         vec_set::empty()

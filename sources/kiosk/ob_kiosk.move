@@ -27,11 +27,11 @@
 /// - We don't have functionality to list NFTs within the `Kiosk` itself.
 /// Rather, clients are encouraged to use the liquidity layer.
 /// - Permissionless `Kiosk` needs to signer, apps don't have to wrap both
-/// the `KioskOwnerCap` and the `Kiosk` in a smart contract.
+/// the `KioskOwnerCap` ancd the `Kiosk` in a smart contract.
 module nft_protocol::ob_kiosk {
     use nft_protocol::access_policy as ap;
     use nft_protocol::collection::Collection;
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
+    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise, SessionToken};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::utils;
     use originmate::typed_id::{Self, TypedID};
@@ -519,6 +519,30 @@ module nft_protocol::ob_kiosk {
     }
 
     // === NFT Accessors ===
+
+    public fun issue_session_token<T: key + store>(
+        self: &mut Kiosk,
+        collection: &Collection<T>,
+        nft_id: TypedID<T>,
+        receiver: address,
+        timeout: u64,
+        ctx: &mut TxContext,
+    ): SessionToken<T> {
+        let nft_id = typed_id::to_id(nft_id);
+        assert_not_listed(self, nft_id);
+
+        // If access policy requires owner sign_off
+        if (ap::needs_owner_signoff(collection)) {
+            assert_owner_address(self, sender(ctx));
+        };
+
+        mut_lock::issue_session_token(
+            Witness {},
+            nft_id,
+            timeout,
+            sender(ctx),
+        )
+    }
 
     public fun borrow_nft_field_mut<T: key + store, Field: store>(
         self: &mut Kiosk,
