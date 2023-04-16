@@ -26,11 +26,14 @@ module nft_protocol::ob_transfer_request {
     use nft_protocol::witness::Witness as DelegatedWitness;
     use std::type_name::{Self, TypeName};
     use std::vector;
+    // use std::debug;
+    // use std::string;
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
     use sui::sui::SUI;
+    use sui::package::Publisher;
     use sui::transfer_policy::{Self, TransferPolicy, TransferPolicyCap, TransferRequest as SuiTransferRequest};
     use sui::transfer::public_transfer;
     use sui::tx_context::TxContext;
@@ -73,6 +76,12 @@ module nft_protocol::ob_transfer_request {
         metadata: UID,
     }
 
+    /// TLDR:
+    /// * + easier interface
+    /// * + pay royalties from what's been paid
+    /// * + permissionless trade resolution
+    /// * - less client control
+    ///
     /// Policies which own this capability get mutable access the balance of
     /// `TransferRequest<T>`.
     ///
@@ -191,6 +200,23 @@ module nft_protocol::ob_transfer_request {
 
     // === TransferPolicy ===
 
+    /// Helper for initiating a `TransferPolicy` with OriginByte Rules.
+    /// We extend the functionality of `TransferPolicy` by inserting our
+    /// Originbyte `VecSet<TypeName>` into it.
+    public fun init_policy<T>(
+        publisher: &Publisher,
+        ctx: &mut TxContext
+    ): (TransferPolicy<T>, TransferPolicyCap<T>) {
+        let (policy, cap) =
+            sui::transfer_policy::new<T>(publisher, ctx);
+
+        let ext = transfer_policy::uid_mut_as_owner(&mut policy, &cap);
+
+        df::add(ext, OringinbyteRulesDfKey {}, vec_set::empty<TypeName>());
+
+        (policy, cap)
+    }
+
     /// We extend the functionality of `TransferPolicy` by inserting our
     /// Originbyte `VecSet<TypeName>` into it.
     /// These rules work with our custom `TransferRequest`.
@@ -243,11 +269,9 @@ module nft_protocol::ob_transfer_request {
             receipts,
         } = self;
         object::delete(metadata);
-
         let rules = df::borrow(transfer_policy::uid(policy), OringinbyteRulesDfKey {});
         let completed = vec_set::into_keys(receipts);
         let total = vector::length(&completed);
-
         assert!(total == vec_set::size(rules), EPolicyNotSatisfied);
         while (total > 0) {
             let rule_type = vector::pop_back(&mut completed);
@@ -261,9 +285,15 @@ module nft_protocol::ob_transfer_request {
     /// This is useful if permissionless trade resolution is not necessary
     /// and the royalties can be deducted from a specific `Balance` rather than
     /// using `BalanceAccessCap`.
+    ///
+    /// Is idempotent.
     public fun distribute_balance_to_beneficiary<T, FT>(
         self: &mut TransferRequest<T>, ctx: &mut TxContext,
     ) {
+        if (!df::exists_(&self.metadata, BalanceDfKey {})) {
+            return
+        };
+
         let balance: Balance<FT> = df::remove(&mut self.metadata, BalanceDfKey {});
         if (balance::value(&balance) > 0) {
             public_transfer(coin::from_balance(balance, ctx), self.beneficiary);

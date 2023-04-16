@@ -19,24 +19,35 @@ module nft_protocol::nft_bag {
 
     /// `NftBag` was not defined
     ///
-    /// Call `container::add` to add `NftBag`.
+    /// Call `nft_bag::add` to add `NftBag`.
     const EUndefinedNftBag: u64 = 1;
 
     /// `NftBag` already defined
     ///
-    /// Call `container::borrow` to borrow domain.
+    /// Call `nft_bag::borrow` to borrow domain.
     const EExistingNftBag: u64 = 2;
 
     /// `NftBag` did not compose NFT with given ID
     ///
-    /// Call `container::decompose` with an NFT ID that exists.
+    /// Call `nft_bag::decompose` with an NFT ID that exists.
     const EUndefinedNft: u64 = 3;
+
+    /// Tried to decompose existing NFT but with incorrect type
+    ///
+    /// Call `nft_bag::decompose` with an NFT type corresponding to the actual
+    /// composed NFT.
+    const EInvalidType: u64 = 4;
 
     /// Tried to decompose NFT with invalid authority, only the same authority
     /// that was used to compose an NFT can be used to decompose it
     ///
-    /// Call `container::decompose` with the correct authority.
-    const EInvalidAuthority: u64 = 4;
+    /// Call `nft_bag::decompose` with the correct authority.
+    const EInvalidAuthority: u64 = 5;
+
+    /// Tried to delete `NftBag` that still had registered NFTs
+    ///
+    /// Call `nft_bag::decompose` to decompose the remaining NFTs.
+    const ENotEmpty: u64 = 5;
 
     /// `NftBag` object
     struct NftBag has store {
@@ -51,8 +62,8 @@ module nft_protocol::nft_bag {
         nfts: VecMap<ID, u64>,
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
+    /// Struct to index NFTs in dynamic fields
+    struct Key has drop, copy, store { id: ID }
 
     /// Creates new `NftBag`
     public fun new(ctx: &mut TxContext): NftBag {
@@ -65,11 +76,8 @@ module nft_protocol::nft_bag {
 
     /// Returns whether NFT with given ID is composed within provided
     /// `NftBag`
-    public fun has(
-        container: &NftBag,
-        nft_id: ID,
-    ): bool {
-        dof::exists_(&container.id, nft_id)
+    public fun has(nft_bag: &NftBag, nft_id: ID): bool {
+        dof::exists_(&nft_bag.id, Key { id: nft_id })
     }
 
     /// Borrows `Nft` from `NftBag`
@@ -77,12 +85,9 @@ module nft_protocol::nft_bag {
     /// #### Panics
     ///
     /// Panics if `Nft` was not composed within the `NftBag`.
-    public fun borrow<T: key + store>(
-        container: &NftBag,
-        nft_id: ID,
-    ): &T {
-        assert_composed(container, nft_id);
-        dof::borrow(&container.id, nft_id)
+    public fun borrow<T: key + store>(nft_bag: &NftBag, nft_id: ID): &T {
+        assert_composed_type<T>(nft_bag, nft_id);
+        dof::borrow(&nft_bag.id, Key { id: nft_id })
     }
 
     /// Mutably borrows `Nft` from `NftBag`
@@ -91,11 +96,11 @@ module nft_protocol::nft_bag {
     ///
     /// Panics if `Nft` was not composed within the `NftBag`.
     public fun borrow_mut<T: key + store>(
-        container: &mut NftBag,
+        nft_bag: &mut NftBag,
         nft_id: ID,
     ): &mut T {
-        assert_composed(container, nft_id);
-        dof::borrow_mut(&mut container.id, nft_id)
+        assert_composed_type<T>(nft_bag, nft_id);
+        dof::borrow_mut(&mut nft_bag.id, Key { id: nft_id })
     }
 
     /// Borrows composed NFT with given ID from `Nft`
@@ -104,8 +109,8 @@ module nft_protocol::nft_bag {
     ///
     /// Panics if `NftBag` is not registered or NFT is not composed.
     public fun borrow_nft<T: key + store>(nft: &UID, child_nft_id: ID): &T {
-        let container = borrow_domain(nft);
-        borrow(container, child_nft_id)
+        let nft_bag = borrow_domain(nft);
+        borrow(nft_bag, child_nft_id)
     }
 
     /// Mutably borrows composed NFT with given ID from `Nft`
@@ -117,8 +122,18 @@ module nft_protocol::nft_bag {
         nft: &mut UID,
         child_nft_id: ID,
     ): &T {
-        let container = borrow_domain_mut(nft);
-        borrow_mut(container, child_nft_id)
+        let nft_bag = borrow_domain_mut(nft);
+        borrow_mut(nft_bag, child_nft_id)
+    }
+
+    /// Get authorities registered in `NftBag`
+    public fun get_authorities(nft_bag: &NftBag): &vector<TypeName> {
+        &nft_bag.authorities
+    }
+
+    /// Get NFTs composed in `NftBag`
+    public fun get_nfts(nft_bag: &NftBag): &VecMap<ID, u64> {
+        &nft_bag.nfts
     }
 
     /// Get index of authority
@@ -163,7 +178,7 @@ module nft_protocol::nft_bag {
 
         let nft_id = object::id(&child_nft);
         vec_map::insert(&mut domain.nfts, nft_id, idx);
-        dof::add(&mut domain.id, nft_id, child_nft);
+        dof::add(&mut domain.id, Key { id: nft_id }, child_nft);
     }
 
     /// Composes child NFT into parent NFT
@@ -191,17 +206,23 @@ module nft_protocol::nft_bag {
         child_nft_id: ID,
     ): T {
         // Identify index of authority that this `Nft` should be composed using
-        // let authority_type = type_name::get<Auth>();
-        let idx_opt =
-            vec_map::get_idx_opt(&domain.nfts, &child_nft_id);
+        let idx_opt = vec_map::get_idx_opt(&domain.nfts, &child_nft_id);
         assert!(option::is_some(&idx_opt), EUndefinedNft);
-        let idx = option::destroy_some(idx_opt);
 
-        let authority = vector::borrow(&domain.authorities, idx);
+        // Get NFT composition authority
+        let idx = option::destroy_some(idx_opt);
+        let (_, authority_idx) = vec_map::get_entry_by_idx(&domain.nfts, idx);
+        let authority = vector::borrow(&domain.authorities, *authority_idx);
+
+        // Validate correct authority
         let authority_type = type_name::get<Auth>();
         assert!(authority == &authority_type, EInvalidAuthority);
 
-        dof::remove(&mut domain.id, child_nft_id)
+        vec_map::remove_entry_by_idx(&mut domain.nfts, idx);
+
+        // Additionally validate correct type
+        assert_composed_type<T>(domain, child_nft_id);
+        dof::remove(&mut domain.id, Key { id: child_nft_id })
     }
 
     /// Decomposes NFT with given ID from `NftBag` and transfers to receiver
@@ -249,7 +270,7 @@ module nft_protocol::nft_bag {
     }
 
     /// Counts how many NFTs are registered under the given authority
-    public fun count<T: key + store, Auth>(domain: &NftBag): u64 {
+    public fun count<Auth>(domain: &NftBag): u64 {
         let authority_type = type_name::get<Auth>();
 
         let authority_idx = get_authority_idx(&authority_type, domain);
@@ -274,6 +295,19 @@ module nft_protocol::nft_bag {
         };
 
         count
+    }
+
+    /// Deconstruct `NftBag`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `NftBag` has NFTs deposited within.
+    public fun delete(nft_bag: NftBag) {
+        let NftBag { id, authorities: _, nfts } = nft_bag;
+
+        assert!(vec_map::is_empty(&nfts), ENotEmpty);
+
+        object::delete(id);
     }
 
     // === Interoperability ===
@@ -361,9 +395,27 @@ module nft_protocol::nft_bag {
     ///
     /// Panics if NFT is not composed.
     public fun assert_composed(
-        container: &NftBag,
+        nft_bag: &NftBag,
         nft_id: ID,
     ) {
-        assert!(has(container, nft_id), EUndefinedNft)
+        assert!(has(nft_bag, nft_id), EUndefinedNft)
+    }
+
+    /// Assert that NFT with given ID is composed within the `NftBag`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if NFT is not composed.
+    public fun assert_composed_type<T: key + store>(
+        nft_bag: &NftBag,
+        nft_id: ID,
+    ) {
+        // Use double asserts in order to provide clear error codes to
+        // developers
+        assert_composed(nft_bag, nft_id);
+        assert!(
+            dof::exists_with_type<Key, T>(&nft_bag.id, Key { id: nft_id }),
+            EInvalidType,
+        );
     }
 }

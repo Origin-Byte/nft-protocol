@@ -8,6 +8,7 @@
 module nft_protocol::fixed_price {
     use sui::coin::{Self, Coin};
     use sui::kiosk::Kiosk;
+    use sui::balance::{Self, Balance};
     use sui::object::{Self, ID, UID};
     use sui::transfer::public_transfer;
     use sui::tx_context::{Self, TxContext};
@@ -138,7 +139,8 @@ module nft_protocol::fixed_price {
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
 
-        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
+        let nft =
+            buy_nft_<T, FT>(listing, venue_id, coin::balance_mut(wallet), ctx);
         public_transfer(nft, tx_context::sender(ctx));
     }
 
@@ -159,7 +161,8 @@ module nft_protocol::fixed_price {
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
 
-        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
+        let nft =
+            buy_nft_<T, FT>(listing, venue_id, coin::balance_mut(wallet), ctx);
         ob_kiosk::deposit(buyer_kiosk, nft, ctx);
     }
 
@@ -181,7 +184,8 @@ module nft_protocol::fixed_price {
         market_whitelist::assert_whitelist(&whitelist_token, venue);
         market_whitelist::burn(whitelist_token);
 
-        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
+        let nft =
+            buy_nft_<T, FT>(listing, venue_id, coin::balance_mut(wallet), ctx);
         public_transfer(nft, tx_context::sender(ctx));
     }
 
@@ -205,7 +209,8 @@ module nft_protocol::fixed_price {
         market_whitelist::assert_whitelist(&whitelist_token, venue);
         market_whitelist::burn(whitelist_token);
 
-        let nft = buy_nft_<T, FT>(listing, venue_id, wallet, ctx);
+        let nft =
+            buy_nft_<T, FT>(listing, venue_id, coin::balance_mut(wallet), ctx);
         ob_kiosk::deposit(safe, nft, ctx);
     }
 
@@ -218,7 +223,7 @@ module nft_protocol::fixed_price {
     fun buy_nft_<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
-        wallet: &mut Coin<FT>,
+        balance: &mut Balance<FT>,
         ctx: &mut TxContext,
     ): T {
         let market = listing::borrow_market<FixedPriceMarket<FT>>(
@@ -235,8 +240,7 @@ module nft_protocol::fixed_price {
             inventory_id,
             venue_id,
             tx_context::sender(ctx),
-            price,
-            coin::balance_mut(wallet),
+            balance::split(balance, price),
             ctx,
         )
     }

@@ -127,7 +127,7 @@ module nft_protocol::ob_kiosk {
     struct DepositSetting has store, drop {
         /// Enables depositing any collection, bypassing enabled deposits
         enable_any_deposit: bool,
-        /// Collections which can be deposited into the `Safe`
+        /// Collections which can be deposited into the `Kiosk`
         collections_with_enabled_deposits: VecSet<TypeName>,
     }
 
@@ -355,7 +355,7 @@ module nft_protocol::ob_kiosk {
     }
 
     /// Similar to `withdraw_nft` but the entity is a signer instead of UID.
-    /// The owner doesn't can always initiate a withdraw.
+    /// The owner can always initiate a withdraw.
     ///
     /// A withdraw can be prevented with an allowlist.
     public fun withdraw_nft_signed<T: key + store>(
@@ -373,7 +373,7 @@ module nft_protocol::ob_kiosk {
         originator: address,
         ctx: &mut TxContext,
     ): (T, TransferRequest<T>) {
-        check_entity_and_pop_ref(self, originator, nft_id, ctx);
+        check_entity_and_pop_ref(self, originator, nft_id);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
@@ -527,7 +527,7 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = typed_id::to_id(nft_id);
-        assert_not_listed<T>(self, nft_id);
+        assert_not_listed(self, nft_id);
         // TODO: Assert T lives in the OTW universe
         ap::assert_field_auth<OTW, T, Field>(collection, ctx);
 
@@ -545,7 +545,7 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = typed_id::to_id(nft_id);
-        assert_not_listed<T>(self, nft_id);
+        assert_not_listed(self, nft_id);
         // TODO: Assert T lives in the OTW universe
         ap::assert_parent_auth<OTW, T>(collection, ctx);
 
@@ -636,7 +636,7 @@ module nft_protocol::ob_kiosk {
         assert!(kiosk::has_item(self, nft_id), EMissingNft)
     }
 
-    public fun assert_not_exclusively_listed<T: key + store>(
+    public fun assert_not_exclusively_listed(
         self: &mut Kiosk, nft_id: ID
     ) {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
@@ -644,9 +644,7 @@ module nft_protocol::ob_kiosk {
         assert_ref_not_exclusively_listed(ref);
     }
 
-    public fun assert_not_listed<T: key + store>(
-        self: &mut Kiosk, nft_id: ID
-    ) {
+    public fun assert_not_listed(self: &mut Kiosk, nft_id: ID) {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
         let ref = table::borrow(refs, nft_id);
         assert_ref_not_listed(ref);
@@ -669,7 +667,7 @@ module nft_protocol::ob_kiosk {
     }
 
     fun check_entity_and_pop_ref(
-        self: &mut Kiosk, entity: address, nft_id: ID, ctx: &mut TxContext,
+        self: &mut Kiosk, entity: address, nft_id: ID
     ) {
         let refs = nft_refs_mut(self);
         // NFT is being transferred - destroy the ref
@@ -678,7 +676,7 @@ module nft_protocol::ob_kiosk {
         // OR
         // entity MUST be included in the map
         assert!(
-            sender(ctx) == entity || vec_set::contains(&ref.auths, &entity),
+            entity == kiosk::owner(self) || vec_set::contains(&ref.auths, &entity),
             ENotAuthorized,
         );
     }
@@ -719,5 +717,46 @@ module nft_protocol::ob_kiosk {
 
         public_share_object(display);
         package::burn_publisher(publisher);
+    }
+
+    // === Test-only accessors ===
+
+    #[test_only]
+    public fun assert_kiosk_owner_cap(self: &mut Kiosk) {
+        let owner_cap = df::remove(ext(self), KioskOwnerCapDfKey {});
+
+        assert!(kiosk::has_access(self, &owner_cap), 0);
+
+        df::add(ext(self), KioskOwnerCapDfKey {}, owner_cap);
+    }
+
+    #[test_only]
+    public fun nft_refs(self: &mut Kiosk): &Table<ID, NftRef> {
+        df::borrow(ext(self), NftRefsDfKey {})
+    }
+
+    #[test_only]
+    public fun assert_deposit_setting_permissionless(self: &mut Kiosk) {
+        let settings = df::borrow<DepositSettingDfKey, DepositSetting>(
+            ext(self), DepositSettingDfKey {}
+        );
+
+        assert!(settings.enable_any_deposit == true, 0);
+    }
+
+    #[test_only]
+    public fun assert_listed(self: &mut Kiosk, nft_id: ID) {
+        let refs = df::borrow(ext(self), NftRefsDfKey {});
+        let ref = table::borrow<ID, NftRef>(refs, nft_id);
+        assert!(vec_set::size(&ref.auths) > 0, 0);
+    }
+
+    #[test_only]
+    public fun assert_exclusively_listed(
+        self: &mut Kiosk, nft_id: ID
+    ) {
+        let refs = df::borrow(ext(self), NftRefsDfKey {});
+        let ref = table::borrow<ID, NftRef>(refs, nft_id);
+        assert!(ref.is_exclusively_listed, 0);
     }
 }
