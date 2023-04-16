@@ -15,6 +15,7 @@ module examples::suitraders {
     use nft_protocol::attributes::{Self, Attributes};
     use nft_protocol::collection;
     use nft_protocol::display_info;
+    use nft_protocol::display as ob_display;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
@@ -49,11 +50,14 @@ module examples::suitraders {
         let publisher = sui::package::claim(otw, ctx);
 
         // Init Display
+        let tags = vector[tags::art(), tags::game_asset()];
+
         let display = display::new<Suitrader>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
         display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
         display::add(&mut display, string::utf8(b"attributes"), string::utf8(b"{attributes}"));
+        display::add(&mut display, string::utf8(b"tags"), ob_display::from_vec(tags));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
@@ -81,11 +85,6 @@ module examples::suitraders {
         royalty_strategy_bps::create_domain_and_add_strategy(
             dw, &mut collection, 100, ctx,
         );
-
-        // Tags
-        let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art());
-        collection::add_domain(dw, &mut collection, tags);
 
         // Setup primary market. Note that this step can also be done
         // not in the init function but on the client side by calling

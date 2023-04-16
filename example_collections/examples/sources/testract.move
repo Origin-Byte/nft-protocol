@@ -476,11 +476,6 @@ module examples::testract {
 
         let royalty_domain = royalty::from_address(sender(ctx), ctx);
         collection::add_domain(col_wit(), collection, royalty_domain);
-
-        let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art());
-
-        collection::add_domain(col_wit(), collection, tags);
     }
 
     // === Tests ===
