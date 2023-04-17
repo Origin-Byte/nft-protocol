@@ -76,6 +76,8 @@ module nft_protocol::ob_kiosk {
     const ECannotDeposit: u64 = 11;
     /// Session token timed out
     const ESessionTokenTimedOut: u64 = 12;
+    /// Session token is still valid
+    const ESessionTokenStillValid: u64 = 13;
 
     // === Constants ===
 
@@ -651,6 +653,24 @@ module nft_protocol::ob_kiosk {
         set_cap(self, cap);
 
         mut_lock::lock_nft_global<Witness, T>(Witness {}, nft, ctx)
+    }
+
+    public fun remove_old_lock(
+        self: &mut Kiosk,
+        nft_id: ID,
+        clock: &Clock,
+    ) {
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow_mut(refs, nft_id);
+
+        let timeout_ms = option::extract(&mut ref.timeout_ms);
+
+        assert!(
+            clock::timestamp_ms(clock) > timeout_ms,
+            ESessionTokenStillValid
+        );
+
+        ref.is_exclusively_listed = false;
     }
 
     public fun return_nft<OTW: drop, T: key + store>(
