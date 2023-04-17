@@ -527,7 +527,7 @@ module nft_protocol::ob_kiosk {
         receiver: address,
         timeout: u64,
         ctx: &mut TxContext,
-    ): SessionToken<T> {
+    ) {
         let nft_id = typed_id::to_id(nft_id);
         assert_not_listed(self, nft_id);
 
@@ -536,12 +536,15 @@ module nft_protocol::ob_kiosk {
             assert_owner_address(self, sender(ctx));
         };
 
-        mut_lock::issue_session_token(
+        ap::assert_parent_auth<T>(collection, ctx);
+
+        mut_lock::issue_session_token<Witness, T>(
             Witness {},
             nft_id,
             timeout,
-            sender(ctx),
-        )
+            receiver,
+            ctx,
+        );
     }
 
     public fun borrow_nft_field_mut<T: key + store, Field: store>(
@@ -561,16 +564,16 @@ module nft_protocol::ob_kiosk {
         mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft, ctx)
     }
 
-    public fun borrow_nft_mut<OTW: drop, T: key + store>(
+    public fun borrow_nft_mut<T: key + store>(
         self: &mut Kiosk,
-        collection: &Collection<OTW>,
+        collection: &Collection<T>,
         nft_id: TypedID<T>,
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
         let nft_id = typed_id::to_id(nft_id);
         assert_not_listed(self, nft_id);
         // TODO: Assert T lives in the OTW universe
-        ap::assert_parent_auth<OTW, T>(collection, ctx);
+        ap::assert_parent_auth<T>(collection, ctx);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);

@@ -4,6 +4,7 @@ module nft_protocol::mut_lock {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
+    use sui::transfer;
 
     use nft_protocol::utils;
     use nft_protocol::witness::{Witness as DelegatedWitness};
@@ -26,7 +27,7 @@ module nft_protocol::mut_lock {
 
     struct SessionToken<T> has key {
         id: UID,
-        nft: T,
+        nft_id: ID,
         // We add authority as type name to simplify the API
         // and avoid 4 generics in the extract function
         authority: TypeName,
@@ -139,20 +140,39 @@ module nft_protocol::mut_lock {
         let ReturnFieldPromise {} = promise;
     }
 
-    public fun issue_session_token<Auth: drop, T: key + store, Field: store>(
+    public fun issue_session_token<Auth: drop, T: key + store>(
         _auth: Auth,
-        nft: T,
+        nft_id: ID,
         timeout: u64,
+        receiver: address,
         ctx: &mut TxContext,
     ) {
-        let nft_id = object::id(&nft);
-
-        let session_token = SessionToken {
+        let ss = SessionToken<T> {
             id: object::new(ctx),
-            nft,
+            nft_id,
+            authority: type_name::get<Auth>(),
+            field: option::none(),
+            timeout,
+        };
+
+        transfer::transfer(ss, receiver);
+    }
+
+    public fun issue_session_token_field<Auth: drop, T: key + store, Field: store>(
+        _auth: Auth,
+        nft_id: ID,
+        timeout: u64,
+        receiver: address,
+        ctx: &mut TxContext,
+    ){
+        let ss = SessionToken<T> {
+            id: object::new(ctx),
+            nft_id,
             authority: type_name::get<Auth>(),
             field: option::some(type_name::get<Field>()),
             timeout,
         };
+
+        transfer::transfer(ss, receiver);
     }
 }
