@@ -35,7 +35,7 @@ module nft_protocol::test_ob_kiosk {
 
     use nft_protocol::ob_transfer_request;
     use nft_protocol::ob_kiosk::{Self, OwnerToken};
-    use nft_protocol::test_utils::{Self, Foo, seller, fake_address};
+    use nft_protocol::test_utils::{Self, Foo, seller, fake_address, creator};
 
     #[test]
     public fun test_kiosk_new() {
@@ -89,6 +89,38 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, kiosk_owner);
 
         // 5. Make kiosk shared
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_kiosk_deposit_other_than_owner() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        transfer::public_share_object(kiosk);
+
+        // 3.Deposit NFT
+        test_scenario::next_tx(&mut scenario, creator());
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        // 4. Check deposited NFT
+        // Indirectly asserts that NftRef has been created, otherwise
+        // this function call will fail
+        ob_kiosk::assert_not_listed(&mut kiosk, nft_id);
+        ob_kiosk::assert_not_exclusively_listed(&mut kiosk, nft_id);
+
+        // 5. Return kiosk shared
+        test_scenario::return_shared(kiosk);
         test_scenario::end(scenario);
     }
 
