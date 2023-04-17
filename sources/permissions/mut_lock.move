@@ -25,7 +25,7 @@ module nft_protocol::mut_lock {
         field: Option<TypeName>,
     }
 
-    struct SessionToken<T> has key {
+    struct SessionToken<phantom T> has key {
         id: UID,
         nft_id: ID,
         // We add authority as type name to simplify the API
@@ -35,7 +35,6 @@ module nft_protocol::mut_lock {
         // since the borrow can occur globally, in which case the
         // Option is None
         field: Option<TypeName>,
-        timeout: u64,
     }
 
     struct ReturnPromise<phantom T> { nft_id: ID }
@@ -143,7 +142,6 @@ module nft_protocol::mut_lock {
     public fun issue_session_token<Auth: drop, T: key + store>(
         _auth: Auth,
         nft_id: ID,
-        timeout: u64,
         receiver: address,
         ctx: &mut TxContext,
     ) {
@@ -152,7 +150,6 @@ module nft_protocol::mut_lock {
             nft_id,
             authority: type_name::get<Auth>(),
             field: option::none(),
-            timeout,
         };
 
         transfer::transfer(ss, receiver);
@@ -161,7 +158,6 @@ module nft_protocol::mut_lock {
     public fun issue_session_token_field<Auth: drop, T: key + store, Field: store>(
         _auth: Auth,
         nft_id: ID,
-        timeout: u64,
         receiver: address,
         ctx: &mut TxContext,
     ){
@@ -170,9 +166,45 @@ module nft_protocol::mut_lock {
             nft_id,
             authority: type_name::get<Auth>(),
             field: option::some(type_name::get<Field>()),
-            timeout,
         };
 
         transfer::transfer(ss, receiver);
+    }
+
+    // TODO: Consider the consequences of this being accessible to everyone
+    // Most likely the lock_nft should be made in a way that forces the unlock function
+    // to be called from the same module --> probably by using witness
+    public fun lock_nft_with_session_token<Auth: drop, T: key + store>(
+        _auth: Auth,
+        nft: T,
+        session_token: SessionToken<T>,
+        ctx: &mut TxContext,
+    ): (MutLock<T>, ReturnPromise<T>) {
+        let nft_id = object::id(&nft);
+
+        assert!(
+            nft_id == session_token.nft_id,
+            0
+        );
+
+        assert!(
+            type_name::get<Auth>() == session_token.authority,
+            0
+        );
+
+        let mut_lock = MutLock {
+            id: object::new(ctx),
+            nft,
+            authority: type_name::get<Auth>(),
+            field: session_token.field,
+        };
+
+        let promise = ReturnPromise { nft_id };
+
+        (mut_lock, promise)
+    }
+
+    public fun nft_id<T: key + store>(session_token: SessionToken<T>): ID {
+        session_token.nft_id
     }
 }

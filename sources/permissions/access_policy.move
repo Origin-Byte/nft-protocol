@@ -20,6 +20,7 @@ module nft_protocol::access_policy {
 
     const EFIELD_ACCESS_DENIED: u64 = 2;
     const EPARENT_ACCESS_DENIED: u64 = 3;
+    const EOWNER_SIGN_OFF_NEEDED: u64 = 4;
 
     struct AccessPolicy<phantom T: key + store> has key, store {
         id: UID,
@@ -185,29 +186,6 @@ module nft_protocol::access_policy {
         utils::insert_vec_in_vec_set(vec_set, addresses);
     }
 
-
-    // public fun issue_token<T: key + store, W>(
-    //     pub: &Publisher,
-    //     access_policy: &mut AccessPolicy<T>,
-    //     ctx: &mut TxContext
-    // ): AccessToken<T> {
-    //     AccessToken {
-    //         id: object::new(ctx),
-    //         version: access_policy.version,
-    //     }
-    // }
-
-    // public fun issue_one_time_token<T: key + store, W>(
-    //     pub: &Publisher,
-    //     access_policy: &mut AccessPolicy<T>,
-    //     ctx: &mut TxContext
-    // ): OneTimeToken<T> {
-    //     OneTimeToken {
-    //         id: object::new(ctx),
-    //         version: access_policy.version,
-    //     }
-    // }
-
     public fun assert_field_auth<T: key + store, Field: store>(
         collection: &Collection<T>,
         ctx: &TxContext,
@@ -228,26 +206,26 @@ module nft_protocol::access_policy {
 
     public fun assert_parent_auth<T: key + store>(
         collection: &Collection<T>,
-        ctx: &TxContext,
+        entity: address,
     ) {
         let access_policy = collection::borrow_domain<T, AccessPolicy<T>>(
             collection
         );
 
         assert!(
-            vec_set::contains(&access_policy.parent_access, &tx_context::sender(ctx)),
+            vec_set::contains(&access_policy.parent_access, &entity),
             EPARENT_ACCESS_DENIED
         );
     }
 
-    public fun needs_owner_signoff<T: key + store>(
+    public fun assert_no_owner_signoff<T: key + store>(
         collection: &Collection<T>,
-    ): bool {
+    ) {
         let access_policy = collection::borrow_domain<T, AccessPolicy<T>>(
             collection
         );
 
-        access_policy.owner_signoff
+        assert!(!access_policy.owner_signoff, EOWNER_SIGN_OFF_NEEDED);
     }
 
     fun assert_no_access_policy<T: key + store>(

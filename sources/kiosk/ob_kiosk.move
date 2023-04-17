@@ -36,8 +36,10 @@ module nft_protocol::ob_kiosk {
     use nft_protocol::utils;
     use originmate::typed_id::{Self, TypedID};
     use std::string::utf8;
+    use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
     use sui::display;
+    use sui::clock::{Self, Clock};
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, uid_mut as ext};
     use sui::object::{Self, ID, UID, uid_to_address};
@@ -72,6 +74,8 @@ module nft_protocol::ob_kiosk {
     const ENftTypeMismatch: u64 = 10;
     /// Permissionless deposits are not enabled and sender is not the owner
     const ECannotDeposit: u64 = 11;
+    /// Session token timed out
+    const ESessionTokenTimedOut: u64 = 12;
 
     // === Constants ===
 
@@ -120,6 +124,7 @@ module nft_protocol::ob_kiosk {
         is_exclusively_listed: bool,
         /// Kiosk is heterogeneous
         nft_type: TypeName,
+        timeout_ms: Option<u64>,
     }
 
     /// Configures how deposits without owner signing are limited
@@ -241,6 +246,7 @@ module nft_protocol::ob_kiosk {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
             nft_type: type_name::get<T>(),
+            timeout: option::none(),
         });
 
         // place underlying NFT to kiosk
@@ -529,22 +535,64 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ) {
         let nft_id = typed_id::to_id(nft_id);
+
+        // Only the owner can issue session tokens
+        assert_owner_address(self, sender(ctx));
         assert_not_listed(self, nft_id);
-
-        // If access policy requires owner sign_off
-        if (ap::needs_owner_signoff(collection)) {
-            assert_owner_address(self, sender(ctx));
-        };
-
-        ap::assert_parent_auth<T>(collection, ctx);
+        ap::assert_parent_auth<T>(collection, receiver);
 
         mut_lock::issue_session_token<Witness, T>(
             Witness {},
             nft_id,
-            timeout,
             receiver,
             ctx,
         );
+    }
+
+    public fun issue_session_token_field<T: key + store, Field: store>(
+        self: &mut Kiosk,
+        collection: &Collection<T>,
+        nft_id: TypedID<T>,
+        receiver: address,
+        timeout: u64,
+        ctx: &mut TxContext,
+    ) {
+        let nft_id = typed_id::to_id(nft_id);
+
+        // Only the owner can issue session tokens
+        assert_not_listed(self, nft_id);
+        assert_owner_address(self, sender(ctx));
+        ap::assert_field_auth<T, Field>(collection, ctx);
+
+        mut_lock::issue_session_token_field<Witness, T, Field>(
+            Witness {},
+            nft_id,
+            receiver,
+            ctx,
+        );
+    }
+
+    public fun borrow_nft_mut_with_session_token<T: key + store>(
+        self: &mut Kiosk,
+        session_token: SessionToken<T>,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ): (MutLock<T>, ReturnPromise<T>) {
+        let nft_id = mut_lock::nft_id(session_token);
+
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow(refs, nft_id);
+
+        assert!(
+            clock::timestamp_ms(clock) < *option::borrow(&ref.timeout_ms),
+            ESessionTokenTimedOut
+        );
+
+        let cap = pop_cap(self);
+        let nft = kiosk::take<T>(self, &cap, nft_id);
+        set_cap(self, cap);
+
+        mut_lock::lock_nft_with_session_token<Witness, T>(Witness {}, nft, session_token, ctx)
     }
 
     public fun borrow_nft_field_mut<T: key + store, Field: store>(
@@ -556,6 +604,10 @@ module nft_protocol::ob_kiosk {
         let nft_id = typed_id::to_id(nft_id);
         assert_not_listed(self, nft_id);
         ap::assert_field_auth<T, Field>(collection, ctx);
+
+        // One can only can only call this function in case no owner signoff
+        // is needed
+        ap::assert_no_owner_signoff(collection);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
@@ -573,7 +625,10 @@ module nft_protocol::ob_kiosk {
         let nft_id = typed_id::to_id(nft_id);
         assert_not_listed(self, nft_id);
         // TODO: Assert T lives in the OTW universe
-        ap::assert_parent_auth<T>(collection, ctx);
+        // One can only can only call this function in case no owner signoff
+        // is needed
+        ap::assert_no_owner_signoff(collection);
+        ap::assert_parent_auth<T>(collection, sender(ctx));
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
