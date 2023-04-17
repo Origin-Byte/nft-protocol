@@ -170,7 +170,7 @@ module nft_protocol::supply {
     ///
     /// Panics if new maximum supply exceeds maximum.
     public fun increment<T>(
-        witness: DelegatedWitness<T>,
+        _witness: DelegatedWitness<T>,
         supply: &mut Supply<T>,
         value: u64
     ) {
@@ -189,7 +189,7 @@ module nft_protocol::supply {
     ///
     /// Panics if new maximum supply exceeds maximum.
     public fun decrement<T>(
-        witness: DelegatedWitness<T>,
+        _witness: DelegatedWitness<T>,
         supply: &mut Supply<T>,
         value: u64
     ) {
