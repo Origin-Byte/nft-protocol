@@ -180,15 +180,15 @@ module nft_protocol::mut_lock {
         session_token: SessionToken<T>,
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
-        let nft_id = object::id(&nft);
+        let SessionToken { id, nft_id, authority, field } = session_token;
 
         assert!(
-            nft_id == session_token.nft_id,
+            object::id(&nft) == nft_id,
             0
         );
 
         assert!(
-            type_name::get<Auth>() == session_token.authority,
+            type_name::get<Auth>() == authority,
             0
         );
 
@@ -196,15 +196,16 @@ module nft_protocol::mut_lock {
             id: object::new(ctx),
             nft,
             authority: type_name::get<Auth>(),
-            field: session_token.field,
+            field,
         };
 
         let promise = ReturnPromise { nft_id };
+        object::delete(id);
 
         (mut_lock, promise)
     }
 
-    public fun nft_id<T: key + store>(session_token: SessionToken<T>): ID {
+    public fun nft_id<T: key + store>(session_token: &SessionToken<T>): ID {
         session_token.nft_id
     }
 }

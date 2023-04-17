@@ -246,7 +246,7 @@ module nft_protocol::ob_kiosk {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
             nft_type: type_name::get<T>(),
-            timeout: option::none(),
+            timeout_ms: option::none(),
         });
 
         // place underlying NFT to kiosk
@@ -538,8 +538,16 @@ module nft_protocol::ob_kiosk {
 
         // Only the owner can issue session tokens
         assert_owner_address(self, sender(ctx));
-        assert_not_listed(self, nft_id);
         ap::assert_parent_auth<T>(collection, receiver);
+
+        // Need to assert that NFT is not locked
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow_mut(refs, nft_id);
+        assert_ref_not_listed(ref);
+
+        // Lock the NFT exclusively and set the timeout
+        ref.is_exclusively_listed = true;
+        ref.timeout_ms = option::some(timeout);
 
         mut_lock::issue_session_token<Witness, T>(
             Witness {},
@@ -560,9 +568,17 @@ module nft_protocol::ob_kiosk {
         let nft_id = typed_id::to_id(nft_id);
 
         // Only the owner can issue session tokens
-        assert_not_listed(self, nft_id);
         assert_owner_address(self, sender(ctx));
         ap::assert_field_auth<T, Field>(collection, ctx);
+
+        // Need to assert that NFT is not locked
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow_mut(refs, nft_id);
+        assert_ref_not_listed(ref);
+
+        // Lock the NFT exclusively and set the timeout
+        ref.is_exclusively_listed = true;
+        ref.timeout_ms = option::some(timeout);
 
         mut_lock::issue_session_token_field<Witness, T, Field>(
             Witness {},
@@ -578,7 +594,7 @@ module nft_protocol::ob_kiosk {
         clock: &Clock,
         ctx: &mut TxContext,
     ): (MutLock<T>, ReturnPromise<T>) {
-        let nft_id = mut_lock::nft_id(session_token);
+        let nft_id = mut_lock::nft_id(&session_token);
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow(refs, nft_id);
