@@ -17,6 +17,12 @@ module nft_protocol::mint_event {
 
     use nft_protocol::witness::Witness as DelegatedWitness;
 
+    /// Passed `BurnGuard` for object with different ID
+    ///
+    /// Call `mint_event::emit_burn` with the same object used in
+    /// `mint_event::start_burn`.
+    const EInvalidBurnGuard: u64 = 1;
+
     // === Mint Events ===
 
     /// Event signalling that an object `T` was minted
@@ -89,7 +95,7 @@ module nft_protocol::mint_event {
     ) {
         let BurnGuard<T> { id } = guard;
 
-        assert!(object::uid_to_inner(&object) == id, 0);
+        assert!(object::uid_to_inner(&object) == id, EInvalidBurnGuard);
         object::delete(object);
 
         event::emit(BurnEvent<T> {

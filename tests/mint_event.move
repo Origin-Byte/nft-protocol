@@ -16,6 +16,30 @@ module nft_protocol::test_mint_event {
     const CREATOR: address = @0xA1C05;
 
     #[test]
+    #[expected_failure(abort_code = mint_event::EInvalidBurnGuard)]
+    fun try_burn() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let collection = object::new(ctx(&mut scenario));
+        let collection_id = object::uid_to_inner(&collection);
+
+        let delegated_witness =
+            witness::from_witness<Foo, Witness>(Witness {});
+
+        let nft = Foo { id: object::new(ctx(&mut scenario)) };
+
+        let guard = mint_event::start_burn(delegated_witness, &nft);
+
+        let fake_id = object::new(ctx(&mut scenario));
+        mint_event::emit_burn(guard, collection_id, fake_id);
+
+        let Foo { id } = nft;
+        object::delete(id);
+        object::delete(collection);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
     fun test_events() {
         let scenario = test_scenario::begin(CREATOR);
 
