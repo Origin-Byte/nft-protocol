@@ -40,7 +40,11 @@ module nft_protocol::supply {
     }
 
     /// Creates a new `Supply`
-    public fun new<T>(max: u64, frozen: bool): Supply<T> {
+    public fun new<T>(
+        _witness: DelegatedWitness<T>,
+        max: u64,
+        frozen: bool
+    ): Supply<T> {
         Supply { frozen, inner: utils_supply::new(max) }
     }
 
@@ -165,7 +169,11 @@ module nft_protocol::supply {
     /// #### Panics
     ///
     /// Panics if new maximum supply exceeds maximum.
-    public fun increment<T>(supply: &mut Supply<T>, value: u64) {
+    public fun increment<T>(
+        witness: DelegatedWitness<T>,
+        supply: &mut Supply<T>,
+        value: u64
+    ) {
         utils_supply::increment(&mut supply.inner, value)
     }
 
@@ -180,7 +188,11 @@ module nft_protocol::supply {
     /// #### Panics
     ///
     /// Panics if new maximum supply exceeds maximum.
-    public fun decrement<T>(supply: &mut Supply<T>, value: u64) {
+    public fun decrement<T>(
+        witness: DelegatedWitness<T>,
+        supply: &mut Supply<T>,
+        value: u64
+    ) {
         utils_supply::decrement(&mut supply.inner, value)
     }
 
@@ -283,11 +295,12 @@ module nft_protocol::supply {
     ///
     /// Panics if `Supply` domain already exists
     public fun add_new<T>(
-        nft: &mut UID,
+        witness: DelegatedWitness<T>,
+        object: &mut UID,
         max: u64,
         frozen: bool,
     ) {
-        add_domain(nft, new<T>(max, frozen))
+        add_domain(object, new<T>(witness, max, frozen))
     }
 
     /// Remove `Supply` from object
@@ -295,9 +308,9 @@ module nft_protocol::supply {
     /// #### Panics
     ///
     /// Panics if `Supply` domain doesnt exist
-    public fun remove_domain<T>(nft: &mut UID): Supply<T> {
-        assert_supply<T>(nft);
-        df::remove(nft, utils::marker<Supply<T>>())
+    public fun remove_domain<T>(object: &mut UID): Supply<T> {
+        assert_supply<T>(object);
+        df::remove(object, utils::marker<Supply<T>>())
     }
 
     /// Delete `Supply`
