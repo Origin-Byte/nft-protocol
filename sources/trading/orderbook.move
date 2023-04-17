@@ -60,6 +60,10 @@ module nft_protocol::orderbook {
     /// No order matches the given price level or ownership level
     const EOrderDoesNotExist: u64 = 6;
 
+    /// Occurs if trade price for market_buy is above max_price
+    /// or trade price for market_sell is below min_price
+    const EExecutionPriceBeyondSlippageTolerance: u64 = 6;
+
     // === Structs ===
 
     /// Add this witness type to allowlists via
@@ -340,6 +344,7 @@ module nft_protocol::orderbook {
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
         wallet: &mut Coin<FT>,
+        max_price: u64,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_bid, EActionNotPublic);
@@ -349,6 +354,7 @@ module nft_protocol::orderbook {
             option::none(),
             0,
             wallet,
+            max_price,
             ctx,
         );
     }
@@ -360,6 +366,7 @@ module nft_protocol::orderbook {
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
         wallet: &mut Coin<FT>,
+        max_price: u64,
         ctx: &mut TxContext,
     ) {
         market_buy_<T, FT>(
@@ -368,6 +375,7 @@ module nft_protocol::orderbook {
             option::none(),
             0,
             wallet,
+            max_price,
             ctx,
         );
     }
@@ -380,6 +388,7 @@ module nft_protocol::orderbook {
         beneficiary: address,
         commission_bps: u16,
         wallet: &mut Coin<FT>,
+        max_price: u64,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_bid, EActionNotPublic);
@@ -390,6 +399,7 @@ module nft_protocol::orderbook {
             option::some(beneficiary),
             commission_bps,
             wallet,
+            max_price,
             ctx,
         );
     }
@@ -403,6 +413,7 @@ module nft_protocol::orderbook {
         beneficiary: address,
         commission_bps: u16,
         wallet: &mut Coin<FT>,
+        max_price: u64,
         ctx: &mut TxContext,
     ) {
         market_buy_<T, FT>(
@@ -411,6 +422,7 @@ module nft_protocol::orderbook {
             option::some(beneficiary),
             commission_bps,
             wallet,
+            max_price,
             ctx,
         );
     }
@@ -550,6 +562,7 @@ module nft_protocol::orderbook {
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         nft_id: ID,
+        min_price: u64,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, EActionNotPublic);
@@ -559,6 +572,7 @@ module nft_protocol::orderbook {
             option::none(),
             0,
             nft_id,
+            min_price,
             ctx,
         );
     }
@@ -570,6 +584,7 @@ module nft_protocol::orderbook {
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         nft_id: ID,
+        min_price: u64,
         ctx: &mut TxContext,
     ) {
         market_sell_<T, FT>(
@@ -578,6 +593,7 @@ module nft_protocol::orderbook {
             option::none(),
             0,
             nft_id,
+            min_price,
             ctx,
         );
     }
@@ -590,6 +606,7 @@ module nft_protocol::orderbook {
         nft_id: ID,
         beneficiary: address,
         commission_bps: u16,
+        min_price: u64,
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_ask, EActionNotPublic);
@@ -599,6 +616,7 @@ module nft_protocol::orderbook {
             option::some(beneficiary),
             commission_bps,
             nft_id,
+            min_price,
             ctx,
         );
     }
@@ -615,6 +633,7 @@ module nft_protocol::orderbook {
         nft_id: ID,
         beneficiary: address,
         commission_bps: u16,
+        min_price: u64,
         ctx: &mut TxContext,
     ) {
         market_sell_<T, FT>(
@@ -623,6 +642,7 @@ module nft_protocol::orderbook {
             option::some(beneficiary),
             commission_bps,
             nft_id,
+            min_price,
             ctx,
         );
     }
@@ -946,6 +966,7 @@ module nft_protocol::orderbook {
         beneficiary: Option<address>,
         commission_bps: u16,
         wallet: &mut Coin<FT>,
+        max_price: u64,
         ctx: &mut TxContext,
     ) {
         ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
@@ -960,6 +981,8 @@ module nft_protocol::orderbook {
 
         // if map empty, then lowest ask price is 0
         let lowest_ask_price = crit_bit::min_key(asks);
+
+        assert!(lowest_ask_price <= max_price, EExecutionPriceBeyondSlippageTolerance);
 
         let bid_commission = option::none();
 
@@ -991,6 +1014,7 @@ module nft_protocol::orderbook {
         beneficiary: Option<address>,
         commission_bps: u16,
         nft_id: ID,
+        min_price: u64,
         ctx: &mut TxContext,
     ) {
         // TODO: Should we assert assert_is_ob_kiosk here?
@@ -1010,6 +1034,8 @@ module nft_protocol::orderbook {
 
         // if map empty, then highest bid ask price is 0
         let highest_bid_price = crit_bit::max_key(bids);
+
+        assert!(highest_bid_price >= min_price, EExecutionPriceBeyondSlippageTolerance);
 
         let ask_commission = option::none();
 
