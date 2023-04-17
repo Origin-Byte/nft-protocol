@@ -257,7 +257,8 @@ module nft_protocol::orderbook {
     /// * sender must be owner of buyer kiosk
     /// * the buyer kiosk must allow deposits of `T`
     ///
-    /// Returns `true` if matched.
+    /// Returns `Some` with amount if matched.
+    /// The amount is always equal or less than price.
     public fun create_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
@@ -750,7 +751,8 @@ module nft_protocol::orderbook {
     ///
     /// Either `TradeIntermediate` is shared, or bid is added to the state.
     ///
-    /// Returns `true` if matched.
+    /// Returns `Some` with amount if matched.
+    /// The amount is always equal or less than price.
     fun create_bid_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
