@@ -2,11 +2,10 @@ module nft_protocol::composable_nft {
     use std::type_name::{Self, TypeName};
 
     use sui::dynamic_field as df;
-    use sui::transfer::public_transfer;
     use sui::object::{ID, UID};
-    use sui::tx_context::{Self, TxContext};
     use sui::vec_map::{Self, VecMap};
 
+    use nft_protocol::collection::{Self, Collection};
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft_bag::{Self, NftBag};
 
@@ -137,24 +136,27 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// * Parent or child NFT do not have corresponding `Type<Parent>` and
-    /// `Type<Child>` domains registered
-    /// * Limit of children is exceeded
+    /// Panics if child is not composable under the schema or child limit is
+    /// exceeded.
     public fun compose<Schema, Child: key + store>(
         composition: &Composition<Schema>,
         nfts: &mut NftBag,
         child_nft: Child,
     ) {
-        // Asserts that parent and child are composable
-        let child_type = type_name::get<Child>();
-        let limit = get_limit(composition, &child_type);
+        let count = compose_(nfts, child_nft);
+        assert_insertable<Schema, Child>(composition, count);
+    }
 
-        assert!(
-            nft_bag::count<Key<Child>>(nfts) < limit,
-            EExceededLimit,
-        );
-
+    /// Unprotected compose child NFT into `NftBag` and return new count
+    ///
+    /// Method exists to perform all operations on `NftBag` without holding a
+    /// simultaneous reference to `Composition`.
+    fun compose_<Child: key + store>(
+        nfts: &mut NftBag,
+        child_nft: Child,
+    ): u64 {
         nft_bag::compose(Key<Child> {}, nfts, child_nft);
+        nft_bag::count<Key<Child>>(nfts)
     }
 
     /// Composes child NFT into parent NFT
@@ -164,15 +166,60 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// * `NftBag` is not registered on the parent `Nft`
-    /// * Parent or child NFT do not have corresponding `Type<Parent>` and
-    /// `Type<Child>` domains registered
+    /// * Child is not composable under the schema
+    /// * `NftBag` is not registered on the parent NFT
     /// * Limit of children is exceeded
     public fun compose_into_nft<Schema, Child: key + store>(
         composition: &Composition<Schema>,
         parent_nft: &mut UID,
         child_nft: Child,
     ) {
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        compose(composition, nfts, child_nft);
+    }
+
+    /// Composes child NFT into parent NFT using `Compostion<Schema>` defined
+    /// on parent NFT
+    ///
+    /// #### Panics
+    ///
+    /// * Child is not composable under the schema
+    /// * `NftBag` is not registered on the parent NFT
+    /// * `Compostion<Schema>` is not registered on the parent NFT
+    /// * Limit of children is exceeded
+    public fun compose_with_nft_schema<Schema, Child: key + store>(
+        parent_nft: &mut UID,
+        child_nft: Child,
+    ) {
+        // Switch up the order a bit to avoid holding reference to
+        // `Composition` and `NftBag` at the same time
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        let count = compose_(nfts, child_nft);
+
+        let composition = borrow_domain<Schema>(parent_nft);
+        assert_insertable<Schema, Child>(composition, count);
+    }
+
+    /// Composes child NFT into parent NFT using `Compostion<Schema>` defined
+    /// on parent NFT
+    ///
+    /// The creator must ensure that the `Collection<C>` object is of a trusted
+    /// type or originates from a trusted source.
+    ///
+    /// #### Panics
+    ///
+    /// * Child is not composable under the schema
+    /// * `NftBag` is not registered on the parent NFT
+    /// * `Compostion<Schema>` is not registered on the collection
+    /// * Limit of children is exceeded
+    public fun compose_with_collection_schema<C, Schema, Child: key + store>(
+        collection: &Collection<C>,
+        parent_nft: &mut UID,
+        child_nft: Child,
+    ) {
+        let composition: &Composition<Schema> =
+            collection::borrow_domain(collection);
+
         let nfts = nft_bag::borrow_domain_mut(parent_nft);
         compose(composition, nfts, child_nft);
     }
@@ -184,35 +231,26 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// Panics if there is no NFT with given ID composed or schema does not
-    /// allow composing the `Child`.
+    /// Panics child is not composable under the schema or was not previously
+    /// composed.
     public fun decompose<Schema, Child: key + store>(
         composition: &Composition<Schema>,
         nfts: &mut NftBag,
         child_nft_id: ID,
     ): Child {
         assert_composable(composition, &type_name::get<Child>());
-        nft_bag::decompose(Key<Child> {}, nfts, child_nft_id)
+        decompose_(nfts, child_nft_id)
     }
 
-    /// Decomposes NFT with given ID from parent NFT and transfers to
-    /// transaction sender
+    /// Unprotected compose child NFT into `NftBag` and return new count
     ///
-    /// Verifies that composition operation does not violate the provided
-    /// composition schema.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if there is no NFT with given ID composed or schema does not
-    /// allow composing the `Child`.
-    public fun decompose_and_transfer<Schema, Child: key + store>(
-        composition: &Composition<Schema>,
+    /// Method exists to perform all operations on `NftBag` without holding a
+    /// simultaneous reference to `Composition`.
+    fun decompose_<Child: key + store>(
         nfts: &mut NftBag,
         child_nft_id: ID,
-        ctx: &mut TxContext,
-    ) {
-        let nft: Child = decompose(composition, nfts, child_nft_id);
-        public_transfer(nft, tx_context::sender(ctx));
+    ): Child {
+        nft_bag::decompose(Key<Child> {}, nfts, child_nft_id)
     }
 
     /// Decomposes child NFT from parent NFT
@@ -222,8 +260,9 @@ module nft_protocol::composable_nft {
     ///
     /// #### Panics
     ///
-    /// Panics if `NftBag` is not registered on the parent `Nft` or schema does
-    /// not allow composing the `Child`.
+    /// * Child is not composable under the schema
+    /// * `NftBag` is not registered on the parent NFT
+    /// * Child was not previously composed
     public fun decompose_from_nft<Schema, Child: key + store>(
         composition: &Composition<Schema>,
         parent_nft: &mut UID,
@@ -233,24 +272,51 @@ module nft_protocol::composable_nft {
         decompose(composition, nfts, child_nft_id)
     }
 
-    /// Decomposes child NFT from parent NFT and transfers to transaction
-    /// sender
+    /// Decomposes child NFT from parent NFT
     ///
     /// Verifies that composition operation does not violate the provided
     /// composition schema.
     ///
     /// #### Panics
     ///
-    /// Panics if `NftBag` is not registered on the parent `Nft` or schema does
-    /// not allow composing the `Child`.
-    public fun decompose_from_nft_and_transfer<Schema, Child: key + store>(
-        composition: &Composition<Schema>,
+    /// * Child is not composable under the schema
+    /// * `NftBag` is not registered on the parent NFT
+    /// * `Compostion<Schema>` is not registered on the parent NFT
+    /// * Child was not previously composed
+    public fun decompose_with_nft_schema<Schema, Child: key + store>(
         parent_nft: &mut UID,
         child_nft_id: ID,
-        ctx: &mut TxContext,
-    ) {
-        let nft: Child = decompose_from_nft(composition, parent_nft, child_nft_id);
-        public_transfer(nft, tx_context::sender(ctx));
+    ): Child {
+        // Switch up the order a bit to avoid holding reference to
+        // `Composition` and `NftBag` at the same time
+        let composition = borrow_domain<Schema>(parent_nft);
+        assert_composable(composition, &type_name::get<Child>());
+
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        decompose_(nfts, child_nft_id)
+    }
+
+    /// Decomposes child NFT from parent NFT
+    ///
+    /// Verifies that composition operation does not violate the provided
+    /// composition schema.
+    ///
+    /// #### Panics
+    ///
+    /// * Child is not composable under the schema
+    /// * `NftBag` is not registered on the parent NFT
+    /// * `Compostion<Schema>` is not registered on the collection
+    /// * Child was not previously composed
+    public fun decompose_with_collection_schema<C, Schema, Child: key + store>(
+        collection: &Collection<C>,
+        parent_nft: &mut UID,
+        child_nft_id: ID,
+    ): Child {
+        let composition: &Composition<Schema> =
+            collection::borrow_domain(collection);
+
+        let nfts = nft_bag::borrow_domain_mut(parent_nft);
+        decompose(composition, nfts, child_nft_id)
     }
 
     // === Interoperability ===
@@ -328,13 +394,27 @@ module nft_protocol::composable_nft {
 
     // === Assertions ===
 
+    /// Assert that count doesnt exceed the limit for the given child type
+    ///
+    /// #### Panics
+    ///
+    /// Panics if count is greater than or equal to the limit for the child.
+    fun assert_insertable<Schema, Child: key + store>(
+        composition: &Composition<Schema>,
+        count: u64,
+    ) {
+        let child_type = type_name::get<Child>();
+        let limit = get_limit(composition, &child_type);
+        assert!(count <= limit, EExceededLimit);
+    }
+
     /// Assert that parent and child types are composable
     ///
     /// #### Panics
     ///
     /// Panics if parent and child types are not composable.
-    public fun assert_composable<S>(
-        composition: &Composition<S>,
+    public fun assert_composable<Schema>(
+        composition: &Composition<Schema>,
         child_type: &TypeName,
     ) {
         assert!(
