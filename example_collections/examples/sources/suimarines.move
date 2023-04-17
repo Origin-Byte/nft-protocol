@@ -7,6 +7,8 @@ module examples::suimarines {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::tags;
+    use nft_protocol::display as ob_display;
     use nft_protocol::collection;
     use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
     use nft_protocol::mint_cap::MintCap;
@@ -44,9 +46,12 @@ module examples::suimarines {
         // Init Publisher
         let publisher = sui::package::claim(otw, ctx);
 
-        // Init Display
+        // Init NFT Display
+        let tags = vector[tags::art(), tags::collectible()];
+
         let display = display::new<Submarine>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::add(&mut display, string::utf8(b"tags"), ob_display::from_vec(tags));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 

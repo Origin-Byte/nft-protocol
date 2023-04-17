@@ -27,7 +27,6 @@ module examples::testract {
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty;
     use nft_protocol::symbol;
-    use nft_protocol::tags;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use nft_protocol::warehouse;
@@ -476,11 +475,6 @@ module examples::testract {
 
         let royalty_domain = royalty::from_address(sender(ctx), ctx);
         collection::add_domain(col_wit(), collection, royalty_domain);
-
-        let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art());
-
-        collection::add_domain(col_wit(), collection, tags);
     }
 
     // === Tests ===
