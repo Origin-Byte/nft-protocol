@@ -19,7 +19,7 @@ module nft_protocol::mint_pass {
     use sui::dynamic_field as df;
 
     use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::utils_supply::{Self, Supply};
 
     /// `MintCap` is unregulated when expected regulated
     const EMINT_CAP_UNREGULATED: u64 = 1;
@@ -56,8 +56,7 @@ module nft_protocol::mint_pass {
 
         MintPass {
             id: object::new(ctx),
-            // The supply is always set to frozen for safety
-            supply: supply::new(supply, true),
+            supply: utils_supply::new(supply),
         }
     }
 
@@ -70,8 +69,7 @@ module nft_protocol::mint_pass {
 
         MintPass {
             id: object::new(ctx),
-            // The supply is always set to frozen for safety
-            supply: supply::new(supply, true),
+            supply: utils_supply::new(supply),
         }
     }
 
@@ -113,12 +111,7 @@ module nft_protocol::mint_pass {
     ///
     /// Panics if supply is unregulated.
     public fun supply<T>(mint_pass: &MintPass<T>): u64 {
-        supply::get_current(&mint_pass.supply)
-    }
-
-    public fun is_frozen<T>(mint_pass: &MintPass<T>): bool {
-        let supply = get_supply(mint_pass);
-        supply::is_frozen(supply)
+        utils_supply::get_current(&mint_pass.supply)
     }
 
     public fun get_supply<T>(mint_pass: &MintPass<T>): &Supply {
@@ -142,7 +135,7 @@ module nft_protocol::mint_pass {
         mint_pass: &mut MintPass<T>,
         quantity: u64,
     ) {
-        supply::increment(&mut mint_pass.supply, quantity);
+        utils_supply::increment(&mut mint_pass.supply, quantity);
     }
 
     /// Create a new `MintCap` by delegating supply from unregulated or
@@ -156,7 +149,7 @@ module nft_protocol::mint_pass {
 
         MintPass {
             id: object::new(ctx),
-            supply: supply::new(supply, true),
+            supply: utils_supply::new(supply),
         }
     }
 
@@ -168,7 +161,7 @@ module nft_protocol::mint_pass {
     ) {
         let MintPass { id, supply } = other;
 
-        supply::merge(
+        utils_supply::merge(
             &mut mint_pass.supply,
             supply,
         );

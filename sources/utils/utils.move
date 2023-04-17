@@ -1,6 +1,5 @@
 /// Utility functions
 module nft_protocol::utils {
-    use nft_protocol::err;
     use std::ascii;
     use std::string::{Self, String, utf8, sub_string};
     use std::type_name;
@@ -13,7 +12,6 @@ module nft_protocol::utils {
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
-
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
     const EMismatchedKeyValueLength: u64 = 1;
@@ -133,13 +131,6 @@ module nft_protocol::utils {
         assert!(uid_id == object_id, 0);
     }
 
-    public fun assert_same_package<A, B>() {
-        assert!(
-            get_package<A>() == get_package<B>(),
-            err::witness_source_mismatch()
-        );
-    }
-
     public fun assert_package_publisher<C>(pub: &Publisher) {
         assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
     }
@@ -204,12 +195,6 @@ module nft_protocol::utils {
         };
 
         map
-    }
-
-    /// T mustn't be exported by nft-protocol to avoid unexpected bugs
-    public fun assert_not_nft_protocol_type<T>() {
-        let (t_pkg, _, _) = get_package_module_type<T>();
-        assert!(t_pkg != nft_protocol_package_id(), err::generic_nft_must_not_be_protocol_type());
     }
 
     /// Returns true if T is of type `nft_protocol::nft::Nft`
