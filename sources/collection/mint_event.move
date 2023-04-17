@@ -2,9 +2,17 @@ module nft_protocol::mint_event {
     // TODO: Add burn function
 
     use sui::event;
-    use sui::object::{Self, ID};
+    use sui::object::{Self, UID, ID};
 
     use nft_protocol::mint_cap::{Self, MintCap};
+
+    struct BurnGuard<phantom T> {
+        id: ID,
+    }
+
+    public fun start_burn<T: key>(object: &T): BurnGuard<T> {
+        BurnGuard { id: object::id(object) }
+    }
 
     /// Event signalling that an object `T` was minted
     struct MintEvent<phantom T> has copy, drop {
@@ -22,14 +30,20 @@ module nft_protocol::mint_event {
         object: ID,
     }
 
-    /// Emit burn event
+    /// Burns UID from object `T` and emits burn event
     public fun emit_burn<C, T: key>(
         mint_cap: &MintCap<C>,
-        object: &T,
+        object: UID,
+        guard: BurnGuard<T>
     ) {
+        let BurnGuard<T> { id } = guard;
+
+        assert!(object::uid_to_inner(&object) == id, 0);
+        object::delete(object);
+
         event::emit(BurnEvent<T> {
             collection_id: mint_cap::collection_id(mint_cap),
-            object: object::id(object),
+            object: id,
         });
     }
 
