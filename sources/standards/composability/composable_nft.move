@@ -129,6 +129,20 @@ module nft_protocol::composable_nft {
         vec_map::insert(&mut composition.limits, child_type, limit);
     }
 
+    /// Drops parent child relationship from `Composition`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if parent child relationship does not exist
+    public fun drop_relationship<Schema, Child>(
+        composition: &mut Composition<Schema>,
+    ) {
+        let child_type = type_name::get<Child>();
+        assert_composable(composition, &child_type);
+
+        vec_map::remove(&mut composition.limits, &child_type);
+    }
+
     /// Compose child NFT into parent NFT
     ///
     /// Verifies that composition operation does not violate the provided

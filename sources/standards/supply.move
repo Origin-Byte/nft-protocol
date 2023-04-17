@@ -30,6 +30,9 @@ module nft_protocol::supply {
     /// `Supply` is frozen
     const ESupplyFrozen: u64 = 3;
 
+    /// Occurs if `Supply` is frozen and still has available supply
+    const ECannotBurn: u64 = 4;
+
     /// `Supply` tracks supply parameters for type `T`
     ///
     /// `Supply` can be frozen, therefore making it impossible to change the
@@ -313,8 +316,13 @@ module nft_protocol::supply {
         df::remove(object, utils::marker<Supply<T>>())
     }
 
-    /// Delete `Supply`
+    /// Delete a `Supply` object
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Supply` is frozen or has non-zero current supply.
     public fun delete<T>(supply: Supply<T>): utils_supply::Supply {
+        assert!(!supply.frozen || get_current(&supply) == 0, ECannotBurn);
         let Supply { frozen: _, inner } = supply;
         inner
     }
