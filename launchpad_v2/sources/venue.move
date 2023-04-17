@@ -12,7 +12,7 @@ module launchpad_v2::venue {
     use sui::transfer;
 
     use nft_protocol::witness;
-    use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::utils_supply::{Self, Supply};
     use launchpad_v2::launchpad::{Self, LaunchCap};
     use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap as AuthPolicyCap, Policy as AuthPolicy};
     use launchpad_v2::proceeds::{Self, Proceeds};
@@ -314,7 +314,7 @@ module launchpad_v2::venue {
         assert_called_from_market<AW>(venue);
 
         if (option::is_some(&venue.supply)) {
-            supply::decrement(option::borrow_mut(&mut venue.supply), quantity);
+            utils_supply::decrement(option::borrow_mut(&mut venue.supply), quantity);
         }
     }
 
