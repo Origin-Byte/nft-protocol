@@ -21,7 +21,7 @@ module nft_protocol::mint_cap {
     use sui::object::{Self, UID, ID};
 
     use nft_protocol::witness;
-    use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::utils_supply::{Self, Supply};
 
     /// `MintCap` is unlimited when expected limited
     const EMintCapunlimited: u64 = 1;
@@ -108,8 +108,7 @@ module nft_protocol::mint_cap {
             id: object::new(ctx),
             collection_id,
             collection_type: type_name::get<T>(),
-            // The supply is always set to frozen for safety
-            supply: option::some(supply::new(supply, true)),
+            supply: option::some(utils_supply::new(supply)),
         }
     }
 
@@ -130,7 +129,7 @@ module nft_protocol::mint_cap {
     /// Panics if supply is unlimited.
     public fun supply<T>(mint_cap: &MintCap<T>): u64 {
         assert_limited(mint_cap);
-        supply::get_current(option::borrow(&mint_cap.supply))
+        utils_supply::get_current(option::borrow(&mint_cap.supply))
     }
 
     /// Returns backing `Supply`
@@ -165,9 +164,10 @@ module nft_protocol::mint_cap {
         mint_cap: &mut MintCap<T>,
         quantity: u64,
     ) {
-        // TODO: Should assert that is limited
         if (option::is_some(&mint_cap.supply)) {
-            supply::increment(option::borrow_mut(&mut mint_cap.supply), quantity);
+            utils_supply::increment(
+                option::borrow_mut(&mut mint_cap.supply), quantity,
+            );
         }
     }
 
@@ -177,17 +177,16 @@ module nft_protocol::mint_cap {
     /// #### Panics
     ///
     /// Panics if quantity exceeds available supply.
-    public fun split<T: key>(
+    public fun split<T>(
         mint_cap: &mut MintCap<T>,
         quantity: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
         let supply = if (has_supply(mint_cap)) {
-            supply::split(
+            utils_supply::split(
                 option::borrow_mut(&mut mint_cap.supply), quantity)
         } else {
-            // New supply object is frozen for safety
-            supply::new(quantity, true)
+            utils_supply::new(quantity)
         };
 
         MintCap {
@@ -200,14 +199,14 @@ module nft_protocol::mint_cap {
 
 
     /// Merge two `MintCap` together
-    public fun merge<T: key>(
+    public fun merge<T>(
         mint_cap: &mut MintCap<T>,
         other: MintCap<T>,
     ) {
         let MintCap { id, supply, collection_id: _, collection_type: _  } = other;
 
         if (option::is_some(&supply) && option::is_some(&mint_cap.supply)) {
-            supply::merge(
+            utils_supply::merge(
                 option::borrow_mut(&mut mint_cap.supply),
                 option::destroy_some(supply),
             );
