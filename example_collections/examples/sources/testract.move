@@ -19,7 +19,7 @@ module examples::testract {
     use nft_protocol::inventory;
     use nft_protocol::limited_fixed_price;
     use nft_protocol::listing;
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request;
@@ -31,6 +31,7 @@ module examples::testract {
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use nft_protocol::warehouse;
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+
     use std::option;
     use std::string::{String, utf8};
     use sui::coin::Coin;
@@ -77,6 +78,8 @@ module examples::testract {
     public entry fun mint_nfts(
         mint_cap: &mut MintCap<TestNft>, ctx: &mut TxContext,
     ) {
+        let delegated_witness = witness::from_witness(Witness {});
+
         let i = 0;
         while (i < 5) {
             let nft = TestNft {
@@ -85,7 +88,13 @@ module examples::testract {
                 description: utf8(b"A description indeed"),
                 url: url::new_unsafe_from_bytes(b"http://example.com"),
             };
-            mint_event::mint_unlimited(mint_cap, &nft);
+
+            mint_event::emit_mint(
+                delegated_witness,
+                mint_cap::collection_id(mint_cap),
+                &nft,
+            );
+
             public_transfer(nft, sender(ctx));
 
             i = i + 1;
@@ -193,6 +202,7 @@ module examples::testract {
         ctx: &mut TxContext,
     ) {
         let sender = sender(ctx);
+        let delegated_witness = witness::from_witness(Witness {});
 
         let i = 0;
         while(i < 5) {
@@ -224,7 +234,13 @@ module examples::testract {
                 url: url::new_unsafe_from_bytes(b"http://example.com"),
             };
             let nft_id = object::id(&nft);
-            mint_event::mint_unlimited(mint_cap, &nft);
+
+            mint_event::emit_mint(
+                delegated_witness,
+                mint_cap::collection_id(mint_cap),
+                &nft,
+            );
+
             ob_kiosk::deposit(&mut kiosk, nft, ctx);
             orderbook::create_ask(
                 orderbook,
@@ -262,7 +278,12 @@ module examples::testract {
             url: url::new_unsafe_from_bytes(b"http://example.com"),
         };
         let nft_id = object::id(&nft);
-        mint_event::mint_unlimited(mint_cap, &nft);
+
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
 
         let buyer_kiosk = ob_kiosk::new(ctx);
 
@@ -301,6 +322,7 @@ module examples::testract {
         ctx: &mut TxContext,
     ) {
         let listing = listing::new(sender(ctx), sender(ctx), ctx);
+        let delegated_witness = witness::from_witness(Witness {});
 
         let inventory = inventory::from_warehouse(warehouse::new(ctx), ctx);
         let i = 0;
@@ -311,7 +333,12 @@ module examples::testract {
                 description: utf8(b"Created to test bidding events"),
                 url: url::new_unsafe_from_bytes(b"http://example.com"),
             };
-            mint_event::mint_unlimited(mint_cap, &nft);
+
+            mint_event::emit_mint(
+                delegated_witness,
+                mint_cap::collection_id(mint_cap),
+                &nft,
+            );
 
             inventory::deposit_nft(&mut inventory, nft);
 
@@ -377,7 +404,12 @@ module examples::testract {
             url: url::new_unsafe_from_bytes(b"http://example.com"),
         };
         let nft_id = object::id(&nft);
-        mint_event::mint_unlimited(mint_cap, &nft);
+
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
 
         let kiosk = ob_kiosk::new(ctx);
 
@@ -422,8 +454,14 @@ module examples::testract {
             description: utf8(b"Created to test Orderbook close events"),
             url: url::new_unsafe_from_bytes(b"http://example.com"),
         };
+
         let nft_id = object::id(&nft);
-        mint_event::mint_unlimited(mint_cap, &nft);
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         ob_kiosk::deposit(&mut kiosk, nft, ctx);
 
         orderbook::create_ask(orderbook, &mut kiosk, 3_654, nft_id, ctx);

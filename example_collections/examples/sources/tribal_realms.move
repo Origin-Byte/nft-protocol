@@ -111,7 +111,13 @@ module examples::tribal_realms {
             mood,
         };
 
-        mint_event::mint_limited(mint_cap, &nft);
+        mint_cap::increment_supply(mint_cap, 1);
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         warehouse::deposit_nft(warehouse, nft);
     }
 
@@ -127,7 +133,12 @@ module examples::tribal_realms {
             type,
         };
 
-        mint_event::mint_unlimited(mint_cap, &nft);
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         warehouse::deposit_nft(warehouse, nft);
     }
 
@@ -143,7 +154,12 @@ module examples::tribal_realms {
             type,
         };
 
-        mint_event::mint_unlimited(mint_cap, &nft);
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         warehouse::deposit_nft(warehouse, nft);
     }
 
