@@ -318,16 +318,11 @@ module nft_protocol::supply {
 
     /// Delete a `Supply` object
     ///
-    /// `Supply` is only burnable if it is not frozen or h
-    ///
     /// #### Panics
     ///
-    /// Panics if `Supply` is frozen and still has available supply
+    /// Panics if `Supply` is frozen or has non-zero current supply.
     public fun delete<T>(supply: Supply<T>): utils_supply::Supply {
-        assert!(
-            !supply.frozen || get_remaining(&supply) == 0,
-            ECannotBurn
-        );
+        assert!(!supply.frozen || get_current(&supply) == 0, ECannotBurn);
         let Supply { frozen: _, inner } = supply;
         inner
     }
