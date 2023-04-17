@@ -133,8 +133,7 @@ module nft_protocol::composable_nft {
     /// Compose child NFT into parent NFT
     ///
     /// Verifies that composition operation does not violate the provided
-    /// composition schema. Requires mutable reference since `Collection`
-    /// domains can be borrowed publicly.
+    /// composition schema.
     ///
     /// #### Panics
     ///
@@ -161,8 +160,7 @@ module nft_protocol::composable_nft {
     /// Composes child NFT into parent NFT
     ///
     /// Verifies that composition operation does not violate the provided
-    /// composition schema. Requires mutable reference since `Collection`
-    /// domains can be borrowed publicly.
+    /// composition schema.
     ///
     /// #### Panics
     ///
@@ -182,8 +180,7 @@ module nft_protocol::composable_nft {
     /// Decomposes NFT with given ID from parent NFT
     ///
     /// Verifies that composition operation does not violate the provided
-    /// composition schema. Requires mutable reference since `Collection`
-    /// domains can be borrowed publicly.
+    /// composition schema.
     ///
     /// #### Panics
     ///
@@ -202,8 +199,7 @@ module nft_protocol::composable_nft {
     /// transaction sender
     ///
     /// Verifies that composition operation does not violate the provided
-    /// composition schema. Requires mutable reference since `Collection`
-    /// domains can be borrowed publicly.
+    /// composition schema.
     ///
     /// #### Panics
     ///
@@ -222,8 +218,7 @@ module nft_protocol::composable_nft {
     /// Decomposes child NFT from parent NFT
     ///
     /// Verifies that composition operation does not violate the provided
-    /// composition schema. Requires mutable reference since `Collection`
-    /// domains can be borrowed publicly.
+    /// composition schema.
     ///
     /// #### Panics
     ///
@@ -242,8 +237,7 @@ module nft_protocol::composable_nft {
     /// sender
     ///
     /// Verifies that composition operation does not violate the provided
-    /// composition schema. Requires mutable reference since `Collection`
-    /// domains can be borrowed publicly.
+    /// composition schema.
     ///
     /// #### Panics
     ///
