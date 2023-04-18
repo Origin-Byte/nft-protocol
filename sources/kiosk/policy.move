@@ -53,6 +53,15 @@ module nft_protocol::policy {
         Policy { id, rules: vec_set::empty() }
     }
 
+    public fun new_with_rules(
+        ctx: &mut TxContext,
+        rules: VecSet<TypeName>,
+    ): Policy {
+        let id = object::new(ctx);
+
+        Policy { id, rules }
+    }
+
     /// Destroy a Policy.
     /// Can be performed by any party as long as they own it.
     public fun destroy(
