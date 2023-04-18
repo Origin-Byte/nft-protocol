@@ -11,7 +11,6 @@ module launchpad_v2::fixed_bid {
     use launchpad_v2::venue::{Self, Venue, RedeemReceipt};
 
     use sui::coin::{Self, Coin};
-    use sui::clock::Clock;
     use sui::dynamic_field as df;
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
