@@ -45,10 +45,9 @@ module nft_protocol::policy {
     /// which is required to confirm kiosk deals for the `T`. If there's no
     /// `TransferPolicyCap` available for use, the type can not be traded in
     /// kiosks.
-    public fun new<T>(
-        pub: &Publisher, ctx: &mut TxContext
+    public fun new(
+        ctx: &mut TxContext
     ): Policy {
-        assert!(package::from_package<T>(pub), 0);
         let id = object::new(ctx);
 
         Policy { id, rules: vec_set::empty() }
