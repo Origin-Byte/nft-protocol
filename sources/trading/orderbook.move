@@ -1053,7 +1053,7 @@ module nft_protocol::orderbook {
         ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.id, ctx);
 
         // prevent listing of NFTs which don't belong to the collection
-        ob_kiosk::assert_nft_type<T>(seller_kiosk, nft_id);
+        ob_kiosk::assert_has_nft_with_type<T>(seller_kiosk, nft_id);
 
         let seller = tx_context::sender(ctx);
         let seller_kiosk_id = object::id(seller_kiosk);
