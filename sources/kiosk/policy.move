@@ -54,8 +54,8 @@ module nft_protocol::policy {
     }
 
     public fun new_with_rules(
-        ctx: &mut TxContext,
         rules: VecSet<TypeName>,
+        ctx: &mut TxContext,
     ): Policy {
         let id = object::new(ctx);
 
