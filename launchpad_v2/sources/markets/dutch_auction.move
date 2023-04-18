@@ -39,8 +39,7 @@ module launchpad_v2::dutch_auction {
 
     const U64_MAX: u64 = 18446744073709551615;
 
-    struct DutchAuctionMarket<phantom FT> has key, store {
-        id: UID,
+    struct DutchAuctionMarket<phantom FT> has store {
         /// The minimum price at which NFTs can be sold
         reserve_price: u64,
         /// A bid order stores the amount of fungible token, FT, that the
@@ -67,10 +66,8 @@ module launchpad_v2::dutch_auction {
 
     fun new<FT>(
         reserve_price: u64,
-        ctx: &mut TxContext,
     ): DutchAuctionMarket<FT> {
         DutchAuctionMarket {
-            id: object::new(ctx),
             reserve_price,
             bids: crit_bit::empty(),
         }
@@ -81,11 +78,10 @@ module launchpad_v2::dutch_auction {
         launch_cap: &LaunchCap,
         venue: &mut Venue,
         reserve_price: u64,
-        ctx: &mut TxContext,
     ) {
         venue::assert_launch_cap(venue, launch_cap);
 
-        let market = new<FT>(reserve_price, ctx);
+        let market = new<FT>(reserve_price);
         let venue_uid = venue::uid_mut(venue, launch_cap);
         df::add(venue_uid, DutchAuctionDfKey {}, market);
     }
@@ -103,7 +99,6 @@ module launchpad_v2::dutch_auction {
         ctx: &mut TxContext,
     ) {
         venue::assert_request(venue, &request);
-
         auth_policy::confirm(venue::get_auth_policy(venue),request);
 
         create_bid_(
