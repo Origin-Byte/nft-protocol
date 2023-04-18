@@ -234,10 +234,12 @@ module nft_protocol::ob_transfer_request {
     public fun confirm<T, FT>(
         self: TransferRequest<T>, policy: &TransferPolicy<T>, ctx: &mut TxContext,
     ) {
+        distribute_balance_to_beneficiary<T, FT>(&mut self, ctx);
+
         let TransferRequest { body } = self;
         let rules = df::borrow(transfer_policy::uid(policy), OringinbyteRulesDfKey {});
 
-        request::confirm<FT>(body, rules, ctx);
+        request::confirm(body, rules);
     }
 
     /// Takes out the funds from the transfer request and sends them to the
@@ -281,5 +283,5 @@ module nft_protocol::ob_transfer_request {
     public fun originator<T>(self: &TransferRequest<T>): address { request::originator(&self.body) }
 
     /// What's the NFT that's being transferred.
-    public fun nft<T>(self: &TransferRequest<T>): ID { request::nft(&self.body) }
+    public fun nft<T>(self: &TransferRequest<T>): ID { request::object(&self.body) }
 }

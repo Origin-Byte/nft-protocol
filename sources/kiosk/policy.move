@@ -1,6 +1,5 @@
 module nft_protocol::policy {
     use std::type_name::{Self, TypeName};
-    use sui::package::{Self, Publisher};
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
     use sui::vec_set::{Self, VecSet};
@@ -78,10 +77,10 @@ module nft_protocol::policy {
     ///
     /// Note: unless there's a policy for `T` to allow transfers,
     /// Kiosk trades will not be possible.
-    public fun confirm_request<FT>(
-        self: &Policy, request: RequestBody, ctx: &mut TxContext
+    public fun confirm_request(
+        self: &Policy, request: RequestBody
     ) {
-        request::confirm<FT>(request, &self.rules, ctx);
+        request::confirm(request, &self.rules);
     }
 
     // === Rules Logic ===
@@ -95,11 +94,9 @@ module nft_protocol::policy {
     ///
     /// Config requires `drop` to allow creators to remove any policy at any moment,
     /// even if graceful unpacking has not been implemented in a "rule module".
-    public fun add_rule<T, Rule: drop, Config: store + drop>(
-        _: Rule, policy: &mut Policy, cfg: Config
+    public fun add_rule<Rule: drop>(
+        policy: &mut Policy
     ) {
-        assert!(!has_rule<T, Rule>(policy), ERuleAlreadySet);
-        df::add(&mut policy.id, RuleKey<Rule> {}, cfg);
         vec_set::insert(&mut policy.rules, type_name::get<Rule>())
     }
 
@@ -125,13 +122,17 @@ module nft_protocol::policy {
     // === Fields access ===
 
     /// Allows reading custom attachments to the `TransferPolicy` if there are any.
-    public fun uid<T>(self: &Policy): &UID { &self.id }
+    public fun uid(self: &Policy): &UID { &self.id }
 
     /// Get a mutable reference to the `self.id` to enable custom attachments
     /// to the `TransferPolicy`.
-    public fun uid_mut_as_owner<T>(
+    public fun uid_mut_as_owner(
         self: &mut Policy
     ): &mut UID {
         &mut self.id
+    }
+
+    public fun rules(self: &Policy): &VecSet<TypeName> {
+        &self.rules
     }
 }

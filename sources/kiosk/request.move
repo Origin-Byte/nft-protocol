@@ -54,9 +54,10 @@ module nft_protocol::request {
     ///
     /// See the module docs for a comparison between this and `SuiTransferRequest`.
     struct RequestBody has store {
-        nft: ID,
-        /// For entities which authorize with `ID`, we convert the `ID` to
-        /// address.
+        /// ID of the Object whose's authorization refers to
+        object: ID,
+        /// Originator of the request. For entities which authorize with `ID`,
+        /// we convert the `ID` to address.
         originator: address,
         /// Who's to receive the payment which we wrap as dyn field in metadata.
         beneficiary: address,
@@ -116,11 +117,11 @@ module nft_protocol::request {
     /// `set_paid` MUST be called to set the paid amount.
     /// Without calling `set_paid`, the tx will always abort.
     public fun new(
-        nft: ID, originator: address, ctx: &mut TxContext,
+        object: ID, originator: address, ctx: &mut TxContext,
     ): RequestBody {
         RequestBody {
             metadata: object::new(ctx),
-            nft,
+            object,
             originator,
             // is overwritten in `set_paid` if any balance is associated with
             beneficiary: @0x0,
@@ -152,9 +153,9 @@ module nft_protocol::request {
     public fun metadata_mut(self: &mut RequestBody): &mut UID { &mut self.metadata }
 
     public fun destruct(self: RequestBody): (ID, address, address, VecSet<TypeName>, UID) {
-        let RequestBody { nft, originator, beneficiary, receipts, metadata } = self;
+        let RequestBody { object, originator, beneficiary, receipts, metadata } = self;
 
-        (nft, originator, beneficiary, receipts, metadata)
+        (object, originator, beneficiary, receipts, metadata)
     }
 
     // /// The transfer request can be converted to the sui lib version if the
@@ -200,13 +201,15 @@ module nft_protocol::request {
     /// Kiosk trades will not be possible.
     /// If there is no transfer policy in the OB ecosystem, try using
     /// `into_sui` to convert the `TransferRequest` to the SUI ecosystem.
-    public fun confirm<FT>(
-        self: RequestBody, rules: &VecSet<TypeName>, ctx: &mut TxContext,
+    public fun confirm(
+        self: RequestBody,
+        rules: &VecSet<TypeName>,
     ) {
-        distribute_balance_to_beneficiary<FT>(&mut self, ctx);
+        // TODO: Add an assertion here that checks that no funds are inside
+        // dynamic fields - since we are no longer calling distribute_balance_to_beneficiary here
         let RequestBody {
             metadata,
-            nft: _,
+            object: _,
             originator: _,
             beneficiary: _,
             receipts,
@@ -275,6 +278,10 @@ module nft_protocol::request {
     /// Which entity started the trade.
     public fun originator(self: &RequestBody): address { self.originator }
 
-    /// What's the NFT that's being transferred.
-    public fun nft(self: &RequestBody): ID { self.nft }
+    /// What's the object that's being authorised over.
+    public fun object(self: &RequestBody): ID { self.object }
+
+    public fun receipts(self: &RequestBody): &VecSet<TypeName> {
+        &self.receipts
+    }
 }
