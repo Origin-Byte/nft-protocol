@@ -10,6 +10,7 @@ module examples::suitraders {
     use sui::vec_set;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::mint_cap;
     use nft_protocol::mint_event;
     use nft_protocol::creators;
     use nft_protocol::attributes::{Self, Attributes};
@@ -139,7 +140,13 @@ module examples::suitraders {
             attributes: attributes::from_vec(attribute_keys, attribute_values)
         };
 
-        mint_event::mint_unlimited(mint_cap, &nft);
+
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         warehouse::deposit_nft(warehouse, nft);
     }
 
