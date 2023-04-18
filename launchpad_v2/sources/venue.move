@@ -8,7 +8,7 @@ module launchpad_v2::venue {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
     use sui::dynamic_field as df;
-    use sui::balance::{Self, Balance};
+    use sui::balance::Balance;
     use sui::transfer;
 
     use nft_protocol::witness;
