@@ -12,13 +12,13 @@
 /// whitelist tokens.
 module launchpad_v2::dutch_auction {
     // TODO: Test that random addresses can remove other addresses' bids
+    // TODO: Endpoint to change bid
     use std::option;
     use std::vector;
 
     use sui::transfer;
     use sui::dynamic_field as df;
     use sui::coin::{Self, Coin};
-    use sui::object::{Self, UID};
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::err;
@@ -29,13 +29,6 @@ module launchpad_v2::dutch_auction {
     use launchpad_v2::venue::{Self, Venue};
 
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
-
-    // use nft_protocol::err;
-    // use nft_protocol::venue;
-    // use nft_protocol::witness;
-    // use nft_protocol::listing::{Self, Listing};
-    // use nft_protocol::inventory;
-    // use nft_protocol::market_whitelist::{Self, Certificate};
 
     const U64_MAX: u64 = 18446744073709551615;
 
@@ -74,7 +67,7 @@ module launchpad_v2::dutch_auction {
     }
 
     /// Creates a `DutchAuctionMarket<FT>` and transfers to transaction sender
-    public entry fun init_market<FT>(
+    public fun init_market<FT>(
         launch_cap: &LaunchCap,
         venue: &mut Venue,
         reserve_price: u64,
@@ -89,7 +82,7 @@ module launchpad_v2::dutch_auction {
     // === Entrypoints ===
 
     /// Creates a bid in a FIFO manner, previous bids are retained
-    public entry fun create_bid<FT>(
+    public fun create_bid<FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
         // TODO: Put Quantity and Receiver inside Request to reduce params
@@ -123,10 +116,6 @@ module launchpad_v2::dutch_auction {
         ctx: &mut TxContext,
     ) {
         cancel_bid_(venue, wallet, price, tx_context::sender(ctx))
-    }
-
-    public fun change_bid() {
-        abort(0);
     }
 
     // === Modifier Functions ===
