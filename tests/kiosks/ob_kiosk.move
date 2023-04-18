@@ -43,23 +43,77 @@ module nft_protocol::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
-
-        // 2. Checks Kiosk's static and dynamic fields after creation
-        check_new_kiosk(&mut kiosk, kiosk_owner);
-
-        // 3. Check honorary owner token
-        transfer::public_share_object(kiosk);
+        ob_kiosk::create_new_for_sender(ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, kiosk_owner);
 
-        // Check NFT was transferred with correct logical owner
-        // TODO: Maybe add test accessors to assert private fields
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        // 3. Checks `OwnerToken` was deposited
         let owner_token = test_scenario::take_from_address<OwnerToken>(
             &scenario, kiosk_owner
         );
 
-        // 5. Make kiosk shared
+        test_scenario::return_shared(kiosk);
         test_scenario::return_to_address(kiosk_owner, owner_token);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_kiosk_new_permissionless() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        ob_kiosk::create_new_permissionless(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        check_new_kiosk(&mut kiosk, @0xb);
+
+        // 3. Checks `OwnerToken` was not created
+        assert!(!test_scenario::has_most_recent_immutable<OwnerToken>(), 0);
+
+        test_scenario::return_shared(kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = nft_protocol::ob_kiosk::EKioskNotPermissionless)]
+    public fun test_try_permissionless_to_permissioned() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        ob_kiosk::create_new_for_sender(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        ob_kiosk::set_permissionless_to_permissioned(
+            &mut kiosk, creator(), ctx(&mut scenario),
+        );
+
+        check_new_kiosk(&mut kiosk, creator());
+
+        test_scenario::return_shared(kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_permissionless_to_permissioned() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        ob_kiosk::create_new_permissionless(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        ob_kiosk::set_permissionless_to_permissioned(
+            &mut kiosk, creator(), ctx(&mut scenario),
+        );
+
+        test_scenario::return_shared(kiosk);
         test_scenario::end(scenario);
     }
 
