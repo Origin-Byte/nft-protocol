@@ -251,10 +251,19 @@ module nft_protocol::transfer_allowlist {
     public fun confirm_transfer<T>(
         self: &Allowlist,
         req: &mut TransferRequest<T>,
+    ) { confirm_transfer_(self, ob_transfer_request::inner_mut(req)) }
+
+    /// Confirms that the transfer is allowed by the `Allowlist`.
+    /// It adds a signature to the request.
+    /// In the end, if the allowlist rule is included in the transfer policy,
+    /// the transfer request can only be finished if this rule is present.
+    public fun confirm_transfer_<T, P>(
+        self: &Allowlist,
+        req: &mut request::Request<T, P>,
     ) {
-        let auth = ob_kiosk::get_transfer_request_auth(req);
+        let auth = ob_kiosk::get_transfer_request_auth_(req);
         assert_transferable<T>(self, auth);
-        ob_transfer_request::add_receipt(req, &AllowlistRule {});
+        request::add_receipt(req, &AllowlistRule {});
     }
 
     // === Assertions ===

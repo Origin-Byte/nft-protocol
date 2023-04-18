@@ -152,13 +152,13 @@ module nft_protocol::ob_transfer_request {
 
     /// Gets mutable access to the inner type which is concerned with the
     /// receipt resolution.
-    public fun request_mut<T>(
+    public fun inner_mut<T>(
         self: &mut TransferRequest<T>,
     ): &mut request::Request<T, OB_TRANSFER_REQUEST> { &mut self.request }
 
     /// Gets access to the inner type which is concerned with the
     /// receipt resolution.
-    public fun request<T>(
+    public fun inner<T>(
         self: &TransferRequest<T>,
     ): &request::Request<T, OB_TRANSFER_REQUEST> { &self.request }
 
@@ -177,6 +177,10 @@ module nft_protocol::ob_transfer_request {
     /// * `transfer_request::set_paid`
     public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut UID {
         request::metadata_mut(&mut self.request)
+    }
+
+    public fun metadata<T>(self: &TransferRequest<T>): &UID {
+        request::metadata(&self.request)
     }
 
     /// The transfer request can be converted to the sui lib version if the
