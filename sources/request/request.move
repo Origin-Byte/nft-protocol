@@ -27,11 +27,13 @@ module nft_protocol::request {
     // === Structs ===
 
     /// Collects receipts which are later checked in `confirm` function.
+    ///
+    /// `P` represents the policy type that can confirm this request body.
     struct RequestBody<phantom T, phantom P> {
         /// Collected Receipts.
         ///
         /// Used to verify that all of the rules were followed and
-        /// `TransferRequest` can be confirmed.
+        /// `RequestBody` can be confirmed.
         receipts: VecSet<TypeName>,
         /// Optional metadata can be attached to the request.
         /// The metadata are dropped at the destruction of the request.
@@ -39,7 +41,7 @@ module nft_protocol::request {
         metadata: UID,
     }
 
-    /// Defines what receipts does the `Request` have to have to be confirmed
+    /// Defines what receipts does the `RequestBody` have to have to be confirmed
     /// and destroyed.
     struct Policy<phantom T, phantom P> has key, store {
         id: UID,
