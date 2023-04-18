@@ -14,7 +14,7 @@ module launchpad_v2::venue {
     use nft_protocol::witness;
     use nft_protocol::supply::{Self, Supply};
     use launchpad_v2::launchpad::{Self, LaunchCap};
-    use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap as AuthPolicyCap, Policy as AuthPolicy};
+    use launchpad_v2::auth_policy::{Self, AuthRequest, AuthPolicyCap, AuthPolicy};
     use launchpad_v2::proceeds::{Self, Proceeds};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
@@ -160,7 +160,7 @@ module launchpad_v2::venue {
     public fun init_policies<Market, RedeemMethod>(
         ctx: &mut TxContext,
     ): Policies {
-        let (auth_policy, auth_cap) = request::empty_policy(ctx);
+        let (auth_policy, auth_cap) = auth_policy::empty_policy(ctx);
 
         Policies {
             auth_cap: auth_cap,
@@ -200,7 +200,7 @@ module launchpad_v2::venue {
         let cap = df::remove<TypeName, AuthPolicyCap>(&mut venue.id, type_name::get<AuthPolicyCap>());
         let policy = auth_policy_mut(venue, launch_cap);
 
-        request::add_rule(policy, &cap, type_name::get<RuleType>());
+        auth_policy::add_rule<RuleType>(policy, &cap);
 
         df::add<TypeName, AuthPolicyCap>(&mut venue.id, type_name::get<AuthPolicyCap>(), cap);
     }
@@ -213,8 +213,13 @@ module launchpad_v2::venue {
     /// client to perform in order to gain access to the sale.
     public fun request_access(
         venue: &Venue,
+        ctx: &mut TxContext,
     ): AuthRequest {
-        request::new(&venue.policies.auth)
+        auth_policy::new(
+            object::id(venue),
+            &venue.policies.auth,
+            ctx,
+        )
     }
 
     /// To gain access to a sale, users have to perform a batch of programmable
@@ -231,7 +236,7 @@ module launchpad_v2::venue {
         assert_request(venue, &request);
         // TODO: Need to consider how validation work, also,
         // how to use burner wallets in the context of the launchpad
-        request::confirm_request(&venue.policies.auth, request);
+        auth_policy::confirm(&venue.policies.auth, request);
     }
 
     // === Schedule ===
@@ -631,7 +636,7 @@ module launchpad_v2::venue {
     }
 
     public fun assert_request(venue: &Venue, request: &AuthRequest) {
-        assert!(request::policy_id(request) == object::id(&venue.policies.auth), 0);
+        assert!(auth_policy::policy_id(request) == object::id(&venue.policies.auth), 0);
     }
 
     public fun assert_called_from_market<AW: drop>(venue: &Venue) {

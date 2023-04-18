@@ -7,7 +7,7 @@
 /// sale by segregating NFTs by different sale segments.
 module launchpad_v2::fixed_bid {
     use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::request::{Self, Request};
+    use launchpad_v2::auth_policy::{Self, AuthRequest};
     use launchpad_v2::venue::{Self, Venue, RedeemReceipt};
 
     use sui::coin::{Self, Coin};
@@ -94,13 +94,13 @@ module launchpad_v2::fixed_bid {
         wallet: &mut Coin<FT>,
         // TODO: Put Quantity and Receiver inside Request to reduce params
         quantity: u64,
-        request: Request,
+        request: AuthRequest,
         clock: &Clock,
     ): RedeemReceipt {
         venue::assert_request(venue, &request);
         venue::check_if_live(clock, venue);
 
-        request::confirm_request(venue::get_auth_policy(venue),request);
+        auth_policy::confirm(venue::get_auth_policy(venue),request);
         buy_nft_cert_<T, FT>(venue, wallet, quantity)
     }
 

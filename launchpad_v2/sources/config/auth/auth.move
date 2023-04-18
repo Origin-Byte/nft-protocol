@@ -14,7 +14,7 @@ module launchpad_v2::launchpad_auth {
 
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::request::{Self, Request};
+    use launchpad_v2::auth_policy::{Self, AuthRequest};
 
     const EINCORRECT_SIGNATURE: u64 = 1;
     const EINCORRECT_MESSAGE_COUNTER: u64 = 2;
@@ -71,7 +71,7 @@ module launchpad_v2::launchpad_auth {
         signature: &vector<u8>,
         msg: &vector<u8>,
         hash: u8,
-        request: &mut Request,
+        request: &mut AuthRequest,
         ctx: &mut TxContext,
     ) {
         venue::assert_request(venue, request);
@@ -98,7 +98,7 @@ module launchpad_v2::launchpad_auth {
             EINCORRECT_MESSAGE_SENDER
         );
 
-        request::add_receipt(request, &LaunchpadAuth {});
+        auth_policy::add_receipt(request, &LaunchpadAuth {});
     }
 
 
