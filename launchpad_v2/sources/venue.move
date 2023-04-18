@@ -90,7 +90,8 @@ module launchpad_v2::venue {
         live: bool,
     }
 
-    struct RedeemReceipt {
+    struct RedeemReceipt has key, store {
+        id: UID,
         venue_id: ID,
         nfts_bought: u64,
     }
@@ -290,28 +291,21 @@ module launchpad_v2::venue {
     public fun pay<AW: drop, FT, T: key>(
         _market_witness: AW,
         venue: &mut Venue,
-        balance: &mut Balance<FT>,
-        price: u64,
+        balance: Balance<FT>,
         quantity: u64,
     ) {
         assert_called_from_market<AW>(venue);
 
-        let index = 0;
-        while (quantity > index) {
-            let funds = balance::split(balance, price);
-            proceeds::add(&mut venue.proceeds, funds, 1);
-
-            index = index + 1;
-        }
+        proceeds::add(&mut venue.proceeds, balance, quantity);
     }
 
-    /// Decrements global venue supply by the quantity sold by the market module.
+    /// Increment global venue supply by the quantity sold by the market module.
     ///
     /// This endpoint is protected and can only be called by the Market Policy module.
     ///
     /// The market module should ensure that when calling this function, it should
     /// also call `get_redeem_receipt` for the same `quantity`.
-    public fun decrement_supply_if_any<AW: drop>(
+    public fun increment_supply_if_any<AW: drop>(
         _market_witness: AW,
         venue: &mut Venue,
         quantity: u64
@@ -339,12 +333,14 @@ module launchpad_v2::venue {
         _market_witness: AW,
         venue: &mut Venue,
         nfts_bought: u64,
+        ctx: &mut TxContext,
     ): RedeemReceipt {
         assert_called_from_market<AW>(venue);
 
         // TODO: Consider emitting events
 
         RedeemReceipt {
+            id: object::new(ctx),
             venue_id: object::id(venue),
             nfts_bought,
         }
@@ -367,9 +363,12 @@ module launchpad_v2::venue {
         assert_called_from_redeem_method<RW>(venue);
 
        let  RedeemReceipt {
+            id,
             venue_id: _,
             nfts_bought: _,
         } = receipt;
+
+        object::delete(id);
     }
 
     /// Creates an NftCert and returns it.
@@ -461,19 +460,19 @@ module launchpad_v2::venue {
 
     /// Mutably borrows a dynamic field `Value` from a `Venue`.
     ///
-    /// This endpoint is protected and can only be called by a contract that simultaneously
-    /// has access to the dynamic field `Key` and the `LaunchCap` in its scope. In
-    /// practice this means that the contract defining the dynamic field will
-    /// define what the access permissions are to the `Key` that is has defined, and
-    /// ultimately it will require an upstream call from a `LaunchCap` owner.
+    /// This endpoint is protected and can only be called by a contract that
+    /// has access to the dynamic field `Key`. In practice this means that the
+    /// contract defining the dynamic field will define what the access permissions
+    /// are to the `Key` that is has defined.
     public fun get_df_mut<Key: store + copy + drop, Value: store>(
         venue: &mut Venue,
-        launch_cap: &LaunchCap,
         key: Key
     ): &mut Value {
         // TODO: Assert not frozen, it should not be possible to get mut ref if
         // the venue is frozen
-        assert_launch_cap(venue, launch_cap);
+        // TODO: No random module should be able to add dynamic fields, therefore
+        // this should be protected. Only allowed modules can access this (potentially fia witness protection)
+        // HOWEVER THIS SHOULD NOT BE A PROBLEM
         df::borrow_mut<Key, Value>(&mut venue.id, key)
     }
 

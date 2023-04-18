@@ -24,6 +24,7 @@ module launchpad_v2::fixed_bid {
         id: UID,
         /// Fixed price denominated in fungible-token, `FT`
         price: u64,
+        /// Maximum number of NFTs one can buy in a bulk
         max_buy: u64,
     }
 
@@ -42,14 +43,10 @@ module launchpad_v2::fixed_bid {
     /// Requires that `Inventory` with given ID exists on the `Listing` that
     /// this market will be inserted into.
     fun new<FT>(
-        launch_cap: &LaunchCap,
-        venue: &mut Venue,
         price: u64,
         max_buy: u64,
         ctx: &mut TxContext,
     ): FixedBidMarket<FT> {
-        venue::assert_launch_cap(venue, launch_cap);
-
         FixedBidMarket {
             id: object::new(ctx),
             price,
@@ -73,8 +70,9 @@ module launchpad_v2::fixed_bid {
         max_buy: u64,
         ctx: &mut TxContext,
     ) {
-        let market = new<FT>(launch_cap, venue, price, max_buy, ctx);
+        venue::assert_launch_cap(venue, launch_cap);
 
+        let market = new<FT>(price, max_buy, ctx);
         let venue_uid = venue::uid_mut(venue, launch_cap);
 
         df::add(venue_uid, FixedBidDfKey {}, market);
@@ -95,13 +93,12 @@ module launchpad_v2::fixed_bid {
         // TODO: Put Quantity and Receiver inside Request to reduce params
         quantity: u64,
         request: AuthRequest,
-        clock: &Clock,
+        ctx: &mut TxContext,
     ): RedeemReceipt {
         venue::assert_request(venue, &request);
-        venue::check_if_live(clock, venue);
 
         auth_policy::confirm(venue::get_auth_policy(venue),request);
-        buy_nft_cert_<T, FT>(venue, wallet, quantity)
+        buy_nft_cert_<T, FT>(venue, wallet, quantity, ctx)
     }
 
 
@@ -115,8 +112,9 @@ module launchpad_v2::fixed_bid {
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
         quantity: u64,
+        ctx: &mut TxContext,
     ): RedeemReceipt {
-        venue::decrement_supply_if_any(Witness {}, venue, quantity);
+        venue::increment_supply_if_any(Witness {}, venue, quantity);
 
         let market = venue::get_df<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
@@ -128,8 +126,7 @@ module launchpad_v2::fixed_bid {
         venue::pay<Witness, FT, T>(
             Witness {},
             venue,
-            coin::balance_mut(wallet),
-            market.price,
+            coin::into_balance(coin::split(wallet, market.price, ctx)),
             quantity,
         );
 
@@ -138,6 +135,7 @@ module launchpad_v2::fixed_bid {
             Witness {},
             venue,
             quantity,
+            ctx,
         )
     }
 
@@ -157,7 +155,6 @@ module launchpad_v2::fixed_bid {
 
         let market = venue::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
-            launch_cap,
             FixedBidDfKey {}
         );
 
@@ -178,7 +175,6 @@ module launchpad_v2::fixed_bid {
 
         let market = venue::get_df_mut<FixedBidDfKey, FixedBidMarket<FT>>(
             venue,
-            launch_cap,
             FixedBidDfKey {}
         );
 
