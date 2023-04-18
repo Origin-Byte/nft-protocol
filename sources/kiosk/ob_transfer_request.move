@@ -25,19 +25,15 @@
 module nft_protocol::ob_transfer_request {
     use nft_protocol::witness::Witness as DelegatedWitness;
     use std::type_name::{Self, TypeName};
-    use std::vector;
-    // use std::debug;
-    // use std::string;
-    use sui::balance::{Self, Balance};
-    use sui::coin;
+    use sui::balance::Balance;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
     use sui::sui::SUI;
     use sui::package::Publisher;
     use sui::transfer_policy::{Self, TransferPolicy, TransferPolicyCap, TransferRequest as SuiTransferRequest};
-    use sui::transfer::public_transfer;
     use sui::tx_context::TxContext;
-    use sui::vec_set::{Self, VecSet};
+    use sui::vec_set;
+    use nft_protocol::request::{Self, RequestBody};
 
     // === Errors ===
 
@@ -59,21 +55,7 @@ module nft_protocol::ob_transfer_request {
     ///
     /// See the module docs for a comparison between this and `SuiTransferRequest`.
     struct TransferRequest<phantom T> {
-        nft: ID,
-        /// For entities which authorize with `ID`, we convert the `ID` to
-        /// address.
-        originator: address,
-        /// Who's to receive the payment which we wrap as dyn field in metadata.
-        beneficiary: address,
-        /// Collected Receipts.
-        ///
-        /// Used to verify that all of the rules were followed and
-        /// `TransferRequest` can be confirmed.
-        receipts: VecSet<TypeName>,
-        /// Optional metadata can be attached to the request.
-        /// The metadata are dropped at the destruction of the request.
-        /// It doesn't have to be emptied out.
-        metadata: UID,
+        body: RequestBody,
     }
 
     /// TLDR:
@@ -127,12 +109,7 @@ module nft_protocol::ob_transfer_request {
         nft: ID, originator: address, ctx: &mut TxContext,
     ): TransferRequest<T> {
         TransferRequest {
-            metadata: object::new(ctx),
-            nft,
-            originator,
-            // is overwritten in `set_paid` if any balance is associated with
-            beneficiary: @0x0,
-            receipts: vec_set::empty(),
+            body: request::new(nft, originator, ctx)
         }
     }
 
@@ -140,21 +117,20 @@ module nft_protocol::ob_transfer_request {
     public fun set_paid<T, FT>(
         self: &mut TransferRequest<T>, paid: Balance<FT>, beneficiary: address,
     ) {
-        self.beneficiary = beneficiary;
-        df::add(&mut self.metadata, BalanceDfKey {}, paid);
+        request::set_paid(&mut self.body, paid, beneficiary);
     }
 
     /// Sets empty SUI token balance.
     ///
     /// Useful for apps which are not payment based.
     public fun set_nothing_paid<T>(self: &mut TransferRequest<T>) {
-        df::add(&mut self.metadata, BalanceDfKey {}, balance::zero<SUI>());
+        request::set_nothing_paid(&mut self.body);
     }
 
     /// Adds a `Receipt` to the `TransferRequest`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<T, Rule>(self: &mut TransferRequest<T>, _rule: &Rule) {
-        vec_set::insert(&mut self.receipts, type_name::get<Rule>())
+    public fun add_receipt<T, Rule>(self: &mut TransferRequest<T>, rule: &Rule) {
+        request::add_receipt(&mut self.body, rule);
     }
 
     /// Anyone can attach any metadata (dynamic fields).
@@ -163,7 +139,7 @@ module nft_protocol::ob_transfer_request {
     /// There are some standard metadata are
     /// * `ob_kiosk::set_transfer_request_auth`
     /// * `transfer_request::set_paid`
-    public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut UID { &mut self.metadata }
+    public fun metadata_mut<T>(self: &mut TransferRequest<T>): &mut UID { request::metadata_mut(&mut self.body) }
 
     /// The transfer request can be converted to the sui lib version if the
     /// payment was done in SUI and there's no other currency used.
@@ -184,13 +160,11 @@ module nft_protocol::ob_transfer_request {
         // and therefore just send the coin to the beneficiary directly
         distribute_balance_to_beneficiary<T, SUI>(&mut self, ctx);
 
-        let TransferRequest {
-            nft,
-            originator,
-            receipts: _,
-            beneficiary: _,
-            metadata,
-        } = self;
+        let TransferRequest { body } = self;
+
+        let (nft, originator, _beneficiary, _receipts, metadata) = request::destruct(body);
+
+
         object::delete(metadata);
 
         transfer_policy::new_request(
@@ -260,24 +234,10 @@ module nft_protocol::ob_transfer_request {
     public fun confirm<T, FT>(
         self: TransferRequest<T>, policy: &TransferPolicy<T>, ctx: &mut TxContext,
     ) {
-        distribute_balance_to_beneficiary<T, FT>(&mut self, ctx);
-        let TransferRequest {
-            metadata,
-            nft: _,
-            originator: _,
-            beneficiary: _,
-            receipts,
-        } = self;
-        object::delete(metadata);
+        let TransferRequest { body } = self;
         let rules = df::borrow(transfer_policy::uid(policy), OringinbyteRulesDfKey {});
-        let completed = vec_set::into_keys(receipts);
-        let total = vector::length(&completed);
-        assert!(total == vec_set::size(rules), EPolicyNotSatisfied);
-        while (total > 0) {
-            let rule_type = vector::pop_back(&mut completed);
-            assert!(vec_set::contains(rules, &rule_type), EIllegalRule);
-            total = total - 1;
-        };
+
+        request::confirm<FT>(body, rules, ctx);
     }
 
     /// Takes out the funds from the transfer request and sends them to the
@@ -290,16 +250,7 @@ module nft_protocol::ob_transfer_request {
     public fun distribute_balance_to_beneficiary<T, FT>(
         self: &mut TransferRequest<T>, ctx: &mut TxContext,
     ) {
-        if (!df::exists_(&self.metadata, BalanceDfKey {})) {
-            return
-        };
-
-        let balance: Balance<FT> = df::remove(&mut self.metadata, BalanceDfKey {});
-        if (balance::value(&balance) > 0) {
-            public_transfer(coin::from_balance(balance, ctx), self.beneficiary);
-        } else {
-            balance::destroy_zero(balance);
-        };
+        request::distribute_balance_to_beneficiary<FT>(&mut self.body, ctx);
     }
 
     // === Getters ===
@@ -307,31 +258,28 @@ module nft_protocol::ob_transfer_request {
     public fun paid_in_ft_mut<T, FT>(
         self: &mut TransferRequest<T>, _cap: &BalanceAccessCap<T>,
     ): (&mut Balance<FT>, address) {
-        let balance = df::borrow_mut(&mut self.metadata, BalanceDfKey {});
-        (balance, self.beneficiary)
+        request::paid_in_ft_mut<FT>(&mut self.body)
     }
 
     public fun paid_in_sui_mut<T>(
         self: &mut TransferRequest<T>, _cap: &BalanceAccessCap<T>,
     ): (&mut Balance<SUI>, address) {
-        let balance = df::borrow_mut(&mut self.metadata, BalanceDfKey {});
-        (balance, self.beneficiary)
+        request::paid_in_sui_mut(&mut self.body)
     }
 
     /// Returns the amount and beneficiary.
     public fun paid_in_ft<T, FT>(self: &TransferRequest<T>): (u64, address) {
-        let paid = df::borrow(&self.metadata, BalanceDfKey {});
-        (balance::value<FT>(paid), self.beneficiary)
+        request::paid_in_ft<FT>(&self.body)
     }
 
     /// Panics if the `TransferRequest` is not for SUI token.
     public fun paid_in_sui<T>(self: &TransferRequest<T>): (u64, address) {
-        paid_in_ft<T, SUI>(self)
+        request::paid_in_sui(&self.body)
     }
 
     /// Which entity started the trade.
-    public fun originator<T>(self: &TransferRequest<T>): address { self.originator }
+    public fun originator<T>(self: &TransferRequest<T>): address { request::originator(&self.body) }
 
     /// What's the NFT that's being transferred.
-    public fun nft<T>(self: &TransferRequest<T>): ID { self.nft }
+    public fun nft<T>(self: &TransferRequest<T>): ID { request::nft(&self.body) }
 }
