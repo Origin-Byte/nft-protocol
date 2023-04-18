@@ -19,6 +19,7 @@
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
 module nft_protocol::transfer_allowlist {
+    use nft_protocol::request;
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::utils;
@@ -29,7 +30,6 @@ module nft_protocol::transfer_allowlist {
     use sui::display;
     use sui::object::{Self, UID};
     use sui::package::{Self, Publisher};
-    use sui::transfer_policy;
     use sui::transfer::{Self, public_share_object};
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
@@ -237,14 +237,11 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Registers collection to use `Allowlist` during the transfer.
-    public fun add_policy_rule<T>(
-        self: &mut transfer_policy::TransferPolicy<T>,
-        cap: &transfer_policy::TransferPolicyCap<T>
+    public fun enforce<T, P>(
+        policy: &mut request::Policy<T, P>,
+        cap: &request::PolicyCap<T, P>,
     ) {
-        transfer_policy::add_rule<T, AllowlistRule, bool>(
-            AllowlistRule {}, self, cap, false,
-        );
-        ob_transfer_request::add_rule_to_originbyte_ecosystem<T, AllowlistRule>(self, cap);
+        request::enforce_rule<T, P, AllowlistRule, bool>(policy, cap, false);
     }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.

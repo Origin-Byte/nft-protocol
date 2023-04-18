@@ -1,21 +1,26 @@
 module nft_protocol::royalty_strategy_bps {
-    use std::fixed_point32;
-    use std::option::{Self, Option};
-
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
+    use nft_protocol::request;
     use nft_protocol::royalty;
     use nft_protocol::utils;
     use nft_protocol::witness::{Witness as DelegatedWitness};
-
     use originmate::balances::{Self, Balances};
-
+    use std::fixed_point32;
+    use std::option::{Self, Option};
     use sui::balance;
     use sui::balance::Balance;
     use sui::object::{Self, UID};
-    use sui::transfer_policy::{Self, TransferPolicyCap};
     use sui::transfer::share_object;
     use sui::tx_context::{sender, TxContext};
+
+    /// === Errors ===
+
+    /// If the strategy has `is_enabled` set to false, cannot confirm any
+    /// `TransferRequest`.s
+    const ENotEnabled: u64 = 1;
+
+    /// === Structs ===
 
     /// A shared object which can be used to add receipts of type
     /// `BpsRoyaltyStrategyRule` to `TransferRequest`.
@@ -29,6 +34,8 @@ module nft_protocol::royalty_strategy_bps {
         access_cap: Option<BalanceAccessCap<T>>,
         /// Contains balances of various currencies.
         aggregator: Balances,
+        /// If set to false, won't give receipts to `TransferRequest`.
+        is_enabled: bool,
     }
 
     /// Rule for `TransferPolicy` to check that the royalty has been paid.
@@ -56,6 +63,7 @@ module nft_protocol::royalty_strategy_bps {
 
         BpsRoyaltyStrategy {
             id,
+            is_enabled: true,
             royalty_fee_bps,
             access_cap: option::none(),
             aggregator: balances::new(ctx),
@@ -70,19 +78,27 @@ module nft_protocol::royalty_strategy_bps {
     ) { self.access_cap = option::some(cap); }
 
     public fun drop_balance_access_cap<T>(
+        _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
-        _cap: &TransferPolicyCap<T>,
     ) { self.access_cap = option::none(); }
 
+    public fun enable<T>(
+        _witness: DelegatedWitness<T>,
+        self: &mut BpsRoyaltyStrategy<T>,
+    ) { self.is_enabled = true; }
+
+    /// Can't issue receipts for `TransferRequest<T>` anymore.
+    public fun disable<T>(
+        _witness: DelegatedWitness<T>,
+        self: &mut BpsRoyaltyStrategy<T>,
+    ) { self.is_enabled = false; }
+
     /// Registers collection to use `Allowlist` during the transfer.
-    public fun add_policy_rule<T>(
-        policy: &mut transfer_policy::TransferPolicy<T>,
-        cap: &transfer_policy::TransferPolicyCap<T>,
+    public fun enforce<T, P>(
+        policy: &mut request::Policy<T, P>,
+        cap: &request::PolicyCap<T, P>,
     ) {
-        transfer_policy::add_rule<T, BpsRoyaltyStrategyRule, bool>(
-            BpsRoyaltyStrategyRule {}, policy, cap, false,
-        );
-        ob_transfer_request::add_rule_to_originbyte_ecosystem<T, BpsRoyaltyStrategyRule>(policy, cap);
+        request::enforce_rule<T, P, BpsRoyaltyStrategyRule, bool>(policy, cap, false);
     }
 
     /// Transfers the royalty to the collection royalty aggregator.
@@ -98,6 +114,8 @@ module nft_protocol::royalty_strategy_bps {
     public fun confirm_transfer<T, FT>(
         self: &mut BpsRoyaltyStrategy<T>, req: &mut TransferRequest<T>,
     ) {
+        assert!(self.is_enabled, ENotEnabled);
+
         let cap = option::borrow(&self.access_cap);
         let (paid, _) = ob_transfer_request::paid_in_ft_mut<T, FT>(req, cap);
         let fee_amount = calculate(self, balance::value(paid));
@@ -113,6 +131,8 @@ module nft_protocol::royalty_strategy_bps {
         req: &mut TransferRequest<T>,
         wallet: &mut Balance<FT>,
     ) {
+        assert!(self.is_enabled, ENotEnabled);
+
         let (paid, _) = ob_transfer_request::paid_in_ft<T, FT>(req);
         let fee_amount = calculate(self, paid);
         balances::take_from(&mut self.aggregator, wallet, fee_amount);
