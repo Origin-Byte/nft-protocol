@@ -76,7 +76,7 @@ module nft_protocol::ob_transfer_request {
         /// This inner type is what interoperates with the policy.
         /// The type `request::Policy<T, OB_TRANSFER_REQUEST>` matches with this
         /// type of request.
-        request: request::Request<T, OB_TRANSFER_REQUEST>,
+        request: request::RequestBody<T, OB_TRANSFER_REQUEST>,
     }
 
     /// TLDR:
@@ -154,13 +154,13 @@ module nft_protocol::ob_transfer_request {
     /// receipt resolution.
     public fun inner_mut<T>(
         self: &mut TransferRequest<T>,
-    ): &mut request::Request<T, OB_TRANSFER_REQUEST> { &mut self.request }
+    ): &mut request::RequestBody<T, OB_TRANSFER_REQUEST> { &mut self.request }
 
     /// Gets access to the inner type which is concerned with the
     /// receipt resolution.
     public fun inner<T>(
         self: &TransferRequest<T>,
-    ): &request::Request<T, OB_TRANSFER_REQUEST> { &self.request }
+    ): &request::RequestBody<T, OB_TRANSFER_REQUEST> { &self.request }
 
 
     /// Adds a `Receipt` to the `TransferRequest`, unblocking the request and

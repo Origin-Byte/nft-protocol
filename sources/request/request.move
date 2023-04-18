@@ -27,7 +27,7 @@ module nft_protocol::request {
     // === Structs ===
 
     /// Collects receipts which are later checked in `confirm` function.
-    struct Request<phantom T, phantom P> {
+    struct RequestBody<phantom T, phantom P> {
         /// Collected Receipts.
         ///
         /// Used to verify that all of the rules were followed and
@@ -56,10 +56,10 @@ module nft_protocol::request {
     /// We use this to store a state for a particular rule.
     struct RuleStateDfKey<phantom Rule> has copy, drop, store {}
 
-    // === Request ===
+    // === RequestBody ===
 
-    public fun new<T, P>(ctx: &mut TxContext): Request<T, P> {
-        Request {
+    public fun new<T, P>(ctx: &mut TxContext): RequestBody<T, P> {
+        RequestBody {
             metadata: object::new(ctx),
             receipts: vec_set::empty(),
         }
@@ -70,31 +70,31 @@ module nft_protocol::request {
     /// define under which conditions is it ok to destroy it _without_ rule
     /// checks.
     /// To destroy it _with_ rule checks, use `confirm` function.
-    public fun destroy<T, P>(self: Request<T, P>): VecSet<TypeName> {
-        let Request { metadata, receipts } = self;
+    public fun destroy<T, P>(self: RequestBody<T, P>): VecSet<TypeName> {
+        let RequestBody { metadata, receipts } = self;
         object::delete(metadata);
         receipts
     }
 
     /// Anyone can attach any metadata (dynamic fields).
-    /// The UID is eventually dropped when the `Request` is destroyed.
+    /// The UID is eventually dropped when the `RequestBody` is destroyed.
     ///
     /// Implementations are responsible for not leaving dangling data inside the
     /// metadata.
     /// If they do, the data will haunt the chain forever.
-    public fun metadata_mut<T, P>(self: &mut Request<T, P>): &mut UID { &mut self.metadata }
+    public fun metadata_mut<T, P>(self: &mut RequestBody<T, P>): &mut UID { &mut self.metadata }
 
     /// Reads what metadata is already there.
-    public fun metadata<T, P>(self: &Request<T, P>): &UID { &self.metadata }
+    public fun metadata<T, P>(self: &RequestBody<T, P>): &UID { &self.metadata }
 
-    /// Adds a `Receipt` to the `Request`, unblocking the request and
-    /// confirming that the policy Requests are satisfied.
-    public fun add_receipt<T, P, Rule>(self: &mut Request<T, P>, _rule: &Rule) {
+    /// Adds a `Receipt` to the `RequestBody`, unblocking the request and
+    /// confirming that the policy RequestBodys are satisfied.
+    public fun add_receipt<T, P, Rule>(self: &mut RequestBody<T, P>, _rule: &Rule) {
         vec_set::insert(&mut self.receipts, type_name::get<Rule>())
     }
 
     /// Asserts all rules have been met.
-    public fun confirm<T, P>(self: Request<T, P>, policy: &Policy<T, P>) {
+    public fun confirm<T, P>(self: RequestBody<T, P>, policy: &Policy<T, P>) {
         let receipts = destroy(self);
 
         let completed = vec_set::into_keys(receipts);

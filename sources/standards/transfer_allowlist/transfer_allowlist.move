@@ -259,7 +259,7 @@ module nft_protocol::transfer_allowlist {
     /// the transfer request can only be finished if this rule is present.
     public fun confirm_transfer_<T, P>(
         self: &Allowlist,
-        req: &mut request::Request<T, P>,
+        req: &mut request::RequestBody<T, P>,
     ) {
         let auth = ob_kiosk::get_transfer_request_auth_(req);
         assert_transferable<T>(self, auth);

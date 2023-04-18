@@ -187,17 +187,14 @@ module nft_protocol::ob_kiosk {
     /// are callable.
     /// This means that the kiosk MUST be wrapped.
     /// Otherwise, anyone could call those functions.
-    public fun new_permissionless(_ctx: &mut TxContext): Kiosk {
-        // let kiosk = new(ctx);
+    public fun new_permissionless(ctx: &mut TxContext): Kiosk {
+        let kiosk = new(ctx);
 
-        // let cap = pop_cap(&mut kiosk);
-        // let nft = kiosk::set_owner_custom(&mut kiosk, &cap, PermissionlessAddr);
-        // set_cap(&mut kiosk, cap);
+        let cap = pop_cap(&mut kiosk);
+        kiosk::set_owner_custom(&mut kiosk, &cap, PermissionlessAddr);
+        set_cap(&mut kiosk, cap);
 
-        // kiosk
-
-        abort(0) // TODO: wait for new Sui version
-
+        kiosk
     }
 
     /// Changes the owner of a kiosk to the given address.
@@ -209,20 +206,18 @@ module nft_protocol::ob_kiosk {
     /// The address that is set as the owner of the kiosk is the address that
     /// will remain the owner forever.
     public fun set_permissionless_to_permissioned(
-        _self: &mut Kiosk, _user: address, _ctx: &mut TxContext
+        self: &mut Kiosk, user: address, ctx: &mut TxContext
     ) {
-        // assert!(kiosk::owner(self) == PermissionlessAddr, EKioskNotPermissionless);
-        // let cap = pop_cap(self);
-        // let nft = kiosk::set_owner_custom(self, &cap, user);
-        // set_cap(self, cap);
+        assert!(kiosk::owner(self) == PermissionlessAddr, EKioskNotPermissionless);
+        let cap = pop_cap(self);
+        kiosk::set_owner_custom(self, &cap, user);
+        set_cap(self, cap);
 
-        // transfer(OwnerToken {
-        //     id: object::new(ctx),
-        //     kiosk: object::id(&kiosk),
-        //     owner: user,
-        // }, user);
-
-        abort(0) // TODO: wait for new Sui version
+        transfer(OwnerToken {
+            id: object::new(ctx),
+            kiosk: object::id(self),
+            owner: user,
+        }, user);
     }
 
     // === Deposit to the Kiosk ===
@@ -424,7 +419,7 @@ module nft_protocol::ob_kiosk {
     }
 
     public fun set_transfer_request_auth_<T, P, Auth>(
-        req: &mut request::Request<T, P>,
+        req: &mut request::RequestBody<T, P>,
         _auth: &Auth,
     ) {
         let metadata = request::metadata_mut(req);
@@ -440,7 +435,7 @@ module nft_protocol::ob_kiosk {
 
     /// What's the authority that created this request?
     public fun get_transfer_request_auth_<T, P>(
-        req: &request::Request<T, P>,
+        req: &request::RequestBody<T, P>,
     ): &TypeName {
         let metadata = request::metadata(req);
         df::borrow(metadata, AuthTransferRequestDfKey {})
@@ -582,17 +577,6 @@ module nft_protocol::ob_kiosk {
         let cap = pop_cap(self);
         kiosk::place<T>(self, &cap, nft);
         set_cap(self, cap);
-    }
-
-    /// Immutably borrow an item from the `Kiosk`.
-    public fun borrow<T: key + store>(_self: &mut Kiosk, _nft_id: ID): &T {
-        // let cap = pop_cap(self);
-        // let nft = kiosk::borrow(self, cap, nft_id);
-        // set_cap(self, cap);
-
-        // nft
-
-        abort(0) // TODO: wait for new Sui version
     }
 
     // === Assertions and getters ===
