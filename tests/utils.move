@@ -4,10 +4,10 @@ module nft_protocol::test_utils {
 
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
-    use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
+    use nft_protocol::request::{Policy, PolicyCap, WithNft};
     use sui::package::{Self, Publisher};
 
-    use nft_protocol::ob_transfer_request;
+    use nft_protocol::ob_transfer_request::{Self, OB_TRANSFER_REQUEST};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
 
@@ -54,7 +54,7 @@ module nft_protocol::test_utils {
     }
 
     #[test_only]
-    public fun init_transfer_policy(publisher: &Publisher, ctx: &mut TxContext): (TransferPolicy<Foo>, TransferPolicyCap<Foo>) {
+    public fun init_transfer_policy(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<Foo, OB_TRANSFER_REQUEST>>, PolicyCap) {
         ob_transfer_request::init_policy<Foo>(publisher, ctx)
     }
 

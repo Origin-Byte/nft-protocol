@@ -5,7 +5,7 @@ module launchpad_v2::market_whitelist_2 {
 
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::request::{Self, Request};
+    use launchpad_v2::auth_request::{Self, AuthRequest};
 
     // TODO: There should be a way to create different types of whitelists
     // currently it's only possile to have one type.
@@ -60,7 +60,7 @@ module launchpad_v2::market_whitelist_2 {
     public fun check_whitelist(
         venue: &Venue,
         cert: Certificate,
-        request: &mut Request,
+        request: &mut AuthRequest,
         ctx: &mut TxContext,
     ) {
         assert_certificate(&cert, object::id(venue));
@@ -74,7 +74,7 @@ module launchpad_v2::market_whitelist_2 {
             transfer::public_transfer(cert, tx_context::sender(ctx));
         };
 
-        request::add_receipt(request, &WhiteList {});
+        auth_request::add_receipt(request, &WhiteList {});
     }
 
     /// Issue a new `Certificate` to an address

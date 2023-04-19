@@ -131,8 +131,8 @@ module nft_protocol::utils {
         assert!(uid_id == object_id, 0);
     }
 
-    public fun assert_package_publisher<C>(pub: &Publisher) {
-        assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
+    public fun assert_package_publisher<T>(pub: &Publisher) {
+        assert!(package::from_package<T>(pub), EPackagePublisherMismatch);
     }
 
     public fun get_package<T>(): String {
