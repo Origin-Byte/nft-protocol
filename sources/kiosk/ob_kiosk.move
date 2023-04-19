@@ -559,7 +559,7 @@ module nft_protocol::ob_kiosk {
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        borrow_request::new(nft, sender(ctx), field, ctx)
+        borrow_request::new(Witness {}, nft, sender(ctx), field, ctx)
     }
 
     public fun return_nft<OTW: drop, T: key + store>(
@@ -567,7 +567,7 @@ module nft_protocol::ob_kiosk {
         borrowed_nft: BorrowRequest<T>,
         policy: &Policy<WithNft<T, BORROW_REQUEST>>
     ) {
-        let nft = borrow_request::confirm(borrowed_nft, policy);
+        let nft = borrow_request::confirm(Witness {}, borrowed_nft, policy);
 
         let cap = pop_cap(self);
         kiosk::place<T>(self, &cap, nft);

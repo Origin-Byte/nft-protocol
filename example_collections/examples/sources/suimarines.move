@@ -12,11 +12,13 @@ module examples::suimarines {
     use nft_protocol::transfer_allowlist;
     use nft_protocol::display as ob_display;
     use nft_protocol::collection;
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
+    use nft_protocol::borrow_request::{Self, BorrowRequest, NftId};
+    // use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
+    use nft_protocol::utils;
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;
@@ -80,21 +82,23 @@ module examples::suimarines {
     }
 
     public fun get_nft_field<Field: store>(
-        locked_nft: &mut MutLock<Submarine>,
-    ): (Field, ReturnFieldPromise<Field>) {
+        request: &mut BorrowRequest<Submarine>,
+    ): (Field, NftId) {
         let dw = witness::from_witness(Witness {});
-        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+        let (nft, nft_id) = borrow_request::borrow_nft(dw, request);
 
-        mut_lock::borrow_field_with_promise<Field>(&mut nft.id)
+        let field = utils::pop_df_from_marker<Field>(&mut nft.id);
+
+        (field, nft_id)
     }
 
     public fun return_nft_field<Field: store>(
-        locked_nft: &mut MutLock<Submarine>,
+        request: &mut BorrowRequest<Submarine>,
         field: Field,
-        promise: ReturnFieldPromise<Field>
+        nft_id: NftId,
     ) {
         let dw = witness::from_witness(Witness {});
-        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+        let nft = borrow_request::borrow_nft(dw, request);
 
         mut_lock::consume_field_promise(&mut nft.id, field, promise);
     }

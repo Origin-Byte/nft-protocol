@@ -26,7 +26,7 @@ module nft_protocol::mut_lock {
 
     struct ReturnPromise<phantom T> { nft_id: ID }
 
-    struct ReturnFieldPromise<phantom Field> {}
+    struct ReturnFieldPromise<phantom Field> { nft_id: ID }
 
     // TODO: Consider the consequences of this being accessible to everyone
     // Most likely the lock_nft should be made in a way that forces the unlock function
