@@ -18,7 +18,6 @@ module examples::suimarines {
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
-    use nft_protocol::utils;
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;

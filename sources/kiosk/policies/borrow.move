@@ -1,5 +1,5 @@
 module nft_protocol::borrow_request {
-    use std::option::{Self, Option, some, none};
+    use std::option::{Self, Option, some};
     use std::type_name::{Self, TypeName};
 
     use sui::dynamic_field as df;
@@ -9,8 +9,7 @@ module nft_protocol::borrow_request {
 
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
-    use nft_protocol::utils::{Self, Marker};
-    use originmate::typed_id::{Self, TypedID};
+    use nft_protocol::utils;
 
     // === Error ===
 
@@ -22,7 +21,7 @@ module nft_protocol::borrow_request {
     struct BORROW_REQUEST has drop {}
 
     // Hot Potato
-    struct ReturnPromise<phantom T, Field: store> {
+    struct ReturnPromise<phantom T, phantom Field> {
         nft_id: ID
     }
 
@@ -139,7 +138,7 @@ module nft_protocol::borrow_request {
         assert!(object::uid_to_inner(nft_uid) == promise.nft_id, 0);
         df::add(nft_uid, utils::marker<Field>(), field);
 
-        let ReturnPromise { nft_id } = promise;
+        let ReturnPromise { nft_id: _ } = promise;
 
     }
 
