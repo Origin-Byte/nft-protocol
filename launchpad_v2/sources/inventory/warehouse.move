@@ -108,12 +108,10 @@ module launchpad_v2::warehouse {
         } else if (redeem_strategy::is_pseudorandom(strategy)) {
             redeem_pseudorandom_nft(warehouse, ctx)
         } else if (redeem_strategy::is_random(strategy)) {
-            let commitment = redeem_strategy::extract_parameters_random(
+            let (commitment, user_commitment) = redeem_strategy::extract_parameters_random(
                 venue::cert_uid_mut(&mut certificate),
             );
-            // TODO: Figure out best way to pass user commitment
-            // for now its `vector::empty()`
-            redeem_random_nft(warehouse, commitment, vector::empty(), ctx)
+            redeem_random_nft(warehouse, commitment, user_commitment, ctx)
         } else if (redeem_strategy::is_by_index(strategy)) {
             let index = redeem_strategy::extract_parameters_by_index(
                 venue::cert_uid_mut(&mut certificate),

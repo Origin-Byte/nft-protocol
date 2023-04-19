@@ -91,11 +91,19 @@ module launchpad_v2::redeem_strategy {
 
     struct ParametersKey has copy, drop, store {}
 
+    struct RandomCommitment has store {
+        commitment: RedeemCommitment,
+        user_commitment: vector<u8>,
+    }
+
     public fun register_parameters_random(
         object: &mut UID,
         commitment: RedeemCommitment,
+        user_commitment: vector<u8>,
     ) {
-        add_parameters(object, commitment)
+        add_parameters(
+            object, RandomCommitment { commitment, user_commitment },
+        )
     }
 
     public fun register_parameters_by_index(object: &mut UID, index: u64) {
@@ -106,8 +114,12 @@ module launchpad_v2::redeem_strategy {
         add_parameters(object, id)
     }
 
-    public fun extract_parameters_random(object: &mut UID): RedeemCommitment {
-        remove_parameters(object)
+    public fun extract_parameters_random(
+        object: &mut UID,
+    ): (RedeemCommitment, vector<u8>) {
+        let commitment: RandomCommitment = remove_parameters(object);
+        let RandomCommitment { commitment, user_commitment } = commitment;
+        (commitment, user_commitment)
     }
 
     public fun extract_parameters_by_index(object: &mut UID): u64 {
