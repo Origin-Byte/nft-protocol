@@ -332,6 +332,22 @@ module nft_protocol::ob_kiosk {
         builder
     }
 
+    /// This function is exposed only to the client side, therefore
+    /// if allows NFT owners to perform transfers from Kiosk to Kiosk without
+    /// having to pay royalties.
+    ///
+    /// This will always work if the signer is the owner of the kiosk.
+    entry fun p2p_transfer<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        let (nft, builder) = withdraw_nft_signed(source, nft_id, ctx);
+        deposit(target, nft, ctx);
+        builder
+    }
+
     /// We allow withdrawing NFTs for some use cases.
     /// If an NFT leaves our kiosk ecosystem, we can no longer guarantee
     /// royalty enforcement.
