@@ -22,10 +22,11 @@ module examples::testract {
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
     use nft_protocol::ob_kiosk;
-    use nft_protocol::ob_transfer_request;
+    use nft_protocol::ob_transfer_request::{Self, OB_TRANSFER_REQUEST};
     use nft_protocol::orderbook::{Self, Orderbook};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty;
+    use nft_protocol::request::{Policy, WithNft};
     use nft_protocol::symbol;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
@@ -38,7 +39,6 @@ module examples::testract {
     use sui::object::{Self, UID};
     use sui::package::{Self, Publisher};
     use sui::sui::SUI;
-    use sui::transfer_policy::{Self, TransferPolicy};
     use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
@@ -174,10 +174,11 @@ module examples::testract {
     public entry fun register_allowlist_and_royalty_strategy(
         publisher: &Publisher, ctx: &mut TxContext,
     ) {
-        let (policy, cap) = transfer_policy::new<TestNft>(publisher, ctx);
+        let (policy, cap) =
+            ob_transfer_request::init_policy<TestNft>(publisher, ctx);
 
-        royalty_strategy_bps::add_policy_rule(&mut policy, &cap);
-        transfer_allowlist::add_policy_rule(&mut policy, &cap);
+        royalty_strategy_bps::enforce(&mut policy, &cap);
+        transfer_allowlist::enforce(&mut policy, &cap);
 
         public_share_object(policy);
         public_transfer(cap, sender(ctx));
@@ -265,7 +266,7 @@ module examples::testract {
     /// 4. Then request is destroyed ok because it went through all the rules
     public entry fun generate_bidding_events(
         mint_cap: &MintCap<TestNft>,
-        transfer_policy: &TransferPolicy<TestNft>,
+        transfer_policy: &Policy<WithNft<TestNft, OB_TRANSFER_REQUEST>>,
         allowlist: &Allowlist,
         royalty_strategy: &mut BpsRoyaltyStrategy<TestNft>,
         wallet: &mut Coin<SUI>,
@@ -564,7 +565,7 @@ module examples::testract {
         //--
         register_allowlist_and_royalty_strategy(&publisher, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
-        let transfer_policy = test_scenario::take_shared<TransferPolicy<TestNft>>(&scenario);
+        let transfer_policy = test_scenario::take_shared<Policy<WithNft<TestNft, OB_TRANSFER_REQUEST>>>(&scenario);
 
         // ---
         create_orderbook(ctx(&mut scenario));
