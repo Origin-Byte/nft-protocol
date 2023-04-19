@@ -1,9 +1,9 @@
 module nft_protocol::borrow_request {
-    use std::option::{Self, Option, some};
+    use std::option::{Self, Option, some, none};
     use std::type_name::{Self, TypeName};
 
     use sui::dynamic_field as df;
-    use sui::object::{Self, ID};
+    use sui::object::{Self, ID, UID};
     use sui::package::Publisher;
     use sui::tx_context::TxContext;
 
@@ -22,17 +22,16 @@ module nft_protocol::borrow_request {
     struct BORROW_REQUEST has drop {}
 
     // Hot Potato
-    struct ReturnPromise<Field: store> {
-        field: Option<Field>,
+    struct ReturnPromise<phantom T, Field: store> {
         nft_id: ID
     }
 
     struct BorrowRequest<T: key + store> {
+        nft_id: ID,
         nft: Option<T>,
         sender: address,
         field: Option<TypeName>,
         auth: TypeName,
-        is_returned: bool,
         inner: RequestBody<WithNft<T, BORROW_REQUEST>>,
     }
 
@@ -47,12 +46,14 @@ module nft_protocol::borrow_request {
         field: Option<TypeName>,
         ctx: &mut TxContext,
     ): BorrowRequest<T> {
+        let nft_id = object::id(&nft);
+
         BorrowRequest<T> {
+            nft_id,
             nft: some(nft),
             sender,
             field,
             auth: type_name::get<Auth>(),
-            is_returned: false,
             inner: request::new(ctx),
         }
     }
@@ -77,16 +78,21 @@ module nft_protocol::borrow_request {
     ): T {
         // Can only be called by Auth, which in our case is the OBKiosk
         assert_witness<Auth, T>(&self);
-        assert_is_is_returned(&self);
+        assert!(option::is_some(&self.nft), 0);
 
         let BorrowRequest {
+            nft_id: _,
             nft,
             sender: _,
             field: _,
             auth: _,
-            is_returned: _,
             inner,
         } = self;
+
+
+        // TODO: Right now there are no guarantees that the Field was not removed,
+        // it relies on faithful implementation on behalf of the creator, this is not
+        // ideal we would ideally have a bulletproof here.
 
         request::confirm(inner, policy);
         option::destroy_some(nft)
@@ -97,25 +103,53 @@ module nft_protocol::borrow_request {
         // the ability to operate on the inner object extract a field
         _witness: DelegatedWitness<T>,
         request: &mut BorrowRequest<T>,
-    ): (&mut T, NftId) {
-        let nft = option::borrow_mut(&mut request.nft);
-        let nft_id = object::id(nft);
-        (nft, NftId { nft_id })
+    ): T {
+        assert!(option::is_none(&request.field), 0);
+        option::extract(&mut request.nft)
     }
 
-    public fun borrow_field(
-        nft_uid: Nft,
-    ) {
-        utils::pop_df_from_marker<Field>(&mut nft.id);
+    public fun borrow_nft_ref_mut<T: key + store>(
+        // Creator Witness: Only the creator's contract should have
+        // the ability to operate on the inner object extract a field
+        _witness: DelegatedWitness<T>,
+        request: &mut BorrowRequest<T>,
+    ): &mut T {
+        option::borrow_mut(&mut request.nft)
+    }
+
+    public fun borrow_field<T: key + store, Field: store>(
+        _witness: DelegatedWitness<T>,
+        nft_uid: &mut UID,
+    ): (Field, ReturnPromise<T, Field>) {
+        let nft_id = object::uid_to_inner(nft_uid);
+        let field = utils::pop_df_from_marker<Field>(nft_uid);
+
+        (field, ReturnPromise { nft_id })
     }
 
     public fun return_field<T: key + store, Field: store>(
         _witness: DelegatedWitness<T>,
         nft_uid: &mut UID,
-        uid_type: TypedID<T>,
-        request: &mut BorrowRequest<T>,
+        promise: ReturnPromise<T, Field>,
+        field: Field,
     ) {
+        // No need to call the following assertion, we will confirm that the field
+        // is present before resolving the BorrowRequest
+        // assert!(request.is_returned == false, 0);
+        assert!(object::uid_to_inner(nft_uid) == promise.nft_id, 0);
+        df::add(nft_uid, utils::marker<Field>(), field);
 
+        let ReturnPromise { nft_id } = promise;
+
+    }
+
+    public fun return_nft<T: key + store>(
+        _witness: DelegatedWitness<T>,
+        request: &mut BorrowRequest<T>,
+        nft: T,
+    ) {
+        assert!(object::id(&nft) == request.nft_id, 0);
+        option::fill(&mut request.nft, nft);
     }
 
     public fun tx_sender<T: key + store>(self: &BorrowRequest<T>): address { self.sender }
@@ -137,9 +171,6 @@ module nft_protocol::borrow_request {
     }
     public fun assert_is_borrow_field<T: key + store>(request: &BorrowRequest<T>) {
         assert!(option::is_some(&request.field), 0);
-    }
-    public fun assert_is_is_returned<T: key + store>(request: &BorrowRequest<T>) {
-        assert!(request.is_returned, 0);
     }
 
     public fun assert_witness<Auth: drop, T: key + store>(request: &BorrowRequest<T>) {

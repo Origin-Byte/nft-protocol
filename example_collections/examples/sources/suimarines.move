@@ -12,7 +12,7 @@ module examples::suimarines {
     use nft_protocol::transfer_allowlist;
     use nft_protocol::display as ob_display;
     use nft_protocol::collection;
-    use nft_protocol::borrow_request::{Self, BorrowRequest, NftId};
+    use nft_protocol::borrow_request::{Self, BorrowRequest, ReturnPromise};
     // use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
@@ -83,24 +83,37 @@ module examples::suimarines {
 
     public fun get_nft_field<Field: store>(
         request: &mut BorrowRequest<Submarine>,
-    ): (Field, NftId) {
+    ): (Field, ReturnPromise<Submarine, Field>) {
         let dw = witness::from_witness(Witness {});
-        let (nft, nft_id) = borrow_request::borrow_nft(dw, request);
+        let nft = borrow_request::borrow_nft_ref_mut(dw, request);
 
-        let field = utils::pop_df_from_marker<Field>(&mut nft.id);
-
-        (field, nft_id)
+        borrow_request::borrow_field(dw, &mut nft.id)
     }
 
     public fun return_nft_field<Field: store>(
         request: &mut BorrowRequest<Submarine>,
         field: Field,
-        nft_id: NftId,
+        promise: ReturnPromise<Submarine, Field>,
     ) {
         let dw = witness::from_witness(Witness {});
-        let nft = borrow_request::borrow_nft(dw, request);
+        let nft = borrow_request::borrow_nft_ref_mut(dw, request);
 
-        mut_lock::consume_field_promise(&mut nft.id, field, promise);
+        borrow_request::return_field(dw, &mut nft.id, promise, field)
+    }
+
+    public fun get_nft(
+        request: &mut BorrowRequest<Submarine>,
+    ): Submarine {
+        let dw = witness::from_witness(Witness {});
+        borrow_request::borrow_nft(dw, request)
+    }
+
+    public fun return_nft(
+        request: &mut BorrowRequest<Submarine>,
+        nft: Submarine,
+    ) {
+        let dw = witness::from_witness(Witness {});
+        borrow_request::return_nft(dw, request, nft);
     }
 
     public entry fun mint_nft(
