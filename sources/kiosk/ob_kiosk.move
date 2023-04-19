@@ -33,6 +33,7 @@ module nft_protocol::ob_kiosk {
     use nft_protocol::collection::Collection;
     use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
+    use nft_protocol::withdraw_request::{Self, WithdrawRequest};
     use nft_protocol::request::{Self, RequestBody, WithNft};
     use nft_protocol::utils;
     use originmate::typed_id::{Self, TypedID};
@@ -312,7 +313,7 @@ module nft_protocol::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = withdraw_nft(source, nft_id, entity_id, ctx);
+        let (nft, builder) = transfer_nft_(source, nft_id, uid_to_address(entity_id), ctx);
         deposit(target, nft, ctx);
         builder
     }
@@ -327,7 +328,7 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = withdraw_nft_signed(source, nft_id, ctx);
+        let (nft, builder) = transfer_nft_(source, nft_id, sender(ctx), ctx);
         deposit(target, nft, ctx);
         builder
     }
@@ -346,7 +347,7 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         entity_id: &UID,
         ctx: &mut TxContext,
-    ): (T, TransferRequest<T>) {
+    ): (T, WithdrawRequest<T>) {
         withdraw_nft_(self, nft_id, uid_to_address(entity_id), ctx)
     }
 
@@ -358,8 +359,20 @@ module nft_protocol::ob_kiosk {
         self: &mut Kiosk,
         nft_id: ID,
         ctx: &mut TxContext,
-    ): (T, TransferRequest<T>) {
+    ): (T, WithdrawRequest<T>) {
         withdraw_nft_(self, nft_id, sender(ctx), ctx)
+    }
+
+    /// After authorization that the call is permitted, gets the NFT.
+    fun transfer_nft_<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        originator: address,
+        ctx: &mut TxContext,
+    ): (T, TransferRequest<T>) {
+        let nft = get_nft(self, nft_id, originator);
+
+        (nft, ob_transfer_request::new(nft_id, originator, ctx))
     }
 
     /// After authorization that the call is permitted, gets the NFT.
@@ -368,14 +381,24 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         originator: address,
         ctx: &mut TxContext,
-    ): (T, TransferRequest<T>) {
+    ): (T, WithdrawRequest<T>) {
+        let nft = get_nft(self, nft_id, originator);
+
+        (nft, withdraw_request::new(originator, ctx))
+    }
+
+    fun get_nft<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        originator: address,
+    ): T {
         check_entity_and_pop_ref(self, originator, nft_id);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        (nft, ob_transfer_request::new(nft_id, originator, ctx))
+        nft
     }
 
     /// If both kiosks are owned by the same user, then we allow free transfer.
