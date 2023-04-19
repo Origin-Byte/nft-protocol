@@ -29,14 +29,11 @@
 /// - Permissionless `Kiosk` needs to signer, apps don't have to wrap both
 /// the `KioskOwnerCap` and the `Kiosk` in a smart contract.
 module nft_protocol::ob_kiosk {
-    use nft_protocol::access_policy as ap;
-    use nft_protocol::collection::Collection;
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::withdraw_request::{Self, WithdrawRequest};
-    use nft_protocol::request::{Self, RequestBody, WithNft};
+    use nft_protocol::borrow_request::{Self, BorrowRequest, BORROW_REQUEST};
+    use nft_protocol::request::{Self, Policy, RequestBody, WithNft};
     use nft_protocol::utils;
-    use originmate::typed_id::{Self, TypedID};
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
     use sui::display;
@@ -550,48 +547,24 @@ module nft_protocol::ob_kiosk {
 
     // === NFT Accessors ===
 
-    public fun borrow_nft_field_mut<T: key + store, Field: store>(
+    public fun borrow_nft_mut<T: key + store>(
         self: &mut Kiosk,
-        collection: &Collection<T>,
-        nft_id: TypedID<T>,
+        nft_id: ID,
         ctx: &mut TxContext,
-    ): (MutLock<T>, ReturnPromise<T>) {
-        let nft_id = typed_id::to_id(nft_id);
-        assert_not_listed(self, nft_id);
-        ap::assert_field_auth<T, Field>(collection, ctx);
-
+    ): BorrowRequest<T> {
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft, ctx)
-    }
-
-    public fun borrow_nft_mut<OTW: drop, T: key + store>(
-        self: &mut Kiosk,
-        collection: &Collection<OTW>,
-        nft_id: TypedID<T>,
-        ctx: &mut TxContext,
-    ): (MutLock<T>, ReturnPromise<T>) {
-        let nft_id = typed_id::to_id(nft_id);
-        assert_not_listed(self, nft_id);
-        // TODO: Assert T lives in the OTW universe
-        ap::assert_parent_auth<OTW, T>(collection, ctx);
-
-        let cap = pop_cap(self);
-        let nft = kiosk::take<T>(self, &cap, nft_id);
-        set_cap(self, cap);
-
-        mut_lock::lock_nft_global<Witness, T>(Witness {}, nft, ctx)
+        borrow_request::new(nft, sender(ctx), ctx)
     }
 
     public fun return_nft<OTW: drop, T: key + store>(
         self: &mut Kiosk,
-        locked_nft: MutLock<T>,
-        promise: ReturnPromise<T>,
+        borrowed_nft: BorrowRequest<T>,
+        policy: &Policy<WithNft<T, BORROW_REQUEST>>
     ) {
-        // TODO: Assert T lives in the OTW universe
-        let nft = mut_lock::unlock_nft(Witness {}, locked_nft, promise);
+        let nft = borrow_request::confirm(borrowed_nft, policy);
 
         let cap = pop_cap(self);
         kiosk::place<T>(self, &cap, nft);

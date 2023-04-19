@@ -1,68 +1,65 @@
-// module launchpad_v2::auth_request {
-//     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap};
-//     use nft_protocol::witness;
-//     use sui::object::{Self, ID};
-//     use sui::tx_context::{TxContext, sender};
+module nft_protocol::borrow_request {
+    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use nft_protocol::witness;
+    use sui::package::Publisher;
+    use sui::tx_context::TxContext;
 
-//     // === Error ===
+    // === Error ===
 
-//     const EPolicyMismatch: u64 = 1;
+    const EPolicyMismatch: u64 = 1;
 
-//     // === Structs ===
+    // === Structs ===
 
-//     struct Witness has drop {}
-//     struct AUTH_REQUEST has drop {}
+    struct Witness has drop {}
+    struct BORROW_REQUEST has drop {}
 
-//     struct AuthRequest {
-//         policy_id: ID,
-//         sender: address,
-//         venue_id: ID,
-//         inner: RequestBody<AUTH_REQUEST>
-//     }
+    struct BorrowRequest<T> {
+        nft: T,
+        sender: address,
+        inner: RequestBody<WithNft<T, BORROW_REQUEST>>,
+    }
 
-//     // === Fns ===
+    // === Fns ===
 
-//     /// Construct a new `Request` hot potato which requires an
-//     /// approving action from the policy creator to be destroyed / resolved.
-//     public fun new(
-//         venue_id: ID, policy: &Policy<AUTH_REQUEST>, ctx: &mut TxContext,
-//     ): AuthRequest {
-//         AuthRequest {
-//             policy_id: object::id(policy),
-//             sender: sender(ctx),
-//             venue_id,
-//             inner: request::new(ctx),
-//         }
-//     }
+    // TODO: Consider security implications of this being opened to the public.
+    // We don't want to leave any possibility of spoofing requests..
+    public fun new<T>(
+        nft: T,
+        sender: address,
+        ctx: &mut TxContext,
+    ): BorrowRequest<T> {
+        BorrowRequest<T> {
+            nft,
+            sender,
+            inner: request::new(ctx),
+        }
+    }
 
-//     public fun init_policy(ctx: &mut TxContext): (Policy<AUTH_REQUEST>, PolicyCap) {
-//         request::new_policy(witness::from_witness(Witness {}), ctx)
-//     }
+    public fun init_policy<T>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, BORROW_REQUEST>>, PolicyCap) {
+        request::new_policy_with_type(witness::from_witness(Witness {}), publisher, ctx)
+    }
 
-//     /// Adds a `Receipt` to the `Request`, unblocking the request and
-//     /// confirming that the policy requirements are satisfied.
-//     public fun add_receipt<Rule>(self: &mut AuthRequest, rule: &Rule) {
-//         request::add_receipt(&mut self.inner, rule);
-//     }
+    /// Adds a `Receipt` to the `Request`, unblocking the request and
+    /// confirming that the policy requirements are satisfied.
+    public fun add_receipt<T, Rule>(self: &mut BorrowRequest<T>, rule: &Rule) {
+        request::add_receipt(&mut self.inner, rule);
+    }
 
-//     public fun inner_mut(self: &mut AuthRequest): &mut RequestBody<AUTH_REQUEST> {
-//         &mut self.inner
-//     }
+    public fun inner_mut<T>(
+        self: &mut BorrowRequest<T>
+    ): &mut RequestBody<WithNft<T, BORROW_REQUEST>> { &mut self.inner }
 
-//     public fun confirm(self: AuthRequest, policy: &Policy<AUTH_REQUEST>) {
-//         let AuthRequest {
-//             policy_id,
-//             sender: _,
-//             venue_id: _,
-//             inner,
-//         } = self;
-//         assert!(policy_id == object::id(policy), EPolicyMismatch);
-//         request::confirm(inner, policy);
-//     }
+    public fun confirm<T>(self: BorrowRequest<T>, policy: &Policy<WithNft<T, BORROW_REQUEST>>): T {
+        let BorrowRequest {
+            nft,
+            sender: _,
+            inner,
+        } = self;
 
-//     public fun venue_id(self: &AuthRequest): ID { self.venue_id }
+        request::confirm(inner, policy);
 
-//     public fun auth_sender(self: &AuthRequest): address { self.sender }
+        nft
+    }
 
-//     public fun policy_id(self: &AuthRequest): ID { self.policy_id }
-// }
+    public fun tx_sender<T>(self: &BorrowRequest<T>): address { self.sender }
+}
