@@ -4,29 +4,20 @@ module nft_protocol::session_token {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{TxContext, sender};
     use sui::dynamic_field as df;
+    use sui::kiosk::{Self, Kiosk};
     use sui::transfer;
-    use nft_protocol::access_policy as ap;
+    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
+    use nft_protocol::borrow_request::{Self, BorrowRequest};
     use nft_protocol::ob_kiosk;
-    use nft_protocol::collection::Collection;
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
-    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use originmate::typed_id::{Self, TypedID};
-    use std::string::utf8;
-    use sui::display;
-    use sui::clock::{Self, Clock};
-    use sui::kiosk::{Self, Kiosk, uid_mut as ext};
-    use sui::package;
-    use sui::table::{Self, Table};
-    use sui::transfer::{transfer, public_share_object};
-    use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::utils;
-    use nft_protocol::witness::{Witness as DelegatedWitness};
+    /// When trying to create an access policy when it already exists
+    const ESessionPolicyAlreadyExists: u64 = 1;
+    const ETokenRequestMismatch: u64 = 2;
+    const EFieldAccessDenied: u64 = 3;
+    const EParentAccessDenied: u64 = 4;
 
-    const ELOCK_PROMISE_MISMATCH: u64 = 1;
-    const ELOCK_AUTHORITY_MISMATCH: u64 = 2;
-
-    struct AccessToken<phantom T> has key, store {
+    struct SessionToken<phantom T> has key, store {
         id: UID,
         nft_id: ID,
         // We add type reflection here due to it being an option,
@@ -38,6 +29,7 @@ module nft_protocol::session_token {
         entity: address,
     }
 
+    struct SessionTokenRule has drop {}
     struct TimeOutDfKey has store, copy, drop { nft_id: ID }
 
     struct TimeOut<phantom T> has key, store {
@@ -53,34 +45,15 @@ module nft_protocol::session_token {
         expiry_ms: u64,
         ctx: &mut TxContext,
     ) {
-        let nft_id = typed_id::to_id(nft_id);
-
-        // Only the owner can issue session tokens
-        ob_kiosk::assert_owner_address(kiosk, sender(ctx));
-
-        let ss_uid = object::new(ctx);
-
-        let timeout = TimeOut<T> {
-            id: object::new(ctx),
-            expiry_ms,
-            access_token: object::uid_to_inner(&ss_uid),
-        };
-
-        let session_token = AccessToken<T> {
-            id: object::new(ctx),
+        let field = option::none();
+        issue_session_token_(
+            kiosk,
             nft_id,
-            field: option::none(),
+            receiver,
             expiry_ms,
-            timeout_id: object::id(&timeout),
-            entity: receiver,
-        };
-
-        // Need to assert that NFT is not locked
-        ob_kiosk::auth_exclusive_transfer(kiosk, nft_id, &timeout.id, ctx);
-        let kiosk_uid = kiosk::uid_mut(kiosk);
-
-        df::add(kiosk_uid, TimeOutDfKey { nft_id }, timeout);
-        transfer::public_transfer(session_token, receiver);
+            field,
+            ctx,
+        );
     }
 
     public fun issue_session_token_field<T: key + store, Field: store>(
@@ -88,6 +61,25 @@ module nft_protocol::session_token {
         nft_id: TypedID<T>,
         receiver: address,
         expiry_ms: u64,
+        ctx: &mut TxContext,
+    ) {
+        let field = option::some(type_name::get<Field>());
+        issue_session_token_(
+            kiosk,
+            nft_id,
+            receiver,
+            expiry_ms,
+            field,
+            ctx,
+        );
+    }
+
+    fun issue_session_token_<T: key + store>(
+        kiosk: &mut Kiosk,
+        nft_id: TypedID<T>,
+        receiver: address,
+        expiry_ms: u64,
+        field: Option<TypeName>,
         ctx: &mut TxContext,
     ) {
         let nft_id = typed_id::to_id(nft_id);
@@ -103,10 +95,10 @@ module nft_protocol::session_token {
             access_token: object::uid_to_inner(&ss_uid),
         };
 
-        let session_token = AccessToken<T> {
-            id: object::new(ctx),
+        let session_token = SessionToken<T> {
+            id: ss_uid,
             nft_id,
-            field: option::none(),
+            field,
             expiry_ms,
             timeout_id: object::id(&timeout),
             entity: receiver,
@@ -120,57 +112,53 @@ module nft_protocol::session_token {
         transfer::public_transfer(session_token, receiver);
     }
 
-    public fun issue_session_token_field_<Auth: drop, T: key + store, Field: store>(
-        _auth: Auth,
-        nft_id: ID,
-        receiver: address,
-        ctx: &mut TxContext,
-    ){
-        let ss = SessionToken<T> {
-            id: object::new(ctx),
-            nft_id,
-            authority: type_name::get<Auth>(),
-            field: option::some(type_name::get<Field>()),
-        };
-
-        transfer::transfer(ss, receiver);
+    /// Registers a type to use `AccessPolicy` during the borrowing.
+    public fun enforce<T, P>(
+        policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap,
+    ) {
+        request::enforce_rule_no_state<WithNft<T, P>, SessionTokenRule>(policy, cap);
     }
 
-    // TODO: Consider the consequences of this being accessible to everyone
-    // Most likely the lock_nft should be made in a way that forces the unlock function
-    // to be called from the same module --> probably by using witness
-    public fun lock_nft_with_session_token<Auth: drop, T: key + store>(
-        _auth: Auth,
-        nft: T,
-        session_token: SessionToken<T>,
-        ctx: &mut TxContext,
-    ): (MutLock<T>, ReturnPromise<T>) {
-        let SessionToken { id, nft_id, authority, field } = session_token;
+    public fun drop<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
+        request::drop_rule_no_state<WithNft<T, P>, SessionTokenRule>(policy, cap);
+    }
 
+    public fun confirm<T: key + store>(
+        self: &SessionToken<T>, req: &mut BorrowRequest<T>,
+    ) {
+        if (borrow_request::is_borrow_field(req)) {
+            assert_field_auth<T>(self, req);
+        } else {
+            assert_parent_auth<T>(self, req);
+        };
+
+        borrow_request::add_receipt(req, &SessionTokenRule {});
+    }
+
+    public fun assert_field_auth<T: key + store>(
+        self: &SessionToken<T>,
+        req: &BorrowRequest<T>
+    ) {
         assert!(
-            object::id(&nft) == nft_id,
-            0
+            borrow_request::nft_id(req) == self.nft_id, ETokenRequestMismatch
+        );
+
+        let field = borrow_request::field(req);
+        assert!(
+            *option::borrow(&self.field) == field, EFieldAccessDenied
+        );
+    }
+
+    public fun assert_parent_auth<T: key + store>(
+        self: &SessionToken<T>,
+        req: &BorrowRequest<T>
+    ) {
+        assert!(
+            borrow_request::nft_id(req) == self.nft_id, ETokenRequestMismatch
         );
 
         assert!(
-            type_name::get<Auth>() == authority,
-            0
+            option::is_none(&self.field), EParentAccessDenied
         );
-
-        let mut_lock = MutLock {
-            id: object::new(ctx),
-            nft,
-            authority: type_name::get<Auth>(),
-            field,
-        };
-
-        let promise = ReturnPromise { nft_id };
-        object::delete(id);
-
-        (mut_lock, promise)
-    }
-
-    public fun nft_id<T: key + store>(session_token: &SessionToken<T>): ID {
-        session_token.nft_id
     }
 }
