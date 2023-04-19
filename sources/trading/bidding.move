@@ -101,7 +101,7 @@ module nft_protocol::bidding {
         ctx: &mut TxContext,
     ) {
         let bid =
-            new_bid(nft, buyers_kiosk, price, option::none(), wallet, ctx);
+            new_bid(buyers_kiosk, nft, price, option::none(), wallet, ctx);
         share_object(bid);
     }
 
@@ -130,7 +130,7 @@ module nft_protocol::bidding {
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
         let bid =
-            new_bid(nft, buyers_kiosk, price, option::some(commission), wallet, ctx);
+            new_bid(buyers_kiosk, nft, price, option::some(commission), wallet, ctx);
         share_object(bid);
     }
 
