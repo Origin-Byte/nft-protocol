@@ -34,6 +34,7 @@ module nft_protocol::ob_kiosk {
     use nft_protocol::borrow_request::{Self, BorrowRequest, BORROW_REQUEST};
     use nft_protocol::request::{Self, Policy, RequestBody, WithNft};
     use nft_protocol::utils;
+    use std::option::Option;
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
     use sui::display;
@@ -550,13 +551,15 @@ module nft_protocol::ob_kiosk {
     public fun borrow_nft_mut<T: key + store>(
         self: &mut Kiosk,
         nft_id: ID,
+        field: Option<TypeName>,
         ctx: &mut TxContext,
     ): BorrowRequest<T> {
+        assert_not_listed(self, nft_id);
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        borrow_request::new(nft, sender(ctx), ctx)
+        borrow_request::new(nft, sender(ctx), field, ctx)
     }
 
     public fun return_nft<OTW: drop, T: key + store>(

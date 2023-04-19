@@ -1,8 +1,12 @@
 module nft_protocol::borrow_request {
-    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use nft_protocol::witness;
+    use std::option::{Self, Option};
+    use std::type_name::TypeName;
+
     use sui::package::Publisher;
     use sui::tx_context::TxContext;
+
+    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use nft_protocol::witness;
 
     // === Error ===
 
@@ -16,6 +20,7 @@ module nft_protocol::borrow_request {
     struct BorrowRequest<T> {
         nft: T,
         sender: address,
+        field: Option<TypeName>,
         inner: RequestBody<WithNft<T, BORROW_REQUEST>>,
     }
 
@@ -26,11 +31,13 @@ module nft_protocol::borrow_request {
     public fun new<T>(
         nft: T,
         sender: address,
+        field: Option<TypeName>,
         ctx: &mut TxContext,
     ): BorrowRequest<T> {
         BorrowRequest<T> {
             nft,
             sender,
+            field,
             inner: request::new(ctx),
         }
     }
@@ -53,6 +60,7 @@ module nft_protocol::borrow_request {
         let BorrowRequest {
             nft,
             sender: _,
+            field: _,
             inner,
         } = self;
 
@@ -62,4 +70,12 @@ module nft_protocol::borrow_request {
     }
 
     public fun tx_sender<T>(self: &BorrowRequest<T>): address { self.sender }
+
+    public fun is_borrow_field<T>(self: &BorrowRequest<T>): bool {
+        option::is_some(&self.field)
+    }
+
+    public fun field<T>(self: &BorrowRequest<T>): TypeName {
+        *option::borrow(&self.field)
+    }
 }
