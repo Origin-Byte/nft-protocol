@@ -16,6 +16,8 @@ module nft_protocol::warehouse {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
+    use nft_protocol::redeem_random::{Self, RedeemCommitment};
+
     use originmate::pseudorandom;
 
     /// `Warehouse` does not have NFTs left to withdraw
@@ -38,29 +40,6 @@ module nft_protocol::warehouse {
     ///
     /// Call `warehouse::redeem_nft_with_id` with an ID that exists.
     const EINVALID_NFT_ID: u64 = 4;
-
-    /// Attempted to construct a `RedeemCommitment` with a hash length
-    /// different than 32 bytes
-    const EINVALID_COMMITMENT_LENGTH: u64 = 5;
-
-    /// Commitment in `RedeemCommitment` did not match original value committed
-    ///
-    /// Call `warehouse::random_redeem_nft` with the correct commitment.
-    const EINVALID_COMMITMENT: u64 = 6;
-
-    /// Used for the client to commit a pseudo-random
-    struct RedeemCommitment has key {
-        /// `RedeemCommitment` ID
-        id: UID,
-        /// Hashed sender commitment
-        ///
-        /// Sender will have to provide the pre-hashed value to be able to use
-        /// this `RedeemCommitment`. This value can be pseudo-random as long
-        /// as it is not predictable by the validator.
-        hashed_sender_commitment: vector<u8>,
-        /// Open commitment made by validator
-        contract_commitment: vector<u8>,
-    }
 
     /// `Warehouse` object which stores NFTs of type `T`
     ///
@@ -297,49 +276,6 @@ module nft_protocol::warehouse {
         transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
-    /// Create a new `RedeemCommitment`
-    ///
-    /// Contract commitment must be unfeasible to predict by the transaction
-    /// sender. The underlying value of the commitment can be pseudo-random as
-    /// long as it is not predictable by the validator.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if commitment is not 32 bytes.
-    public fun new_redeem_commitment(
-        hashed_sender_commitment: vector<u8>,
-        ctx: &mut TxContext,
-    ): RedeemCommitment {
-        assert!(
-            vector::length(&hashed_sender_commitment) != 32,
-            EINVALID_COMMITMENT_LENGTH,
-        );
-
-        RedeemCommitment {
-            id: object::new(ctx),
-            hashed_sender_commitment,
-            contract_commitment: pseudorandom::rand_with_ctx(ctx),
-        }
-    }
-
-    /// Creates a new `RedeemCommitment` and transfers it to the transaction
-    /// caller.
-    ///
-    /// Contract commitment must be unfeasible to predict by the transaction
-    /// caller. The underlying value of the commitment can be pseudo-random as
-    /// long as it is not predictable by the validator.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if commitment is not 32 bytes.
-    public entry fun init_redeem_commitment(
-        hashed_sender_commitment: vector<u8>,
-        ctx: &mut TxContext,
-    ) {
-        let commitment = new_redeem_commitment(hashed_sender_commitment,  ctx);
-        transfer::transfer(commitment, tx_context::sender(ctx));
-    }
-
     /// Randomly redeems NFT from `Warehouse`
     ///
     /// Requires a `RedeemCommitment` created by the user in a separate
@@ -363,23 +299,8 @@ module nft_protocol::warehouse {
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
     ): T {
-        let supply = supply(warehouse);
-        assert!(supply != 0, EEMPTY);
-
-        // Verify user commitment
-        let RedeemCommitment {
-            id,
-            hashed_sender_commitment,
-            contract_commitment
-        } = commitment;
-
-        object::delete(id);
-
-        let user_commitment = std::hash::sha3_256(user_commitment);
-        assert!(
-            user_commitment == hashed_sender_commitment,
-            EINVALID_COMMITMENT,
-        );
+        let (_, contract_commitment) =
+            redeem_random::consume_commitment(commitment, user_commitment);
 
         // Construct randomized index
         let supply = supply(warehouse);
@@ -423,17 +344,6 @@ module nft_protocol::warehouse {
     public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
         let Warehouse { id, nfts: _, total_deposited: _ } = warehouse;
-        object::delete(id);
-    }
-
-    /// Destroyes `RedeemCommitment`
-    public entry fun destroy_commitment(commitment: RedeemCommitment) {
-        let RedeemCommitment {
-            id,
-            hashed_sender_commitment: _,
-            contract_commitment: _,
-        } = commitment;
-
         object::delete(id);
     }
 

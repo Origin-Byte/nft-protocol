@@ -42,7 +42,8 @@ module nft_protocol::listing {
     use nft_protocol::err;
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
+    use nft_protocol::redeem_random::RedeemCommitment;
+    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use nft_protocol::proceeds::{Self, Proceeds};
     use nft_protocol::venue::{Self, Venue};

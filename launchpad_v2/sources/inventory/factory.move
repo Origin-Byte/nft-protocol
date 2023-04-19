@@ -4,7 +4,6 @@ module launchpad_v2::factory {
 
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
-    use sui::math;
     use sui::bcs::{Self, BCS};
 
     use nft_protocol::mint_pass::{Self, MintPass};
@@ -72,14 +71,9 @@ module launchpad_v2::factory {
         venue::assert_cert_buyer(&certificate, ctx);
         venue::assert_cert_inventory(&certificate, object::id(factory));
 
-        let index = math::divide_and_round_up(
-            factory.total_deposited * venue::cert_relative_index(&certificate),
-            venue::cert_index_scale(&certificate)
-        );
-
         venue::consume_certificate(Witness {}, factory, certificate);
 
-        redeem_mint_pass_at_index<T>(factory, index, ctx)
+        redeem_mint_pass_at_index<T>(factory, 0, ctx)
     }
 
     /// Redeems NFT from specific index in `Warehouse`

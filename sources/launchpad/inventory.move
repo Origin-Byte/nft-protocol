@@ -12,7 +12,8 @@ module nft_protocol::inventory {
     use sui::dynamic_field as df;
 
     use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
+    use nft_protocol::redeem_random::RedeemCommitment;
+    use nft_protocol::warehouse::{Self, Warehouse};
 
     /// `Inventory` is not a `Warehouse`
     ///
