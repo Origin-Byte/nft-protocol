@@ -342,10 +342,12 @@ module nft_protocol::ob_kiosk {
         target: &mut Kiosk,
         nft_id: ID,
         ctx: &mut TxContext,
-    ): TransferRequest<T> {
-        let (nft, builder) = withdraw_nft_signed(source, nft_id, ctx);
+    ) {
+        let cap = pop_cap(source);
+        let nft = kiosk::take<T>(source, &cap, nft_id);
+        set_cap(source, cap);
+
         deposit(target, nft, ctx);
-        builder
     }
 
     /// We allow withdrawing NFTs for some use cases.
