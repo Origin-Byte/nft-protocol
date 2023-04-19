@@ -33,7 +33,7 @@ module nft_protocol::ob_kiosk {
     use nft_protocol::collection::Collection;
     use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
-    use nft_protocol::request;
+    use nft_protocol::request::{Self, RequestBody, WithNft};
     use nft_protocol::utils;
     use originmate::typed_id::{Self, TypedID};
     use std::string::utf8;
@@ -412,30 +412,26 @@ module nft_protocol::ob_kiosk {
     /// that the trading contracts maintain a global object.
     /// In some cases this is doable, in other it's inconvenient.
     public fun set_transfer_request_auth<T, Auth>(
-        req: &mut TransferRequest<T>,
-        auth: &Auth,
+        req: &mut TransferRequest<T>, auth: &Auth,
     ) {
         set_transfer_request_auth_(ob_transfer_request::inner_mut(req), auth)
     }
 
     public fun set_transfer_request_auth_<T, P, Auth>(
-        req: &mut request::RequestBody<T, P>,
-        _auth: &Auth,
+        req: &mut RequestBody<WithNft<T, P>>, _auth: &Auth,
     ) {
         let metadata = request::metadata_mut(req);
         df::add(metadata, AuthTransferRequestDfKey {}, type_name::get<Auth>());
     }
 
     /// What's the authority that created this request?
-    public fun get_transfer_request_auth<T>(
-        req: &TransferRequest<T>,
-    ): &TypeName {
+    public fun get_transfer_request_auth<T>(req: &TransferRequest<T>): &TypeName {
         get_transfer_request_auth_(ob_transfer_request::inner(req))
     }
 
     /// What's the authority that created this request?
     public fun get_transfer_request_auth_<T, P>(
-        req: &request::RequestBody<T, P>,
+        req: &RequestBody<WithNft<T, P>>,
     ): &TypeName {
         let metadata = request::metadata(req);
         df::borrow(metadata, AuthTransferRequestDfKey {})

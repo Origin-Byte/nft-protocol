@@ -12,9 +12,10 @@ module launchpad_v2::venue {
     use sui::transfer;
 
     use nft_protocol::witness;
+    use nft_protocol::request::{Policy, PolicyCap};
     use nft_protocol::utils_supply::{Self, Supply};
     use launchpad_v2::launchpad::{Self, LaunchCap};
-    use launchpad_v2::request::{Self, Request as AuthRequest, PolicyCap as AuthPolicyCap, Policy as AuthPolicy};
+    use launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQUEST};
     use launchpad_v2::proceeds::{Self, Proceeds};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
@@ -66,8 +67,8 @@ module launchpad_v2::venue {
 
     // A wrapper for all base policies in a venue
     struct Policies has store {
-        auth_cap: AuthPolicyCap,
-        auth: AuthPolicy,
+        auth_cap: PolicyCap,
+        auth: Policy<AUTH_REQUEST>,
         // Here for discoverability and assertion.
         redeem_method: TypeName,
         // Here for discoverability and assertion.
@@ -160,7 +161,7 @@ module launchpad_v2::venue {
     public fun init_policies<Market, RedeemMethod>(
         ctx: &mut TxContext,
     ): Policies {
-        let (auth_policy, auth_cap) = request::empty_policy(ctx);
+        let (auth_policy, auth_cap) = auth_request::init_policy(ctx);
 
         Policies {
             auth_cap: auth_cap,
@@ -184,7 +185,7 @@ module launchpad_v2::venue {
 
     // === Venue Management ===
 
-    /// Registers a rule into the `AuthPolicy` of `Venue`.
+    /// Registers a rule into the `Policy<AUTH_REQUEST>` of `Venue`.
     ///
     /// This endpoint is protected and can only be called by the module that defines
     /// the Rule, only and only if it has access to a `LaunchCap` in its scope. In
@@ -197,12 +198,12 @@ module launchpad_v2::venue {
     ) {
         assert_launch_cap(venue, launch_cap);
 
-        let cap = df::remove<TypeName, AuthPolicyCap>(&mut venue.id, type_name::get<AuthPolicyCap>());
+        let cap = df::remove<TypeName, PolicyCap>(&mut venue.id, type_name::get<PolicyCap>());
         let policy = auth_policy_mut(venue, launch_cap);
 
-        request::add_rule(policy, &cap, type_name::get<RuleType>());
+        nft_protocol::request::enforce_rule_no_state<AUTH_REQUEST, RuleType>(policy, &cap);
 
-        df::add<TypeName, AuthPolicyCap>(&mut venue.id, type_name::get<AuthPolicyCap>(), cap);
+        df::add<TypeName, PolicyCap>(&mut venue.id, type_name::get<PolicyCap>(), cap);
     }
 
     // === AuthRequest ===
@@ -212,9 +213,9 @@ module launchpad_v2::venue {
     /// return an `AuthRequest` containing all the tasks required for the
     /// client to perform in order to gain access to the sale.
     public fun request_access(
-        venue: &Venue,
+        venue: &Venue, ctx: &mut TxContext,
     ): AuthRequest {
-        request::new(&venue.policies.auth)
+        auth_request::new(object::id(venue), &venue.policies.auth, ctx)
     }
 
     /// To gain access to a sale, users have to perform a batch of programmable
@@ -231,7 +232,7 @@ module launchpad_v2::venue {
         assert_request(venue, &request);
         // TODO: Need to consider how validation work, also,
         // how to use burner wallets in the context of the launchpad
-        request::confirm_request(&venue.policies.auth, request);
+        auth_request::confirm(request, &venue.policies.auth);
     }
 
     // === Schedule ===
@@ -503,7 +504,7 @@ module launchpad_v2::venue {
         &venue.inventories
     }
 
-    public fun get_auth_policy(venue: &Venue): &AuthPolicy {
+    public fun get_auth_policy(venue: &Venue): &Policy<AUTH_REQUEST> {
         &venue.policies.auth
     }
 
@@ -551,7 +552,7 @@ module launchpad_v2::venue {
 
     // === Policy Getter Functions ===
 
-    public fun auth_policy(policies: &Policies): &AuthPolicy {
+    public fun auth_policy(policies: &Policies): &Policy<AUTH_REQUEST> {
         &policies.auth
     }
 
@@ -616,7 +617,7 @@ module launchpad_v2::venue {
 
     // === Private Functions ===
 
-    fun auth_policy_mut(venue: &mut Venue, launch_cap: &LaunchCap): &mut AuthPolicy {
+    fun auth_policy_mut(venue: &mut Venue, launch_cap: &LaunchCap): &mut Policy<AUTH_REQUEST> {
         assert_launch_cap(venue, launch_cap);
         &mut venue.policies.auth
     }
@@ -631,7 +632,7 @@ module launchpad_v2::venue {
     }
 
     public fun assert_request(venue: &Venue, request: &AuthRequest) {
-        assert!(request::policy_id(request) == object::id(&venue.policies.auth), 0);
+        assert!(auth_request::policy_id(request) == object::id(&venue.policies.auth), 0);
     }
 
     public fun assert_called_from_market<AW: drop>(venue: &Venue) {

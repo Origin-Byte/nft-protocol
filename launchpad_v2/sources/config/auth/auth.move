@@ -14,7 +14,7 @@ module launchpad_v2::launchpad_auth {
 
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::request::{Self, Request};
+    use launchpad_v2::auth_request::{Self, AuthRequest};
 
     const EINCORRECT_SIGNATURE: u64 = 1;
     const EINCORRECT_MESSAGE_COUNTER: u64 = 2;
@@ -62,7 +62,7 @@ module launchpad_v2::launchpad_auth {
     ///
     /// #### Panics
     ///
-    /// Panics if `Request` does not match the `Venue`.
+    /// Panics if `AuthRequest` does not match the `Venue`.
     /// Panics if the signature is invalid.
     /// Panics if the signature is valid but the message
     /// has the incorrect counter.
@@ -71,7 +71,7 @@ module launchpad_v2::launchpad_auth {
         signature: &vector<u8>,
         msg: &vector<u8>,
         hash: u8,
-        request: &mut Request,
+        request: &mut AuthRequest,
         ctx: &mut TxContext,
     ) {
         venue::assert_request(venue, request);
@@ -98,7 +98,7 @@ module launchpad_v2::launchpad_auth {
             EINCORRECT_MESSAGE_SENDER
         );
 
-        request::add_receipt(request, &LaunchpadAuth {});
+        auth_request::add_receipt(request, &LaunchpadAuth {});
     }
 
 
@@ -117,7 +117,7 @@ module launchpad_v2::launchpad_auth {
     }
 
 
-    /// Registers Authentication Rule in `Venue`'s `AuthPolicy`
+    /// Registers Authentication Rule in `Venue`'s `Policy<REQUEST>`
     fun register_policy(
         launch_cap: &LaunchCap,
         venue: &mut Venue,

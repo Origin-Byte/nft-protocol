@@ -1,7 +1,7 @@
 module nft_protocol::royalty_strategy_bps {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
-    use nft_protocol::request;
+    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
     use nft_protocol::royalty;
     use nft_protocol::utils;
     use nft_protocol::witness::{Witness as DelegatedWitness};
@@ -93,12 +93,13 @@ module nft_protocol::royalty_strategy_bps {
         self: &mut BpsRoyaltyStrategy<T>,
     ) { self.is_enabled = false; }
 
-    /// Registers collection to use `Allowlist` during the transfer.
-    public fun enforce<T, P>(
-        policy: &mut request::Policy<T, P>,
-        cap: &request::PolicyCap<T, P>,
-    ) {
-        request::enforce_rule<T, P, BpsRoyaltyStrategyRule, bool>(policy, cap, false);
+    /// Registers collection to use `BpsRoyaltyStrategy` during the transfer.
+    public fun enforce<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
+        request::enforce_rule_no_state<WithNft<T, P>, BpsRoyaltyStrategyRule>(policy, cap);
+    }
+
+    public fun drop<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
+        request::drop_rule_no_state<WithNft<T, P>, BpsRoyaltyStrategyRule>(policy, cap);
     }
 
     /// Transfers the royalty to the collection royalty aggregator.
