@@ -22,7 +22,7 @@
 ///
 /// In essence, `Listing` is a shared object that provides a safe API to the
 /// underlying inventories which are unprotected.
-module nft_protocol::listing {
+module launchpad::listing {
     // TODO: Currently, to issue whitelist token one has to call a function
     // times the number of whitelist addresses. Let us consider more gas efficient
     // ways of mass emiting whitelist tokens.
@@ -41,14 +41,15 @@ module nft_protocol::listing {
 
     use nft_protocol::err;
     use nft_protocol::witness::Witness as DelegatedWitness;
-    use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::warehouse::{Self, Warehouse, RedeemCommitment};
-    use nft_protocol::marketplace::{Self as mkt, Marketplace};
-    use nft_protocol::proceeds::{Self, Proceeds};
-    use nft_protocol::venue::{Self, Venue};
 
     use originmate::typed_id::{Self, TypedID};
     use originmate::object_box::{Self as obox, ObjectBox};
+
+    use launchpad::inventory::{Self, Inventory};
+    use launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
+    use launchpad::marketplace::{Self as mkt, Marketplace};
+    use launchpad::proceeds::{Self, Proceeds};
+    use launchpad::venue::{Self, Venue};
 
     /// `Venue` was not defined on `Listing`
     ///

@@ -16,8 +16,9 @@ module examples::suimarines {
     // use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
+
+    use launchpad::warehouse::{Self, Warehouse};
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;

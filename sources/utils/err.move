@@ -37,20 +37,6 @@ module nft_protocol::err {
         return Prefix + 219
     }
 
-    // === Auction ===
-
-    public fun order_does_not_exist(): u64 {
-        return Prefix + 301
-    }
-
-    public fun order_owner_must_be_sender(): u64 {
-        return Prefix + 302
-    }
-
-    public fun order_price_below_reserve(): u64 {
-        return Prefix + 303
-    }
-
     // === Trading ===
 
     public fun sender_not_owner(): u64 {
