@@ -21,7 +21,7 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Session Tokens and Access Policy Actions for dNFTs
 
 ### Changed
-- Allowlists can now be used accross different Policy/Request types
+- Allowlists can now be used across different Policy/Request types
 - Launchpad V1 is now a separate contract
 - Removed `collection_type` from `MintCap`
 
