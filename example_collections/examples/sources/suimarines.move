@@ -13,7 +13,6 @@ module examples::suimarines {
     use nft_protocol::display as ob_display;
     use nft_protocol::collection;
     use nft_protocol::borrow_request::{Self, BorrowRequest, ReturnPromise};
-    // use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::witness;
