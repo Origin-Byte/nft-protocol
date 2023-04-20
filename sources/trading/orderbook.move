@@ -59,6 +59,9 @@ module nft_protocol::orderbook {
     /// No order matches the given price level or ownership level
     const EOrderDoesNotExist: u64 = 6;
 
+    /// Market orders fail with this error if they cannot be filled
+    const EMarketOrderNotFilled: u64 = 6;
+
     // === Structs ===
 
     /// Add this witness type to allowlists via
@@ -253,13 +256,16 @@ module nft_protocol::orderbook {
     /// * buyer kiosk must be in Originbyte ecosystem
     /// * sender must be owner of buyer kiosk
     /// * the buyer kiosk must allow deposits of `T`
+    ///
+    /// Returns `Some` with amount if matched.
+    /// The amount is always equal or less than price.
     public fun create_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         assert!(!book.protected_actions.create_bid, EActionNotPublic);
         create_bid_<T, FT>(book, buyer_kiosk, price, option::none(), wallet, ctx)
     }
@@ -273,7 +279,7 @@ module nft_protocol::orderbook {
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         create_bid_<T, FT>(book, buyer_kiosk, price, option::none(), wallet, ctx)
     }
 
@@ -287,7 +293,7 @@ module nft_protocol::orderbook {
         commission_ft: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         assert!(!book.protected_actions.create_bid, EActionNotPublic);
         let commission = trading::new_bid_commission(
             beneficiary,
@@ -309,7 +315,7 @@ module nft_protocol::orderbook {
         commission_ft: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         let commission = trading::new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
@@ -317,6 +323,42 @@ module nft_protocol::orderbook {
         create_bid_<T, FT>(
             book, buyer_kiosk, price, option::some(commission), wallet, ctx,
         )
+    }
+
+    // === Create bid - Market Order ===
+
+    /// How many (`price`) fungible tokens should be taken from sender's wallet
+    /// and put into the orderbook with the intention of exchanging them for
+    /// 1 NFT.
+    ///
+    /// If the `price` is higher than the lowest ask requested price, then we
+    /// execute a trade straight away.
+    /// In such a case, a new shared object [`TradeIntermediate`] is created.
+    /// If market order is not filled, then the tx fails.
+    ///
+    /// The client provides the Kiosk into which they wish to receive an NFT.
+    ///
+    /// * buyer kiosk must be in Originbyte ecosystem
+    /// * sender must be owner of buyer kiosk
+    /// * the buyer kiosk must allow deposits of `T`
+    ///
+    /// Returns the paid amount.
+    public fun market_buy<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        buyer_kiosk: &mut Kiosk,
+        wallet: &mut Coin<FT>,
+        max_price: u64,
+        ctx: &mut TxContext,
+    ): u64 {
+        let is_matched_with_price = create_bid(
+            book,
+            buyer_kiosk,
+            max_price,
+            wallet,
+            ctx,
+        );
+        assert!(option::is_some(&is_matched_with_price), EMarketOrderNotFilled);
+        option::destroy_some(is_matched_with_price)
     }
 
     // === Cancel position ===
@@ -362,13 +404,16 @@ module nft_protocol::orderbook {
     /// * the sender must be owner of kiosk
     /// * the kiosk must be in Originbyte universe
     /// * the NFT mustn't be listed anywhere else yet
+    ///
+    /// Returns `Some` with the amount if matched.
+    /// Amount is always equal or more than `requested_tokens`.
     public fun create_ask<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         requested_tokens: u64,
         nft_id: ID,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         assert!(!book.protected_actions.create_ask, EActionNotPublic);
         create_ask_<T, FT>(
             book, seller_kiosk, requested_tokens, option::none(), nft_id, ctx
@@ -384,7 +429,7 @@ module nft_protocol::orderbook {
         requested_tokens: u64,
         nft_id: ID,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         create_ask_<T, FT>(
             book, seller_kiosk, requested_tokens, option::none(), nft_id, ctx
         )
@@ -400,7 +445,7 @@ module nft_protocol::orderbook {
         beneficiary: address,
         commission_ft: u64,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         assert!(!book.protected_actions.create_ask, EActionNotPublic);
         assert!(commission_ft < requested_tokens, ECommissionTooHigh);
 
@@ -426,7 +471,7 @@ module nft_protocol::orderbook {
         beneficiary: address,
         commission_ft: u64,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         assert!(commission_ft < requested_tokens, ECommissionTooHigh);
 
         let commission = trading::new_ask_commission(
@@ -436,6 +481,37 @@ module nft_protocol::orderbook {
         create_ask_<T, FT>(
             book, seller_kiosk, requested_tokens, option::some(commission), nft_id, ctx
         )
+    }
+
+    // === Create ask - Market Order ===
+
+    /// Offer given NFT to be traded for given (`requested_tokens`) tokens.
+    /// If there exists a bid with higher offer than `requested_tokens`, then
+    /// trade is immediately executed.
+    /// In such a case, a new shared object [`TradeIntermediate`] is created.
+    /// Otherwise we fail the transaction.
+    ///
+    /// * the sender must be owner of kiosk
+    /// * the kiosk must be in Originbyte universe
+    /// * the NFT mustn't be listed anywhere else yet
+    ///
+    /// Returns the paid amount for the NFT.
+    public fun market_sell<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        seller_kiosk: &mut Kiosk,
+        min_price: u64,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): u64 {
+        let is_matched_with_price = create_ask(
+            book,
+            seller_kiosk,
+            min_price,
+            nft_id,
+            ctx,
+        );
+        assert!(option::is_some(&is_matched_with_price), EMarketOrderNotFilled);
+        option::destroy_some(is_matched_with_price)
     }
 
     // === Edit listing ===
@@ -674,6 +750,9 @@ module nft_protocol::orderbook {
     /// * kiosk must allow permissionless deposits of `T`
     ///
     /// Either `TradeIntermediate` is shared, or bid is added to the state.
+    ///
+    /// Returns `Some` with amount if matched.
+    /// The amount is always equal or less than price.
     fun create_bid_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
@@ -681,7 +760,7 @@ module nft_protocol::orderbook {
         bid_commission: Option<trading::BidCommission<FT>>,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
         ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
         ob_kiosk::assert_permission(buyer_kiosk, ctx);
         ob_kiosk::assert_can_deposit_permissionlessly<T>(buyer_kiosk);
@@ -701,57 +780,16 @@ module nft_protocol::orderbook {
         };
 
         if (can_be_filled) {
-            let price_level = crit_bit::borrow_mut(asks, lowest_ask_price);
-
-            let ask = vector::remove(
-                price_level,
-                // remove zeroth for FIFO, must exist due to `can_be_filled`
-                0,
+            match_buy_with_ask_(
+                book,
+                lowest_ask_price,
+                buyer_kiosk_id,
+                bid_commission,
+                wallet,
+                ctx,
             );
-            if (vector::length(price_level) == 0) {
-                // to simplify impl, always delete empty price level
-                vector::destroy_empty(crit_bit::pop(asks, lowest_ask_price));
-            };
 
-            let Ask {
-                price: _,
-                owner: seller,
-                nft_id,
-                kiosk_id,
-                commission: ask_commission,
-            } = ask;
-
-            assert!(kiosk_id != buyer_kiosk_id, ECannotTradeWithSelf);
-
-            // see also `finish_trade` entry point
-            let trade_intermediate = TradeIntermediate<T, FT> {
-                buyer_kiosk: buyer_kiosk_id,
-                buyer,
-                nft_id,
-                seller,
-                seller_kiosk: kiosk_id,
-                commission: ask_commission,
-                id: object::new(ctx),
-                paid: balance::split(coin::balance_mut(wallet), lowest_ask_price),
-            };
-            let trade_intermediate_id = object::id(&trade_intermediate);
-            share_object(trade_intermediate);
-
-            event::emit(TradeFilledEvent {
-                orderbook: object::id(book),
-                buyer_kiosk: buyer_kiosk_id,
-                buyer,
-                nft: nft_id,
-                price: lowest_ask_price,
-                seller_kiosk: kiosk_id,
-                seller,
-                trade_intermediate: option::some(trade_intermediate_id),
-                nft_type: type_name::into_string(type_name::get<T>()),
-                ft_type: type_name::into_string(type_name::get<FT>()),
-            });
-
-            trading::transfer_bid_commission(&mut bid_commission, ctx);
-            option::destroy_none(bid_commission);
+            option::some(lowest_ask_price)
         } else {
             event::emit(BidCreatedEvent {
                 orderbook: object::id(book),
@@ -784,8 +822,135 @@ module nft_protocol::orderbook {
                     price,
                     vector::singleton(order),
                 );
-            }
+            };
+
+            option::none()
         }
+    }
+
+    fun match_buy_with_ask_<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        lowest_ask_price: u64,
+        buyer_kiosk_id: ID,
+        bid_commission: Option<trading::BidCommission<FT>>,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        let asks = &mut book.asks;
+        let buyer = tx_context::sender(ctx);
+        let price_level = crit_bit::borrow_mut(asks, lowest_ask_price);
+
+        let ask = vector::remove(
+            price_level,
+            // remove zeroth for FIFO, must exist due to `can_be_filled`
+            0,
+        );
+        if (vector::length(price_level) == 0) {
+            // to simplify impl, always delete empty price level
+            vector::destroy_empty(crit_bit::pop(asks, lowest_ask_price));
+        };
+
+        let Ask {
+            price: _,
+            owner: seller,
+            nft_id,
+            kiosk_id,
+            commission: ask_commission,
+        } = ask;
+
+        assert!(kiosk_id != buyer_kiosk_id, ECannotTradeWithSelf);
+
+        // see also `finish_trade` entry point
+        let trade_intermediate = TradeIntermediate<T, FT> {
+            buyer_kiosk: buyer_kiosk_id,
+            buyer,
+            nft_id,
+            seller,
+            seller_kiosk: kiosk_id,
+            commission: ask_commission,
+            id: object::new(ctx),
+            paid: balance::split(coin::balance_mut(wallet), lowest_ask_price),
+        };
+        let trade_intermediate_id = object::id(&trade_intermediate);
+        share_object(trade_intermediate);
+
+        event::emit(TradeFilledEvent {
+            orderbook: object::id(book),
+            buyer_kiosk: buyer_kiosk_id,
+            buyer,
+            nft: nft_id,
+            price: lowest_ask_price,
+            seller_kiosk: kiosk_id,
+            seller,
+            trade_intermediate: option::some(trade_intermediate_id),
+            nft_type: type_name::into_string(type_name::get<T>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
+
+        trading::transfer_bid_commission(&mut bid_commission, ctx);
+        option::destroy_none(bid_commission);
+    }
+
+    fun match_sell_with_bid_<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        highest_bid_price: u64,
+        seller_kiosk_id: ID,
+        ask_commission: Option<trading::AskCommission>,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        let bids = &mut book.bids;
+        let seller = tx_context::sender(ctx);
+        let price_level = crit_bit::borrow_mut(bids, highest_bid_price);
+
+        let bid = vector::remove(
+            price_level,
+            // remove zeroth for FIFO, must exist due to `can_be_filled`
+            0,
+        );
+        if (vector::length(price_level) == 0) {
+            // to simplify impl, always delete empty price level
+            vector::destroy_empty(crit_bit::pop(bids, highest_bid_price));
+        };
+
+        let Bid {
+            owner: buyer,
+            offer: bid_offer,
+            kiosk: buyer_kiosk_id,
+            commission: bid_commission,
+        } = bid;
+        assert!(buyer_kiosk_id != seller_kiosk_id, ECannotTradeWithSelf);
+        let paid = balance::value(&bid_offer);
+
+        // see also `finish_trade` entry point
+        let trade_intermediate = TradeIntermediate<T, FT> {
+            id: object::new(ctx),
+            commission: ask_commission,
+            seller,
+            buyer,
+            buyer_kiosk: buyer_kiosk_id,
+            seller_kiosk: seller_kiosk_id,
+            nft_id: nft_id,
+            paid: bid_offer,
+        };
+        let trade_intermediate_id = object::id(&trade_intermediate);
+        share_object(trade_intermediate);
+
+        event::emit(TradeFilledEvent {
+            orderbook: object::id(book),
+            buyer_kiosk: buyer_kiosk_id,
+            buyer,
+            nft: nft_id,
+            price: paid,
+            seller_kiosk: seller_kiosk_id,
+            seller,
+            trade_intermediate: option::some(trade_intermediate_id),
+            nft_type: type_name::into_string(type_name::get<T>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
+
+        trading::transfer_bid_commission(&mut bid_commission, ctx);
+        option::destroy_none(bid_commission);
     }
 
     /// Removes bid from the state and returns the commission which contains
@@ -869,6 +1034,9 @@ module nft_protocol::orderbook {
     /// * the sender must be owner of kiosk
     /// * the kiosk must be in Originbyte universe
     /// * NFT is exclusively listed in the kiosk
+    ///
+    /// Returns `Some` with the amount if matched.
+    /// Amount is always equal or more than `requested_tokens`.
     fun create_ask_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
@@ -876,10 +1044,12 @@ module nft_protocol::orderbook {
         ask_commission: Option<trading::AskCommission>,
         nft_id: ID,
         ctx: &mut TxContext,
-    ) {
+    ): Option<u64> {
+
         // we cannot transfer the NFT straight away because we don't know
         // the buyers kiosk at the point of sending the tx
 
+        // will fail if not OB kiosk
         ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.id, ctx);
 
         // prevent listing of NFTs which don't belong to the collection
@@ -900,56 +1070,16 @@ module nft_protocol::orderbook {
         };
 
         if (can_be_filled) {
-            let price_level = crit_bit::borrow_mut(bids, highest_bid_price);
-
-            let bid = vector::remove(
-                price_level,
-                // remove zeroth for FIFO, must exist due to `can_be_filled`
-                0,
+            match_sell_with_bid_(
+                book,
+                highest_bid_price,
+                seller_kiosk_id,
+                ask_commission,
+                nft_id,
+                ctx,
             );
-            if (vector::length(price_level) == 0) {
-                // to simplify impl, always delete empty price level
-                vector::destroy_empty(crit_bit::pop(bids, highest_bid_price));
-            };
 
-            let Bid {
-                owner: buyer,
-                offer: bid_offer,
-                kiosk: buyer_kiosk_id,
-                commission: bid_commission,
-            } = bid;
-            assert!(buyer_kiosk_id != seller_kiosk_id, ECannotTradeWithSelf);
-            let paid = balance::value(&bid_offer);
-
-            // see also `finish_trade` entry point
-            let trade_intermediate = TradeIntermediate<T, FT> {
-                id: object::new(ctx),
-                commission: ask_commission,
-                seller,
-                buyer,
-                buyer_kiosk: buyer_kiosk_id,
-                seller_kiosk: seller_kiosk_id,
-                nft_id: nft_id,
-                paid: bid_offer,
-            };
-            let trade_intermediate_id = object::id(&trade_intermediate);
-            share_object(trade_intermediate);
-
-            event::emit(TradeFilledEvent {
-                orderbook: object::id(book),
-                buyer_kiosk: buyer_kiosk_id,
-                buyer,
-                nft: nft_id,
-                price: paid,
-                seller_kiosk: seller_kiosk_id,
-                seller,
-                trade_intermediate: option::some(trade_intermediate_id),
-                nft_type: type_name::into_string(type_name::get<T>()),
-                ft_type: type_name::into_string(type_name::get<FT>()),
-            });
-
-            trading::transfer_bid_commission(&mut bid_commission, ctx);
-            option::destroy_none(bid_commission);
+            option::some(highest_bid_price)
         } else {
             event::emit(AskCreatedEvent {
                 nft: nft_id,
@@ -976,6 +1106,8 @@ module nft_protocol::orderbook {
             } else {
                 crit_bit::insert(&mut book.asks, price, vector::singleton(ask));
             };
+
+            option::none()
         }
     }
 

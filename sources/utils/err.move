@@ -3,28 +3,6 @@
 module nft_protocol::err {
     const Prefix: u64 = 13370000;
 
-    // === Supply ===
-
-    public fun supply_is_not_zero(): u64 {
-        return Prefix + 102
-    }
-
-    public fun supply_frozen(): u64 {
-        return Prefix + 104
-    }
-
-    public fun supply_not_frozen(): u64 {
-        return Prefix + 105
-    }
-
-    public fun max_supply_cannot_be_below_current_supply(): u64 {
-        return Prefix + 106
-    }
-
-    public fun supply_maxed_out(): u64 {
-        return Prefix + 107
-    }
-
     // === Marketplace ===
 
     public fun wrong_marketplace_admin(): u64 {
@@ -57,76 +35,6 @@ module nft_protocol::err {
 
     public fun action_exclusive_to_standalone_listings(): u64 {
         return Prefix + 219
-    }
-
-    // === Auction ===
-
-    public fun order_does_not_exist(): u64 {
-        return Prefix + 301
-    }
-
-    public fun order_owner_must_be_sender(): u64 {
-        return Prefix + 302
-    }
-
-    public fun order_price_below_reserve(): u64 {
-        return Prefix + 303
-    }
-
-    // === Kiosk ===
-
-    public fun safe_cap_mismatch(): u64 {
-        return Prefix + 400
-    }
-
-    public fun safe_does_not_contain_nft(): u64 {
-        return Prefix + 401
-    }
-
-    public fun nft_exclusively_listed(): u64 {
-        return Prefix + 402
-    }
-
-    public fun transfer_cap_nft_mismatch(): u64 {
-        return Prefix + 403
-    }
-
-    public fun transfer_cap_expired(): u64 {
-        return Prefix + 404
-    }
-
-    public fun safe_does_not_accept_deposits(): u64 {
-        return Prefix + 405
-    }
-
-    public fun nft_not_exclusively_listed(): u64 {
-        return Prefix + 406
-    }
-
-    public fun safe_id_mismatch(): u64 {
-        return Prefix + 407
-    }
-
-    public fun generic_nft_must_not_be_protocol_type(): u64 {
-        return Prefix + 408
-    }
-
-    public fun nft_is_generic(): u64 {
-        return Prefix + 409
-    }
-
-    public fun cannot_trade_with_self(): u64 {
-        return Prefix + 410
-    }
-
-    // === Utils ===
-
-    public fun witness_source_mismatch(): u64 {
-        return Prefix + 600
-    }
-
-    public fun must_be_witness(): u64 {
-        return Prefix + 601
     }
 
     // === Trading ===

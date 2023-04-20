@@ -7,12 +7,17 @@ module examples::suimarines {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::tags;
+    use nft_protocol::ob_transfer_request;
+    use nft_protocol::transfer_allowlist;
+    use nft_protocol::display as ob_display;
     use nft_protocol::collection;
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
+    use nft_protocol::borrow_request::{Self, BorrowRequest, ReturnPromise};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
+
+    use launchpad::warehouse::{Self, Warehouse};
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;
@@ -44,9 +49,12 @@ module examples::suimarines {
         // Init Publisher
         let publisher = sui::package::claim(otw, ctx);
 
-        // Init Display
+        // Init NFT Display
+        let tags = vector[tags::art(), tags::collectible()];
+
         let display = display::new<Submarine>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::add(&mut display, string::utf8(b"tags"), ob_display::from_vec(tags));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
@@ -54,8 +62,9 @@ module examples::suimarines {
         // Therefore now to finish a transfer, the allowlist must be included
         // in the chain.
         let (transfer_policy, transfer_policy_cap) =
-            sui::transfer_policy::new<SUIMARINES>(&publisher, ctx);
-        nft_protocol::transfer_allowlist::add_policy_rule(
+            ob_transfer_request::init_policy<Submarine>(&publisher, ctx);
+
+        transfer_allowlist::enforce(
             &mut transfer_policy,
             &transfer_policy_cap,
         );
@@ -71,24 +80,39 @@ module examples::suimarines {
         transfer::public_share_object(collection);
     }
 
-    public fun get_nft_field<Field: store>(
-        locked_nft: &mut MutLock<Submarine>,
-    ): (Field, ReturnFieldPromise<Field>) {
+    public fun get_nft_field<Auth: drop, Field: store>(
+        request: &mut BorrowRequest<Auth, Submarine>,
+    ): (Field, ReturnPromise<Submarine, Field>) {
         let dw = witness::from_witness(Witness {});
-        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+        let nft = borrow_request::borrow_nft_ref_mut(dw, request);
 
-        mut_lock::borrow_field_with_promise<Field>(&mut nft.id)
+        borrow_request::borrow_field(dw, &mut nft.id)
     }
 
-    public fun return_nft_field<Field: store>(
-        locked_nft: &mut MutLock<Submarine>,
+    public fun return_nft_field<Auth: drop, Field: store>(
+        request: &mut BorrowRequest<Auth, Submarine>,
         field: Field,
-        promise: ReturnFieldPromise<Field>
+        promise: ReturnPromise<Submarine, Field>,
     ) {
         let dw = witness::from_witness(Witness {});
-        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+        let nft = borrow_request::borrow_nft_ref_mut(dw, request);
 
-        mut_lock::consume_field_promise(&mut nft.id, field, promise);
+        borrow_request::return_field(dw, &mut nft.id, promise, field)
+    }
+
+    public fun get_nft<Auth: drop>(
+        request: &mut BorrowRequest<Auth, Submarine>,
+    ): Submarine {
+        let dw = witness::from_witness(Witness {});
+        borrow_request::borrow_nft(dw, request)
+    }
+
+    public fun return_nft<Auth: drop>(
+        request: &mut BorrowRequest<Auth, Submarine>,
+        nft: Submarine,
+    ) {
+        let dw = witness::from_witness(Witness {});
+        borrow_request::return_nft(dw, request, nft);
     }
 
     public entry fun mint_nft(

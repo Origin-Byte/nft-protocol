@@ -5,6 +5,8 @@
 /// Composable NFTs with children registering `Svg` can declare them with
 /// `ComposableSvg` to compose all SVG data into one definition.
 module nft_protocol::svg {
+    use std::vector;
+
     use sui::object::UID;
     use sui::dynamic_field as df;
 
@@ -28,6 +30,11 @@ module nft_protocol::svg {
     /// Creates new `Svg`
     public fun new(svg: vector<u8>): Svg {
         Svg { svg }
+    }
+
+    /// Creates new `Svg`
+    public fun new_empty(): Svg {
+        Svg { svg: vector::empty() }
     }
 
     /// Borrow SVG from `Svg`
@@ -83,6 +90,24 @@ module nft_protocol::svg {
     ) {
         assert_no_svg(nft);
         df::add(nft, utils::marker<Svg>(), domain);
+    }
+
+    /// Adds `Svg` to `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Svg` domain already exists
+    public fun add_new(nft: &mut UID, svg: vector<u8>) {
+        add_domain(nft, new(svg))
+    }
+
+    /// Adds empty `Svg` to `Nft`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Svg` domain already exists
+    public fun add_empty(nft: &mut UID) {
+        add_domain(nft, new_empty())
     }
 
     /// Remove `Svg` from `Nft`

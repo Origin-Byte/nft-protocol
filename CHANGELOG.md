@@ -6,6 +6,34 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.30.0] - 2023-04-20
+
+### Added
+- Market orders in the  `orderbook`
+- Tags is not longer a domain but a helper module for building Displays
+- Global `MintSupply` domain for collections
+- Added burn functions for domains
+- Generalised pipelining of Requests and Policies
+- `Withdraw` and `Borrow` Policy/Requests to be used with OB `Kiosk`
+- Live status in Launchpad V2
+- Dutch Auctions in Launchpad V2
+- Session Tokens and Access Policy Actions for dNFTs
+
+### Changed
+- Allowlists can now be used across different Policy/Request types
+- Launchpad V1 is now a separate contract
+- Removed `collection_type` from `MintCap`
+
+
+## [0.29.0] - 2023-04-14
+
+### Added
+- Added English Auctions to Launchpad
+
+### Changed
+- Bugfix Kiosk: Signer must be owner in order to call `transfer_signed`
+
 ## [0.28.0] - 2023-04-04
 
 ### Added

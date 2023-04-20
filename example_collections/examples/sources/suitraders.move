@@ -10,16 +10,22 @@ module examples::suitraders {
     use sui::vec_set;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::mint_cap;
     use nft_protocol::mint_event;
     use nft_protocol::creators;
     use nft_protocol::attributes::{Self, Attributes};
     use nft_protocol::collection;
     use nft_protocol::display_info;
+    use nft_protocol::display as ob_display;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
+
+    use launchpad::listing;
+    use launchpad::fixed_price;
+    use launchpad::dutch_auction;
+    use launchpad::warehouse::{Self, Warehouse};
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -49,11 +55,14 @@ module examples::suitraders {
         let publisher = sui::package::claim(otw, ctx);
 
         // Init Display
+        let tags = vector[tags::art(), tags::game_asset()];
+
         let display = display::new<Suitrader>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
         display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
         display::add(&mut display, string::utf8(b"attributes"), string::utf8(b"{attributes}"));
+        display::add(&mut display, string::utf8(b"tags"), ob_display::from_vec(tags));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
@@ -82,25 +91,20 @@ module examples::suitraders {
             dw, &mut collection, 100, ctx,
         );
 
-        // Tags
-        let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art());
-        collection::add_domain(dw, &mut collection, tags);
-
         // Setup primary market. Note that this step can also be done
         // not in the init function but on the client side by calling
         // the launchpad functions directly
-        let listing = nft_protocol::listing::new(
+        let listing = listing::new(
             tx_context::sender(ctx),
             tx_context::sender(ctx),
             ctx,
         );
 
-        let inventory_id = nft_protocol::listing::create_warehouse<Suitrader>(
+        let inventory_id = listing::create_warehouse<Suitrader>(
             &mut listing, ctx
         );
 
-        nft_protocol::fixed_price::init_venue<Suitrader, sui::sui::SUI>(
+        fixed_price::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -108,7 +112,7 @@ module examples::suitraders {
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_venue<Suitrader, sui::sui::SUI>(
+        dutch_auction::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -140,7 +144,13 @@ module examples::suitraders {
             attributes: attributes::from_vec(attribute_keys, attribute_values)
         };
 
-        mint_event::mint_unlimited(mint_cap, &nft);
+
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         warehouse::deposit_nft(warehouse, nft);
     }
 

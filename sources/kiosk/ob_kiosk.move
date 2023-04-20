@@ -29,12 +29,12 @@
 /// - Permissionless `Kiosk` needs to signer, apps don't have to wrap both
 /// the `KioskOwnerCap` and the `Kiosk` in a smart contract.
 module nft_protocol::ob_kiosk {
-    use nft_protocol::access_policy as ap;
-    use nft_protocol::collection::Collection;
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnPromise};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
+    use nft_protocol::withdraw_request::{Self, WithdrawRequest};
+    use nft_protocol::borrow_request::{Self, BorrowRequest, BORROW_REQUEST};
+    use nft_protocol::request::{Self, Policy, RequestBody, WithNft};
     use nft_protocol::utils;
-    use originmate::typed_id::{Self, TypedID};
+    use std::option::Option;
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
     use sui::display;
@@ -186,17 +186,14 @@ module nft_protocol::ob_kiosk {
     /// are callable.
     /// This means that the kiosk MUST be wrapped.
     /// Otherwise, anyone could call those functions.
-    public fun new_permissionless(_ctx: &mut TxContext): Kiosk {
-        // let kiosk = new(ctx);
+    public fun new_permissionless(ctx: &mut TxContext): Kiosk {
+        let kiosk = new(ctx);
 
-        // let cap = pop_cap(&mut kiosk);
-        // let nft = kiosk::set_owner_custom(&mut kiosk, &cap, PermissionlessAddr);
-        // set_cap(&mut kiosk, cap);
+        let cap = pop_cap(&mut kiosk);
+        kiosk::set_owner_custom(&mut kiosk, &cap, PermissionlessAddr);
+        set_cap(&mut kiosk, cap);
 
-        // kiosk
-
-        abort(0) // TODO: wait for new Sui version
-
+        kiosk
     }
 
     /// Changes the owner of a kiosk to the given address.
@@ -208,20 +205,18 @@ module nft_protocol::ob_kiosk {
     /// The address that is set as the owner of the kiosk is the address that
     /// will remain the owner forever.
     public fun set_permissionless_to_permissioned(
-        _self: &mut Kiosk, _user: address, _ctx: &mut TxContext
+        self: &mut Kiosk, user: address, ctx: &mut TxContext
     ) {
-        // assert!(kiosk::owner(self) == PermissionlessAddr, EKioskNotPermissionless);
-        // let cap = pop_cap(self);
-        // let nft = kiosk::set_owner_custom(self, &cap, user);
-        // set_cap(self, cap);
+        assert!(kiosk::owner(self) == PermissionlessAddr, EKioskNotPermissionless);
+        let cap = pop_cap(self);
+        kiosk::set_owner_custom(self, &cap, user);
+        set_cap(self, cap);
 
-        // transfer(OwnerToken {
-        //     id: object::new(ctx),
-        //     kiosk: object::id(&kiosk),
-        //     owner: user,
-        // }, user);
-
-        abort(0) // TODO: wait for new Sui version
+        transfer(OwnerToken {
+            id: object::new(ctx),
+            kiosk: object::id(self),
+            owner: user,
+        }, user);
     }
 
     // === Deposit to the Kiosk ===
@@ -316,7 +311,7 @@ module nft_protocol::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = withdraw_nft(source, nft_id, entity_id, ctx);
+        let (nft, builder) = transfer_nft_(source, nft_id, uid_to_address(entity_id), ctx);
         deposit(target, nft, ctx);
         builder
     }
@@ -331,7 +326,7 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = withdraw_nft_signed(source, nft_id, ctx);
+        let (nft, builder) = transfer_nft_(source, nft_id, sender(ctx), ctx);
         deposit(target, nft, ctx);
         builder
     }
@@ -350,7 +345,7 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         entity_id: &UID,
         ctx: &mut TxContext,
-    ): (T, TransferRequest<T>) {
+    ): (T, WithdrawRequest<T>) {
         withdraw_nft_(self, nft_id, uid_to_address(entity_id), ctx)
     }
 
@@ -362,8 +357,20 @@ module nft_protocol::ob_kiosk {
         self: &mut Kiosk,
         nft_id: ID,
         ctx: &mut TxContext,
-    ): (T, TransferRequest<T>) {
+    ): (T, WithdrawRequest<T>) {
         withdraw_nft_(self, nft_id, sender(ctx), ctx)
+    }
+
+    /// After authorization that the call is permitted, gets the NFT.
+    fun transfer_nft_<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        originator: address,
+        ctx: &mut TxContext,
+    ): (T, TransferRequest<T>) {
+        let nft = get_nft(self, nft_id, originator);
+
+        (nft, ob_transfer_request::new(nft_id, originator, ctx))
     }
 
     /// After authorization that the call is permitted, gets the NFT.
@@ -372,14 +379,24 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         originator: address,
         ctx: &mut TxContext,
-    ): (T, TransferRequest<T>) {
+    ): (T, WithdrawRequest<T>) {
+        let nft = get_nft(self, nft_id, originator);
+
+        (nft, withdraw_request::new(originator, ctx))
+    }
+
+    fun get_nft<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        originator: address,
+    ): T {
         check_entity_and_pop_ref(self, originator, nft_id);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        (nft, ob_transfer_request::new(nft_id, originator, ctx))
+        nft
     }
 
     /// If both kiosks are owned by the same user, then we allow free transfer.
@@ -416,17 +433,28 @@ module nft_protocol::ob_kiosk {
     /// that the trading contracts maintain a global object.
     /// In some cases this is doable, in other it's inconvenient.
     public fun set_transfer_request_auth<T, Auth>(
-        req: &mut TransferRequest<T>,
-        _auth: &Auth,
+        req: &mut TransferRequest<T>, auth: &Auth,
     ) {
-        let metadata = ob_transfer_request::metadata_mut(req);
+        set_transfer_request_auth_(ob_transfer_request::inner_mut(req), auth)
+    }
+
+    public fun set_transfer_request_auth_<T, P, Auth>(
+        req: &mut RequestBody<WithNft<T, P>>, _auth: &Auth,
+    ) {
+        let metadata = request::metadata_mut(req);
         df::add(metadata, AuthTransferRequestDfKey {}, type_name::get<Auth>());
     }
 
-    public fun get_transfer_request_auth<T>(
-        req: &mut TransferRequest<T>,
+    /// What's the authority that created this request?
+    public fun get_transfer_request_auth<T>(req: &TransferRequest<T>): &TypeName {
+        get_transfer_request_auth_(ob_transfer_request::inner(req))
+    }
+
+    /// What's the authority that created this request?
+    public fun get_transfer_request_auth_<T, P>(
+        req: &RequestBody<WithNft<T, P>>,
     ): &TypeName {
-        let metadata = ob_transfer_request::metadata_mut(req);
+        let metadata = request::metadata(req);
         df::borrow(metadata, AuthTransferRequestDfKey {})
     }
 
@@ -520,64 +548,30 @@ module nft_protocol::ob_kiosk {
 
     // === NFT Accessors ===
 
-    public fun borrow_nft_field_mut<OTW: drop, T: key + store, Field: store>(
+    public fun borrow_nft_mut<T: key + store>(
         self: &mut Kiosk,
-        collection: &Collection<OTW>,
-        nft_id: TypedID<T>,
+        nft_id: ID,
+        field: Option<TypeName>,
         ctx: &mut TxContext,
-    ): (MutLock<T>, ReturnPromise<T>) {
-        let nft_id = typed_id::to_id(nft_id);
+    ): BorrowRequest<Witness, T> {
         assert_not_listed(self, nft_id);
-        // TODO: Assert T lives in the OTW universe
-        ap::assert_field_auth<OTW, T, Field>(collection, ctx);
-
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
-        mut_lock::lock_nft<Witness, T, Field>(Witness {}, nft, ctx)
-    }
-
-    public fun borrow_nft_mut<OTW: drop, T: key + store>(
-        self: &mut Kiosk,
-        collection: &Collection<OTW>,
-        nft_id: TypedID<T>,
-        ctx: &mut TxContext,
-    ): (MutLock<T>, ReturnPromise<T>) {
-        let nft_id = typed_id::to_id(nft_id);
-        assert_not_listed(self, nft_id);
-        // TODO: Assert T lives in the OTW universe
-        ap::assert_parent_auth<OTW, T>(collection, ctx);
-
-        let cap = pop_cap(self);
-        let nft = kiosk::take<T>(self, &cap, nft_id);
-        set_cap(self, cap);
-
-        mut_lock::lock_nft_global<Witness, T>(Witness {}, nft, ctx)
+        borrow_request::new(Witness {}, nft, sender(ctx), field, ctx)
     }
 
     public fun return_nft<OTW: drop, T: key + store>(
         self: &mut Kiosk,
-        locked_nft: MutLock<T>,
-        promise: ReturnPromise<T>,
+        borrowed_nft: BorrowRequest<Witness, T>,
+        policy: &Policy<WithNft<T, BORROW_REQUEST>>
     ) {
-        // TODO: Assert T lives in the OTW universe
-        let nft = mut_lock::unlock_nft(Witness {}, locked_nft, promise);
+        let nft = borrow_request::confirm(Witness {}, borrowed_nft, policy);
 
         let cap = pop_cap(self);
         kiosk::place<T>(self, &cap, nft);
         set_cap(self, cap);
-    }
-
-    /// Immutably borrow an item from the `Kiosk`.
-    public fun borrow<T: key + store>(_self: &mut Kiosk, _nft_id: ID): &T {
-        // let cap = pop_cap(self);
-        // let nft = kiosk::borrow(self, cap, nft_id);
-        // set_cap(self, cap);
-
-        // nft
-
-        abort(0) // TODO: wait for new Sui version
     }
 
     // === Assertions and getters ===

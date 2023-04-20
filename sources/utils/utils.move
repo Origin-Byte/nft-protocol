@@ -1,6 +1,5 @@
 /// Utility functions
 module nft_protocol::utils {
-    use nft_protocol::err;
     use std::ascii;
     use std::string::{Self, String, utf8, sub_string};
     use std::type_name;
@@ -13,7 +12,7 @@ module nft_protocol::utils {
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
-
+    use sui::dynamic_field as df;
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
     const EMismatchedKeyValueLength: u64 = 1;
@@ -118,6 +117,12 @@ module nft_protocol::utils {
         Marker<T> {}
     }
 
+    public fun pop_df_from_marker<Field: store>(
+        object_uid: &mut UID,
+    ): Field {
+        df::remove<Marker<Field>, Field>(object_uid, marker<Field>())
+    }
+
     public fun bps(): u16 {
         10_000
     }
@@ -133,15 +138,8 @@ module nft_protocol::utils {
         assert!(uid_id == object_id, 0);
     }
 
-    public fun assert_same_package<A, B>() {
-        assert!(
-            get_package<A>() == get_package<B>(),
-            err::witness_source_mismatch()
-        );
-    }
-
-    public fun assert_package_publisher<C>(pub: &Publisher) {
-        assert!(package::from_package<C>(pub), EPackagePublisherMismatch);
+    public fun assert_package_publisher<T>(pub: &Publisher) {
+        assert!(package::from_package<T>(pub), EPackagePublisherMismatch);
     }
 
     public fun get_package<T>(): String {
@@ -204,12 +202,6 @@ module nft_protocol::utils {
         };
 
         map
-    }
-
-    /// T mustn't be exported by nft-protocol to avoid unexpected bugs
-    public fun assert_not_nft_protocol_type<T>() {
-        let (t_pkg, _, _) = get_package_module_type<T>();
-        assert!(t_pkg != nft_protocol_package_id(), err::generic_nft_must_not_be_protocol_type());
     }
 
     /// Returns true if T is of type `nft_protocol::nft::Nft`

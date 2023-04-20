@@ -7,13 +7,15 @@ module swoots::swoots {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID};
 
+    use nft_protocol::mint_cap;
     use nft_protocol::mint_event;
     use nft_protocol::collection;
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::composable_nft::{Self as c_nft};
     use nft_protocol::witness;
+
+    use launchpad::warehouse::{Self, Warehouse};
 
     use swoots::background::{Self, Background};
     use swoots::clothes::{Self, Clothes};
@@ -108,7 +110,13 @@ module swoots::swoots {
             head: head::mint_head_(head, ctx),
         };
 
-        mint_event::mint_limited(mint_cap, &nft);
+        mint_cap::increment_supply(mint_cap, 1);
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         warehouse::deposit_nft(warehouse, nft);
     }
 

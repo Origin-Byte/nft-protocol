@@ -34,8 +34,9 @@ module nft_protocol::test_ob_kiosk {
     // use std::string;
 
     use nft_protocol::ob_transfer_request;
+    use nft_protocol::withdraw_request;
     use nft_protocol::ob_kiosk::{Self, OwnerToken};
-    use nft_protocol::test_utils::{Self, Foo, seller, fake_address};
+    use nft_protocol::test_utils::{Self, Foo, seller, fake_address, creator};
 
     #[test]
     public fun test_kiosk_new() {
@@ -89,6 +90,38 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, kiosk_owner);
 
         // 5. Make kiosk shared
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_kiosk_deposit_other_than_owner() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut kiosk, kiosk_owner);
+
+        transfer::public_share_object(kiosk);
+
+        // 3.Deposit NFT
+        test_scenario::next_tx(&mut scenario, creator());
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
+
+        // 4. Check deposited NFT
+        // Indirectly asserts that NftRef has been created, otherwise
+        // this function call will fail
+        ob_kiosk::assert_not_listed(&mut kiosk, nft_id);
+        ob_kiosk::assert_not_exclusively_listed(&mut kiosk, nft_id);
+
+        // 5. Return kiosk shared
+        test_scenario::return_shared(kiosk);
         test_scenario::end(scenario);
     }
 
@@ -592,7 +625,7 @@ module nft_protocol::test_ob_kiosk {
         // 4. Create TransferPolicy
         let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
-        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_withdrawable_policy(&publisher, ctx(&mut scenario));
 
         // Get NFT
         let (nft, request) = ob_kiosk::withdraw_nft_signed<Foo>(
@@ -601,9 +634,8 @@ module nft_protocol::test_ob_kiosk {
             ctx(&mut scenario)
         );
 
-        // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        // Consumer the WithdrawRequest
+        withdraw_request::confirm<Foo>(request, &tx_policy);
 
         // 6. Return objects and end tx
         transfer::public_transfer(nft, seller());
@@ -648,8 +680,7 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, authorised_address);
 
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
-        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
-
+        let (tx_policy, policy_cap) = test_utils::init_withdrawable_policy(&publisher, ctx(&mut scenario));
 
         // Asserting that sender is effectively the authorised_address and not the owner
         assert!(tx_context::sender(ctx(&mut scenario)) == authorised_address, 0);
@@ -662,8 +693,7 @@ module nft_protocol::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        withdraw_request::confirm<Foo>(request, &tx_policy);
 
         // 8. Return objects and end tx
         transfer::public_transfer(nft, seller());
@@ -704,7 +734,7 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, unauthorised_address);
 
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
-        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_withdrawable_policy(&publisher, ctx(&mut scenario));
 
         // 6. Assert NFT cannot be withdrawn..
 
@@ -719,8 +749,7 @@ module nft_protocol::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        withdraw_request::confirm<Foo>(request, &tx_policy);
 
         // 7. Return objects and end tx
         transfer::public_transfer(nft, seller());
@@ -764,7 +793,7 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, kiosk_owner);
 
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
-        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_withdrawable_policy(&publisher, ctx(&mut scenario));
 
         // 7. Get NFT
         let (nft, request) = ob_kiosk::withdraw_nft<Foo>(
@@ -775,8 +804,7 @@ module nft_protocol::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        withdraw_request::confirm<Foo>(request, &tx_policy);
 
         // 8. Return objects and end tx
         transfer::public_transfer(nft, seller());
@@ -818,7 +846,7 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, kiosk_owner);
 
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
-        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_withdrawable_policy(&publisher, ctx(&mut scenario));
 
         // 6. Get NFT
         let (nft, request) = ob_kiosk::withdraw_nft<Foo>(
@@ -829,8 +857,7 @@ module nft_protocol::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        withdraw_request::confirm<Foo>(request, &tx_policy);
 
         // 7. Return objects and end tx
         transfer::public_transfer(nft, seller());

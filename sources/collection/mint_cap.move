@@ -14,14 +14,13 @@
 /// mint capabilities.
 module nft_protocol::mint_cap {
     use std::option::{Self, Option};
-    use std::type_name::{Self, TypeName};
 
     use sui::types;
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
     use nft_protocol::witness;
-    use nft_protocol::supply::{Self, Supply};
+    use nft_protocol::utils_supply::{Self, Supply};
 
     /// `MintCap` is unlimited when expected limited
     const EMintCapunlimited: u64 = 1;
@@ -41,10 +40,6 @@ module nft_protocol::mint_cap {
         ///
         /// Intended for discovery.
         collection_id: ID,
-        /// The `T` does not necessarily have to match collection's generic.
-        /// The collection is typically used with OTW, while `MintCap` can also
-        /// be used for individual NFT types.
-        collection_type: TypeName,
         /// Supply that `MintCap` can mint
         supply: Option<Supply>,
     }
@@ -84,7 +79,6 @@ module nft_protocol::mint_cap {
 
         MintCap {
             id: object::new(ctx),
-            collection_type: type_name::get<T>(),
             collection_id,
             supply: option::none(),
         }
@@ -107,20 +101,13 @@ module nft_protocol::mint_cap {
         MintCap {
             id: object::new(ctx),
             collection_id,
-            collection_type: type_name::get<T>(),
-            // The supply is always set to frozen for safety
-            supply: option::some(supply::new(supply, true)),
+            supply: option::some(utils_supply::new(supply)),
         }
     }
 
     /// Returns ID of `Collection` associated with `MintCap`
     public fun collection_id<T>(mint_cap: &MintCap<T>): ID {
         mint_cap.collection_id
-    }
-
-    /// Returns `C` of `Collection<C>` associated with `MintCap`
-    public fun collection_type<T>(mint_cap: &MintCap<T>): &TypeName {
-        &mint_cap.collection_type
     }
 
     /// Return remaining supply
@@ -130,7 +117,7 @@ module nft_protocol::mint_cap {
     /// Panics if supply is unlimited.
     public fun supply<T>(mint_cap: &MintCap<T>): u64 {
         assert_limited(mint_cap);
-        supply::get_current(option::borrow(&mint_cap.supply))
+        utils_supply::get_current(option::borrow(&mint_cap.supply))
     }
 
     /// Returns backing `Supply`
@@ -165,9 +152,10 @@ module nft_protocol::mint_cap {
         mint_cap: &mut MintCap<T>,
         quantity: u64,
     ) {
-        // TODO: Should assert that is limited
         if (option::is_some(&mint_cap.supply)) {
-            supply::increment(option::borrow_mut(&mut mint_cap.supply), quantity);
+            utils_supply::increment(
+                option::borrow_mut(&mut mint_cap.supply), quantity,
+            );
         }
     }
 
@@ -177,37 +165,35 @@ module nft_protocol::mint_cap {
     /// #### Panics
     ///
     /// Panics if quantity exceeds available supply.
-    public fun split<T: key>(
+    public fun split<T>(
         mint_cap: &mut MintCap<T>,
         quantity: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
         let supply = if (has_supply(mint_cap)) {
-            supply::split(
+            utils_supply::split(
                 option::borrow_mut(&mut mint_cap.supply), quantity)
         } else {
-            // New supply object is frozen for safety
-            supply::new(quantity, true)
+            utils_supply::new(quantity)
         };
 
         MintCap {
             id: object::new(ctx),
             collection_id: mint_cap.collection_id,
-            collection_type: mint_cap.collection_type,
             supply: option::some(supply),
         }
     }
 
 
     /// Merge two `MintCap` together
-    public fun merge<T: key>(
+    public fun merge<T>(
         mint_cap: &mut MintCap<T>,
         other: MintCap<T>,
     ) {
-        let MintCap { id, supply, collection_id: _, collection_type: _  } = other;
+        let MintCap { id, supply, collection_id: _ } = other;
 
         if (option::is_some(&supply) && option::is_some(&mint_cap.supply)) {
-            supply::merge(
+            utils_supply::merge(
                 option::borrow_mut(&mut mint_cap.supply),
                 option::destroy_some(supply),
             );
@@ -218,8 +204,7 @@ module nft_protocol::mint_cap {
 
     /// Delete `MintCap`
     public fun delete_mint_cap<T>(mint_cap: MintCap<T>) {
-        let MintCap { id, collection_id: _, supply: _, collection_type: _ } =
-            mint_cap;
+        let MintCap { id, collection_id: _, supply: _ } = mint_cap;
         object::delete(id);
     }
 
@@ -241,5 +226,45 @@ module nft_protocol::mint_cap {
     /// Panics if `MintCap` is limited.
     public fun assert_unlimited<T>(mint_cap: &MintCap<T>) {
         assert!(option::is_none(&mint_cap.supply), EMintCaplimited)
+    }
+
+    // === Test-Only ===
+
+    #[test_only]
+    public fun test_create_mint_cap<T>(
+        collection_id: ID,
+        supply_opt: Option<u64>,
+        ctx: &mut TxContext
+    ): MintCap<T> {
+        let supply = if (option::is_some(&supply_opt)) {
+            let amount = option::destroy_some(supply_opt);
+            option::some(utils_supply::new(amount))
+        } else {
+            option::destroy_none(supply_opt);
+            option::none()
+        };
+
+      MintCap<T> {
+        id: object::new(ctx),
+        collection_id,
+        supply,
+      }
+    }
+
+    #[test_only]
+    public fun test_destroy_mint_cap<T>(cap: MintCap<T>) {
+      let MintCap<T> {
+        id,
+        collection_id: _,
+        supply,
+      } = cap;
+
+      if (option::is_some(&supply)) {
+        option::destroy_some(supply);
+      } else {
+        option::destroy_none(supply);
+      };
+
+      object::delete(id)
     }
 }

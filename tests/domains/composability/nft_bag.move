@@ -112,6 +112,27 @@ module nft_protocol::test_nft_bag {
     }
 
     #[test]
+    #[expected_failure(abort_code = nft_bag::ENotEmpty)]
+    fun try_delete_nft_bag() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let nft = Avatar { id: object::new(ctx(&mut scenario)) };
+        nft_bag::add_new(&mut nft.id, ctx(&mut scenario));
+
+        nft_bag::compose_into_nft(
+            AuthHat {},
+            &mut nft.id,
+            Hat { id: object::new(ctx(&mut scenario))},
+        );
+
+        let nft_bag = nft_bag::remove_domain(&mut nft.id);
+        nft_bag::delete(nft_bag);
+
+        transfer::public_transfer(nft, CREATOR);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
     fun compose_nft() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -157,27 +178,6 @@ module nft_protocol::test_nft_bag {
 
         let addr = tx_context::fresh_object_address(ctx(&mut scenario));
         nft_bag::borrow_nft_mut<Hat>(&mut nft.id, object::id_from_address(addr));
-
-        transfer::public_transfer(nft, CREATOR);
-        test_scenario::end(scenario);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = nft_bag::ENotEmpty)]
-    fun try_delete_nft_bag() {
-        let scenario = test_scenario::begin(CREATOR);
-
-        let nft = Avatar { id: object::new(ctx(&mut scenario)) };
-        nft_bag::add_new(&mut nft.id, ctx(&mut scenario));
-
-        nft_bag::compose_into_nft(
-            AuthHat {},
-            &mut nft.id,
-            Hat { id: object::new(ctx(&mut scenario))},
-        );
-
-        let nft_bag = nft_bag::remove_domain(&mut nft.id);
-        nft_bag::delete(nft_bag);
 
         transfer::public_transfer(nft, CREATOR);
         test_scenario::end(scenario);

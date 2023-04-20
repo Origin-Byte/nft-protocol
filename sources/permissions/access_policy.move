@@ -1,8 +1,7 @@
 module nft_protocol::access_policy {
-    // TODO: Consider adding functionality for one time tokens
     // Borrow NFT from &UID (Programmatic entity)
-    // Borrow NFT from with Token
-    // Borrow NFT with one-time Token
+    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
+    use nft_protocol::borrow_request::{Self, BorrowRequest};
     use std::type_name::{Self, TypeName};
 
     use sui::event;
@@ -20,6 +19,8 @@ module nft_protocol::access_policy {
 
     const EFIELD_ACCESS_DENIED: u64 = 2;
     const EPARENT_ACCESS_DENIED: u64 = 3;
+
+    struct AccessPolicyRule has drop {}
 
     struct AccessPolicy<phantom T: key + store> has key, store {
         id: UID,
@@ -101,6 +102,39 @@ module nft_protocol::access_policy {
         collection::add_domain(witness, collection, access_policy);
     }
 
+    /// Registers a type to use `AccessPolicy` during the borrowing.
+    public fun enforce<T, P>(
+        policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap,
+    ) {
+        request::enforce_rule_no_state<WithNft<T, P>, AccessPolicyRule>(policy, cap);
+    }
+
+    public fun drop<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
+        request::drop_rule_no_state<WithNft<T, P>, AccessPolicyRule>(policy, cap);
+    }
+
+    public fun confirm<Auth: drop, T: key + store>(
+        self: &AccessPolicy<T>, req: &mut BorrowRequest<Auth, T>, ctx: &mut TxContext,
+    ) {
+        if (borrow_request::is_borrow_field(req)) {
+            let field = borrow_request::field(req);
+            assert_field_auth<T>(self, field, ctx);
+        } else {
+            assert_parent_auth<T>(self, ctx);
+        };
+
+        borrow_request::add_receipt(req, &AccessPolicyRule {});
+    }
+
+    public fun confirm_from_collection<Auth: drop, T: key + store>(
+        collection: &Collection<T>, req: &mut BorrowRequest<Auth, T>, ctx: &mut TxContext,
+    ) {
+        let access_policy = collection::borrow_domain<T, AccessPolicy<T>>(
+            collection
+        );
+
+        confirm(access_policy, req, ctx);
+    }
 
     // === Access Policy Management ===
 
@@ -180,39 +214,13 @@ module nft_protocol::access_policy {
         utils::insert_vec_in_vec_set(vec_set, addresses);
     }
 
-
-    // public fun issue_token<T: key + store, W>(
-    //     pub: &Publisher,
-    //     access_policy: &mut AccessPolicy<T>,
-    //     ctx: &mut TxContext
-    // ): AccessToken<T> {
-    //     AccessToken {
-    //         id: object::new(ctx),
-    //         version: access_policy.version,
-    //     }
-    // }
-
-    // public fun issue_one_time_token<T: key + store, W>(
-    //     pub: &Publisher,
-    //     access_policy: &mut AccessPolicy<T>,
-    //     ctx: &mut TxContext
-    // ): OneTimeToken<T> {
-    //     OneTimeToken {
-    //         id: object::new(ctx),
-    //         version: access_policy.version,
-    //     }
-    // }
-
-    public fun assert_field_auth<C: drop, T: key + store, Field: store>(
-        collection: &Collection<C>,
+    public fun assert_field_auth<T: key + store>(
+        self: &AccessPolicy<T>,
+        field: TypeName,
         ctx: &TxContext,
     ) {
-        let access_policy = collection::borrow_domain<C, AccessPolicy<T>>(
-            collection
-        );
-
         let vec_set = table::borrow(
-            &access_policy.field_access, type_name::get<Field>()
+            &self.field_access, field
         );
 
         assert!(
@@ -221,16 +229,12 @@ module nft_protocol::access_policy {
         );
     }
 
-    public fun assert_parent_auth<C: drop, T: key + store>(
-        collection: &Collection<C>,
+    public fun assert_parent_auth<T: key + store>(
+        self: &AccessPolicy<T>,
         ctx: &TxContext,
     ) {
-        let access_policy = collection::borrow_domain<C, AccessPolicy<T>>(
-            collection
-        );
-
         assert!(
-            vec_set::contains(&access_policy.parent_access, &tx_context::sender(ctx)),
+            vec_set::contains(&self.parent_access, &tx_context::sender(ctx)),
             EPARENT_ACCESS_DENIED
         );
     }
