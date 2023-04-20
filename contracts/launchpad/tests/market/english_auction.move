@@ -1,18 +1,18 @@
 #[test_only]
-module nft_protocol::test_english_auction {
+module launchpad::test_english_auction {
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
     use sui::balance;
     use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use nft_protocol::venue;
-    use nft_protocol::proceeds;
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::market_whitelist::{Self, Certificate};
-    use nft_protocol::english_auction::{Self, EnglishAuction};
+    use launchpad::venue;
+    use launchpad::proceeds;
+    use launchpad::listing::{Self, Listing};
+    use launchpad::market_whitelist::{Self, Certificate};
+    use launchpad::english_auction::{Self, EnglishAuction};
 
-    use nft_protocol::test_listing::init_listing;
+    use launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
         id: UID,

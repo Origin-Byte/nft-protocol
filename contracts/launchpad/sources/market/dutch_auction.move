@@ -10,7 +10,7 @@
 /// To create a market sale the administrator can simply call `create_market`.
 /// Each sale segment can have a whitelisting process, each with their own
 /// whitelist tokens.
-module nft_protocol::dutch_auction {
+module launchpad::dutch_auction {
     use std::option;
     use std::vector;
 
@@ -22,14 +22,23 @@ module nft_protocol::dutch_auction {
 
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
-    use nft_protocol::err;
-    use nft_protocol::venue;
     use nft_protocol::witness;
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::inventory;
-    use nft_protocol::market_whitelist::{Self, Certificate};
+
+    use launchpad::venue;
+    use launchpad::listing::{Self, Listing};
+    use launchpad::inventory;
+    use launchpad::market_whitelist::{Self, Certificate};
 
     const U64_MAX: u64 = 18446744073709551615;
+
+    /// Order price was below auction reserve price
+    const EOrderPriceBelowReserve: u64 = 1;
+
+    /// Order was not found
+    const EInvalidOrder: u64 = 2;
+
+    /// Transaction sender must be order owner
+    const EInvalidSender: u64 = 3;
 
     struct DutchAuctionMarket<phantom FT> has key, store {
         id: UID,
@@ -321,7 +330,7 @@ module nft_protocol::dutch_auction {
     ) {
         assert!(
             price >= auction.reserve_price,
-            err::order_price_below_reserve()
+            EOrderPriceBelowReserve
         );
 
         // Create price level if it does not exist
@@ -356,7 +365,7 @@ module nft_protocol::dutch_auction {
 
         assert!(
             crit_bit::has_key(bids, price),
-            err::order_does_not_exist()
+            EInvalidOrder
         );
 
         let price_level = crit_bit::borrow_mut(bids, price);
@@ -372,7 +381,7 @@ module nft_protocol::dutch_auction {
             bid_index = bid_index + 1;
         };
 
-        assert!(bid_index < bid_count, err::order_owner_must_be_sender());
+        assert!(bid_index < bid_count, EInvalidSender);
 
         let bid = vector::remove(price_level, bid_index);
         refund_bid(bid, wallet, &sender);
@@ -415,7 +424,7 @@ module nft_protocol::dutch_auction {
         sender: &address,
     ) {
         let Bid { amount, owner } = bid;
-        assert!(sender == &owner, err::order_owner_must_be_sender());
+        assert!(sender == &owner, EInvalidSender);
 
         balance::join(coin::balance_mut(wallet), amount);
     }
