@@ -12,6 +12,7 @@ module nft_protocol::utils {
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID};
+    use sui::dynamic_field as df;
 
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
     const EMismatchedKeyValueLength: u64 = 1;
@@ -114,6 +115,12 @@ module nft_protocol::utils {
 
     public fun marker<T>(): Marker<T> {
         Marker<T> {}
+    }
+
+    public fun pop_df_from_marker<Field: store>(
+        object_uid: &mut UID,
+    ): Field {
+        df::remove<Marker<Field>, Field>(object_uid, marker<Field>())
     }
 
     public fun bps(): u16 {
