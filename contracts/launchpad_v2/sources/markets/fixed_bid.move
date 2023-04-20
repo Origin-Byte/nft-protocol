@@ -89,7 +89,7 @@ module launchpad_v2::fixed_bid {
     public fun buy_nft_cert<T: key + store, FT>(
         venue: &mut Venue,
         wallet: &mut Coin<FT>,
-        // TODO: Put Quantity and Receiver inside Request to reduce params
+        // TODO: Put Quantity and Receiver inside AuthRequest to reduce params
         quantity: u64,
         request: AuthRequest,
         ctx: &mut TxContext,
