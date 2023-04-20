@@ -15,10 +15,6 @@ module examples::testract {
     use nft_protocol::bidding;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display_info;
-    use nft_protocol::fixed_price;
-    use nft_protocol::inventory;
-    use nft_protocol::limited_fixed_price;
-    use nft_protocol::listing;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
     use nft_protocol::ob_kiosk;
@@ -30,8 +26,13 @@ module examples::testract {
     use nft_protocol::symbol;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
-    use nft_protocol::warehouse;
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+
+    use launchpad::fixed_price;
+    use launchpad::inventory;
+    use launchpad::limited_fixed_price;
+    use launchpad::listing;
+    use launchpad::warehouse;
 
     use std::option;
     use std::string::{String, utf8};

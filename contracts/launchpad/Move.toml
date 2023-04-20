@@ -1,6 +1,6 @@
 [package]
-name = "Examples"
-version = "1.0.0"
+name = "Launchpad"
+version = "0.29.0"
 published-at = "0x"
 
 [dependencies.Sui]
@@ -11,14 +11,11 @@ rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
-# devnet-0.31.0
+# testnet-0.31.0
 rev = "538bc0d65e5df9e8c8fb0ee4ce21da6aa9129394"
 
 [dependencies.NftProtocol]
-local = "../../"
-
-[dependencies.Launchpad]
-local = "../../contracts/launchpad"
+local = "./../../"
 
 [addresses]
-examples = "0x"
+launchpad = "0x"

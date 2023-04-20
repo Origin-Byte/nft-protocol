@@ -8,7 +8,7 @@
 /// `Warehouse` is an unprotected type that can be constructed independently
 /// before it is merged to a `Venue`, allowing `Warehouse` to be constructed
 /// while avoiding shared consensus transactions on `Listing`.
-module nft_protocol::warehouse {
+module launchpad::warehouse {
     use std::vector;
 
     use sui::transfer;

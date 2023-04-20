@@ -6,7 +6,7 @@
 ///
 /// `Venue` is an unprotected type that composes the market structure of
 /// `Listing`.
-module nft_protocol::venue {
+module launchpad::venue {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID};

@@ -1,17 +1,18 @@
 #[test_only]
-module nft_protocol::mint_and_sell {
+module launchpad::mint_and_sell {
     use sui::coin;
     use sui::object::{Self, UID};
     use sui::sui::SUI;
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::fixed_price;
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::listing;
-    use nft_protocol::warehouse;
     use nft_protocol::witness;
-    use nft_protocol::test_listing;
+
+    use launchpad::fixed_price;
+    use launchpad::listing;
+    use launchpad::warehouse;
+    use launchpad::test_listing;
 
     struct Foo has key, store {
         id: UID,
