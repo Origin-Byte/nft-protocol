@@ -553,7 +553,7 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         field: Option<TypeName>,
         ctx: &mut TxContext,
-    ): BorrowRequest<T> {
+    ): BorrowRequest<Witness, T> {
         assert_not_listed(self, nft_id);
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
@@ -564,7 +564,7 @@ module nft_protocol::ob_kiosk {
 
     public fun return_nft<OTW: drop, T: key + store>(
         self: &mut Kiosk,
-        borrowed_nft: BorrowRequest<T>,
+        borrowed_nft: BorrowRequest<Witness, T>,
         policy: &Policy<WithNft<T, BORROW_REQUEST>>
     ) {
         let nft = borrow_request::confirm(Witness {}, borrowed_nft, policy);

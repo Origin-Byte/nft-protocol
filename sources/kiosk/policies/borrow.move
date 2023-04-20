@@ -1,6 +1,6 @@
 module nft_protocol::borrow_request {
     use std::option::{Self, Option, some};
-    use std::type_name::{Self, TypeName};
+    use std::type_name::TypeName;
 
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
@@ -25,12 +25,11 @@ module nft_protocol::borrow_request {
         nft_id: ID
     }
 
-    struct BorrowRequest<T: key + store> {
+    struct BorrowRequest<phantom Auth: drop, T: key + store> {
         nft_id: ID,
         nft: Option<T>,
         sender: address,
         field: Option<TypeName>,
-        auth: TypeName,
         inner: RequestBody<WithNft<T, BORROW_REQUEST>>,
     }
 
@@ -44,39 +43,36 @@ module nft_protocol::borrow_request {
         sender: address,
         field: Option<TypeName>,
         ctx: &mut TxContext,
-    ): BorrowRequest<T> {
+    ): BorrowRequest<Auth, T> {
         let nft_id = object::id(&nft);
 
-        BorrowRequest<T> {
+        BorrowRequest<Auth, T> {
             nft_id,
             nft: some(nft),
             sender,
             field,
-            auth: type_name::get<Auth>(),
             inner: request::new(ctx),
         }
     }
 
-    public fun init_policy<T: key + store>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, BORROW_REQUEST>>, PolicyCap) {
+    public fun init_policy<Auth: drop, T: key + store>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, BORROW_REQUEST>>, PolicyCap) {
         request::new_policy_with_type(witness::from_witness(Witness {}), publisher, ctx)
     }
 
     /// Adds a `Receipt` to the `Request`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<T: key + store, Rule>(self: &mut BorrowRequest<T>, rule: &Rule) {
+    public fun add_receipt<Auth: drop, T: key + store, Rule>(self: &mut BorrowRequest<Auth, T>, rule: &Rule) {
         request::add_receipt(&mut self.inner, rule);
     }
 
     // TODO: SHOULD THIS BE PROTECTED?
-    public fun inner_mut<T: key + store>(
-        self: &mut BorrowRequest<T>
+    public fun inner_mut<Auth: drop, T: key + store>(
+        self: &mut BorrowRequest<Auth, T>
     ): &mut RequestBody<WithNft<T, BORROW_REQUEST>> { &mut self.inner }
 
     public fun confirm<Auth: drop, T: key + store>(
-        _witness: Auth, self: BorrowRequest<T>, policy: &Policy<WithNft<T, BORROW_REQUEST>>
+        _witness: Auth, self: BorrowRequest<Auth, T>, policy: &Policy<WithNft<T, BORROW_REQUEST>>
     ): T {
-        // Can only be called by Auth, which in our case is the OBKiosk
-        assert_witness<Auth, T>(&self);
         assert!(option::is_some(&self.nft), 0);
 
         let BorrowRequest {
@@ -84,7 +80,6 @@ module nft_protocol::borrow_request {
             nft,
             sender: _,
             field: _,
-            auth: _,
             inner,
         } = self;
 
@@ -97,21 +92,21 @@ module nft_protocol::borrow_request {
         option::destroy_some(nft)
     }
 
-    public fun borrow_nft<T: key + store>(
+    public fun borrow_nft<Auth: drop, T: key + store>(
         // Creator Witness: Only the creator's contract should have
         // the ability to operate on the inner object extract a field
         _witness: DelegatedWitness<T>,
-        request: &mut BorrowRequest<T>,
+        request: &mut BorrowRequest<Auth, T>,
     ): T {
         assert!(option::is_none(&request.field), 0);
         option::extract(&mut request.nft)
     }
 
-    public fun borrow_nft_ref_mut<T: key + store>(
+    public fun borrow_nft_ref_mut<Auth: drop, T: key + store>(
         // Creator Witness: Only the creator's contract should have
         // the ability to operate on the inner object extract a field
         _witness: DelegatedWitness<T>,
-        request: &mut BorrowRequest<T>,
+        request: &mut BorrowRequest<Auth, T>,
     ): &mut T {
         option::borrow_mut(&mut request.nft)
     }
@@ -142,37 +137,33 @@ module nft_protocol::borrow_request {
 
     }
 
-    public fun return_nft<T: key + store>(
+    public fun return_nft<Auth: drop, T: key + store>(
         _witness: DelegatedWitness<T>,
-        request: &mut BorrowRequest<T>,
+        request: &mut BorrowRequest<Auth, T>,
         nft: T,
     ) {
         assert!(object::id(&nft) == request.nft_id, 0);
         option::fill(&mut request.nft, nft);
     }
 
-    public fun tx_sender<T: key + store>(self: &BorrowRequest<T>): address { self.sender }
+    public fun tx_sender<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): address { self.sender }
 
-    public fun is_borrow_field<T: key + store>(self: &BorrowRequest<T>): bool {
+    public fun is_borrow_field<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): bool {
         option::is_some(&self.field)
     }
 
-    public fun field<T: key + store>(self: &BorrowRequest<T>): TypeName {
+    public fun field<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): TypeName {
         *option::borrow(&self.field)
     }
 
-    public fun nft_id<T: key + store>(self: &BorrowRequest<T>): ID {
+    public fun nft_id<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): ID {
         object::id(option::borrow(&self.nft))
     }
 
-    public fun assert_is_borrow_nft<T: key + store>(request: &BorrowRequest<T>) {
+    public fun assert_is_borrow_nft<Auth: drop, T: key + store>(request: &BorrowRequest<Auth, T>) {
         assert!(option::is_none(&request.field), 0);
     }
-    public fun assert_is_borrow_field<T: key + store>(request: &BorrowRequest<T>) {
+    public fun assert_is_borrow_field<Auth: drop, T: key + store>(request: &BorrowRequest<Auth, T>) {
         assert!(option::is_some(&request.field), 0);
-    }
-
-    public fun assert_witness<Auth: drop, T: key + store>(request: &BorrowRequest<T>) {
-        assert!(type_name::get<Auth>() == request.auth, 0);
     }
 }

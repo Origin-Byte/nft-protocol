@@ -80,8 +80,8 @@ module examples::suimarines {
         transfer::public_share_object(collection);
     }
 
-    public fun get_nft_field<Field: store>(
-        request: &mut BorrowRequest<Submarine>,
+    public fun get_nft_field<Auth: drop, Field: store>(
+        request: &mut BorrowRequest<Auth, Submarine>,
     ): (Field, ReturnPromise<Submarine, Field>) {
         let dw = witness::from_witness(Witness {});
         let nft = borrow_request::borrow_nft_ref_mut(dw, request);
@@ -89,8 +89,8 @@ module examples::suimarines {
         borrow_request::borrow_field(dw, &mut nft.id)
     }
 
-    public fun return_nft_field<Field: store>(
-        request: &mut BorrowRequest<Submarine>,
+    public fun return_nft_field<Auth: drop, Field: store>(
+        request: &mut BorrowRequest<Auth, Submarine>,
         field: Field,
         promise: ReturnPromise<Submarine, Field>,
     ) {
@@ -100,15 +100,15 @@ module examples::suimarines {
         borrow_request::return_field(dw, &mut nft.id, promise, field)
     }
 
-    public fun get_nft(
-        request: &mut BorrowRequest<Submarine>,
+    public fun get_nft<Auth: drop>(
+        request: &mut BorrowRequest<Auth, Submarine>,
     ): Submarine {
         let dw = witness::from_witness(Witness {});
         borrow_request::borrow_nft(dw, request)
     }
 
-    public fun return_nft(
-        request: &mut BorrowRequest<Submarine>,
+    public fun return_nft<Auth: drop>(
+        request: &mut BorrowRequest<Auth, Submarine>,
         nft: Submarine,
     ) {
         let dw = witness::from_witness(Witness {});

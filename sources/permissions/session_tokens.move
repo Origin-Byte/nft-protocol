@@ -123,21 +123,21 @@ module nft_protocol::session_token {
         request::drop_rule_no_state<WithNft<T, P>, SessionTokenRule>(policy, cap);
     }
 
-    public fun confirm<T: key + store>(
-        self: &SessionToken<T>, req: &mut BorrowRequest<T>,
+    public fun confirm<Auth: drop, T: key + store>(
+        self: &SessionToken<T>, req: &mut BorrowRequest<Auth, T>,
     ) {
         if (borrow_request::is_borrow_field(req)) {
-            assert_field_auth<T>(self, req);
+            assert_field_auth<Auth, T>(self, req);
         } else {
-            assert_parent_auth<T>(self, req);
+            assert_parent_auth<Auth, T>(self, req);
         };
 
         borrow_request::add_receipt(req, &SessionTokenRule {});
     }
 
-    public fun assert_field_auth<T: key + store>(
+    public fun assert_field_auth<Auth: drop, T: key + store>(
         self: &SessionToken<T>,
-        req: &BorrowRequest<T>
+        req: &BorrowRequest<Auth, T>
     ) {
         assert!(
             borrow_request::nft_id(req) == self.nft_id, ETokenRequestMismatch
@@ -149,9 +149,9 @@ module nft_protocol::session_token {
         );
     }
 
-    public fun assert_parent_auth<T: key + store>(
+    public fun assert_parent_auth<Auth: drop, T: key + store>(
         self: &SessionToken<T>,
-        req: &BorrowRequest<T>
+        req: &BorrowRequest<Auth, T>
     ) {
         assert!(
             borrow_request::nft_id(req) == self.nft_id, ETokenRequestMismatch

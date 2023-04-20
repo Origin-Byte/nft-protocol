@@ -113,8 +113,8 @@ module nft_protocol::access_policy {
         request::drop_rule_no_state<WithNft<T, P>, AccessPolicyRule>(policy, cap);
     }
 
-    public fun confirm<T: key + store>(
-        self: &AccessPolicy<T>, req: &mut BorrowRequest<T>, ctx: &mut TxContext,
+    public fun confirm<Auth: drop, T: key + store>(
+        self: &AccessPolicy<T>, req: &mut BorrowRequest<Auth, T>, ctx: &mut TxContext,
     ) {
         if (borrow_request::is_borrow_field(req)) {
             let field = borrow_request::field(req);
@@ -126,8 +126,8 @@ module nft_protocol::access_policy {
         borrow_request::add_receipt(req, &AccessPolicyRule {});
     }
 
-    public fun confirm_from_collection<T: key + store>(
-        collection: &Collection<T>, req: &mut BorrowRequest<T>, ctx: &mut TxContext,
+    public fun confirm_from_collection<Auth: drop, T: key + store>(
+        collection: &Collection<T>, req: &mut BorrowRequest<Auth, T>, ctx: &mut TxContext,
     ) {
         let access_policy = collection::borrow_domain<T, AccessPolicy<T>>(
             collection
