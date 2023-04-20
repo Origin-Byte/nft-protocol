@@ -1,7 +1,7 @@
 [package]
 name = "LaunchpadV2"
 version = "0.30.0"
-published-at = "0x"
+published-at = "0x11ddc46019fdcdba8f76d3cea577923e5626bbf8592e1378202afba67545a5de"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -12,10 +12,10 @@ rev = "cab7e9762d4d75126a78fdd009b405745657fe57"
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.32.0
-rev = "b052be3de1af1f2cf077edb24a8f10c1b1d60944"
+rev = "c43b53f5d8b519e86d4a64ad0cf6787a7528b01b"
 
 [dependencies.NftProtocol]
 local = "./../../"
 
 [addresses]
-launchpad_v2 = "0x"
+launchpad_v2 = "0x11ddc46019fdcdba8f76d3cea577923e5626bbf8592e1378202afba67545a5de"
