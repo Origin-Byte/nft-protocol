@@ -1,6 +1,6 @@
 [package]
 name = "NftProtocol"
-version = "0.29.0"
+version = "0.30.0"
 published-at = "0x7f37d6f86facc20063f3e19b95ac84d973ac2cfd64406c561c26921a57b578b2"
 
 [dependencies.Sui]
