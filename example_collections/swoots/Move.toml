@@ -17,5 +17,8 @@ rev = "538bc0d65e5df9e8c8fb0ee4ce21da6aa9129394"
 [dependencies.NftProtocol]
 local = "../../"
 
+[dependencies.Launchpad]
+local = "../../contracts/launchpad"
+
 [addresses]
 swoots = "0x"

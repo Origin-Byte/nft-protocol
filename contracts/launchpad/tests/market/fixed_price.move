@@ -1,5 +1,5 @@
 #[test_only]
-module nft_protocol::test_fixed_price {
+module launchpad::test_fixed_price {
     use sui::sui::SUI;
     use sui::coin;
     use sui::balance;
@@ -7,14 +7,14 @@ module nft_protocol::test_fixed_price {
     use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use nft_protocol::venue;
-    use nft_protocol::proceeds;
-    use nft_protocol::warehouse;
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::market_whitelist::{Self, Certificate};
-    use nft_protocol::fixed_price;
+    use launchpad::venue;
+    use launchpad::proceeds;
+    use launchpad::warehouse;
+    use launchpad::listing::{Self, Listing};
+    use launchpad::market_whitelist::{Self, Certificate};
+    use launchpad::fixed_price;
 
-    use nft_protocol::test_listing::init_listing;
+    use launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
         id: UID,

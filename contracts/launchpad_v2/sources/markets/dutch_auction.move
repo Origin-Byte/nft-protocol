@@ -20,7 +20,6 @@ module launchpad_v2::dutch_auction {
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
-    use nft_protocol::err;
     use nft_protocol::utils_supply as supply;
 
     use launchpad_v2::launchpad::LaunchCap;
@@ -30,6 +29,15 @@ module launchpad_v2::dutch_auction {
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     const U64_MAX: u64 = 18446744073709551615;
+
+    /// Order price was below auction reserve price
+    const EOrderPriceBelowReserve: u64 = 1;
+
+    /// Order was not found
+    const EInvalidOrder: u64 = 2;
+
+    /// Transaction sender must be order owner
+    const EInvalidSender: u64 = 3;
 
     struct DutchAuctionMarket<phantom FT> has store {
         /// The minimum price at which NFTs can be sold
@@ -266,7 +274,7 @@ module launchpad_v2::dutch_auction {
 
         assert!(
             price >= market.reserve_price,
-            err::order_price_below_reserve()
+            EOrderPriceBelowReserve,
         );
 
         // Create price level if it does not exist
@@ -307,7 +315,7 @@ module launchpad_v2::dutch_auction {
 
         assert!(
             crit_bit::has_key(bids, price),
-            err::order_does_not_exist()
+            EInvalidOrder,
         );
 
         let price_level = crit_bit::borrow_mut(bids, price);
@@ -323,7 +331,7 @@ module launchpad_v2::dutch_auction {
             bid_index = bid_index + 1;
         };
 
-        assert!(bid_index < bid_count, err::order_owner_must_be_sender());
+        assert!(bid_index < bid_count, EInvalidSender);
 
         let bid = vector::remove(price_level, bid_index);
         refund_bid(bid, wallet, &sender);
@@ -366,7 +374,7 @@ module launchpad_v2::dutch_auction {
         sender: &address,
     ) {
         let Bid { amount, owner } = bid;
-        assert!(sender == &owner, err::order_owner_must_be_sender());
+        assert!(sender == &owner, EInvalidSender);
 
         balance::join(coin::balance_mut(wallet), amount);
     }

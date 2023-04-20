@@ -1,4 +1,4 @@
-module nft_protocol::flat_fee {
+module launchpad::flat_fee {
     use sui::balance;
     use sui::tx_context;
     use sui::transfer::public_transfer;
@@ -6,10 +6,11 @@ module nft_protocol::flat_fee {
     use sui::tx_context::TxContext;
 
     use nft_protocol::err;
-    use nft_protocol::proceeds;
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::marketplace::{Self as mkt, Marketplace};
     use originmate::object_box;
+
+    use launchpad::proceeds;
+    use launchpad::listing::{Self, Listing};
+    use launchpad::marketplace::{Self as mkt, Marketplace};
 
     struct FlatFee has key, store {
         id: UID,

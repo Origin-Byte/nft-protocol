@@ -1,10 +1,10 @@
 #[test_only]
-module nft_protocol::test_listing {
+module launchpad::test_listing {
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use nft_protocol::flat_fee;
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::marketplace::{Self, Marketplace};
+    use launchpad::flat_fee;
+    use launchpad::listing::{Self, Listing};
+    use launchpad::marketplace::{Self, Marketplace};
 
     public fun init_listing(
         creator: address,

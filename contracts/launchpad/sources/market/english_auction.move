@@ -1,6 +1,6 @@
 /// Module implements the `EnglishAuction` primitive intended to be embedded
 /// within primary and secondary markets
-module nft_protocol::english_auction {
+module launchpad::english_auction {
     use sui::transfer;
     use sui::object::ID;
     use sui::kiosk::Kiosk;
@@ -8,13 +8,14 @@ module nft_protocol::english_auction {
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::venue;
     use nft_protocol::witness;
     use nft_protocol::ob_kiosk;
-    use nft_protocol::listing::{Self, Listing};
-    use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::inventory::{Self, Inventory};
-    use nft_protocol::market_whitelist::{Self, Certificate};
+
+    use launchpad::venue;
+    use launchpad::listing::{Self, Listing};
+    use launchpad::warehouse::{Self, Warehouse};
+    use launchpad::inventory::{Self, Inventory};
+    use launchpad::market_whitelist::{Self, Certificate};
 
     /// Bid was lower than existing bid
     ///
