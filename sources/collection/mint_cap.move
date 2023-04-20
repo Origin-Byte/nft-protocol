@@ -227,4 +227,44 @@ module nft_protocol::mint_cap {
     public fun assert_unlimited<T>(mint_cap: &MintCap<T>) {
         assert!(option::is_none(&mint_cap.supply), EMintCaplimited)
     }
+
+    // === Test-Only ===
+
+    #[test_only]
+    public fun test_create_mint_cap<T>(
+        collection_id: ID,
+        supply_opt: Option<u64>,
+        ctx: &mut TxContext
+    ): MintCap<T> {
+        let supply = if (option::is_some(&supply_opt)) {
+            let amount = option::destroy_some(supply_opt);
+            option::some(utils_supply::new(amount))
+        } else {
+            option::destroy_none(supply_opt);
+            option::none()
+        };
+
+      MintCap<T> {
+        id: object::new(ctx),
+        collection_id,
+        supply,
+      }
+    }
+
+    #[test_only]
+    public fun test_destroy_mint_cap<T>(cap: MintCap<T>) {
+      let MintCap<T> {
+        id,
+        collection_id: _,
+        supply,
+      } = cap;
+
+      if (option::is_some(&supply)) {
+        option::destroy_some(supply);
+      } else {
+        option::destroy_none(supply);
+      };
+
+      object::delete(id)
+    }
 }

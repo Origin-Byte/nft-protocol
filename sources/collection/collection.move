@@ -248,4 +248,19 @@ module nft_protocol::collection {
     ) {
         assert!(!has_domain<C, Domain>(collection), EExistingDomain);
     }
+
+    // === Test-Only ===
+
+    #[test_only]
+    public fun test_create_with_mint_cap<OTW: drop, T>(
+        supply: Option<u64>,
+        ctx: &mut TxContext,
+    ): (Collection<T>, MintCap<T>) {
+        let collection = create_(ctx);
+        let mint_cap = mint_cap::test_create_mint_cap(
+            object::id(&collection), supply, ctx
+        );
+
+        (collection, mint_cap)
+    }
 }
