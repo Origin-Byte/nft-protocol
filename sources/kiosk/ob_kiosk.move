@@ -34,16 +34,19 @@ module nft_protocol::ob_kiosk {
     use nft_protocol::borrow_request::{Self, BorrowRequest, BORROW_REQUEST};
     use nft_protocol::request::{Self, Policy, RequestBody, WithNft};
     use nft_protocol::utils;
+    use originmate::typed_id::{Self, TypedID};
     use std::option::Option;
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
     use sui::display;
+    // use std::string;
+    // use std::debug;
     use sui::dynamic_field::{Self as df};
-    use sui::kiosk::{Self, Kiosk, uid_mut as ext};
+    use sui::kiosk::{Self, Kiosk, KioskOwnerCap, uid_mut as ext};
     use sui::object::{Self, ID, UID, uid_to_address};
     use sui::package;
     use sui::table::{Self, Table};
-    use sui::transfer::{transfer, public_share_object};
+    use sui::transfer::{transfer, public_share_object, public_transfer};
     use sui::tx_context::{TxContext, sender};
     use sui::vec_set::{Self, VecSet};
 
@@ -143,6 +146,76 @@ module nft_protocol::ob_kiosk {
     struct AuthTransferRequestDfKey has store, copy, drop {}
 
     // === Instantiators ===
+
+    public fun install_extension(
+        self: &mut Kiosk,
+        kiosk_cap: KioskOwnerCap,
+        ctx: &mut TxContext,
+    ) {
+        let kiosk_ext = ext(self);
+
+        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
+        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
+        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
+            enable_any_deposit: true,
+            collections_with_enabled_deposits: vec_set::empty(),
+        });
+
+        transfer(OwnerToken {
+            id: object::new(ctx),
+            kiosk: object::id(self),
+            owner: sender(ctx),
+        }, sender(ctx));
+    }
+
+    public fun uninstall_extension(
+        self: &mut Kiosk,
+        owner_token: OwnerToken,
+        ctx: &mut TxContext,
+    ) {
+        assert!(owner_token.kiosk == object::id(self), 0);
+        assert_owner_address(self, sender(ctx));
+
+        let kiosk_ext = ext(self);
+
+        let refs = df::borrow(kiosk_ext, NftRefsDfKey {});
+        assert!(table::is_empty<ID, NftRef>(refs), 0);
+
+        let owner_cap = df::remove<KioskOwnerCapDfKey, KioskOwnerCap>(kiosk_ext, KioskOwnerCapDfKey {});
+
+        let refs = df::remove<NftRefsDfKey, Table<ID, NftRef>>(kiosk_ext, NftRefsDfKey {});
+        table::destroy_empty(refs);
+        df::remove<DepositSettingDfKey, DepositSetting>(kiosk_ext, DepositSettingDfKey {});
+
+        let OwnerToken { id, kiosk: _, owner: _} = owner_token;
+        object::delete(id);
+
+        public_transfer(owner_cap, sender(ctx));
+    }
+
+    public fun register_nft<T: key>(
+        self: &mut Kiosk,
+        nft_id: TypedID<T>,
+        ctx: &mut TxContext,
+    ) {
+        assert_permission(self, ctx);
+
+        let nft_id = typed_id::to_id(nft_id);
+
+        // Assert that Kiosk has NFT
+        assert_has_nft(self, nft_id);
+
+        // Assert that Kiosk has no NftRef, which means the NFT was
+        // placed in the Kiosk before installing the OB extension
+        let refs = nft_refs_mut(self);
+        assert_missing_ref(refs, nft_id);
+
+        table::add(refs, nft_id, NftRef {
+            auths: vec_set::empty(),
+            is_exclusively_listed: false,
+            nft_type: type_name::get<T>(),
+        });
+    }
 
     /// Creates a new Kiosk in the OB ecosystem.
     /// By default, all deposits are allowed permissionlessly.
@@ -628,6 +701,10 @@ module nft_protocol::ob_kiosk {
 
     public fun assert_has_nft(self: &Kiosk, nft_id: ID) {
         assert!(kiosk::has_item(self, nft_id), EMissingNft)
+    }
+
+    public fun assert_missing_ref(refs: &Table<ID, NftRef>, nft_id: ID) {
+        assert!(!table::contains(refs, nft_id), EMissingNft)
     }
 
     public fun assert_not_exclusively_listed(
