@@ -66,7 +66,7 @@ module nft_protocol::ob_transfer_request {
         ///
         /// Used to verify that all of the rules were followed and
         /// `TransferRequest` can be confirmed.
-        receipts: VecSet<TypeName>,
+        inner: SuiTransferRequest<T>,
         /// Optional metadata can be attached to the request.
         /// The metadata are dropped at the destruction of the request.
         /// It doesn't have to be emptied out.
@@ -103,9 +103,6 @@ module nft_protocol::ob_transfer_request {
 
     /// Stores balance on `TransferRequest` as dynamic field in the metadata.
     struct BalanceDfKey has copy, store, drop {}
-    /// Stores `VecSet<TypeName>` on `TransferPolicy`.
-    /// Works similarly to `TransferPolicy::rules`.
-    struct OringinbyteRulesDfKey has copy, store, drop {}
 
     // === TransferRequest ===
 
@@ -115,7 +112,10 @@ module nft_protocol::ob_transfer_request {
     /// `set_paid` MUST be called to set the paid amount.
     /// Without calling `set_paid`, the tx will always abort.
     public fun new<T>(
-        nft: ID, originator: address, ctx: &mut TxContext,
+        nft: ID,
+        originator: address,
+        kiosk_id: ID,
+        ctx: &mut TxContext,
     ): TransferRequest<T> {
         TransferRequest {
             metadata: object::new(ctx),
@@ -123,7 +123,7 @@ module nft_protocol::ob_transfer_request {
             originator,
             // is overwritten in `set_paid` if any balance is associated with
             beneficiary: @0x0,
-            receipts: vec_set::empty(),
+            inner: transfer_policy::new_request(nft, 0, kiosk_id)
         }
     }
 
@@ -144,8 +144,10 @@ module nft_protocol::ob_transfer_request {
 
     /// Adds a `Receipt` to the `TransferRequest`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<T, Rule>(self: &mut TransferRequest<T>, _rule: &Rule) {
-        vec_set::insert(&mut self.receipts, type_name::get<Rule>())
+    public fun add_receipt<T, Rule: drop>(
+        self: &mut TransferRequest<T>, rule: Rule
+    ) {
+        transfer_policy::add_receipt(rule, &mut self.inner);
     }
 
     /// Anyone can attach any metadata (dynamic fields).
@@ -178,15 +180,13 @@ module nft_protocol::ob_transfer_request {
         let TransferRequest {
             nft,
             originator,
-            receipts: _,
+            inner,
             beneficiary: _,
             metadata,
         } = self;
         object::delete(metadata);
 
-        transfer_policy::new_request(
-            nft, paid_amount, object::id_from_address(originator),
-        )
+        inner
     }
 
     // === TransferPolicy ===
@@ -194,25 +194,26 @@ module nft_protocol::ob_transfer_request {
     /// We extend the functionality of `TransferPolicy` by inserting our
     /// Originbyte `VecSet<TypeName>` into it.
     /// These rules work with our custom `TransferRequest`.
-    public fun add_rule_to_originbyte_ecosystem<T, Rule>(
-        self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
+    public fun add_rule_to_originbyte_ecosystem<T, Rule: drop, Config: store + drop>(
+        rule: Rule,
+        self: &mut TransferPolicy<T>,
+        cap: &TransferPolicyCap<T>,
+        config: Config,
     ) {
         let ext = transfer_policy::uid_mut_as_owner(self, cap);
-        if (!df::exists_(ext, OringinbyteRulesDfKey {})) {
-            df::add(ext, OringinbyteRulesDfKey {}, vec_set::empty<TypeName>());
-        };
 
-        let rules = df::borrow_mut(ext, OringinbyteRulesDfKey {});
-        vec_set::insert(rules, type_name::get<Rule>());
+        transfer_policy::add_rule(
+            rule, self, cap, config,
+        );
     }
 
     /// Allows us to modify the rules.
-    public fun remove_rule_from_originbyte_ecosystem<T, Rule>(
+    public fun remove_rule_from_originbyte_ecosystem<T, Rule: drop, Config: store + drop>(
         self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
     ) {
         let ext = transfer_policy::uid_mut_as_owner(self, cap);
-        let rules = df::borrow_mut(ext, OringinbyteRulesDfKey {});
-        vec_set::remove(rules, &type_name::get<Rule>());
+
+        transfer_policy::remove_rule<T, Rule, Config>(self, cap);
     }
 
     /// Creates a new capability which enables the holder to get `&mut` access
@@ -240,20 +241,11 @@ module nft_protocol::ob_transfer_request {
             nft: _,
             originator: _,
             beneficiary: _,
-            receipts,
+            inner,
         } = self;
         object::delete(metadata);
 
-        let rules = df::borrow(transfer_policy::uid(policy), OringinbyteRulesDfKey {});
-        let completed = vec_set::into_keys(receipts);
-        let total = vector::length(&completed);
-
-        assert!(total == vec_set::size(rules), EPolicyNotSatisfied);
-        while (total > 0) {
-            let rule_type = vector::pop_back(&mut completed);
-            assert!(vec_set::contains(rules, &rule_type), EIllegalRule);
-            total = total - 1;
-        };
+        transfer_policy::confirm_request(policy, inner);
     }
 
     /// Takes out the funds from the transfer request and sends them to the
