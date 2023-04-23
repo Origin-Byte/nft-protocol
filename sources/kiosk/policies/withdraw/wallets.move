@@ -35,7 +35,7 @@ module nft_protocol::wallets {
     }
 
     /// Creates and shares a new `Wallets`
-    public fun init_allowlist<Admin>(
+    public fun init_wallets<Admin>(
         witness: DelegatedWitness<Admin>, wallets: VecSet<address>, ctx: &mut TxContext,
     ) {
         transfer::public_share_object(create(witness, wallets, ctx));
