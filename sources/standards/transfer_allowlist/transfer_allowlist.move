@@ -30,7 +30,6 @@ module nft_protocol::transfer_allowlist {
     use std::type_name::{Self, TypeName};
     use sui::display;
     use sui::dynamic_field as df;
-    use sui::table_vec::{Self, TableVec};
     use sui::object::{Self, UID};
     use sui::package::{Self, Publisher};
     use sui::transfer::{Self, public_share_object};

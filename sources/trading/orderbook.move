@@ -34,7 +34,7 @@ module nft_protocol::orderbook {
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event;
-    use sui::kiosk::Kiosk;
+    use sui::kiosk::{Self, Kiosk};
     use sui::object::{Self, ID, UID};
     use sui::transfer::share_object;
     use sui::tx_context::{Self, TxContext};
@@ -1191,6 +1191,7 @@ module nft_protocol::orderbook {
             buyer_kiosk,
             nft_id,
             &book.id,
+            price,
             ctx,
         );
         ob_transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
@@ -1217,19 +1218,33 @@ module nft_protocol::orderbook {
             commission: maybe_commission,
         } = trade;
 
+        let price = balance::value(paid);
+
         assert!(
             *expected_buyer_kiosk_id == object::id(buyer_kiosk), EKioskIdMismatch,
         );
 
         trading::transfer_ask_commission<FT>(maybe_commission, paid, ctx);
 
-        let transfer_req = ob_kiosk::transfer_delegated<T>(
-            seller_kiosk,
-            buyer_kiosk,
-            *nft_id,
-            &book.id,
-            ctx,
-        );
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, *nft_id)) {
+            ob_kiosk::transfer_locked_nft<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                *nft_id,
+                &book.id,
+                ctx,
+            )
+        } else {
+            ob_kiosk::transfer_delegated<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                *nft_id,
+                &book.id,
+                price,
+                ctx,
+            )
+        };
+
         ob_transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(paid), *seller,
         );

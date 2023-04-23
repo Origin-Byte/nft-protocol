@@ -132,14 +132,14 @@ module nft_protocol::ob_transfer_request {
     /// `set_paid` MUST be called to set the paid amount.
     /// Without calling `set_paid`, the tx will always abort.
     public fun new<T>(
-        nft: ID, originator: address, kiosk_id: ID, ctx: &mut TxContext,
+        nft: ID, originator: address, kiosk_id: ID, price: u64, ctx: &mut TxContext,
     ): TransferRequest<T> {
         TransferRequest {
             nft,
             originator,
             // is overwritten in `set_paid` if any balance is associated with
             beneficiary: @0x0,
-            inner: transfer_policy::new_request(nft, 0, kiosk_id),
+            inner: transfer_policy::new_request(nft, price, kiosk_id),
             metadata: object::new(ctx),
         }
     }
@@ -188,6 +188,19 @@ module nft_protocol::ob_transfer_request {
 
     public fun metadata<T>(self: &TransferRequest<T>): &UID { &self.metadata }
 
+    public fun from_sui<T>(
+        inner: SuiTransferRequest<T>, nft: ID, originator: address, ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        TransferRequest {
+            nft,
+            originator,
+            // is overwritten in `set_paid` if any balance is associated with
+            beneficiary: @0x0,
+            inner,
+            metadata: object::new(ctx),
+        }
+    }
+
     /// The transfer request can be converted to the sui lib version if the
     /// payment was done in SUI and there's no other currency used.
     ///
@@ -208,15 +221,13 @@ module nft_protocol::ob_transfer_request {
             !df::exists_(transfer_policy::uid(policy), OBCustomRulesDfKey {}),
             ECannotConvertCustomPolicy
         );
-
-        let (paid_amount, _) = paid_in_sui(&self);
         // the sui transfer policy doesn't support our balance association
         // and therefore just send the coin to the beneficiary directly
         distribute_balance_to_beneficiary<T, SUI>(&mut self, ctx);
 
         let TransferRequest {
-            nft,
-            originator,
+            nft: _,
+            originator: _,
             inner,
             beneficiary: _,
             metadata,
