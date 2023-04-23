@@ -1220,13 +1220,25 @@ module nft_protocol::orderbook {
 
         trading::transfer_ask_commission<FT>(maybe_commission, paid, ctx);
 
-        let transfer_req = ob_kiosk::transfer_delegated<T>(
-            seller_kiosk,
-            buyer_kiosk,
-            *nft_id,
-            &book.id,
-            ctx,
-        );
+        let transfer_req = if (ob_kiosk::is_locked(seller_kiosk, nft)) {
+            ob_kiosk::transfer_locked_nft<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                *nft_id,
+                &book.id,
+                ctx,
+            );
+        } else {
+            ob_kiosk::transfer_delegated<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                *nft_id,
+                &book.id,
+                ctx,
+            );
+        };
+
+
         ob_transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(paid), *seller,
         );

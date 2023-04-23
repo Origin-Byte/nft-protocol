@@ -292,12 +292,9 @@ module nft_protocol::ob_kiosk {
     /// Can be called by an entity that has been authorized by the owner to
     /// withdraw given NFT.
     ///
-    /// Returns a builder to the calling entity.
+    /// Returns a req to the calling entity.
     /// The entity then populates it with trade information of which fungible
     /// tokens were paid.
-    ///
-    /// The builder then _must_ be transformed into a hot potato `TransferRequest`
-    /// which is then used by logic that has access to `TransferPolicy`.
     ///
     /// Can only be called on kiosks in the OB ecosystem.
     ///
@@ -311,9 +308,9 @@ module nft_protocol::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = transfer_nft_(source, nft_id, uid_to_address(entity_id), ctx);
+        let (nft, req) = transfer_nft_(source, nft_id, uid_to_address(entity_id), ctx);
         deposit(target, nft, ctx);
-        builder
+        req
     }
 
     /// Similar to `transfer_delegated` but instead of proving origin with
@@ -326,9 +323,30 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = transfer_nft_(source, nft_id, sender(ctx), ctx);
+        let (nft, req) = transfer_nft_(source, nft_id, sender(ctx), ctx);
         deposit(target, nft, ctx);
-        builder
+        req
+    }
+
+    public fun transfer_locked_nft<T>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        entity_id: &UID,
+        ctx: &mut TxContext,
+    ): TransferCap<T> {
+        check_entity_and_pop_ref(source, uid_to_address(entity_id), nft_id);
+
+        let cap = pop_cap(source);
+        kiosk::list(source, cap, nft_id, 0);
+        set_cap(source, cap);
+
+        let (nft, req) = kiosk::purchase(self, nft_id, coin::zero());
+        deposit(target, nft, ctx);
+
+        let req = todo!(wrap our transfer request over sui transfer request);
+
+        (nft, req)
     }
 
     /// We allow withdrawing NFTs for some use cases.
@@ -575,6 +593,10 @@ module nft_protocol::ob_kiosk {
     }
 
     // === Assertions and getters ===
+
+    public fun is_locked(self: &mut Kiosk, nft_id: ID): bool {
+        abort(0) // TODO
+    }
 
     public fun nft_type(self: &mut Kiosk, nft_id: ID): &TypeName {
         let refs = nft_refs_mut(self);
