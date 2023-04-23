@@ -443,7 +443,7 @@ module nft_protocol::ob_kiosk {
     ): (T, TransferRequest<T>) {
         let nft = get_nft(self, nft_id, originator);
 
-        (nft, ob_transfer_request::new(nft_id, originator, ctx))
+        (nft, ob_transfer_request::new(nft_id, originator, object::id(self), ctx))
     }
 
     /// After authorization that the call is permitted, gets the NFT.
@@ -506,9 +506,10 @@ module nft_protocol::ob_kiosk {
     /// that the trading contracts maintain a global object.
     /// In some cases this is doable, in other it's inconvenient.
     public fun set_transfer_request_auth<T, Auth>(
-        req: &mut TransferRequest<T>, auth: &Auth,
+        req: &mut TransferRequest<T>, _auth: &Auth,
     ) {
-        set_transfer_request_auth_(ob_transfer_request::inner_mut(req), auth)
+        let metadata = ob_transfer_request::metadata_mut(req);
+        df::add(metadata, AuthTransferRequestDfKey {}, type_name::get<Auth>());
     }
 
     public fun set_transfer_request_auth_<T, P, Auth>(
@@ -520,7 +521,8 @@ module nft_protocol::ob_kiosk {
 
     /// What's the authority that created this request?
     public fun get_transfer_request_auth<T>(req: &TransferRequest<T>): &TypeName {
-        get_transfer_request_auth_(ob_transfer_request::inner(req))
+        let metadata = ob_transfer_request::metadata(req);
+        df::borrow(metadata, AuthTransferRequestDfKey {})
     }
 
     /// What's the authority that created this request?

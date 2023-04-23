@@ -20,6 +20,7 @@
 ///     to authorize transfers.
 module nft_protocol::transfer_allowlist {
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use sui::transfer_policy::{Self, TransferPolicy, TransferPolicyCap};
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::utils;
@@ -28,6 +29,8 @@ module nft_protocol::transfer_allowlist {
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
     use sui::display;
+    use sui::dynamic_field as df;
+    use sui::table_vec::{Self, TableVec};
     use sui::object::{Self, UID};
     use sui::package::{Self, Publisher};
     use sui::transfer::{Self, public_share_object};
@@ -61,10 +64,6 @@ module nft_protocol::transfer_allowlist {
         /// We don't store it as generic because then it has to be propagated
         /// around and it's very unergonomic.
         admin_witness: TypeName,
-        /// Which collections does this allowlist apply to?
-        ///
-        /// We use reflection to avoid generics.
-        collections: VecSet<TypeName>,
         /// If None, then there's no allowlist and everyone is allowed.
         ///
         /// Otherwise we use a witness pattern but store the witness object as
@@ -82,6 +81,10 @@ module nft_protocol::transfer_allowlist {
     /// and does not support safe metadata about the originator of the transfer.
     struct AllowlistRule has drop {}
 
+    /// Dynamic field key for storing collection typenames.
+    /// Which collections does this allowlist apply to?
+    struct CollectionDfKey<phantom T> has copy, drop, store {}
+
     // === Management ===
 
     /// Creates a new `Allowlist`
@@ -91,7 +94,6 @@ module nft_protocol::transfer_allowlist {
         Allowlist {
             id: object::new(ctx),
             admin_witness: type_name::get<Admin>(),
-            collections: vec_set::empty(),
             authorities: option::none(),
         }
     }
@@ -109,7 +111,9 @@ module nft_protocol::transfer_allowlist {
         self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
-        vec_set::insert(&mut self.collections, type_name::get<T>());
+        // We only care about the DF Key, we store a bool as the DF value
+        // as it's the smallest thing we can store
+        df::add(&mut self.id, CollectionDfKey<T> {}, true);
     }
 
     /// To add a collection to the list, we need a confirmation by both the
@@ -128,7 +132,9 @@ module nft_protocol::transfer_allowlist {
         utils::assert_package_publisher<T>(collection_pub);
         assert_admin_witness<Admin>(self);
 
-        vec_set::insert(&mut self.collections, type_name::get<T>());
+        // We only care about the DF Key, we store a bool as the DF value
+        // as it's the smallest thing we can store
+        df::add(&mut self.id, CollectionDfKey<T> {}, true);
     }
 
     /// Any collection is allowed to remove itself from any allowlist at any
@@ -139,7 +145,7 @@ module nft_protocol::transfer_allowlist {
     public fun remove_itself<T>(
         _witness: DelegatedWitness<T>, self: &mut Allowlist,
     ) {
-        vec_set::remove(&mut self.collections, &type_name::get<T>());
+        df::remove<CollectionDfKey<T>, bool>(&mut self.id, CollectionDfKey<T> {});
     }
 
     /// Any collection is allowed to remove itself from any allowlist at any
@@ -151,23 +157,16 @@ module nft_protocol::transfer_allowlist {
         self: &mut Allowlist, collection_pub: &Publisher,
     ) {
         utils::assert_package_publisher<T>(collection_pub);
-        vec_set::remove(&mut self.collections, &type_name::get<T>());
+        df::remove<CollectionDfKey<T>, bool>(&mut self.id, CollectionDfKey<T> {});
     }
 
     /// The allowlist owner can remove any collection at any point.
     public fun remove_collection<T, Admin>(
         _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
     ) {
+        // TODO: Do we want to give the allowlist owner this power?
         assert_admin_witness<Admin>(self);
-        vec_set::remove(&mut self.collections, &type_name::get<T>());
-    }
-
-    /// Removes all collections from this list.
-    public fun clear_collections<Admin>(
-        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
-    ) {
-        assert_admin_witness<Admin>(self);
-        self.collections = vec_set::empty();
+        df::remove<CollectionDfKey<T>, bool>(&mut self.id, CollectionDfKey<T> {});
     }
 
     /// To insert a new authority into a list we need confirmation by the
@@ -216,7 +215,7 @@ module nft_protocol::transfer_allowlist {
 
     /// Returns whether `Allowlist` contains collection `T`
     public fun contains_collection<T>(self: &Allowlist): bool {
-        vec_set::contains(&self.collections, &type_name::get<T>())
+        df::exists_(&self.id, CollectionDfKey<T> {})
     }
 
     /// Returns whether `Allowlist` contains type
@@ -237,14 +236,18 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Registers collection to use `Allowlist` during the transfer.
-    public fun enforce<T, P>(
-        policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap,
+    public fun enforce<T>(
+        policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>,
     ) {
-        request::enforce_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
+        transfer_policy::add_rule<T, AllowlistRule, bool>(
+            AllowlistRule {}, policy, cap, false,
+        );
     }
 
-    public fun drop<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
-        request::drop_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
+    public fun drop<T>(
+        policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>
+    ) {
+        transfer_policy::remove_rule<T, AllowlistRule, bool>(policy, cap);
     }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.
@@ -253,7 +256,22 @@ module nft_protocol::transfer_allowlist {
     /// the transfer request can only be finished if this rule is present.
     public fun confirm_transfer<T>(
         self: &Allowlist, req: &mut TransferRequest<T>,
-    ) { confirm_transfer_(self, ob_transfer_request::inner_mut(req)) }
+    ) {
+        let auth = ob_kiosk::get_transfer_request_auth(req);
+        assert_transferable<T>(self, auth);
+        transfer_policy::add_receipt(AllowlistRule {}, ob_transfer_request::inner_mut(req));
+    }
+
+    /// Registers collection to use `Allowlist` during the transfer.
+    public fun enforce_<T, P>(
+        policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap,
+    ) {
+        request::enforce_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
+    }
+
+    public fun drop_<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
+        request::drop_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
+    }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.
     /// It adds a signature to the request.
