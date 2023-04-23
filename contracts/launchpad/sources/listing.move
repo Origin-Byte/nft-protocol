@@ -51,6 +51,8 @@ module launchpad::listing {
     use launchpad::proceeds::{Self, Proceeds};
     use launchpad::venue::{Self, Venue};
 
+    friend launchpad::flat_fee;
+
     /// `Venue` was not defined on `Listing`
     ///
     /// Call `Listing::init_venue` to initialize a `Venue`
@@ -646,7 +648,7 @@ module launchpad::listing {
     }
 
     /// Mutably borrow the Listing's `Proceeds`
-    public fun borrow_proceeds_mut(listing: &mut Listing): &mut Proceeds {
+    public(friend) fun borrow_proceeds_mut(listing: &mut Listing): &mut Proceeds {
         &mut listing.proceeds
     }
 
