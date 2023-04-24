@@ -14,6 +14,8 @@ module launchpad_v2::venue {
     use nft_protocol::witness;
     use nft_protocol::request::{Policy, PolicyCap};
     use nft_protocol::utils_supply::{Self, Supply};
+
+    use launchpad_v2::redeem_strategy::RedeemStrategy;
     use launchpad_v2::launchpad::{Self, LaunchCap};
     use launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQUEST};
     use launchpad_v2::proceeds::{Self, Proceeds};
@@ -104,9 +106,7 @@ module launchpad_v2::venue {
         nft_type: TypeName,
         buyer: address,
         inventory: ID,
-        index_scale: u64,
-        // Relative index of the NFT in the Warehouse
-        relative_index: u64,
+        redeem_strategy: RedeemStrategy,
     }
 
     /// Event signalling that `Nft` was sold by `Listing`
@@ -379,8 +379,7 @@ module launchpad_v2::venue {
         venue: &Venue,
         nft_type: TypeName,
         inventory_id: ID,
-        relative_index: u64,
-        index_scale: u64,
+        redeem_strategy: RedeemStrategy,
         ctx: &mut TxContext,
     ): NftCert {
         assert_called_from_redeem_method<RW>(venue);
@@ -391,8 +390,7 @@ module launchpad_v2::venue {
             nft_type,
             buyer: tx_context::sender(ctx),
             inventory: inventory_id,
-            index_scale,
-            relative_index,
+            redeem_strategy,
         }
     }
 
@@ -417,8 +415,7 @@ module launchpad_v2::venue {
             nft_type: _,
             buyer: _,
             inventory: _,
-            index_scale: _,
-            relative_index: _,
+            redeem_strategy: _,
         } = cert;
 
         object::delete(id);
@@ -472,10 +469,6 @@ module launchpad_v2::venue {
 
 
     // === Venue Getter Functions ===
-
-    public fun get_venue_id(cert: &NftCert): ID {
-        cert.venue_id
-    }
 
     public fun listing_id(venue: &Venue): &ID {
         &venue.listing_id
@@ -604,12 +597,16 @@ module launchpad_v2::venue {
         cert.inventory
     }
 
-    public fun cert_relative_index(cert: &NftCert): u64 {
-        cert.relative_index
+    public fun cert_redeem_strategy(cert: &NftCert): RedeemStrategy {
+        cert.redeem_strategy
     }
 
-    public fun cert_index_scale(cert: &NftCert): u64 {
-        cert.index_scale
+    public fun cert_uid(cert: &NftCert): &UID {
+        &cert.id
+    }
+
+    public fun cert_uid_mut(cert: &mut NftCert): &mut UID {
+        &mut cert.id
     }
 
     // === Private Functions ===

@@ -6,6 +6,7 @@ module launchpad_v2::pseudorand_redeem {
     use sui::dynamic_field as df;
 
     use launchpad_v2::launchpad::LaunchCap;
+    use launchpad_v2::redeem_strategy;
     use launchpad_v2::venue::{Self, Venue, RedeemReceipt, NftCert};
 
     use originmate::pseudorandom;
@@ -97,7 +98,6 @@ module launchpad_v2::pseudorand_redeem {
         let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
 
         let inv_index = select(rand_redeem.kiosk_precision, &contract_commitment);
-        let nft_rel_index = select(rand_redeem.nft_precision, &contract_commitment);
 
         let (inv_id, inv_type) = get_inventory_data(venue, inv_index);
 
@@ -106,8 +106,7 @@ module launchpad_v2::pseudorand_redeem {
             venue,
             inv_type,
             inv_id,
-            rand_redeem.nft_precision,
-            nft_rel_index,
+            redeem_strategy::pseudorandom(),
             ctx,
         )
     }
