@@ -89,17 +89,18 @@ module launchpad_v2::pseudorand_redeem {
             venue, PseudoRandInvDfKey {}
         );
 
+        let counter = rand_redeem.counter;
         let i = certificate::quantity(certificate);
+
 
         let inventories = venue::get_invetories_mut(Witness {}, venue);
         let qty = vec_map::size(inventories);
-
         let cert_inventories = certificate::invetories_mut(Witness {}, venue, certificate);
 
         while (i > 0) {
             // TODO: Use counter of `PseudoRandRedeem` as an additional nonce factor
             let nonce = vector::empty();
-            vector::append(&mut nonce, sui::bcs::to_bytes(&rand_redeem.counter));
+            vector::append(&mut nonce, sui::bcs::to_bytes(&counter));
 
             let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
 
@@ -115,12 +116,17 @@ module launchpad_v2::pseudorand_redeem {
                 // Decrement supply
                 *supply = *supply - 1;
             };
-
-            increment_counter(rand_redeem);
             vector::push_back(cert_inventories, *inv_id);
 
+            counter = counter + 1;
             i = i - 1;
-        }
+        };
+
+        new_counter(
+            venue::get_df_mut<PseudoRandInvDfKey, PseudoRandRedeem>(
+                venue, PseudoRandInvDfKey {}),
+            counter
+        );
     }
 
     /// Pseudo-randomly redeems NFT from `Warehouse`
@@ -142,30 +148,36 @@ module launchpad_v2::pseudorand_redeem {
         certificate: &mut NftCertificate,
         ctx: &mut TxContext,
     ) {
-
-        let rand_redeem = venue::get_df_mut<PseudoRandNftDfKey, PseudoRandRedeem>(
-            venue, PseudoRandNftDfKey {}
+        let rand_redeem = venue::get_df_mut<PseudoRandInvDfKey, PseudoRandRedeem>(
+            venue, PseudoRandInvDfKey {}
         );
 
-        let i = certificate::quantity(certificate);
-        let inventories = venue::get_invetories_mut(Witness {}, venue);
 
+        let counter = rand_redeem.counter;
+        let i = certificate::quantity(certificate);
+
+        let inventories = venue::get_invetories_mut(Witness {}, venue);
         let cert_nft_indices = certificate::nft_mut(Witness {}, venue, certificate);
 
         while (i > 0) {
             // Use supply of `Warehouse` as an additional nonce factor
             let nonce = vector::empty();
-            vector::append(&mut nonce, sui::bcs::to_bytes(&rand_redeem.counter));
+            vector::append(&mut nonce, sui::bcs::to_bytes(&counter));
 
             let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
 
             let nft_index = select(SCALE, &contract_commitment);
-
-            increment_counter(rand_redeem);
             vector::push_back(cert_nft_indices, nft_index);
 
+            counter = counter + 1;
             i = i - 1;
-        }
+        };
+
+        new_counter(
+            venue::get_df_mut<PseudoRandInvDfKey, PseudoRandRedeem>(
+                venue, PseudoRandInvDfKey {}),
+            counter
+        );
     }
 
     // === Utils ===
@@ -180,8 +192,8 @@ module launchpad_v2::pseudorand_redeem {
         (mod as u64)
     }
 
-    fun increment_counter(counter: &mut PseudoRandRedeem) {
-        counter.counter = counter.counter + 1;
+    fun new_counter(counter: &mut PseudoRandRedeem, new_counter: u64) {
+        counter.counter = new_counter;
     }
 
 }

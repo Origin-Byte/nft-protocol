@@ -190,8 +190,4 @@ module launchpad_v2::certificate {
     // public fun assert_nft_type<T: key + store>(cert: &NftCert) {
     //     assert!(cert.nft_type == type_name::get<T>(), ENFT_TYPE_CERTIFICATE_MISMATCH);
     // }
-
-    // public fun assert_cert_inventory(cert: &NftCert, inventory_id: ID) {
-    //     assert!(cert.inventory == inventory_id, EINVENTORY_CERTIFICATE_MISMATCH);
-    // }
 }
