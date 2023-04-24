@@ -1,6 +1,7 @@
 // TODO: Add function to deregister rule
 module launchpad_v2::certificate {
     use std::vector;
+    use std::option::{Self, Option, some};
     use std::type_name::{Self, TypeName};
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
@@ -28,10 +29,10 @@ module launchpad_v2::certificate {
         venue_id: ID,
         quantity: u64,
         buyer: address,
-        // Needs to be here to assert which module has authority to
-        // perform operations on the vector fields
-        inventories: vector<ID>,
-        nft_indices: vector<u64>,
+        // Wrapped under option to avoid conflict with mutable references
+        inventories: Option<vector<ID>>,
+        // Wrapped under option to avoid conflict with mutable references
+        nft_indices: Option<vector<u64>>,
         inventory_type: TypeName,
     }
 
@@ -64,8 +65,8 @@ module launchpad_v2::certificate {
             venue_id: object::id(venue),
             quantity: nfts_bought,
             buyer,
-            inventories: vector::empty(),
-            nft_indices: vector::empty(),
+            inventories: some(vector::empty()),
+            nft_indices: some(vector::empty()),
             inventory_type: venue::get_inventory_policy(venue),
         }
     }
@@ -100,36 +101,72 @@ module launchpad_v2::certificate {
 
     // === Certificates ===
 
-    public fun invetories_mut<SW: drop>(
+    public fun extract_invetories<SW: drop>(
         _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate
-    ): &mut vector<ID> {
+    ): vector<ID> {
         // TODO: Need to assert that certificate and venue are related
         venue::assert_called_from_stock_method<SW>(venue);
-        &mut certificate.inventories
+        option::extract(&mut certificate.inventories)
     }
 
-    public fun nft_mut<RW: drop>(
+    public fun extract_nft_indices<RW: drop>(
         _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate
-    ): &mut vector<u64> {
+    ): vector<u64> {
+        // TODO: Need to assert that certificate and venue are related
         venue::assert_called_from_redeem_method<RW>(venue);
-        &mut certificate.nft_indices
+        option::extract(&mut certificate.nft_indices)
     }
 
-    // Replace these functions, since they run in a loop there should not be more than one assertion
-    public fun invetories_mut_as_inventory<IW: drop>(
+    public fun insert_invetories<SW: drop>(
+        _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate, inventories: vector<ID>,
+    ) {
+        // TODO: Need to assert that certificate and venue are related
+        venue::assert_called_from_stock_method<SW>(venue);
+
+        option::fill(&mut certificate.inventories, inventories)
+    }
+
+    public fun insert_nft_indices<RW: drop>(
+        _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate, nft_idxs: vector<u64>
+    ) {
+        // TODO: Need to assert that certificate and venue are related
+        venue::assert_called_from_redeem_method<RW>(venue);
+        option::fill(&mut certificate.nft_indices, nft_idxs)
+    }
+
+    public fun extract_invetories_as_inv<IW: drop>(
         _inventory_witness: IW, certificate: &mut NftCertificate
-    ): &mut vector<ID> {
+    ): vector<ID> {
         // TODO: Need to assert that certificate and venue are related
         assert_called_from_inventory<IW>(certificate);
-        &mut certificate.inventories
+        option::extract(&mut certificate.inventories)
     }
 
-    public fun nft_mut_as_inventory<IW: drop>(
+    public fun extract_nft_indices_as_inv<IW: drop>(
         _inventory_witness: IW, certificate: &mut NftCertificate
-    ): &mut vector<u64> {
+    ): vector<u64> {
+        // TODO: Need to assert that certificate and venue are related
         assert_called_from_inventory<IW>(certificate);
-        &mut certificate.nft_indices
+        option::extract(&mut certificate.nft_indices)
     }
+
+    public fun insert_invetories_as_inv<IW: drop>(
+        _inventory_witness: IW, certificate: &mut NftCertificate, inventories: vector<ID>,
+    ) {
+        // TODO: Need to assert that certificate and venue are related
+        assert_called_from_inventory<IW>(certificate);
+
+        option::fill(&mut certificate.inventories, inventories)
+    }
+
+    public fun insert_nft_indices_as_inv<IW: drop>(
+        _inventory_witness: IW, certificate: &mut NftCertificate, nft_idxs: vector<u64>
+    ) {
+        // TODO: Need to assert that certificate and venue are related
+        assert_called_from_inventory<IW>(certificate);
+        option::fill(&mut certificate.nft_indices, nft_idxs)
+    }
+
 
     public fun quantity_mut<IW: drop>(_inventory_witness: IW, certificate: &mut NftCertificate): &mut u64 {
         assert_called_from_inventory<IW>(certificate);
@@ -152,11 +189,11 @@ module launchpad_v2::certificate {
     }
 
     public fun inventories(cert: &NftCertificate): &vector<ID> {
-        &cert.inventories
+        option::borrow(&cert.inventories)
     }
 
     public fun nft_indices(cert: &NftCertificate): &vector<u64> {
-        &cert.nft_indices
+        option::borrow(&cert.nft_indices)
     }
 
     public fun cert_uid(cert: &NftCertificate): &UID {

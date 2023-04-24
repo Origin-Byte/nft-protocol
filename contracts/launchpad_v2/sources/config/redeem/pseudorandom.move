@@ -95,7 +95,8 @@ module launchpad_v2::pseudorand_redeem {
 
         let inventories = venue::get_invetories_mut(Witness {}, venue);
         let qty = vec_map::size(inventories);
-        let cert_inventories = certificate::invetories_mut(Witness {}, venue, certificate);
+
+        let cert_inventories = certificate::extract_invetories(Witness {}, venue, certificate);
 
         while (i > 0) {
             // TODO: Use counter of `PseudoRandRedeem` as an additional nonce factor
@@ -116,11 +117,13 @@ module launchpad_v2::pseudorand_redeem {
                 // Decrement supply
                 *supply = *supply - 1;
             };
-            vector::push_back(cert_inventories, *inv_id);
+            vector::push_back(&mut cert_inventories, *inv_id);
 
             counter = counter + 1;
             i = i - 1;
         };
+
+        certificate::insert_invetories(Witness {}, venue, certificate, cert_inventories);
 
         new_counter(
             venue::get_df_mut<PseudoRandInvDfKey, PseudoRandRedeem>(
@@ -157,7 +160,7 @@ module launchpad_v2::pseudorand_redeem {
         let i = certificate::quantity(certificate);
 
         let inventories = venue::get_invetories_mut(Witness {}, venue);
-        let cert_nft_indices = certificate::nft_mut(Witness {}, venue, certificate);
+        let cert_nft_indices = certificate::extract_nft_indices(Witness {}, venue, certificate);
 
         while (i > 0) {
             // Use supply of `Warehouse` as an additional nonce factor
@@ -167,11 +170,13 @@ module launchpad_v2::pseudorand_redeem {
             let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
 
             let nft_index = select(SCALE, &contract_commitment);
-            vector::push_back(cert_nft_indices, nft_index);
+            vector::push_back(&mut cert_nft_indices, nft_index);
 
             counter = counter + 1;
             i = i - 1;
         };
+
+        certificate::insert_nft_indices(Witness {}, venue, certificate, cert_nft_indices);
 
         new_counter(
             venue::get_df_mut<PseudoRandInvDfKey, PseudoRandRedeem>(

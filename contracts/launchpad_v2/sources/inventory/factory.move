@@ -89,19 +89,17 @@ module launchpad_v2::factory {
 
         let len = certificate::quantity(certificate);
         let remaining = certificate::quantity_mut(Witness {}, certificate);
-        let inventories = certificate::invetories_mut_as_inventory(Witness {}, certificate);
-        let nft = certificate::nft_mut_as_inventory(Witness {}, certificate);
+        let inventories = certificate::extract_invetories_as_inv(Witness {}, certificate);
+        let nft_idxs = certificate::extract_nft_indices_as_inv(Witness {}, certificate);
 
         assert!(len > 0, 0);
 
         while (len > 0) {
-            let inv_id = vector::borrow(inventories, len);
+            let inv_id = vector::borrow(&inventories, len);
 
             if (*inv_id == factory_id) {
-                vector::remove(inventories, len);
-
-
-                let rel_index = vector::remove(nft, len);
+                vector::remove(&mut inventories, len);
+                let rel_index = vector::remove(&mut nft_idxs, len);
 
                 let index = math::divide_and_round_up(
                     factory.total_deposited * rel_index,
@@ -113,6 +111,9 @@ module launchpad_v2::factory {
 
             len = len - 1;
         };
+
+        certificate::insert_invetories_as_inv(Witness {}, certificate, inventories);
+        certificate::insert_nft_indices_as_inv(Witness {}, certificate, nft_idxs);
     }
 
     /// Mints NFT from `Factory`
@@ -134,21 +135,19 @@ module launchpad_v2::factory {
 
         let len = certificate::quantity(certificate);
         let remaining = certificate::quantity_mut(Witness {}, certificate);
-        let inventories = certificate::invetories_mut_as_inventory(Witness {}, certificate);
-        let metadata_idxs = certificate::nft_mut_as_inventory(Witness {}, certificate);
+        let inventories = certificate::extract_invetories_as_inv(Witness {}, certificate);
+        let metadata_idxs = certificate::extract_nft_indices_as_inv(Witness {}, certificate);
 
         assert!(len > 0, 0);
 
         let mint_pass: MintPass<T>;
 
         while (len > 0) {
-            let inv_id = vector::borrow(inventories, len);
+            let inv_id = vector::borrow(&inventories, len);
 
             if (*inv_id == factory_id) {
-                vector::remove(inventories, len);
-
-
-                let rel_index = vector::remove(metadata_idxs, len);
+                vector::remove(&mut inventories, len);
+                let rel_index = vector::remove(&mut metadata_idxs, len);
 
                 let index = math::divide_and_round_up(
                     factory.total_deposited * rel_index,
@@ -162,6 +161,8 @@ module launchpad_v2::factory {
 
             len = len - 1;
         };
+        certificate::insert_invetories_as_inv(Witness {}, certificate, inventories);
+        certificate::insert_nft_indices_as_inv(Witness {}, certificate, metadata_idxs);
 
         mint_pass
     }
