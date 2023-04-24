@@ -27,8 +27,6 @@ module nft_protocol::orderbook {
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
     use std::ascii::String;
     use std::option::{Self, Option};
-    use std::debug;
-    use std::string;
     use std::type_name;
     use std::vector;
     use sui::balance::{Self, Balance};
@@ -1052,9 +1050,8 @@ module nft_protocol::orderbook {
         // the buyers kiosk at the point of sending the tx
 
         // will fail if not OB kiosk
-        debug::print(&string::utf8(b"A"));
         ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.id, ctx);
-        debug::print(&string::utf8(b"A"));
+
         // prevent listing of NFTs which don't belong to the collection
         ob_kiosk::assert_nft_type<T>(seller_kiosk, nft_id);
 

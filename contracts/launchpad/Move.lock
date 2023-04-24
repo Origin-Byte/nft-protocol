@@ -4,6 +4,7 @@
 version = 0
 
 dependencies = [
+  { name = "NftProtocol" },
   { name = "Originmate" },
   { name = "Sui" },
 ]
@@ -11,6 +12,15 @@ dependencies = [
 [[move.package]]
 name = "MoveStdlib"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "cab7e9762d4d75126a78fdd009b405745657fe57", subdir = "crates/sui-framework/packages/move-stdlib" }
+
+[[move.package]]
+name = "NftProtocol"
+source = { local = "../.." }
+
+dependencies = [
+  { name = "Originmate" },
+  { name = "Sui" },
+]
 
 [[move.package]]
 name = "Originmate"

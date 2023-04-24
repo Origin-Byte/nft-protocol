@@ -39,8 +39,6 @@ module nft_protocol::ob_kiosk {
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
     use sui::display;
-    // use std::string;
-    // use std::debug;
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap, uid_mut as ext};
     use sui::object::{Self, ID, UID, uid_to_address};
@@ -413,7 +411,7 @@ module nft_protocol::ob_kiosk {
         deposit(target, nft, ctx);
     }
 
-    /// === Interoperability with Base Kiosk ===
+    // === Kiosk Interoperability ===
 
     public fun install_extension(
         self: &mut Kiosk,
@@ -485,6 +483,7 @@ module nft_protocol::ob_kiosk {
         });
     }
 
+    // === Private Functions ===
 
     /// After authorization that the call is permitted, gets the NFT.
     fun transfer_nft_<T: key + store>(
@@ -525,8 +524,7 @@ module nft_protocol::ob_kiosk {
         nft
     }
 
-
-    /// === Transfer Request Auth ===
+    // === Request Auth ===
 
     /// Proves access to given type `Auth`.
     /// Useful in conjunction with witness-like types.

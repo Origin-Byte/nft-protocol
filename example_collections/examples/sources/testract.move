@@ -114,22 +114,19 @@ module examples::testract {
     ///
     /// Store allowlist object ID.
     public entry fun create_allowlist(
-        collection: &mut Collection<TestNft>, ctx: &mut TxContext,
+        collection: &mut Collection<TestNft>,
+        ctx: &mut TxContext,
     ) {
-        // the `AllowlistAdmin` is used as a type in `DeletegatedWitness<T>`
-        // to authorize admin actions on the allowlist
-        let al = transfer_allowlist::create(allowlist_wit(), ctx);
+        let (al, al_cap) = transfer_allowlist::new(ctx);
 
         // orderbooks can perform trades with our allowlist
-        transfer_allowlist::insert_authority<AllowlistAdmin, orderbook::Witness>(allowlist_wit(), &mut al);
+        transfer_allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
         // bidding contract can perform trades too
-        transfer_allowlist::insert_authority<AllowlistAdmin, bidding::Witness>(allowlist_wit(), &mut al);
+        transfer_allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
         // our allowlist can authorize on behalf of the collection TestNft
-        transfer_allowlist::insert_collection(
-            allowlist_wit(),
-            col_wit(),
-            &mut al,
-        );
+        transfer_allowlist::insert_collection_with_witness(col_wit(), &mut al);
+
+        transfer_allowlist::delete_owner_cap(al_cap);
 
         // stores the information about the allowlist in the collection for
         // off-chain clients
@@ -473,10 +470,6 @@ module examples::testract {
     }
 
     /// === Helpers ====
-
-    fun allowlist_wit(): DelegatedWitness<AllowlistAdmin> {
-        witness::from_witness(Witness {})
-    }
 
     fun col_wit(): DelegatedWitness<TestNft> {
         witness::from_witness(Witness{})

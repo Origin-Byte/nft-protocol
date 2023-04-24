@@ -1,13 +1,14 @@
 /// Bidding module that allows users to bid for any given NFT just by its ID.
 /// This gives NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
-    use nft_protocol::err;
     use nft_protocol::ob_kiosk;
     use nft_protocol::trading;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
+
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
+
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event::emit;
@@ -25,6 +26,8 @@ module nft_protocol::bidding {
 
     /// When a bid is created, the price cannot be zero.
     const EPriceCannotBeZero: u64 = 2;
+
+    const ESenderNotOwner: u64 = 3;
 
     /// === Structs ===
 
@@ -275,7 +278,7 @@ module nft_protocol::bidding {
 
     fun close_bid_<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
         let sender = sender(ctx);
-        assert!(bid.buyer == sender, err::sender_not_owner());
+        assert!(bid.buyer == sender, ESenderNotOwner);
 
         let total = balance::value(&bid.offer);
         assert!(total != 0, EBidAlreadyClosed);
