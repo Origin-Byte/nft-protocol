@@ -2,15 +2,18 @@
 module nft_protocol::test_utils {
     use std::option;
 
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
+    use sui::sui::SUI;
     use sui::tx_context::TxContext;
     use nft_protocol::request::{Policy, PolicyCap, WithNft};
     use sui::package::{Self, Publisher};
 
+    use nft_protocol::orderbook;
     use nft_protocol::ob_transfer_request::{Self, OB_TRANSFER_REQUEST};
     use nft_protocol::withdraw_request::{Self, WITHDRAW_REQUEST};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::mint_cap::MintCap;
+    use sui::test_scenario::{Scenario, ctx};
 
     const MARKETPLACE: address = @0xA1C08;
     const CREATOR: address = @0xA1C04;
@@ -45,7 +48,7 @@ module nft_protocol::test_utils {
     }
 
     #[test_only]
-    public fun get_random_nft(ctx: &mut TxContext): Foo {
+    public fun get_foo_nft(ctx: &mut TxContext): Foo {
         Foo { id: object::new(ctx)}
     }
 
@@ -62,6 +65,16 @@ module nft_protocol::test_utils {
     #[test_only]
     public fun init_withdrawable_policy(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<Foo, WITHDRAW_REQUEST>>, PolicyCap) {
         withdraw_request::init_policy<Foo>(publisher, ctx)
+    }
+
+    #[test_only]
+    public fun create_orderbook<T: key + store>(scenario: &mut Scenario): ID {
+        let ob = orderbook::new_unprotected<T, SUI>(ctx(scenario));
+        let ob_id = object::id(&ob);
+
+        orderbook::share(ob);
+
+        ob_id
     }
 
 
