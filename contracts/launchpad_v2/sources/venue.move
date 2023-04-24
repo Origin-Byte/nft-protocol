@@ -512,7 +512,7 @@ module launchpad_v2::venue {
     ) {
         // TODO: Assert that Venue and NftCertificate match
         assert_called_from_stock_method<SW>(venue);
-        vector::push_back(&mut certificate.nft_indices, inventory);
+        vector::push_back(&mut certificate.nft_indices, index);
     }
 
 

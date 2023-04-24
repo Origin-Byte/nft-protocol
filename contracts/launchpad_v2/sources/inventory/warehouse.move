@@ -384,15 +384,5 @@ module launchpad_v2::warehouse {
         assert!(is_empty(warehouse), ENotEmpty);
     }
 
-    // === Utils ===
 
-    /// Outputs modulo of a random `u256` number and a bound
-    ///
-    /// Due to `random >> bound` we `select` does not exhibit significant
-    /// modulo bias.
-    fun select(bound: u64, random: &vector<u8>): u64 {
-        let random = pseudorandom::u256_from_bytes(random);
-        let mod  = random % (bound as u256);
-        (mod as u64)
-    }
 }

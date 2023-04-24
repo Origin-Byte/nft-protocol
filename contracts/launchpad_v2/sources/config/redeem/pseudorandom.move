@@ -22,7 +22,6 @@ module launchpad_v2::pseudorand_redeem {
     struct Witness has drop {}
 
     struct PseudoRandInvDfKey has store, copy, drop {}
-
     struct PseudoRandNftDfKey has store, copy, drop {}
 
     /// Create a new `Certificate`
@@ -83,7 +82,7 @@ module launchpad_v2::pseudorand_redeem {
         ctx: &mut TxContext,
     ) {
         // TODO: ASSERT Certificate and Venue match
-        let rand_redeem = venue::get_df<PseudoRandInvDfKey, PseudoRandRedeem>(
+        let rand_redeem = venue::get_df_mut<PseudoRandInvDfKey, PseudoRandRedeem>(
             venue, PseudoRandInvDfKey {}
         );
 
@@ -93,7 +92,7 @@ module launchpad_v2::pseudorand_redeem {
         let qty = vec_map::size(inventories);
 
         while (i > 0) {
-            // TODO: Use supply of `Warehouse` as an additional nonce factor
+            // TODO: Use counter of `PseudoRandRedeem` as an additional nonce factor
             let nonce = vector::empty();
             vector::append(&mut nonce, sui::bcs::to_bytes(&rand_redeem.counter));
 
@@ -112,6 +111,7 @@ module launchpad_v2::pseudorand_redeem {
                 *supply = *supply - 1;
             };
 
+            increment_counter(rand_redeem);
             venue::push_inventory_id(Witness {}, venue, certificate, *inv_id);
 
             i = i - 1;
@@ -138,12 +138,11 @@ module launchpad_v2::pseudorand_redeem {
         ctx: &mut TxContext,
     ) {
 
-        let rand_redeem = venue::get_df<PseudoRandNftDfKey, PseudoRandRedeem>(
+        let rand_redeem = venue::get_df_mut<PseudoRandNftDfKey, PseudoRandRedeem>(
             venue, PseudoRandNftDfKey {}
         );
 
         let i = venue::cert_quantity(certificate);
-
         let inventories = venue::get_invetories_mut(Witness {}, venue);
 
 
@@ -156,6 +155,7 @@ module launchpad_v2::pseudorand_redeem {
 
             let nft_index = select(SCALE, &contract_commitment);
 
+            increment_counter(rand_redeem);
             venue::push_nft_index(Witness {}, venue, certificate, nft_index);
 
             i = i - 1;
@@ -172,6 +172,10 @@ module launchpad_v2::pseudorand_redeem {
         let random = pseudorandom::u256_from_bytes(random);
         let mod  = random % (bound as u256);
         (mod as u64)
+    }
+
+    fun increment_counter(counter: &mut PseudoRandRedeem) {
+        counter.counter = counter.counter + 1;
     }
 
 }
