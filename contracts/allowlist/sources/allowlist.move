@@ -1,6 +1,6 @@
 module allowlist::allowlist {
     use sui::transfer;
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::bidding;
     use nft_protocol::orderbook;
@@ -18,7 +18,7 @@ module allowlist::allowlist {
 
         // Delete `AllowlistOwnerCap` to guarantee that each release of
         // `OriginByte` always has a fixed set of trading contracts
-        transfer_allowlist::delete_owner_cap(al_cap);
+        transfer::public_transfer(al_cap, tx_context::sender(ctx));
         transfer::public_share_object(al);
     }
 }
