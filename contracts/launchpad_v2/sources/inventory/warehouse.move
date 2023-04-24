@@ -12,70 +12,48 @@ module launchpad_v2::warehouse {
     use std::vector;
 
     use sui::transfer;
+    use sui::math;
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
-    use launchpad_v2::venue::{Self, NftCert};
-    use launchpad_v2::redeem_strategy;
-
-    use originmate::pseudorandom;
+    use launchpad_v2::certificate::{Self, NftCertificate};
 
     /// `Warehouse` does not have NFTs left to withdraw
     ///
-    /// Call `warehouse::deposit_nft` or `listing::add_nft` to add NFTs.
-    const EEmpty: u64 = 1;
+    /// Call `Warehouse::deposit_nft` or `Listing::add_nft` to add NFTs.
+    const EEMPTY: u64 = 1;
 
     /// `Warehouse` still has NFTs left to withdraw
     ///
-    /// Call `warehouse::redeem_nft` or a `Listing` market to withdraw remaining
+    /// Call `Warehouse::redeem_nft` or a `Listing` market to withdraw remaining
     /// NFTs.
-    const ENotEmpty: u64 = 2;
+    const ENOT_EMPTY: u64 = 2;
 
     /// `Warehouse` does not have NFT at specified index
     ///
-    /// Call `warehouse::redeem_nft_at_index` with an index that exists.
-    const EIndexOutOfBounds: u64 = 3;
+    /// Call `Warehouse::redeem_nft_at_index` with an index that exists.
+    const EINDEX_OUT_OF_BOUNDS: u64 = 3;
 
-    /// `Warehouse` did not contain NFT object with given ID
-    ///
-    /// Call `warehouse::redeem_nft_with_id` with an ID that exists.
-    const EInvalidNft: u64 = 4;
-
-    const EUnsupportedRedeemStrategy: u64 = 5;
-
-        /// Attempted to construct a `RedeemCommitment` with a hash length
+    /// Attempted to construct a `RedeemCommitment` with a hash length
     /// different than 32 bytes
-    const EInvalidCommitmentLength: u64 = 6;
+    const EINVALID_COMMITMENT_LENGTH: u64 = 4;
 
     /// Commitment in `RedeemCommitment` did not match original value committed
     ///
-    /// Call `warehouse::random_redeem_nft` with the correct commitment.
-    const EInvalidCommitment: u64 = 7;
-
-    /// Used for the client to commit a pseudo-random
-    struct RedeemCommitment has key {
-        /// `RedeemCommitment` ID
-        id: UID,
-        /// Hashed sender commitment
-        ///
-        /// Sender will have to provide the pre-hashed value to be able to use
-        /// this `RedeemCommitment`. This value can be pseudo-random as long
-        /// as it is not predictable by the validator.
-        hashed_sender_commitment: vector<u8>,
-        /// Open commitment made by validator
-        contract_commitment: vector<u8>,
-    }
+    /// Call `Warehosue::random_redeem_nft` with the correct commitment.
+    const EINVALID_COMMITMENT: u64 = 5;
 
 
     struct Witness has drop {}
 
-    /// `Warehouse` object which stores NFTs of type `T`
+
+    /// `Warehouse` object which stores NFTs
     ///
     /// The reason that the type is limited is to easily support random
     /// withdrawals. If multiple types are allowed then user will not be able
     /// to predict the type of the object they withdraw.
-    struct Warehouse has key, store {
+    struct Warehouse<phantom T> has key, store {
         /// `Warehouse` ID
         id: UID,
         /// NFTs that are currently on sale
@@ -86,8 +64,8 @@ module launchpad_v2::warehouse {
     }
 
     /// Create a new `Warehouse`
-    public fun new(ctx: &mut TxContext): Warehouse {
-        Warehouse {
+    public fun new<T: key + store>(ctx: &mut TxContext): Warehouse<T> {
+        Warehouse<T> {
             id: object::new(ctx),
             nfts: vector::empty(),
             total_deposited: 0,
@@ -95,8 +73,8 @@ module launchpad_v2::warehouse {
     }
 
     /// Creates a `Warehouse` and transfers to transaction sender
-    public entry fun init_warehouse(ctx: &mut TxContext) {
-        transfer::public_transfer(new(ctx), tx_context::sender(ctx));
+    public entry fun init_warehouse<T: key + store>(ctx: &mut TxContext) {
+        transfer::public_transfer(new<T>(ctx), tx_context::sender(ctx));
     }
 
     /// Deposits NFT to `Warehouse`
@@ -104,7 +82,7 @@ module launchpad_v2::warehouse {
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
     public entry fun deposit_nft<T: key + store>(
-        warehouse: &mut Warehouse,
+        warehouse: &mut Warehouse<T>,
         nft: T,
     ) {
         let nft_id = object::id(&nft);
@@ -114,56 +92,7 @@ module launchpad_v2::warehouse {
         dof::add(&mut warehouse.id, nft_id, nft);
     }
 
-    public fun redeem_nft<T: key + store>(
-        warehouse: &mut Warehouse,
-        certificate: NftCert,
-        ctx: &mut TxContext,
-    ): T {
-        venue::assert_nft_type<T>(&certificate);
-        venue::assert_cert_buyer(&certificate, ctx);
-        venue::assert_cert_inventory(&certificate, object::id(warehouse));
-
-        let strategy = &venue::cert_redeem_strategy(&certificate);
-
-        let nft = if (redeem_strategy::is_sequential(strategy)) {
-            redeem_nft_sequential(warehouse)
-        } else if (redeem_strategy::is_pseudorandom(strategy)) {
-            redeem_pseudorandom_nft(warehouse, ctx)
-        } else if (redeem_strategy::is_random(strategy)) {
-            let (commitment, user_commitment) = redeem_strategy::extract_parameters_random(
-                venue::cert_uid_mut(&mut certificate),
-            );
-            redeem_random_nft(warehouse, commitment, user_commitment, ctx)
-        } else if (redeem_strategy::is_by_index(strategy)) {
-            let index = redeem_strategy::extract_parameters_by_index(
-                venue::cert_uid_mut(&mut certificate),
-            );
-
-            redeem_nft_at_index(warehouse, index)
-        } else if (redeem_strategy::is_by_id(strategy)) {
-            let id = redeem_strategy::extract_parameters_by_id(
-                venue::cert_uid_mut(&mut certificate),
-            );
-
-            redeem_nft_with_id(warehouse, id)
-        } else {
-            abort(EUnsupportedRedeemStrategy)
-        };
-
-        venue::consume_certificate(Witness {}, warehouse, certificate);
-        nft
-    }
-
-    public entry fun redeem_nft_and_transfer<T: key + store>(
-        warehouse: &mut Warehouse,
-        certificate: NftCert,
-        ctx: &mut TxContext,
-    ) {
-        let nft: T = redeem_nft(warehouse, certificate, ctx);
-        transfer::public_transfer(nft, tx_context::sender(ctx));
-    }
-
-    /// Redeems NFT from `Warehouse` sequentially
+    /// Redeems NFT from `Warehouse`
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
@@ -174,13 +103,41 @@ module launchpad_v2::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty.
-    fun redeem_nft_sequential<T: key + store>(
-        warehouse: &mut Warehouse,
-    ): T {
-        let nfts = &mut warehouse.nfts;
-        assert!(!vector::is_empty(nfts), EEmpty);
+    public fun redeem_nft<T: key + store>(
+        warehouse: &mut Warehouse<T>,
+        certificate: &mut NftCertificate,
+        ctx: &mut TxContext,
+    ) {
+        certificate::assert_cert_buyer(certificate, ctx);
 
-        dof::remove(&mut warehouse.id, vector::pop_back(nfts))
+        let warehouse_id = object::id(warehouse);
+
+        let len = certificate::quantity(certificate);
+        let remaining = certificate::quantity_mut(Witness {}, certificate);
+        let inventories = certificate::invetories_mut_as_inventory(Witness {}, certificate);
+        let nft = certificate::nft_mut_as_inventory(Witness {}, certificate);
+
+        assert!(len > 0, 0);
+
+        while (len > 0) {
+            let inv_id = vector::borrow(inventories, len);
+
+            if (*inv_id == warehouse_id) {
+                vector::remove(inventories, len);
+
+
+                let rel_index = vector::remove(nft, len);
+
+                let index = math::divide_and_round_up(
+                    warehouse.total_deposited * rel_index,
+                    10_000
+                );
+
+                redeem_nft_and_transfer<T>(warehouse, index, ctx);
+            };
+
+            len = len - 1;
+        };
     }
 
     /// Redeems NFT from specific index in `Warehouse`
@@ -196,13 +153,14 @@ module launchpad_v2::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    fun redeem_nft_at_index<T: key + store>(
-        warehouse: &mut Warehouse,
+    fun redeem_nft_and_transfer<T: key + store>(
+        warehouse: &mut Warehouse<T>,
         index: u64,
-    ): T {
+        ctx: &mut TxContext,
+    ) {
         let nfts = &mut warehouse.nfts;
         let length = vector::length(nfts);
-        assert!(index < vector::length(nfts), EIndexOutOfBounds);
+        assert!(index < vector::length(nfts), EINDEX_OUT_OF_BOUNDS);
 
         let nft_id = *vector::borrow(nfts, index);
 
@@ -213,176 +171,57 @@ module launchpad_v2::warehouse {
         vector::swap(nfts, index, length - 1);
         vector::pop_back(nfts);
 
-        dof::remove(&mut warehouse.id, nft_id)
+        let nft = dof::remove<ID, T>(&mut warehouse.id, nft_id);
+
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
-    /// Redeems NFT with specific ID from `Warehouse`
-    ///
-    /// Does not retain original order of NFTs in the bookkeeping vector.
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
-    /// `Warehouse` may not change the logical owner of an `Nft` when
-    /// redeeming as this would allow royalties to be trivially bypassed.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if NFT with ID does not exist in `Warehouse`.
-    fun redeem_nft_with_id<T: key + store>(
-        warehouse: &mut Warehouse,
-        nft_id: ID,
-    ): T {
-        let nfts = &mut warehouse.nfts;
-        let supply = vector::length(nfts);
 
-        let idx = 0;
-        while (idx < supply) {
-            let t_nft_id = vector::borrow(nfts, idx);
-
-            if (&nft_id == t_nft_id) {
-                return redeem_nft_at_index(warehouse, idx)
-            };
-
-            idx = idx + 1;
-        };
-
-        assert!(false, EInvalidNft);
-        // Provide correct return type signature but will fail eitherway
-        redeem_nft_at_index(warehouse, idx)
-    }
-
-    /// Pseudo-randomly redeems NFT from `Warehouse`
-    ///
-    /// Endpoint is susceptible to validator prediction of the resulting index,
-    /// use `random_redeem_nft` instead.
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
-    /// `Warehouse` may not change the logical owner of an `Nft` when
-    /// redeeming as this would allow royalties to be trivially bypassed.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Warehouse` is empty
-    fun redeem_pseudorandom_nft<T: key + store>(
-        warehouse: &mut Warehouse,
-        ctx: &mut TxContext,
-    ): T {
-        let supply = supply(warehouse);
-        assert!(supply != 0, EEmpty);
-
-        // Use supply of `Warehouse` as an additional nonce factor
-        let nonce = vector::empty();
-        vector::append(&mut nonce, sui::bcs::to_bytes(&supply));
-
-        let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
-
-        let index = select(supply, &contract_commitment);
-        redeem_nft_at_index(warehouse, index)
-    }
-
-    /// Randomly redeems NFT from `Warehouse`
-    ///
-    /// Requires a `RedeemCommitment` created by the user in a separate
-    /// transaction to ensure that validators may not bias results favorably.
-    /// You can obtain a `RedeemCommitment` by calling
-    /// `init_redeem_commitment`.
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
-    /// `Warehouse` may not change the logical owner of an `Nft` when
-    /// redeeming as this would allow royalties to be trivially bypassed.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Warehouse` is empty or `user_commitment` does not match the
-    /// hashed commitment in `RedeemCommitment`.
-    fun redeem_random_nft<T: key + store>(
-        warehouse: &mut Warehouse,
-        commitment: RedeemCommitment,
-        user_commitment: vector<u8>,
-        ctx: &mut TxContext,
-    ): T {
-        // let (_, contract_commitment) =
-        //     redeem_random::consume_commitment(commitment, user_commitment);
-
-        // Construct randomized index
-        let supply = supply(warehouse);
-        assert!(supply != 0, EEmpty);
-
-        // Verify user commitment
-        let RedeemCommitment {
-            id,
-            hashed_sender_commitment,
-            contract_commitment
-        } = commitment;
-
-        object::delete(id);
-
-        let user_commitment = std::hash::sha3_256(user_commitment);
-        assert!(
-            user_commitment == hashed_sender_commitment,
-            EInvalidCommitment,
-        );
-
-        // Construct randomized index
-        vector::append(&mut user_commitment, contract_commitment);
-        // Use supply of `Warehouse` as a additional nonce factor
-        vector::append(&mut user_commitment, sui::bcs::to_bytes(&supply));
-
-        let contract_commitment = pseudorandom::rand_no_counter(user_commitment, ctx);
-
-        let index = select(supply, &contract_commitment);
-        redeem_nft_at_index(warehouse, index)
-    }
-
+    // TODO: ONLY CREATOR SHOULD BE ABLE TO DESTROY
     /// Destroys `Warehouse`
     ///
     /// #### Panics
     ///
     /// Panics if `Warehouse` is not empty
-    public entry fun destroy(warehouse: Warehouse) {
+    public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
         let Warehouse { id, nfts: _, total_deposited: _ } = warehouse;
         object::delete(id);
     }
 
+
     // === Getter Functions ===
 
     /// Return how many `Nft` there are to sell
-    public fun supply(warehouse: &Warehouse): u64 {
+    public fun supply<T: key + store>(warehouse: &Warehouse<T>): u64 {
         vector::length(&warehouse.nfts)
     }
 
     /// Return whether there are any `Nft` in the `Warehouse`
-    public fun is_empty(warehouse: &Warehouse): bool {
+    public fun is_empty<T: key + store>(warehouse: &Warehouse<T>): bool {
         vector::is_empty(&warehouse.nfts)
     }
 
     /// Returns list of all NFTs stored in `Warehouse`
-    public fun nfts(warehouse: &Warehouse): &vector<ID> {
+    public fun nfts<T: key + store>(warehouse: &Warehouse<T>): &vector<ID> {
         &warehouse.nfts
     }
 
     /// Return cumulated amount of `Nft`s deposited in the `Warehouse`
-    public fun total_deposited(warehouse: &Warehouse): u64 {
+    public fun total_deposited<T: key + store>(warehouse: &Warehouse<T>): u64 {
         warehouse.total_deposited
     }
 
     /// Return cumulated amount of `Nft`s redeemed in the `Warehouse`
-    public fun total_redeemed(warehouse: &Warehouse): u64 {
+    public fun total_redeemed<T: key + store>(warehouse: &Warehouse<T>): u64 {
         warehouse.total_deposited - vector::length(&warehouse.nfts)
     }
 
     // === Assertions ===
 
     /// Asserts that `Warehouse` is empty
-    public fun assert_is_empty(warehouse: &Warehouse) {
-        assert!(is_empty(warehouse), ENotEmpty);
+    public fun assert_is_empty<T: key + store>(warehouse: &Warehouse<T>) {
+        assert!(is_empty(warehouse), ENOT_EMPTY);
     }
-
 
 }

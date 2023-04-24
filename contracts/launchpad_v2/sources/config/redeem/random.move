@@ -8,7 +8,8 @@ module launchpad_v2::redeem_random {
     use sui::tx_context::{Self, TxContext};
 
     use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::venue::{Self, Venue, NftCertificate};
+    use launchpad_v2::venue::{Self, Venue};
+    use launchpad_v2::certificate::{Self, NftCertificate};
 
     use originmate::pseudorandom;
 
@@ -212,9 +213,11 @@ module launchpad_v2::redeem_random {
         // Construct randomized index
         vector::append(&mut user_commitment, contract_commitment);
 
-        let i = venue::cert_quantity(certificate);
+        let i = certificate::quantity(certificate);
         let inventories = venue::get_invetories_mut(Witness {}, venue);
         let qty = vec_map::size(inventories);
+
+        let cert_inventories = certificate::invetories_mut(Witness {}, venue, certificate);
 
         while (i > 0) {
             // Use supply of `Warehouse` as a additional nonce factor
@@ -236,7 +239,7 @@ module launchpad_v2::redeem_random {
             };
 
             increment_counter(rand_redeem);
-            venue::push_inventory_id(Witness {}, venue, certificate, *inv_id);
+            vector::push_back(cert_inventories, *inv_id);
 
             i = i - 1;
         };
@@ -274,9 +277,11 @@ module launchpad_v2::redeem_random {
         // Construct randomized index
         vector::append(&mut user_commitment, contract_commitment);
 
-        let i = venue::cert_quantity(certificate);
+        let i = certificate::quantity(certificate);
         let inventories = venue::get_invetories_mut(Witness {}, venue);
         let qty = vec_map::size(inventories);
+
+        let cert_nft_indices = certificate::nft_mut(Witness {}, venue, certificate);
 
         while (i > 0) {
             // Use supply of `Warehouse` as a additional nonce factor
@@ -287,7 +292,7 @@ module launchpad_v2::redeem_random {
             let nft_index = select(SCALE, &contract_commitment);
 
             increment_counter(rand_redeem);
-            venue::push_nft_index(Witness {}, venue, certificate, nft_index);
+            vector::push_back(cert_nft_indices, nft_index);
 
             i = i - 1;
         };

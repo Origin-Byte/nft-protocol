@@ -1,11 +1,14 @@
 module launchpad_v2::pseudorand_redeem {
+    // TODO: Assigning Inventory and NFTs Indices should not touch the Venue, otherwise it creates contention...
     use std::vector;
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
     use sui::vec_map;
 
     use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::venue::{Self, Venue, NftCertificate};
+    use launchpad_v2::venue::{Self, Venue};
+    use launchpad_v2::certificate::{Self, NftCertificate};
+
 
     use originmate::pseudorandom;
 
@@ -86,10 +89,12 @@ module launchpad_v2::pseudorand_redeem {
             venue, PseudoRandInvDfKey {}
         );
 
-        let i = venue::cert_quantity(certificate);
+        let i = certificate::quantity(certificate);
 
         let inventories = venue::get_invetories_mut(Witness {}, venue);
         let qty = vec_map::size(inventories);
+
+        let cert_inventories = certificate::invetories_mut(Witness {}, venue, certificate);
 
         while (i > 0) {
             // TODO: Use counter of `PseudoRandRedeem` as an additional nonce factor
@@ -112,7 +117,7 @@ module launchpad_v2::pseudorand_redeem {
             };
 
             increment_counter(rand_redeem);
-            venue::push_inventory_id(Witness {}, venue, certificate, *inv_id);
+            vector::push_back(cert_inventories, *inv_id);
 
             i = i - 1;
         }
@@ -142,9 +147,10 @@ module launchpad_v2::pseudorand_redeem {
             venue, PseudoRandNftDfKey {}
         );
 
-        let i = venue::cert_quantity(certificate);
+        let i = certificate::quantity(certificate);
         let inventories = venue::get_invetories_mut(Witness {}, venue);
 
+        let cert_nft_indices = certificate::nft_mut(Witness {}, venue, certificate);
 
         while (i > 0) {
             // Use supply of `Warehouse` as an additional nonce factor
@@ -156,7 +162,7 @@ module launchpad_v2::pseudorand_redeem {
             let nft_index = select(SCALE, &contract_commitment);
 
             increment_counter(rand_redeem);
-            venue::push_nft_index(Witness {}, venue, certificate, nft_index);
+            vector::push_back(cert_nft_indices, nft_index);
 
             i = i - 1;
         }

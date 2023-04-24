@@ -25,6 +25,7 @@ module launchpad_v2::dutch_auction {
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::auth_request::{Self, AuthRequest};
     use launchpad_v2::venue::{Self, Venue};
+    use launchpad_v2::certificate;
 
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
@@ -199,7 +200,7 @@ module launchpad_v2::dutch_auction {
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            let nft_receipt = venue::get_redeem_certificate(
+            let nft_receipt = certificate::get_redeem_certificate(
                 Witness {},
                 venue,
                 owner,

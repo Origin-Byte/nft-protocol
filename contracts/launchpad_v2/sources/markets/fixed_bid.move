@@ -8,7 +8,8 @@
 module launchpad_v2::fixed_bid {
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::auth_request::{Self, AuthRequest};
-    use launchpad_v2::venue::{Self, Venue, NftCertificate};
+    use launchpad_v2::venue::{Self, Venue};
+    use launchpad_v2::certificate::{Self, NftCertificate};
 
     use sui::coin::{Self, Coin};
     use sui::dynamic_field as df;
@@ -130,7 +131,7 @@ module launchpad_v2::fixed_bid {
         );
 
         // TODO: Allow for burner wallets
-        venue::get_redeem_certificate(
+        certificate::get_redeem_certificate(
             Witness {},
             venue,
             tx_context::sender(ctx),

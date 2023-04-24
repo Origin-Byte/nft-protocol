@@ -1,6 +1,5 @@
 // TODO: Add function to deregister rule
 module launchpad_v2::venue {
-    use std::vector;
     use std::ascii::String;
     use std::option::{Self, Option};
     use sui::vec_map::{Self, VecMap};
@@ -11,11 +10,9 @@ module launchpad_v2::venue {
     use sui::balance::Balance;
     use sui::transfer;
 
-    // use nft_protocol::witness;
     use nft_protocol::request::{Policy, PolicyCap};
     use nft_protocol::utils_supply::{Self, Supply};
 
-    // use launchpad_v2::redeem_strategy::RedeemStrategy;
     use launchpad_v2::launchpad::{Self, LaunchCap};
     use launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQUEST};
     use launchpad_v2::proceeds::{Self, Proceeds};
@@ -90,15 +87,6 @@ module launchpad_v2::venue {
     //     close_time: Option<u64>,
     //     live: bool,
     // }
-
-    struct NftCertificate has key, store {
-        id: UID,
-        venue_id: ID,
-        quantity: u64,
-        buyer: address,
-        inventories: vector<ID>,
-        nft_indices: vector<u64>,
-    }
 
     struct AuthCapDfKey has store, copy, drop {}
 
@@ -329,39 +317,6 @@ module launchpad_v2::venue {
         }
     }
 
-    /// Creates `RedeemReceipt` objects which is allows the owner to redeem
-    /// NFTs from in the quantity defined by `nfts_bought`.
-    ///
-    /// This endpoint is protected and can only be called by the Market Policy module.
-    ///
-    /// Different sales can have different Redemtion Strategies (i.e NFTs are
-    /// chosen at random or via FIFO method). In case where there is certainty
-    /// as to what `Inventory` the RedeemReceipt is for, the whole process can
-    /// be batched programmatically. Only in cases where the client cannot
-    /// know ahead of time what `Inventory` it will have to call in the batch,
-    /// it must call the `Inventory` in a separate batch in order to retrieve
-    /// the NFTs.
-    public fun get_redeem_certificate<MW: drop>(
-        _market_witness: MW,
-        venue: &mut Venue,
-        buyer: address,
-        nfts_bought: u64,
-        ctx: &mut TxContext,
-    ): NftCertificate {
-        // TODO: Consider emitting events
-        assert_called_from_market<MW>(venue);
-
-        NftCertificate {
-            id: object::new(ctx),
-            venue_id: object::id(venue),
-            quantity: nfts_bought,
-            buyer,
-            inventories: vector::empty(),
-            nft_indices: vector::empty(),
-
-        }
-    }
-
     // TODO
     // /// Consumes a `RedeemReceipt` hot potato.
     // ///
@@ -499,23 +454,6 @@ module launchpad_v2::venue {
         &mut venue.inventories
     }
 
-    public fun push_inventory_id<SW: drop>(
-        _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate, inventory: ID,
-    ) {
-        // TODO: Assert that Venue and NftCertificate match
-        assert_called_from_stock_method<SW>(venue);
-        vector::push_back(&mut certificate.inventories, inventory);
-    }
-
-    public fun push_nft_index<SW: drop>(
-        _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate, index: u64,
-    ) {
-        // TODO: Assert that Venue and NftCertificate match
-        assert_called_from_stock_method<SW>(venue);
-        vector::push_back(&mut certificate.nft_indices, index);
-    }
-
-
     // === Venue Getter Functions ===
 
     public fun listing_id(venue: &Venue): &ID {
@@ -548,6 +486,14 @@ module launchpad_v2::venue {
 
     public fun get_market_policy(venue: &Venue): TypeName {
         venue.policies.market
+    }
+
+    public fun get_stock_policy(venue: &Venue): TypeName {
+        venue.policies.stock_policy
+    }
+
+    public fun get_redeem_policy(venue: &Venue): TypeName {
+        venue.policies.redeem_policy
     }
 
     // TODO
@@ -610,37 +556,6 @@ module launchpad_v2::venue {
     // }
 
 
-    // === NftCert Getter Functions ===
-
-    public fun cert_venue_id(cert: &NftCertificate): ID {
-        cert.venue_id
-    }
-
-    public fun cert_quantity(cert: &NftCertificate): u64 {
-        cert.quantity
-    }
-
-    public fun cert_buyer(cert: &NftCertificate): address {
-        cert.buyer
-    }
-
-    public fun cert_inventories(cert: &NftCertificate): &vector<ID> {
-        &cert.inventories
-    }
-
-    public fun cert_nft_indices(cert: &NftCertificate): &vector<u64> {
-        &cert.nft_indices
-    }
-
-    public fun cert_uid(cert: &NftCertificate): &UID {
-        &cert.id
-    }
-
-    // TODO: Should this be protected?
-    public fun cert_uid_mut(cert: &mut NftCertificate): &mut UID {
-        &mut cert.id
-    }
-
     // === Private Functions ===
 
     fun auth_policy_mut(venue: &mut Venue, launch_cap: &LaunchCap): &mut Policy<AUTH_REQUEST> {
@@ -661,6 +576,7 @@ module launchpad_v2::venue {
         assert!(auth_request::policy_id(request) == object::id(&venue.policies.auth), 0);
     }
 
+    // TODO: These assertions are wrong because the Witnesses and Policy Objects are not the same...
     public fun assert_called_from_market<AW: drop>(venue: &Venue) {
         assert!(type_name::get<AW>() == venue.policies.market, EMARKET_WITNESS_MISMATCH);
     }
@@ -669,18 +585,13 @@ module launchpad_v2::venue {
         assert!(type_name::get<SW>() == venue.policies.stock_policy, ESTOCK_WITNESS_MISMATCH);
     }
 
-    // public fun assert_called_from_redeem_method<RW: drop>(venue: &Venue) {
-    //     assert!(type_name::get<RW>() == venue.policies.redeem_method, EREDEEM_WITNESS_MISMATCH);
-    // }
+    public fun assert_called_from_redeem_method<RW: drop>(venue: &Venue) {
+        assert!(type_name::get<RW>() == venue.policies.redeem_policy, EREDEEM_WITNESS_MISMATCH);
+    }
 
-    // public fun assert_called_from_inventory<IW: drop, INV: key + store>(inv: &INV, cert:  &NftCert) {
-    //     witness::assert_same_module<INV, IW>();
-    //     assert!(object::id(inv) == cert.inventory, EINVENTORY_ID_MISMATCH);
-    // }
-
-    // public fun assert_cert_buyer(cert: &NftCert, ctx: &TxContext) {
-    //     assert!(cert.buyer == tx_context::sender(ctx), EBUYER_CERTIFICATE_MISMATCH);
-    // }
+    public fun assert_called_from_inventory<IW: drop>(venue: &Venue) {
+        assert!(type_name::get<IW>() == venue.policies.inventory, EINVENTORY_ID_MISMATCH);
+    }
 
     // public fun assert_nft_type<T: key + store>(cert: &NftCert) {
     //     assert!(cert.nft_type == type_name::get<T>(), ENFT_TYPE_CERTIFICATE_MISMATCH);
