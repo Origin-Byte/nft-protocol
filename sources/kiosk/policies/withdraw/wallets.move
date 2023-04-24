@@ -93,6 +93,6 @@ module nft_protocol::wallets {
     ) {
         assert!(vec_set::contains(&self.wallets, &receiver), EUnauthorisedAddress);
         transfer::public_transfer(nft, receiver);
-        request::add_receipt(req, &WalletsRule {});
+        request::add_receipt(req, WalletsRule {});
     }
 }

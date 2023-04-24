@@ -302,7 +302,7 @@ module examples::testract {
         // and now for confirming transfer
         // (see `register_allowlist_and_royalty_strategy` and `create_allowlist`)
 
-        transfer_allowlist::confirm_transfer(allowlist, &mut transfer_req);
+        transfer_allowlist::confirm_transfer(&mut transfer_req, allowlist);
         royalty_strategy_bps::confirm_transfer<TestNft, SUI>(royalty_strategy, &mut transfer_req);
 
         // only if both rules are OK can we destroy the hot potato

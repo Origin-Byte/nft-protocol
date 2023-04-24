@@ -1191,7 +1191,6 @@ module nft_protocol::orderbook {
             ctx,
         );
         ob_transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
-        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
         transfer_req
     }
@@ -1230,7 +1229,6 @@ module nft_protocol::orderbook {
         ob_transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(paid), *seller,
         );
-        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
         transfer_req
     }

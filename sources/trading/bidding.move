@@ -171,10 +171,15 @@ module nft_protocol::bidding {
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         let nft_id = object::id(&nft);
-        ob_kiosk::deposit(buyers_kiosk, nft, ctx);
         let transfer_req = ob_transfer_request::new<T>(
             nft_id,
             uid_to_address(&bid.id),
+            ctx,
+        );
+        ob_kiosk::deposit_transfer(
+            ob_transfer_request::inner_mut(&mut transfer_req),
+            buyers_kiosk,
+            nft,
             ctx,
         );
         sell_nft_common(bid, buyers_kiosk, transfer_req, nft_id, ctx)
@@ -256,7 +261,6 @@ module nft_protocol::bidding {
         ob_transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(&mut bid.offer), seller,
         );
-        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
         trading::transfer_bid_commission(&mut bid.commission, ctx);
 

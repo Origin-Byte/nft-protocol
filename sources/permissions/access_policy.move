@@ -123,7 +123,7 @@ module nft_protocol::access_policy {
             assert_parent_auth<T>(self, ctx);
         };
 
-        borrow_request::add_receipt(req, &AccessPolicyRule {});
+        borrow_request::add_receipt(req, AccessPolicyRule {});
     }
 
     public fun confirm_from_collection<Auth: drop, T: key + store>(

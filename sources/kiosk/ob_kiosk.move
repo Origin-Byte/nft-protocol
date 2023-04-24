@@ -32,12 +32,16 @@ module nft_protocol::ob_kiosk {
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::withdraw_request::{Self, WithdrawRequest};
     use nft_protocol::borrow_request::{Self, BorrowRequest, BORROW_REQUEST};
-    use nft_protocol::request::{Self, Policy, RequestBody, WithNft};
+    use nft_protocol::request::{Policy, RequestBody, WithNft};
     use nft_protocol::utils;
     use originmate::typed_id::{Self, TypedID};
+    use nft_protocol::rule_deposit;
+    use nft_protocol::rule_withdraw;
+
     use std::option::Option;
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
+
     use sui::display;
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap, uid_mut as ext};
@@ -140,8 +144,6 @@ module nft_protocol::ob_kiosk {
     struct KioskOwnerCapDfKey has store, copy, drop {}
     /// For `Kiosk::id` value `DepositSetting`
     struct DepositSettingDfKey has store, copy, drop {}
-    /// For `TransferRequest::metadata` value `TypeName`
-    struct AuthTransferRequestDfKey has store, copy, drop {}
 
     // === Instantiators ===
 
@@ -222,11 +224,16 @@ module nft_protocol::ob_kiosk {
 
     // === Deposit to the Kiosk ===
 
-    /// Always works if the sender is the owner.
-    /// Fails if permissionless deposits are not enabled for `T`.
-    /// See `DepositSetting`.
+    /// Deposit NFT into `Kiosk`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if permissionless deposits are not enabled for `T` and
+    /// transaction sender is not owner, see `DepositSetting`.
     public fun deposit<T: key + store>(
-        self: &mut Kiosk, nft: T, ctx: &mut TxContext,
+        self: &mut Kiosk,
+        nft: T,
+        ctx: &mut TxContext,
     ) {
         assert_can_deposit<T>(self, ctx);
 
@@ -243,6 +250,27 @@ module nft_protocol::ob_kiosk {
         let cap = pop_cap(self);
         kiosk::place(self, &cap, nft);
         set_cap(self, cap);
+    }
+
+    /// Deposit NFT into `Kiosk` in the context of a protected transfer
+    ///
+    /// Registers `DepositRule` metadata on transfer request.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if permissionless deposits are not enabled for `T` and
+    /// transaction sender is not owner, see `DepositSetting`.
+    public fun deposit_transfer<T: key + store, P>(
+        req: &mut RequestBody<WithNft<T, P>>,
+        self: &mut Kiosk,
+        nft: T,
+        ctx: &mut TxContext,
+    ) {
+        let deposit_rule = rule_deposit::new(
+            Witness {}, &nft, object::id_address(self),
+        );
+        rule_deposit::register_metadata(req, deposit_rule);
+        deposit(self, nft, ctx)
     }
 
     // === Withdraw from the Kiosk ===
@@ -312,9 +340,14 @@ module nft_protocol::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = transfer_nft_(source, nft_id, uid_to_address(entity_id), ctx);
-        deposit(target, nft, ctx);
-        builder
+        let (nft, req) = transfer_nft_(source, nft_id, uid_to_address(entity_id), ctx);
+        deposit_transfer(
+            ob_transfer_request::inner_mut(&mut req),
+            target,
+            nft,
+            ctx,
+        );
+        req
     }
 
     /// Similar to `transfer_delegated` but instead of proving origin with
@@ -327,9 +360,14 @@ module nft_protocol::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let (nft, builder) = transfer_nft_(source, nft_id, sender(ctx), ctx);
-        deposit(target, nft, ctx);
-        builder
+        let (nft, req) = transfer_nft_(source, nft_id, sender(ctx), ctx);
+        deposit_transfer(
+            ob_transfer_request::inner_mut(&mut req),
+            target,
+            nft,
+            ctx,
+        );
+        req
     }
 
     /// We allow withdrawing NFTs for some use cases.
@@ -469,8 +507,16 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ): (T, TransferRequest<T>) {
         let nft = get_nft(self, nft_id, originator);
+        let req = ob_transfer_request::new(nft_id, originator, ctx);
 
-        (nft, ob_transfer_request::new(nft_id, originator, ctx))
+        let withdraw_rule = rule_withdraw::new(
+            Witness {}, &nft, object::id_address(self),
+        );
+        rule_withdraw::register_metadata(
+            ob_transfer_request::inner_mut(&mut req), withdraw_rule,
+        );
+
+        (nft, req)
     }
 
     /// After authorization that the call is permitted, gets the NFT.
@@ -481,8 +527,16 @@ module nft_protocol::ob_kiosk {
         ctx: &mut TxContext,
     ): (T, WithdrawRequest<T>) {
         let nft = get_nft(self, nft_id, originator);
+        let req = withdraw_request::new(originator, ctx);
 
-        (nft, withdraw_request::new(originator, ctx))
+        let withdraw_rule = rule_withdraw::new(
+            Witness {}, &nft, object::id_address(self),
+        );
+        rule_withdraw::register_metadata(
+            withdraw_request::inner_mut(&mut req), withdraw_rule,
+        );
+
+        (nft, req)
     }
 
     fun get_nft<T: key + store>(
@@ -500,40 +554,6 @@ module nft_protocol::ob_kiosk {
     }
 
     // === Request Auth ===
-
-    /// Proves access to given type `Auth`.
-    /// Useful in conjunction with witness-like types.
-    /// Trading contracts proves themselves with `Auth` instead of UID.
-    /// This makes it easier to implement allowlists since we can globally
-    /// allow a contract to trade.
-    /// Allowlist could also be implemented with a UID but that would require
-    /// that the trading contracts maintain a global object.
-    /// In some cases this is doable, in other it's inconvenient.
-    public fun set_transfer_request_auth<T, Auth>(
-        req: &mut TransferRequest<T>, auth: &Auth,
-    ) {
-        set_transfer_request_auth_(ob_transfer_request::inner_mut(req), auth)
-    }
-
-    public fun set_transfer_request_auth_<T, P, Auth>(
-        req: &mut RequestBody<WithNft<T, P>>, _auth: &Auth,
-    ) {
-        let metadata = request::metadata_mut(req);
-        df::add(metadata, AuthTransferRequestDfKey {}, type_name::get<Auth>());
-    }
-
-    /// What's the authority that created this request?
-    public fun get_transfer_request_auth<T>(req: &TransferRequest<T>): &TypeName {
-        get_transfer_request_auth_(ob_transfer_request::inner(req))
-    }
-
-    /// What's the authority that created this request?
-    public fun get_transfer_request_auth_<T, P>(
-        req: &RequestBody<WithNft<T, P>>,
-    ): &TypeName {
-        let metadata = request::metadata(req);
-        df::borrow(metadata, AuthTransferRequestDfKey {})
-    }
 
     // === De-listing of NFTs ===
 

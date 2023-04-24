@@ -99,7 +99,10 @@ module nft_protocol::request {
 
     /// Adds a `Receipt` to the `RequestBody`, unblocking the request and
     /// confirming that the policy RequestBodys are satisfied.
-    public fun add_receipt<P, Rule>(self: &mut RequestBody<P>, _rule: &Rule) {
+    public fun add_receipt<P, Rule: drop>(
+        self: &mut RequestBody<P>,
+        _rule: Rule,
+    ) {
         vec_set::insert(&mut self.receipts, type_name::get<Rule>())
     }
 
