@@ -28,7 +28,7 @@ module nft_protocol::transfer_allowlist {
     use sui::dynamic_field as df;
 
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use sui::transfer_policy::{Self, TransferPolicy, TransferPolicyCap};
+    use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::witness::Witness as DelegatedWitness;
@@ -359,16 +359,28 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Registers collection to use `Allowlist` during the transfer.
-    public fun enforce<T, P>(
-        policy: &mut Policy<WithNft<T, P>>,
-        cap: &PolicyCap,
-    ) {
-        transfer_policy::add_rule<T, AllowlistRule, bool>(
+    public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
+        ob_transfer_request::add_originbyte_rule<T, AllowlistRule, bool>(
             AllowlistRule {}, policy, cap, false,
         );
     }
 
-    public fun drop<T, P>(
+    public fun drop<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
+        ob_transfer_request::remove_originbyte_rule<T, AllowlistRule, bool>(
+            policy, cap,
+        );
+    }
+
+    public fun enforce_<T, P>(
+        policy: &mut Policy<WithNft<T, P>>,
+        cap: &PolicyCap,
+    ) {
+        request::enforce_rule_no_state<WithNft<T, P>, AllowlistRule>(
+            policy, cap,
+        );
+    }
+
+    public fun drop_<T, P>(
         policy: &mut Policy<WithNft<T, P>>,
         cap: &PolicyCap,
     ) {
@@ -383,7 +395,9 @@ module nft_protocol::transfer_allowlist {
         self: &Allowlist,
         req: &mut TransferRequest<T>,
     ) {
-        confirm_transfer_(self, ob_transfer_request::inner_mut(req))
+        let auth = ob_kiosk::get_transfer_request_auth(req);
+        assert_transferable<T>(self, auth);
+        ob_transfer_request::add_receipt(req, AllowlistRule {});
     }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.
