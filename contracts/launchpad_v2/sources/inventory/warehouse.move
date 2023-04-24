@@ -125,7 +125,6 @@ module launchpad_v2::warehouse {
             if (*inv_id == warehouse_id) {
                 vector::remove(inventories, len);
 
-
                 let rel_index = vector::remove(nft, len);
 
                 let index = math::divide_and_round_up(
