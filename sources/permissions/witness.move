@@ -93,4 +93,10 @@ module nft_protocol::witness {
         assert!(module_a == module_b, EInvalidWitnessModule);
         assert!(witness_type == std::string::utf8(b"Witness"), EInvalidWitness);
     }
+
+    // === Test Only ===
+    #[test_only]
+    public fun test_dw<T>(): Witness<T> {
+        Witness {}
+    }
 }
