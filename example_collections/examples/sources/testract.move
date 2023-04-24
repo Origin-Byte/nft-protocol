@@ -15,10 +15,6 @@ module examples::testract {
     use nft_protocol::bidding;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display_info;
-    use nft_protocol::fixed_price;
-    use nft_protocol::inventory;
-    use nft_protocol::limited_fixed_price;
-    use nft_protocol::listing;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
     use nft_protocol::ob_kiosk;
@@ -30,8 +26,13 @@ module examples::testract {
     use nft_protocol::symbol;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
-    use nft_protocol::warehouse;
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
+
+    use launchpad::fixed_price;
+    use launchpad::inventory;
+    use launchpad::limited_fixed_price;
+    use launchpad::listing;
+    use launchpad::warehouse;
 
     use std::option;
     use std::string::{String, utf8};
@@ -113,22 +114,19 @@ module examples::testract {
     ///
     /// Store allowlist object ID.
     public entry fun create_allowlist(
-        collection: &mut Collection<TestNft>, ctx: &mut TxContext,
+        collection: &mut Collection<TestNft>,
+        ctx: &mut TxContext,
     ) {
-        // the `AllowlistAdmin` is used as a type in `DeletegatedWitness<T>`
-        // to authorize admin actions on the allowlist
-        let al = transfer_allowlist::create(allowlist_wit(), ctx);
+        let (al, al_cap) = transfer_allowlist::new(ctx);
 
         // orderbooks can perform trades with our allowlist
-        transfer_allowlist::insert_authority<AllowlistAdmin, orderbook::Witness>(allowlist_wit(), &mut al);
+        transfer_allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
         // bidding contract can perform trades too
-        transfer_allowlist::insert_authority<AllowlistAdmin, bidding::Witness>(allowlist_wit(), &mut al);
+        transfer_allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
         // our allowlist can authorize on behalf of the collection TestNft
-        transfer_allowlist::insert_collection(
-            allowlist_wit(),
-            col_wit(),
-            &mut al,
-        );
+        transfer_allowlist::insert_collection_with_witness(col_wit(), &mut al);
+
+        transfer_allowlist::delete_owner_cap(al_cap);
 
         // stores the information about the allowlist in the collection for
         // off-chain clients
@@ -472,10 +470,6 @@ module examples::testract {
     }
 
     /// === Helpers ====
-
-    fun allowlist_wit(): DelegatedWitness<AllowlistAdmin> {
-        witness::from_witness(Witness {})
-    }
 
     fun col_wit(): DelegatedWitness<TestNft> {
         witness::from_witness(Witness{})

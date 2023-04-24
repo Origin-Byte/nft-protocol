@@ -11,9 +11,10 @@ module examples::tribal_realms {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::composable_nft::{Self as c_nft};
     use nft_protocol::witness;
+
+    use launchpad::warehouse::{Self, Warehouse};
 
     /// One time witness is only instantiated in the init method
     struct TRIBAL_REALMS has drop {}

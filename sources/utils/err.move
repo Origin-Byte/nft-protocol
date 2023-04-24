@@ -3,60 +3,6 @@
 module nft_protocol::err {
     const Prefix: u64 = 13370000;
 
-    // === Marketplace ===
-
-    public fun wrong_marketplace_admin(): u64 {
-        return Prefix + 201
-    }
-
-    public fun marketplace_listing_mismatch(): u64 {
-        return Prefix + 210
-    }
-
-    public fun wrong_marketplace_or_listing_admin(): u64 {
-        return Prefix + 211
-    }
-
-    public fun wrong_fee_policy_type(): u64 {
-        return Prefix + 213
-    }
-
-    public fun has_custom_fee_policy(): u64 {
-        return Prefix + 214
-    }
-
-    public fun listing_already_attached_to_marketplace(): u64 {
-        return Prefix + 219
-    }
-
-    public fun listing_has_not_applied_to_this_marketplace(): u64 {
-        return Prefix + 219
-    }
-
-    public fun action_exclusive_to_standalone_listings(): u64 {
-        return Prefix + 219
-    }
-
-    // === Auction ===
-
-    public fun order_does_not_exist(): u64 {
-        return Prefix + 301
-    }
-
-    public fun order_owner_must_be_sender(): u64 {
-        return Prefix + 302
-    }
-
-    public fun order_price_below_reserve(): u64 {
-        return Prefix + 303
-    }
-
-    // === Trading ===
-
-    public fun sender_not_owner(): u64 {
-        return Prefix + 700
-    }
-
     // === Domains ===
 
     public fun address_not_attributed(): u64 {

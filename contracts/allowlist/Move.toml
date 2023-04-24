@@ -1,0 +1,16 @@
+[package]
+name = "Allowlist"
+version = "0.0.1"
+published-at = "0x"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-framework"
+# testnet-0.32.0
+rev = "cab7e9762d4d75126a78fdd009b405745657fe57"
+
+[dependencies.NftProtocol]
+local = "./../../"
+
+[addresses]
+allowlist = "0x"

@@ -20,8 +20,12 @@ module examples::suitraders {
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
-    use nft_protocol::warehouse::{Self, Warehouse};
     use nft_protocol::witness;
+
+    use launchpad::listing;
+    use launchpad::fixed_price;
+    use launchpad::dutch_auction;
+    use launchpad::warehouse::{Self, Warehouse};
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -90,17 +94,17 @@ module examples::suitraders {
         // Setup primary market. Note that this step can also be done
         // not in the init function but on the client side by calling
         // the launchpad functions directly
-        let listing = nft_protocol::listing::new(
+        let listing = listing::new(
             tx_context::sender(ctx),
             tx_context::sender(ctx),
             ctx,
         );
 
-        let inventory_id = nft_protocol::listing::create_warehouse<Suitrader>(
+        let inventory_id = listing::create_warehouse<Suitrader>(
             &mut listing, ctx
         );
 
-        nft_protocol::fixed_price::init_venue<Suitrader, sui::sui::SUI>(
+        fixed_price::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -108,7 +112,7 @@ module examples::suitraders {
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_venue<Suitrader, sui::sui::SUI>(
+        dutch_auction::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
