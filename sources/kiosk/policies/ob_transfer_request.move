@@ -61,7 +61,6 @@ module nft_protocol::ob_transfer_request {
     // === Structs ===
 
     struct Witness has drop {}
-    struct OB_TRANSFER_REQUEST has drop {}
 
     /// A "Hot Potato" forcing the buyer to get a transfer permission
     /// from the item type (`T`) owner on purchase attempt.
@@ -214,7 +213,7 @@ module nft_protocol::ob_transfer_request {
     /// Therefore, it really makes sense to call this function immediately
     /// after one got the `TransferRequest`.
     public fun into_sui<T>(
-        self: TransferRequest<T>, policy: &mut TransferPolicy<T>, ctx: &mut TxContext,
+        self: TransferRequest<T>, policy: &TransferPolicy<T>, ctx: &mut TxContext,
     ): SuiTransferRequest<T> {
         // Assert no custom rules
         assert!(

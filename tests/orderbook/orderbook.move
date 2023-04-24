@@ -10,8 +10,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
     use nft_protocol::ob_kiosk::{Self, OwnerToken};
-    use nft_protocol::request::{Policy, WithNft};
-    use nft_protocol::ob_transfer_request::{Self, OB_TRANSFER_REQUEST};
+    use nft_protocol::ob_transfer_request;
     use nft_protocol::orderbook::{Self, Orderbook, TradeIntermediate};
     use nft_protocol::test_utils::{Self, Foo,  seller, buyer, creator};
     // use std::debug;
@@ -86,7 +85,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
 
         test_scenario::next_tx(&mut scenario, seller());
         let trade = test_scenario::take_shared<TradeIntermediate<Foo, SUI>>(&mut scenario);
-        let tx_policy = test_scenario::take_shared<Policy<WithNft<Foo, OB_TRANSFER_REQUEST>>>(&mut scenario);
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
         let request = orderbook::finish_trade(
             &mut book,
@@ -178,7 +177,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
-        let sui_request = ob_transfer_request::into_sui<Foo>(request, ctx(&mut scenario));
+        let sui_request = ob_transfer_request::into_sui<Foo>(request, &tx_policy, ctx(&mut scenario));
         transfer_policy::confirm_request<Foo>(&tx_policy, sui_request);
 
         coin::burn_for_testing(coin);
@@ -265,7 +264,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
-        let sui_request = ob_transfer_request::into_sui<Foo>(request, ctx(&mut scenario));
+        let sui_request = ob_transfer_request::into_sui<Foo>(request, &tx_policy, ctx(&mut scenario));
         transfer_policy::confirm_request<Foo>(&tx_policy, sui_request);
 
         // 7. Leave OriginByte
