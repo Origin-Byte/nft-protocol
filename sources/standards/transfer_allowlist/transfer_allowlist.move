@@ -28,9 +28,9 @@ module nft_protocol::transfer_allowlist {
     use sui::dynamic_field as df;
 
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::witness::Witness as DelegatedWitness;
+    use nft_protocol::rule_deposit;
 
     use std::option::{Self, Option};
     use std::string::utf8;
@@ -99,7 +99,7 @@ module nft_protocol::transfer_allowlist {
     ///
     /// That's because the sui implementation of `TransferRequest` is simplified
     /// and does not support safe metadata about the originator of the transfer.
-    struct AllowlistRule has drop {}
+    struct AllowlistReceipt has drop {}
 
     /// Creates a new `Allowlist`
     public fun new(ctx: &mut TxContext): (Allowlist, AllowlistOwnerCap) {
@@ -346,54 +346,66 @@ module nft_protocol::transfer_allowlist {
 
     // === Transfers ===
 
-    /// Checks whether given authority witness is in the allowlist, and also
-    /// whether given collection witness (T) is in the allowlist.
-    public fun can_be_transferred<T>(
-        self: &Allowlist,
-        auth: &TypeName,
-        collection: TypeName,
-    ): bool {
-        contains_authority(self, auth) &&
-            contains_collection(self, collection)
-    }
-
-    /// Registers collection to use `Allowlist` during the transfer.
+    /// Use `Allowlist` to validate authorities during transfer
+    ///
+    /// `DepositRule` authority will be validated
     public fun enforce<T, P>(
         policy: &mut Policy<WithNft<T, P>>,
         cap: &PolicyCap,
     ) {
-        request::enforce_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
+        request::enforce_rule_no_state<WithNft<T, P>, AllowlistReceipt>(policy, cap);
     }
 
+    /// Don't use `Allowlist` to validate authorities during transfer
+    ///
+    /// `DepositRule` authority will be validated
     public fun drop<T, P>(
         policy: &mut Policy<WithNft<T, P>>,
         cap: &PolicyCap,
     ) {
-        request::drop_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
+        request::drop_rule_no_state<WithNft<T, P>, AllowlistReceipt>(policy, cap);
     }
 
-    /// Confirms that the transfer is allowed by the `Allowlist`.
-    /// It adds a signature to the request.
-    /// In the end, if the allowlist rule is included in the transfer policy,
-    /// the transfer request can only be finished if this rule is present.
+    /// Confirms that the transfer is allowed by the `Allowlist`
+    ///
+    /// Asserts that `DepositRule` is present as metadata on request. Ensures
+    /// that for any arbitrary transaction the NFT has ended up in a trusted
+    /// location.
+    ///
+    /// #### Panics
+    ///
+    /// * `DepositRule` is not present as metadata on request
+    /// * `DepositRule` NFT type or authority is not valid for `Allowlist`
     public fun confirm_transfer<T>(
-        self: &Allowlist,
         req: &mut TransferRequest<T>,
+        self: &Allowlist,
     ) {
-        confirm_transfer_(self, ob_transfer_request::inner_mut(req))
+        confirm_transfer_(ob_transfer_request::inner_mut(req), self)
     }
 
-    /// Confirms that the transfer is allowed by the `Allowlist`.
-    /// It adds a signature to the request.
-    /// In the end, if the allowlist rule is included in the transfer policy,
-    /// the transfer request can only be finished if this rule is present.
+    /// Confirms that the transfer is allowed by the `Allowlist`
+    ///
+    /// Asserts that `DepositRule` is present as metadata on request. Ensures
+    /// that for any arbitrary transaction the NFT has ended up in a trusted
+    /// location.
+    ///
+    /// #### Panics
+    ///
+    /// * `DepositRule` is not present as metadata on request
+    /// * `DepositRule` NFT type or authority is not valid for `Allowlist`
     public fun confirm_transfer_<T, P>(
-        self: &Allowlist,
         req: &mut RequestBody<WithNft<T, P>>,
+        self: &Allowlist,
     ) {
-        let auth = ob_kiosk::get_transfer_request_auth_(req);
-        assert_transferable<T>(self, auth);
-        request::add_receipt(req, &AllowlistRule {});
+        let metadata = request::metadata(req);
+        let deposit_rule = rule_deposit::borrow_metadata(metadata);
+
+        assert_transferable(
+            self,
+            *rule_deposit::borrow_nft_type(deposit_rule),
+            rule_deposit::borrow_authority(deposit_rule),
+        );
+        request::add_receipt(req, &AllowlistReceipt {});
     }
 
     // === Assertions ===
@@ -459,8 +471,12 @@ module nft_protocol::transfer_allowlist {
     ///
     /// Panics if neither `T` is not transferrable or `Auth` is not a
     /// valid authority.
-    public fun assert_transferable<T>(allowlist: &Allowlist, auth: &TypeName) {
-        assert_collection(allowlist, type_name::get<T>());
+    public fun assert_transferable(
+        allowlist: &Allowlist,
+        nft_type: TypeName,
+        auth: &TypeName,
+    ) {
+        assert_collection(allowlist, nft_type);
         assert_authority(allowlist, auth);
     }
 

@@ -21,4 +21,17 @@ module allowlist::allowlist {
         transfer::public_transfer(al_cap, tx_context::sender(ctx));
         transfer::public_share_object(al);
     }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+
+    #[test]
+    fun test_peer_to_peer_flow() {
+
+    }
+
+    #[test]
+    fun test_bidding_flow() {
+
+    }
 }
