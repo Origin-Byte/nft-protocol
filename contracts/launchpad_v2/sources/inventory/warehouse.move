@@ -16,8 +16,6 @@ module launchpad_v2::warehouse {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
-    use nft_protocol::redeem_random::{Self, RedeemCommitment};
-
     use launchpad_v2::venue::{Self, NftCert};
     use launchpad_v2::redeem_strategy;
 
@@ -45,6 +43,30 @@ module launchpad_v2::warehouse {
     const EInvalidNft: u64 = 4;
 
     const EUnsupportedRedeemStrategy: u64 = 5;
+
+        /// Attempted to construct a `RedeemCommitment` with a hash length
+    /// different than 32 bytes
+    const EInvalidCommitmentLength: u64 = 6;
+
+    /// Commitment in `RedeemCommitment` did not match original value committed
+    ///
+    /// Call `warehouse::random_redeem_nft` with the correct commitment.
+    const EInvalidCommitment: u64 = 7;
+
+    /// Used for the client to commit a pseudo-random
+    struct RedeemCommitment has key {
+        /// `RedeemCommitment` ID
+        id: UID,
+        /// Hashed sender commitment
+        ///
+        /// Sender will have to provide the pre-hashed value to be able to use
+        /// this `RedeemCommitment`. This value can be pseudo-random as long
+        /// as it is not predictable by the validator.
+        hashed_sender_commitment: vector<u8>,
+        /// Open commitment made by validator
+        contract_commitment: vector<u8>,
+    }
+
 
     struct Witness has drop {}
 
@@ -284,13 +306,29 @@ module launchpad_v2::warehouse {
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
     ): T {
-        let (_, contract_commitment) =
-            redeem_random::consume_commitment(commitment, user_commitment);
+        // let (_, contract_commitment) =
+        //     redeem_random::consume_commitment(commitment, user_commitment);
 
         // Construct randomized index
         let supply = supply(warehouse);
         assert!(supply != 0, EEmpty);
 
+        // Verify user commitment
+        let RedeemCommitment {
+            id,
+            hashed_sender_commitment,
+            contract_commitment
+        } = commitment;
+
+        object::delete(id);
+
+        let user_commitment = std::hash::sha3_256(user_commitment);
+        assert!(
+            user_commitment == hashed_sender_commitment,
+            EInvalidCommitment,
+        );
+
+        // Construct randomized index
         vector::append(&mut user_commitment, contract_commitment);
         // Use supply of `Warehouse` as a additional nonce factor
         vector::append(&mut user_commitment, sui::bcs::to_bytes(&supply));
