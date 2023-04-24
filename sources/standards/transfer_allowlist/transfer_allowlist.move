@@ -19,20 +19,22 @@
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
 module nft_protocol::transfer_allowlist {
+    use sui::display;
+    use sui::object::{Self, ID, UID};
+    use sui::package::{Self, Publisher};
+    use sui::transfer;
+    use sui::tx_context::{Self, TxContext};
+    use sui::vec_set::{Self, VecSet};
+    use sui::dynamic_field as df;
+
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
-    use nft_protocol::utils;
     use nft_protocol::witness::Witness as DelegatedWitness;
+
     use std::option::{Self, Option};
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
-    use sui::display;
-    use sui::object::{Self, UID};
-    use sui::package::{Self, Publisher};
-    use sui::transfer::{Self, public_share_object};
-    use sui::tx_context::TxContext;
-    use sui::vec_set::{Self, VecSet};
 
     // === Errors ===
 
@@ -49,27 +51,44 @@ module nft_protocol::transfer_allowlist {
     /// Call `insert_collection` to insert a collection.
     const EInvalidCollection: u64 = 2;
 
+    /// Collection was already registered
+    const EExistingCollection: u64 = 3;
+
     /// Invalid transfer authority
     ///
     /// Call `insert_authority` to insert an authority.
-    const EInvalidAuthority: u64 = 3;
+    const EInvalidAuthority: u64 = 4;
+
+    /// Transfer authority was already registered
+    const EExistingAuthority: u64 = 5;
 
     // === Structs ===
 
     struct Allowlist has key, store {
+        /// `Allowlist` ID
         id: UID,
-        /// We don't store it as generic because then it has to be propagated
-        /// around and it's very unergonomic.
-        admin_witness: TypeName,
-        /// Which collections does this allowlist apply to?
-        ///
-        /// We use reflection to avoid generics.
-        collections: VecSet<TypeName>,
-        /// If None, then there's no allowlist and everyone is allowed.
-        ///
-        /// Otherwise we use a witness pattern but store the witness object as
-        /// the output of `type_name::get`.
-        authorities: Option<VecSet<TypeName>>,
+        /// `Allowlist` is controlled by `AllowlistOwnerCap` but can be
+        /// optionally configured to be controlled by a contract identified by
+        /// the admin witness
+        admin_witness: Option<TypeName>,
+        /// Witnesses of contracts which are allowed to trade under this
+        /// `Allowlist`
+        //
+        // We do not expect a large number of authorities therefore expect
+        // that vector lookup is cheaper than dynamic fields.
+        authorities: VecSet<TypeName>,
+    }
+
+    struct AllowlistOwnerCap has key, store {
+        /// `AllowlistOwnerCap` ID
+        id: UID,
+        /// `Allowlist` ID
+        for: ID,
+    }
+
+    /// Key used to index applicable collections on `Allowlist`
+    struct CollectionKey {
+        type_name: TypeName,
     }
 
     /// `sui::transfer_policy::TransferPolicy` can have this rule to enforce
@@ -82,158 +101,256 @@ module nft_protocol::transfer_allowlist {
     /// and does not support safe metadata about the originator of the transfer.
     struct AllowlistRule has drop {}
 
-    // === Management ===
-
     /// Creates a new `Allowlist`
-    public fun create<Admin>(
-        _witness: DelegatedWitness<Admin>, ctx: &mut TxContext,
-    ): Allowlist {
-        Allowlist {
+    public fun new(ctx: &mut TxContext): (Allowlist, AllowlistOwnerCap) {
+        new_with_authorities(vec_set::empty(), ctx)
+    }
+
+    /// Creates a new `Allowlist` with preset authorities
+    public fun new_with_authorities(
+        authorities: VecSet<TypeName>,
+        ctx: &mut TxContext,
+    ): (Allowlist, AllowlistOwnerCap) {
+        let allowlist_id = object::new(ctx);
+
+        let cap = AllowlistOwnerCap {
             id: object::new(ctx),
-            admin_witness: type_name::get<Admin>(),
-            collections: vec_set::empty(),
-            authorities: option::none(),
-        }
+            for: object::uid_to_inner(&allowlist_id),
+        };
+
+        let allowlist = Allowlist {
+            id: allowlist_id,
+            admin_witness: option::none(),
+            authorities,
+        };
+
+        (allowlist, cap)
+    }
+
+    /// Clone an existing `Allowlist`
+    public fun clone(
+        allowlist: &Allowlist,
+        ctx: &mut TxContext,
+    ): (Allowlist, AllowlistOwnerCap) {
+        new_with_authorities(*borrow_authorities(allowlist), ctx)
     }
 
     /// Creates and shares a new `Allowlist`
-    public fun init_allowlist<Admin>(
-        witness: DelegatedWitness<Admin>, ctx: &mut TxContext,
-    ) {
-        transfer::public_share_object(create(witness, ctx));
+    public entry fun init_allowlist(ctx: &mut TxContext) {
+        let (allowlist, cap) = new(ctx);
+
+        transfer::public_transfer(cap, tx_context::sender(ctx));
+        transfer::public_share_object(allowlist);
     }
 
-    public fun insert_collection<T, Admin>(
-        _allowlist_witness: DelegatedWitness<Admin>,
-        _collection_witness: DelegatedWitness<T>,
-        self: &mut Allowlist,
-    ) {
-        assert_admin_witness<Admin>(self);
-        vec_set::insert(&mut self.collections, type_name::get<T>());
+    /// Clones and shares a new `Allowlist`
+    public entry fun init_cloned(
+        allowlist: &Allowlist,
+        ctx: &mut TxContext,
+    ): (Allowlist, AllowlistOwnerCap) {
+        new_with_authorities(*borrow_authorities(allowlist), ctx)
     }
 
-    /// To add a collection to the list, we need a confirmation by both the
-    /// allowlist authority and the collection creator via publisher.
+    /// Borrows authorities from `Allowlist`
+    public fun borrow_authorities(self: &Allowlist): &VecSet<TypeName> {
+        &self.authorities
+    }
+
+    /// Delete `AllowlistOwnerCap`
     ///
-    /// If the allowlist authority wants to enable any creator to add their
-    /// collection to the allowlist, they can reexport this function in their
-    /// module without the witness protection.
-    /// However, we opt for witness protection to give the allowlist owner a way
-    /// to combat spam.
-    public fun insert_collection_with_publisher<T, Admin>(
-        _witness: DelegatedWitness<Admin>,
-        self: &mut Allowlist,
-        collection_pub: &Publisher,
-    ) {
-        utils::assert_package_publisher<T>(collection_pub);
-        assert_admin_witness<Admin>(self);
-
-        vec_set::insert(&mut self.collections, type_name::get<T>());
+    /// This will make it impossible to insert or remove authorities from the
+    /// `Allowlist` that `AllowlistOwnerCap` controlled.
+    public entry fun delete_owner_cap(owner_cap: AllowlistOwnerCap) {
+        let AllowlistOwnerCap { id, for: _ } = owner_cap;
+        object::delete(id);
     }
 
-    /// Any collection is allowed to remove itself from any allowlist at any
-    /// time.
-    ///
-    /// It's always the creator's right to decide at any point what authorities
-    /// can transfer NFTs of that collection.
-    public fun remove_itself<T>(
-        _witness: DelegatedWitness<T>, self: &mut Allowlist,
-    ) {
-        vec_set::remove(&mut self.collections, &type_name::get<T>());
+    /// Create a new `Allowlist` controlled by an admin witness
+    public fun new_embedded<Admin: drop>(
+        witness: Admin,
+        ctx: &mut TxContext,
+    ): Allowlist {
+        new_embedded_with_authorities(witness, vec_set::empty(), ctx)
     }
 
-    /// Any collection is allowed to remove itself from any allowlist at any
-    /// time.
-    ///
-    /// It's always the creator's right to decide at any point what authorities
-    /// can transfer NFTs of that collection.
-    public fun remove_itself_with_publisher<T>(
-        self: &mut Allowlist, collection_pub: &Publisher,
-    ) {
-        utils::assert_package_publisher<T>(collection_pub);
-        vec_set::remove(&mut self.collections, &type_name::get<T>());
-    }
-
-    /// The allowlist owner can remove any collection at any point.
-    public fun remove_collection<T, Admin>(
-        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
-    ) {
-        assert_admin_witness<Admin>(self);
-        vec_set::remove(&mut self.collections, &type_name::get<T>());
-    }
-
-    /// Removes all collections from this list.
-    public fun clear_collections<Admin>(
-        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
-    ) {
-        assert_admin_witness<Admin>(self);
-        self.collections = vec_set::empty();
-    }
-
-    /// To insert a new authority into a list we need confirmation by the
-    /// allowlist authority (via witness.)
-    public fun insert_authority<Admin, Auth>(
-        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
-    ) {
-        assert_admin_witness<Admin>(self);
-
-        if (option::is_none(&self.authorities)) {
-            self.authorities = option::some(
-                vec_set::singleton(type_name::get<Auth>())
-            );
-        } else {
-            vec_set::insert(
-                option::borrow_mut(&mut self.authorities),
-                type_name::get<Auth>(),
-            );
+    /// Create a new `Allowlist` controlled by an admin witness with preset
+    /// authorities
+    public fun new_embedded_with_authorities<Admin: drop>(
+        _witness: Admin,
+        authorities: VecSet<TypeName>,
+        ctx: &mut TxContext,
+    ): Allowlist {
+        Allowlist {
+            id: object::new(ctx),
+            admin_witness: option::some(type_name::get<Admin>()),
+            authorities,
         }
     }
 
-    /// The allowlist authority (via witness) can at any point remove any
-    /// authority from their list.
+    // === Collection management ===
+
+    /// Check if collection `T` is registered on `Allowlist`
+    public fun contains_collection(
+        self: &Allowlist,
+        collection: TypeName,
+    ): bool {
+        df::exists_(&self.id, collection)
+    }
+
+    /// Register collection `T` with `Allowlist` using `Publisher`
     ///
-    /// If this is the last authority in the list, we do NOT go back to a free
-    /// for all allowlist.
-    public fun remove_authority<Admin, Auth>(
-        _witness: DelegatedWitness<Admin>, self: &mut Allowlist,
+    /// #### Panics
+    ///
+    /// Panics if `Publisher` is not of type `T`.
+    public entry fun insert_collection<T>(
+        self: &mut Allowlist,
+        collection_pub: &Publisher,
+    ) {
+        assert_publisher<T>(collection_pub);
+        insert_collection_<T>(self)
+    }
+
+    /// Register collection `T` with `Allowlist` using collection witness
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Publisher` is not of type `T`.
+    public fun insert_collection_with_witness<T>(
+        _witness: DelegatedWitness<T>,
+        self: &mut Allowlist,
+    ) {
+        insert_collection_<T>(self)
+    }
+
+    /// Register collection and provide error reporting
+    fun insert_collection_<T>(self: &mut Allowlist) {
+        let collection = type_name::get<T>();
+        assert!(!contains_collection(self, collection), EExistingCollection);
+        df::add(&mut self.id, collection, true);
+    }
+
+    /// Deregister collection `T` with `Allowlist` using `Publisher`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Publisher` is not of type `T` or collection was not
+    /// registered
+    public entry fun remove_collection<T>(
+        self: &mut Allowlist,
+        collection_pub: &Publisher,
+    ) {
+        assert_publisher<T>(collection_pub);
+        remove_collection_<T>(self)
+    }
+
+    /// Deregister collection `T` with `Allowlist` using collection witness
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Publisher` is not of type `T` or collection was not
+    /// registered
+    public fun remove_collection_with_witness<T>(
+        _witness: DelegatedWitness<T>,
+        self: &mut Allowlist,
+    ) {
+        remove_collection_<T>(self)
+    }
+
+    /// Register collection and provide error reporting
+    public entry fun remove_collection_<T>(self: &mut Allowlist) {
+        let collection_type = type_name::get<T>();
+        assert_collection(self, collection_type);
+        df::remove<TypeName, bool>(&mut self.id, collection_type);
+    }
+
+    // === Authority management ===
+
+    /// Returns whether `Allowlist` contains authority
+    public fun contains_authority(self: &Allowlist, auth: &TypeName): bool {
+        vec_set::contains(&self.authorities, auth)
+    }
+
+    /// Insert a new authority into `Allowlist` using admin witness
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the provided `AllowlistOwnerCap` is not the `Allowlist`
+    /// admin.
+    public entry fun insert_authority<Auth>(
+        cap: &AllowlistOwnerCap,
+        self: &mut Allowlist,
+    ) {
+        assert_cap(self, cap);
+        insert_authority_<Auth>(self)
+    }
+
+    /// Insert a new authority into `Allowlist` using admin witness
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the provided witness is not the `Allowlist` admin, use
+    /// `insert_authority` endpoint instead.
+    public fun insert_authority_with_witness<Admin: drop, Auth>(
+        _witness: Admin,
+        self: &mut Allowlist,
     ) {
         assert_admin_witness<Admin>(self);
+        insert_authority_<Auth>(self)
+    }
 
-        vec_set::remove(
-            option::borrow_mut(&mut self.authorities),
-            &type_name::get<Auth>(),
-        );
+    /// Register authority and provide error reporting
+    fun insert_authority_<Auth>(self: &mut Allowlist) {
+        let collection = type_name::get<Auth>();
+        assert!(!contains_authority(self, &collection), EExistingAuthority);
+        vec_set::insert(&mut self.authorities, collection);
+    }
+
+    /// Remove authority from `Allowlist`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the provided `AllowlistOwnerCap` is not the `Allowlist`
+    /// admin.
+    public entry fun remove_authority<Auth>(
+        cap: &AllowlistOwnerCap,
+        self: &mut Allowlist,
+    ) {
+        assert_cap(self, cap);
+        remove_authority_<Auth>(self)
+    }
+
+    /// Remove authority from `Allowlist` using admin witness
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the provided witness is not the `Allowlist` admin, use
+    /// `remove_authority` endpoint instead.
+    public fun remove_authority_with_witness<Admin: drop, Auth>(
+        _witness: Admin,
+        self: &mut Allowlist,
+    ) {
+        assert_admin_witness<Admin>(self);
+        remove_authority_<Auth>(self)
+    }
+
+    /// Deregister authority and provide error reporting
+    fun remove_authority_<Auth>(self: &mut Allowlist) {
+        let authority = type_name::get<Auth>();
+        assert_authority(self, &authority);
+        vec_set::remove(&mut self.authorities, &authority);
     }
 
     // === Transfers ===
 
     /// Checks whether given authority witness is in the allowlist, and also
     /// whether given collection witness (T) is in the allowlist.
-    public fun can_be_transferred<T>(self: &Allowlist, auth: &TypeName): bool {
+    public fun can_be_transferred<T>(
+        self: &Allowlist,
+        auth: &TypeName,
+        collection: TypeName,
+    ): bool {
         contains_authority(self, auth) &&
-            contains_collection<T>(self)
-    }
-
-    /// Returns whether `Allowlist` contains collection `T`
-    public fun contains_collection<T>(self: &Allowlist): bool {
-        vec_set::contains(&self.collections, &type_name::get<T>())
-    }
-
-    /// Returns whether `Allowlist` contains type
-    public fun contains_authority(self: &Allowlist, auth: &TypeName): bool {
-        if (option::is_none(&self.authorities)) {
-            // If no authorities are defined this effectively means that all
-            // authorities are registered.
-            true
-        } else {
-            let e = option::borrow(&self.authorities);
-            vec_set::contains(e, auth)
-        }
-    }
-
-    /// Returns whether `Allowlist` requires an authority to transfer
-    public fun requires_authority(self: &Allowlist): bool {
-        option::is_some(&self.authorities)
+            contains_collection(self, collection)
     }
 
     /// Registers collection to use `Allowlist` during the transfer.
@@ -269,14 +386,34 @@ module nft_protocol::transfer_allowlist {
 
     // === Assertions ===
 
+    /// Asserts that `Publisher` is of type `T`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Publisher` is mismatched
+    public fun assert_publisher<T>(pub: &Publisher) {
+        assert!(package::from_package<T>(pub), EPackagePublisherMismatch);
+    }
+
+    /// Asserts that `AllowlistOwnerCap` is admin of `Allowlist`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if admin is mismatched.
+    public fun assert_cap(list: &Allowlist, cap: &AllowlistOwnerCap) {
+        assert!(&cap.for == &object::id(list), EInvalidAdmin)
+    }
+
     /// Asserts that witness is admin of `Allowlist`
     ///
     /// #### Panics
     ///
-    /// Panics if admin is mismatched
-    public fun assert_admin_witness<Admin>(list: &Allowlist) {
+    /// Panics if admin is mismatched or `Allowlist` cannot be controlled using
+    /// witness.
+    public fun assert_admin_witness<Admin: drop>(list: &Allowlist) {
+        assert!(option::is_some(&list.admin_witness), EInvalidAdmin);
         assert!(
-            type_name::get<Admin>() == list.admin_witness,
+            &type_name::get<Admin>() == option::borrow(&list.admin_witness),
             EInvalidAdmin,
         );
     }
@@ -286,28 +423,32 @@ module nft_protocol::transfer_allowlist {
     /// #### Panics
     ///
     /// Panics if `T` may not be transferred.
-    public fun assert_collection<T>(allowlist: &Allowlist) {
+    public fun assert_collection(allowlist: &Allowlist, collection: TypeName) {
         assert!(
-            contains_collection<T>(allowlist), EInvalidCollection,
+            contains_collection(allowlist, collection), EInvalidCollection,
         );
     }
 
-    /// Assert that `auth` type may be used to transfer using this `Allowlist`
+    /// Assert that authority may be used to transfer using this `Allowlist`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `T` may not be used.
     public fun assert_authority(allowlist: &Allowlist, auth: &TypeName) {
         assert!(
             contains_authority(allowlist, auth), EInvalidAuthority,
         );
     }
 
-    /// Assert that `C` is transferrable and `Auth` may be used to
+    /// Assert that `T` is transferrable and `Auth` may be used to
     /// transfer using this `Allowlist`.
     ///
     /// #### Panics
     ///
-    /// Panics if neither `C` is not transferrable or `Auth` is not a
+    /// Panics if neither `T` is not transferrable or `Auth` is not a
     /// valid authority.
     public fun assert_transferable<T>(allowlist: &Allowlist, auth: &TypeName) {
-        assert_collection<T>(allowlist);
+        assert_collection(allowlist, type_name::get<T>());
         assert_authority(allowlist, auth);
     }
 
@@ -320,14 +461,14 @@ module nft_protocol::transfer_allowlist {
         let display = display::new<Allowlist>(&publisher, ctx);
 
         display::add(&mut display, utf8(b"name"), utf8(b"Transfer Allowlist"));
-        display::add(&mut display, utf8(b"link"), utils::originbyte_docs_url());
+        display::add(&mut display, utf8(b"link"), nft_protocol::utils::originbyte_docs_url());
         display::add(
             &mut display,
             utf8(b"description"),
-            utf8(b"Which authorities can transfer NFTs of which collections"),
+            utf8(b"Defines which contracts are allowed to transfer collections"),
         );
 
-        public_share_object(display);
+        transfer::public_share_object(display);
         package::burn_publisher(publisher);
     }
 }
