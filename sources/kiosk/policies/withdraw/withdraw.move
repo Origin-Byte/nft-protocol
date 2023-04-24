@@ -36,7 +36,10 @@ module nft_protocol::withdraw_request {
 
     /// Adds a `Receipt` to the `Request`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<T, Rule>(self: &mut WithdrawRequest<T>, rule: &Rule) {
+    public fun add_receipt<T, Rule: drop>(
+        self: &mut WithdrawRequest<T>,
+        rule: Rule,
+    ) {
         request::add_receipt(&mut self.inner, rule);
     }
 

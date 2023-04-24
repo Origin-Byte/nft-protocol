@@ -61,7 +61,10 @@ module nft_protocol::borrow_request {
 
     /// Adds a `Receipt` to the `Request`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<Auth: drop, T: key + store, Rule>(self: &mut BorrowRequest<Auth, T>, rule: &Rule) {
+    public fun add_receipt<Auth: drop, T: key + store, Rule: drop>(
+        self: &mut BorrowRequest<Auth, T>,
+        rule: Rule,
+    ) {
         request::add_receipt(&mut self.inner, rule);
     }
 

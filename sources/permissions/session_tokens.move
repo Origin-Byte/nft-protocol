@@ -132,7 +132,7 @@ module nft_protocol::session_token {
             assert_parent_auth<Auth, T>(self, req);
         };
 
-        borrow_request::add_receipt(req, &SessionTokenRule {});
+        borrow_request::add_receipt(req, SessionTokenRule {});
     }
 
     public fun assert_field_auth<Auth: drop, T: key + store>(

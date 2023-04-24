@@ -122,7 +122,7 @@ module nft_protocol::royalty_strategy_bps {
         let fee_amount = calculate(self, balance::value(paid));
         balances::take_from(&mut self.aggregator, paid, fee_amount);
 
-        ob_transfer_request::add_receipt(req, &BpsRoyaltyStrategyRule {});
+        ob_transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
 
     /// Instead of using the balance associated with the `TransferRequest`,
@@ -138,7 +138,7 @@ module nft_protocol::royalty_strategy_bps {
         let fee_amount = calculate(self, paid);
         balances::take_from(&mut self.aggregator, wallet, fee_amount);
 
-        ob_transfer_request::add_receipt(req, &BpsRoyaltyStrategyRule {});
+        ob_transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
 
     public fun royalty_fee_bps<T>(self: &BpsRoyaltyStrategy<T>): u16 {

@@ -98,7 +98,7 @@ module nft_protocol::rule_deposit {
     /// #### Panics
     ///
     /// Panics if matching `WithdrawRule` is not registered as metadata.
-    public fun assert_matching_withdrawal<T, P>(
+    public fun assert_matching_withdrawal(
         withdraw_rule: &WithdrawRule,
         rule: &DepositRule,
     ) {

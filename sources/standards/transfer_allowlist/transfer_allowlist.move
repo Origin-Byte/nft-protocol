@@ -31,6 +31,7 @@ module nft_protocol::transfer_allowlist {
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::witness::Witness as DelegatedWitness;
     use nft_protocol::rule_deposit;
+    use nft_protocol::rule_withdraw;
 
     use std::option::{Self, Option};
     use std::string::utf8;
@@ -61,6 +62,9 @@ module nft_protocol::transfer_allowlist {
 
     /// Transfer authority was already registered
     const EExistingAuthority: u64 = 5;
+
+    /// Transfer request did not have a `AllowlistReceipt`
+    const EInvalidAllowlistReceipt: u64 = 6;
 
     // === Structs ===
 
@@ -270,8 +274,11 @@ module nft_protocol::transfer_allowlist {
     // === Authority management ===
 
     /// Returns whether `Allowlist` contains authority
-    public fun contains_authority(self: &Allowlist, auth: &TypeName): bool {
-        vec_set::contains(&self.authorities, auth)
+    public fun contains_authority(
+        self: &Allowlist,
+        authority: &TypeName,
+    ): bool {
+        vec_set::contains(&self.authorities, authority)
     }
 
     /// Insert a new authority into `Allowlist` using admin witness
@@ -304,9 +311,9 @@ module nft_protocol::transfer_allowlist {
 
     /// Register authority and provide error reporting
     fun insert_authority_<Auth>(self: &mut Allowlist) {
-        let collection = type_name::get<Auth>();
-        assert!(!contains_authority(self, &collection), EExistingAuthority);
-        vec_set::insert(&mut self.authorities, collection);
+        let authority = type_name::get<Auth>();
+        assert!(!contains_authority(self, &authority), EExistingAuthority);
+        vec_set::insert(&mut self.authorities, authority);
     }
 
     /// Remove authority from `Allowlist`
@@ -368,12 +375,14 @@ module nft_protocol::transfer_allowlist {
 
     /// Confirms that the transfer is allowed by the `Allowlist`
     ///
-    /// Asserts that `DepositRule` is present as metadata on request. Ensures
-    /// that for any arbitrary transaction the NFT has ended up in a trusted
-    /// location.
+    /// Asserts that `WithdrawRule` abd `DepositRule` are present as metadata
+    /// on request. Ensures that for any arbitrary transaction the NFT has
+    /// ended up in a trusted location.
     ///
     /// #### Panics
     ///
+    /// * `WithdrawRule` is not present as metadata on request
+    /// * `WithdrawRule` NFT type or authority is not valid for `Allowlist`
     /// * `DepositRule` is not present as metadata on request
     /// * `DepositRule` NFT type or authority is not valid for `Allowlist`
     public fun confirm_transfer<T>(
@@ -385,12 +394,14 @@ module nft_protocol::transfer_allowlist {
 
     /// Confirms that the transfer is allowed by the `Allowlist`
     ///
-    /// Asserts that `DepositRule` is present as metadata on request. Ensures
-    /// that for any arbitrary transaction the NFT has ended up in a trusted
-    /// location.
+    /// Asserts that `WithdrawRule` abd `DepositRule` are present as metadata
+    /// on request. Ensures that for any arbitrary transaction the NFT has
+    /// ended up in a trusted location.
     ///
     /// #### Panics
     ///
+    /// * `WithdrawRule` is not present as metadata on request
+    /// * `WithdrawRule` NFT type or authority is not valid for `Allowlist`
     /// * `DepositRule` is not present as metadata on request
     /// * `DepositRule` NFT type or authority is not valid for `Allowlist`
     public fun confirm_transfer_<T, P>(
@@ -398,14 +409,25 @@ module nft_protocol::transfer_allowlist {
         self: &Allowlist,
     ) {
         let metadata = request::metadata(req);
-        let deposit_rule = rule_deposit::borrow_metadata(metadata);
 
+        // Verify that transaction is not lying about the source of the NFT
+        let withdraw_rule = rule_withdraw::borrow_metadata(metadata);
+        assert_transferable(
+            self,
+            *rule_withdraw::borrow_nft_type(withdraw_rule),
+            rule_withdraw::borrow_authority(withdraw_rule),
+        );
+
+        // Verify that the transaction is not lying about the destination of
+        // the NFT.
+        let deposit_rule = rule_deposit::borrow_metadata(metadata);
         assert_transferable(
             self,
             *rule_deposit::borrow_nft_type(deposit_rule),
             rule_deposit::borrow_authority(deposit_rule),
         );
-        request::add_receipt(req, &AllowlistReceipt {});
+
+        request::add_receipt(req, AllowlistReceipt {});
     }
 
     // === Assertions ===
@@ -478,6 +500,17 @@ module nft_protocol::transfer_allowlist {
     ) {
         assert_collection(allowlist, nft_type);
         assert_authority(allowlist, auth);
+    }
+
+    /// Asserts that transaction was verified using `Allowlist`
+    public fun assert_allowlist_receipt<T, P>(
+        req: &RequestBody<WithNft<T, P>>,
+    ) {
+        let receipts = request::receipts(req);
+        assert!(
+            vec_set::contains(receipts, &type_name::get<AllowlistReceipt>()),
+            EInvalidAllowlistReceipt,
+        );
     }
 
     // === Display standard ===

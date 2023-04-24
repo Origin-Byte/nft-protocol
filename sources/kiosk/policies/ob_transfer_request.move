@@ -165,7 +165,10 @@ module nft_protocol::ob_transfer_request {
 
     /// Adds a `Receipt` to the `TransferRequest`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<T, Rule>(self: &mut TransferRequest<T>, rule: &Rule) {
+    public fun add_receipt<T, Rule: drop>(
+        self: &mut TransferRequest<T>,
+        rule: Rule,
+    ) {
         request::add_receipt(&mut self.inner, rule);
     }
 
