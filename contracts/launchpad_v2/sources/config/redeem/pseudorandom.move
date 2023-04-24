@@ -1,29 +1,29 @@
 module launchpad_v2::pseudorand_redeem {
     use std::vector;
-    use std::type_name::TypeName;
     use sui::tx_context::TxContext;
-    use sui::object::ID;
     use sui::dynamic_field as df;
+    use sui::vec_map;
 
     use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::redeem_strategy;
-    use launchpad_v2::venue::{Self, Venue, RedeemReceipt, NftCert};
+    use launchpad_v2::venue::{Self, Venue, NftCertificate};
 
     use originmate::pseudorandom;
+
+    const SCALE: u64 = 10_000;
 
     /// Attempted to construct a `RedeemCommitment` with a hash length
     /// different than 32 bytes
     const EINVALID_COMMITMENT_LENGTH: u64 = 4;
 
     struct PseudoRandRedeem has store {
-        nft_precision: u64,
-        kiosk_precision: u64,
         counter: u64,
     }
 
     struct Witness has drop {}
 
-    struct PseudoRandRedeemDfKey has store, copy, drop {}
+    struct PseudoRandInvDfKey has store, copy, drop {}
+
+    struct PseudoRandNftDfKey has store, copy, drop {}
 
     /// Create a new `Certificate`
     ///
@@ -35,12 +35,10 @@ module launchpad_v2::pseudorand_redeem {
     public fun new(
         launch_cap: &LaunchCap,
         venue: &Venue,
-        nft_precision: u64,
-        kiosk_precision: u64,
     ): PseudoRandRedeem {
         venue::assert_launch_cap(venue, launch_cap);
 
-        PseudoRandRedeem { nft_precision, kiosk_precision, counter: 0 }
+        PseudoRandRedeem { counter: 0 }
     }
 
     /// Issue a new `PseudoRandRedeem` and add it to the Venue as a dynamic field
@@ -51,16 +49,73 @@ module launchpad_v2::pseudorand_redeem {
     /// #### Panics
     ///
     /// Panics if transaction sender is not `Listing` admin
-    public entry fun add_pseudorand_redeem(
+    public entry fun add_pseudorand_inv(
         launch_cap: &LaunchCap,
         venue: &mut Venue,
-        nft_precision: u64,
-        safe_precision: u64,
     ) {
-        let rand_redeem = new(launch_cap, venue, nft_precision, safe_precision);
+        let rand_redeem = new(launch_cap, venue);
         let venue_uid = venue::uid_mut(venue, launch_cap);
 
-        df::add(venue_uid, PseudoRandRedeemDfKey {}, rand_redeem);
+        df::add(venue_uid, PseudoRandInvDfKey {}, rand_redeem);
+    }
+
+    /// Issue a new `PseudoRandRedeem` and add it to the Venue as a dynamic field
+    /// with field key `PseudoRandRedeemDfKey`.
+    ///
+    /// Can be used by owner to participate in the provided market.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not `Listing` admin
+    public entry fun add_pseudorand_nft(
+        launch_cap: &LaunchCap,
+        venue: &mut Venue,
+    ) {
+        let rand_redeem = new(launch_cap, venue);
+        let venue_uid = venue::uid_mut(venue, launch_cap);
+
+        df::add(venue_uid, PseudoRandInvDfKey {}, rand_redeem);
+    }
+
+    public fun assign_inventory(
+        venue: &mut Venue,
+        certificate: &mut NftCertificate,
+        ctx: &mut TxContext,
+    ) {
+        // TODO: ASSERT Certificate and Venue match
+        let rand_redeem = venue::get_df<PseudoRandInvDfKey, PseudoRandRedeem>(
+            venue, PseudoRandInvDfKey {}
+        );
+
+        let i = venue::cert_quantity(certificate);
+
+        let inventories = venue::get_invetories_mut(Witness {}, venue);
+        let qty = vec_map::size(inventories);
+
+        while (i > 0) {
+            // TODO: Use supply of `Warehouse` as an additional nonce factor
+            let nonce = vector::empty();
+            vector::append(&mut nonce, sui::bcs::to_bytes(&rand_redeem.counter));
+
+            let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
+
+            let inv_index = select(qty, &contract_commitment);
+
+            // TODO: WE SHOULD ONLY DECREMENT SUPPLY WHEN LIMITED
+            let (inv_id, supply) = vec_map::get_entry_by_idx_mut(inventories, inv_index);
+
+            if (*supply == 1) {
+                // Remove inventory form the list since supply is exhausted
+                vec_map::remove(inventories, inv_id);
+            } else {
+                // Decrement supply
+                *supply = *supply - 1;
+            };
+
+            venue::push_inventory_id(Witness {}, venue, certificate, *inv_id);
+
+            i = i - 1;
+        }
     }
 
     /// Pseudo-randomly redeems NFT from `Warehouse`
@@ -77,47 +132,35 @@ module launchpad_v2::pseudorand_redeem {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty
-    public fun redeem_pseudorandom_cert<T>(
+    public fun assign_nft(
         venue: &mut Venue,
-        receipt: RedeemReceipt,
+        certificate: &mut NftCertificate,
         ctx: &mut TxContext,
-    ): NftCert {
-        venue::consume_receipt(Witness {}, venue, receipt);
+    ) {
 
-        let rand_redeem = venue::get_df<PseudoRandRedeemDfKey, PseudoRandRedeem>(
-            venue, PseudoRandRedeemDfKey {}
+        let rand_redeem = venue::get_df<PseudoRandNftDfKey, PseudoRandRedeem>(
+            venue, PseudoRandNftDfKey {}
         );
-        // TO add back
-        // let supply = supply(warehouse);
-        // assert!(supply != 0, EEMPTY);
 
-        // Use supply of `Warehouse` as an additional nonce factor
-        let nonce = vector::empty();
-        vector::append(&mut nonce, sui::bcs::to_bytes(&rand_redeem.counter));
+        let i = venue::cert_quantity(certificate);
 
-        let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
+        let inventories = venue::get_invetories_mut(Witness {}, venue);
 
-        let inv_index = select(rand_redeem.kiosk_precision, &contract_commitment);
 
-        let (inv_id, inv_type) = get_inventory_data(venue, inv_index);
+        while (i > 0) {
+            // Use supply of `Warehouse` as an additional nonce factor
+            let nonce = vector::empty();
+            vector::append(&mut nonce, sui::bcs::to_bytes(&rand_redeem.counter));
 
-        venue::get_certificate(
-            Witness {},
-            venue,
-            inv_type,
-            inv_id,
-            redeem_strategy::pseudorandom(),
-            ctx,
-        )
+            let contract_commitment = pseudorandom::rand_no_counter(nonce, ctx);
+
+            let nft_index = select(SCALE, &contract_commitment);
+
+            venue::push_nft_index(Witness {}, venue, certificate, nft_index);
+
+            i = i - 1;
+        }
     }
-
-    public fun get_inventory_data(
-        venue: &Venue,
-        index: u64,
-    ): (ID, TypeName) {
-        venue::get_inventory_data(venue, index)
-    }
-
 
     // === Utils ===
 

@@ -2,7 +2,7 @@ module launchpad_v2::redeem_strategy {
     use sui::object::{ID, UID};
     use sui::dynamic_field as df;
 
-    use nft_protocol::redeem_random::RedeemCommitment;
+    use launchpad_v2::redeem_random::RedeemCommitment;
 
     /// Could not register redeem parameters as they already exist
     const EConflictingParameters: u64 = 1;

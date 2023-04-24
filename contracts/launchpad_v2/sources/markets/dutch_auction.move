@@ -199,9 +199,10 @@ module launchpad_v2::dutch_auction {
 
             balance::join<FT>(&mut total_funds, filled_funds);
 
-            let nft_receipt = venue::get_redeem_receipt(
+            let nft_receipt = venue::get_redeem_certificate(
                 Witness {},
                 venue,
+                owner,
                 1, // each bid represents quantity = 1
                 ctx,
             );
