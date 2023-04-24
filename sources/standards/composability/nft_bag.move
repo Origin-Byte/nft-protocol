@@ -121,7 +121,7 @@ module nft_protocol::nft_bag {
     public fun borrow_nft_mut<T: key + store>(
         nft: &mut UID,
         child_nft_id: ID,
-    ): &T {
+    ): &mut T {
         let nft_bag = borrow_domain_mut(nft);
         borrow_mut(nft_bag, child_nft_id)
     }

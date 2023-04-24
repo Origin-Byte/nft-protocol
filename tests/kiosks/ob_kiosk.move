@@ -76,7 +76,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3.Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -110,7 +110,7 @@ module nft_protocol::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, creator());
         let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -147,7 +147,7 @@ module nft_protocol::test_ob_kiosk {
         // 3. Fake Address tries to deposit NFT in kiosk - but fails
         test_scenario::next_tx(&mut scenario, fake_address());
 
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
         // 4. Return Kiosk shared
@@ -167,7 +167,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -228,7 +228,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -290,7 +290,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -348,7 +348,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -394,7 +394,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -439,7 +439,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -490,7 +490,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -555,7 +555,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -615,7 +615,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -660,7 +660,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -718,7 +718,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -773,7 +773,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 
@@ -830,7 +830,7 @@ module nft_protocol::test_ob_kiosk {
         check_new_kiosk(&mut kiosk, kiosk_owner);
 
         // 3. Deposit NFT
-        let nft = test_utils::get_random_nft(ctx(&mut scenario));
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(&mut kiosk, nft, ctx(&mut scenario));
 

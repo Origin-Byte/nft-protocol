@@ -5,12 +5,14 @@ module launchpad::flat_fee {
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
 
-    use nft_protocol::err;
     use originmate::object_box;
 
     use launchpad::proceeds;
     use launchpad::listing::{Self, Listing};
     use launchpad::marketplace::{Self as mkt, Marketplace};
+
+    /// `Listing` did not have `FlatFee` policy
+    const EInvalidFeePolicy: u64 = 1;
 
     struct FlatFee has key, store {
         id: UID,
@@ -54,7 +56,7 @@ module launchpad::flat_fee {
 
         assert!(
             object_box::has_object<FlatFee>(fee_policy),
-            err::wrong_fee_policy_type(),
+            EInvalidFeePolicy,
         );
 
         let policy = object_box::borrow<FlatFee>(fee_policy);
