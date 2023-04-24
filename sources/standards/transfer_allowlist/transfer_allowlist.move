@@ -147,8 +147,12 @@ module nft_protocol::transfer_allowlist {
     public entry fun init_cloned(
         allowlist: &Allowlist,
         ctx: &mut TxContext,
-    ): (Allowlist, AllowlistOwnerCap) {
-        new_with_authorities(*borrow_authorities(allowlist), ctx)
+    ) {
+        let (allowlist, cap) =
+            new_with_authorities(*borrow_authorities(allowlist), ctx);
+
+        transfer::public_transfer(cap, tx_context::sender(ctx));
+        transfer::public_share_object(allowlist);
     }
 
     /// Borrows authorities from `Allowlist`
@@ -355,12 +359,16 @@ module nft_protocol::transfer_allowlist {
 
     /// Registers collection to use `Allowlist` during the transfer.
     public fun enforce<T, P>(
-        policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap,
+        policy: &mut Policy<WithNft<T, P>>,
+        cap: &PolicyCap,
     ) {
         request::enforce_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
     }
 
-    public fun drop<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
+    public fun drop<T, P>(
+        policy: &mut Policy<WithNft<T, P>>,
+        cap: &PolicyCap,
+    ) {
         request::drop_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
     }
 
@@ -369,15 +377,19 @@ module nft_protocol::transfer_allowlist {
     /// In the end, if the allowlist rule is included in the transfer policy,
     /// the transfer request can only be finished if this rule is present.
     public fun confirm_transfer<T>(
-        self: &Allowlist, req: &mut TransferRequest<T>,
-    ) { confirm_transfer_(self, ob_transfer_request::inner_mut(req)) }
+        self: &Allowlist,
+        req: &mut TransferRequest<T>,
+    ) {
+        confirm_transfer_(self, ob_transfer_request::inner_mut(req))
+    }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.
     /// It adds a signature to the request.
     /// In the end, if the allowlist rule is included in the transfer policy,
     /// the transfer request can only be finished if this rule is present.
     public fun confirm_transfer_<T, P>(
-        self: &Allowlist, req: &mut RequestBody<WithNft<T, P>>,
+        self: &Allowlist,
+        req: &mut RequestBody<WithNft<T, P>>,
     ) {
         let auth = ob_kiosk::get_transfer_request_auth_(req);
         assert_transferable<T>(self, auth);
