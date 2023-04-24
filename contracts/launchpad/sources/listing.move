@@ -39,7 +39,6 @@ module launchpad::listing {
     use sui::object_table::{Self, ObjectTable};
     use sui::object_bag::{Self, ObjectBag};
 
-    use nft_protocol::err;
     use nft_protocol::witness::Witness as DelegatedWitness;
 
     use originmate::typed_id::{Self, TypedID};
@@ -50,6 +49,8 @@ module launchpad::listing {
     use launchpad::marketplace::{Self as mkt, Marketplace};
     use launchpad::proceeds::{Self, Proceeds};
     use launchpad::venue::{Self, Venue};
+
+    friend launchpad::flat_fee;
 
     /// `Venue` was not defined on `Listing`
     ///
@@ -65,6 +66,18 @@ module launchpad::listing {
     /// Transaction sender was not `Listing` admin when calling protected
     /// endpoint
     const EWrongAdmin: u64 = 3;
+
+    const EWrongListingOrMarketplaceAdmin: u64 = 4;
+
+    const EMarketplaceListingMismatch: u64 = 5;
+
+    const EListingAlreadyAttached: u64 = 6;
+
+    const EListingHasNotApplied: u64 = 7;
+
+    const EActionExclusiveToStandaloneListing: u64 = 8;
+
+    const EHasCustomFeePolicy: u64 = 9;
 
     struct Listing has key, store {
         id: UID,
@@ -276,7 +289,7 @@ module launchpad::listing {
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - No supply is available from underlying `Inventory`
-    public fun buy_nft<T: key + store, FT, Market: store, MarketWitness: drop>(
+    public fun buy_nft<T: key + store, FT, Market: store>(
         witness: DelegatedWitness<Market>,
         listing: &mut Listing,
         inventory_id: ID,
@@ -376,7 +389,7 @@ module launchpad::listing {
 
         assert!(
             option::is_none(&listing.marketplace_id),
-            err::listing_already_attached_to_marketplace(),
+            EListingAlreadyAttached,
         );
 
         let marketplace_id = typed_id::new(marketplace);
@@ -405,7 +418,7 @@ module launchpad::listing {
 
         assert!(
             option::is_none(&listing.marketplace_id),
-            err::listing_already_attached_to_marketplace(),
+            EListingAlreadyAttached,
         );
 
         let marketplace_id = typed_id::new(marketplace);
@@ -416,7 +429,7 @@ module launchpad::listing {
 
         assert!(
             marketplace_id == request.marketplace_id,
-            err::listing_has_not_applied_to_this_marketplace()
+            EListingHasNotApplied,
         );
 
         let RequestToJoin {
@@ -608,7 +621,7 @@ module launchpad::listing {
     ) {
         assert!(
             option::is_none(&listing.marketplace_id),
-            err::action_exclusive_to_standalone_listings(),
+            EActionExclusiveToStandaloneListing,
         );
 
         let receiver = listing.receiver;
@@ -646,7 +659,7 @@ module launchpad::listing {
     }
 
     /// Mutably borrow the Listing's `Proceeds`
-    public fun borrow_proceeds_mut(listing: &mut Listing): &mut Proceeds {
+    public(friend) fun borrow_proceeds_mut(listing: &mut Listing): &mut Proceeds {
         &mut listing.proceeds
     }
 
@@ -825,8 +838,8 @@ module launchpad::listing {
         assert!(
             object::id(marketplace) == *typed_id::as_id(
                 option::borrow<TypedID<Marketplace>>(&listing.marketplace_id)
-                ),
-            err::marketplace_listing_mismatch()
+            ),
+            EMarketplaceListingMismatch,
         );
     }
 
@@ -847,14 +860,14 @@ module launchpad::listing {
 
         assert!(
             is_listing_admin || is_market_admin,
-            err::wrong_marketplace_or_listing_admin()
+            EWrongListingOrMarketplaceAdmin,
         );
     }
 
     public fun assert_default_fee(listing: &Listing) {
         assert!(
             !obox::is_empty(&listing.custom_fee),
-            err::has_custom_fee_policy(),
+            EHasCustomFeePolicy,
         );
     }
 
