@@ -11,8 +11,6 @@ module launchpad::inventory {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
-
     use launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
 
     /// `Inventory` is not a `Warehouse`
@@ -31,13 +29,15 @@ module launchpad::inventory {
         id: UID,
     }
 
+    struct WarehouseKey has copy, drop, store {}
+
     /// Create a new `Inventory` from a `Warehouse`
     public fun from_warehouse<T: key + store>(
         warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ): Inventory<T> {
         let inventory_id = object::new(ctx);
-        df::add(&mut inventory_id, utils::marker<Warehouse<T>>(), warehouse);
+        df::add(&mut inventory_id, WarehouseKey {}, warehouse);
 
         Inventory { id: inventory_id }
     }
@@ -286,8 +286,8 @@ module launchpad::inventory {
 
     /// Returns whether `Inventory` is a `Warehouse`
     public fun is_warehouse<T: key + store>(inventory: &Inventory<T>): bool {
-        df::exists_with_type<Marker<Warehouse<T>>, Warehouse<T>>(
-            &inventory.id, utils::marker<Warehouse<T>>()
+        df::exists_with_type<WarehouseKey, Warehouse<T>>(
+            &inventory.id, WarehouseKey {}
         )
     }
 
@@ -300,7 +300,7 @@ module launchpad::inventory {
         inventory: &Inventory<T>,
     ): &Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow(&inventory.id, utils::marker<Warehouse<T>>())
+        df::borrow(&inventory.id, WarehouseKey {})
     }
 
     /// Mutably borrows `Inventory` as `Warehouse`
@@ -312,7 +312,7 @@ module launchpad::inventory {
         inventory: &mut Inventory<T>,
     ): &mut Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow_mut(&mut inventory.id, utils::marker<Warehouse<T>>())
+        df::borrow_mut(&mut inventory.id, WarehouseKey {})
     }
 
     // === Assertions ===
