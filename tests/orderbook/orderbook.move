@@ -12,12 +12,13 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
     use nft_protocol::ob_kiosk::{Self, OwnerToken};
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
     use nft_protocol::ob_transfer_request;
-    use nft_protocol::orderbook::{Self, Orderbook, TradeIntermediate};
+    use nft_protocol::orderbook::{Self, Orderbook};
     use nft_protocol::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::witness;
     // use std::debug;
     // use std::string;
+    use std::option;
     use sui::coin;
     use sui::transfer_policy::{Self, TransferPolicy};
     use sui::sui::SUI;
@@ -78,7 +79,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         // 6. Create bid for NFT
         let coin = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
 
-        orderbook::create_bid(
+        let trade_opt = orderbook::create_bid(
             &mut book,
             &mut buyer_kiosk,
             100,
@@ -86,13 +87,14 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
+        let trade = option::destroy_some(trade_opt);
+
         test_scenario::next_tx(&mut scenario, seller());
-        let trade = test_scenario::take_shared<TradeIntermediate<Foo, SUI>>(&mut scenario);
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
         let request = orderbook::finish_trade(
             &mut book,
-            &mut trade,
+            orderbook::trade_id(&trade),
             &mut seller_kiosk,
             &mut buyer_kiosk,
             ctx(&mut scenario),
@@ -107,7 +109,6 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
-        test_scenario::return_shared(trade);
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
     }
@@ -177,7 +178,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         // 6. Create bid for NFT
         let coin = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
 
-        orderbook::create_bid(
+        let trade_opt = orderbook::create_bid(
             &mut book,
             &mut buyer_kiosk,
             100,
@@ -185,13 +186,14 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
+        let trade = option::destroy_some(trade_opt);
+
         test_scenario::next_tx(&mut scenario, seller());
-        let trade = test_scenario::take_shared<TradeIntermediate<Foo, SUI>>(&mut scenario);
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
         let request = orderbook::finish_trade(
             &mut book,
-            &mut trade,
+            orderbook::trade_id(&trade),
             &mut seller_kiosk,
             &mut buyer_kiosk,
             ctx(&mut scenario),
@@ -214,7 +216,6 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
-        test_scenario::return_shared(trade);
         test_scenario::return_shared(book);
         test_scenario::return_shared(al);
         test_scenario::return_shared(royalty_engine);
@@ -269,7 +270,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         // 6. Create bid for NFT
         let coin = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
 
-        orderbook::create_bid(
+        let trade_opt = orderbook::create_bid(
             &mut book,
             &mut buyer_kiosk,
             100,
@@ -277,13 +278,14 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
+        let trade = option::destroy_some(trade_opt);
+
         test_scenario::next_tx(&mut scenario, seller());
-        let trade = test_scenario::take_shared<TradeIntermediate<Foo, SUI>>(&mut scenario);
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
         let request = orderbook::finish_trade(
             &mut book,
-            &mut trade,
+            orderbook::trade_id(&trade),
             &mut seller_kiosk,
             &mut buyer_kiosk,
             ctx(&mut scenario),
@@ -299,7 +301,6 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
-        test_scenario::return_shared(trade);
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
     }
@@ -356,7 +357,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         let coin = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
         ob_kiosk::install_extension(&mut buyer_kiosk, buyer_cap, ctx(&mut scenario));
 
-        orderbook::create_bid(
+        let trade_opt = orderbook::create_bid(
             &mut book,
             &mut buyer_kiosk,
             100,
@@ -364,13 +365,14 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
+        let trade = option::destroy_some(trade_opt);
+
         test_scenario::next_tx(&mut scenario, seller());
-        let trade = test_scenario::take_shared<TradeIntermediate<Foo, SUI>>(&mut scenario);
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
         let request = orderbook::finish_trade(
             &mut book,
-            &mut trade,
+            orderbook::trade_id(&trade),
             &mut seller_kiosk,
             &mut buyer_kiosk,
             ctx(&mut scenario),
@@ -394,7 +396,6 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
-        test_scenario::return_shared(trade);
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
     }
