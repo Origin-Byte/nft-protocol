@@ -22,7 +22,10 @@ module nft_protocol::p2p_list {
     use std::vector;
 
     use sui::bcs;
+    use sui::object::ID;
     use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
+    use sui::kiosk::Kiosk;
+    use sui::tx_context::TxContext;
 
     use nft_protocol::authlist::{Self, AuthList};
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
@@ -68,6 +71,35 @@ module nft_protocol::p2p_list {
     struct P2PListRule has drop {}
 
     // === Transfers ===
+
+    public fun transfer<T: key + store>(
+        self: &AuthList,
+        authority: &vector<u8>,
+        nft_id: ID,
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        signature: &vector<u8>,
+        nonce: vector<u8>,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        let req = ob_kiosk::transfer_signed<T>(
+            source,
+            target,
+            nft_id,
+            0,
+            ctx,
+        );
+
+        confirm_transfer(
+            self,
+            &mut req,
+            authority,
+            nonce,
+            signature,
+        );
+
+        req
+    }
 
     /// Registers collection to use `AuthList` during the transfer.
     public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
