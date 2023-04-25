@@ -57,6 +57,48 @@ module launchpad_v2::launchpad_auth {
         df::add(venue_uid, PubkeyDfKey {}, pubkey);
     }
 
+    public fun transfer(
+        source_kiosk: address,
+        destination: address,
+        msg: &vector<u8>,
+        signature: &vector<u8>,
+        hash: u8,
+        authority: address,
+        auth_list: &AuthList,
+    ) {
+        let pubkey = df::borrow<PubkeyDfKey, Pubkey>(auth_list, PubkeyDfKey { authority });
+
+        assert!(
+            ecdsa_k1::secp256k1_verify(signature, &pubkey.key, msg, hash),
+            EINCORRECT_SIGNATURE
+        );
+
+        // Assert message has correct address and counter
+        let bcs_msg = bcs::new(*msg);
+        let counter = bcs::peel_u64(&mut bcs_msg);
+
+        assert!(
+            counter == pubkey.counter,
+            EINCORRECT_MESSAGE_COUNTER
+        );
+
+        let sender = bcs::peel_address(&mut bcs_msg);
+        let receiver = bcs::peel_address(&mut bcs_msg);
+
+        assert!(
+            sender == tx_context::sender(ctx),
+            EINCORRECT_MESSAGE_SENDER
+        );
+
+        assert!(
+            receiver == destination,
+            EINCORRECT_MESSAGE_RECEIVER
+        );
+
+
+
+    }
+
     /// Verifies if a given message sent by the user has been signed by the
     /// venue authority (i.e. Creator/Marketplace client).
     ///
