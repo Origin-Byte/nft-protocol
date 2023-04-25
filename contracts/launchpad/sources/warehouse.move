@@ -382,9 +382,6 @@ module launchpad::warehouse {
         );
 
         // Construct randomized index
-        let supply = supply(warehouse);
-        assert!(supply != 0, EEMPTY);
-
         vector::append(&mut user_commitment, contract_commitment);
         // Use supply of `Warehouse` as a additional nonce factor
         vector::append(&mut user_commitment, sui::bcs::to_bytes(&supply));
