@@ -198,6 +198,7 @@ module nft_protocol::test_ob_kiosk {
             &mut buyer_kiosk,
             nft_id,
             &rand_entity,
+            0,
             ctx(&mut scenario)
         );
 
@@ -259,6 +260,7 @@ module nft_protocol::test_ob_kiosk {
             &mut buyer_kiosk,
             nft_id,
             &rand_entity,
+            0,
             ctx(&mut scenario)
         );
 
@@ -317,6 +319,7 @@ module nft_protocol::test_ob_kiosk {
             &mut buyer_kiosk,
             nft_id,
             &rand_entity,
+            0,
             ctx(&mut scenario)
         );
 
@@ -461,6 +464,7 @@ module nft_protocol::test_ob_kiosk {
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
+            0,
             ctx(&mut scenario)
         );
 
@@ -525,6 +529,7 @@ module nft_protocol::test_ob_kiosk {
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
+            0,
             ctx(&mut scenario)
         );
 
@@ -586,6 +591,7 @@ module nft_protocol::test_ob_kiosk {
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
+            0,
             ctx(&mut scenario)
         );
 
