@@ -2,18 +2,21 @@
 module nft_protocol::test_utils {
     use std::option;
 
-    use sui::object::{Self, UID, ID};
     use sui::sui::SUI;
     use sui::tx_context::TxContext;
-    use nft_protocol::request::{Policy, PolicyCap, WithNft};
+    use sui::object::{Self, UID, ID};
     use sui::package::{Self, Publisher};
-
-    use nft_protocol::orderbook;
-    use nft_protocol::ob_transfer_request::{Self, OB_TRANSFER_REQUEST};
-    use nft_protocol::withdraw_request::{Self, WITHDRAW_REQUEST};
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::mint_cap::MintCap;
+    use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use sui::test_scenario::{Scenario, ctx};
+
+    use nft_protocol::bidding;
+    use nft_protocol::orderbook;
+    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::transfer_allowlist::{Self, Allowlist, AllowlistOwnerCap};
+    use nft_protocol::request::{Policy, PolicyCap, WithNft};
+    use nft_protocol::withdraw_request::{Self, WITHDRAW_REQUEST};
+    use nft_protocol::ob_transfer_request;
 
     const MARKETPLACE: address = @0xA1C08;
     const CREATOR: address = @0xA1C04;
@@ -58,7 +61,7 @@ module nft_protocol::test_utils {
     }
 
     #[test_only]
-    public fun init_transfer_policy(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<Foo, OB_TRANSFER_REQUEST>>, PolicyCap) {
+    public fun init_transfer_policy(publisher: &Publisher, ctx: &mut TxContext): (TransferPolicy<Foo>, TransferPolicyCap<Foo>) {
         ob_transfer_request::init_policy<Foo>(publisher, ctx)
     }
 
@@ -75,6 +78,18 @@ module nft_protocol::test_utils {
         orderbook::share(ob);
 
         ob_id
+    }
+
+    #[test_only]
+    public fun create_allowlist(scenario: &mut Scenario): (Allowlist, AllowlistOwnerCap) {
+        let (al, al_cap) = transfer_allowlist::new(ctx(scenario));
+
+        // orderbooks can perform trades with our allowlist
+        transfer_allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
+        // bidding contract can perform trades too
+        transfer_allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
+
+        (al, al_cap)
     }
 
 
