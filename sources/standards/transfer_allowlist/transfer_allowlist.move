@@ -26,6 +26,7 @@ module nft_protocol::transfer_allowlist {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
     use sui::dynamic_field as df;
+    use sui::transfer_policy::{Self, TransferPolicyCap, TransferPolicy};
 
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
     use nft_protocol::ob_kiosk;
@@ -358,14 +359,29 @@ module nft_protocol::transfer_allowlist {
     }
 
     /// Registers collection to use `Allowlist` during the transfer.
-    public fun enforce<T, P>(
+    public fun enforce<T>(
+        policy: &mut TransferPolicy<T>,
+        cap: &TransferPolicyCap<T>,
+    ) {
+        transfer_policy::add_rule(AllowlistRule {}, policy, cap, false);
+    }
+
+    public fun drop<T>(
+        policy: &mut TransferPolicy<T>,
+        cap: &TransferPolicyCap<T>,
+    ) {
+        transfer_policy::remove_rule<T, AllowlistRule, bool>(policy, cap);
+    }
+
+    /// Registers collection to use `Allowlist` during the transfer.
+    public fun enforce_<T, P>(
         policy: &mut Policy<WithNft<T, P>>,
         cap: &PolicyCap,
     ) {
         request::enforce_rule_no_state<WithNft<T, P>, AllowlistRule>(policy, cap);
     }
 
-    public fun drop<T, P>(
+    public fun drop_<T, P>(
         policy: &mut Policy<WithNft<T, P>>,
         cap: &PolicyCap,
     ) {
