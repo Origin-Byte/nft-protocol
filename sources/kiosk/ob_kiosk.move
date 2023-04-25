@@ -74,6 +74,14 @@ module nft_protocol::ob_kiosk {
     const ENftTypeMismatch: u64 = 10;
     /// Permissionless deposits are not enabled and sender is not the owner
     const ECannotDeposit: u64 = 11;
+    /// To register an NFT in the OB extension, it cannot be already listed in the
+    /// base Kiosk
+    const ENftIsListedInBaseKiosk: u64 = 12;
+    /// The token provided does not correspond to the Kiosk
+    const EIncorrectOwnerToken: u64 = 13;
+    /// You're trying to uninstall the OriginByte extension but there are still
+    /// entries in the `NftRefs` table
+    const ECannotUninstallWithCurrentBookeeping: u64 = 14;
 
     // === Constants ===
 
@@ -439,13 +447,13 @@ module nft_protocol::ob_kiosk {
         owner_token: OwnerToken,
         ctx: &mut TxContext,
     ) {
-        assert!(owner_token.kiosk == object::id(self), 0);
+        assert!(owner_token.kiosk == object::id(self), EIncorrectOwnerToken);
         assert_owner_address(self, sender(ctx));
 
         let kiosk_ext = ext(self);
 
         let refs = df::borrow(kiosk_ext, NftRefsDfKey {});
-        assert!(table::is_empty<ID, NftRef>(refs), 0);
+        assert!(table::is_empty<ID, NftRef>(refs), ECannotUninstallWithCurrentBookeeping);
 
         let owner_cap = df::remove<KioskOwnerCapDfKey, KioskOwnerCap>(kiosk_ext, KioskOwnerCapDfKey {});
 
@@ -470,6 +478,7 @@ module nft_protocol::ob_kiosk {
 
         // Assert that Kiosk has NFT
         assert_has_nft(self, nft_id);
+        assert!(!kiosk::is_listed(self, nft_id), ENftIsListedInBaseKiosk);
 
         // Assert that Kiosk has no NftRef, which means the NFT was
         // placed in the Kiosk before installing the OB extension
