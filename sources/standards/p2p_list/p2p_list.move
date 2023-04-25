@@ -24,11 +24,12 @@ module nft_protocol::p2p_list {
     use sui::bcs;
     use sui::object::ID;
     use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
-    use sui::kiosk::Kiosk;
+    use sui::kiosk::{Self, Kiosk};
     use sui::tx_context::TxContext;
+    use sui::transfer;
 
     use nft_protocol::authlist::{Self, AuthList};
-    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
 
@@ -90,12 +91,49 @@ module nft_protocol::p2p_list {
             ctx,
         );
 
-        confirm_transfer(
+        confirm_transfer_(
             self,
             &mut req,
             authority,
             nonce,
             signature,
+            kiosk::owner(source),
+            kiosk::owner(target),
+        );
+
+        req
+    }
+
+    public fun transfer_into_new_kiosk<T: key + store>(
+        self: &AuthList,
+        authority: &vector<u8>,
+        nft_id: ID,
+        source: &mut Kiosk,
+        target: address,
+        signature: &vector<u8>,
+        nonce: vector<u8>,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        let target_kiosk = ob_kiosk::new_for_address(target, ctx);
+
+        let req = ob_kiosk::transfer_signed<T>(
+            source,
+            &mut target_kiosk,
+            nft_id,
+            0,
+            ctx,
+        );
+
+        transfer::public_share_object(target_kiosk);
+
+        confirm_transfer_(
+            self,
+            &mut req,
+            authority,
+            nonce,
+            signature,
+            kiosk::owner(source),
+            target,
         );
 
         req
@@ -134,36 +172,19 @@ module nft_protocol::p2p_list {
     /// It adds a signature to the request.
     /// In the end, if the AuthList rule is included in the transfer policy,
     /// the transfer request can only be finished if this rule is present.
-    public fun confirm_transfer<T>(
+    fun confirm_transfer_<T>(
         self: &AuthList,
         req: &mut TransferRequest<T>,
         authority: &vector<u8>,
         nonce: vector<u8>,
         signature: &vector<u8>,
+        source: address,
+        destination: address,
     ) {
         let _auth = ob_kiosk::get_transfer_request_auth(req);
-        let source = @0xAAAA;
-        let destination = @0xAAAA;
+
         confirm_<T>(self, authority, source, destination, nonce, signature);
         ob_transfer_request::add_receipt(req, P2PListRule {});
-    }
-
-    /// Confirms that the transfer is allowed by the `AuthList`.
-    /// It adds a signature to the request.
-    /// In the end, if the AuthList rule is included in the transfer policy,
-    /// the transfer request can only be finished if this rule is present.
-    public fun confirm_transfer_<T, P>(
-        self: &AuthList,
-        req: &mut RequestBody<WithNft<T, P>>,
-        authority: &vector<u8>,
-        nonce: vector<u8>,
-        signature: &vector<u8>,
-    ) {
-        let _auth = ob_kiosk::get_transfer_request_auth_(req);
-        let source = @0xAAAA;
-        let destination = @0xAAAA;
-        confirm_<T>(self, authority, source, destination, nonce, signature);
-        request::add_receipt(req, &P2PListRule {});
     }
 
     fun confirm_<T>(
