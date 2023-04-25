@@ -18,11 +18,10 @@ module examples::testract {
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
     use nft_protocol::ob_kiosk;
-    use nft_protocol::ob_transfer_request::{Self, OB_TRANSFER_REQUEST};
+    use nft_protocol::ob_transfer_request::{Self};
     use nft_protocol::orderbook::{Self, Orderbook};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty;
-    use nft_protocol::request::{Policy, WithNft};
     use nft_protocol::symbol;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist::{Self, Allowlist};
@@ -37,6 +36,7 @@ module examples::testract {
     use std::option;
     use std::string::{String, utf8};
     use sui::coin::Coin;
+    use sui::transfer_policy::TransferPolicy;
     use sui::object::{Self, UID};
     use sui::package::{Self, Publisher};
     use sui::sui::SUI;
@@ -264,7 +264,7 @@ module examples::testract {
     /// 4. Then request is destroyed ok because it went through all the rules
     public entry fun generate_bidding_events(
         mint_cap: &MintCap<TestNft>,
-        transfer_policy: &Policy<WithNft<TestNft, OB_TRANSFER_REQUEST>>,
+        transfer_policy: &TransferPolicy<TestNft>,
         allowlist: &Allowlist,
         royalty_strategy: &mut BpsRoyaltyStrategy<TestNft>,
         wallet: &mut Coin<SUI>,
@@ -534,6 +534,7 @@ module examples::testract {
             &scenario,
             USER,
         );
+
         let mint_cap = test_scenario::take_from_address<MintCap<TestNft>>(
             &scenario,
             USER,
@@ -559,7 +560,8 @@ module examples::testract {
         //--
         register_allowlist_and_royalty_strategy(&publisher, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
-        let transfer_policy = test_scenario::take_shared<Policy<WithNft<TestNft, OB_TRANSFER_REQUEST>>>(&scenario);
+
+        let transfer_policy = test_scenario::take_shared<TransferPolicy<TestNft>>(&scenario);
 
         // ---
         create_orderbook(ctx(&mut scenario));

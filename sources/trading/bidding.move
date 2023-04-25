@@ -154,6 +154,7 @@ module nft_protocol::bidding {
             buyers_kiosk,
             nft_id,
             &bid.id,
+            balance::value(&bid.offer),
             ctx,
         );
         sell_nft_common(bid, buyers_kiosk, transfer_req, nft_id, ctx)
@@ -175,6 +176,8 @@ module nft_protocol::bidding {
         let transfer_req = ob_transfer_request::new<T>(
             nft_id,
             uid_to_address(&bid.id),
+            bid.kiosk,
+            balance::value(&bid.offer),
             ctx,
         );
         sell_nft_common(bid, buyers_kiosk, transfer_req, nft_id, ctx)
