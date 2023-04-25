@@ -9,16 +9,18 @@ module launchpad_v2::factory {
     use sui::table_vec::{Self, TableVec};
     use sui::transfer;
     use sui::tx_context;
+    use sui::vec_map;
 
     use nft_protocol::mint_pass::{Self, MintPass};
     use nft_protocol::mint_cap::{MintCap};
-    use launchpad_v2::venue::{Self};
+    use nft_protocol::sized_vec;
     use launchpad_v2::certificate::{Self, NftCertificate};
 
     /// `Warehouse` does not have NFT at specified index
     ///
     /// Call `Warehouse::redeem_nft_at_index` with an index that exists.
-    const EINDEX_OUT_OF_BOUNDS: u64 = 3;
+    const EINDEX_OUT_OF_BOUNDS: u64 = 1;
+    const EINVALID_CERTIFICATE: u64 = 2;
 
     struct Witness has drop {}
 
@@ -64,9 +66,22 @@ module launchpad_v2::factory {
     /// reference to `Warehouse`.
     public entry fun deposit_metadata<T: key + store>(
         warehouse: &mut Factory<T>,
-        metadata: vector<BCS>,
+        metadata: vector<vector<u8>>,
     ) {
-        table_vec::push_back(&mut warehouse.metadata, metadata);
+        let i = vector::length(&metadata);
+        let metadata_bcs = vector::empty();
+
+        // TODO: Test that the order is preserved
+        while (i > 0) {
+            vector::push_back(
+                &mut metadata_bcs,
+                bcs::new(vector::pop_back(&mut metadata)),
+            );
+        };
+
+        vector::reverse(&mut metadata_bcs);
+
+        table_vec::push_back(&mut warehouse.metadata, metadata_bcs);
         warehouse.total_deposited = warehouse.total_deposited + 1;
     }
 
@@ -87,33 +102,42 @@ module launchpad_v2::factory {
 
         let factory_id = object::id(factory);
 
-        let len = certificate::quantity(certificate);
-        let remaining = certificate::quantity_mut(Witness {}, certificate);
-        let inventories = certificate::extract_invetories_as_inv(Witness {}, certificate);
-        let nft_idxs = certificate::extract_nft_indices_as_inv(Witness {}, certificate);
+        let nft_map = certificate::get_nft_map_mut_as_inventory(Witness {}, certificate);
 
-        assert!(len > 0, 0);
+        let nft_idxs = vec_map::get_mut(nft_map, &factory_id);
+        let i = sized_vec::length(nft_idxs);
 
-        while (len > 0) {
-            let inv_id = vector::borrow(&inventories, len);
+        assert!(i > 0, EINVALID_CERTIFICATE);
 
-            if (*inv_id == factory_id) {
-                vector::remove(&mut inventories, len);
-                let rel_index = vector::remove(&mut nft_idxs, len);
+        let idxs = vector::empty();
 
-                let index = math::divide_and_round_up(
-                    factory.total_deposited * rel_index,
-                    10_000
-                );
+        let j = 0;
+        while (i > 0) {
+            let rel_index = sized_vec::remove(nft_idxs, i);
 
-                redeem_mint_pass_and_transfer<T>(factory, index, ctx);
-            };
+            let index = math::divide_and_round_up(
+                factory.total_deposited * rel_index,
+                10_000
+            );
 
-            len = len - 1;
+            vector::push_back(&mut idxs, index);
+            i = i - 1;
+            j = j + 1;
         };
 
-        certificate::insert_invetories_as_inv(Witness {}, certificate, inventories);
-        certificate::insert_nft_indices_as_inv(Witness {}, certificate, nft_idxs);
+        sized_vec::decrease_capacity(nft_idxs, j);
+
+        while (j > 0) {
+            let index = vector::pop_back(&mut idxs);
+            // Calling this function cannot be done in the loop above because
+            // it interfers with the computation of the real indeces
+            redeem_mint_pass_and_transfer<T>(factory, index, ctx);
+
+            j = j - 1;
+        };
+
+        let quantity = certificate::quantity_mut(Witness {}, certificate);
+        *quantity = *quantity - i;
     }
 
     /// Mints NFT from `Factory`
@@ -128,43 +152,25 @@ module launchpad_v2::factory {
         factory: &mut Factory<T>,
         certificate: &mut NftCertificate,
         ctx: &mut TxContext,
-    ): MintPass<T> {
+    ) {
         certificate::assert_cert_buyer(certificate, ctx);
 
         let factory_id = object::id(factory);
+        let nft_map = certificate::get_nft_map_mut_as_inventory(Witness {}, certificate);
+        let nft_idxs = vec_map::get_mut(nft_map, &factory_id);
 
-        let len = certificate::quantity(certificate);
-        let remaining = certificate::quantity_mut(Witness {}, certificate);
-        let inventories = certificate::extract_invetories_as_inv(Witness {}, certificate);
-        let metadata_idxs = certificate::extract_nft_indices_as_inv(Witness {}, certificate);
+        let rel_index = sized_vec::pop_back(nft_idxs);
 
-        assert!(len > 0, 0);
+        let index = math::divide_and_round_up(
+            factory.total_deposited * rel_index,
+            10_000
+        );
 
-        let mint_pass: MintPass<T>;
+        redeem_mint_pass_and_transfer<T>(factory, index, ctx);
 
-        while (len > 0) {
-            let inv_id = vector::borrow(&inventories, len);
-
-            if (*inv_id == factory_id) {
-                vector::remove(&mut inventories, len);
-                let rel_index = vector::remove(&mut metadata_idxs, len);
-
-                let index = math::divide_and_round_up(
-                    factory.total_deposited * rel_index,
-                    10_000
-                );
-
-                mint_pass = redeem_mint_pass<T>(factory, index, ctx);
-
-                break
-            };
-
-            len = len - 1;
-        };
-        certificate::insert_invetories_as_inv(Witness {}, certificate, inventories);
-        certificate::insert_nft_indices_as_inv(Witness {}, certificate, metadata_idxs);
-
-        mint_pass
+        sized_vec::decrease_capacity(nft_idxs, 1);
+        let quantity = certificate::quantity_mut(Witness {}, certificate);
+        *quantity = *quantity - 1;
     }
 
     /// Redeems NFT from specific index in `Warehouse`
@@ -185,7 +191,6 @@ module launchpad_v2::factory {
         index: u64,
         ctx: &mut TxContext,
     ) {
-        let metadatas = &mut factory.metadata;
         assert!(index < table_vec::length(&factory.metadata), EINDEX_OUT_OF_BOUNDS);
 
         let metadata = *table_vec::borrow(&factory.metadata, index);
@@ -218,7 +223,6 @@ module launchpad_v2::factory {
         index: u64,
         ctx: &mut TxContext,
     ): MintPass<T> {
-        let metadatas = &mut factory.metadata;
         assert!(index < table_vec::length(&factory.metadata), EINDEX_OUT_OF_BOUNDS);
 
         let metadata = *table_vec::borrow(&factory.metadata, index);

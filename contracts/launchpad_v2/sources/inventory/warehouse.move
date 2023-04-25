@@ -16,6 +16,8 @@ module launchpad_v2::warehouse {
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
+    use sui::vec_map;
+    use nft_protocol::sized_vec;
 
     use launchpad_v2::certificate::{Self, NftCertificate};
 
@@ -43,6 +45,8 @@ module launchpad_v2::warehouse {
     ///
     /// Call `Warehosue::random_redeem_nft` with the correct commitment.
     const EINVALID_COMMITMENT: u64 = 5;
+
+    const EINVALID_CERTIFICATE: u64 = 6;
 
 
     struct Witness has drop {}
@@ -111,34 +115,43 @@ module launchpad_v2::warehouse {
         certificate::assert_cert_buyer(certificate, ctx);
 
         let warehouse_id = object::id(warehouse);
+        let nft_map = certificate::get_nft_map_mut_as_inventory(Witness {}, certificate);
 
-        let len = certificate::quantity(certificate);
-        let remaining = certificate::quantity_mut(Witness {}, certificate);
-        let inventories = certificate::extract_invetories_as_inv(Witness {}, certificate);
-        let nft_idxs = certificate::extract_nft_indices_as_inv(Witness {}, certificate);
+        let nft_idxs = vec_map::get_mut(nft_map, &warehouse_id);
+        let i = sized_vec::length(nft_idxs);
 
-        assert!(len > 0, 0);
+        assert!(i > 0, EINVALID_CERTIFICATE);
 
-        while (len > 0) {
-            let inv_id = vector::borrow(&inventories, len);
+        let idxs = vector::empty();
 
-            if (*inv_id == warehouse_id) {
-                vector::remove(&mut inventories, len);
+        let j = 0;
+        while (i > 0) {
+            let rel_index = sized_vec::remove(nft_idxs, i);
 
-                let rel_index = vector::remove(&mut nft_idxs, len);
+            let index = math::divide_and_round_up(
+                warehouse.total_deposited * rel_index,
+                10_000
+            );
 
-                let index = math::divide_and_round_up(
-                    warehouse.total_deposited * rel_index,
-                    10_000
-                );
-
-                redeem_nft_and_transfer<T>(warehouse, index, ctx);
-            };
-
-            len = len - 1;
+            vector::push_back(&mut idxs, index);
+            i = i - 1;
+            j = j + 1;
         };
-        certificate::insert_invetories_as_inv(Witness {}, certificate, inventories);
-        certificate::insert_nft_indices_as_inv(Witness {}, certificate, nft_idxs);
+
+        sized_vec::decrease_capacity(nft_idxs, j);
+
+        while (j > 0) {
+            let index = vector::pop_back(&mut idxs);
+            // Calling this function cannot be done in the loop above because
+            // it interfers with the computation of the real indeces
+            redeem_nft_and_transfer<T>(warehouse, index, ctx);
+
+            j = j - 1;
+        };
+
+        // Remove quantity of NFTs that will be redeemed
+        let quantity = certificate::quantity_mut(Witness {}, certificate);
+        *quantity = *quantity - i;
     }
 
     /// Redeems NFT from specific index in `Warehouse`

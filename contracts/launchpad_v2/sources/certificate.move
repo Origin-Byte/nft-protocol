@@ -1,10 +1,11 @@
 // TODO: Add function to deregister rule
 module launchpad_v2::certificate {
-    use std::vector;
-    use std::option::{Self, Option, some};
+    use sui::vec_map::{Self, VecMap};
     use std::type_name::{Self, TypeName};
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
+
+    use nft_protocol::sized_vec::{Self, SizedVec};
 
     use launchpad_v2::venue::{Self, Venue};
 
@@ -30,9 +31,8 @@ module launchpad_v2::certificate {
         quantity: u64,
         buyer: address,
         // Wrapped under option to avoid conflict with mutable references
-        inventories: Option<vector<ID>>,
+        nft_map: VecMap<ID, SizedVec<u64>>,
         // Wrapped under option to avoid conflict with mutable references
-        nft_indices: Option<vector<u64>>,
         inventory_type: TypeName,
     }
 
@@ -65,8 +65,7 @@ module launchpad_v2::certificate {
             venue_id: object::id(venue),
             quantity: nfts_bought,
             buyer,
-            inventories: some(vector::empty()),
-            nft_indices: some(vector::empty()),
+            nft_map: vec_map::empty(),
             inventory_type: venue::get_inventory_policy(venue),
         }
     }
@@ -101,76 +100,101 @@ module launchpad_v2::certificate {
 
     // === Certificates ===
 
-    public fun extract_invetories<SW: drop>(
-        _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate
-    ): vector<ID> {
+    public fun get_nft_map_mut_as_stock<SW: drop>(
+        _stock_witness: SW, venue: &Venue, certificate: &mut NftCertificate
+    ): &mut VecMap<ID, SizedVec<u64>> {
         // TODO: Need to assert that certificate and venue are related
         venue::assert_called_from_stock_method<SW>(venue);
-        option::extract(&mut certificate.inventories)
+        &mut certificate.nft_map
     }
 
-    public fun extract_nft_indices<RW: drop>(
-        _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate
-    ): vector<u64> {
+    public fun get_nft_map_mut_as_redeem<RW: drop>(
+        _redeem_witness: RW, venue: &Venue, certificate: &mut NftCertificate
+    ): &mut VecMap<ID, SizedVec<u64>> {
         // TODO: Need to assert that certificate and venue are related
         venue::assert_called_from_redeem_method<RW>(venue);
-        option::extract(&mut certificate.nft_indices)
+        &mut certificate.nft_map
     }
 
-    public fun insert_invetories<SW: drop>(
-        _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate, inventories: vector<ID>,
-    ) {
-        // TODO: Need to assert that certificate and venue are related
-        venue::assert_called_from_stock_method<SW>(venue);
-
-        option::fill(&mut certificate.inventories, inventories)
-    }
-
-    public fun insert_nft_indices<RW: drop>(
-        _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate, nft_idxs: vector<u64>
-    ) {
-        // TODO: Need to assert that certificate and venue are related
-        venue::assert_called_from_redeem_method<RW>(venue);
-        option::fill(&mut certificate.nft_indices, nft_idxs)
-    }
-
-    public fun extract_invetories_as_inv<IW: drop>(
+    public fun get_nft_map_mut_as_inventory<IW: drop>(
         _inventory_witness: IW, certificate: &mut NftCertificate
-    ): vector<ID> {
-        // TODO: Need to assert that certificate and venue are related
+    ): &mut VecMap<ID, SizedVec<u64>> {
         assert_called_from_inventory<IW>(certificate);
-        option::extract(&mut certificate.inventories)
+        &mut certificate.nft_map
     }
 
-    public fun extract_nft_indices_as_inv<IW: drop>(
-        _inventory_witness: IW, certificate: &mut NftCertificate
-    ): vector<u64> {
-        // TODO: Need to assert that certificate and venue are related
-        assert_called_from_inventory<IW>(certificate);
-        option::extract(&mut certificate.nft_indices)
-    }
+    // public fun extract_nft_indices<RW: drop>(
+    //     _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate
+    // ): vector<u64> {
+    //     // TODO: Need to assert that certificate and venue are related
+    //     venue::assert_called_from_redeem_method<RW>(venue);
+    //     option::extract(&mut certificate.nft_indices)
+    // }
 
-    public fun insert_invetories_as_inv<IW: drop>(
-        _inventory_witness: IW, certificate: &mut NftCertificate, inventories: vector<ID>,
-    ) {
-        // TODO: Need to assert that certificate and venue are related
-        assert_called_from_inventory<IW>(certificate);
+    // public fun insert_invetories<SW: drop>(
+    //     _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate, inventories: vector<ID>,
+    // ) {
+    //     // TODO: Need to assert that certificate and venue are related
+    //     venue::assert_called_from_stock_method<SW>(venue);
 
-        option::fill(&mut certificate.inventories, inventories)
-    }
+    //     option::fill(&mut certificate.inventories, inventories)
+    // }
 
-    public fun insert_nft_indices_as_inv<IW: drop>(
-        _inventory_witness: IW, certificate: &mut NftCertificate, nft_idxs: vector<u64>
-    ) {
-        // TODO: Need to assert that certificate and venue are related
-        assert_called_from_inventory<IW>(certificate);
-        option::fill(&mut certificate.nft_indices, nft_idxs)
-    }
+    // public fun insert_nft_indices<RW: drop>(
+    //     _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate, nft_idxs: vector<u64>
+    // ) {
+    //     // TODO: Need to assert that certificate and venue are related
+    //     venue::assert_called_from_redeem_method<RW>(venue);
+    //     option::fill(&mut certificate.nft_indices, nft_idxs)
+    // }
+
+    // public fun extract_invetories_as_inv<IW: drop>(
+    //     _inventory_witness: IW, certificate: &mut NftCertificate
+    // ): vector<ID> {
+    //     // TODO: Need to assert that certificate and venue are related
+    //     assert_called_from_inventory<IW>(certificate);
+    //     option::extract(&mut certificate.inventories)
+    // }
+
+    // public fun extract_nft_indices_as_inv<IW: drop>(
+    //     _inventory_witness: IW, certificate: &mut NftCertificate
+    // ): vector<u64> {
+    //     // TODO: Need to assert that certificate and venue are related
+    //     assert_called_from_inventory<IW>(certificate);
+    //     option::extract(&mut certificate.nft_indices)
+    // }
+
+    // public fun insert_invetories_as_inv<IW: drop>(
+    //     _inventory_witness: IW, certificate: &mut NftCertificate, inventories: vector<ID>,
+    // ) {
+    //     // TODO: Need to assert that certificate and venue are related
+    //     assert_called_from_inventory<IW>(certificate);
+
+    //     option::fill(&mut certificate.inventories, inventories)
+    // }
+
+    // public fun insert_nft_indices_as_inv<IW: drop>(
+    //     _inventory_witness: IW, certificate: &mut NftCertificate, nft_idxs: vector<u64>
+    // ) {
+    //     // TODO: Need to assert that certificate and venue are related
+    //     assert_called_from_inventory<IW>(certificate);
+    //     option::fill(&mut certificate.nft_indices, nft_idxs)
+    // }
 
 
     public fun quantity_mut<IW: drop>(_inventory_witness: IW, certificate: &mut NftCertificate): &mut u64 {
         assert_called_from_inventory<IW>(certificate);
         &mut certificate.quantity
+    }
+
+    public fun add_to_nft_map(nft_map: &mut VecMap<ID, SizedVec<u64>>, inv_id: ID) {
+        if (!vec_map::contains(nft_map, &inv_id)) {
+            let vec = sized_vec::empty(1);
+            vec_map::insert(nft_map, inv_id, vec);
+        } else {
+            let vec = vec_map::get_mut(nft_map, &inv_id);
+            sized_vec::increase_capacity(vec, 1);
+        };
     }
 
 
@@ -188,12 +212,8 @@ module launchpad_v2::certificate {
         cert.buyer
     }
 
-    public fun inventories(cert: &NftCertificate): &vector<ID> {
-        option::borrow(&cert.inventories)
-    }
-
-    public fun nft_indices(cert: &NftCertificate): &vector<u64> {
-        option::borrow(&cert.nft_indices)
+    public fun nft_map(cert: &NftCertificate): &VecMap<ID, SizedVec<u64>> {
+        &cert.nft_map
     }
 
     public fun cert_uid(cert: &NftCertificate): &UID {

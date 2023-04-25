@@ -11,6 +11,7 @@ module launchpad_v2::redeem_random {
     use launchpad_v2::venue::{Self, Venue};
     use launchpad_v2::certificate::{Self, NftCertificate};
 
+    use nft_protocol::sized_vec;
     use originmate::pseudorandom;
 
     const SCALE: u64 = 10_000;
@@ -189,12 +190,14 @@ module launchpad_v2::redeem_random {
         ctx: &mut TxContext,
     ) {
         // TODO: ASSERT Certificate and Venue match
-        let rand_redeem = venue::get_df_mut<RandInvDfKey, RandRedeem>(
+        let rand_redeem = venue::get_df<RandInvDfKey, RandRedeem>(
             venue, RandInvDfKey {}
         );
 
-        // Construct commitment
+        // Get counter
+        let counter = rand_redeem.counter;
 
+        // Construct commitment
         // Verify user commitment
         let RedeemCommitment {
             id,
@@ -213,37 +216,46 @@ module launchpad_v2::redeem_random {
         // Construct randomized index
         vector::append(&mut user_commitment, contract_commitment);
 
+        // Get NFT Map
         let i = certificate::quantity(certificate);
-        let inventories = venue::get_invetories_mut(Witness {}, venue);
-        let qty = vec_map::size(inventories);
+        let nft_map = certificate::get_nft_map_mut_as_stock(Witness {}, venue, certificate);
 
-        let cert_inventories = certificate::extract_invetories(Witness {}, venue, certificate);
+        // Get inventory selection
+        let inventories = venue::get_invetories_mut(Witness {}, venue);
+        let selection = vec_map::size(inventories);
+
 
         while (i > 0) {
             // Use supply of `Warehouse` as a additional nonce factor
-            vector::append(&mut user_commitment, sui::bcs::to_bytes(&rand_redeem.counter));
+            vector::append(&mut user_commitment, sui::bcs::to_bytes(&counter));
 
             let contract_commitment = pseudorandom::rand_no_counter(user_commitment, ctx);
 
-            let inv_index = select(qty, &contract_commitment);
+            let inv_index = select(selection, &contract_commitment);
 
             // TODO: WE SHOULD ONLY DECREMENT SUPPLY WHEN LIMITED
-            let (inv_id, supply) = vec_map::get_entry_by_idx_mut(inventories, inv_index);
-
-            if (*supply == 1) {
-                // Remove inventory form the list since supply is exhausted
-                vec_map::remove(inventories, inv_id);
-            } else {
-                // Decrement supply
+            let (inv_id, supply) = {
+                let (inv_id, supply) = vec_map::get_entry_by_idx_mut(inventories, inv_index);
                 *supply = *supply - 1;
+                (*inv_id, *supply)
             };
 
-            increment_counter(rand_redeem);
-            vector::push_back(&mut cert_inventories, *inv_id);
+            if (supply == 0) {
+                vec_map::remove(inventories, &inv_id);
+            };
 
+            certificate::add_to_nft_map(nft_map, inv_id);
+
+            counter = counter + 1;
             i = i - 1;
         };
-        certificate::insert_invetories(Witness {}, venue, certificate, cert_inventories);
+
+
+        new_counter(
+            venue::get_df_mut<RandInvDfKey, RandRedeem>(
+                venue, RandInvDfKey {}),
+            counter
+        );
     }
 
     public fun assign_nft(
@@ -254,12 +266,14 @@ module launchpad_v2::redeem_random {
         ctx: &mut TxContext,
     ) {
         // TODO: ASSERT Certificate and Venue match
-        let rand_redeem = venue::get_df_mut<RandInvDfKey, RandRedeem>(
-            venue, RandInvDfKey {}
+        let rand_redeem = venue::get_df<RandNftDfKey, RandRedeem>(
+            venue, RandNftDfKey {}
         );
 
-        // Construct commitment
+        // Get counter
+        let counter = rand_redeem.counter;
 
+        // Construct commitment
         // Verify user commitment
         let RedeemCommitment {
             id,
@@ -278,26 +292,37 @@ module launchpad_v2::redeem_random {
         // Construct randomized index
         vector::append(&mut user_commitment, contract_commitment);
 
-        let i = certificate::quantity(certificate);
-        let inventories = venue::get_invetories_mut(Witness {}, venue);
-        let qty = vec_map::size(inventories);
+        // Get NFT Map
+        let nft_map = certificate::get_nft_map_mut_as_redeem(Witness {}, venue, certificate);
+        let inv_ids = vec_map::keys(nft_map);
+        let inv_selection = vector::length(&inv_ids);
 
-        let cert_nft_indices = certificate::extract_nft_indices(Witness {}, venue, certificate);
+        while (inv_selection > 0) {
+            let inv_id = vector::pop_back(&mut inv_ids);
+            let sized_vec = vec_map::get_mut(nft_map, &inv_id);
+            let slack = sized_vec::slack(sized_vec);
 
-        while (i > 0) {
-            // Use supply of `Warehouse` as a additional nonce factor
-            vector::append(&mut user_commitment, sui::bcs::to_bytes(&rand_redeem.counter));
+            while (slack != 0) {
+                // Use supply of `Warehouse` as a additional nonce factor
+                vector::append(&mut user_commitment, sui::bcs::to_bytes(&counter));
 
-            let contract_commitment = pseudorandom::rand_no_counter(user_commitment, ctx);
+                let contract_commitment = pseudorandom::rand_no_counter(user_commitment, ctx);
 
-            let nft_index = select(SCALE, &contract_commitment);
+                let nft_index = select(SCALE, &contract_commitment);
+                sized_vec::push_back(sized_vec, nft_index);
 
-            increment_counter(rand_redeem);
-            vector::push_back(&mut cert_nft_indices, nft_index);
+                counter = counter + 1;
+                slack = slack - 1;
+            };
 
-            i = i - 1;
+            inv_selection = inv_selection - 1;
         };
-        certificate::insert_nft_indices(Witness {}, venue, certificate, cert_nft_indices);
+
+        new_counter(
+            venue::get_df_mut<RandNftDfKey, RandRedeem>(
+                venue, RandNftDfKey {}),
+            counter
+        );
     }
 
     // === Utils ===
@@ -314,5 +339,9 @@ module launchpad_v2::redeem_random {
 
     fun increment_counter(counter: &mut RandRedeem) {
         counter.counter = counter.counter + 1;
+    }
+
+    fun new_counter(counter: &mut RandRedeem, new_counter: u64) {
+        counter.counter = new_counter;
     }
 }
