@@ -32,6 +32,7 @@ module nft_protocol::orderbook {
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event;
+    use sui::sui::SUI;
     use sui::kiosk::{Self, Kiosk};
     use sui::object::{Self, ID, UID};
     use sui::transfer::share_object;
@@ -1229,8 +1230,79 @@ module nft_protocol::orderbook {
                 buyer_kiosk,
                 *nft_id,
                 &book.id,
+                coin::zero(ctx),
                 ctx,
             )
+        } else {
+            ob_kiosk::transfer_delegated<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                *nft_id,
+                &book.id,
+                price,
+                ctx,
+            )
+        };
+
+        ob_transfer_request::set_paid<T, FT>(
+            &mut transfer_req, balance::withdraw_all(paid), *seller,
+        );
+        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
+
+        transfer_req
+    }
+
+    fun finish_trade_sui<T: key + store>(
+        book: &Orderbook<T, SUI>,
+        trade: &mut TradeIntermediate<T, SUI>,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        let TradeIntermediate {
+            id: _,
+            nft_id,
+            seller_kiosk: _,
+            paid,
+            seller,
+            buyer: _,
+            buyer_kiosk: expected_buyer_kiosk_id,
+            commission: maybe_commission,
+        } = trade;
+
+        let price = balance::value(paid);
+
+        assert!(
+            *expected_buyer_kiosk_id == object::id(buyer_kiosk), EKioskIdMismatch,
+        );
+
+        trading::transfer_ask_commission<SUI>(maybe_commission, paid, ctx);
+
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, *nft_id)) {
+            if (type_name::get<SUI>() == type_name::get<SUI>()) {
+                ob_kiosk::transfer_locked_nft<T>(
+                    seller_kiosk,
+                    buyer_kiosk,
+                    *nft_id,
+                    &book.id,
+                    coin::from_balance(balance::split(paid, price), ctx),
+                    ctx,
+                )
+            } else {
+                let req = ob_kiosk::transfer_locked_nft<T>(
+                    seller_kiosk,
+                    buyer_kiosk,
+                    *nft_id,
+                    &book.id,
+                    coin::zero(ctx),
+                    ctx,
+                );
+
+                ob_transfer_request::set_paid<T, FT>(
+                    &mut transfer_req, balance::withdraw_all(paid), *seller,
+                );
+                req
+            }
         } else {
             ob_kiosk::transfer_delegated<T>(
                 seller_kiosk,

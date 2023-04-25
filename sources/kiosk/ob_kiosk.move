@@ -43,7 +43,8 @@ module nft_protocol::ob_kiosk {
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap, uid_mut as ext};
     use sui::object::{Self, ID, UID, uid_to_address};
     use sui::package;
-    use sui::coin;
+    use sui::coin::Coin;
+    use sui::sui::SUI;
     use sui::table::{Self, Table};
     use sui::transfer::{transfer, public_share_object, public_transfer};
     use sui::tx_context::{TxContext, sender};
@@ -340,6 +341,7 @@ module nft_protocol::ob_kiosk {
         target: &mut Kiosk,
         nft_id: ID,
         entity_id: &UID,
+        coin: Coin<SUI>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         check_entity_and_pop_ref(source, uid_to_address(entity_id), nft_id);
@@ -348,7 +350,7 @@ module nft_protocol::ob_kiosk {
         kiosk::list<T>(source, &cap, nft_id, 0);
         set_cap(source, cap);
 
-        let (nft, req) = kiosk::purchase<T>(source, nft_id, coin::zero(ctx));
+        let (nft, req) = kiosk::purchase<T>(source, nft_id, coin);
         deposit(target, nft, ctx);
 
         let req = ob_transfer_request::from_sui<T>(req, nft_id, uid_to_address(entity_id), ctx);
