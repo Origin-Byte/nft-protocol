@@ -253,7 +253,11 @@ module nft_protocol::ob_transfer_request {
         rule: Rule, self: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>, cfg: Config
     ) {
         let ext = transfer_policy::uid_mut_as_owner(self, cap);
+
+        // We bump a counter each time we add and remove an OriginByte Rule
         if (!df::exists_(ext, OBCustomRulesDfKey {})) {
+            df::add(ext, OBCustomRulesDfKey {}, 1_u8);
+        } else {
             let ob_rules = df::borrow_mut<OBCustomRulesDfKey, u8>(ext, OBCustomRulesDfKey {});
             *ob_rules = *ob_rules + 1;
         };
