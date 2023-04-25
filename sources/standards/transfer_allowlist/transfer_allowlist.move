@@ -26,10 +26,9 @@ module nft_protocol::transfer_allowlist {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
     use sui::dynamic_field as df;
-    use sui::transfer_policy::{Self, TransferPolicyCap, TransferPolicy};
+    use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
 
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
     use nft_protocol::witness::Witness as DelegatedWitness;

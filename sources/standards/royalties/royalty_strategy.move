@@ -1,15 +1,14 @@
 module nft_protocol::royalty_strategy_bps {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
-    // use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
+    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
     use nft_protocol::royalty;
     use nft_protocol::utils;
-    use sui::transfer_policy::{Self, TransferPolicyCap, TransferPolicy};
+    use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
     use nft_protocol::witness::{Witness as DelegatedWitness};
     use originmate::balances::{Self, Balances};
     use std::fixed_point32;
     use std::option::{Self, Option};
-    use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use sui::balance::{Self, Balance};
     use sui::object::{Self, UID};
     use sui::transfer::share_object;
