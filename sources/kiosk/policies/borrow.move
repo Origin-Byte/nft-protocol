@@ -6,6 +6,7 @@ module nft_protocol::borrow_request {
     use sui::object::{Self, ID, UID};
     use sui::package::Publisher;
     use sui::tx_context::TxContext;
+    use sui::kiosk::Borrow;
 
     use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
@@ -30,6 +31,7 @@ module nft_protocol::borrow_request {
         nft: Option<T>,
         sender: address,
         field: Option<TypeName>,
+        promise: Borrow,
         inner: RequestBody<WithNft<T, BORROW_REQUEST>>,
     }
 
@@ -42,6 +44,7 @@ module nft_protocol::borrow_request {
         nft: T,
         sender: address,
         field: Option<TypeName>,
+        promise: Borrow,
         ctx: &mut TxContext,
     ): BorrowRequest<Auth, T> {
         let nft_id = object::id(&nft);
@@ -51,6 +54,7 @@ module nft_protocol::borrow_request {
             nft: some(nft),
             sender,
             field,
+            promise,
             inner: request::new(ctx),
         }
     }
@@ -72,7 +76,7 @@ module nft_protocol::borrow_request {
 
     public fun confirm<Auth: drop, T: key + store>(
         _witness: Auth, self: BorrowRequest<Auth, T>, policy: &Policy<WithNft<T, BORROW_REQUEST>>
-    ): T {
+    ): (T, Borrow) {
         assert!(option::is_some(&self.nft), 0);
 
         let BorrowRequest {
@@ -80,6 +84,7 @@ module nft_protocol::borrow_request {
             nft,
             sender: _,
             field: _,
+            promise,
             inner,
         } = self;
 
@@ -89,7 +94,7 @@ module nft_protocol::borrow_request {
         // ideal we would ideally have a bulletproof here.
 
         request::confirm(inner, policy);
-        option::destroy_some(nft)
+        (option::destroy_some(nft), promise)
     }
 
     public fun borrow_nft<Auth: drop, T: key + store>(
