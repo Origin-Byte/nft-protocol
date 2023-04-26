@@ -205,9 +205,9 @@ module nft_protocol::p2p_list {
     ) {
         let msg = vector::empty();
         vector::append(&mut msg, object::id_to_bytes(&nft_id));
-        vector::append(&mut msg, bcs::to_bytes(&tx_context::epoch(ctx)));
         vector::append(&mut msg, bcs::to_bytes(&source));
         vector::append(&mut msg, bcs::to_bytes(&destination));
+        vector::append(&mut msg, bcs::to_bytes(&tx_context::epoch(ctx)));
         vector::append(&mut msg, nonce);
 
         authlist::assert_transferable(
