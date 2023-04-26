@@ -1,21 +1,21 @@
 /// P2PLists NFT transfers.
 ///
 /// This module is a set of functions for implementing and managing a
-/// AuthList for NFT (non-fungible token) transfers.
-/// The AuthList is used to authorize which contracts are allowed to
+/// Authlist for NFT (non-fungible token) transfers.
+/// The Authlist is used to authorize which contracts are allowed to
 /// transfer NFTs of a particular collection.
-/// The module includes functions for creating and managing the AuthList,
-/// adding and removing collections from the AuthList, and checking whether
+/// The module includes functions for creating and managing the Authlist,
+/// adding and removing collections from the Authlist, and checking whether
 /// a contract is authorized to transfer a particular NFT.
 /// The module uses generics and reflection to allow for flexibility in
-/// implementing and managing the AuthList.
+/// implementing and managing the Authlist.
 ///
 /// Generics at play:
-/// 1. Admin (AuthList witness) enables any organization to start their own
-///     AuthList and manage it according to their own rules;
+/// 1. Admin (Authlist witness) enables any organization to start their own
+///     Authlist and manage it according to their own rules;
 /// 2. Auth (3rd party witness) is used to authorize contracts via their
 ///     witness types. If e.g. an orderbook trading contract wants to be
-///     included in a AuthList, the AuthList admin adds the stringified
+///     included in a Authlist, the Authlist admin adds the stringified
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
 module nft_protocol::p2p_list {
@@ -29,10 +29,11 @@ module nft_protocol::p2p_list {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
 
-    use nft_protocol::authlist::{Self, AuthList};
     use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
     use nft_protocol::ob_kiosk;
     use nft_protocol::ob_transfer_request::{Self, TransferRequest};
+
+    use authlist::authlist::{Self, Authlist};
 
     // === Errors ===
 
@@ -41,7 +42,7 @@ module nft_protocol::p2p_list {
 
     /// Invalid admin
     ///
-    /// Create new `AuthList` using `create` with desired admin.
+    /// Create new `Authlist` using `create` with desired admin.
     const EInvalidAdmin: u64 = 1;
 
     /// Invalid collection
@@ -75,7 +76,7 @@ module nft_protocol::p2p_list {
     // === Transfers ===
 
     public fun transfer<T: key + store>(
-        self: &AuthList,
+        self: &Authlist,
         authority: &vector<u8>,
         nft_id: ID,
         source: &mut Kiosk,
@@ -108,7 +109,7 @@ module nft_protocol::p2p_list {
     }
 
     public fun transfer_into_new_kiosk<T: key + store>(
-        self: &AuthList,
+        self: &Authlist,
         authority: &vector<u8>,
         nft_id: ID,
         source: &mut Kiosk,
@@ -144,7 +145,7 @@ module nft_protocol::p2p_list {
         req
     }
 
-    /// Registers collection to use `AuthList` during the transfer.
+    /// Registers collection to use `Authlist` during the transfer.
     public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
         ob_transfer_request::add_originbyte_rule<T, P2PListRule, bool>(
             P2PListRule {}, policy, cap, false,
@@ -173,12 +174,12 @@ module nft_protocol::p2p_list {
         request::drop_rule_no_state<WithNft<T, P>, P2PListRule>(policy, cap);
     }
 
-    /// Confirms that the transfer is allowed by the `AuthList`.
+    /// Confirms that the transfer is allowed by the `Authlist`.
     /// It adds a signature to the request.
-    /// In the end, if the AuthList rule is included in the transfer policy,
+    /// In the end, if the Authlist rule is included in the transfer policy,
     /// the transfer request can only be finished if this rule is present.
     fun confirm_transfer_<T>(
-        self: &AuthList,
+        self: &Authlist,
         req: &mut TransferRequest<T>,
         authority: &vector<u8>,
         nft_id: ID,
@@ -194,7 +195,7 @@ module nft_protocol::p2p_list {
     }
 
     fun confirm_<T>(
-        self: &AuthList,
+        self: &Authlist,
         authority: &vector<u8>,
         nft_id: ID,
         source: address,

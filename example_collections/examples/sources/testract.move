@@ -12,6 +12,9 @@
 /// We start the module with a `test_example_testract` test which shows how those txs should
 /// be called in order.
 module examples::testract {
+    use std::option;
+    use std::string::{String, utf8};
+
     use nft_protocol::bidding;
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display_info;
@@ -24,7 +27,7 @@ module examples::testract {
     use nft_protocol::royalty;
     use nft_protocol::symbol;
     use nft_protocol::transfer_allowlist_domain;
-    use nft_protocol::transfer_allowlist::{Self, Allowlist};
+    use nft_protocol::transfer_allowlist;
     use nft_protocol::witness::{Self, Witness as DelegatedWitness};
 
     use launchpad::fixed_price;
@@ -33,8 +36,6 @@ module examples::testract {
     use launchpad::listing;
     use launchpad::warehouse;
 
-    use std::option;
-    use std::string::{String, utf8};
     use sui::coin::Coin;
     use sui::transfer_policy::TransferPolicy;
     use sui::object::{Self, UID};
@@ -43,6 +44,8 @@ module examples::testract {
     use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
+
+    use allowlist::allowlist::{Self, Allowlist};
 
     /// OTW for constructing publisher
     struct TESTRACT has drop {}
@@ -115,18 +118,19 @@ module examples::testract {
     /// Store allowlist object ID.
     public entry fun create_allowlist(
         collection: &mut Collection<TestNft>,
+        publisher: &Publisher,
         ctx: &mut TxContext,
     ) {
-        let (al, al_cap) = transfer_allowlist::new(ctx);
+        let (al, al_cap) = allowlist::new(ctx);
 
         // orderbooks can perform trades with our allowlist
-        transfer_allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
+        allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
         // bidding contract can perform trades too
-        transfer_allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
+        allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
         // our allowlist can authorize on behalf of the collection TestNft
-        transfer_allowlist::insert_collection_with_witness(col_wit(), &mut al);
+        allowlist::insert_collection<TestNft>(&mut al, publisher);
 
-        transfer_allowlist::delete_owner_cap(al_cap);
+        allowlist::delete_owner_cap(al_cap);
 
         // stores the information about the allowlist in the collection for
         // off-chain clients
@@ -548,7 +552,7 @@ module examples::testract {
         test_scenario::next_tx(&mut scenario, USER);
 
         // ---
-        create_allowlist(&mut collection, ctx(&mut scenario));
+        create_allowlist(&mut collection, &publisher, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let allowlist = test_scenario::take_shared<Allowlist>(&scenario);
 
