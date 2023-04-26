@@ -11,9 +11,10 @@ module nft_protocol::p2p_list_domain {
     use sui::dynamic_field as df;
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::witness::Witness as DelegatedWitness;
+
+    use authlist::authlist::Authlist;
 
     /// `P2PListDomain` was not registered
     ///
@@ -60,7 +61,7 @@ module nft_protocol::p2p_list_domain {
     public fun add_id<T>(
         witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
-        al: &Allowlist,
+        al: &Authlist,
     ) {
         let domain = borrow_domain_mut(
             collection::borrow_uid_mut(witness, collection),

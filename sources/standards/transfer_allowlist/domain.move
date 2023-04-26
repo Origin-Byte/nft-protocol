@@ -11,9 +11,10 @@ module nft_protocol::transfer_allowlist_domain {
     use sui::dynamic_field as df;
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::transfer_allowlist::Allowlist;
     use nft_protocol::utils::{Self, Marker};
     use nft_protocol::witness::Witness as DelegatedWitness;
+
+    use allowlist::allowlist::Allowlist;
 
     /// `TransferAllowlistDomain` was not registered
     ///

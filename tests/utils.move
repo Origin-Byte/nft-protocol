@@ -13,10 +13,11 @@ module nft_protocol::test_utils {
     use nft_protocol::orderbook;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::transfer_allowlist::{Self, Allowlist, AllowlistOwnerCap};
     use nft_protocol::request::{Policy, PolicyCap, WithNft};
     use nft_protocol::withdraw_request::{Self, WITHDRAW_REQUEST};
     use nft_protocol::ob_transfer_request;
+
+    use allowlist::allowlist::{Self, Allowlist, AllowlistOwnerCap};
 
     const MARKETPLACE: address = @0xA1C08;
     const CREATOR: address = @0xA1C04;
@@ -82,12 +83,12 @@ module nft_protocol::test_utils {
 
     #[test_only]
     public fun create_allowlist(scenario: &mut Scenario): (Allowlist, AllowlistOwnerCap) {
-        let (al, al_cap) = transfer_allowlist::new(ctx(scenario));
+        let (al, al_cap) = allowlist::new(ctx(scenario));
 
         // orderbooks can perform trades with our allowlist
-        transfer_allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
+        allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
         // bidding contract can perform trades too
-        transfer_allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
+        allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
 
         (al, al_cap)
     }
