@@ -1,0 +1,225 @@
+#[test_only]
+module nft_protocol::test_authlist {
+    use std::vector;
+    use std::type_name;
+
+    use sui::object;
+    use sui::package;
+    use sui::transfer;
+    use sui::test_scenario::{Self, ctx};
+
+    use nft_protocol::authlist::{Self, AuthList, AuthListOwnerCap};
+
+    const CREATOR: address = @0xA1C04;
+
+    struct TEST_AUTHLIST has drop {}
+
+    struct Foo {}
+
+    struct Witness has drop {}
+
+    #[test]
+    fun init_authlist() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        authlist::init_auth_list(ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        assert!(test_scenario::has_most_recent_shared<AuthList>(), 0);
+        assert!(test_scenario::has_most_recent_for_address<AuthListOwnerCap>(CREATOR), 0);
+
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = authlist::EInvalidAdmin)]
+    fun try_insert_authority_invalid_cap() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let (auth_list, cap) = authlist::new(ctx(&mut scenario));
+        let (fake_auth_list, fake_cap) = authlist::new(ctx(&mut scenario));
+
+        let (pub, _) = key_ed25519();
+        authlist::insert_authority(&fake_cap, &mut auth_list, pub);
+
+        authlist::delete_owner_cap(fake_cap);
+        authlist::delete_auth_list(fake_auth_list);
+        transfer::public_transfer(cap, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun insert_authority_invalid_cap() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let (auth_list, cap) = authlist::new(ctx(&mut scenario));
+
+        let (pub, _) = key_ed25519();
+        authlist::insert_authority(&cap, &mut auth_list, pub);
+
+        transfer::public_transfer(cap, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = authlist::EInvalidAuthority)]
+    fun try_remove_authority_undefined() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let (auth_list, cap) = authlist::new(ctx(&mut scenario));
+
+        let (pub, _) = key_ed25519();
+        authlist::remove_authority(&cap, &mut auth_list, pub);
+
+        transfer::public_transfer(cap, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = authlist::EInvalidAdmin)]
+    fun try_remove_authority_invalid_cap() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let (auth_list, cap) = authlist::new(ctx(&mut scenario));
+        let (fake_auth_list, fake_cap) = authlist::new(ctx(&mut scenario));
+
+        let (pub, _) = key_ed25519();
+        authlist::insert_authority(&cap, &mut auth_list, pub);
+        authlist::remove_authority(&fake_cap, &mut auth_list, pub);
+
+        authlist::delete_owner_cap(fake_cap);
+        authlist::delete_auth_list(fake_auth_list);
+        transfer::public_transfer(cap, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun remove_authority_invalid_cap() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let (auth_list, cap) = authlist::new(ctx(&mut scenario));
+
+        let (pub, _) = key_ed25519();
+        authlist::insert_authority(&cap, &mut auth_list, pub);
+        authlist::remove_authority(&cap, &mut auth_list, pub);
+
+        transfer::public_transfer(cap, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun insert_collection() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let auth_list = authlist::new_embedded(Witness {}, ctx(&mut scenario));
+
+        let publisher = package::claim(TEST_AUTHLIST {}, ctx(&mut scenario));
+        authlist::insert_collection<Foo>(&mut auth_list, &publisher);
+
+        transfer::public_transfer(publisher, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = authlist::EInvalidCollection)]
+    fun try_remove_collection() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let auth_list = authlist::new_embedded(Witness {}, ctx(&mut scenario));
+
+        let publisher = package::claim(TEST_AUTHLIST {}, ctx(&mut scenario));
+        authlist::remove_collection<Foo>(&mut auth_list, &publisher);
+
+        transfer::public_transfer(publisher, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun remove_collection() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let auth_list = authlist::new_embedded(Witness {}, ctx(&mut scenario));
+
+        let publisher = package::claim(TEST_AUTHLIST {}, ctx(&mut scenario));
+        authlist::insert_collection<Foo>(&mut auth_list, &publisher);
+        authlist::remove_collection<Foo>(&mut auth_list, &publisher);
+
+        transfer::public_transfer(publisher, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun transferable() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        let auth_list = authlist::new_embedded(Witness {}, ctx(&mut scenario));
+
+        let (pub, _) = key_ed25519();
+        authlist::insert_authority_with_witness(
+            Witness {}, &mut auth_list, pub,
+        );
+
+        let publisher = package::claim(TEST_AUTHLIST {}, ctx(&mut scenario));
+        authlist::insert_collection<Foo>(&mut auth_list, &publisher);
+
+        let (msg, sig) = sig_ed25519();
+        authlist::assert_transferable(
+            &auth_list,
+            type_name::get<Foo>(),
+            &pub,
+            &msg,
+            &sig,
+        );
+
+        transfer::public_transfer(publisher, CREATOR);
+        transfer::public_share_object(auth_list);
+        test_scenario::end(scenario);
+    }
+
+    // === Utils ===
+
+    /// Convert `address` to `vector<u8>`
+    fun bytes(addr: address): vector<u8> {
+        object::id_to_bytes(&object::id_from_address(addr))
+    }
+
+    /// Return public and private ED25519 key
+    fun key_ed25519(): (vector<u8>, vector<u8>) {
+        let pub = @0x8a1a8348dde5d979c85553c03e204c73efc3b91a2c9ce96b1004c9ec26eaacc8;
+        let priv = @0xac5dbb29bea100f5f6382ebcb116afc66fc7b05ff64d2d1e3fc60849504a29f0;
+        (bytes(pub), bytes(priv))
+    }
+
+    /// Generate a message and valid signature for key returned by
+    /// `key_ed25519`
+    fun sig_ed25519(): (vector<u8>, vector<u8>) {
+        let (pub, _) = key_ed25519();
+
+        // Just construct a fake message from any byte data we can get
+        let msg = vector::empty();
+        vector::append(&mut msg, pub);
+        vector::append(&mut msg, pub);
+        vector::append(&mut msg, pub);
+
+        let p1 = @0xda2f1b2cff94a863ae81527201cc58710ce4331b6c53f567a6dae68ce6aa5f24;
+        let p2 = @0x1d3722daa9556f019b1c02a36c994261865e8e3ef9245c552fe059446c637a07;
+
+        let sig = vector::empty();
+        vector::append(&mut sig, bytes(p1));
+        vector::append(&mut sig, bytes(p2));
+
+        // Sanity check
+        assert!(sui::ed25519::ed25519_verify(&sig, &pub, &msg), 0);
+
+        (msg, sig)
+    }
+}

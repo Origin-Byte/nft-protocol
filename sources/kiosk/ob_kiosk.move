@@ -168,28 +168,20 @@ module nft_protocol::ob_kiosk {
     /// Note that those collections which have restricted deposits will NOT be
     /// allowed to be transferred to the kiosk even on trades.
     public fun new(ctx: &mut TxContext): Kiosk {
-        let (kiosk, kiosk_cap) = kiosk::new(ctx);
-        let kiosk_ext = ext(&mut kiosk);
-
-        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
-        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
-        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
-            enable_any_deposit: true,
-            collections_with_enabled_deposits: vec_set::empty(),
-        });
-
-        transfer(OwnerToken {
-            id: object::new(ctx),
-            kiosk: object::id(&kiosk),
-            owner: sender(ctx),
-        }, sender(ctx));
-
-        kiosk
+        new_(sender(ctx), ctx)
     }
 
     /// Calls `new` and shares the kiosk
     public fun create_for_sender(ctx: &mut TxContext) {
         public_share_object(new(ctx));
+    }
+
+    public fun new_for_address(owner: address, ctx: &mut TxContext): Kiosk {
+        new_(owner, ctx)
+    }
+
+    public fun create_for_address(owner: address, ctx: &mut TxContext) {
+        public_share_object(new_(owner, ctx));
     }
 
     /// All functions which would normally verify that the owner is the signer
@@ -531,6 +523,27 @@ module nft_protocol::ob_kiosk {
         set_cap(self, cap);
 
         nft
+    }
+
+    fun new_(owner: address, ctx: &mut TxContext): Kiosk {
+        let (kiosk, kiosk_cap) = kiosk::new(ctx);
+        kiosk::set_owner_custom(&mut kiosk, &kiosk_cap, owner);
+        let kiosk_ext = ext(&mut kiosk);
+
+        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
+        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
+        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
+            enable_any_deposit: true,
+            collections_with_enabled_deposits: vec_set::empty(),
+        });
+
+        transfer(OwnerToken {
+            id: object::new(ctx),
+            kiosk: object::id(&kiosk),
+            owner,
+        }, owner);
+
+        kiosk
     }
 
     // === Request Auth ===

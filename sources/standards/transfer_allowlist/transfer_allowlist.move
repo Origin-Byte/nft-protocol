@@ -305,9 +305,9 @@ module nft_protocol::transfer_allowlist {
 
     /// Register authority and provide error reporting
     fun insert_authority_<Auth>(self: &mut Allowlist) {
-        let collection = type_name::get<Auth>();
-        assert!(!contains_authority(self, &collection), EExistingAuthority);
-        vec_set::insert(&mut self.authorities, collection);
+        let auth = type_name::get<Auth>();
+        assert!(!contains_authority(self, &auth), EExistingAuthority);
+        vec_set::insert(&mut self.authorities, auth);
     }
 
     /// Remove authority from `Allowlist`
@@ -396,7 +396,7 @@ module nft_protocol::transfer_allowlist {
         req: &mut TransferRequest<T>,
     ) {
         let auth = ob_kiosk::get_transfer_request_auth(req);
-        assert_transferable<T>(self, auth);
+        assert_transferable(self, type_name::get<T>(), auth);
         ob_transfer_request::add_receipt(req, AllowlistRule {});
     }
 
@@ -409,7 +409,7 @@ module nft_protocol::transfer_allowlist {
         req: &mut RequestBody<WithNft<T, P>>,
     ) {
         let auth = ob_kiosk::get_transfer_request_auth_(req);
-        assert_transferable<T>(self, auth);
+        assert_transferable(self, type_name::get<T>(), auth);
         request::add_receipt(req, &AllowlistRule {});
     }
 
@@ -476,8 +476,8 @@ module nft_protocol::transfer_allowlist {
     ///
     /// Panics if neither `T` is not transferrable or `Auth` is not a
     /// valid authority.
-    public fun assert_transferable<T>(allowlist: &Allowlist, auth: &TypeName) {
-        assert_collection(allowlist, type_name::get<T>());
+    public fun assert_transferable(allowlist: &Allowlist, collection: TypeName, auth: &TypeName) {
+        assert_collection(allowlist, collection);
         assert_authority(allowlist, auth);
     }
 
