@@ -49,7 +49,7 @@ module launchpad::test_dutch_auction {
 
         let (_, venue_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        let market = venue::borrow_market(
+        let market = dutch_auction::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
 
@@ -156,7 +156,7 @@ module launchpad::test_dutch_auction {
 
         assert!(coin::value(&wallet) == 5, 0);
 
-        let market = venue::borrow_market(
+        let market = dutch_auction::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -332,7 +332,7 @@ module launchpad::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        let market = venue::borrow_market(
+        let market = dutch_auction::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -356,7 +356,7 @@ module launchpad::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        let market = venue::borrow_market(
+        let market = dutch_auction::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -376,7 +376,7 @@ module launchpad::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        let market = venue::borrow_market(
+        let market = dutch_auction::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -399,7 +399,7 @@ module launchpad::test_dutch_auction {
         assert!(coin::value(&wallet) == 44, 0);
 
         // Check that price levels are automatically removed once empty
-        let market = venue::borrow_market(
+        let market = dutch_auction::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -443,7 +443,7 @@ module launchpad::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        let market = venue::borrow_market(
+        let market = dutch_auction::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         let bids = dutch_auction::bids<SUI>(market);
@@ -539,7 +539,7 @@ module launchpad::test_dutch_auction {
         test_scenario::return_to_address(CREATOR, refunded);
 
         // Check bid state
-        let market = venue::borrow_market(venue);
+        let market = dutch_auction::borrow_market(venue);
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
@@ -671,7 +671,7 @@ module launchpad::test_dutch_auction {
         test_scenario::return_to_address(BUYER, nft);
 
         // Check bid state
-        let market = venue::borrow_market(venue);
+        let market = dutch_auction::borrow_market(venue);
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 
@@ -729,7 +729,7 @@ module launchpad::test_dutch_auction {
         assert!(venue::is_live(venue), 0);
 
         // Check bid state
-        let market = venue::borrow_market(venue);
+        let market = dutch_auction::borrow_market(venue);
         let bids = dutch_auction::bids<SUI>(market);
         assert!(crit_bit::is_empty(bids), 0);
 

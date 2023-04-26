@@ -46,7 +46,7 @@ module launchpad::test_fixed_price {
 
         let (_, venue_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        let market = venue::borrow_market(
+        let market = fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
 
@@ -250,7 +250,7 @@ module launchpad::test_fixed_price {
             &mut listing, venue_id, 20, ctx(&mut scenario)
         );
 
-        let market = venue::borrow_market(
+        let market = fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(fixed_price::price<SUI>(market) == 20, 0);

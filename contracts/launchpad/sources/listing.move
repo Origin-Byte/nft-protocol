@@ -39,8 +39,6 @@ module launchpad::listing {
     use sui::object_table::{Self, ObjectTable};
     use sui::object_bag::{Self, ObjectBag};
 
-    use nft_protocol::witness::Witness as DelegatedWitness;
-
     use originmate::typed_id::{Self, TypedID};
     use originmate::object_box::{Self as obox, ObjectBox};
 
@@ -174,13 +172,14 @@ module launchpad::listing {
     /// #### Panics
     ///
     /// Panics if transaction sender is not listing admin.
-    public entry fun init_venue<Market: store>(
+    public entry fun init_venue<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ) {
-        create_venue(listing, market, is_whitelisted, ctx);
+        create_venue(listing, key, market, is_whitelisted, ctx);
     }
 
     /// Creates a `Venue` on `Listing` and returns it's ID
@@ -188,13 +187,14 @@ module launchpad::listing {
     /// #### Panics
     ///
     /// Panics if transaction sender is not listing admin.
-    public fun create_venue<Market: store>(
+    public fun create_venue<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ): ID {
-        let venue = venue::new(market, is_whitelisted, ctx);
+        let venue = venue::new(key, market, is_whitelisted, ctx);
         let venue_id = object::id(&venue);
         add_venue(listing, venue, ctx);
         venue_id
@@ -289,16 +289,16 @@ module launchpad::listing {
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - No supply is available from underlying `Inventory`
-    public fun buy_nft<T: key + store, FT, Market: store>(
-        witness: DelegatedWitness<Market>,
+    public fun buy_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         inventory_id: ID,
         venue_id: ID,
         buyer: address,
         funds: Balance<FT>,
     ): T {
-        let inventory = inventory_internal_mut(
-            witness, listing, venue_id, inventory_id,
+        let inventory = inventory_internal_mut<T, Market, MarketKey>(
+            listing, key, venue_id, inventory_id,
         );
         let nft = inventory::redeem_nft(inventory);
         pay_and_emit_sold_event(listing, &nft, funds, buyer);
@@ -318,17 +318,17 @@ module launchpad::listing {
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
-    public fun buy_pseudorandom_nft<T: key + store, FT, Market: store>(
-        witness: DelegatedWitness<Market>,
+    public fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         inventory_id: ID,
         venue_id: ID,
         buyer: address,
         funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        let inventory = inventory_internal_mut(
-            witness, listing, venue_id, inventory_id,
+        let inventory = inventory_internal_mut<T, Market, MarketKey>(
+            listing, key, venue_id, inventory_id,
         );
         let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
         pay_and_emit_sold_event(listing, &nft, funds, buyer);
@@ -352,9 +352,9 @@ module launchpad::listing {
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
     /// - `user_commitment` does not match the hashed commitment in
     /// `RedeemCommitment`
-    public fun buy_random_nft<T: key + store, FT, Market: store>(
-        witness: DelegatedWitness<Market>,
+    public fun buy_random_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         inventory_id: ID,
@@ -363,8 +363,8 @@ module launchpad::listing {
         funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        let inventory = inventory_internal_mut(
-            witness, listing, venue_id, inventory_id,
+        let inventory = inventory_internal_mut<T, Market, MarketKey>(
+            listing, key, venue_id, inventory_id,
         );
         let nft = inventory::redeem_random_nft(
             inventory, commitment, user_commitment, ctx,
@@ -678,19 +678,6 @@ module launchpad::listing {
         object_table::borrow(&listing.venues, venue_id)
     }
 
-    /// Borrow the listing's `Market`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Market` does not exist.
-    public fun borrow_market<Market: store>(
-        listing: &Listing,
-        venue_id: ID,
-    ): &Market {
-        let venue = borrow_venue(listing, venue_id);
-        venue::borrow_market<Market>(venue)
-    }
-
     /// Mutably borrow the listing's `Venue`
     ///
     /// #### Panics
@@ -708,13 +695,13 @@ module launchpad::listing {
     ///
     /// `Venue` and inventories are unprotected therefore only market modules
     /// registered on a `Venue` can gain mutable access to it.
-    public fun venue_internal_mut<Market: store>(
-        _witness: DelegatedWitness<Market>,
+    public fun venue_internal_mut<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         venue_id: ID,
     ): &mut Venue {
         let venue = borrow_venue_mut(listing, venue_id);
-        venue::assert_market<Market>(venue);
+        venue::assert_market<Market, MarketKey>(key, venue);
 
         venue
     }
@@ -723,13 +710,14 @@ module launchpad::listing {
     ///
     /// `Market` is unprotected therefore only market modules registered
     /// on a `Venue` can gain mutable access to it.
-    public fun market_internal_mut<Market: store>(
-        witness: DelegatedWitness<Market>,
+    public fun market_internal_mut<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         venue_id: ID,
     ): &mut Market {
-        let venue = venue_internal_mut(witness, listing, venue_id);
-        venue::borrow_market_mut<Market>(venue)
+        let venue =
+            venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
+        venue::borrow_market_mut(key, venue)
     }
 
     /// Remove venue from `Listing`
@@ -738,13 +726,13 @@ module launchpad::listing {
     ///
     /// Panics if the `Venue` did not exist or delegated witness did not match
     /// the market being removed.
-    public fun remove_venue<Market: store>(
-        _witness: DelegatedWitness<Market>,
+    public fun remove_venue<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         venue_id: ID,
     ): Venue {
         let venue = object_table::remove(&mut listing.venues, venue_id);
-        venue::assert_market<Market>(&venue);
+        venue::assert_market<Market, MarketKey>(key, &venue);
         venue
     }
 
@@ -789,13 +777,13 @@ module launchpad::listing {
     ///
     /// `Inventory` is unprotected therefore only market modules
     /// registered on a `Venue` can gain mutable access to it.
-    public fun inventory_internal_mut<T, Market: store>(
-        witness: DelegatedWitness<Market>,
+    public fun inventory_internal_mut<T, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
+        key: MarketKey,
         venue_id: ID,
         inventory_id: ID,
     ): &mut Inventory<T> {
-        venue_internal_mut(witness, listing, venue_id);
+        venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
         borrow_inventory_mut(listing, inventory_id)
     }
 
