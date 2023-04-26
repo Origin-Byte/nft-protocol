@@ -3,6 +3,7 @@ module nft_protocol::test_authlist {
     use std::vector;
     use std::type_name;
 
+    use sui::bcs;
     use sui::object;
     use sui::package;
     use sui::transfer;
@@ -205,13 +206,18 @@ module nft_protocol::test_authlist {
         let (pub, _) = key_ed25519();
 
         // Just construct a fake message from any byte data we can get
+        //
+        // Simulate this being a P2P authorization request
+        // `nft_id` | `source` | `destination` | `tx_context::epoch` | `nonce`
         let msg = vector::empty();
+        vector::append(&mut msg, bytes(@0xef20b433672911dbcc20c2a28b8175774209b250948a4f10dc92e952225e8025));
         vector::append(&mut msg, pub);
         vector::append(&mut msg, pub);
+        vector::append(&mut msg, bcs::to_bytes(&0));
         vector::append(&mut msg, pub);
 
-        let p1 = @0xda2f1b2cff94a863ae81527201cc58710ce4331b6c53f567a6dae68ce6aa5f24;
-        let p2 = @0x1d3722daa9556f019b1c02a36c994261865e8e3ef9245c552fe059446c637a07;
+        let p1 = @0xf620b1af0c6f4593e19a62867264775691d28d8ea446d68a426c8e6c4521cb6e;
+        let p2 = @0x9e85534fb3f6d21b1eb5be0be6a8d7c3d4dba741cbf3c1f675726668b8f19108;
 
         let sig = vector::empty();
         vector::append(&mut sig, bytes(p1));
