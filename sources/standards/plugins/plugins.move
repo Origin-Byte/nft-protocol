@@ -14,8 +14,8 @@ module nft_protocol::plugins {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::{
+    use witness::marker::{Self, Marker};
+    use witness::witness::{
         Self, WitnessGenerator, Witness as DelegatedWitness,
     };
 
@@ -108,7 +108,7 @@ module nft_protocol::plugins {
     /// Returns whether `Plugins` is registered on `Nft`
     public fun has_domain<T>(nft: &UID): bool {
         df::exists_with_type<Marker<Plugins<T>>, Plugins<T>>(
-            nft, utils::marker(),
+            nft, marker::marker(),
         )
     }
 
@@ -119,7 +119,7 @@ module nft_protocol::plugins {
     /// Panics if `Plugins` is not registered on the `Nft`
     public fun borrow_domain<T>(nft: &UID): &Plugins<T> {
         assert_plugins<T>(nft);
-        df::borrow(nft, utils::marker<Plugins<T>>())
+        df::borrow(nft, marker::marker<Plugins<T>>())
     }
 
     /// Mutably borrows `Plugins` from `Nft`
@@ -129,7 +129,7 @@ module nft_protocol::plugins {
     /// Panics if `Plugins` is not registered on the `Nft`
     public fun borrow_domain_mut<T>(nft: &mut UID): &mut Plugins<T> {
         assert_plugins<T>(nft);
-        df::borrow_mut(nft, utils::marker<Plugins<T>>())
+        df::borrow_mut(nft, marker::marker<Plugins<T>>())
     }
 
     /// Adds `Plugins` to `Nft`
@@ -142,7 +142,7 @@ module nft_protocol::plugins {
         domain: Plugins<T>,
     ) {
         assert_no_plugins<T>(nft);
-        df::add(nft, utils::marker<Plugins<T>>(), domain);
+        df::add(nft, marker::marker<Plugins<T>>(), domain);
     }
 
     /// Remove `Plugins` from `Nft`
@@ -152,7 +152,7 @@ module nft_protocol::plugins {
     /// Panics if `Plugins` domain doesnt exist
     public fun remove_domain<T>(nft: &mut UID): Plugins<T> {
         assert_plugins<T>(nft);
-        df::remove(nft, utils::marker<Plugins<T>>())
+        df::remove(nft, marker::marker<Plugins<T>>())
     }
 
     // === Assertions ===

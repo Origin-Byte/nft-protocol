@@ -20,15 +20,12 @@ module examples::testract {
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::ob_transfer_request::{Self};
     use nft_protocol::orderbook::{Self, Orderbook};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty;
     use nft_protocol::symbol;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist;
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
 
     use launchpad::fixed_price;
     use launchpad::inventory;
@@ -45,7 +42,10 @@ module examples::testract {
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
 
+    use request::ob_kiosk;
+    use request::ob_transfer_request::{Self};
     use allowlist::allowlist::{Self, Allowlist};
+    use witness::witness::{Self, Witness as DelegatedWitness};
 
     /// OTW for constructing publisher
     struct TESTRACT has drop {}

@@ -19,7 +19,7 @@ module launchpad::limited_fixed_price {
     use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::ob_kiosk;
+    use request::ob_kiosk;
 
     use launchpad::venue::{Self, Venue};
     use launchpad::listing::{Self, Listing};

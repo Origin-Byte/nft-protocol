@@ -8,15 +8,15 @@ module examples::suimarines {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::tags;
-    use nft_protocol::ob_transfer_request;
     use nft_protocol::transfer_allowlist;
     use nft_protocol::display as ob_display;
     use nft_protocol::collection;
-    use nft_protocol::borrow_request::{Self, BorrowRequest, ReturnPromise};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::witness;
+    use witness::witness;
 
+    use request::ob_transfer_request;
+    use request::borrow_request::{Self, BorrowRequest, ReturnPromise};
     use launchpad::warehouse::{Self, Warehouse};
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;

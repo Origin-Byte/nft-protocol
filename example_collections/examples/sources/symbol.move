@@ -9,7 +9,7 @@ module examples::example_symbol {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::witness;
+    use witness::witness;
     use nft_protocol::display_info;
     use nft_protocol::collection::{Self, Collection};
 

@@ -1,14 +1,17 @@
 module nft_protocol::session_token {
     use std::type_name::{Self, TypeName};
     use std::option::{Self, Option};
+
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{TxContext, sender};
     use sui::dynamic_field as df;
     use sui::kiosk::{Self, Kiosk};
     use sui::transfer;
-    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
-    use nft_protocol::borrow_request::{Self, BorrowRequest};
-    use nft_protocol::ob_kiosk;
+
+    use request::request::{Self, Policy, PolicyCap, WithNft};
+    use request::borrow_request::{Self, BorrowRequest};
+    use request::ob_kiosk;
+
     use originmate::typed_id::{Self, TypedID};
 
     /// When trying to create an access policy when it already exists

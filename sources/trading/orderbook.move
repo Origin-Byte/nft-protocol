@@ -19,16 +19,11 @@
 /// - https://origin-byte.github.io/orderbook.html
 module nft_protocol::orderbook {
     // TODO: eviction of lowest bid/highest ask on OOM
-
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
-    use nft_protocol::trading;
-    use nft_protocol::witness::Witness as DelegatedWitness;
-    use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
     use std::vector;
+
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event;
@@ -37,6 +32,13 @@ module nft_protocol::orderbook {
     use sui::transfer::share_object;
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
+
+    use witness::witness::Witness as DelegatedWitness;
+    use request::ob_kiosk;
+    use request::ob_transfer_request::{Self, TransferRequest};
+    use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+
+    use nft_protocol::trading;
 
     // === Errors ===
 

@@ -21,16 +21,29 @@ module nft_protocol::royalty {
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
 
+    use witness::marker::{Self, Marker};
+    use witness::witness;
+
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::err;
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness;
+    use nft_protocol::utils;
 
     /// Field object `RoyaltyDomain` already defined as dynamic field.
     const EExistingRoyalty: u64 = 1;
 
     /// Plugins was not defined on `RoyaltyDomain`
     const EUndefinedRoyalty: u64 = 2;
+
+    /// Address was not attributed
+    const EUndefinedAddress: u64 = 3;
+
+    /// Addres was already attributed
+    const EExistingAddress: u64 = 4;
+
+    /// Address did not have enough shares
+    const ENotEnoughShares: u64 = 5;
+
+    /// Invalid total number of shares
+    const EInvalidTotal: u64 = 6;
 
     /// `RoyaltyDomain` stores royalties for `Collection` and
     /// distributes them among creators.
@@ -91,7 +104,7 @@ module nft_protocol::royalty {
     public fun borrow_share(domain: &RoyaltyDomain, who: &address): &u16 {
         assert!(
             vec_map::contains(&domain.royalty_shares_bps, who),
-            err::address_not_attributed()
+            EUndefinedAddress,
         );
         vec_map::get(&domain.royalty_shares_bps, who)
     }
@@ -104,7 +117,7 @@ module nft_protocol::royalty {
     fun borrow_share_mut(domain: &mut RoyaltyDomain, who: &address): &mut u16 {
         assert!(
             vec_map::contains(&domain.royalty_shares_bps, who),
-            err::address_not_attributed()
+            EUndefinedAddress,
         );
         vec_map::get_mut(&mut domain.royalty_shares_bps, who)
     }
@@ -148,10 +161,7 @@ module nft_protocol::royalty {
         let creator = tx_context::sender(ctx);
         let creator_share = borrow_share_mut(domain, &creator);
 
-        assert!(
-            *creator_share >= share,
-            err::address_does_not_have_enough_shares()
-        );
+        assert!(*creator_share >= share, ENotEnoughShares);
 
         *creator_share = *creator_share - share;
 
@@ -266,18 +276,18 @@ module nft_protocol::royalty {
         let b = balance::split(source, amount);
 
         if (!df::exists_with_type<Marker<Balance<FT>>, Balance<FT>>(
-            aggregations, utils::marker<Balance<FT>>()
+            aggregations, marker::marker<Balance<FT>>()
         )) {
             df::add(
                 aggregations,
-                utils::marker<Balance<FT>>(),
+                marker::marker<Balance<FT>>(),
                 balance::zero<FT>(),
             );
         };
 
         let aggregate = df::borrow_mut(
             aggregations,
-            utils::marker<Balance<FT>>()
+            marker::marker<Balance<FT>>()
         );
 
         balance::join(aggregate, b);
@@ -302,7 +312,7 @@ module nft_protocol::royalty {
         let shares = &domain.royalty_shares_bps;
         let aggregate: &mut Balance<FT> = df::borrow_mut(
             &mut domain.aggregations,
-            utils::marker<Balance<FT>>(),
+            marker::marker<Balance<FT>>(),
         );
 
         distribute_balance(shares, aggregate, ctx);
@@ -353,7 +363,7 @@ module nft_protocol::royalty {
     /// Returns whether `RoyaltyDomain` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<RoyaltyDomain>, RoyaltyDomain>(
-            nft, utils::marker(),
+            nft, marker::marker(),
         )
     }
 
@@ -364,7 +374,7 @@ module nft_protocol::royalty {
     /// Panics if `RoyaltyDomain` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &RoyaltyDomain {
         assert_royalty(nft);
-        df::borrow(nft, utils::marker<RoyaltyDomain>())
+        df::borrow(nft, marker::marker<RoyaltyDomain>())
     }
 
     /// Mutably borrows `RoyaltyDomain` from `Nft`
@@ -374,7 +384,7 @@ module nft_protocol::royalty {
     /// Panics if `RoyaltyDomain` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut RoyaltyDomain {
         assert_royalty(nft);
-        df::borrow_mut(nft, utils::marker<RoyaltyDomain>())
+        df::borrow_mut(nft, marker::marker<RoyaltyDomain>())
     }
 
     /// Adds `RoyaltyDomain` to `Nft`
@@ -387,7 +397,7 @@ module nft_protocol::royalty {
         domain: RoyaltyDomain,
     ) {
         assert_no_royalty(nft);
-        df::add(nft, utils::marker<RoyaltyDomain>(), domain);
+        df::add(nft, marker::marker<RoyaltyDomain>(), domain);
     }
 
     /// Remove `Plugins` from `Nft`
@@ -397,14 +407,14 @@ module nft_protocol::royalty {
     /// Panics if `Plugins` domain doesnt exist
     public fun remove_domain(nft: &mut UID): RoyaltyDomain {
         assert_royalty(nft);
-        df::remove(nft, utils::marker<RoyaltyDomain>())
+        df::remove(nft, marker::marker<RoyaltyDomain>())
     }
 
     // === Assertions ===
 
     /// Asserts that no share attributions exist
     fun assert_empty(domain: &RoyaltyDomain) {
-        assert!(!contains_shares(domain), err::share_attribution_already_exists())
+        assert!(!contains_shares(domain), EExistingAddress)
     }
 
     /// Asserts that total shares add up to 10000 basis points or no shares
@@ -427,7 +437,7 @@ module nft_protocol::royalty {
             i = i + 1;
         };
 
-        assert!(bps_total == utils::bps(), err::invalid_total_share_of_royalties());
+        assert!(bps_total == utils::bps(), EInvalidTotal);
     }
 
     /// Asserts that `RoyaltyDomain` is registered on `Nft`

@@ -1,18 +1,21 @@
 module nft_protocol::royalty_strategy_bps {
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
-    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
-    use nft_protocol::royalty;
-    use nft_protocol::utils;
-    use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
-    use nft_protocol::witness::{Witness as DelegatedWitness};
-    use originmate::balances::{Self, Balances};
     use std::fixed_point32;
     use std::option::{Self, Option};
+
     use sui::balance::{Self, Balance};
     use sui::object::{Self, UID};
     use sui::transfer::share_object;
     use sui::tx_context::{sender, TxContext};
+
+    use request::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
+    use request::request::{Self, Policy, PolicyCap, WithNft};
+    use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
+    use witness::witness::{Witness as DelegatedWitness};
+    use originmate::balances::{Self, Balances};
+
+    use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::royalty;
+    use nft_protocol::utils;
 
     /// === Errors ===
 
@@ -43,7 +46,7 @@ module nft_protocol::royalty_strategy_bps {
     /// pass such policy.
     struct BpsRoyaltyStrategyRule has drop {}
 
-    /// See the `nft_protocol::witness` module for obtaining the witness.
+    /// See the `witness::witness` module for obtaining the witness.
     ///
     /// Creates a new strategy which can be then shared with `share` method.
     /// Optionally, add balance access policy

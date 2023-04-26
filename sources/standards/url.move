@@ -8,7 +8,7 @@ module nft_protocol::url {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
+    use witness::marker::{Self, Marker};
 
     /// `UrlDomain` was not defined
     ///
@@ -25,7 +25,7 @@ module nft_protocol::url {
     /// Returns whether `Url` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<Url>, Url>(
-            nft, utils::marker(),
+            nft, marker::marker(),
         )
     }
 
@@ -36,7 +36,7 @@ module nft_protocol::url {
     /// Panics if `Url` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &Url {
         assert_url(nft);
-        df::borrow(nft, utils::marker<Url>())
+        df::borrow(nft, marker::marker<Url>())
     }
 
     /// Mutably borrows `Url` from `Nft`
@@ -46,7 +46,7 @@ module nft_protocol::url {
     /// Panics if `Url` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut Url {
         assert_url(nft);
-        df::borrow_mut(nft, utils::marker<Url>())
+        df::borrow_mut(nft, marker::marker<Url>())
     }
 
     /// Adds `Url` to `Nft`
@@ -59,7 +59,7 @@ module nft_protocol::url {
         domain: Url,
     ) {
         assert_no_url(nft);
-        df::add(nft, utils::marker<Url>(), domain);
+        df::add(nft, marker::marker<Url>(), domain);
     }
 
     /// Remove `Url` from `Nft`
@@ -69,7 +69,7 @@ module nft_protocol::url {
     /// Panics if `Url` domain doesnt exist
     public fun remove_domain(nft: &mut UID): Url {
         assert_url(nft);
-        df::remove(nft, utils::marker<Url>())
+        df::remove(nft, marker::marker<Url>())
     }
 
     // === Assertions ===

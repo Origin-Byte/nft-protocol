@@ -1,10 +1,6 @@
 /// Bidding module that allows users to bid for any given NFT just by its ID.
 /// This gives NFT owners a platform to sell their NFTs to any available bid.
 module nft_protocol::bidding {
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::trading;
-    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
-
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
@@ -16,6 +12,11 @@ module nft_protocol::bidding {
     use sui::object::{Self, ID, UID, uid_to_address};
     use sui::transfer::{public_transfer, share_object};
     use sui::tx_context::{TxContext, sender};
+
+    use request::ob_kiosk;
+    use request::ob_transfer_request::{Self, TransferRequest};
+
+    use nft_protocol::trading;
 
     /// === Errors ===
 

@@ -11,7 +11,9 @@ module nft_protocol::attributes {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
+    use witness::marker::{Self, Marker};
+
+    use nft_protocol::utils;
 
     /// `Attributes` was not defined
     ///
@@ -74,7 +76,7 @@ module nft_protocol::attributes {
         object_uid: &mut UID,
         map: VecMap<String, String>
     ) {
-        df::add(object_uid, utils::marker<Attributes>(), new(map));
+        df::add(object_uid, marker::marker<Attributes>(), new(map));
     }
 
     /// Creates empty `Attributes` and adds it to the object UID as a
@@ -90,7 +92,7 @@ module nft_protocol::attributes {
     ///
     /// If the object already has a dynamic field with this Key
     public fun add_empty(nft_uid: &mut UID) {
-        df::add(nft_uid, utils::marker<Attributes>(), empty());
+        df::add(nft_uid, marker::marker<Attributes>(), empty());
     }
 
     /// Creates new `Attributes` from vectors of keys and values and adds it
@@ -199,7 +201,7 @@ module nft_protocol::attributes {
     /// Returns whether `Attributes` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<Attributes>, Attributes>(
-            nft, utils::marker(),
+            nft, marker::marker(),
         )
     }
 
@@ -210,7 +212,7 @@ module nft_protocol::attributes {
     /// Panics if `Attributes` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &Attributes {
         assert_attributes(nft);
-        df::borrow(nft, utils::marker<Attributes>())
+        df::borrow(nft, marker::marker<Attributes>())
     }
 
     /// Mutably borrows `Attributes` from `Nft`
@@ -220,7 +222,7 @@ module nft_protocol::attributes {
     /// Panics if `Attributes` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut Attributes {
         assert_attributes(nft);
-        df::borrow_mut(nft, utils::marker<Attributes>())
+        df::borrow_mut(nft, marker::marker<Attributes>())
     }
 
     /// Adds `Attributes` to `Nft`
@@ -233,7 +235,7 @@ module nft_protocol::attributes {
         domain: Attributes,
     ) {
         assert_no_attributes(nft);
-        df::add(nft, utils::marker<Attributes>(), domain);
+        df::add(nft, marker::marker<Attributes>(), domain);
     }
 
     /// Remove `Attributes` from `Nft`
@@ -243,7 +245,7 @@ module nft_protocol::attributes {
     /// Panics if `Attributes` domain doesnt exist
     public fun remove_domain(nft: &mut UID): Attributes {
         assert_attributes(nft);
-        df::remove(nft, utils::marker<Attributes>())
+        df::remove(nft, marker::marker<Attributes>())
     }
 
     // === Assertions ===

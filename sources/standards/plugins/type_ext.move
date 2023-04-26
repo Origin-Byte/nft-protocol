@@ -7,8 +7,8 @@ module nft_protocol::type_ext {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::{Witness as DelegatedWitness};
+    use witness::marker::{Self, Marker};
+    use witness::witness::{Witness as DelegatedWitness};
 
     /// Field object `Extensions` not registered on in object `T`
     const EUndefinedExtensions: u64 = 1;
@@ -100,7 +100,7 @@ module nft_protocol::type_ext {
     /// Returns whether `Extensions` is registered on `collection`
     public fun has_domain<T>(object: &UID): bool {
         df::exists_with_type<Marker<Extensions>, Extensions>(
-            object, utils::marker(),
+            object, marker::marker(),
         )
     }
 
@@ -111,7 +111,7 @@ module nft_protocol::type_ext {
     /// Panics if `Extensions` is not registered on the object
     public fun borrow_domain<T>(object: &UID): &Extensions {
         assert_extensions<T>(object);
-        df::borrow(object, utils::marker<Extensions>())
+        df::borrow(object, marker::marker<Extensions>())
     }
 
     /// Mutably borrows `Extensions` from the object
@@ -121,7 +121,7 @@ module nft_protocol::type_ext {
     /// Panics if `Extensions` is not registered on the object
     public fun borrow_domain_mut<T>(object: &mut UID): &mut Extensions {
         assert_extensions<T>(object);
-        df::borrow_mut(object, utils::marker<Extensions>())
+        df::borrow_mut(object, marker::marker<Extensions>())
     }
 
     /// Adds `Extensions` to an object
@@ -134,7 +134,7 @@ module nft_protocol::type_ext {
         domain: Extensions,
     ) {
         assert_no_extensions<T>(object);
-        df::add(object, utils::marker<Extensions>(), domain);
+        df::add(object, marker::marker<Extensions>(), domain);
     }
 
     /// Remove `Extensions` from an object
@@ -144,7 +144,7 @@ module nft_protocol::type_ext {
     /// Panics if `Extensions` domain doesnt exist
     public fun remove_domain<T>(object: &mut UID): Extensions {
         assert_extensions<T>(object);
-        df::remove(object, utils::marker<Extensions>())
+        df::remove(object, marker::marker<Extensions>())
     }
 
     // === Assertions ===

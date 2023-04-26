@@ -5,8 +5,9 @@ module nft_protocol::composable_nft {
     use sui::object::{ID, UID};
     use sui::vec_map::{Self, VecMap};
 
+    use witness::marker::{Self, Marker};
+
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::utils::{Self, Marker};
     use nft_protocol::nft_bag::{Self, NftBag};
 
     /// `Composition` was not defined
@@ -338,7 +339,7 @@ module nft_protocol::composable_nft {
     /// Returns whether `Composition` is registered on object
     public fun has_domain<Schema>(object: &UID): bool {
         df::exists_with_type<Marker<Composition<Schema>>, Composition<Schema>>(
-            object, utils::marker(),
+            object, marker::marker(),
         )
     }
 
@@ -349,7 +350,7 @@ module nft_protocol::composable_nft {
     /// Panics if `Composition` is not registered on the object
     public fun borrow_domain<Schema>(object: &UID): &Composition<Schema> {
         assert_composition<Schema>(object);
-        df::borrow(object, utils::marker<Composition<Schema>>())
+        df::borrow(object, marker::marker<Composition<Schema>>())
     }
 
     /// Mutably borrows `Composition` from object
@@ -361,7 +362,7 @@ module nft_protocol::composable_nft {
         object: &mut UID,
     ): &mut Composition<Schema> {
         assert_composition<Schema>(object);
-        df::borrow_mut(object, utils::marker<Composition<Schema>>())
+        df::borrow_mut(object, marker::marker<Composition<Schema>>())
     }
 
     /// Adds `Composition` to object
@@ -374,7 +375,7 @@ module nft_protocol::composable_nft {
         domain: Composition<Schema>,
     ) {
         assert_no_composition<Schema>(object);
-        df::add(object, utils::marker<Composition<Schema>>(), domain);
+        df::add(object, marker::marker<Composition<Schema>>(), domain);
     }
 
     /// Create a new `Composition` and register it on a collection
@@ -391,7 +392,7 @@ module nft_protocol::composable_nft {
         object: &mut UID,
     ): Composition<Schema> {
         assert_composition<Schema>(object);
-        df::remove(object, utils::marker<Composition<Schema>>())
+        df::remove(object, marker::marker<Composition<Schema>>())
     }
 
     /// Deconstruct `Composition`
