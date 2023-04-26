@@ -153,6 +153,13 @@ module nft_protocol::authlist {
         &self.names
     }
 
+    /// Delete `AuthList`
+    public entry fun delete_auth_list(auth_list: AuthList) {
+        let AuthList { id, admin_witness: _, names: _, authorities: _ } =
+            auth_list;
+        object::delete(id);
+    }
+
     /// Delete `AuthListOwnerCap`
     ///
     /// This will make it impossible to insert or remove authorities from the
@@ -437,13 +444,14 @@ module nft_protocol::authlist {
     /// #### Panics
     ///
     /// Panics if neither `T` is not transferrable or authority is not valid.
-    public fun assert_transferable<T>(
+    public fun assert_transferable(
         auth_list: &AuthList,
+        collection: TypeName,
         authority: &vector<u8>,
         msg: &vector<u8>,
         signature: &vector<u8>,
     ) {
-        assert_collection(auth_list, type_name::get<T>());
+        assert_collection(auth_list, collection);
         assert_authority(auth_list, authority);
 
         assert!(

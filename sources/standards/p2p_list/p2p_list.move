@@ -20,6 +20,7 @@
 ///     to authorize transfers.
 module nft_protocol::p2p_list {
     use std::vector;
+    use std::type_name;
 
     use sui::bcs;
     use sui::object::ID;
@@ -200,6 +201,8 @@ module nft_protocol::p2p_list {
         vector::append(&mut msg, bcs::to_bytes(&destination));
         vector::append(&mut msg, nonce);
 
-        authlist::assert_transferable<T>(self, authority, &msg, signature);
+        authlist::assert_transferable(
+            self, type_name::get<T>(), authority, &msg, signature,
+        );
     }
 }
