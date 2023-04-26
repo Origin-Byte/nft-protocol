@@ -23,10 +23,10 @@ module nft_protocol::p2p_list {
     use std::type_name;
 
     use sui::bcs;
-    use sui::object::ID;
+    use sui::object::{Self, ID};
     use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use sui::kiosk::{Self, Kiosk};
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
     use sui::transfer;
 
     use nft_protocol::authlist::{Self, AuthList};
@@ -96,10 +96,12 @@ module nft_protocol::p2p_list {
             self,
             &mut req,
             authority,
+            nft_id,
             nonce,
             signature,
             kiosk::owner(source),
             kiosk::owner(target),
+            ctx,
         );
 
         req
@@ -131,10 +133,12 @@ module nft_protocol::p2p_list {
             self,
             &mut req,
             authority,
+            nft_id,
             nonce,
             signature,
             kiosk::owner(source),
             target,
+            ctx,
         );
 
         req
@@ -177,28 +181,33 @@ module nft_protocol::p2p_list {
         self: &AuthList,
         req: &mut TransferRequest<T>,
         authority: &vector<u8>,
+        nft_id: ID,
         nonce: vector<u8>,
         signature: &vector<u8>,
         source: address,
         destination: address,
+        ctx: &TxContext,
     ) {
         let _auth = ob_kiosk::get_transfer_request_auth(req);
-
-        confirm_<T>(self, authority, source, destination, nonce, signature);
+        confirm_<T>(self, authority, nft_id, source, destination, nonce, signature, ctx);
         ob_transfer_request::add_receipt(req, P2PListRule {});
     }
 
     fun confirm_<T>(
         self: &AuthList,
         authority: &vector<u8>,
+        nft_id: ID,
         source: address,
         destination: address,
         nonce: vector<u8>,
         signature: &vector<u8>,
+        ctx: &TxContext,
     ) {
         let msg = vector::empty();
+        vector::append(&mut msg, object::id_to_bytes(&nft_id));
         vector::append(&mut msg, bcs::to_bytes(&source));
         vector::append(&mut msg, bcs::to_bytes(&destination));
+        vector::append(&mut msg, bcs::to_bytes(&tx_context::epoch(ctx)));
         vector::append(&mut msg, nonce);
 
         authlist::assert_transferable(
