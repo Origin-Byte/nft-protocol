@@ -10,6 +10,22 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Allowlist"
+source = { local = "../../contracts/allowlist" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
+name = "Authlist"
+source = { local = "../../contracts/authlist" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
 name = "MoveStdlib"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "cab7e9762d4d75126a78fdd009b405745657fe57", subdir = "crates/sui-framework/packages/move-stdlib" }
 
@@ -18,6 +34,8 @@ name = "NftProtocol"
 source = { local = "../.." }
 
 dependencies = [
+  { name = "Allowlist" },
+  { name = "Authlist" },
   { name = "Originmate" },
   { name = "Sui" },
 ]

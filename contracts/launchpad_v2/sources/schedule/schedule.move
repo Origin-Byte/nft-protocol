@@ -5,8 +5,11 @@
 /// The encrypted message is then decrypted by this module
 /// which asserts that the counter matches and the user address
 /// in the message match the ctx sender
-module launchpad_v2::live_status {
+module launchpad_v2::schedule {
     use sui::dynamic_field as df;
+    use sui::clock::{Self, Clock};
+
+    use std::option::{Self, Option};
 
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::venue::{Self, Venue};
@@ -14,16 +17,26 @@ module launchpad_v2::live_status {
 
     const ESaleNotLive: u64 = 1;
 
-    struct LiveStatus has store {
-        live: bool
+    const EAtLeastOneTimeStampNeeded: u64 = 2;
+
+    /// A wrapper for Liveness settings, it determines when a Venue is live
+    /// or not.
+    /// There are two methods in which the administrators can set up the
+    /// schedule:
+    ///
+    /// - The liveness status gets toggled automatically when the runtime Clock
+    /// is within the period defined by `start_time` and `close_time`. For more
+    /// see `check_if_live`.
+    struct Schedule has store {
+        start_time: Option<u64>,
+        close_time: Option<u64>,
     }
 
     // Type collected by receipt Hot Potato
-    struct LiveStatusAuth has drop {}
+    struct ScheduleAuth has drop {}
 
     // Dynamic field key used to store `Pubkey` in `Venue`
-    struct LiveStatusDfKey has store, copy, drop {}
-
+    struct ScheduleDfKey has store, copy, drop {}
 
     /// Issue a new `Pubkey` and add it to the Venue as a dynamic field
     /// with field key `PubkeyDfKey`.
@@ -34,31 +47,19 @@ module launchpad_v2::live_status {
     /// #### Panics
     ///
     /// Panics if `LaunchCap` does not match the `Venue`
-    public fun add_live_status(
+    public fun add_schedule(
         launch_cap: &LaunchCap,
         venue: &mut Venue,
-        is_live: bool,
-    ) {
-        venue::assert_launch_cap(venue, launch_cap);
-        venue::register_rule(LiveStatusAuth {}, launch_cap, venue);
-
-        let status = new_(is_live);
-
-        let venue_uid = venue::uid_mut(venue, launch_cap);
-        df::add(venue_uid, LiveStatusDfKey {}, status);
-    }
-
-    public fun toggle_status(
-        launch_cap: &LaunchCap,
-        venue: &mut Venue,
-        is_live: bool,
+        start_time: Option<u64>,
+        close_time: Option<u64>,
     ) {
         venue::assert_launch_cap(venue, launch_cap);
 
+        venue::register_rule(ScheduleAuth {}, launch_cap, venue);
+        let schedule = new_(start_time, close_time);
         let venue_uid = venue::uid_mut(venue, launch_cap);
-        let status = df::borrow_mut<LiveStatusDfKey, LiveStatus>(venue_uid, LiveStatusDfKey {});
 
-        status.live = is_live;
+        df::add(venue_uid, ScheduleDfKey {}, schedule);
     }
 
     /// Verifies if a given message sent by the user has been signed by the
@@ -73,28 +74,36 @@ module launchpad_v2::live_status {
     public fun check_is_live(
         venue: &Venue,
         request: &mut AuthRequest,
+        clock: &Clock,
     ) {
         venue::assert_request(venue, request);
 
-        let status = venue::get_df<LiveStatusDfKey, LiveStatus>(
-            venue,
-            LiveStatusDfKey {}
-        );
+        let schedule = venue::get_df<ScheduleDfKey, Schedule>(venue, ScheduleDfKey {});
 
-        assert!(status.live, ESaleNotLive);
+        if (option::is_some(&schedule.start_time)) {
+            assert!(clock::timestamp_ms(clock) > *option::borrow(&schedule.start_time), 0);
+        };
 
-        auth_request::add_receipt(request, &LiveStatusAuth {});
+        if (option::is_some(&schedule.close_time)) {
+            assert!(clock::timestamp_ms(clock) < *option::borrow(&schedule.close_time), 0);
+        };
+
+        auth_request::add_receipt(request, &ScheduleAuth {});
     }
 
 
     // === Private Functions ===
 
-    /// Create a new `Pubkey`
+    // Initiates and new `Schedule` object and returns it.
     fun new_(
-        is_live: bool,
-    ): LiveStatus {
-        LiveStatus {
-            live: is_live,
+        start_time: Option<u64>,
+        close_time: Option<u64>,
+    ): Schedule {
+        assert!(!(option::is_none(&start_time) && option::is_none(&close_time)), EAtLeastOneTimeStampNeeded);
+
+        Schedule {
+            start_time,
+            close_time,
         }
     }
 }

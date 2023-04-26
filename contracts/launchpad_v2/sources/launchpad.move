@@ -1,11 +1,9 @@
 module launchpad_v2::launchpad {
     use std::ascii::String;
-    use std::type_name::{Self, TypeName};
 
     use sui::event;
-    use sui::package::{Self, Publisher};
-    use sui::vec_set::{Self, VecSet};
     use sui::transfer;
+    use sui::vec_set::{Self, VecSet};
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
 
@@ -24,9 +22,6 @@ module launchpad_v2::launchpad {
         id: UID,
         // List of all `LaunchCap`s, for discoverability purposes.
         launch_caps: VecSet<ID>,
-        // A `Listing` can be associated to an NFT `Collection<W>`
-        // but it is not obliged, therefore we use option.
-        collection: TypeName,
         // List of all associated sale `Venue`s
         venues: VecSet<ID>,
         // List of all associated inventories, whether those are `Warehouse`s or
@@ -75,23 +70,19 @@ module launchpad_v2::launchpad {
 
     /// Initialises a launchpad `Listing` by creating an object and returns it,
     /// along with a clonable `LaunchCap` object.
-    public fun new<W>(
-        pub: &Publisher,
+    public fun new(
         ctx: &mut TxContext,
-    ): (LaunchCap, Listing) {
-        assert!(package::from_package<W>(pub), 0);
+    ): (Listing, LaunchCap) {
 
-        new_<W>(ctx)
+        new_(ctx)
     }
 
     /// Initialises a `Listing` object, shares it, and transfers a
     /// cloanble `LaunchCap` to the transaction caller.
-    public entry fun init_listing<W>(
-        pub: &Publisher,
+    public entry fun init_listing(
         ctx: &mut TxContext,
     ) {
-        assert!(package::from_package<W>(pub), 0);
-        let (listing, launch_cap) = new_<W>(ctx);
+        let (launch_cap, listing) = new_(ctx);
 
         transfer::public_share_object(listing);
         transfer::public_transfer(launch_cap, tx_context::sender(ctx));
@@ -101,8 +92,8 @@ module launchpad_v2::launchpad {
 
     /// Clones a `LaunchCap` object and returns a newly created one.
     public fun clone_launch_cap(
-        cap: &LaunchCap,
         listing: &mut Listing,
+        cap: &LaunchCap,
         clonable: bool,
         ctx: &mut TxContext,
     ): LaunchCap {
@@ -115,8 +106,8 @@ module launchpad_v2::launchpad {
     /// Clones a `LaunchCap` object and transfers a newly created one to
     /// the receiver address.
     public fun clone_launch_cap_and_transfer(
-        cap: &LaunchCap,
         listing: &mut Listing,
+        cap: &LaunchCap,
         clonable: bool,
         receiver: address,
         ctx: &mut TxContext,
@@ -126,6 +117,16 @@ module launchpad_v2::launchpad {
 
         let new_cap = new_launch_cap_(listing, clonable, ctx);
         transfer::public_transfer(new_cap, receiver);
+    }
+
+    public fun subscribe_venue(
+        listing: &mut Listing,
+        cap: &LaunchCap,
+        venue: ID,
+    ) {
+        assert_launch_cap(cap, listing);
+
+        vec_set::insert(&mut listing.venues, venue);
     }
 
     // === Getter Functions ===
@@ -142,10 +143,6 @@ module launchpad_v2::launchpad {
         &listing.launch_caps
     }
 
-    public fun collection(listing: &Listing): TypeName {
-        listing.collection
-    }
-
     public fun venues(listing: &Listing): &VecSet<ID> {
         &listing.venues
     }
@@ -157,9 +154,9 @@ module launchpad_v2::launchpad {
 
     // === Private Functions ===
 
-    fun new_<W>(
+    fun new_(
         ctx: &mut TxContext,
-    ): (LaunchCap, Listing) {
+    ): (Listing, LaunchCap) {
         let cap_id = object::new(ctx);
         let listing_uid = object::new(ctx);
         let listing_id = object::uid_to_inner(&listing_uid);
@@ -174,15 +171,14 @@ module launchpad_v2::launchpad {
             clonable: true,
         };
 
-        let data = Listing {
+        let listing = Listing {
             id: listing_uid,
             launch_caps,
-            collection: type_name::get<W>(),
             venues: vec_set::empty(),
             inventories: vec_set::empty(),
         };
 
-        (cap, data)
+        (listing, cap)
     }
 
 

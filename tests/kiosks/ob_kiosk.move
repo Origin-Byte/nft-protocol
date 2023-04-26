@@ -30,8 +30,6 @@ module nft_protocol::test_ob_kiosk {
     use sui::object;
     use sui::table;
     use sui::tx_context;
-    // use std::debug;
-    // use std::string;
 
     use nft_protocol::ob_transfer_request;
     use nft_protocol::withdraw_request;

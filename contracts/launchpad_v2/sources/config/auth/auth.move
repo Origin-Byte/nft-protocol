@@ -32,7 +32,6 @@ module launchpad_v2::launchpad_auth {
     // Dynamic field key used to store `Pubkey` in `Venue`
     struct PubkeyDfKey has store, copy, drop {}
 
-
     /// Issue a new `Pubkey` and add it to the Venue as a dynamic field
     /// with field key `PubkeyDfKey`.
     ///
