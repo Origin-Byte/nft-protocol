@@ -1,7 +1,7 @@
 [package]
 name = "NftProtocol"
 version = "0.31.0"
-published-at = "0x37a79aae50246133e7026dff08c8e47cf65827e909acc4c005f2fa5a1ed5ba85"
+published-at = "0xdecb634e3ad54a91b900cf2c4f3cfe2cfb06f9d13b4345572c3a9e8992a21b88"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -21,4 +21,4 @@ local = "./contracts/authlist"
 local = "./contracts/allowlist"
 
 [addresses]
-nft_protocol = "0x37a79aae50246133e7026dff08c8e47cf65827e909acc4c005f2fa5a1ed5ba85"
+nft_protocol = "0xdecb634e3ad54a91b900cf2c4f3cfe2cfb06f9d13b4345572c3a9e8992a21b88"

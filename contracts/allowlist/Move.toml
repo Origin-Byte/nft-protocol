@@ -1,7 +1,7 @@
 [package]
 name = "Allowlist"
 version = "0.0.1"
-published-at = "0x"
+published-at = "0x2f9f64ddcaced22cdb8aa9bcd7612d9755b02c49b195c8b0bfaead80deab157e"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -10,4 +10,4 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "cab7e9762d4d75126a78fdd009b405745657fe57"
 
 [addresses]
-allowlist = "0x"
+allowlist = "0x2f9f64ddcaced22cdb8aa9bcd7612d9755b02c49b195c8b0bfaead80deab157e"
