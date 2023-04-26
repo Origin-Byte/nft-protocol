@@ -69,6 +69,7 @@ module launchpad_v2::launchpad_auth {
         venue: &Venue,
         signature: &vector<u8>,
         msg: &vector<u8>,
+        // The hash function used to hash the message when signing.
         hash: u8,
         request: &mut AuthRequest,
         ctx: &mut TxContext,

@@ -225,4 +225,11 @@ module nft_protocol::request {
     public fun policy_metadata<P>(policy: &Policy<P>): &UID {
         &policy.id
     }
+
+    // === Test-Only Functions ===
+
+    #[test_only]
+    public fun consume_test<P>(self: RequestBody<P>) {
+        destroy(self);
+    }
 }
