@@ -10,7 +10,9 @@ module launchpad_v2::launchpad_auth {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
-    use sui::ecdsa_k1;
+    use sui::ed25519;
+    // use std::string;
+    // use std::debug;
 
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::venue::{Self, Venue};
@@ -69,8 +71,6 @@ module launchpad_v2::launchpad_auth {
         venue: &Venue,
         signature: &vector<u8>,
         msg: &vector<u8>,
-        // The hash function used to hash the message when signing.
-        hash: u8,
         request: &mut AuthRequest,
         ctx: &mut TxContext,
     ) {
@@ -78,7 +78,7 @@ module launchpad_v2::launchpad_auth {
         let pubkey = venue::get_df<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
 
         assert!(
-            ecdsa_k1::secp256k1_verify(signature, &pubkey.key, msg, hash),
+            ed25519::ed25519_verify(signature, &pubkey.key, msg),
             EINCORRECT_SIGNATURE
         );
 

@@ -9,6 +9,8 @@ module launchpad_v2::venue {
     use sui::dynamic_field as df;
     use sui::balance::Balance;
     use sui::transfer;
+    // use std::string;
+    // use std::debug;
 
     use nft_protocol::request::{Policy, PolicyCap};
     use nft_protocol::utils_supply::{Self, Supply};
@@ -200,7 +202,7 @@ module launchpad_v2::venue {
 
         nft_protocol::request::enforce_rule_no_state<AUTH_REQUEST, RuleType>(policy, &cap);
 
-        df::add<TypeName, PolicyCap>(&mut venue.id, type_name::get<PolicyCap>(), cap);
+        df::add<AuthCapDfKey, PolicyCap>(&mut venue.id, AuthCapDfKey {}, cap);
     }
 
     // === AuthRequest ===
