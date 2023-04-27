@@ -107,6 +107,8 @@ module ob_launchpad::listing {
         marketplace_id: TypedID<Marketplace>,
     }
 
+    struct RequestToJoinDfKey has store, copy, drop {}
+
     // === Events ===
 
     /// Event signalling that a `Listing` was created
@@ -400,7 +402,7 @@ module ob_launchpad::listing {
         };
 
         dof::add(
-            &mut listing.id, type_name::get<RequestToJoin>(), request
+            &mut listing.id, RequestToJoinDfKey {}, request
         );
     }
 
@@ -424,7 +426,7 @@ module ob_launchpad::listing {
         let marketplace_id = typed_id::new(marketplace);
 
         let request = dof::remove<TypeName, RequestToJoin>(
-            &mut listing.id, type_name::get<RequestToJoin>()
+            &mut listing.id, RequestToJoinDfKey {}
         );
 
         assert!(
