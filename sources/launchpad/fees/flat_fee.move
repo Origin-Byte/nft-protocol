@@ -58,7 +58,7 @@ module nft_protocol::flat_fee {
 
         let policy = object_box::borrow<FlatFee>(fee_policy);
 
-        let fee = balance::value(proceeds_value) * policy.rate_bps;
+        let fee = balance::value(proceeds_value) * policy.rate_bps / 10000;
 
         proceeds::collect_with_fees<FT>(
             listing::borrow_proceeds_mut(listing),
