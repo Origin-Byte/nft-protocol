@@ -1,4 +1,4 @@
-module nft_protocol::redeem_random {
+module launchpad::redeem_random {
     use std::vector;
 
     use sui::transfer;

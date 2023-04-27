@@ -17,7 +17,9 @@ module launchpad_v2::proceeds {
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
+    use witness::marker::{Self, Marker};
+
+    use launchpad_v2::utils;
 
     struct Proceeds has key, store {
         id: UID,
@@ -65,7 +67,7 @@ module launchpad_v2::proceeds {
     ) {
         proceeds.qt_sold.total = proceeds.qt_sold.total + qty_sold;
 
-        let marker = utils::marker<FT>();
+        let marker = marker::marker<FT>();
         let missing_df = !df::exists_with_type<Marker<FT>, Balance<FT>>(
             &proceeds.id, marker
         );
@@ -98,7 +100,7 @@ module launchpad_v2::proceeds {
     ) {
         let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
-            utils::marker<FT>(),
+            marker::marker<FT>(),
         );
 
         let fee_balance = balance::split<FT>(
@@ -136,7 +138,7 @@ module launchpad_v2::proceeds {
     ) {
         let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
-            utils::marker<FT>(),
+            marker::marker<FT>(),
         );
 
         let balance_value = balance::value(balance);
@@ -168,7 +170,7 @@ module launchpad_v2::proceeds {
     public fun balance<FT>(proceeds: &Proceeds): &Balance<FT> {
         df::borrow<Marker<FT>, Balance<FT>>(
             &proceeds.id,
-            utils::marker<FT>(),
+            marker::marker<FT>(),
         )
     }
 
@@ -177,7 +179,7 @@ module launchpad_v2::proceeds {
     ): &mut Balance<FT> {
         df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
-            utils::marker<FT>(),
+            marker::marker<FT>(),
         )
     }
 }

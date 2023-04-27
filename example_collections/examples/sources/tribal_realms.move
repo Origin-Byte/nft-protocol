@@ -12,7 +12,7 @@ module examples::tribal_realms {
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::composable_nft::{Self as c_nft};
-    use nft_protocol::witness;
+    use witness::witness;
 
     use launchpad::warehouse::{Self, Warehouse};
 

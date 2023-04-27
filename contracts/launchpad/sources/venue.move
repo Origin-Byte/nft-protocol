@@ -52,16 +52,15 @@ module launchpad::venue {
         is_whitelisted: bool,
     }
 
-    struct Key has drop, copy, store {}
-
     /// Create a new `Venue`
-    public fun new<Market: store>(
+    public fun new<Market: store, MarketKey: copy + drop + store>(
+        key: MarketKey,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext
     ): Venue {
         let venue_id = object::new(ctx);
-        df::add(&mut venue_id, Key {}, market);
+        df::add(&mut venue_id, key, market);
 
         Venue {
             id: venue_id,
@@ -71,12 +70,13 @@ module launchpad::venue {
     }
 
     /// Initializes a `Venue` and transfers to transaction sender
-    public entry fun init_venue<Market: store>(
+    public fun init_venue<Market: store, MarketKey: copy + drop + store>(
+        key: MarketKey,
         market: Market,
         is_whitelisted: bool,
         ctx: &mut TxContext
     ) {
-        let venue = new(market, is_whitelisted, ctx);
+        let venue = new(key, market, is_whitelisted, ctx);
         transfer::public_transfer(venue, tx_context::sender(ctx));
     }
 
@@ -119,11 +119,12 @@ module launchpad::venue {
     /// #### Panics
     ///
     /// Panics if incorrect type was provided for the underlying market.
-    public fun borrow_market<Market: store>(
+    public fun borrow_market<Market: store, MarketKey: copy + drop + store>(
+        key: MarketKey,
         venue: &Venue,
     ): &Market {
-        assert_market<Market>(venue);
-        df::borrow(&venue.id, Key {})
+        assert_market<Market, MarketKey>(key, venue);
+        df::borrow(&venue.id, key)
     }
 
     /// Mutably borrow `Venue` market
@@ -134,11 +135,12 @@ module launchpad::venue {
     /// #### Panics
     ///
     /// Panics if incorrect type was provided for the underlying market.
-    public fun borrow_market_mut<Market: store>(
+    public fun borrow_market_mut<Market: store, MarketKey: copy + drop + store>(
+        key: MarketKey,
         venue: &mut Venue,
     ): &mut Market {
-        assert_market<Market>(venue);
-        df::borrow_mut(&mut venue.id, Key {})
+        assert_market<Market, MarketKey>(key, venue);
+        df::borrow_mut(&mut venue.id, key)
     }
 
     /// Deconstruct `Venue` returning the underlying market
@@ -146,8 +148,11 @@ module launchpad::venue {
     /// #### Panics
     ///
     /// Panics if underlying market does not match the provided type.
-    public fun delete<Market: store>(venue: Venue): Market {
-        let market = df::remove(&mut venue.id, Key {});
+    public fun delete<Market: store, MarketKey: copy + drop + store>(
+        key: MarketKey,
+        venue: Venue,
+    ): Market {
+        let market = df::remove(&mut venue.id, key);
 
         let Venue { id, is_live: _, is_whitelisted: _ } = venue;
         object::delete(id);
@@ -162,8 +167,11 @@ module launchpad::venue {
     /// #### Panics
     ///
     /// Panics if incorrect type was provided
-    public fun assert_market<Market: store>(venue: &Venue): bool {
-        df::exists_with_type<Key, Market>(&venue.id, Key {})
+    public fun assert_market<Market: store, MarketKey: copy + drop + store>(
+        key: MarketKey,
+        venue: &Venue,
+    ): bool {
+        df::exists_with_type<MarketKey, Market>(&venue.id, key)
     }
 
     /// Asserts that `Venue` is live

@@ -13,9 +13,9 @@ module nft_protocol::test_utils {
     use nft_protocol::orderbook;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::request::{Policy, PolicyCap, WithNft};
-    use nft_protocol::withdraw_request::{Self, WITHDRAW_REQUEST};
-    use nft_protocol::ob_transfer_request;
+    use request::request::{Policy, PolicyCap, WithNft};
+    use request::withdraw_request::{Self, WITHDRAW_REQ};
+    use request::ob_transfer_request;
 
     use allowlist::allowlist::{Self, Allowlist, AllowlistOwnerCap};
 
@@ -67,7 +67,7 @@ module nft_protocol::test_utils {
     }
 
     #[test_only]
-    public fun init_withdrawable_policy(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<Foo, WITHDRAW_REQUEST>>, PolicyCap) {
+    public fun init_withdrawable_policy(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<Foo, WITHDRAW_REQ>>, PolicyCap) {
         withdraw_request::init_policy<Foo>(publisher, ctx)
     }
 
@@ -92,45 +92,4 @@ module nft_protocol::test_utils {
 
         (al, al_cap)
     }
-
-
-    // TODO: This will be reintroduced
-    // public fun create_collection_and_allowlist(
-    //     creator: address,
-    //     scenario: &mut Scenario,
-    // ): (ID, ID, ID) {
-    //     let delegated_witness = witness::from_witness(Witness {});
-
-    //     let collection: Collection<Foo> = collection::create(
-    //         delegated_witness, ctx(scenario),
-    //     );
-
-    //     let mint_cap = mint_cap::new_unlimited(
-    //         delegated_witness, &collection, ctx(scenario),
-    //     );
-
-    //     let col_id = object::id(&collection);
-    //     let cap_id = object::id(&mint_cap);
-
-    //     public_share_object(collection);
-    //     test_scenario::next_tx(scenario, creator);
-
-    //     transfer_allowlist::init_allowlist(&Witness {}, ctx(scenario));
-
-    //     test_scenario::next_tx(scenario, creator);
-
-    //     let wl: Allowlist = test_scenario::take_shared(scenario);
-    //     let wl_id = object::id(&wl);
-
-    //     transfer_allowlist::insert_collection<Foo, Witness>(
-    //         &mut wl,
-    //         &Witness {},
-    //         witness::from_witness<Foo, Witness>(Witness {}),
-    //     );
-
-    //     public_transfer(mint_cap, creator);
-    //     test_scenario::return_shared(wl);
-
-    //     (col_id, cap_id, wl_id)
-    // }
 }

@@ -4,25 +4,26 @@
 /// - `Request<T, OB_TRANSFER_REQUEST>` which is responsible for checking that
 /// a transfer of NFT can be performed.
 /// It's heavily integrated with `nft_protocol::ob_kiosk`.
-module nft_protocol::request {
-    use nft_protocol::utils;
-    use nft_protocol::witness::{Witness as DelegatedWitness};
+module request::request {
     use std::type_name::{Self, TypeName};
     use std::vector;
+
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
-    use sui::package::Publisher;
+    use sui::package::{Self, Publisher};
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
     // === Errors ===
 
+    /// Package publisher mismatch
+    const EInvalidPublisher: u64 = 1;
     /// A completed rule is not set in the list of required rules
-    const EIllegalRule: u64 = 1;
+    const EIllegalRule: u64 = 2;
     /// The number of receipts does not match the list of required rules
-    const EPolicyNotSatisfied: u64 = 2;
+    const EPolicyNotSatisfied: u64 = 3;
     /// Wrong capability, cannot authorize action
-    const ENotAllowed: u64 = 3;
+    const ENotAllowed: u64 = 4;
 
     // === Structs ===
 
@@ -123,8 +124,8 @@ module nft_protocol::request {
 
     // === Policy ===
 
-    public fun new_policy<P>(
-        _witness: DelegatedWitness<P>,
+    public fun new_policy<P: drop>(
+        _witness: P,
         ctx: &mut TxContext,
     ): (Policy<P>, PolicyCap) {
         let policy = Policy {
@@ -147,12 +148,12 @@ module nft_protocol::request {
     /// would be `P`.
     /// In fact, this is how `ob_transfer_request::TransferRequest<T>` is
     /// implemented.
-    public fun new_policy_with_type<T, P>(
-        _witness: DelegatedWitness<P>,
-        publisher_of_t: &Publisher,
+    public fun new_policy_with_type<T, P: drop>(
+        _witness: P,
+        publisher: &Publisher,
         ctx: &mut TxContext,
     ): (Policy<WithNft<T, P>>, PolicyCap) {
-        utils::assert_package_publisher<T>(publisher_of_t);
+        assert_publisher<T>(publisher);
 
         let policy = Policy {
             id: object::new(ctx),
@@ -224,5 +225,16 @@ module nft_protocol::request {
 
     public fun policy_metadata<P>(policy: &Policy<P>): &UID {
         &policy.id
+    }
+
+    // === Assertions ===
+
+    /// Asserts that `Publisher` is of type `T`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Publisher` is mismatched
+    public fun assert_publisher<T>(pub: &Publisher) {
+        assert!(package::from_package<T>(pub), EInvalidPublisher);
     }
 }

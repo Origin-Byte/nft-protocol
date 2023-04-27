@@ -29,16 +29,16 @@ module nft_protocol::p2p_list {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
 
-    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
+    use request::request::{Self, Policy, PolicyCap, WithNft};
+    use request::ob_kiosk;
+    use request::ob_transfer_request::{Self, TransferRequest};
 
     use authlist::authlist::{Self, Authlist};
 
     // === Errors ===
 
     /// Package publisher mismatch
-    const EPackagePublisherMismatch: u64 = 0;
+    const EInvalidPublisher: u64 = 0;
 
     /// Invalid admin
     ///

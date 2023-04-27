@@ -23,16 +23,16 @@ module nft_protocol::transfer_allowlist {
 
     use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
 
-    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
+    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use request::ob_kiosk;
+    use request::ob_transfer_request::{Self, TransferRequest};
 
     use allowlist::allowlist::{Self, Allowlist};
 
     // === Errors ===
 
     /// Package publisher mismatch
-    const EPackagePublisherMismatch: u64 = 0;
+    const EInvalidPublisher: u64 = 0;
 
     /// Invalid admin
     ///

@@ -1,8 +1,8 @@
-module nft_protocol::withdraw_request {
-    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use nft_protocol::witness;
+module request::withdraw_request {
     use sui::package::Publisher;
     use sui::tx_context::TxContext;
+
+    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
 
     // === Error ===
 
@@ -11,11 +11,11 @@ module nft_protocol::withdraw_request {
     // === Structs ===
 
     struct Witness has drop {}
-    struct WITHDRAW_REQUEST has drop {}
+    struct WITHDRAW_REQ has drop {}
 
     struct WithdrawRequest<phantom T> {
         sender: address,
-        inner: RequestBody<WithNft<T, WITHDRAW_REQUEST>>,
+        inner: RequestBody<WithNft<T, WITHDRAW_REQ>>,
     }
 
     // === Fns ===
@@ -30,8 +30,8 @@ module nft_protocol::withdraw_request {
         }
     }
 
-    public fun init_policy<T>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, WITHDRAW_REQUEST>>, PolicyCap) {
-        request::new_policy_with_type(witness::from_witness(Witness {}), publisher, ctx)
+    public fun init_policy<T>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, WITHDRAW_REQ>>, PolicyCap) {
+        request::new_policy_with_type(WITHDRAW_REQ {}, publisher, ctx)
     }
 
     /// Adds a `Receipt` to the `Request`, unblocking the request and
@@ -42,9 +42,9 @@ module nft_protocol::withdraw_request {
 
     public fun inner_mut<T>(
         self: &mut WithdrawRequest<T>
-    ): &mut RequestBody<WithNft<T, WITHDRAW_REQUEST>> { &mut self.inner }
+    ): &mut RequestBody<WithNft<T, WITHDRAW_REQ>> { &mut self.inner }
 
-    public fun confirm<T>(self: WithdrawRequest<T>, policy: &Policy<WithNft<T, WITHDRAW_REQUEST>>) {
+    public fun confirm<T>(self: WithdrawRequest<T>, policy: &Policy<WithNft<T, WITHDRAW_REQ>>) {
         let WithdrawRequest {
             sender: _,
             inner,

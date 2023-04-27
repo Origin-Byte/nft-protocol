@@ -1,7 +1,5 @@
 module nft_protocol::access_policy {
     // Borrow NFT from &UID (Programmatic entity)
-    use nft_protocol::request::{Self, Policy, PolicyCap, WithNft};
-    use nft_protocol::borrow_request::{Self, BorrowRequest};
     use std::type_name::{Self, TypeName};
 
     use sui::event;
@@ -10,7 +8,10 @@ module nft_protocol::access_policy {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use witness::witness::Witness as DelegatedWitness;
+    use request::request::{Self, Policy, PolicyCap, WithNft};
+    use request::borrow_request::{Self, BorrowRequest};
+
     use nft_protocol::utils;
     use nft_protocol::collection::{Self, Collection};
 

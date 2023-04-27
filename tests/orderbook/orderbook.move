@@ -11,13 +11,10 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
     // fun it_fails_if_buyer_safe_eq_seller_safe()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
-    use nft_protocol::ob_kiosk::{Self, OwnerToken};
     use nft_protocol::transfer_allowlist;
-    use nft_protocol::ob_transfer_request;
     use nft_protocol::orderbook::{Self, Orderbook};
     use nft_protocol::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
-    use nft_protocol::witness;
 
     use sui::coin;
     use sui::transfer_policy::{Self, TransferPolicy};
@@ -28,9 +25,11 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
+    use witness::witness;
     use originmate::typed_id;
-
     use allowlist::allowlist::{Self, Allowlist};
+    use request::ob_kiosk::{Self, OwnerToken};
+    use request::ob_transfer_request;
 
     const OFFER_SUI: u64 = 100;
 

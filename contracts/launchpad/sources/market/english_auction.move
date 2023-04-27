@@ -8,10 +8,9 @@ module launchpad::english_auction {
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::witness;
-    use nft_protocol::ob_kiosk;
+    use request::ob_kiosk;
 
-    use launchpad::venue;
+    use launchpad::venue::{Self, Venue};
     use launchpad::listing::{Self, Listing};
     use launchpad::warehouse::{Self, Warehouse};
     use launchpad::inventory::{Self, Inventory};
@@ -51,7 +50,7 @@ module launchpad::english_auction {
         concluded: bool,
     }
 
-    struct Witness has drop {}
+    struct MarketKey has copy, drop, store {}
 
     /// Create `EnglishAuction` from NFT `T` with bids denominated in fungible
     /// token `FT`
@@ -153,7 +152,14 @@ module launchpad::english_auction {
 
         let auction = from_inventory(inventory, nft_id, bid);
 
-        listing::create_venue(listing, auction, is_whitelisted, ctx)
+        listing::create_venue(listing, MarketKey {}, auction, is_whitelisted, ctx)
+    }
+
+    /// Borrows `DutchAuctionMarket<FT>` from `Venue`
+    public fun borrow_market<T: key + store, FT>(
+        venue: &Venue,
+    ): &EnglishAuction<T, FT> {
+        venue::borrow_market(MarketKey {}, venue)
     }
 
     // === Entrypoints ===
@@ -166,16 +172,15 @@ module launchpad::english_auction {
         bid: u64,
         ctx: &mut TxContext,
     ) {
-        let delegated_witness = witness::from_witness(Witness {});
-        let venue = listing::venue_internal_mut<EnglishAuction<T, FT>>(
-            delegated_witness, listing, venue_id
+        let venue = listing::venue_internal_mut<EnglishAuction<T, FT>, MarketKey>(
+            listing, MarketKey {}, venue_id
         );
 
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
 
         create_bid_<T, FT>(
-            venue::borrow_market_mut(venue),
+            venue::borrow_market_mut(MarketKey {}, venue),
             balance::split(coin::balance_mut(wallet), bid),
             ctx,
         );
@@ -190,9 +195,8 @@ module launchpad::english_auction {
         bid: u64,
         ctx: &mut TxContext,
     ) {
-        let delegated_witness = witness::from_witness(Witness {});
-        let venue = listing::venue_internal_mut<EnglishAuction<T, FT>>(
-            delegated_witness, listing, venue_id
+        let venue = listing::venue_internal_mut<EnglishAuction<T, FT>, MarketKey>(
+            listing, MarketKey {}, venue_id
         );
 
         venue::assert_is_live(venue);
@@ -201,7 +205,7 @@ module launchpad::english_auction {
         market_whitelist::assert_certificate(&whitelist_token, venue_id);
 
         create_bid_<T, FT>(
-            venue::borrow_market_mut(venue),
+            venue::borrow_market_mut(MarketKey {}, venue),
             balance::split(coin::balance_mut(wallet), bid),
             ctx,
         );
@@ -242,9 +246,9 @@ module launchpad::english_auction {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let delegated_witness = witness::from_witness(Witness {});
-        let auction: &mut EnglishAuction<T, FT> =
-            listing::market_internal_mut(delegated_witness, listing, venue_id);
+        let auction: &mut EnglishAuction<T, FT> = listing::market_internal_mut(
+            listing, MarketKey {}, venue_id,
+        );
 
         assert_not_concluded(auction);
         auction.concluded = true;
@@ -290,12 +294,11 @@ module launchpad::english_auction {
         venue_id: ID,
         ctx: &mut TxContext,
     ): T {
-        let delegated_witness = witness::from_witness(Witness {});
-        let venue = listing::remove_venue<EnglishAuction<T, FT>>(
-            delegated_witness, listing, venue_id
+        let venue = listing::remove_venue<EnglishAuction<T, FT>, MarketKey>(
+            listing, MarketKey {}, venue_id
         );
 
-        let auction: EnglishAuction<T, FT> = venue::delete(venue);
+        let auction: EnglishAuction<T, FT> = venue::delete(MarketKey {}, venue);
         assert_concluded(&auction);
 
         let (nft, bid) = delete(auction);

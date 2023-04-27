@@ -11,8 +11,8 @@ module nft_protocol::transfer_allowlist_domain {
     use sui::dynamic_field as df;
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use witness::marker::{Self, Marker};
+    use witness::witness::Witness as DelegatedWitness;
 
     use allowlist::allowlist::Allowlist;
 
@@ -98,7 +98,7 @@ module nft_protocol::transfer_allowlist_domain {
             Marker<TransferAllowlistDomain>,
             TransferAllowlistDomain,
         >(
-            nft, utils::marker(),
+            nft, marker::marker(),
         )
     }
 
@@ -109,7 +109,7 @@ module nft_protocol::transfer_allowlist_domain {
     /// Panics if `TransferAllowlistDomain` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &TransferAllowlistDomain {
         assert_transfer_allowlist(nft);
-        df::borrow(nft, utils::marker<TransferAllowlistDomain>())
+        df::borrow(nft, marker::marker<TransferAllowlistDomain>())
     }
 
     /// Mutably borrows `TransferAllowlistDomain` from `Nft`
@@ -119,7 +119,7 @@ module nft_protocol::transfer_allowlist_domain {
     /// Panics if `TransferAllowlistDomain` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut TransferAllowlistDomain {
         assert_transfer_allowlist(nft);
-        df::borrow_mut(nft, utils::marker<TransferAllowlistDomain>())
+        df::borrow_mut(nft, marker::marker<TransferAllowlistDomain>())
     }
 
     /// Adds `TransferAllowlistDomain` to `Nft`
@@ -132,7 +132,7 @@ module nft_protocol::transfer_allowlist_domain {
         domain: TransferAllowlistDomain,
     ) {
         assert_no_transfer_allowlist(nft);
-        df::add(nft, utils::marker<TransferAllowlistDomain>(), domain);
+        df::add(nft, marker::marker<TransferAllowlistDomain>(), domain);
     }
 
     /// Remove `TransferAllowlistDomain` from `Nft`
@@ -142,7 +142,7 @@ module nft_protocol::transfer_allowlist_domain {
     /// Panics if `TransferAllowlistDomain` domain doesnt exist
     public fun remove_domain(nft: &mut UID): TransferAllowlistDomain {
         assert_transfer_allowlist(nft);
-        df::remove(nft, utils::marker<TransferAllowlistDomain>())
+        df::remove(nft, marker::marker<TransferAllowlistDomain>())
     }
 
     /// Delete a `TransferAllowlistDomain` object

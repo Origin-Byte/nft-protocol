@@ -47,7 +47,7 @@ module launchpad::test_limited_fixed_price {
 
         let (_, venue_id) =
             init_market(&mut listing, 1, 10, false, &mut scenario);
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
 
@@ -271,7 +271,7 @@ module launchpad::test_limited_fixed_price {
         let wallet = coin::mint_for_testing<SUI>(20, ctx(&mut scenario));
 
         // Check sale count per address
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(
@@ -286,7 +286,7 @@ module launchpad::test_limited_fixed_price {
         );
 
         // Check that borrow count is incremented
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(
@@ -301,7 +301,7 @@ module launchpad::test_limited_fixed_price {
         );
 
         // Check that borrow count is incremented
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(
@@ -416,7 +416,7 @@ module launchpad::test_limited_fixed_price {
             &mut listing, venue_id, 20, ctx(&mut scenario)
         );
 
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(limited_fixed_price::price<SUI>(market) == 20, 0);
@@ -477,7 +477,7 @@ module launchpad::test_limited_fixed_price {
             &mut listing, venue_id, 2, ctx(&mut scenario)
         );
 
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(limited_fixed_price::limit<SUI>(market) == 2, 0);

@@ -28,16 +28,11 @@
 /// Rather, clients are encouraged to use the liquidity layer.
 /// - Permissionless `Kiosk` needs to signer, apps don't have to wrap both
 /// the `KioskOwnerCap` and the `Kiosk` in a smart contract.
-module nft_protocol::ob_kiosk {
-    use nft_protocol::ob_transfer_request::{Self, TransferRequest};
-    use nft_protocol::withdraw_request::{Self, WithdrawRequest};
-    use nft_protocol::borrow_request::{Self, BorrowRequest, BORROW_REQUEST};
-    use nft_protocol::request::{Self, Policy, RequestBody, WithNft};
-    use nft_protocol::utils;
-    use originmate::typed_id::{Self, TypedID};
+module request::ob_kiosk {
     use std::option::Option;
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
+
     use sui::display;
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap, uid_mut as ext};
@@ -48,6 +43,13 @@ module nft_protocol::ob_kiosk {
     use sui::transfer::{transfer, public_share_object, public_transfer};
     use sui::tx_context::{TxContext, sender};
     use sui::vec_set::{Self, VecSet};
+
+    use request::ob_transfer_request::{Self, TransferRequest};
+    use request::withdraw_request::{Self, WithdrawRequest};
+    use request::borrow_request::{Self, BorrowRequest, BORROW_REQ};
+    use request::request::{Self, Policy, RequestBody, WithNft};
+
+    use originmate::typed_id::{Self, TypedID};
 
     // === Errors ===
 
@@ -692,7 +694,7 @@ module nft_protocol::ob_kiosk {
     public fun return_nft<OTW: drop, T: key + store>(
         self: &mut Kiosk,
         borrowed_nft: BorrowRequest<Witness, T>,
-        policy: &Policy<WithNft<T, BORROW_REQUEST>>
+        policy: &Policy<WithNft<T, BORROW_REQ>>
     ) {
         let (nft, promise) = borrow_request::confirm(Witness {}, borrowed_nft, policy);
 
@@ -831,7 +833,7 @@ module nft_protocol::ob_kiosk {
         let display = display::new<OwnerToken>(&publisher, ctx);
 
         display::add(&mut display, utf8(b"name"), utf8(b"Originbyte Kiosk"));
-        display::add(&mut display, utf8(b"link"), utils::originbyte_docs_url());
+        display::add(&mut display, utf8(b"link"), utf8(b"https://docs.originbyte.io"));
         display::add(&mut display, utf8(b"owner"), utf8(b"{owner}"));
         display::add(&mut display, utf8(b"kiosk"), utf8(b"{kiosk}"));
         display::add(

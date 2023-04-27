@@ -16,9 +16,11 @@ module nft_protocol::collection {
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
 
-    use nft_protocol::utils::{Self, Marker};
+    use witness::witness::Witness as DelegatedWitness;
+    use witness::marker::{Self, Marker};
+    use witness::utils;
+
     use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
 
     /// Domain not defined
     ///
@@ -79,7 +81,7 @@ module nft_protocol::collection {
         _witness: &OTW,
         ctx: &mut TxContext,
     ): Collection<T> {
-        witness::assert_same_module<OTW, T>();
+        utils::assert_same_module<OTW, T>();
         create_(ctx)
     }
 
@@ -145,7 +147,7 @@ module nft_protocol::collection {
         collection: &Collection<C>,
     ): bool {
         df::exists_with_type<Marker<Domain>, Domain>(
-            &collection.id, utils::marker<Domain>(),
+            &collection.id, marker::marker<Domain>(),
         )
     }
 
@@ -158,7 +160,7 @@ module nft_protocol::collection {
         collection: &Collection<C>
     ): &Domain {
         assert_domain<C, Domain>(collection);
-        df::borrow(&collection.id, utils::marker<Domain>())
+        df::borrow(&collection.id, marker::marker<Domain>())
     }
 
     /// Mutably borrow domain from `Collection`
@@ -177,7 +179,7 @@ module nft_protocol::collection {
         assert_domain<C, Domain>(collection);
         df::borrow_mut(
             &mut collection.id,
-            utils::marker<Domain>(),
+            marker::marker<Domain>(),
         )
     }
 
@@ -194,7 +196,7 @@ module nft_protocol::collection {
         assert_no_domain<C, Domain>(collection);
         df::add(
             borrow_uid_mut(witness, collection),
-            utils::marker<Domain>(),
+            marker::marker<Domain>(),
             domain,
         );
     }
@@ -211,7 +213,7 @@ module nft_protocol::collection {
         assert_domain<C, Domain>(collection);
         df::remove(
             &mut collection.id,
-            utils::marker<Domain>(),
+            marker::marker<Domain>(),
         )
     }
 

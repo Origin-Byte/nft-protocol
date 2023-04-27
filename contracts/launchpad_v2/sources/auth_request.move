@@ -1,8 +1,8 @@
 module launchpad_v2::auth_request {
-    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap};
-    use nft_protocol::witness;
     use sui::object::{Self, ID};
     use sui::tx_context::{TxContext, sender};
+
+    use request::request::{Self, RequestBody, Policy, PolicyCap};
 
     // === Error ===
 
@@ -10,14 +10,13 @@ module launchpad_v2::auth_request {
 
     // === Structs ===
 
-    struct Witness has drop {}
-    struct AUTH_REQUEST has drop {}
+    struct AUTH_REQ has drop {}
 
     struct AuthRequest {
         policy_id: ID,
         sender: address,
         venue_id: ID,
-        inner: RequestBody<AUTH_REQUEST>
+        inner: RequestBody<AUTH_REQ>
     }
 
     // === Fns ===
@@ -25,7 +24,7 @@ module launchpad_v2::auth_request {
     /// Construct a new `Request` hot potato which requires an
     /// approving action from the policy creator to be destroyed / resolved.
     public fun new(
-        venue_id: ID, policy: &Policy<AUTH_REQUEST>, ctx: &mut TxContext,
+        venue_id: ID, policy: &Policy<AUTH_REQ>, ctx: &mut TxContext,
     ): AuthRequest {
         AuthRequest {
             policy_id: object::id(policy),
@@ -35,8 +34,8 @@ module launchpad_v2::auth_request {
         }
     }
 
-    public fun init_policy(ctx: &mut TxContext): (Policy<AUTH_REQUEST>, PolicyCap) {
-        request::new_policy(witness::from_witness(Witness {}), ctx)
+    public fun init_policy(ctx: &mut TxContext): (Policy<AUTH_REQ>, PolicyCap) {
+        request::new_policy(AUTH_REQ {}, ctx)
     }
 
     /// Adds a `Receipt` to the `Request`, unblocking the request and
@@ -45,11 +44,11 @@ module launchpad_v2::auth_request {
         request::add_receipt(&mut self.inner, rule);
     }
 
-    public fun inner_mut(self: &mut AuthRequest): &mut RequestBody<AUTH_REQUEST> {
+    public fun inner_mut(self: &mut AuthRequest): &mut RequestBody<AUTH_REQ> {
         &mut self.inner
     }
 
-    public fun confirm(self: AuthRequest, policy: &Policy<AUTH_REQUEST>) {
+    public fun confirm(self: AuthRequest, policy: &Policy<AUTH_REQ>) {
         let AuthRequest {
             policy_id,
             sender: _,

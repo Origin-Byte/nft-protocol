@@ -33,9 +33,10 @@ module nft_protocol::test_ob_kiosk {
     // use std::debug;
     // use std::string;
 
-    use nft_protocol::ob_transfer_request;
-    use nft_protocol::withdraw_request;
-    use nft_protocol::ob_kiosk::{Self, OwnerToken};
+    use request::ob_transfer_request;
+    use request::withdraw_request;
+    use request::ob_kiosk::{Self, OwnerToken};
+
     use nft_protocol::test_utils::{Self, Foo, seller, fake_address, creator};
 
     #[test]
@@ -126,7 +127,7 @@ module nft_protocol::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ECannotDeposit)]
+    #[expected_failure(abort_code = request::ob_kiosk::ECannotDeposit)]
     public fun test_kiosk_fail_permissioned_deposits() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);
@@ -280,7 +281,7 @@ module nft_protocol::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENotAuthorized)]
+    #[expected_failure(abort_code = request::ob_kiosk::ENotAuthorized)]
     public fun test_kiosk_fail_transfer_without_auth_as_entity() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);
@@ -339,7 +340,7 @@ module nft_protocol::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENftAlreadyExclusivelyListed)]
+    #[expected_failure(abort_code = request::ob_kiosk::ENftAlreadyExclusivelyListed)]
     public fun test_kiosk_fail_list_after_exclusive() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);
@@ -385,7 +386,7 @@ module nft_protocol::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENftAlreadyListed)]
+    #[expected_failure(abort_code = request::ob_kiosk::ENftAlreadyListed)]
     public fun test_kiosk_fail_try_to_list_exclusive_twice() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);
@@ -548,7 +549,7 @@ module nft_protocol::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENotAuthorized)]
+    #[expected_failure(abort_code = request::ob_kiosk::ENotAuthorized)]
     public fun test_kiosk_fail_transfer_signed_as_unauth_address() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);
@@ -712,7 +713,7 @@ module nft_protocol::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENotAuthorized)]
+    #[expected_failure(abort_code = request::ob_kiosk::ENotAuthorized)]
     public fun test_kiosk_fail_withdraw_as_unauth_address() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);
@@ -824,7 +825,7 @@ module nft_protocol::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::ob_kiosk::ENotAuthorized)]
+    #[expected_failure(abort_code = request::ob_kiosk::ENotAuthorized)]
     public fun test_kiosk_withdraw_as_unauth_entity() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);

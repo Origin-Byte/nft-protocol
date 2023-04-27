@@ -4,7 +4,7 @@ module nft_protocol::test_royalty {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::witness;
+    use witness::witness;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::royalty::RoyaltyDomain;
 

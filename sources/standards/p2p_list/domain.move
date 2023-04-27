@@ -11,8 +11,8 @@ module nft_protocol::p2p_list_domain {
     use sui::dynamic_field as df;
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::utils::{Self, Marker};
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use witness::marker::{Self, Marker};
+    use witness::witness::Witness as DelegatedWitness;
 
     use authlist::authlist::Authlist;
 
@@ -98,7 +98,7 @@ module nft_protocol::p2p_list_domain {
             Marker<P2PListDomain>,
             P2PListDomain,
         >(
-            nft, utils::marker(),
+            nft, marker::marker(),
         )
     }
 
@@ -109,7 +109,7 @@ module nft_protocol::p2p_list_domain {
     /// Panics if `P2PListDomain` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &P2PListDomain {
         assert_transfer_allowlist(nft);
-        df::borrow(nft, utils::marker<P2PListDomain>())
+        df::borrow(nft, marker::marker<P2PListDomain>())
     }
 
     /// Mutably borrows `P2PListDomain` from `Nft`
@@ -119,7 +119,7 @@ module nft_protocol::p2p_list_domain {
     /// Panics if `P2PListDomain` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut P2PListDomain {
         assert_transfer_allowlist(nft);
-        df::borrow_mut(nft, utils::marker<P2PListDomain>())
+        df::borrow_mut(nft, marker::marker<P2PListDomain>())
     }
 
     /// Adds `P2PListDomain` to `Nft`
@@ -132,7 +132,7 @@ module nft_protocol::p2p_list_domain {
         domain: P2PListDomain,
     ) {
         assert_no_transfer_allowlist(nft);
-        df::add(nft, utils::marker<P2PListDomain>(), domain);
+        df::add(nft, marker::marker<P2PListDomain>(), domain);
     }
 
     /// Remove `P2PListDomain` from `Nft`
@@ -142,7 +142,7 @@ module nft_protocol::p2p_list_domain {
     /// Panics if `P2PListDomain` domain doesnt exist
     public fun remove_domain(nft: &mut UID): P2PListDomain {
         assert_transfer_allowlist(nft);
-        df::remove(nft, utils::marker<P2PListDomain>())
+        df::remove(nft, marker::marker<P2PListDomain>())
     }
 
     /// Delete a `P2PListDomain` object

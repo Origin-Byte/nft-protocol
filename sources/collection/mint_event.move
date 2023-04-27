@@ -15,7 +15,7 @@ module nft_protocol::mint_event {
     use sui::event;
     use sui::object::{Self, UID, ID};
 
-    use nft_protocol::witness::Witness as DelegatedWitness;
+    use witness::witness::Witness as DelegatedWitness;
 
     /// Passed `BurnGuard` for object with different ID
     ///

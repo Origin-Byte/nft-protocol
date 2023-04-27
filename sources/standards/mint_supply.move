@@ -12,7 +12,7 @@ module nft_protocol::mint_supply {
     use sui::dynamic_field as df;
     use sui::tx_context::TxContext;
 
-    use nft_protocol::utils::{Self, Marker};
+    use witness::marker::{Self, Marker};
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::utils_supply::{Self, Supply};
 
@@ -172,7 +172,7 @@ module nft_protocol::mint_supply {
     /// Returns whether `MintSupply` is registered on collection
     public fun has_domain<T>(collection: &UID): bool {
         df::exists_with_type<Marker<MintSupply<T>>, MintSupply<T>>(
-            collection, utils::marker(),
+            collection, marker::marker(),
         )
     }
 
@@ -183,7 +183,7 @@ module nft_protocol::mint_supply {
     /// Panics if `MintSupply` is not registered on the collection
     public fun borrow_domain<T>(collection: &UID): &MintSupply<T> {
         assert_regulated<T>(collection);
-        df::borrow(collection, utils::marker<MintSupply<T>>())
+        df::borrow(collection, marker::marker<MintSupply<T>>())
     }
 
     /// Mutably borrows `MintSupply` from collection
@@ -195,7 +195,7 @@ module nft_protocol::mint_supply {
         collection: &mut UID,
     ): &mut MintSupply<T> {
         assert_regulated<T>(collection);
-        df::borrow_mut(collection, utils::marker<MintSupply<T>>())
+        df::borrow_mut(collection, marker::marker<MintSupply<T>>())
     }
 
     /// Adds `MintSupply` to collection
@@ -208,7 +208,7 @@ module nft_protocol::mint_supply {
         domain: MintSupply<T>,
     ) {
         assert_unregulated<T>(collection);
-        df::add(collection, utils::marker<MintSupply<T>>(), domain);
+        df::add(collection, marker::marker<MintSupply<T>>(), domain);
     }
 
     /// Remove `MintSupply` from collection
@@ -218,7 +218,7 @@ module nft_protocol::mint_supply {
     /// Panics if `MintSupply` domain doesnt exist
     public fun remove_domain<T>(collection: &mut UID): MintSupply<T> {
         assert_regulated<T>(collection);
-        df::remove(collection, utils::marker<MintSupply<T>>())
+        df::remove(collection, marker::marker<MintSupply<T>>())
     }
 
     // === Assertions ===

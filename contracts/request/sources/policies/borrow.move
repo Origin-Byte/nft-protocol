@@ -1,4 +1,4 @@
-module nft_protocol::borrow_request {
+module request::borrow_request {
     use std::option::{Self, Option, some};
     use std::type_name::TypeName;
 
@@ -8,9 +8,10 @@ module nft_protocol::borrow_request {
     use sui::tx_context::TxContext;
     use sui::kiosk::Borrow;
 
-    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use nft_protocol::witness::{Self, Witness as DelegatedWitness};
-    use nft_protocol::utils;
+    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+
+    use witness::witness::Witness as DelegatedWitness;
+    use witness::marker;
 
     // === Error ===
 
@@ -19,7 +20,7 @@ module nft_protocol::borrow_request {
     // === Structs ===
 
     struct Witness has drop {}
-    struct BORROW_REQUEST has drop {}
+    struct BORROW_REQ has drop {}
 
     // Hot Potato
     struct ReturnPromise<phantom T, phantom Field> {
@@ -32,7 +33,7 @@ module nft_protocol::borrow_request {
         sender: address,
         field: Option<TypeName>,
         promise: Borrow,
-        inner: RequestBody<WithNft<T, BORROW_REQUEST>>,
+        inner: RequestBody<WithNft<T, BORROW_REQ>>,
     }
 
     // === Fns ===
@@ -59,8 +60,8 @@ module nft_protocol::borrow_request {
         }
     }
 
-    public fun init_policy<Auth: drop, T: key + store>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, BORROW_REQUEST>>, PolicyCap) {
-        request::new_policy_with_type(witness::from_witness(Witness {}), publisher, ctx)
+    public fun init_policy<T: key + store>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, BORROW_REQ>>, PolicyCap) {
+        request::new_policy_with_type(BORROW_REQ {}, publisher, ctx)
     }
 
     /// Adds a `Receipt` to the `Request`, unblocking the request and
@@ -72,10 +73,10 @@ module nft_protocol::borrow_request {
     // TODO: SHOULD THIS BE PROTECTED?
     public fun inner_mut<Auth: drop, T: key + store>(
         self: &mut BorrowRequest<Auth, T>
-    ): &mut RequestBody<WithNft<T, BORROW_REQUEST>> { &mut self.inner }
+    ): &mut RequestBody<WithNft<T, BORROW_REQ>> { &mut self.inner }
 
     public fun confirm<Auth: drop, T: key + store>(
-        _witness: Auth, self: BorrowRequest<Auth, T>, policy: &Policy<WithNft<T, BORROW_REQUEST>>
+        _witness: Auth, self: BorrowRequest<Auth, T>, policy: &Policy<WithNft<T, BORROW_REQ>>
     ): (T, Borrow) {
         assert!(option::is_some(&self.nft), 0);
 
@@ -121,7 +122,8 @@ module nft_protocol::borrow_request {
         nft_uid: &mut UID,
     ): (Field, ReturnPromise<T, Field>) {
         let nft_id = object::uid_to_inner(nft_uid);
-        let field = utils::pop_df_from_marker<Field>(nft_uid);
+
+        let field: Field = df::remove(nft_uid, marker::marker<Field>());
 
         (field, ReturnPromise { nft_id })
     }
@@ -136,7 +138,7 @@ module nft_protocol::borrow_request {
         // is present before resolving the BorrowRequest
         // assert!(request.is_returned == false, 0);
         assert!(object::uid_to_inner(nft_uid) == promise.nft_id, 0);
-        df::add(nft_uid, utils::marker<Field>(), field);
+        df::add(nft_uid, marker::marker<Field>(), field);
 
         let ReturnPromise { nft_id: _ } = promise;
 

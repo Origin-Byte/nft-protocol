@@ -19,7 +19,8 @@ module nft_protocol::mint_cap {
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
-    use nft_protocol::witness;
+    use witness::utils;
+
     use nft_protocol::utils_supply::{Self, Supply};
 
     /// `MintCap` is unlimited when expected limited
@@ -74,7 +75,7 @@ module nft_protocol::mint_cap {
         collection_id: ID,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        witness::assert_same_module<OTW, T>();
+        utils::assert_same_module<OTW, T>();
         assert!(types::is_one_time_witness(witness), ENotOneTimeWitness);
 
         MintCap {
@@ -95,7 +96,7 @@ module nft_protocol::mint_cap {
         supply: u64,
         ctx: &mut TxContext,
     ): MintCap<T> {
-        witness::assert_same_module<OTW, T>();
+        utils::assert_same_module<OTW, T>();
         assert!(types::is_one_time_witness(witness), ENotOneTimeWitness);
 
         MintCap {

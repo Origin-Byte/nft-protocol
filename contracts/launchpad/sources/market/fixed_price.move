@@ -13,10 +13,9 @@ module launchpad::fixed_price {
     use sui::transfer::public_transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::ob_kiosk;
-    use nft_protocol::witness;
+    use request::ob_kiosk;
 
-    use launchpad::venue;
+    use launchpad::venue::{Self, Venue};
     use launchpad::listing::{Self, Listing};
     use launchpad::market_whitelist::{Self, Certificate};
 
@@ -30,8 +29,7 @@ module launchpad::fixed_price {
         inventory_id: ID,
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
+    struct MarketKey has copy, drop, store {}
 
     // === Init functions ===
 
@@ -119,7 +117,12 @@ module launchpad::fixed_price {
         listing::assert_inventory<C>(listing, inventory_id);
 
         let market = new<FT>(inventory_id, price, ctx);
-        listing::create_venue(listing, market, is_whitelisted, ctx)
+        listing::create_venue(listing, MarketKey {}, market, is_whitelisted, ctx)
+    }
+
+    /// Borrows `FixedPriceMarket<FT>` from `Venue`
+    public fun borrow_market<FT>(venue: &Venue): &FixedPriceMarket<FT> {
+        venue::borrow_market(MarketKey {}, venue)
     }
 
     // === Entrypoints ===
@@ -227,17 +230,14 @@ module launchpad::fixed_price {
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        let market = listing::borrow_market<FixedPriceMarket<FT>>(
-            listing, venue_id,
-        );
+        let market = borrow_market<FT>(listing::borrow_venue(listing, venue_id));
 
         let price = market.price;
         let inventory_id = market.inventory_id;
 
-        let delegated_witness = witness::from_witness(Witness {});
-        listing::buy_pseudorandom_nft<T, FT, FixedPriceMarket<FT>>(
-            delegated_witness,
+        listing::buy_pseudorandom_nft<T, FT, FixedPriceMarket<FT>, MarketKey>(
             listing,
+            MarketKey {},
             inventory_id,
             venue_id,
             tx_context::sender(ctx),
@@ -261,9 +261,8 @@ module launchpad::fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let delegated_witness = witness::from_witness(Witness {});
-        let market = listing::market_internal_mut<FixedPriceMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let market: &mut FixedPriceMarket<FT> = listing::market_internal_mut(
+            listing, MarketKey {}, venue_id
         );
 
         market.price = new_price;

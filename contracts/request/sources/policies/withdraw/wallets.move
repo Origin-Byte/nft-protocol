@@ -1,11 +1,13 @@
-module nft_protocol::wallets {
-    use nft_protocol::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use nft_protocol::witness::Witness as DelegatedWitness;
+module request::wallets {
     use std::vector;
+
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
+
+    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use witness::witness::Witness as DelegatedWitness;
 
     // === Errors ===
 

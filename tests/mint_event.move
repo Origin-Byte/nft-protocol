@@ -5,7 +5,7 @@ module nft_protocol::test_mint_event {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::mint_event;
-    use nft_protocol::witness;
+    use witness::witness;
 
     struct Foo has key, store {
         id: UID,
