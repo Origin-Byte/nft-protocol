@@ -10,7 +10,7 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
 
 [dependencies.NftProtocol]
-local = "../../"
+local = "../../contracts/nft_protocol"
 
 [dependencies.Launchpad]
 local = "../../contracts/launchpad"

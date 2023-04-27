@@ -35,7 +35,7 @@ module liquidity_layer::orderbook {
     use sui::dynamic_field as df;
 
     use ob_witness::witness::Witness as DelegatedWitness;
-    use ob_request::ob_kiosk;
+    use ob_kiosk::ob_kiosk;
     use ob_request::ob_transfer_request::{Self, TransferRequest};
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 

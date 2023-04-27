@@ -27,11 +27,11 @@ module examples::testract {
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist;
 
-    use launchpad::fixed_price;
-    use launchpad::inventory;
-    use launchpad::limited_fixed_price;
-    use launchpad::listing;
-    use launchpad::warehouse;
+    use ob_launchpad::fixed_price;
+    use ob_launchpad::inventory;
+    use ob_launchpad::limited_fixed_price;
+    use ob_launchpad::listing;
+    use ob_launchpad::warehouse;
 
     use sui::coin::Coin;
     use sui::transfer_policy::TransferPolicy;
@@ -42,9 +42,9 @@ module examples::testract {
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
 
-    use ob_request::ob_kiosk;
+    use ob_kiosk::ob_kiosk;
     use ob_request::ob_transfer_request::{Self};
-    use allowlist::allowlist::{Self, Allowlist};
+    use ob_allowlist::allowlist::{Self, Allowlist};
     use ob_witness::witness::{Self, Witness as DelegatedWitness};
 
     /// OTW for constructing publisher

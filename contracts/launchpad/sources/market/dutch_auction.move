@@ -10,7 +10,7 @@
 /// To create a market sale the administrator can simply call `create_market`.
 /// Each sale segment can have a whitelisting process, each with their own
 /// whitelist tokens.
-module launchpad::dutch_auction {
+module ob_launchpad::dutch_auction {
     use std::option;
     use std::vector;
 
@@ -22,10 +22,10 @@ module launchpad::dutch_auction {
 
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
-    use launchpad::venue::{Self, Venue};
-    use launchpad::listing::{Self, Listing};
-    use launchpad::inventory;
-    use launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::venue::{Self, Venue};
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::inventory;
+    use ob_launchpad::market_whitelist::{Self, Certificate};
 
     const U64_MAX: u64 = 18446744073709551615;
 

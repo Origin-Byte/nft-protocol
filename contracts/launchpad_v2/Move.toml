@@ -15,7 +15,7 @@ git = "https://github.com/Origin-Byte/originmate.git"
 rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 
 [dependencies.NftProtocol]
-local = "./../../"
+local = "./../nft_protocol"
 
 [addresses]
 ob_launchpad_v2 = "0x"

@@ -3,7 +3,7 @@
 ///
 /// Additionally, `Inventory` is responsible for providing a safe interface to
 /// change the logical owner of NFTs redeemed from it.
-module launchpad::inventory {
+module ob_launchpad::inventory {
     use std::option::{Self, Option};
 
     use sui::transfer;
@@ -11,7 +11,7 @@ module launchpad::inventory {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    use launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
+    use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
 
     /// `Inventory` is not a `Warehouse`
     ///

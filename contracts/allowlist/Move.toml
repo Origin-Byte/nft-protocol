@@ -10,4 +10,4 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
 
 [addresses]
-allowlist = "0x"
+ob_allowlist = "0x"

@@ -13,7 +13,7 @@ module liquidity_layer::bidding {
     use sui::transfer::{public_transfer, share_object};
     use sui::tx_context::{TxContext, sender};
 
-    use ob_request::ob_kiosk;
+    use ob_kiosk::ob_kiosk;
     use ob_request::ob_transfer_request::{Self, TransferRequest};
 
     use liquidity_layer::trading;

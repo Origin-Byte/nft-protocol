@@ -1,4 +1,4 @@
-module authlist::authlist {
+module ob_authlist::authlist {
     use std::vector;
     use std::option::{Self, Option};
     use std::string::utf8;

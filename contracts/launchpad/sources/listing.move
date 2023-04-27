@@ -22,7 +22,7 @@
 ///
 /// In essence, `Listing` is a shared object that provides a safe API to the
 /// underlying inventories which are unprotected.
-module launchpad::listing {
+module ob_launchpad::listing {
     // TODO: Currently, to issue whitelist token one has to call a function
     // times the number of whitelist addresses. Let us consider more gas efficient
     // ways of mass emiting whitelist tokens.
@@ -42,13 +42,13 @@ module launchpad::listing {
     use originmate::typed_id::{Self, TypedID};
     use originmate::object_box::{Self as obox, ObjectBox};
 
-    use launchpad::inventory::{Self, Inventory};
-    use launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
-    use launchpad::marketplace::{Self as mkt, Marketplace};
-    use launchpad::proceeds::{Self, Proceeds};
-    use launchpad::venue::{Self, Venue};
+    use ob_launchpad::inventory::{Self, Inventory};
+    use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
+    use ob_launchpad::marketplace::{Self as mkt, Marketplace};
+    use ob_launchpad::proceeds::{Self, Proceeds};
+    use ob_launchpad::venue::{Self, Venue};
 
-    friend launchpad::flat_fee;
+    friend ob_launchpad::flat_fee;
 
     /// `Venue` was not defined on `Listing`
     ///
