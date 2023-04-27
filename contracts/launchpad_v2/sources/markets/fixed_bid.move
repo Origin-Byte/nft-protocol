@@ -5,11 +5,11 @@
 ///
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
-module launchpad_v2::fixed_bid {
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::auth_request::{Self, AuthRequest};
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::certificate::{Self, NftCertificate};
+module ob_launchpad_v2::fixed_bid {
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest};
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     use sui::coin::{Self, Coin};
     use sui::dynamic_field as df;

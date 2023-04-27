@@ -18,7 +18,7 @@
 ///     included in a allowlist, the allowlist admin adds the stringified
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
-module allowlist::allowlist {
+module ob_allowlist::allowlist {
     use sui::display;
     use sui::object::{Self, ID, UID};
     use sui::package::{Self, Publisher};

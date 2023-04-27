@@ -1,13 +1,13 @@
-module launchpad_v2::pseudorand_redeem {
+module ob_launchpad_v2::pseudorand_redeem {
     // TODO: Assigning Inventory and NFTs Indices should not touch the Venue, otherwise it creates contention...
     use std::vector;
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
     use sui::vec_map;
 
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::certificate::{Self, NftCertificate};
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     use nft_protocol::sized_vec;
 

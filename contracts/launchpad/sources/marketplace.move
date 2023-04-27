@@ -20,7 +20,7 @@
 /// The `Listing` acts as the object that configures the primary NFT listing
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
-module launchpad::marketplace {
+module ob_launchpad::marketplace {
     // TODO: Function to delete a listing
     use sui::transfer;
     use sui::object::{Self, UID};

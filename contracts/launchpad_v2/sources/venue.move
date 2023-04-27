@@ -1,5 +1,5 @@
 // TODO: Add function to deregister rule
-module launchpad_v2::venue {
+module ob_launchpad_v2::venue {
     use std::ascii::String;
     use std::option::{Self, Option};
     use sui::vec_map::{Self, VecMap};
@@ -10,12 +10,12 @@ module launchpad_v2::venue {
     use sui::balance::Balance;
     use sui::transfer;
 
-    use request::request::{Self, Policy, PolicyCap};
+    use ob_request::request::{Self, Policy, PolicyCap};
     use nft_protocol::utils_supply::{Self, Supply};
 
-    use launchpad_v2::launchpad::{Self, LaunchCap};
-    use launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQ};
-    use launchpad_v2::proceeds::{Self, Proceeds};
+    use ob_launchpad_v2::launchpad::{Self, LaunchCap};
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQ};
+    use ob_launchpad_v2::proceeds::{Self, Proceeds};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
 

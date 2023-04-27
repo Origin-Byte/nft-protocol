@@ -4,7 +4,7 @@
 /// - `Request<T, OB_TRANSFER_REQUEST>` which is responsible for checking that
 /// a transfer of NFT can be performed.
 /// It's heavily integrated with `nft_protocol::ob_kiosk`.
-module request::request {
+module ob_request::request {
     use std::type_name::{Self, TypeName};
     use std::vector;
 
@@ -146,7 +146,7 @@ module request::request {
     /// for a specific NFT type.
     /// In such scheme, the NFT type would be `T`, and the royalty policy
     /// would be `P`.
-    /// In fact, this is how `ob_transfer_request::TransferRequest<T>` is
+    /// In fact, this is how `transfer_request::TransferRequest<T>` is
     /// implemented.
     public fun new_policy_with_type<T, P: drop>(
         _witness: P,

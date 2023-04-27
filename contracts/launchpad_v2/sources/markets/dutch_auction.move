@@ -10,7 +10,7 @@
 /// To create a market sale the administrator can simply call `create_market`.
 /// Each sale segment can have a whitelisting process, each with their own
 /// whitelist tokens.
-module launchpad_v2::dutch_auction {
+module ob_launchpad_v2::dutch_auction {
     // TODO: Test that random addresses can remove other addresses' bids
     use std::option;
     use std::vector;
@@ -22,10 +22,10 @@ module launchpad_v2::dutch_auction {
     use sui::tx_context::{Self, TxContext};
     use nft_protocol::utils_supply as supply;
 
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::auth_request::{Self, AuthRequest};
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::certificate;
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest};
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::certificate;
 
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 

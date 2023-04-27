@@ -1,5 +1,5 @@
 #[test_only]
-module launchpad::test_dutch_auction {
+module ob_launchpad::test_dutch_auction {
     use std::vector;
 
     use sui::sui::SUI;
@@ -11,13 +11,13 @@ module launchpad::test_dutch_auction {
 
     use originmate::crit_bit_u64 as crit_bit;
 
-    use launchpad::proceeds;
-    use launchpad::venue;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
-    use launchpad::dutch_auction;
+    use ob_launchpad::proceeds;
+    use ob_launchpad::venue;
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::dutch_auction;
 
-    use launchpad::test_listing::init_listing;
+    use ob_launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
         id: UID,
@@ -86,7 +86,7 @@ module launchpad::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = launchpad::dutch_auction::EOrderPriceBelowReserve)]
+    #[expected_failure(abort_code = ob_launchpad::dutch_auction::EOrderPriceBelowReserve)]
     fun try_bid_lower_than_reserve() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -247,7 +247,7 @@ module launchpad::test_dutch_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = launchpad::dutch_auction::EInvalidSender)]
+    #[expected_failure(abort_code = ob_launchpad::dutch_auction::EInvalidSender)]
     fun cancel_bid_does_not_exist() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);

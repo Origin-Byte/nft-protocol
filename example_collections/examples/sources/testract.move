@@ -15,23 +15,23 @@ module examples::testract {
     use std::option;
     use std::string::{String, utf8};
 
-    use nft_protocol::bidding;
+    use liquidity_layer::bidding;
+    use liquidity_layer::orderbook::{Self, Orderbook};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
-    use nft_protocol::orderbook::{Self, Orderbook};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty;
     use nft_protocol::symbol;
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist;
 
-    use launchpad::fixed_price;
-    use launchpad::inventory;
-    use launchpad::limited_fixed_price;
-    use launchpad::listing;
-    use launchpad::warehouse;
+    use ob_launchpad::fixed_price;
+    use ob_launchpad::inventory;
+    use ob_launchpad::limited_fixed_price;
+    use ob_launchpad::listing;
+    use ob_launchpad::warehouse;
 
     use sui::coin::Coin;
     use sui::transfer_policy::TransferPolicy;
@@ -42,10 +42,10 @@ module examples::testract {
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
 
-    use request::ob_kiosk;
-    use request::ob_transfer_request::{Self};
-    use allowlist::allowlist::{Self, Allowlist};
-    use witness::witness::{Self, Witness as DelegatedWitness};
+    use ob_kiosk::ob_kiosk;
+    use ob_request::transfer_request::{Self};
+    use ob_allowlist::allowlist::{Self, Allowlist};
+    use ob_witness::witness::{Self, Witness as DelegatedWitness};
 
     /// OTW for constructing publisher
     struct TESTRACT has drop {}
@@ -73,7 +73,7 @@ module examples::testract {
 
         let publisher = package::claim(witness, ctx);
 
-        let (tx_policy, policy_cap) = ob_transfer_request::init_policy<TestNft>(&publisher, ctx);
+        let (tx_policy, policy_cap) = transfer_request::init_policy<TestNft>(&publisher, ctx);
 
         public_transfer(publisher, sender(ctx));
         public_transfer(mint_cap, sender(ctx));
@@ -160,10 +160,10 @@ module examples::testract {
         );
         // this means that we get mutable access to the traded amount and deduct
         // from it
-        // see `ob_transfer_request::BalanceCap` for more info
+        // see `transfer_request::BalanceCap` for more info
         royalty_strategy_bps::add_balance_access_cap(
             &mut royalty_strategy,
-            ob_transfer_request::grant_balance_access_cap(col_wit()),
+            transfer_request::grant_balance_access_cap(col_wit()),
         );
 
         royalty_strategy_bps::share(royalty_strategy);
@@ -182,7 +182,7 @@ module examples::testract {
         publisher: &Publisher, ctx: &mut TxContext,
     ) {
         let (policy, cap) =
-            ob_transfer_request::init_policy<TestNft>(publisher, ctx);
+            transfer_request::init_policy<TestNft>(publisher, ctx);
 
         royalty_strategy_bps::enforce(&mut policy, &cap);
         transfer_allowlist::enforce(&mut policy, &cap);
@@ -295,7 +295,7 @@ module examples::testract {
 
         let buyer_kiosk = ob_kiosk::new(ctx);
 
-        let bid = nft_protocol::bidding::new_bid(
+        let bid = bidding::new_bid(
             object::id(&buyer_kiosk),
             nft_id,
             333,
@@ -315,7 +315,7 @@ module examples::testract {
         royalty_strategy_bps::confirm_transfer<TestNft, SUI>(royalty_strategy, &mut transfer_req);
 
         // only if both rules are OK can we destroy the hot potato
-        ob_transfer_request::confirm<TestNft, SUI>(transfer_req, transfer_policy, ctx);
+        transfer_request::confirm<TestNft, SUI>(transfer_req, transfer_policy, ctx);
 
         bidding::share(bid);
         public_transfer(buyer_kiosk, sender(ctx));
@@ -421,7 +421,7 @@ module examples::testract {
 
         let kiosk = ob_kiosk::new(ctx);
 
-        let bid = nft_protocol::bidding::new_bid(
+        let bid = bidding::new_bid(
             object::id(&kiosk),
             nft_id,
             777,

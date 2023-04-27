@@ -1,10 +1,10 @@
-module launchpad::market_whitelist {
+module ob_launchpad::market_whitelist {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::TxContext;
 
-    use launchpad::listing::{Self, Listing};
-    use launchpad::venue::{Self, Venue};
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::venue::{Self, Venue};
 
     /// `Certificate` issued for incorrect `Venue` ID
     const EINCORRECT_CERTIFICATE: u64 = 1;

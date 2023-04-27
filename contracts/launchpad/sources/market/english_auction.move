@@ -1,6 +1,6 @@
 /// Module implements the `EnglishAuction` primitive intended to be embedded
 /// within primary and secondary markets
-module launchpad::english_auction {
+module ob_launchpad::english_auction {
     use sui::transfer;
     use sui::object::ID;
     use sui::kiosk::Kiosk;
@@ -8,13 +8,13 @@ module launchpad::english_auction {
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self, TxContext};
 
-    use request::ob_kiosk;
+    use ob_kiosk::ob_kiosk;
 
-    use launchpad::venue::{Self, Venue};
-    use launchpad::listing::{Self, Listing};
-    use launchpad::warehouse::{Self, Warehouse};
-    use launchpad::inventory::{Self, Inventory};
-    use launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::venue::{Self, Venue};
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::warehouse::{Self, Warehouse};
+    use ob_launchpad::inventory::{Self, Inventory};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
 
     /// Bid was lower than existing bid
     ///
