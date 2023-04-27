@@ -1,5 +1,5 @@
 #[test_only]
-module launchpad_v2::test_listing {
+module ob_launchpad_v2::test_listing {
     use std::option::some;
     use std::type_name;
     // use std::string;
@@ -10,20 +10,21 @@ module launchpad_v2::test_listing {
     use sui::sui::SUI;
     use sui::transfer;
 
-    use launchpad_v2::launchpad::{Self};
-    use launchpad_v2::venue::{Self};
-    use launchpad_v2::fixed_bid::{Self, Witness as FixedBidWit};
-    use launchpad_v2::dutch_auction::{Self, Witness as DutchAuctionWit};
-    use launchpad_v2::warehouse::{Witness as WarehouseWit};
-    use launchpad_v2::pseudorand_redeem::{Witness as PseudoRandomWit};
-    use launchpad_v2::schedule;
+    use ob_launchpad_v2::launchpad::{Self};
+    use ob_launchpad_v2::venue::{Self};
+    use ob_launchpad_v2::fixed_bid::{Self, Witness as FixedBidWit};
+    use ob_launchpad_v2::dutch_auction::{Self, Witness as DutchAuctionWit};
+    use ob_launchpad_v2::warehouse::{Witness as WarehouseWit};
+    use ob_launchpad_v2::pseudorand_redeem::{Witness as PseudoRandomWit};
+    use ob_launchpad_v2::schedule;
 
-    use nft_protocol::test_utils::marketplace;
     use nft_protocol::utils_supply::Self as supply;
+
+    const MARKETPLACE: address = @0xA1C08;
 
     #[test]
     public fun create_fixed_bid_launchpad() {
-        let scenario = test_scenario::begin(marketplace());
+        let scenario = test_scenario::begin(MARKETPLACE);
 
         // 1. Create a Launchpad Listing
         let (listing, launch_cap) = launchpad::new(ctx(&mut scenario));
@@ -59,14 +60,14 @@ module launchpad_v2::test_listing {
 
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
-        transfer::public_transfer(launch_cap, marketplace());
+        transfer::public_transfer(launch_cap, MARKETPLACE);
 
         test_scenario::end(scenario);
     }
 
     #[test]
     public fun create_dutch_auction_launchpad() {
-        let scenario = test_scenario::begin(marketplace());
+        let scenario = test_scenario::begin(MARKETPLACE);
 
         // 1. Create a Launchpad Listing
         let (listing, launch_cap) = launchpad::new(ctx(&mut scenario));
@@ -102,7 +103,7 @@ module launchpad_v2::test_listing {
 
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
-        transfer::public_transfer(launch_cap, marketplace());
+        transfer::public_transfer(launch_cap, MARKETPLACE);
 
         test_scenario::end(scenario);
     }

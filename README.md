@@ -18,15 +18,23 @@ The ecosystem is partitioned into three critical components:
 
 ## Resources
 
-- Protocol contract:
-  - [TestNet](https://explorer.sui.io/object/0x7f37d6f86facc20063f3e19b95ac84d973ac2cfd64406c561c26921a57b578b2)
-  - [DevNet](https://explorer.sui.io/object/0x99a197a453f06445dae34347055a359ca4694ea90b7ebacfe15a694e21852119)
-- LaunchpadV2 contract:
-  - [TestNet](https://explorer.sui.io/object/0x1fab4337fffe7a079009c9b77a7132b43246413b7194fabcca9d620c8066a197)
-  - [DevNet](https://explorer.sui.io/object/0xdd7d04a361dff2c3943253f2eca94ef683208e07af0a4d2efedac9eb06e63d70)
-
+- Protocol contracts:
+  - [Allowlist](https://explorer.sui.io/object/0x458d24cec51b0fe63f9c541b14bee9d4e74a6a912382398d9a464554ea511922)
+  - [Authlist](https://explorer.sui.io/object/0xc33d2ebef28f631d8cd059693bc6c3f3df2ffb6db785aab8c7f24cc843e99248)
+  - [Witness](https://explorer.sui.io/object/0xe913f2024aeeec54cc2e8951e8ef01e44fbfd639cca992e07acc275118e8ccae)
+  - [Request](https://explorer.sui.io/object/0xa37b19d59b762ff0b03a790b48b918cb3b194eec795f0af212e1c199070efabd)
+  - [Kiosk](https://explorer.sui.io/object/0xfc53c7688742374df1ef719b2ce177997aae409238baa0c6682832aa74da517e)
+  - [Liquidity Layer](https://explorer.sui.io/object/0xda5ce01d0e365f2aac8df7d85d1cdfe271fd75db338daf248132991d74c2f1c8)
+  - [Launchpad](https://explorer.sui.io/object/0x1d4ce246312891039588611628057aefd5d229a7f5449788ab18361da9f90631)
+  - [NftProtocol](https://explorer.sui.io/object/0x2eead14abcb5a228b62a274ad22510555365f3f8e0af01bd6fb5de689f98f325)
+  - [LaunchpadV2](https://explorer.sui.io/object/0x19aefe1458b74f9c9106d535f24b24c57456afddd30fd8858453ec2b5e1fcf7d)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
-- [Developer Documentation](https://origin-byte.github.io/)
+- [Developer Documentation](https://origin-byte.github.io/) (WIP)
+
+
+In addition, you can find transfer lists curated by OriginByte here:
+- [Trading Allowlist](https://explorer.sui.io/object/0x4abb6c110090577b4e4d85555a8e925c0b3ab6df0473ce35d71712cc1af3390c)
+- [P2P Transfer Authlist](https://explorer.sui.io/object/0x811c730277a87395bd71e2111a3c43a1306c9d47726eaafac58f5d8ae0d78232)
 
 # Install
 

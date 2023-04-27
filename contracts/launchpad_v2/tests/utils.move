@@ -1,17 +1,17 @@
 #[test_only]
-module launchpad_v2::test_utils {
+module ob_launchpad_v2::test_utils {
     use std::option::some;
     use std::type_name;
 
     use sui::test_scenario::{Scenario, ctx};
     use sui::sui::SUI;
 
-    use launchpad_v2::launchpad::{Self, Listing, LaunchCap};
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::fixed_bid::{Self, Witness as FixedBidWit};
-    use launchpad_v2::warehouse::{Witness as WarehouseWit};
-    use launchpad_v2::pseudorand_redeem::{Witness as PseudoRandomWit};
-    use launchpad_v2::schedule;
+    use ob_launchpad_v2::launchpad::{Self, Listing, LaunchCap};
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::fixed_bid::{Self, Witness as FixedBidWit};
+    use ob_launchpad_v2::warehouse::{Witness as WarehouseWit};
+    use ob_launchpad_v2::pseudorand_redeem::{Witness as PseudoRandomWit};
+    use ob_launchpad_v2::schedule;
 
     use nft_protocol::utils_supply::Self as supply;
 

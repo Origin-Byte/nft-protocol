@@ -1,4 +1,4 @@
-module authlist::authlist {
+module ob_authlist::authlist {
     use std::vector;
     use std::option::{Self, Option};
     use std::string::utf8;
@@ -20,7 +20,7 @@ module authlist::authlist {
     // === Errors ===
 
     /// Package publisher mismatch
-    const EPackagePublisherMismatch: u64 = 1;
+    const EInvalidPublisher: u64 = 1;
 
     /// Invalid admin
     ///
@@ -395,7 +395,7 @@ module authlist::authlist {
     ///
     /// Panics if `Publisher` is mismatched
     public fun assert_publisher<T>(pub: &Publisher) {
-        assert!(package::from_package<T>(pub), EPackagePublisherMismatch);
+        assert!(package::from_package<T>(pub), EInvalidPublisher);
     }
 
     /// Asserts that `AuthlistOwnerCap` is admin of `Authlist`

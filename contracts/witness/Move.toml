@@ -1,0 +1,13 @@
+[package]
+name = "Witness"
+version = "1.0.0"
+published-at = "0xe913f2024aeeec54cc2e8951e8ef01e44fbfd639cca992e07acc275118e8ccae"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-framework"
+# testnet-0.33.0
+rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
+
+[addresses]
+ob_witness = "0xe913f2024aeeec54cc2e8951e8ef01e44fbfd639cca992e07acc275118e8ccae"

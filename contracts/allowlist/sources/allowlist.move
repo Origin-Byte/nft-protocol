@@ -18,7 +18,7 @@
 ///     included in a allowlist, the allowlist admin adds the stringified
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
-module allowlist::allowlist {
+module ob_allowlist::allowlist {
     use sui::display;
     use sui::object::{Self, ID, UID};
     use sui::package::{Self, Publisher};
@@ -34,7 +34,7 @@ module allowlist::allowlist {
     // === Errors ===
 
     /// Package publisher mismatch
-    const EPackagePublisherMismatch: u64 = 0;
+    const EInvalidPublisher: u64 = 0;
 
     /// Invalid admin
     ///
@@ -318,7 +318,7 @@ module allowlist::allowlist {
     ///
     /// Panics if `Publisher` is mismatched
     public fun assert_publisher<T>(pub: &Publisher) {
-        assert!(package::from_package<T>(pub), EPackagePublisherMismatch);
+        assert!(package::from_package<T>(pub), EInvalidPublisher);
     }
 
     /// Asserts that `AllowlistOwnerCap` is admin of `Allowlist`

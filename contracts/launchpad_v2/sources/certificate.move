@@ -1,5 +1,5 @@
 // TODO: Add function to deregister rule
-module launchpad_v2::certificate {
+module ob_launchpad_v2::certificate {
     use sui::vec_map::{Self, VecMap};
     use std::type_name::{Self, TypeName};
     use sui::tx_context::{Self, TxContext};
@@ -7,7 +7,7 @@ module launchpad_v2::certificate {
 
     use nft_protocol::sized_vec::{Self, SizedVec};
 
-    use launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::venue::{Self, Venue};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
 

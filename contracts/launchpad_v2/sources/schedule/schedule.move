@@ -5,15 +5,15 @@
 /// The encrypted message is then decrypted by this module
 /// which asserts that the counter matches and the user address
 /// in the message match the ctx sender
-module launchpad_v2::schedule {
+module ob_launchpad_v2::schedule {
     use sui::dynamic_field as df;
     use sui::clock::{Self, Clock};
 
     use std::option::{Self, Option};
 
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::auth_request::{Self, AuthRequest};
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest};
 
     const ESaleNotLive: u64 = 1;
 

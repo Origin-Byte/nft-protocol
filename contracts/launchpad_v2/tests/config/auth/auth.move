@@ -1,5 +1,5 @@
 #[test_only]
-module launchpad_v2::test_auth {
+module ob_launchpad_v2::test_auth {
     // use std::option::some;
     // use std::type_name;
     // use std::vector;
@@ -15,14 +15,13 @@ module launchpad_v2::test_auth {
     // use sui::ed25519;
     use sui::transfer;
 
-    use launchpad_v2::venue::{Self};
-    use launchpad_v2::launchpad_auth;
-    use launchpad_v2::test_utils;
-    use launchpad_v2::auth_request;
-
-    use nft_protocol::test_utils::marketplace;
+    use ob_launchpad_v2::venue::{Self};
+    use ob_launchpad_v2::launchpad_auth;
+    use ob_launchpad_v2::test_utils;
+    use ob_launchpad_v2::auth_request;
 
     const SENDER: address = @0xA5C08;
+    const MARKETPLACE: address = @0xA1C08;
 
     #[test]
     public fun it_works() {
@@ -64,7 +63,7 @@ module launchpad_v2::test_auth {
 
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
-        transfer::public_transfer(launch_cap, marketplace());
+        transfer::public_transfer(launch_cap, MARKETPLACE);
 
         test_scenario::end(scenario);
     }

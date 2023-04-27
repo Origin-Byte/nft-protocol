@@ -8,7 +8,7 @@
 /// `Warehouse` is an unprotected type that can be constructed independently
 /// before it is merged to a `Venue`, allowing `Warehouse` to be constructed
 /// while avoiding shared consensus transactions on `Listing`.
-module launchpad_v2::warehouse {
+module ob_launchpad_v2::warehouse {
     use std::vector;
 
     use sui::transfer;
@@ -19,7 +19,7 @@ module launchpad_v2::warehouse {
     use sui::vec_map;
     use nft_protocol::sized_vec;
 
-    use launchpad_v2::certificate::{Self, NftCertificate};
+    use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     /// `Warehouse` does not have NFTs left to withdraw
     ///
