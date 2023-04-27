@@ -5,7 +5,7 @@
 /// The process of retrieving the funds from the  `Proceeds` object embedded in
 /// a `Slot` guarantees that fees are transferred to the `marketplace.receiver`
 /// and therefore the `Slot.receiver` receives the proceeds net of fees.
-module launchpad_v2::proceeds {
+module ob_launchpad_v2::proceeds {
     // TODO: Function to destroy Proceeds object
     // TODO: reconsider `Proceeds.total` to accomodate for multiple FTs
     use sui::coin;
@@ -17,9 +17,9 @@ module launchpad_v2::proceeds {
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
-    use launchpad_v2::utils;
+    use ob_launchpad_v2::lp_utils as utils;
 
     struct Proceeds has key, store {
         id: UID,

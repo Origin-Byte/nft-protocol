@@ -15,7 +15,7 @@ module nft_protocol::nft_bag {
     use sui::dynamic_field as df;
     use sui::transfer;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     /// `NftBag` was not defined
     ///

@@ -1,8 +1,8 @@
-module launchpad_v2::auth_request {
+module ob_launchpad_v2::auth_request {
     use sui::object::{Self, ID};
     use sui::tx_context::{TxContext, sender};
 
-    use request::request::{Self, RequestBody, Policy, PolicyCap};
+    use ob_request::request::{Self, RequestBody, Policy, PolicyCap};
 
     // === Error ===
 

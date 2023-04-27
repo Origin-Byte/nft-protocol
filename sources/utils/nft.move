@@ -20,8 +20,8 @@ module nft_protocol::nft {
 
     use nft_protocol::mint_cap::{Self, MintCap};
 
-    use witness::witness::{Witness as DelegatedWitness};
-    use witness::marker::{Self, Marker};
+    use ob_witness::witness::{Witness as DelegatedWitness};
+    use ob_witness::marker::{Self, Marker};
 
     /// Domain not defined
     ///

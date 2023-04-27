@@ -8,9 +8,9 @@ module nft_protocol::access_policy {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use witness::witness::Witness as DelegatedWitness;
-    use request::request::{Self, Policy, PolicyCap, WithNft};
-    use request::borrow_request::{Self, BorrowRequest};
+    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_request::request::{Self, Policy, PolicyCap, WithNft};
+    use ob_request::borrow_request::{Self, BorrowRequest};
 
     use nft_protocol::utils;
     use nft_protocol::collection::{Self, Collection};

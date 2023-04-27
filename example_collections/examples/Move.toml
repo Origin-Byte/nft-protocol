@@ -15,5 +15,8 @@ local = "../../"
 [dependencies.Launchpad]
 local = "../../contracts/launchpad"
 
+[dependencies.LiquidityLayer]
+local = "../../contracts/liquidity_layer"
+
 [addresses]
 examples = "0x"

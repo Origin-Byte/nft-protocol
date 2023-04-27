@@ -21,8 +21,8 @@ module nft_protocol::royalty {
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
 
-    use witness::marker::{Self, Marker};
-    use witness::witness;
+    use ob_witness::marker::{Self, Marker};
+    use ob_witness::witness;
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::utils;

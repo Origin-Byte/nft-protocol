@@ -11,7 +11,7 @@ module nft_protocol::composable_svg {
     use sui::dynamic_field as df;
 
     use nft_protocol::svg;
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     /// `ComposableSvg` was not defined
     ///

@@ -10,7 +10,7 @@ module nft_protocol::svg {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     /// `Svg` was not defined
     ///

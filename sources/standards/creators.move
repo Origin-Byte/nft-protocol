@@ -6,7 +6,7 @@ module nft_protocol::creators {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     /// `CreatorsDomain` was not defined on `Collection`
     ///

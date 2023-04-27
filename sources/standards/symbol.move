@@ -5,7 +5,7 @@ module nft_protocol::symbol {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     /// `SymbolDomain` was not defined
     ///

@@ -13,7 +13,7 @@ module nft_protocol::composable_url {
 
     use nft_protocol::url;
     use nft_protocol::attributes;
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     /// `ComposableUrl` was not defined
     ///

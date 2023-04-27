@@ -20,7 +20,7 @@ module examples::suitraders {
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
-    use witness::witness;
+    use ob_witness::witness;
 
     use launchpad::listing;
     use launchpad::fixed_price;

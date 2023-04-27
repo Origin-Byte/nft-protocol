@@ -19,7 +19,7 @@ module nft_protocol::mint_cap {
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
-    use witness::utils;
+    use ob_witness::utils;
 
     use nft_protocol::utils_supply::{Self, Supply};
 

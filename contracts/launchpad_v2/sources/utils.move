@@ -1,4 +1,4 @@
-module launchpad_v2::utils {
+module ob_launchpad_v2::lp_utils {
     use std::vector;
 
     use sui::table::{Self, Table};

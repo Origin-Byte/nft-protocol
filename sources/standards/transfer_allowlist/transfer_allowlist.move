@@ -23,9 +23,9 @@ module nft_protocol::transfer_allowlist {
 
     use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
 
-    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use request::ob_kiosk;
-    use request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use ob_request::ob_kiosk;
+    use ob_request::ob_transfer_request::{Self, TransferRequest};
 
     use allowlist::allowlist::{Self, Allowlist};
 

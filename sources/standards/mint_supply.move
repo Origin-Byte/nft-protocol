@@ -12,7 +12,7 @@ module nft_protocol::mint_supply {
     use sui::dynamic_field as df;
     use sui::tx_context::TxContext;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::utils_supply::{Self, Supply};
 

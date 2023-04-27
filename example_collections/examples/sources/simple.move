@@ -10,7 +10,7 @@ module examples::example_simple {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::collection;
-    use witness::witness;
+    use ob_witness::witness;
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::MintCap;
 

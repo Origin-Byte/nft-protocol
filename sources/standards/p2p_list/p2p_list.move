@@ -29,9 +29,9 @@ module nft_protocol::p2p_list {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
 
-    use request::request::{Self, Policy, PolicyCap, WithNft};
-    use request::ob_kiosk;
-    use request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::request::{Self, Policy, PolicyCap, WithNft};
+    use ob_request::ob_kiosk;
+    use ob_request::ob_transfer_request::{Self, TransferRequest};
 
     use authlist::authlist::{Self, Authlist};
 

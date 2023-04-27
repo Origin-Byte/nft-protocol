@@ -1,4 +1,4 @@
-module launchpad_v2::redeem_random {
+module ob_launchpad_v2::redeem_random {
     use std::vector;
 
     use sui::transfer;
@@ -7,9 +7,9 @@ module launchpad_v2::redeem_random {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::certificate::{Self, NftCertificate};
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     use nft_protocol::sized_vec;
     use originmate::pseudorandom;

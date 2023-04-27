@@ -10,9 +10,9 @@
 /// of the current supply, whilst unregulated policies have no supply
 /// constraints nor they keep track of the number of minted objects.
 module nft_protocol::supply {
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
     use nft_protocol::utils_supply;
-    use witness::witness::Witness as DelegatedWitness;
+    use ob_witness::witness::Witness as DelegatedWitness;
 
     use sui::object::UID;
     use sui::dynamic_field as df;

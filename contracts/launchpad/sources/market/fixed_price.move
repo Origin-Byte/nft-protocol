@@ -13,7 +13,7 @@ module launchpad::fixed_price {
     use sui::transfer::public_transfer;
     use sui::tx_context::{Self, TxContext};
 
-    use request::ob_kiosk;
+    use ob_request::ob_kiosk;
 
     use launchpad::venue::{Self, Venue};
     use launchpad::listing::{Self, Listing};

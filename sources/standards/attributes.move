@@ -11,7 +11,7 @@ module nft_protocol::attributes {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     use nft_protocol::utils;
 

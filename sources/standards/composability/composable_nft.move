@@ -5,7 +5,7 @@ module nft_protocol::composable_nft {
     use sui::object::{ID, UID};
     use sui::vec_map::{Self, VecMap};
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::nft_bag::{Self, NftBag};

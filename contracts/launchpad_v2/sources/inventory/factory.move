@@ -1,5 +1,5 @@
 /// Module of `Factory` type
-module launchpad_v2::factory {
+module ob_launchpad_v2::factory {
     use std::vector;
 
     use sui::math;
@@ -14,7 +14,7 @@ module launchpad_v2::factory {
     use nft_protocol::mint_pass::{Self, MintPass};
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::sized_vec;
-    use launchpad_v2::certificate::{Self, NftCertificate};
+    use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     /// `Warehouse` does not have NFT at specified index
     ///

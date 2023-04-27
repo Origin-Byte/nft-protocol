@@ -8,7 +8,7 @@ module launchpad::english_auction {
     use sui::coin::{Self, Coin};
     use sui::tx_context::{Self, TxContext};
 
-    use request::ob_kiosk;
+    use ob_request::ob_kiosk;
 
     use launchpad::venue::{Self, Venue};
     use launchpad::listing::{Self, Listing};

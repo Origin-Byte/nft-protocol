@@ -11,8 +11,8 @@ module nft_protocol::p2p_list_domain {
     use sui::dynamic_field as df;
 
     use nft_protocol::collection::{Self, Collection};
-    use witness::marker::{Self, Marker};
-    use witness::witness::Witness as DelegatedWitness;
+    use ob_witness::marker::{Self, Marker};
+    use ob_witness::witness::Witness as DelegatedWitness;
 
     use authlist::authlist::Authlist;
 

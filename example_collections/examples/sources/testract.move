@@ -15,12 +15,12 @@ module examples::testract {
     use std::option;
     use std::string::{String, utf8};
 
-    use nft_protocol::bidding;
+    use liquidity_layer::bidding;
+    use liquidity_layer::orderbook::{Self, Orderbook};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
-    use nft_protocol::orderbook::{Self, Orderbook};
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use nft_protocol::royalty;
     use nft_protocol::symbol;
@@ -42,10 +42,10 @@ module examples::testract {
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
 
-    use request::ob_kiosk;
-    use request::ob_transfer_request::{Self};
+    use ob_request::ob_kiosk;
+    use ob_request::ob_transfer_request::{Self};
     use allowlist::allowlist::{Self, Allowlist};
-    use witness::witness::{Self, Witness as DelegatedWitness};
+    use ob_witness::witness::{Self, Witness as DelegatedWitness};
 
     /// OTW for constructing publisher
     struct TESTRACT has drop {}
@@ -295,7 +295,7 @@ module examples::testract {
 
         let buyer_kiosk = ob_kiosk::new(ctx);
 
-        let bid = nft_protocol::bidding::new_bid(
+        let bid = bidding::new_bid(
             object::id(&buyer_kiosk),
             nft_id,
             333,
@@ -421,7 +421,7 @@ module examples::testract {
 
         let kiosk = ob_kiosk::new(ctx);
 
-        let bid = nft_protocol::bidding::new_bid(
+        let bid = bidding::new_bid(
             object::id(&kiosk),
             nft_id,
             777,

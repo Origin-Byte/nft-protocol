@@ -7,10 +7,10 @@ module nft_protocol::royalty_strategy_bps {
     use sui::transfer::share_object;
     use sui::tx_context::{sender, TxContext};
 
-    use request::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
-    use request::request::{Self, Policy, PolicyCap, WithNft};
+    use ob_request::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
+    use ob_request::request::{Self, Policy, PolicyCap, WithNft};
     use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
-    use witness::witness::{Witness as DelegatedWitness};
+    use ob_witness::witness::{Witness as DelegatedWitness};
     use originmate::balances::{Self, Balances};
 
     use nft_protocol::collection::{Self, Collection};

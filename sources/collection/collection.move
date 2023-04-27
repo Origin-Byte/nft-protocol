@@ -16,9 +16,9 @@ module nft_protocol::collection {
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
 
-    use witness::witness::Witness as DelegatedWitness;
-    use witness::marker::{Self, Marker};
-    use witness::utils;
+    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_witness::marker::{Self, Marker};
+    use ob_witness::utils;
 
     use nft_protocol::mint_cap::{Self, MintCap};
 

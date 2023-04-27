@@ -13,10 +13,10 @@ module examples::suimarines {
     use nft_protocol::collection;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
-    use witness::witness;
+    use ob_witness::witness;
 
-    use request::ob_transfer_request;
-    use request::borrow_request::{Self, BorrowRequest, ReturnPromise};
+    use ob_request::ob_transfer_request;
+    use ob_request::borrow_request::{Self, BorrowRequest, ReturnPromise};
     use launchpad::warehouse::{Self, Warehouse};
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;

@@ -8,9 +8,9 @@ module nft_protocol::session_token {
     use sui::kiosk::{Self, Kiosk};
     use sui::transfer;
 
-    use request::request::{Self, Policy, PolicyCap, WithNft};
-    use request::borrow_request::{Self, BorrowRequest};
-    use request::ob_kiosk;
+    use ob_request::request::{Self, Policy, PolicyCap, WithNft};
+    use ob_request::borrow_request::{Self, BorrowRequest};
+    use ob_request::ob_kiosk;
 
     use originmate::typed_id::{Self, TypedID};
 
