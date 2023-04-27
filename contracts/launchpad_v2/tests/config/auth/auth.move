@@ -4,15 +4,15 @@ module launchpad_v2::test_auth {
     // use std::type_name;
     // use std::vector;
     // use std::string;
-    // use std::debug;
+    use std::debug;
     // use std::ascii;
     // use std::vector;
 
     use sui::test_scenario::{Self, ctx};
     use sui::object;
+    use sui::bcs;
     // use sui::address as sui_address;
     // use sui::ed25519;
-    use sui::bcs;
     use sui::transfer;
 
     use launchpad_v2::venue::{Self};
@@ -67,5 +67,39 @@ module launchpad_v2::test_auth {
         transfer::public_transfer(launch_cap, marketplace());
 
         test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun split_msg_with_bcs() {
+        // Prepare the verification tx
+
+
+        // 1. Try Peel with counter
+
+        // let counter = 5;
+        // let counter_bcs = bcs::to_bytes(&counter);
+
+        // debug::print(&counter);
+        // debug::print(&counter_bcs);
+
+
+        // let counter_bcs_ = bcs::new(counter_bcs);
+        // let res = bcs::peel_u8(&mut counter_bcs_);
+
+        // debug::print(&res);
+        // debug::print(&counter_bcs_);
+
+        // 2.
+
+        let msg = b"0x00000000000000000000000000000000000000000000000000000000000a5c08";
+        let msg_bcs = bcs::to_bytes(&msg);
+
+        let msg_bcs_ = bcs::new(msg_bcs);
+        let res = bcs::peel_u8(&mut msg_bcs_);
+
+        debug::print(&res);
+        debug::print(&msg_bcs_);
+
+
     }
 }
