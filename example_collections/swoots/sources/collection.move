@@ -13,9 +13,9 @@ module swoots::swoots {
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::composable_nft::{Self as c_nft};
-    use nft_protocol::witness;
+    use ob_witness::witness;
 
-    use launchpad::warehouse::{Self, Warehouse};
+    use ob_launchpad::warehouse::{Self, Warehouse};
 
     use swoots::background::{Self, Background};
     use swoots::clothes::{Self, Clothes};

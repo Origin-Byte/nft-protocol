@@ -1,5 +1,5 @@
 #[test_only]
-module launchpad::test_fixed_price {
+module ob_launchpad::test_fixed_price {
     use sui::sui::SUI;
     use sui::coin;
     use sui::balance;
@@ -7,14 +7,14 @@ module launchpad::test_fixed_price {
     use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use launchpad::venue;
-    use launchpad::proceeds;
-    use launchpad::warehouse;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
-    use launchpad::fixed_price;
+    use ob_launchpad::venue;
+    use ob_launchpad::proceeds;
+    use ob_launchpad::warehouse;
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::fixed_price;
 
-    use launchpad::test_listing::init_listing;
+    use ob_launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
         id: UID,
@@ -46,7 +46,7 @@ module launchpad::test_fixed_price {
 
         let (_, venue_id) =
             init_market(&mut listing, 10, false, &mut scenario);
-        let market = venue::borrow_market(
+        let market = fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
 
@@ -250,7 +250,7 @@ module launchpad::test_fixed_price {
             &mut listing, venue_id, 20, ctx(&mut scenario)
         );
 
-        let market = venue::borrow_market(
+        let market = fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(fixed_price::price<SUI>(market) == 20, 0);

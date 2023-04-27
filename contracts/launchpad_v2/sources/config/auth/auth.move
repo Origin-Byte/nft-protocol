@@ -5,16 +5,16 @@
 /// The encrypted message is then decrypted by this module
 /// which asserts that the counter matches and the user address
 /// in the message match the ctx sender
-module launchpad_v2::launchpad_auth {
+module ob_launchpad_v2::launchpad_auth {
     use sui::bcs;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
     use sui::ecdsa_k1;
 
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::auth_request::{Self, AuthRequest};
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest};
 
     const EINCORRECT_SIGNATURE: u64 = 1;
     const EINCORRECT_MESSAGE_COUNTER: u64 = 2;

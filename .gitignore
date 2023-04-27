@@ -1,5 +1,6 @@
 sui.log.*
 .env
+.env.caps
 build
 target
 output.bpl

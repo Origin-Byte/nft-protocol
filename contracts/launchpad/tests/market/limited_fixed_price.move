@@ -1,5 +1,5 @@
 #[test_only]
-module launchpad::test_limited_fixed_price {
+module ob_launchpad::test_limited_fixed_price {
     use sui::sui::SUI;
     use sui::coin;
     use sui::balance;
@@ -7,14 +7,14 @@ module launchpad::test_limited_fixed_price {
     use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use launchpad::venue;
-    use launchpad::proceeds;
-    use launchpad::warehouse;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
-    use launchpad::limited_fixed_price;
+    use ob_launchpad::venue;
+    use ob_launchpad::proceeds;
+    use ob_launchpad::warehouse;
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::limited_fixed_price;
 
-    use launchpad::test_listing::init_listing;
+    use ob_launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
         id: UID,
@@ -47,7 +47,7 @@ module launchpad::test_limited_fixed_price {
 
         let (_, venue_id) =
             init_market(&mut listing, 1, 10, false, &mut scenario);
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
 
@@ -271,7 +271,7 @@ module launchpad::test_limited_fixed_price {
         let wallet = coin::mint_for_testing<SUI>(20, ctx(&mut scenario));
 
         // Check sale count per address
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(
@@ -286,7 +286,7 @@ module launchpad::test_limited_fixed_price {
         );
 
         // Check that borrow count is incremented
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(
@@ -301,7 +301,7 @@ module launchpad::test_limited_fixed_price {
         );
 
         // Check that borrow count is incremented
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(
@@ -416,7 +416,7 @@ module launchpad::test_limited_fixed_price {
             &mut listing, venue_id, 20, ctx(&mut scenario)
         );
 
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(limited_fixed_price::price<SUI>(market) == 20, 0);
@@ -477,7 +477,7 @@ module launchpad::test_limited_fixed_price {
             &mut listing, venue_id, 2, ctx(&mut scenario)
         );
 
-        let market = venue::borrow_market(
+        let market = limited_fixed_price::borrow_market(
             listing::borrow_venue(&listing, venue_id)
         );
         assert!(limited_fixed_price::limit<SUI>(market) == 2, 0);
