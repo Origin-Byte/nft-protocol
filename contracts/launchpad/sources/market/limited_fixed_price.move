@@ -8,7 +8,7 @@
 ///
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
-module launchpad::limited_fixed_price {
+module ob_launchpad::limited_fixed_price {
     use std::option;
 
     use sui::balance::{Self, Balance};
@@ -19,12 +19,11 @@ module launchpad::limited_fixed_price {
     use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
 
-    use nft_protocol::witness;
-    use nft_protocol::ob_kiosk;
+    use ob_kiosk::ob_kiosk;
 
-    use launchpad::venue;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::venue::{Self, Venue};
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
 
     /// Limit of NFTs withdrawn from the market was exceeded
     ///
@@ -53,8 +52,7 @@ module launchpad::limited_fixed_price {
         addresses: VecMap<address, u64>,
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
+    struct MarketKey has copy, drop, store {}
 
     // === Init functions ===
 
@@ -150,7 +148,12 @@ module launchpad::limited_fixed_price {
         listing::assert_inventory<C>(listing, inventory_id);
 
         let market = new<FT>(inventory_id, limit, price, ctx);
-        listing::create_venue(listing, market, is_whitelisted, ctx)
+        listing::create_venue(listing, MarketKey {}, market, is_whitelisted, ctx)
+    }
+
+    /// Borrows `LimitedFixedPriceMarket<FT>` from `Venue`
+    public fun borrow_market<FT>(venue: &Venue): &LimitedFixedPriceMarket<FT> {
+        venue::borrow_market(MarketKey {}, venue)
     }
 
     /// Returns how many NFTs the given address bought from the market
@@ -296,9 +299,8 @@ module launchpad::limited_fixed_price {
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        let delegated_witness = witness::from_witness(Witness {});
-        let market = listing::market_internal_mut<LimitedFixedPriceMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let market: &mut LimitedFixedPriceMarket<FT> = listing::market_internal_mut(
+            listing, MarketKey {}, venue_id
         );
 
         let owner = tx_context::sender(ctx);
@@ -307,9 +309,9 @@ module launchpad::limited_fixed_price {
         let price = market.price;
         let inventory_id = market.inventory_id;
 
-        listing::buy_pseudorandom_nft<T, FT, LimitedFixedPriceMarket<FT>>(
-            delegated_witness,
+        listing::buy_pseudorandom_nft<T, FT, LimitedFixedPriceMarket<FT>, MarketKey>(
             listing,
+            MarketKey {},
             inventory_id,
             venue_id,
             tx_context::sender(ctx),
@@ -336,9 +338,8 @@ module launchpad::limited_fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let delegated_witness = witness::from_witness(Witness {});
-        let market = listing::market_internal_mut<LimitedFixedPriceMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let market: &mut LimitedFixedPriceMarket<FT> = listing::market_internal_mut(
+            listing, MarketKey {}, venue_id
         );
 
         assert!(new_limit >= market.limit, EDECREASED_LIMIT);
@@ -359,9 +360,8 @@ module launchpad::limited_fixed_price {
     ) {
         listing::assert_listing_admin(listing, ctx);
 
-        let delegated_witness = witness::from_witness(Witness {});
-        let market = listing::market_internal_mut<LimitedFixedPriceMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let market: &mut LimitedFixedPriceMarket<FT> = listing::market_internal_mut(
+            listing, MarketKey {}, venue_id
         );
 
         market.price = new_price;

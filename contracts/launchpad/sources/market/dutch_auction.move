@@ -10,7 +10,7 @@
 /// To create a market sale the administrator can simply call `create_market`.
 /// Each sale segment can have a whitelisting process, each with their own
 /// whitelist tokens.
-module launchpad::dutch_auction {
+module ob_launchpad::dutch_auction {
     use std::option;
     use std::vector;
 
@@ -22,12 +22,10 @@ module launchpad::dutch_auction {
 
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
-    use nft_protocol::witness;
-
-    use launchpad::venue;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::inventory;
-    use launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::venue::{Self, Venue};
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::inventory;
+    use ob_launchpad::market_whitelist::{Self, Certificate};
 
     const U64_MAX: u64 = 18446744073709551615;
 
@@ -61,8 +59,7 @@ module launchpad::dutch_auction {
         owner: address,
     }
 
-    /// Witness used to authenticate witness protected endpoints
-    struct Witness has drop {}
+    struct MarketKey has copy, drop, store {}
 
     // === Init functions ===
 
@@ -113,7 +110,12 @@ module launchpad::dutch_auction {
         listing::assert_inventory<T>(listing, inventory_id);
 
         let market = new<FT>(inventory_id, reserve_price, ctx);
-        listing::create_venue(listing, market, is_whitelisted, ctx)
+        listing::create_venue(listing, MarketKey {}, market, is_whitelisted, ctx)
+    }
+
+    /// Borrows `DutchAuctionMarket<FT>` from `Venue`
+    public fun borrow_market<FT>(venue: &Venue): &DutchAuctionMarket<FT> {
+        venue::borrow_market(MarketKey {}, venue)
     }
 
     // === Entrypoints ===
@@ -127,16 +129,15 @@ module launchpad::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        let delegated_witness = witness::from_witness(Witness {});
-        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>, MarketKey>(
+            listing, MarketKey {}, venue_id
         );
 
         venue::assert_is_live(venue);
         venue::assert_is_not_whitelisted(venue);
 
         create_bid_(
-            venue::borrow_market_mut(venue),
+            venue::borrow_market_mut(MarketKey {}, venue),
             wallet,
             price,
             quantity,
@@ -153,9 +154,8 @@ module launchpad::dutch_auction {
         quantity: u64,
         ctx: &mut TxContext,
     ) {
-        let delegated_witness = witness::from_witness(Witness {});
-        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>, MarketKey>(
+            listing, MarketKey {}, venue_id
         );
 
         venue::assert_is_live(venue);
@@ -164,7 +164,7 @@ module launchpad::dutch_auction {
         market_whitelist::assert_certificate(&whitelist_token, venue_id);
 
         create_bid_(
-            venue::borrow_market_mut(venue),
+            venue::borrow_market_mut(MarketKey {}, venue),
             wallet,
             price,
             quantity,
@@ -187,9 +187,8 @@ module launchpad::dutch_auction {
         price: u64,
         ctx: &mut TxContext,
     ) {
-        let delegated_witness = witness::from_witness(Witness {});
-        let market = listing::market_internal_mut<DutchAuctionMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let market: &mut DutchAuctionMarket<FT> = listing::market_internal_mut(
+            listing, MarketKey {}, venue_id
         );
 
         cancel_bid_(market, wallet, price, tx_context::sender(ctx))
@@ -210,13 +209,12 @@ module launchpad::dutch_auction {
         // the listing admin
         listing::assert_listing_admin(listing, ctx);
 
-        let delegated_witness = witness::from_witness(Witness {});
-        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>, MarketKey>(
+            listing, MarketKey {}, venue_id
         );
 
         cancel_auction<FT>(
-            venue::borrow_market_mut(venue),
+            venue::borrow_market_mut(MarketKey {}, venue),
             ctx,
         );
 
@@ -237,7 +235,7 @@ module launchpad::dutch_auction {
         listing::assert_listing_admin(listing, ctx);
 
         // Determine how much inventory there is to sell
-        let market = listing::borrow_market<DutchAuctionMarket<FT>>(listing, venue_id);
+        let market = borrow_market<FT>(listing::borrow_venue(listing, venue_id));
 
         let inventory_id = market.inventory_id;
         let supply = listing::supply<T>(listing, inventory_id);
@@ -252,9 +250,8 @@ module launchpad::dutch_auction {
         };
 
         // Determine matching orders
-        let delegated_witness = witness::from_witness(Witness {});
-        let market = listing::market_internal_mut<DutchAuctionMarket<FT>>(
-            delegated_witness, listing, venue_id
+        let market: &mut DutchAuctionMarket<FT> = listing::market_internal_mut(
+            listing, MarketKey {}, venue_id
         );
 
         // TODO(https://github.com/Origin-Byte/nft-protocol/issues/63):
@@ -263,10 +260,8 @@ module launchpad::dutch_auction {
             conclude_auction<FT>(market, nfts_to_sell);
 
         // Transfer NFTs to matching orders
-        let inventory = listing::inventory_internal_mut<
-            T, DutchAuctionMarket<FT>
-        >(
-            delegated_witness, listing, venue_id, inventory_id
+        let inventory = listing::inventory_internal_mut<T, DutchAuctionMarket<FT>, MarketKey>(
+            listing, MarketKey {}, venue_id, inventory_id
         );
 
         let total_funds = balance::zero<FT>();

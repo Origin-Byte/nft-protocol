@@ -7,6 +7,24 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.0] - 2023-04-27
+
+### Added
+- `Authlist` for P2P transfers
+- Finalised Launchpad V2
+- Interoperability with base Kiosk via `install_extension`, `uninstall_extension`
+  and `register_nft`
+- Withdraw Policy rule for withdrawing to authorised wallet addresses
+
+### Changed
+- `TradeIntermediate` is no longer a standalone object, instead it is added
+  to the `Orderbook` as a dynamic field
+- Splited protocol into separate packages
+- Originbyte `Kiosk` now uses native borrow functions from the Sui Framework
+- Allowlist now uses `Cap` object instead of `Witness`
+- For OriginByte collections, the DelegatedWitness is now required for creating
+  an Orderbook. This is to prevent liquidity fragmentation
+
 ## [0.30.0] - 2023-04-20
 
 ### Added

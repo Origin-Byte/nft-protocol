@@ -1,22 +1,21 @@
 // TODO: Add function to deregister rule
-module launchpad_v2::venue {
+module ob_launchpad_v2::venue {
     use std::ascii::String;
     use std::option::{Self, Option};
-    use sui::clock::{Self, Clock};
     use sui::vec_map::{Self, VecMap};
     use std::type_name::{Self, TypeName};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
     use sui::dynamic_field as df;
     use sui::balance::Balance;
     use sui::transfer;
 
-    use nft_protocol::witness;
-    use nft_protocol::request::{Policy, PolicyCap};
+    use ob_request::request::{Self, Policy, PolicyCap};
     use nft_protocol::utils_supply::{Self, Supply};
-    use launchpad_v2::launchpad::{Self, LaunchCap};
-    use launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQUEST};
-    use launchpad_v2::proceeds::{Self, Proceeds};
+
+    use ob_launchpad_v2::launchpad::{Self, LaunchCap};
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQ};
+    use ob_launchpad_v2::proceeds::{Self, Proceeds};
 
     const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
 
@@ -24,13 +23,15 @@ module launchpad_v2::venue {
 
     const EREDEEM_WITNESS_MISMATCH: u64 = 3;
 
-    const EINVENTORY_ID_MISMATCH: u64 = 4;
+    const ESTOCK_WITNESS_MISMATCH: u64 = 4;
 
-    const EBUYER_CERTIFICATE_MISMATCH: u64 = 5;
+    const EINVENTORY_ID_MISMATCH: u64 = 5;
 
-    const EINVENTORY_CERTIFICATE_MISMATCH: u64 = 6;
+    const EBUYER_CERTIFICATE_MISMATCH: u64 = 6;
 
-    const ENFT_TYPE_CERTIFICATE_MISMATCH: u64 = 7;
+    const EINVENTORY_CERTIFICATE_MISMATCH: u64 = 7;
+
+    const ENFT_TYPE_CERTIFICATE_MISMATCH: u64 = 8;
 
     /// `Venue` object
     ///
@@ -54,23 +55,19 @@ module launchpad_v2::venue {
         // TODO: There is a problem here, because what happens if you exhaust one
         // Warehouse but not the other? You have to implement relative index accross inventories as well?
         supply: Option<Supply>,
-        schedule: Schedule,
         proceeds: Proceeds,
-        inventories: VecMap<u64, InventoryData>,
-    }
-
-    /// A wrapper for Inventory data
-    struct InventoryData has store, copy, drop {
-        id: ID,
-        type: TypeName
+        // Inventory
+        inventories: VecMap<ID, u64>,
     }
 
     // A wrapper for all base policies in a venue
     struct Policies has store {
-        auth_cap: PolicyCap,
-        auth: Policy<AUTH_REQUEST>,
+        // TODO: Make this a dynamic field
+        auth: Policy<AUTH_REQ>,
+        inventory: TypeName,
         // Here for discoverability and assertion.
-        redeem_method: TypeName,
+        stock_policy: TypeName,
+        redeem_policy: TypeName,
         // Here for discoverability and assertion.
         market: TypeName,
     }
@@ -85,29 +82,13 @@ module launchpad_v2::venue {
     /// - The liveness status gets toggled automatically when the runtime Clock
     /// is within the period defined by `start_time` and `close_time`. For more
     /// see `check_if_live`.
-    struct Schedule has store {
-        start_time: Option<u64>,
-        close_time: Option<u64>,
-        live: bool,
-    }
+    // struct Schedule has store {
+    //     start_time: Option<u64>,
+    //     close_time: Option<u64>,
+    //     live: bool,
+    // }
 
-    struct RedeemReceipt has key, store {
-        id: UID,
-        venue_id: ID,
-        nfts_bought: u64,
-    }
-
-    struct NftCert has key, store {
-        id: UID,
-        venue_id: ID,
-        // Needs reflection because we can't know it always in advance
-        nft_type: TypeName,
-        buyer: address,
-        inventory: ID,
-        index_scale: u64,
-        // Relative index of the NFT in the Warehouse
-        relative_index: u64,
-    }
+    struct AuthCapDfKey has store, copy, drop {}
 
     /// Event signalling that `Nft` was sold by `Listing`
     struct NftSoldEvent has copy, drop {
@@ -121,37 +102,54 @@ module launchpad_v2::venue {
     // === Instantiators ===
 
     // Initiates and new `Venue` and returns it.
-    public fun new<Market, RedeemMethod>(
+    public fun new<Market, InventoryMethod, NftMethod>(
         launch_cap: &LaunchCap,
         supply: Option<Supply>,
-        start_time: Option<u64>,
-        close_time: Option<u64>,
+        market: TypeName,
+        inventory: TypeName,
+        stock_policy: TypeName,
+        redeem_policy: TypeName,
         ctx: &mut TxContext,
     ): Venue {
+        let (auth_cap, policies) = init_policies(
+            market,
+            inventory,
+            stock_policy,
+            redeem_policy,
+            ctx,
+        );
+
+        let uid = object::new(ctx);
+
+        df::add(&mut uid, AuthCapDfKey {}, auth_cap);
+
         Venue {
-            id: object::new(ctx),
+            id: uid,
             listing_id: launchpad::listing_id(launch_cap),
-            policies: init_policies<Market, RedeemMethod>(ctx),
+            policies: policies,
             supply,
-            schedule: init_schedule(start_time, close_time),
             proceeds: proceeds::empty(ctx),
             inventories: vec_map::empty()
         }
     }
 
     // Initiates and new `Venue` and shares it.
-    public fun create_and_share<Market, RedeemMethod>(
+    public fun create_and_share<Market, InventoryMethod, NftMethod>(
         launch_cap: &LaunchCap,
         supply: Option<Supply>,
-        start_time: Option<u64>,
-        close_time: Option<u64>,
+        market: TypeName,
+        inventory: TypeName,
+        stock_policy: TypeName,
+        redeem_policy: TypeName,
         ctx: &mut TxContext,
     ) {
-        let venue = new<Market, RedeemMethod>(
+        let venue = new<Market, InventoryMethod, NftMethod>(
             launch_cap,
             supply,
-            start_time,
-            close_time,
+            market,
+            inventory,
+            stock_policy,
+            redeem_policy,
             ctx,
         );
 
@@ -159,34 +157,40 @@ module launchpad_v2::venue {
     }
 
     // Initiates and new `Policies` object and returns it.
-    public fun init_policies<Market, RedeemMethod>(
+    public fun init_policies(
+        market: TypeName,
+        inventory: TypeName,
+        stock_policy: TypeName,
+        redeem_policy: TypeName,
         ctx: &mut TxContext,
-    ): Policies {
+    ): (PolicyCap, Policies) {
         let (auth_policy, auth_cap) = auth_request::init_policy(ctx);
 
-        Policies {
-            auth_cap: auth_cap,
+        (auth_cap, Policies {
             auth: auth_policy,
-            redeem_method: type_name::get<RedeemMethod>(),
-            market: type_name::get<Market>()
-        }
+            inventory,
+            stock_policy,
+            redeem_policy,
+            market,
+        })
     }
 
-    // Initiates and new `Schedule` object and returns it.
-    public fun init_schedule(
-        start_time: Option<u64>,
-        close_time: Option<u64>,
-    ): Schedule {
-        Schedule {
-            start_time,
-            close_time,
-            live: false,
-        }
-    }
+    // TODO
+    // // Initiates and new `Schedule` object and returns it.
+    // public fun init_schedule(
+    //     start_time: Option<u64>,
+    //     close_time: Option<u64>,
+    // ): Schedule {
+    //     Schedule {
+    //         start_time,
+    //         close_time,
+    //         live: false,
+    //     }
+    // }
 
     // === Venue Management ===
 
-    /// Registers a rule into the `Policy<AUTH_REQUEST>` of `Venue`.
+    /// Registers a rule into the `Policy<AUTH_REQ>` of `Venue`.
     ///
     /// This endpoint is protected and can only be called by the module that defines
     /// the Rule, only and only if it has access to a `LaunchCap` in its scope. In
@@ -202,7 +206,7 @@ module launchpad_v2::venue {
         let cap = df::remove<TypeName, PolicyCap>(&mut venue.id, type_name::get<PolicyCap>());
         let policy = auth_policy_mut(venue, launch_cap);
 
-        nft_protocol::request::enforce_rule_no_state<AUTH_REQUEST, RuleType>(policy, &cap);
+        request::enforce_rule_no_state<AUTH_REQ, RuleType>(policy, &cap);
 
         df::add<TypeName, PolicyCap>(&mut venue.id, type_name::get<PolicyCap>(), cap);
     }
@@ -238,38 +242,39 @@ module launchpad_v2::venue {
 
     // === Schedule ===
 
-    /// It can be called either externally (off-chain), or by the market contracts
-    /// to assert if the the sale is live. If the runtime clock is within the
-    /// bounds defined by the `start_time` and `close_time` this function will
-    /// toggle the field `live` to `true` and will return `true`. If the runtime
-    /// is out of the bounds defined, then the field `live` will be toggled
-    /// to `false` and will return `false`.
-    ///
-    /// If there is no `start_time` not `close_time` then it will simply return
-    /// the field `live`.
-    public fun check_if_live(clock: &Clock, venue: &mut Venue): bool {
-        // If the venue is live, then check it there is a closing time,
-        // if so, then check if the clock timestamp is bigger than the closing
-        // time. If so, set venue.live to `false` and return `false`
-        if (venue.schedule.live == true) {
-            if (option::is_some(&venue.schedule.close_time)) {
-                if (clock::timestamp_ms(clock) > *option::borrow(&venue.schedule.close_time)) {
-                    venue.schedule.live = false;
-                };
-            };
-        } else {
-            // If the venue is not live, then check it there is a start time,
-            // if so, then check if the clock timestamp is bigger or equal to
-            // the start time. If so, set venue.live to `true` and return `true`
-            if (option::is_some(&venue.schedule.start_time)) {
-                if (clock::timestamp_ms(clock) >= *option::borrow(&venue.schedule.start_time)) {
-                    venue.schedule.live = true;
-                };
-            };
-        };
+    // TODO
+    // /// It can be called either externally (off-chain), or by the market contracts
+    // /// to assert if the the sale is live. If the runtime clock is within the
+    // /// bounds defined by the `start_time` and `close_time` this function will
+    // /// toggle the field `live` to `true` and will return `true`. If the runtime
+    // /// is out of the bounds defined, then the field `live` will be toggled
+    // /// to `false` and will return `false`.
+    // ///
+    // /// If there is no `start_time` not `close_time` then it will simply return
+    // /// the field `live`.
+    // public fun check_if_live(clock: &Clock, venue: &mut Venue): bool {
+    //     // If the venue is live, then check it there is a closing time,
+    //     // if so, then check if the clock timestamp is bigger than the closing
+    //     // time. If so, set venue.live to `false` and return `false`
+    //     if (venue.schedule.live == true) {
+    //         if (option::is_some(&venue.schedule.close_time)) {
+    //             if (clock::timestamp_ms(clock) > *option::borrow(&venue.schedule.close_time)) {
+    //                 venue.schedule.live = false;
+    //             };
+    //         };
+    //     } else {
+    //         // If the venue is not live, then check it there is a start time,
+    //         // if so, then check if the clock timestamp is bigger or equal to
+    //         // the start time. If so, set venue.live to `true` and return `true`
+    //         if (option::is_some(&venue.schedule.start_time)) {
+    //             if (clock::timestamp_ms(clock) >= *option::borrow(&venue.schedule.start_time)) {
+    //                 venue.schedule.live = true;
+    //             };
+    //         };
+    //     };
 
-        venue.schedule.live
-    }
+    //     venue.schedule.live
+    // }
 
     // === Protected Endpoints ===
 
@@ -312,117 +317,89 @@ module launchpad_v2::venue {
         }
     }
 
-    /// Creates `RedeemReceipt` objects which is allows the owner to redeem
-    /// NFTs from in the quantity defined by `nfts_bought`.
-    ///
-    /// This endpoint is protected and can only be called by the Market Policy module.
-    ///
-    /// Different sales can have different Redemtion Strategies (i.e NFTs are
-    /// chosen at random or via FIFO method). In case where there is certainty
-    /// as to what `Inventory` the RedeemReceipt is for, the whole process can
-    /// be batched programmatically. Only in cases where the client cannot
-    /// know ahead of time what `Inventory` it will have to call in the batch,
-    /// it must call the `Inventory` in a separate batch in order to retrieve
-    /// the NFTs.
-    public fun get_redeem_receipt<AW: drop>(
-        _market_witness: AW,
-        venue: &mut Venue,
-        nfts_bought: u64,
-        ctx: &mut TxContext,
-    ): RedeemReceipt {
-        // TODO: Consider emitting events
-        assert_called_from_market<AW>(venue);
+    // TODO
+    // /// Consumes a `RedeemReceipt` hot potato.
+    // ///
+    // /// This endpoint is protected and can only be called by the Redeem Policy module,
+    // /// which is the authority which decides how to redeem the NFTs from the Invetories.
+    // ///
+    // /// This function should be called in conjunction with `get_certificate`.
+    // /// Whilst `get_certificate` issues a certificate for the client to use and get
+    // /// the NFT, this function allows the whole process to be unblocked by
+    // /// consuming the Hot Potato.
+    // public fun consume_receipt<RW: drop>(
+    //     _redeem_witness: RW,
+    //     venue: &Venue,
+    //     receipt: RedeemReceipt,
+    // ) {
+    //     assert_called_from_redeem_method<RW>(venue);
 
-        RedeemReceipt {
-            id: object::new(ctx),
-            venue_id: object::id(venue),
-            nfts_bought,
-        }
-    }
+    //    let  RedeemReceipt {
+    //     id,
+    //         venue_id: _,
+    //         nfts_bought: _,
+    //     } = receipt;
 
-    /// Consumes a `RedeemReceipt` hot potato.
-    ///
-    /// This endpoint is protected and can only be called by the Redeem Policy module,
-    /// which is the authority which decides how to redeem the NFTs from the Invetories.
-    ///
-    /// This function should be called in conjunction with `get_certificate`.
-    /// Whilst `get_certificate` issues a certificate for the client to use and get
-    /// the NFT, this function allows the whole process to be unblocked by
-    /// consuming the Hot Potato.
-    public fun consume_receipt<RW: drop>(
-        _redeem_witness: RW,
-        venue: &Venue,
-        receipt: RedeemReceipt,
-    ) {
-        assert_called_from_redeem_method<RW>(venue);
+    //     object::delete(id);
+    // }
 
-       let  RedeemReceipt {
-        id,
-            venue_id: _,
-            nfts_bought: _,
-        } = receipt;
+    // TODO
+    // /// Creates an NftCert and returns it.
+    // ///
+    // /// This endpoint is protected and can only be called by the Redeem module,
+    // /// which is the authority which decides how to redeem the NFTs from the Invetories.
+    // ///
+    // /// This function should be once in after with `consume_receipt`.
+    // /// Whilst `consume_receipt` consumes the hot potato that signals access rights
+    // /// to an NFTCert, this function allows is what allows the Redeem module to
+    // /// issue the certificate to the user.
+    // public fun get_certificate<RW: drop>(
+    //     _redeem_witness: RW,
+    //     venue: &Venue,
+    //     nft_type: TypeName,
+    //     inventory_id: ID,
+    //     nft_index: RelIndex,
+    //     ctx: &mut TxContext,
+    // ): NftCert {
+    //     assert_called_from_redeem_method<RW>(venue);
 
-        object::delete(id);
-    }
+    //     NftCert {
+    //         id: object::new(ctx),
+    //         venue_id: object::id(venue),
+    //         nft_type,
+    //         buyer: tx_context::sender(ctx),
+    //         inventory: inventory_id,
+    //         nft_index,
+    //     }
+    // }
 
-    /// Creates an NftCert and returns it.
-    ///
-    /// This endpoint is protected and can only be called by the Redeem module,
-    /// which is the authority which decides how to redeem the NFTs from the Invetories.
-    ///
-    /// This function should be once in after with `consume_receipt`.
-    /// Whilst `consume_receipt` consumes the hot potato that signals access rights
-    /// to an NFTCert, this function allows is what allows the Redeem module to
-    /// issue the certificate to the user.
-    public fun get_certificate<RW: drop>(
-        _redeem_witness: RW,
-        venue: &Venue,
-        nft_type: TypeName,
-        inventory_id: ID,
-        relative_index: u64,
-        index_scale: u64,
-        ctx: &mut TxContext,
-    ): NftCert {
-        assert_called_from_redeem_method<RW>(venue);
+    // TODO
+    // /// This function consumes the NftCert and signals that we have entered
+    // /// the last step in our Launchpad voyage.
+    // ///
+    // /// This endpoint is protected and can only be called by the Inventory module,
+    // /// which is the authority which decides how to redeem the NFTs from the Invetories.
+    // ///
+    // /// This should be called in conjunction with the action of returning or
+    // /// transferring the NFT to the buyer.
+    // public fun consume_certificate<IW: drop, INV: key + store>(
+    //     _inventory_witness: IW,
+    //     inventory: &INV,
+    //     cert: NftCert,
+    // ) {
+    //     assert_called_from_inventory<IW, INV>(inventory, &cert);
 
-        NftCert {
-            id: object::new(ctx),
-            venue_id: object::id(venue),
-            nft_type,
-            buyer: tx_context::sender(ctx),
-            inventory: inventory_id,
-            index_scale,
-            relative_index,
-        }
-    }
+    //     let NftCert {
+    //         id,
+    //         venue_id: _,
+    //         nft_type: _,
+    //         buyer: _,
+    //         inventory: _,
+    //         nft_index: _,
+    //     } = cert;
 
-    /// This function consumes the NftCert and signals that we have entered
-    /// the last step in our Launchpad voyage.
-    ///
-    /// This endpoint is protected and can only be called by the Inventory module,
-    /// which is the authority which decides how to redeem the NFTs from the Invetories.
-    ///
-    /// This should be called in conjunction with the action of returning or
-    /// transferring the NFT to the buyer.
-    public fun consume_certificate<IW: drop, INV: key + store>(
-        _inventory_witness: IW,
-        inventory: &INV,
-        cert: NftCert,
-    ) {
-        assert_called_from_inventory<IW, INV>(inventory, &cert);
-
-        let NftCert {
-            id,
-            venue_id: _,
-            nft_type: _,
-            buyer: _,
-            inventory: _,
-            index_scale: _,
-            relative_index: _,
-        } = cert;
-
-        object::delete(id);
-    }
+    //     object::delete(id);
+    // }
 
     /// Venues can be extended by exposing a mutable reference to its UID,
     /// in order for modules with extended functionality to add dynamic fields to
@@ -470,12 +447,14 @@ module launchpad_v2::venue {
         df::borrow_mut<Key, Value>(&mut venue.id, key)
     }
 
+    public fun get_invetories_mut<SW: drop>(
+        _stock_witness: SW, venue: &mut Venue
+    ): &mut VecMap<ID, u64> {
+        assert_called_from_stock_method<SW>(venue);
+        &mut venue.inventories
+    }
 
     // === Venue Getter Functions ===
-
-    public fun get_venue_id(cert: &NftCert): ID {
-        cert.venue_id
-    }
 
     public fun listing_id(venue: &Venue): &ID {
         &venue.listing_id
@@ -489,72 +468,62 @@ module launchpad_v2::venue {
         &venue.supply
     }
 
-    public fun get_schedule(venue: &Venue): &Schedule {
-        &venue.schedule
-    }
-
     public fun get_proceeds(venue: &Venue): &Proceeds {
         &venue.proceeds
     }
 
-    public fun get_invetories(venue: &Venue): &VecMap<u64, InventoryData> {
+    public fun get_invetories(venue: &Venue): &VecMap<ID, u64> {
         &venue.inventories
     }
 
-    public fun get_auth_policy(venue: &Venue): &Policy<AUTH_REQUEST> {
+    public fun get_auth_policy(venue: &Venue): &Policy<AUTH_REQ> {
         &venue.policies.auth
     }
 
-    public fun get_redeem_method(venue: &Venue): TypeName {
-        venue.policies.redeem_method
+    public fun get_inventory_policy(venue: &Venue): TypeName {
+        venue.policies.inventory
     }
 
     public fun get_market_policy(venue: &Venue): TypeName {
         venue.policies.market
     }
 
-    public fun get_inventory_data(
-        venue: &Venue,
-        index: u64,
-    ): (ID, TypeName) {
-        let inventories = get_invetories(venue);
-
-        let data = vec_map::get<u64, InventoryData>(inventories, &index);
-
-        (data.id, data.type)
+    public fun get_stock_policy(venue: &Venue): TypeName {
+        venue.policies.stock_policy
     }
 
-    public fun get_start_time(venue: &Venue): &Option<u64> {
-        &venue.schedule.start_time
+    public fun get_redeem_policy(venue: &Venue): TypeName {
+        venue.policies.redeem_policy
     }
 
-    public fun get_close_time(venue: &Venue): &Option<u64> {
-        &venue.schedule.close_time
-    }
+    // TODO
+    // public fun get_start_time(venue: &Venue): &Option<u64> {
+    //     &venue.schedule.start_time
+    // }
 
-    public fun get_live(venue: &Venue): bool {
-        venue.schedule.live
-    }
+    // public fun get_close_time(venue: &Venue): &Option<u64> {
+    //     &venue.schedule.close_time
+    // }
 
-    public fun get_inventory_type(venue: &Venue, idx: u64): TypeName {
-        let inv_data = vec_map::get<u64, InventoryData>(&venue.inventories, &idx);
-        inventory_type(inv_data)
-    }
-
-    // === Inventory Getter Functions ===
-
-    public fun inventory_type(inv_data: &InventoryData): TypeName {
-        inv_data.type
-    }
+    // public fun get_live(venue: &Venue): bool {
+    //     venue.schedule.live
+    // }
 
     // === Policy Getter Functions ===
 
-    public fun auth_policy(policies: &Policies): &Policy<AUTH_REQUEST> {
+    public fun auth_policy(policies: &Policies): &Policy<AUTH_REQ> {
         &policies.auth
     }
 
-    public fun redeem_method(policies: &Policies): TypeName {
-        policies.redeem_method
+    public fun inventory(policies: &Policies): TypeName {
+        policies.inventory
+    }
+
+    public fun stock_policy(policies: &Policies): TypeName {
+        policies.stock_policy
+    }
+    public fun redeem_policy(policies: &Policies): TypeName {
+        policies.redeem_policy
     }
 
     public fun market_policy(policies: &Policies): TypeName {
@@ -563,58 +532,33 @@ module launchpad_v2::venue {
 
     // === Schedule Getter Functions ===
 
-    public fun start_time(schedule: &Schedule): &Option<u64> {
-        &schedule.start_time
-    }
+    // TODO
+    // public fun start_time(schedule: &Schedule): &Option<u64> {
+    //     &schedule.start_time
+    // }
 
-    public fun close_time(schedule: &Schedule): &Option<u64> {
-        &schedule.close_time
-    }
+    // public fun close_time(schedule: &Schedule): &Option<u64> {
+    //     &schedule.close_time
+    // }
 
-    public fun live(schedule: &Schedule): bool {
-        schedule.live
-    }
+    // public fun live(schedule: &Schedule): bool {
+    //     schedule.live
+    // }
 
     // === RedeemReceipt Getter Functions ===
 
-    public fun receipt_venue_id(receipt: &RedeemReceipt): ID {
-        receipt.venue_id
-    }
+    // public fun receipt_venue_id(receipt: &RedeemReceipt): ID {
+    //     receipt.venue_id
+    // }
 
-    public fun nfts_bought(receipt: &RedeemReceipt): u64 {
-        receipt.nfts_bought
-    }
+    // public fun nfts_bought(receipt: &RedeemReceipt): u64 {
+    //     receipt.nfts_bought
+    // }
 
-
-    // === NftCert Getter Functions ===
-
-    public fun cert_venue_id(cert: &NftCert): ID {
-        cert.venue_id
-    }
-
-    public fun cert_nft_type(cert: &NftCert): TypeName {
-        cert.nft_type
-    }
-
-    public fun cert_buyer(cert: &NftCert): address {
-        cert.buyer
-    }
-
-    public fun cert_inventory(cert: &NftCert): ID {
-        cert.inventory
-    }
-
-    public fun cert_relative_index(cert: &NftCert): u64 {
-        cert.relative_index
-    }
-
-    public fun cert_index_scale(cert: &NftCert): u64 {
-        cert.index_scale
-    }
 
     // === Private Functions ===
 
-    fun auth_policy_mut(venue: &mut Venue, launch_cap: &LaunchCap): &mut Policy<AUTH_REQUEST> {
+    fun auth_policy_mut(venue: &mut Venue, launch_cap: &LaunchCap): &mut Policy<AUTH_REQ> {
         assert_launch_cap(venue, launch_cap);
         &mut venue.policies.auth
     }
@@ -632,28 +576,28 @@ module launchpad_v2::venue {
         assert!(auth_request::policy_id(request) == object::id(&venue.policies.auth), 0);
     }
 
+    // TODO: These assertions are wrong because the Witnesses and Policy Objects are not the same...
     public fun assert_called_from_market<AW: drop>(venue: &Venue) {
         assert!(type_name::get<AW>() == venue.policies.market, EMARKET_WITNESS_MISMATCH);
     }
 
+    public fun assert_called_from_stock_method<SW: drop>(venue: &Venue) {
+        assert!(type_name::get<SW>() == venue.policies.stock_policy, ESTOCK_WITNESS_MISMATCH);
+    }
+
     public fun assert_called_from_redeem_method<RW: drop>(venue: &Venue) {
-        assert!(type_name::get<RW>() == venue.policies.redeem_method, EREDEEM_WITNESS_MISMATCH);
+        assert!(type_name::get<RW>() == venue.policies.redeem_policy, EREDEEM_WITNESS_MISMATCH);
     }
 
-    public fun assert_called_from_inventory<IW: drop, INV: key + store>(inv: &INV, cert:  &NftCert) {
-        witness::assert_same_module<INV, IW>();
-        assert!(object::id(inv) == cert.inventory, EINVENTORY_ID_MISMATCH);
+    public fun assert_called_from_inventory<IW: drop>(venue: &Venue) {
+        assert!(type_name::get<IW>() == venue.policies.inventory, EINVENTORY_ID_MISMATCH);
     }
 
-    public fun assert_cert_buyer(cert: &NftCert, ctx: &TxContext) {
-        assert!(cert.buyer == tx_context::sender(ctx), EBUYER_CERTIFICATE_MISMATCH);
-    }
+    // public fun assert_nft_type<T: key + store>(cert: &NftCert) {
+    //     assert!(cert.nft_type == type_name::get<T>(), ENFT_TYPE_CERTIFICATE_MISMATCH);
+    // }
 
-    public fun assert_nft_type<T: key + store>(cert: &NftCert) {
-        assert!(cert.nft_type == type_name::get<T>(), ENFT_TYPE_CERTIFICATE_MISMATCH);
-    }
-
-    public fun assert_cert_inventory(cert: &NftCert, inventory_id: ID) {
-        assert!(cert.inventory == inventory_id, EINVENTORY_CERTIFICATE_MISMATCH);
-    }
+    // public fun assert_cert_inventory(cert: &NftCert, inventory_id: ID) {
+    //     assert!(cert.inventory == inventory_id, EINVENTORY_CERTIFICATE_MISMATCH);
+    // }
 }

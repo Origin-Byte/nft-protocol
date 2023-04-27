@@ -1,11 +1,11 @@
-module launchpad_v2::market_whitelist_2 {
+module ob_launchpad_v2::market_whitelist_2 {
     use sui::transfer;
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
 
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::venue::{Self, Venue};
-    use launchpad_v2::auth_request::{Self, AuthRequest};
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest};
 
     // TODO: There should be a way to create different types of whitelists
     // currently it's only possile to have one type.

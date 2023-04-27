@@ -1,18 +1,15 @@
 #[test_only]
-module launchpad::mint_and_sell {
+module ob_launchpad::mint_and_sell {
     use sui::coin;
     use sui::object::{Self, UID};
     use sui::sui::SUI;
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::witness;
-
-    use launchpad::fixed_price;
-    use launchpad::listing;
-    use launchpad::warehouse;
-    use launchpad::test_listing;
+    use ob_launchpad::fixed_price;
+    use ob_launchpad::listing;
+    use ob_launchpad::warehouse;
+    use ob_launchpad::test_listing;
 
     struct Foo has key, store {
         id: UID,
@@ -25,16 +22,8 @@ module launchpad::mint_and_sell {
 
     #[test]
     public fun listing_proxy_mint() {
-        // 1. Create collection
+        // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
-
-        let delegated_witness = witness::from_witness(Witness {});
-
-        let collection: Collection<Foo> = collection::create(
-            delegated_witness, ctx(&mut scenario),
-        );
-
-        transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
         // 2. Create `Warehouse`
@@ -81,16 +70,8 @@ module launchpad::mint_and_sell {
 
     #[test]
     public fun inventory_proxy_mint() {
-        // 1. Create collection and add domains
+        // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
-
-        let delegated_witness = witness::from_witness(Witness {});
-
-        let collection: Collection<Foo> = collection::create(
-            delegated_witness, ctx(&mut scenario),
-        );
-
-        transfer::public_share_object(collection);
         let listing = test_listing::init_listing(MARKETPLACE, &mut scenario);
 
         // 2. Create `Warehouse`

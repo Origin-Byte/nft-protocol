@@ -18,15 +18,18 @@ The ecosystem is partitioned into three critical components:
 
 ## Resources
 
-- Protocol contract:
-  - [TestNet](https://explorer.sui.io/object/0x7f37d6f86facc20063f3e19b95ac84d973ac2cfd64406c561c26921a57b578b2)
-  - [DevNet](https://explorer.sui.io/object/0x99a197a453f06445dae34347055a359ca4694ea90b7ebacfe15a694e21852119)
-- LaunchpadV2 contract:
-  - [TestNet](https://explorer.sui.io/object/0x1fab4337fffe7a079009c9b77a7132b43246413b7194fabcca9d620c8066a197)
-  - [DevNet](https://explorer.sui.io/object/0xdd7d04a361dff2c3943253f2eca94ef683208e07af0a4d2efedac9eb06e63d70)
-
+- Protocol contracts:
+  - [Allowlist](https://explorer.sui.io/object/0x7e557c2e1d9a0d79b984a371616255216a2ee550d636663dcfc40bcf644394f2)
+  - [Authlist](https://explorer.sui.io/object/0x4ba6606d172d4dd3712aee62399ab5943cdcb021f6af22c9b78619ec96bc96a7)
+  - [Witness](https://explorer.sui.io/object/0x9474372fc2c97505d1c3eb57cc50cc5d662d53b14ead827c886e713fa23bf252)
+  - [Request](https://explorer.sui.io/object/0x2cad959dbdfa85fc82d329f8f1dc90ed0b4793f7ee3ea048f3dbb3faea368c84)
+  - [Kiosk](https://explorer.sui.io/object/0x76b14ea4e29c7bd8e16859ca716f9b3a084b848cf2c823e38bc67432be54f7aa)
+  - [Liquidity Layer](https://explorer.sui.io/object/0x9d34b9ac3269a8995c66acd08a62bb5b069b31ba48647664f8b1c53fa059b927)
+  - [Launchpad](https://explorer.sui.io/object/0xa0a588a75179d51d60e4b8575a3a89322552166840de14d3d3367efd624dc0fc)
+  - [NftProtocol](https://explorer.sui.io/object/0x46315c3ed0e748710ad5e5a0ec162265c2c1140752f7a8e6837aa3ad8c5f2e27)
+  - [LaunchpadV2](https://explorer.sui.io/object/0x0124347740a76c3e7aa0e84e4f94d7fb525becf4109c11f16cbdd758bcc8657b)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
-- [Developer Documentation](https://origin-byte.github.io/)
+- [Developer Documentation](https://origin-byte.github.io/) (WIP)
 
 # Install
 

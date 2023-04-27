@@ -20,12 +20,12 @@ module examples::suitraders {
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
-    use nft_protocol::witness;
+    use ob_witness::witness;
 
-    use launchpad::listing;
-    use launchpad::fixed_price;
-    use launchpad::dutch_auction;
-    use launchpad::warehouse::{Self, Warehouse};
+    use ob_launchpad::listing;
+    use ob_launchpad::fixed_price;
+    use ob_launchpad::dutch_auction;
+    use ob_launchpad::warehouse::{Self, Warehouse};
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}

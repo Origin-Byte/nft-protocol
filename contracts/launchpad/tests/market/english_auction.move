@@ -1,18 +1,18 @@
 #[test_only]
-module launchpad::test_english_auction {
+module ob_launchpad::test_english_auction {
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
     use sui::balance;
     use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use launchpad::venue;
-    use launchpad::proceeds;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
-    use launchpad::english_auction::{Self, EnglishAuction};
+    use ob_launchpad::venue;
+    use ob_launchpad::proceeds;
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::english_auction;
 
-    use launchpad::test_listing::init_listing;
+    use ob_launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
         id: UID,
@@ -58,8 +58,9 @@ module launchpad::test_english_auction {
 
         let venue_id =
             init_market(&mut listing, &mut wallet, false, 10, &mut scenario);
-        let auction: &EnglishAuction<Foo, SUI> = listing::borrow_market(
-            &listing, venue_id,
+
+        let auction = english_auction::borrow_market<Foo, SUI>(
+            listing::borrow_venue(&listing, venue_id),
         );
 
         assert!(english_auction::current_bid(auction) == 10, 0);
@@ -169,8 +170,8 @@ module launchpad::test_english_auction {
         assert!(coin::value(&wallet) == 0, 0);
 
         // Check auction state
-        let auction: &EnglishAuction<Foo, SUI> = listing::borrow_market(
-            &listing, venue_id,
+        let auction = english_auction::borrow_market<Foo, SUI>(
+            listing::borrow_venue(&listing, venue_id),
         );
 
         assert!(english_auction::current_bid(auction) == 11, 0);
@@ -251,8 +252,8 @@ module launchpad::test_english_auction {
         assert!(coin::value(&wallet) == 0, 0);
 
         // Check auction state
-        let auction: &EnglishAuction<Foo, SUI> = listing::borrow_market(
-            &listing, venue_id,
+        let auction = english_auction::borrow_market<Foo, SUI>(
+            listing::borrow_venue(&listing, venue_id),
         );
 
         assert!(english_auction::current_bid(auction) == 11, 0);
@@ -337,8 +338,8 @@ module launchpad::test_english_auction {
         );
 
         // Check that auction was concluded
-        let auction: &EnglishAuction<Foo, SUI> = listing::borrow_market(
-            &listing, venue_id,
+        let auction = english_auction::borrow_market<Foo, SUI>(
+            listing::borrow_venue(&listing, venue_id),
         );
 
         english_auction::assert_concluded(auction);

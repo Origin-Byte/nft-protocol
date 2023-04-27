@@ -8,16 +8,16 @@ module examples::suimarines {
     use sui::tx_context::{Self, TxContext};
 
     use nft_protocol::tags;
-    use nft_protocol::ob_transfer_request;
     use nft_protocol::transfer_allowlist;
     use nft_protocol::display as ob_display;
     use nft_protocol::collection;
-    use nft_protocol::borrow_request::{Self, BorrowRequest, ReturnPromise};
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::witness;
+    use ob_witness::witness;
 
-    use launchpad::warehouse::{Self, Warehouse};
+    use ob_request::transfer_request;
+    use ob_request::borrow_request::{Self, BorrowRequest, ReturnPromise};
+    use ob_launchpad::warehouse::{Self, Warehouse};
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;
@@ -62,7 +62,7 @@ module examples::suimarines {
         // Therefore now to finish a transfer, the allowlist must be included
         // in the chain.
         let (transfer_policy, transfer_policy_cap) =
-            ob_transfer_request::init_policy<Submarine>(&publisher, ctx);
+            transfer_request::init_policy<Submarine>(&publisher, ctx);
 
         transfer_allowlist::enforce(
             &mut transfer_policy,

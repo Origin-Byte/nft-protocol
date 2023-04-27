@@ -5,15 +5,16 @@
 ///
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
-module launchpad_v2::fixed_bid {
-    use launchpad_v2::launchpad::LaunchCap;
-    use launchpad_v2::auth_request::{Self, AuthRequest};
-    use launchpad_v2::venue::{Self, Venue, RedeemReceipt};
+module ob_launchpad_v2::fixed_bid {
+    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::auth_request::{Self, AuthRequest};
+    use ob_launchpad_v2::venue::{Self, Venue};
+    use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     use sui::coin::{Self, Coin};
     use sui::dynamic_field as df;
     use sui::object::{Self, UID};
-    use sui::tx_context::TxContext;
+    use sui::tx_context::{Self, TxContext};
 
     const EMAX_BUY_QUANTITY_SURPASSED: u64 = 1;
 
@@ -93,7 +94,7 @@ module launchpad_v2::fixed_bid {
         quantity: u64,
         request: AuthRequest,
         ctx: &mut TxContext,
-    ): RedeemReceipt {
+    ): NftCertificate {
         venue::assert_request(venue, &request);
 
         auth_request::confirm(request, venue::get_auth_policy(venue));
@@ -112,7 +113,7 @@ module launchpad_v2::fixed_bid {
         wallet: &mut Coin<FT>,
         quantity: u64,
         ctx: &mut TxContext,
-    ): RedeemReceipt {
+    ): NftCertificate {
         venue::increment_supply_if_any(Witness {}, venue, quantity);
 
         let market = venue::get_df<FixedBidDfKey, FixedBidMarket<FT>>(
@@ -130,9 +131,10 @@ module launchpad_v2::fixed_bid {
         );
 
         // TODO: Allow for burner wallets
-        venue::get_redeem_receipt(
+        certificate::get_redeem_certificate(
             Witness {},
             venue,
+            tx_context::sender(ctx),
             quantity,
             ctx,
         )
