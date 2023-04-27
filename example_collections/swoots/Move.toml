@@ -6,13 +6,14 @@ published-at = "0x"
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# devnet-0.29.0
-rev = "82c9c80c11488858f1d3930f47ec9f335a566683"
+# testnet-0.33.0
+rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
-# devnet-0.29.0
-rev = "f5242d0415b35fe48344e83cfd60924725fed23d"
+# testnet-0.33.0
+rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
+
 
 [dependencies.NftProtocol]
 local = "../../"
