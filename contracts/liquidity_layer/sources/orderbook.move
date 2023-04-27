@@ -649,6 +649,23 @@ module liquidity_layer::orderbook {
         finish_trade_<T, FT>(book, trade_id, seller_kiosk, buyer_kiosk, ctx)
     }
 
+    public fun finish_trade_if_kiosks_match<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        ctx: &mut TxContext
+    ): Option<TransferRequest<T>> {
+        let t = trade(book, trade_id);
+        let kiosks_match = &t.seller_kiosk == &object::id(seller_kiosk) && &t.buyer_kiosk == &object::id(buyer_kiosk);
+
+        if (kiosks_match) {
+            option::some(finish_trade(book, trade_id, seller_kiosk, buyer_kiosk, ctx))
+        } else {
+            option::none()
+        }
+    }
+
     // === Create orderbook ===
 
     /// NFTs of type `T` to be traded, and `F`ungible `T`oken to be
@@ -802,6 +819,12 @@ module liquidity_layer::orderbook {
 
     public fun trade_price(trade: &TradeInfo): u64 {
         trade.trade_price
+    }
+
+    public fun trade<T: key + store, FT>(book: &Orderbook<T, FT>, trade_id: ID): &TradeIntermediate<T, FT> {
+        df::borrow(
+            &book.id, TradeIntermediateDfKey<T, FT> { trade_id }
+        )
     }
 
     // === Priv fns ===
