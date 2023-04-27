@@ -1,4 +1,4 @@
-module witness::marker {
+module ob_witness::marker {
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
 

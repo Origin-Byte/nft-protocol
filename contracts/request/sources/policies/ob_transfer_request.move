@@ -30,7 +30,7 @@
 /// Some common rules:
 /// * `nft_protocol::allowlist::enforce`
 /// * `nft_protocol::royalty_strategy_bps::enforce`
-module request::ob_transfer_request {
+module ob_request::ob_transfer_request {
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::dynamic_field as df;
@@ -45,7 +45,7 @@ module request::ob_transfer_request {
     use sui::transfer::public_transfer;
     use sui::tx_context::TxContext;
 
-    use witness::witness::{Witness as DelegatedWitness};
+    use ob_witness::witness::{Witness as DelegatedWitness};
 
     // === Errors ===
 

@@ -1,7 +1,7 @@
 [package]
 name = "Request"
 version = "0.0.0"
-published-at = "0xb01dba5f7f922dde8efd54ca9acc3293b5950b8cb2950cdbac452a15714f1d77"
+published-at = "0x"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -18,4 +18,4 @@ rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 local = "./../witness"
 
 [addresses]
-request = "0xb01dba5f7f922dde8efd54ca9acc3293b5950b8cb2950cdbac452a15714f1d77"
+ob_request = "0x"

@@ -1,9 +1,9 @@
 #[test_only]
-module witness::test_witness {
+module ob_witness::test_witness {
     use std::string;
 
-    use witness::utils;
-    use witness::test_foo;
+    use ob_witness::utils;
+    use ob_witness::test_foo;
 
     struct Witness has drop {}
     struct Witness2 has drop {}
@@ -46,7 +46,7 @@ module witness::test_witness {
 }
 
 #[test_only]
-module witness::test_foo {
+module ob_witness::test_foo {
     struct Witness has drop {}
     struct Witness2 has drop {}
     struct TEST_FOO has drop {}

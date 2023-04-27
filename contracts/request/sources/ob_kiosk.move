@@ -28,7 +28,7 @@
 /// Rather, clients are encouraged to use the liquidity layer.
 /// - Permissionless `Kiosk` needs to signer, apps don't have to wrap both
 /// the `KioskOwnerCap` and the `Kiosk` in a smart contract.
-module request::ob_kiosk {
+module ob_request::ob_kiosk {
     use std::option::Option;
     use std::string::utf8;
     use std::type_name::{Self, TypeName};
@@ -44,10 +44,10 @@ module request::ob_kiosk {
     use sui::tx_context::{TxContext, sender};
     use sui::vec_set::{Self, VecSet};
 
-    use request::ob_transfer_request::{Self, TransferRequest};
-    use request::withdraw_request::{Self, WithdrawRequest};
-    use request::borrow_request::{Self, BorrowRequest, BORROW_REQ};
-    use request::request::{Self, Policy, RequestBody, WithNft};
+    use ob_request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::withdraw_request::{Self, WithdrawRequest};
+    use ob_request::borrow_request::{Self, BorrowRequest, BORROW_REQ};
+    use ob_request::request::{Self, Policy, RequestBody, WithNft};
 
     use originmate::typed_id::{Self, TypedID};
 

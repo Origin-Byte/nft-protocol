@@ -1,9 +1,9 @@
 /// Module of the `WitnessGenerator` used for generating authenticating
 /// witnesses on demand.
-module witness::witness {
+module ob_witness::witness {
     use sui::package::Publisher;
 
-    use witness::utils;
+    use ob_witness::utils;
 
     /// Collection witness generator
     struct WitnessGenerator<phantom T> has store {}

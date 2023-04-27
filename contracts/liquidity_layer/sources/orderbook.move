@@ -17,7 +17,7 @@
 /// # Other resources
 /// - https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook
 /// - https://origin-byte.github.io/orderbook.html
-module nft_protocol::orderbook {
+module liquidity_layer::orderbook {
     // TODO: eviction of lowest bid/highest ask on OOM
     use std::ascii::String;
     use std::option::{Self, Option};
@@ -34,12 +34,12 @@ module nft_protocol::orderbook {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    use witness::witness::Witness as DelegatedWitness;
-    use request::ob_kiosk;
-    use request::ob_transfer_request::{Self, TransferRequest};
+    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_request::ob_kiosk;
+    use ob_request::ob_transfer_request::{Self, TransferRequest};
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
-    use nft_protocol::trading;
+    use liquidity_layer::trading;
 
     // === Errors ===
 

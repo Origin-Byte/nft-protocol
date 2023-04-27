@@ -1,4 +1,4 @@
-module request::borrow_request {
+module ob_request::borrow_request {
     use std::option::{Self, Option, some};
     use std::type_name::TypeName;
 
@@ -8,10 +8,10 @@ module request::borrow_request {
     use sui::tx_context::TxContext;
     use sui::kiosk::Borrow;
 
-    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
 
-    use witness::witness::Witness as DelegatedWitness;
-    use witness::marker;
+    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_witness::marker;
 
     // === Error ===
 

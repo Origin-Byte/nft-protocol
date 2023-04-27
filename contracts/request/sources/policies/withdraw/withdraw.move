@@ -1,8 +1,8 @@
-module request::withdraw_request {
+module ob_request::withdraw_request {
     use sui::package::Publisher;
     use sui::tx_context::TxContext;
 
-    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
 
     // === Error ===
 

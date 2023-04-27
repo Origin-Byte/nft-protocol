@@ -1,5 +1,5 @@
 /// Reusable trading primitives.
-module nft_protocol::trading {
+module liquidity_layer::trading {
     use std::option::{Self, Option};
     use sui::balance::{Self, Balance};
     use sui::coin;
