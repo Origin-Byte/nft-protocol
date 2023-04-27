@@ -4,9 +4,21 @@
 version = 0
 
 dependencies = [
+  { name = "Kiosk" },
   { name = "Originmate" },
   { name = "Request" },
   { name = "Sui" },
+]
+
+[[move.package]]
+name = "Kiosk"
+source = { local = "../kiosk" }
+
+dependencies = [
+  { name = "Originmate" },
+  { name = "Request" },
+  { name = "Sui" },
+  { name = "Witness" },
 ]
 
 [[move.package]]

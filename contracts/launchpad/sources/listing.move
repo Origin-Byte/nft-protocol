@@ -28,7 +28,7 @@ module ob_launchpad::listing {
     // ways of mass emiting whitelist tokens.
     use std::ascii::String;
     use std::option::{Self, Option};
-    use std::type_name::{Self, TypeName};
+    use std::type_name;
 
     use sui::event;
     use sui::transfer;
@@ -425,7 +425,7 @@ module ob_launchpad::listing {
 
         let marketplace_id = typed_id::new(marketplace);
 
-        let request = dof::remove<TypeName, RequestToJoin>(
+        let request = dof::remove<RequestToJoinDfKey, RequestToJoin>(
             &mut listing.id, RequestToJoinDfKey {}
         );
 
