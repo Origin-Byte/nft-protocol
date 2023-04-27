@@ -68,13 +68,18 @@ module examples::testract {
             &witness, option::none(), ctx
         );
 
+
         add_domains(&mut collection, ctx);
 
         let publisher = package::claim(witness, ctx);
 
+        let (tx_policy, policy_cap) = ob_transfer_request::init_policy<TestNft>(&publisher, ctx);
+
         public_transfer(publisher, sender(ctx));
         public_transfer(mint_cap, sender(ctx));
+        public_transfer(policy_cap, sender(ctx));
         public_share_object(collection);
+        public_share_object(tx_policy);
     }
 
     /// Mint new NFTs and transfer them to sender.
@@ -189,8 +194,8 @@ module examples::testract {
     /// To avoid messing with type parameters in the CLI call.
     ///
     /// Store orderbook object ID.
-    public entry fun create_orderbook(ctx: &mut TxContext) {
-        orderbook::create_unprotected<TestNft, SUI>(ctx);
+    public entry fun create_orderbook(transfer_policy: &TransferPolicy<TestNft>, ctx: &mut TxContext) {
+        orderbook::create_unprotected<TestNft, SUI>(witness::from_witness(Witness {}), transfer_policy, ctx);
     }
 
     /// Adds a few bids bid and asks.
@@ -568,7 +573,8 @@ module examples::testract {
         let transfer_policy = test_scenario::take_shared<TransferPolicy<TestNft>>(&scenario);
 
         // ---
-        create_orderbook(ctx(&mut scenario));
+        let tx_policy = test_scenario::take_shared<TransferPolicy<TestNft>>(&scenario);
+        create_orderbook(&tx_policy, ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, USER);
         let orderbook = test_scenario::take_shared<Orderbook<TestNft, SUI>>(&scenario);
 
@@ -622,6 +628,7 @@ module examples::testract {
         test_scenario::return_shared(royalty_strategy);
         test_scenario::return_shared(allowlist);
         test_scenario::return_shared(collection);
+        test_scenario::return_shared(tx_policy);
         test_scenario::return_to_address(USER, mint_cap);
         test_scenario::return_to_address(USER, publisher);
         sui::coin::burn_for_testing(wallet);

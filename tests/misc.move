@@ -1,8 +1,6 @@
 #[test_only]
 module nft_protocol::misc {
     use sui::test_scenario;
-    use std::debug;
-    use std::string;
     use nft_protocol::test_utils::seller;
 
     struct HotPotato {}
@@ -26,17 +24,14 @@ module nft_protocol::misc {
     #[test]
     fun try_wrap_potato() {
         let scenario = test_scenario::begin(seller());
-        debug::print(&string::utf8(b"a"));
+
         let potato_wrapper = HotPotatoWrapper {
             potato: HotPotato {},
         };
 
-        debug::print(&string::utf8(b"b"));
         let potato = delete_potato_wrapper(potato_wrapper);
 
-        debug::print(&string::utf8(b"c"));
         delete_potato(potato);
-        debug::print(&string::utf8(b"d"));
 
         test_scenario::end(scenario);
     }

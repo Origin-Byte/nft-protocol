@@ -41,7 +41,9 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
-        test_utils::create_orderbook<Foo>(&mut scenario);
+
+        let dw = witness::test_dw<Foo>();
+        test_utils::create_orderbook<Foo>(dw, &tx_policy, &mut scenario);
 
         transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
@@ -121,7 +123,6 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         // 1. Create Collection and Orderbook
         let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
-        test_utils::create_orderbook<Foo>(&mut scenario);
 
         // 2. Add Royalty Policy and Allowlist
         royalty_strategy_bps::create_domain_and_add_strategy<Foo>(
@@ -139,6 +140,9 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
 
         transfer_allowlist::enforce(&mut tx_policy, &policy_cap);
         royalty_strategy_bps::enforce(&mut tx_policy, &policy_cap);
+
+        let dw = witness::test_dw<Foo>();
+        test_utils::create_orderbook<Foo>(dw, &tx_policy, &mut scenario);
 
         transfer::public_transfer(al_cap, marketplace());
         transfer::public_share_object(al);
@@ -232,7 +236,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
 
         let (tx_policy, policy_cap) = transfer_policy::new<Foo>(&publisher, ctx(&mut scenario));
-        test_utils::create_orderbook<Foo>(&mut scenario);
+        test_utils::create_external_orderbook<Foo>(&tx_policy, &mut scenario);
 
         transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
@@ -315,7 +319,7 @@ module nft_protocol::test_ob_kiok_to_kiosk_trade {
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
 
         let (tx_policy, policy_cap) = transfer_policy::new<Foo>(&publisher, ctx(&mut scenario));
-        test_utils::create_orderbook<Foo>(&mut scenario);
+        test_utils::create_external_orderbook<Foo>(&tx_policy, &mut scenario);
 
         transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);

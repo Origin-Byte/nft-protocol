@@ -9,6 +9,7 @@ module nft_protocol::test_utils {
     use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use sui::test_scenario::{Scenario, ctx};
 
+    use witness::witness::Witness as DelegatedWitness;
     use nft_protocol::bidding;
     use nft_protocol::orderbook;
     use nft_protocol::mint_cap::MintCap;
@@ -72,13 +73,25 @@ module nft_protocol::test_utils {
     }
 
     #[test_only]
-    public fun create_orderbook<T: key + store>(scenario: &mut Scenario): ID {
-        let ob = orderbook::new_unprotected<T, SUI>(ctx(scenario));
+    public fun create_orderbook<T: key + store>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        scenario: &mut Scenario
+    ): ID {
+        let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, ctx(scenario));
         let ob_id = object::id(&ob);
 
         orderbook::share(ob);
 
         ob_id
+    }
+
+    #[test_only]
+    public fun create_external_orderbook<T: key + store>(
+        transfer_policy: &TransferPolicy<T>,
+        scenario: &mut Scenario
+    ) {
+        orderbook::create_for_external<T, SUI>(transfer_policy, ctx(scenario));
     }
 
     #[test_only]

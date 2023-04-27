@@ -58,6 +58,8 @@ module request::ob_transfer_request {
     const EPolicyNotSatisfied: u64 = 3;
     /// A custom policy action cannot be converted to from `TransferRequest` to `SuiTransferRequest`
     const ECannotConvertCustomPolicy: u64 = 3;
+    /// Trying to remove rules that do not exist
+    const ENoRulesToRemove: u64 = 3;
 
     // === Structs ===
 
@@ -244,7 +246,13 @@ module request::ob_transfer_request {
     public fun init_policy<T>(
         publisher: &Publisher, ctx: &mut TxContext,
     ): (TransferPolicy<T>, TransferPolicyCap<T>) {
-        transfer_policy::new(publisher, ctx)
+        let (policy, cap) = transfer_policy::new(publisher, ctx);
+
+        // Register policy in the OriginByte ecosystem
+        let ext = transfer_policy::uid_mut_as_owner(&mut policy, &cap);
+        df::add(ext, OBCustomRulesDfKey {}, 0_u8);
+
+        (policy, cap)
     }
 
     /// We extend the functionality of `TransferPolicy` by inserting our
@@ -272,12 +280,10 @@ module request::ob_transfer_request {
     ) {
         let ext = transfer_policy::uid_mut_as_owner(self, cap);
         let ob_rules = df::borrow_mut<OBCustomRulesDfKey, u8>(ext, OBCustomRulesDfKey {});
+
+        assert!(*ob_rules >= 1 , ENoRulesToRemove);
+
         *ob_rules = *ob_rules - 1;
-
-        if (*ob_rules == 0) {
-            df::remove<OBCustomRulesDfKey, u8>(ext, OBCustomRulesDfKey {});
-        };
-
         transfer_policy::remove_rule<T, Rule, Config>(self, cap);
     }
 
@@ -363,6 +369,12 @@ module request::ob_transfer_request {
     /// Panics if the `TransferRequest` is not for SUI token.
     public fun paid_in_sui<T>(self: &TransferRequest<T>): (u64, address) {
         paid_in_ft<T, SUI>(self)
+    }
+
+    public fun is_originbyte<T>(self: &TransferPolicy<T>): bool {
+        let ext = transfer_policy::uid(self);
+
+        df::exists_(ext, OBCustomRulesDfKey {})
     }
 
     /// Which entity started the trade.
