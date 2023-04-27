@@ -24,6 +24,7 @@ module nft_protocol::orderbook {
     use std::type_name;
     use std::vector;
 
+    use sui::transfer_policy::TransferPolicy;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event;
@@ -64,6 +65,14 @@ module nft_protocol::orderbook {
 
     /// Market orders fail with this error if they cannot be filled
     const EMarketOrderNotFilled: u64 = 6;
+
+    /// Trying to create an orderbook via a witness protected endpoint
+    /// without TransferPolicy being registered with OriginByte
+    const ENotOriginBytePolicy: u64 = 7;
+
+    /// Trying to access an endpoint for creating an orderbook for collections
+    /// that are external to the OriginByte ecosystem, without itself being external
+    const ENotExternalPolicy: u64 = 8;
 
     // === Structs ===
 
@@ -652,6 +661,57 @@ module nft_protocol::orderbook {
     /// protection on specific actions. That will make them only accessible via
     /// witness protected methods.
     public fun new<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        protected_actions: WitnessProtectedActions,
+        ctx: &mut TxContext,
+    ): Orderbook<T, FT> {
+        assert!(ob_transfer_request::is_originbyte(transfer_policy), ENotOriginBytePolicy);
+
+        new_(protected_actions, ctx)
+    }
+
+    /// Returns a new orderbook without any protection, ie. all endpoints can
+    /// be called as entry points.
+    public fun new_unprotected<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): Orderbook<T, FT> {
+        new<T, FT>(witness, transfer_policy, no_protection(), ctx)
+    }
+
+    public fun new_with_protected_actions<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        protected_actions: WitnessProtectedActions,
+        ctx: &mut TxContext,
+    ): Orderbook<T, FT> {
+        new<T, FT>(witness, transfer_policy, protected_actions, ctx)
+    }
+
+    /// Creates a new empty orderbook as a shared object.
+    ///
+    /// All actions can be called as entry points.
+    public fun create_unprotected<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ) {
+        let ob = new<T, FT>(witness, transfer_policy, no_protection(), ctx);
+        share_object(ob);
+    }
+
+    public fun create_for_external<T: key + store, FT>(
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ) {
+        assert!(!ob_transfer_request::is_originbyte(transfer_policy), ENotExternalPolicy);
+        let ob = new_<T, FT>(no_protection(), ctx);
+        share_object(ob);
+    }
+
+    fun new_<T: key + store, FT>(
         protected_actions: WitnessProtectedActions,
         ctx: &mut TxContext,
     ): Orderbook<T, FT> {
@@ -669,27 +729,6 @@ module nft_protocol::orderbook {
             asks: crit_bit::empty(),
             bids: crit_bit::empty(),
         }
-    }
-
-    /// Returns a new orderbook without any protection, ie. all endpoints can
-    /// be called as entry points.
-    public fun new_unprotected<T: key + store, FT>(ctx: &mut TxContext): Orderbook<T, FT> {
-        new<T, FT>(no_protection(), ctx)
-    }
-
-    public fun new_with_protected_actions<T: key + store, FT>(
-        protected_actions: WitnessProtectedActions,
-        ctx: &mut TxContext,
-    ): Orderbook<T, FT> {
-        new<T, FT>(protected_actions, ctx)
-    }
-
-    /// Creates a new empty orderbook as a shared object.
-    ///
-    /// All actions can be called as entry points.
-    public fun create_unprotected<T: key + store, FT>(ctx: &mut TxContext) {
-        let ob = new<T, FT>(no_protection(), ctx);
-        share_object(ob);
     }
 
     public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
