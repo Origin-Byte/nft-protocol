@@ -82,6 +82,7 @@ module launchpad_v2::launchpad_auth {
             EINCORRECT_SIGNATURE
         );
 
+        // 1. Convert binary string to a UTF8 String
         debug::print(&string::utf8(b"msg_address:"));
         let msg_address = string::utf8(*msg);
         debug::print(&msg_address);
