@@ -25,12 +25,12 @@
 ///
 /// #### `Policy<WithNft<T, OB_TRANSFER_REQUEST>>`
 /// To be able to authorize transfers, create a policy with
-/// `nft_protocol::ob_transfer_request::init_policy`.
+/// `nft_protocol::transfer_request::init_policy`.
 /// This creates a new transfer request policy to which rules can be attached.
 /// Some common rules:
 /// * `nft_protocol::allowlist::enforce`
 /// * `nft_protocol::royalty_strategy_bps::enforce`
-module ob_request::ob_transfer_request {
+module ob_request::transfer_request {
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::dynamic_field as df;

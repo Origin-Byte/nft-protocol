@@ -16,7 +16,7 @@ module ob_tests::test_utils {
     use nft_protocol::collection::{Self, Collection};
     use ob_request::request::{Policy, PolicyCap, WithNft};
     use ob_request::withdraw_request::{Self, WITHDRAW_REQ};
-    use ob_request::ob_transfer_request;
+    use ob_request::transfer_request;
 
     use ob_allowlist::allowlist::{Self, Allowlist, AllowlistOwnerCap};
 
@@ -64,7 +64,7 @@ module ob_tests::test_utils {
 
     #[test_only]
     public fun init_transfer_policy(publisher: &Publisher, ctx: &mut TxContext): (TransferPolicy<Foo>, TransferPolicyCap<Foo>) {
-        ob_transfer_request::init_policy<Foo>(publisher, ctx)
+        transfer_request::init_policy<Foo>(publisher, ctx)
     }
 
     #[test_only]

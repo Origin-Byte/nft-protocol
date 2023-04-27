@@ -7,7 +7,7 @@ module nft_protocol::royalty_strategy_bps {
     use sui::transfer::share_object;
     use sui::tx_context::{sender, TxContext};
 
-    use ob_request::ob_transfer_request::{Self, TransferRequest, BalanceAccessCap};
+    use ob_request::transfer_request::{Self, TransferRequest, BalanceAccessCap};
     use ob_request::request::{Self, Policy, PolicyCap, WithNft};
     use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
     use ob_witness::witness::{Witness as DelegatedWitness};
@@ -98,13 +98,13 @@ module nft_protocol::royalty_strategy_bps {
 
     /// Registers collection to use `BpsRoyaltyStrategy` during the transfer.
     public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
-        ob_transfer_request::add_originbyte_rule<T, BpsRoyaltyStrategyRule, bool>(
+        transfer_request::add_originbyte_rule<T, BpsRoyaltyStrategyRule, bool>(
             BpsRoyaltyStrategyRule {}, policy, cap, false,
         );
     }
 
     public fun drop<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
-        ob_transfer_request::remove_originbyte_rule<T, BpsRoyaltyStrategyRule, bool>(
+        transfer_request::remove_originbyte_rule<T, BpsRoyaltyStrategyRule, bool>(
             policy, cap
         );
     }
@@ -135,11 +135,11 @@ module nft_protocol::royalty_strategy_bps {
         assert!(self.is_enabled, ENotEnabled);
 
         let cap = option::borrow(&self.access_cap);
-        let (paid, _) = ob_transfer_request::paid_in_ft_mut<T, FT>(req, cap);
+        let (paid, _) = transfer_request::paid_in_ft_mut<T, FT>(req, cap);
         let fee_amount = calculate(self, balance::value(paid));
         balances::take_from(&mut self.aggregator, paid, fee_amount);
 
-        ob_transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
+        transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
 
     // TODO: add for generic request body
@@ -152,11 +152,11 @@ module nft_protocol::royalty_strategy_bps {
     ) {
         assert!(self.is_enabled, ENotEnabled);
 
-        let (paid, _) = ob_transfer_request::paid_in_ft<T, FT>(req);
+        let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
         let fee_amount = calculate(self, paid);
         balances::take_from(&mut self.aggregator, wallet, fee_amount);
 
-        ob_transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
+        transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
 
     public fun royalty_fee_bps<T>(self: &BpsRoyaltyStrategy<T>): u16 {
@@ -198,7 +198,7 @@ module nft_protocol::royalty_strategy_bps {
         let royalty_strategy = new(witness, collection, bps, ctx);
         add_balance_access_cap(
             &mut royalty_strategy,
-            ob_transfer_request::grant_balance_access_cap(witness),
+            transfer_request::grant_balance_access_cap(witness),
         );
         share(royalty_strategy);
     }

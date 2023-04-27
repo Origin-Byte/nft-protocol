@@ -31,7 +31,7 @@ module nft_protocol::p2p_list {
 
     use ob_request::request::{Self, Policy, PolicyCap, WithNft};
     use ob_kiosk::ob_kiosk;
-    use ob_request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::transfer_request::{Self, TransferRequest};
 
     use ob_authlist::authlist::{Self, Authlist};
 
@@ -67,7 +67,7 @@ module nft_protocol::p2p_list {
     /// that only P2PListed contracts can transfer NFTs.
     ///
     /// Note that this rule depends on `ob_kiosk::get_transfer_request_auth`
-    /// and only works with `ob_transfer_request::TransferRequest`.
+    /// and only works with `transfer_request::TransferRequest`.
     ///
     /// That's because the sui implementation of `TransferRequest` is simplified
     /// and does not support safe metadata about the originator of the transfer.
@@ -147,13 +147,13 @@ module nft_protocol::p2p_list {
 
     /// Registers collection to use `Authlist` during the transfer.
     public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
-        ob_transfer_request::add_originbyte_rule<T, P2PListRule, bool>(
+        transfer_request::add_originbyte_rule<T, P2PListRule, bool>(
             P2PListRule {}, policy, cap, false,
         );
     }
 
     public fun drop<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
-        ob_transfer_request::remove_originbyte_rule<T, P2PListRule, bool>(
+        transfer_request::remove_originbyte_rule<T, P2PListRule, bool>(
             policy, cap,
         );
     }
@@ -191,7 +191,7 @@ module nft_protocol::p2p_list {
     ) {
         let _auth = ob_kiosk::get_transfer_request_auth(req);
         confirm_<T>(self, authority, nft_id, source, destination, nonce, signature, ctx);
-        ob_transfer_request::add_receipt(req, P2PListRule {});
+        transfer_request::add_receipt(req, P2PListRule {});
     }
 
     fun confirm_<T>(

@@ -31,7 +31,7 @@ module ob_tests::test_ob_kiosk {
     use sui::table;
     use sui::tx_context;
 
-    use ob_request::ob_transfer_request;
+    use ob_request::transfer_request;
     use ob_request::withdraw_request;
     use ob_kiosk::ob_kiosk::{Self, OwnerToken};
 
@@ -202,8 +202,8 @@ module ob_tests::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::set_nothing_paid(&mut request);
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         // 8. Return objects and end tx
         transfer::public_share_object(buyer_kiosk);
@@ -264,8 +264,8 @@ module ob_tests::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::set_nothing_paid(&mut request);
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         // 8. Return objects and end tx
         transfer::public_share_object(buyer_kiosk);
@@ -323,8 +323,8 @@ module ob_tests::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::set_nothing_paid(&mut request);
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         // 8. Return objects and end tx
         transfer::public_share_object(buyer_kiosk);
@@ -468,8 +468,8 @@ module ob_tests::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::set_nothing_paid(&mut request);
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         // 6. Return objects and end tx
         transfer::public_share_object(buyer_kiosk);
@@ -533,8 +533,8 @@ module ob_tests::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::set_nothing_paid(&mut request);
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         // 8. Return objects and end tx
         transfer::public_share_object(buyer_kiosk);
@@ -595,8 +595,8 @@ module ob_tests::test_ob_kiosk {
         );
 
         // Consumer the TransferReceipt<Foo>
-        ob_transfer_request::set_nothing_paid(&mut request);
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::set_nothing_paid(&mut request);
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         // 7. Return objects and end tx
         transfer::public_share_object(buyer_kiosk);

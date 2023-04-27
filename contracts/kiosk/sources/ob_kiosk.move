@@ -44,7 +44,7 @@ module ob_kiosk::ob_kiosk {
     use sui::tx_context::{TxContext, sender};
     use sui::vec_set::{Self, VecSet};
 
-    use ob_request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::transfer_request::{Self, TransferRequest};
     use ob_request::withdraw_request::{Self, WithdrawRequest};
     use ob_request::borrow_request::{Self, BorrowRequest, BORROW_REQ};
     use ob_request::request::{Self, Policy, RequestBody, WithNft};
@@ -353,7 +353,7 @@ module ob_kiosk::ob_kiosk {
         let (nft, req) = kiosk::purchase<T>(source, nft_id, coin::zero(ctx));
         deposit(target, nft, ctx);
 
-        let req = ob_transfer_request::from_sui<T>(req, nft_id, uid_to_address(entity_id), ctx);
+        let req = transfer_request::from_sui<T>(req, nft_id, uid_to_address(entity_id), ctx);
 
         req
     }
@@ -498,7 +498,7 @@ module ob_kiosk::ob_kiosk {
     ): (T, TransferRequest<T>) {
         let nft = get_nft(self, nft_id, originator);
 
-        (nft, ob_transfer_request::new(nft_id, originator, object::id(self), price, ctx))
+        (nft, transfer_request::new(nft_id, originator, object::id(self), price, ctx))
     }
 
     /// After authorization that the call is permitted, gets the NFT.
@@ -561,7 +561,7 @@ module ob_kiosk::ob_kiosk {
     public fun set_transfer_request_auth<T, Auth>(
         req: &mut TransferRequest<T>, _auth: &Auth,
     ) {
-        let metadata = ob_transfer_request::metadata_mut(req);
+        let metadata = transfer_request::metadata_mut(req);
         df::add(metadata, AuthTransferRequestDfKey {}, type_name::get<Auth>());
     }
 
@@ -574,7 +574,7 @@ module ob_kiosk::ob_kiosk {
 
     /// What's the authority that created this request?
     public fun get_transfer_request_auth<T>(req: &TransferRequest<T>): &TypeName {
-        let metadata = ob_transfer_request::metadata(req);
+        let metadata = transfer_request::metadata(req);
         df::borrow(metadata, AuthTransferRequestDfKey {})
     }
 

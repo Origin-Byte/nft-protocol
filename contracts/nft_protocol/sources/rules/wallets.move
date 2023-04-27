@@ -1,4 +1,4 @@
-module ob_request::wallets {
+module nft_protocol::wallets {
     use std::vector;
 
     use sui::object::{Self, UID};

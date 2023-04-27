@@ -36,7 +36,7 @@ module liquidity_layer::orderbook {
 
     use ob_witness::witness::Witness as DelegatedWitness;
     use ob_kiosk::ob_kiosk;
-    use ob_request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::transfer_request::{Self, TransferRequest};
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use liquidity_layer::trading;
@@ -666,7 +666,7 @@ module liquidity_layer::orderbook {
         protected_actions: WitnessProtectedActions,
         ctx: &mut TxContext,
     ): Orderbook<T, FT> {
-        assert!(ob_transfer_request::is_originbyte(transfer_policy), ENotOriginBytePolicy);
+        assert!(transfer_request::is_originbyte(transfer_policy), ENotOriginBytePolicy);
 
         new_(protected_actions, ctx)
     }
@@ -706,7 +706,7 @@ module liquidity_layer::orderbook {
         transfer_policy: &TransferPolicy<T>,
         ctx: &mut TxContext
     ) {
-        assert!(!ob_transfer_request::is_originbyte(transfer_policy), ENotExternalPolicy);
+        assert!(!transfer_request::is_originbyte(transfer_policy), ENotExternalPolicy);
         let ob = new_<T, FT>(no_protection(), ctx);
         share_object(ob);
     }
@@ -1274,7 +1274,7 @@ module liquidity_layer::orderbook {
             price,
             ctx,
         );
-        ob_transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
+        transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
         transfer_req
@@ -1331,7 +1331,7 @@ module liquidity_layer::orderbook {
             )
         };
 
-        ob_transfer_request::set_paid<T, FT>(
+        transfer_request::set_paid<T, FT>(
             &mut transfer_req, paid, seller,
         );
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});

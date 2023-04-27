@@ -146,7 +146,7 @@ module ob_request::request {
     /// for a specific NFT type.
     /// In such scheme, the NFT type would be `T`, and the royalty policy
     /// would be `P`.
-    /// In fact, this is how `ob_transfer_request::TransferRequest<T>` is
+    /// In fact, this is how `transfer_request::TransferRequest<T>` is
     /// implemented.
     public fun new_policy_with_type<T, P: drop>(
         _witness: P,

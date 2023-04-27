@@ -29,7 +29,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
     use originmate::typed_id;
     use ob_allowlist::allowlist::{Self, Allowlist};
     use ob_request::ob_kiosk::{Self, OwnerToken};
-    use ob_request::ob_transfer_request;
+    use ob_request::transfer_request;
 
     const OFFER_SUI: u64 = 100;
 
@@ -103,7 +103,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
@@ -212,7 +212,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
         royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request);
 
-        ob_transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
@@ -296,7 +296,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
-        let sui_request = ob_transfer_request::into_sui<Foo>(request, &tx_policy, ctx(&mut scenario));
+        let sui_request = transfer_request::into_sui<Foo>(request, &tx_policy, ctx(&mut scenario));
         transfer_policy::confirm_request<Foo>(&tx_policy, sui_request);
 
         coin::burn_for_testing(coin);
@@ -383,7 +383,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
             ctx(&mut scenario),
         );
 
-        let sui_request = ob_transfer_request::into_sui<Foo>(request, &tx_policy, ctx(&mut scenario));
+        let sui_request = transfer_request::into_sui<Foo>(request, &tx_policy, ctx(&mut scenario));
         transfer_policy::confirm_request<Foo>(&tx_policy, sui_request);
 
         // 7. Leave OriginByte

@@ -25,7 +25,7 @@ module nft_protocol::transfer_allowlist {
 
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
     use ob_kiosk::ob_kiosk;
-    use ob_request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::transfer_request::{Self, TransferRequest};
 
     use ob_allowlist::allowlist::{Self, Allowlist};
 
@@ -61,7 +61,7 @@ module nft_protocol::transfer_allowlist {
     /// that only allowlisted contracts can transfer NFTs.
     ///
     /// Note that this rule depends on `ob_kiosk::get_transfer_request_auth`
-    /// and only works with `ob_transfer_request::TransferRequest`.
+    /// and only works with `transfer_request::TransferRequest`.
     ///
     /// That's because the sui implementation of `TransferRequest` is simplified
     /// and does not support safe metadata about the originator of the transfer.
@@ -71,13 +71,13 @@ module nft_protocol::transfer_allowlist {
 
     /// Registers collection to use `Allowlist` during the transfer.
     public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
-        ob_transfer_request::add_originbyte_rule<T, AllowlistRule, bool>(
+        transfer_request::add_originbyte_rule<T, AllowlistRule, bool>(
             AllowlistRule {}, policy, cap, false,
         );
     }
 
     public fun drop<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
-        ob_transfer_request::remove_originbyte_rule<T, AllowlistRule, bool>(
+        transfer_request::remove_originbyte_rule<T, AllowlistRule, bool>(
             policy, cap,
         );
     }
@@ -108,7 +108,7 @@ module nft_protocol::transfer_allowlist {
     ) {
         let auth = ob_kiosk::get_transfer_request_auth(req);
         allowlist::assert_transferable(self, type_name::get<T>(), auth);
-        ob_transfer_request::add_receipt(req, AllowlistRule {});
+        transfer_request::add_receipt(req, AllowlistRule {});
     }
 
     /// Confirms that the transfer is allowed by the `Allowlist`.

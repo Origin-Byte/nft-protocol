@@ -14,7 +14,7 @@ module liquidity_layer::bidding {
     use sui::tx_context::{TxContext, sender};
 
     use ob_kiosk::ob_kiosk;
-    use ob_request::ob_transfer_request::{Self, TransferRequest};
+    use ob_request::transfer_request::{Self, TransferRequest};
 
     use liquidity_layer::trading;
 
@@ -174,7 +174,7 @@ module liquidity_layer::bidding {
     ): TransferRequest<T> {
         let nft_id = object::id(&nft);
         ob_kiosk::deposit(buyers_kiosk, nft, ctx);
-        let transfer_req = ob_transfer_request::new<T>(
+        let transfer_req = transfer_request::new<T>(
             nft_id,
             uid_to_address(&bid.id),
             bid.kiosk,
@@ -257,7 +257,7 @@ module liquidity_layer::bidding {
         let price = balance::value(&bid.offer);
         assert!(price != 0, EBidAlreadyClosed);
 
-        ob_transfer_request::set_paid<T, FT>(
+        transfer_request::set_paid<T, FT>(
             &mut transfer_req, balance::withdraw_all(&mut bid.offer), seller,
         );
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});

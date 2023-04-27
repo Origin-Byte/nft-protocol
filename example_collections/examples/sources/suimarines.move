@@ -15,7 +15,7 @@ module examples::suimarines {
     use nft_protocol::royalty_strategy_bps;
     use ob_witness::witness;
 
-    use ob_request::ob_transfer_request;
+    use ob_request::transfer_request;
     use ob_request::borrow_request::{Self, BorrowRequest, ReturnPromise};
     use ob_launchpad::warehouse::{Self, Warehouse};
 
@@ -62,7 +62,7 @@ module examples::suimarines {
         // Therefore now to finish a transfer, the allowlist must be included
         // in the chain.
         let (transfer_policy, transfer_policy_cap) =
-            ob_transfer_request::init_policy<Submarine>(&publisher, ctx);
+            transfer_request::init_policy<Submarine>(&publisher, ctx);
 
         transfer_allowlist::enforce(
             &mut transfer_policy,
