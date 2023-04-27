@@ -4,36 +4,6 @@
 version = 0
 
 dependencies = [
-  { name = "Allowlist" },
-  { name = "Authlist" },
-  { name = "Kiosk" },
-  { name = "Originmate" },
-  { name = "Request" },
-  { name = "Sui" },
-  { name = "Witness" },
-]
-
-[[move.package]]
-name = "Allowlist"
-source = { local = "../allowlist" }
-
-dependencies = [
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "Authlist"
-source = { local = "../authlist" }
-
-dependencies = [
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "Kiosk"
-source = { local = "../kiosk" }
-
-dependencies = [
   { name = "Originmate" },
   { name = "Request" },
   { name = "Sui" },
