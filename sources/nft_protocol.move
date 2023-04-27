@@ -13,6 +13,7 @@ module nft_protocol::nft_protocol {
 
     fun init(_otw: NFT_PROTOCOL, ctx: &mut TxContext) {
         init_allowlist(ctx);
+        init_authlist(ctx);
     }
 
     /// Initialize official OriginByte `Allowlist`
