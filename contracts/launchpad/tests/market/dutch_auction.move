@@ -1,5 +1,5 @@
 #[test_only]
-module launchpad::test_dutch_auction {
+module ob_launchpad::test_dutch_auction {
     use std::vector;
 
     use sui::sui::SUI;
@@ -11,13 +11,13 @@ module launchpad::test_dutch_auction {
 
     use originmate::crit_bit_u64 as crit_bit;
 
-    use launchpad::proceeds;
-    use launchpad::venue;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
-    use launchpad::dutch_auction;
+    use ob_launchpad::proceeds;
+    use ob_launchpad::venue;
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::dutch_auction;
 
-    use launchpad::test_listing::init_listing;
+    use ob_launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
         id: UID,

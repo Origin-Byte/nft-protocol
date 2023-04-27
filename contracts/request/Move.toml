@@ -18,4 +18,4 @@ rev = "c43b53f5d8b519e86d4a64ad0cf6787a7528b01b"
 local = "./../witness"
 
 [addresses]
-request = "0x"
+ob_request = "0x"

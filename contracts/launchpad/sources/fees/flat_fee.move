@@ -1,4 +1,4 @@
-module launchpad::flat_fee {
+module ob_launchpad::flat_fee {
     use sui::balance;
     use sui::tx_context;
     use sui::transfer::public_transfer;
@@ -7,9 +7,9 @@ module launchpad::flat_fee {
 
     use originmate::object_box;
 
-    use launchpad::proceeds;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::marketplace::{Self as mkt, Marketplace};
+    use ob_launchpad::proceeds;
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::marketplace::{Self as mkt, Marketplace};
 
     /// `Listing` did not have `FlatFee` policy
     const EInvalidFeePolicy: u64 = 1;

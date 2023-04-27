@@ -1,5 +1,5 @@
 #[test_only]
-module authlist::test_authlist {
+module ob_authlist::test_authlist {
     use std::vector;
     use std::type_name;
 
@@ -8,7 +8,7 @@ module authlist::test_authlist {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use authlist::authlist::{Self, Authlist, AuthlistOwnerCap};
+    use ob_authlist::authlist::{Self, Authlist, AuthlistOwnerCap};
 
     const CREATOR: address = @0xA1C04;
 
@@ -33,7 +33,7 @@ module authlist::test_authlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = authlist::authlist::EInvalidAdmin)]
+    #[expected_failure(abort_code = authlist::EInvalidAdmin)]
     fun try_insert_authority_invalid_cap() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -65,7 +65,7 @@ module authlist::test_authlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = authlist::authlist::EInvalidAuthority)]
+    #[expected_failure(abort_code = authlist::EInvalidAuthority)]
     fun try_remove_authority_undefined() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -80,7 +80,7 @@ module authlist::test_authlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = authlist::authlist::EInvalidAdmin)]
+    #[expected_failure(abort_code = authlist::EInvalidAdmin)]
     fun try_remove_authority_invalid_cap() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -128,7 +128,7 @@ module authlist::test_authlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = authlist::authlist::EInvalidCollection)]
+    #[expected_failure(abort_code = authlist::EInvalidCollection)]
     fun try_remove_collection() {
         let scenario = test_scenario::begin(CREATOR);
 

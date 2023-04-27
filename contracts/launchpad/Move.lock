@@ -4,8 +4,9 @@
 version = 0
 
 dependencies = [
-  { name = "NftProtocol" },
+  { name = "OBKiosk" },
   { name = "Originmate" },
+  { name = "Request" },
   { name = "Sui" },
 ]
 
@@ -14,8 +15,20 @@ name = "MoveStdlib"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "cab7e9762d4d75126a78fdd009b405745657fe57", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
-name = "NftProtocol"
-source = { local = "../.." }
+name = "OBKiosk"
+source = { local = "../ob_kiosk" }
+
+dependencies = [
+  { name = "OBTest" },
+  { name = "Originmate" },
+  { name = "Request" },
+  { name = "Sui" },
+  { name = "Witness" },
+]
+
+[[move.package]]
+name = "OBTest"
+source = { local = "../ob_test" }
 
 dependencies = [
   { name = "Originmate" },
@@ -31,9 +44,27 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Request"
+source = { local = "../request" }
+
+dependencies = [
+  { name = "Originmate" },
+  { name = "Sui" },
+  { name = "Witness" },
+]
+
+[[move.package]]
 name = "Sui"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "cab7e9762d4d75126a78fdd009b405745657fe57", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
+]
+
+[[move.package]]
+name = "Witness"
+source = { local = "../witness" }
+
+dependencies = [
+  { name = "Sui" },
 ]

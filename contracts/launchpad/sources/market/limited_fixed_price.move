@@ -8,7 +8,7 @@
 ///
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
-module launchpad::limited_fixed_price {
+module ob_launchpad::limited_fixed_price {
     use std::option;
 
     use sui::balance::{Self, Balance};
@@ -19,11 +19,11 @@ module launchpad::limited_fixed_price {
     use sui::kiosk::Kiosk;
     use sui::vec_map::{Self, VecMap};
 
-    use request::ob_kiosk;
+    use ob_kiosk::ob_kiosk;
 
-    use launchpad::venue::{Self, Venue};
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::venue::{Self, Venue};
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
 
     /// Limit of NFTs withdrawn from the market was exceeded
     ///

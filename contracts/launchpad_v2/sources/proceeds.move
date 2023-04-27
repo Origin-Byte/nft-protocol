@@ -17,7 +17,7 @@ module launchpad_v2::proceeds {
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
 
-    use witness::marker::{Self, Marker};
+    use ob_witness::marker::{Self, Marker};
 
     use launchpad_v2::utils;
 

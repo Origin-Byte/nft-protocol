@@ -1,9 +1,9 @@
 #[test_only]
-module witness::test_witness {
+module ob_witness::test_witness {
     use std::string;
 
-    use witness::utils;
-    use witness::test_foo;
+    use ob_witness::witness_utils::{get_package_module_type, assert_same_module_as_witness};
+    use ob_witness::test_foo;
 
     struct Witness has drop {}
     struct Witness2 has drop {}
@@ -11,7 +11,7 @@ module witness::test_witness {
 
     #[test]
     public fun it_returns_package_module_type() {
-        let (package_addr, module_name, type_name) = utils::get_package_module_type<Witness>();
+        let (package_addr, module_name, type_name) = get_package_module_type<Witness>();
 
         // We can only test the length of the package address, since the address
         // itself depends on the deployed version. An example of an address would be:
@@ -24,29 +24,29 @@ module witness::test_witness {
 
     #[test]
     public fun it_works() {
-        utils::assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, Witness>();
+        assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, Witness>();
     }
 
     #[test]
     public fun it_works_for_another_module() {
-        utils::assert_same_module_as_witness<test_foo::TEST_FOO, test_foo::Witness>();
+        assert_same_module_as_witness<test_foo::TEST_FOO, test_foo::Witness>();
     }
 
     #[test]
-    #[expected_failure(abort_code = witness::utils::EInvalidWitnessModule)]
+    #[expected_failure(abort_code = ob_witness::utils::EInvalidWitnessModule)]
     public fun it_must_same_module() {
-        utils::assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, test_foo::Witness>();
+        assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, test_foo::Witness>();
     }
 
     #[test]
-    #[expected_failure(abort_code = witness::utils::EInvalidWitness)]
+    #[expected_failure(abort_code = ob_witness::utils::EInvalidWitness)]
     public fun it_must_be_witness() {
-        utils::assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, Witness2>();
+        assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, Witness2>();
     }
 }
 
 #[test_only]
-module witness::test_foo {
+module ob_witness::test_foo {
     struct Witness has drop {}
     struct Witness2 has drop {}
     struct TEST_FOO has drop {}

@@ -1,10 +1,10 @@
 #[test_only]
-module launchpad::test_listing {
+module ob_launchpad::test_listing {
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use launchpad::flat_fee;
-    use launchpad::listing::{Self, Listing};
-    use launchpad::marketplace::{Self, Marketplace};
+    use ob_launchpad::flat_fee;
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::marketplace::{Self, Marketplace};
 
     public fun init_listing(
         creator: address,

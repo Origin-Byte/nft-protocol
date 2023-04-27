@@ -1,4 +1,4 @@
-module request::wallets {
+module ob_request::wallets {
     use std::vector;
 
     use sui::object::{Self, UID};
@@ -6,8 +6,8 @@ module request::wallets {
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
-    use request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use witness::witness::Witness as DelegatedWitness;
+    use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
+    use ob_witness::witness::Witness as DelegatedWitness;
 
     // === Errors ===
 

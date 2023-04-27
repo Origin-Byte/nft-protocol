@@ -1,15 +1,15 @@
 #[test_only]
-module launchpad::mint_and_sell {
+module ob_launchpad::mint_and_sell {
     use sui::coin;
     use sui::object::{Self, UID};
     use sui::sui::SUI;
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use launchpad::fixed_price;
-    use launchpad::listing;
-    use launchpad::warehouse;
-    use launchpad::test_listing;
+    use ob_launchpad::fixed_price;
+    use ob_launchpad::listing;
+    use ob_launchpad::warehouse;
+    use ob_launchpad::test_listing;
 
     struct Foo has key, store {
         id: UID,

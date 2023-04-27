@@ -5,7 +5,7 @@
 /// The process of retrieving the funds from the  `Proceeds` object embedded in
 /// a `Slot` guarantees that fees are transferred to the `marketplace.receiver`
 /// and therefore the `Slot.receiver` receives the proceeds net of fees.
-module launchpad::proceeds {
+module ob_launchpad::proceeds {
     // TODO: Function to destroy Proceeds object
     // TODO: reconsider `Proceeds.total` to accomodate for multiple FTs
     use std::type_name::{Self, TypeName};

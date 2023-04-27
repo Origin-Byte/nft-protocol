@@ -17,7 +17,7 @@ module examples::suimarines {
 
     use request::ob_transfer_request;
     use request::borrow_request::{Self, BorrowRequest, ReturnPromise};
-    use launchpad::warehouse::{Self, Warehouse};
+    use ob_launchpad::warehouse::{Self, Warehouse};
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;

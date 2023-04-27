@@ -5,7 +5,7 @@
 ///
 /// NFT creators can decide to use multiple markets to create a tiered market
 /// sale by segregating NFTs by different sale segments.
-module launchpad::fixed_price {
+module ob_launchpad::fixed_price {
     use sui::coin::{Self, Coin};
     use sui::kiosk::Kiosk;
     use sui::balance::{Self, Balance};
@@ -15,9 +15,9 @@ module launchpad::fixed_price {
 
     use request::ob_kiosk;
 
-    use launchpad::venue::{Self, Venue};
-    use launchpad::listing::{Self, Listing};
-    use launchpad::market_whitelist::{Self, Certificate};
+    use ob_launchpad::venue::{Self, Venue};
+    use ob_launchpad::listing::{Self, Listing};
+    use ob_launchpad::market_whitelist::{Self, Certificate};
 
     /// Fixed price market object
     struct FixedPriceMarket<phantom FT> has key, store {

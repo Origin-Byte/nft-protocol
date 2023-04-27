@@ -1,5 +1,5 @@
 /// Utility functions
-module witness::utils {
+module ob_witness::witness_utils {
     use std::ascii;
     use std::string::{Self, String, sub_string};
     use std::type_name;

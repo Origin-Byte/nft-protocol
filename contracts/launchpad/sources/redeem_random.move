@@ -1,4 +1,4 @@
-module launchpad::redeem_random {
+module ob_launchpad::redeem_random {
     use std::vector;
 
     use sui::transfer;

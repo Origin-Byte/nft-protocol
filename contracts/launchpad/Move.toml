@@ -1,5 +1,5 @@
 [package]
-name = "Launchpad"
+name = "OBLaunchpad"
 version = "0.31.0"
 published-at = "0x77d2c5030fb9989c27080a1bb52d9239f43c707d919c86a0dbc637fa5070d6e7"
 
@@ -17,5 +17,8 @@ rev = "c43b53f5d8b519e86d4a64ad0cf6787a7528b01b"
 [dependencies.Request]
 local = "./../request"
 
+[dependencies.OBKiosk]
+local = "./../ob_kiosk"
+
 [addresses]
-launchpad = "0x77d2c5030fb9989c27080a1bb52d9239f43c707d919c86a0dbc637fa5070d6e7"
+ob_launchpad = "0x77d2c5030fb9989c27080a1bb52d9239f43c707d919c86a0dbc637fa5070d6e7"

@@ -4,7 +4,7 @@
 /// - `Request<T, OB_TRANSFER_REQUEST>` which is responsible for checking that
 /// a transfer of NFT can be performed.
 /// It's heavily integrated with `nft_protocol::ob_kiosk`.
-module request::request {
+module ob_request::request {
     use std::type_name::{Self, TypeName};
     use std::vector;
 

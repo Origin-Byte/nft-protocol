@@ -14,7 +14,7 @@ module examples::tribal_realms {
     use nft_protocol::composable_nft::{Self as c_nft};
     use witness::witness;
 
-    use launchpad::warehouse::{Self, Warehouse};
+    use ob_launchpad::warehouse::{Self, Warehouse};
 
     /// One time witness is only instantiated in the init method
     struct TRIBAL_REALMS has drop {}

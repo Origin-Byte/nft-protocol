@@ -27,11 +27,11 @@ module examples::testract {
     use nft_protocol::transfer_allowlist_domain;
     use nft_protocol::transfer_allowlist;
 
-    use launchpad::fixed_price;
-    use launchpad::inventory;
-    use launchpad::limited_fixed_price;
-    use launchpad::listing;
-    use launchpad::warehouse;
+    use ob_launchpad::fixed_price;
+    use ob_launchpad::inventory;
+    use ob_launchpad::limited_fixed_price;
+    use ob_launchpad::listing;
+    use ob_launchpad::warehouse;
 
     use sui::coin::Coin;
     use sui::transfer_policy::TransferPolicy;

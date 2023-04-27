@@ -1,12 +1,12 @@
 #[test_only]
-module allowlist::test_allowlist {
+module ob_allowlist::test_allowlist {
     use std::type_name;
 
     use sui::package;
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use allowlist::allowlist::{Self, Allowlist, AllowlistOwnerCap};
+    use ob_allowlist::allowlist::{Self, Allowlist, AllowlistOwnerCap};
 
     const CREATOR: address = @0xA1C04;
 
@@ -31,7 +31,7 @@ module allowlist::test_allowlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = allowlist::allowlist::EInvalidAdmin)]
+    #[expected_failure(abort_code = allowlist::EInvalidAdmin)]
     fun try_insert_authority_invalid_cap() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -61,7 +61,7 @@ module allowlist::test_allowlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = allowlist::allowlist::EInvalidAuthority)]
+    #[expected_failure(abort_code = allowlist::EInvalidAuthority)]
     fun try_remove_authority_undefined() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -75,7 +75,7 @@ module allowlist::test_allowlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = allowlist::allowlist::EInvalidAdmin)]
+    #[expected_failure(abort_code = allowlist::EInvalidAdmin)]
     fun try_remove_authority_invalid_cap() {
         let scenario = test_scenario::begin(CREATOR);
 
@@ -121,7 +121,7 @@ module allowlist::test_allowlist {
     }
 
     #[test]
-    #[expected_failure(abort_code = allowlist::allowlist::EInvalidCollection)]
+    #[expected_failure(abort_code = allowlist::EInvalidCollection)]
     fun try_remove_collection() {
         let scenario = test_scenario::begin(CREATOR);
 

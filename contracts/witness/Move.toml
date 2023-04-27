@@ -10,4 +10,4 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "cab7e9762d4d75126a78fdd009b405745657fe57"
 
 [addresses]
-witness = "0x"
+ob_witness = "0x"

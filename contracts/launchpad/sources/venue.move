@@ -6,7 +6,7 @@
 ///
 /// `Venue` is an unprotected type that composes the market structure of
 /// `Listing`.
-module launchpad::venue {
+module ob_launchpad::venue {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID};
