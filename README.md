@@ -31,6 +31,11 @@ The ecosystem is partitioned into three critical components:
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/) (WIP)
 
+
+In addition, you can find transfer lists curated by OriginByte here:
+- [Trading Allowlist](https://explorer.sui.io/object/0x4abb6c110090577b4e4d85555a8e925c0b3ab6df0473ce35d71712cc1af3390c)
+- [P2P Transfer Authlist](https://explorer.sui.io/object/0x811c730277a87395bd71e2111a3c43a1306c9d47726eaafac58f5d8ae0d78232)
+
 # Install
 
 This codebase requires installation of the [Sui CLI](https://docs.sui.io/build/install).
