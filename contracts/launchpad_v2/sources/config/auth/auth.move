@@ -6,13 +6,13 @@
 /// which asserts that the counter matches and the user address
 /// in the message match the ctx sender
 module launchpad_v2::launchpad_auth {
-    use sui::bcs;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
     use sui::ed25519;
-    // use std::string;
-    // use std::debug;
+    use std::string;
+    use sui::address as sui_address;
+    use std::debug;
 
     use launchpad_v2::launchpad::LaunchCap;
     use launchpad_v2::venue::{Self, Venue};
@@ -82,21 +82,22 @@ module launchpad_v2::launchpad_auth {
             EINCORRECT_SIGNATURE
         );
 
+        debug::print(&string::utf8(b"msg_address:"));
+        let msg_address = string::utf8(*msg);
+        debug::print(&msg_address);
+
+        debug::print(&string::utf8(b"ctx_sender:"));
+        let ctx_sender = sui_address::to_string(tx_context::sender(ctx));
+        debug::print(&ctx_sender);
+
         // Assert message has correct address and counter
-        let bcs_msg = bcs::new(*msg);
-        let counter = bcs::peel_u64(&mut bcs_msg);
+        assert!(ctx_sender == msg_address, EINCORRECT_MESSAGE_SENDER);
 
-        assert!(
-            counter == pubkey.counter,
-            EINCORRECT_MESSAGE_COUNTER
-        );
 
-        let sender = bcs::peel_address(&mut bcs_msg);
-
-        assert!(
-            sender == tx_context::sender(ctx),
-            EINCORRECT_MESSAGE_SENDER
-        );
+        // assert!(
+        //     counter == pubkey.counter,
+        //     EINCORRECT_MESSAGE_COUNTER
+        // );
 
         auth_request::add_receipt(request, &LaunchpadAuth {});
     }
@@ -111,7 +112,7 @@ module launchpad_v2::launchpad_auth {
     ): Pubkey {
         Pubkey {
             id: object::new(ctx),
-            counter: 0,
+            counter: 1,
             key: pubkey,
         }
     }
