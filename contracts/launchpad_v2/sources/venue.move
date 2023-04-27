@@ -9,8 +9,6 @@ module ob_launchpad_v2::venue {
     use sui::dynamic_field as df;
     use sui::balance::Balance;
     use sui::transfer;
-    // use std::string;
-    // use std::debug;
 
     use ob_request::request::{Self, Policy, PolicyCap};
     use nft_protocol::utils_supply::{Self, Supply};

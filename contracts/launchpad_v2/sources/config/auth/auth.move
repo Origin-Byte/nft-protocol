@@ -10,9 +10,8 @@ module ob_launchpad_v2::launchpad_auth {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
     use sui::ed25519;
-    use std::string;
     use sui::address as sui_address;
-    use std::debug;
+    use std::vector;
 
     use ob_launchpad_v2::launchpad::LaunchCap;
     use ob_launchpad_v2::venue::{Self, Venue};
@@ -70,35 +69,29 @@ module ob_launchpad_v2::launchpad_auth {
     public fun verify(
         venue: &Venue,
         signature: &vector<u8>,
-        msg: &vector<u8>,
+        nonce: vector<u8>,
         request: &mut AuthRequest,
         ctx: &mut TxContext,
     ) {
         venue::assert_request(venue, request);
         let pubkey = venue::get_df<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
 
+        let sender = address_to_bytes(tx_context::sender(ctx));
+
+        let msg = vector::empty();
+        vector::append(&mut msg, sender);
+        vector::append(&mut msg, nonce);
+
         assert!(
-            ed25519::ed25519_verify(signature, &pubkey.key, msg),
+            ed25519::ed25519_verify(signature, &pubkey.key, &msg),
             EINCORRECT_SIGNATURE
         );
 
-        // 1. Convert binary string to a UTF8 String
-        debug::print(&string::utf8(b"msg_address:"));
-        let msg_address = string::utf8(*msg);
-        debug::print(&msg_address);
+        let counter = (sui_address::to_u256(sui_address::from_bytes(nonce)) as u64);
 
-        debug::print(&string::utf8(b"ctx_sender:"));
-        let ctx_sender = sui_address::to_string(tx_context::sender(ctx));
-        debug::print(&ctx_sender);
-
-        // Assert message has correct address and counter
-        assert!(ctx_sender == msg_address, EINCORRECT_MESSAGE_SENDER);
-
-
-        // assert!(
-        //     counter == pubkey.counter,
-        //     EINCORRECT_MESSAGE_COUNTER
-        // );
+        assert!(
+            counter == pubkey.counter, EINCORRECT_MESSAGE_COUNTER
+        );
 
         auth_request::add_receipt(request, &LaunchpadAuth {});
     }
@@ -125,5 +118,21 @@ module ob_launchpad_v2::launchpad_auth {
         venue: &mut Venue,
     ) {
         venue::register_rule(LaunchpadAuth {}, launch_cap, venue);
+    }
+
+    // TODO: Dedup
+    /// Convert `address` to `vector<u8>`
+    public fun address_to_bytes(addr: address): vector<u8> {
+        object::id_to_bytes(&object::id_from_address(addr))
+    }
+
+    #[test_only]
+    public fun set_test_counter(
+        venue: &mut Venue,
+        new_counter: u64,
+    ) {
+        let pubkey = venue::get_df_mut<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
+
+        pubkey.counter = new_counter;
     }
 }

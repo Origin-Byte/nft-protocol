@@ -2,9 +2,6 @@
 module ob_launchpad_v2::test_listing {
     use std::option::some;
     use std::type_name;
-    // use std::string;
-    // use std::debug;
-    // debug::print(&string::utf8(b"a"));
 
     use sui::test_scenario::{Self, ctx};
     use sui::sui::SUI;

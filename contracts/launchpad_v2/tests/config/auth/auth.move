@@ -1,18 +1,9 @@
 #[test_only]
 module ob_launchpad_v2::test_auth {
-    // use std::option::some;
-    // use std::type_name;
-    // use std::vector;
-    // use std::string;
-    use std::debug;
-    // use std::ascii;
-    // use std::vector;
+    use std::vector;
 
     use sui::test_scenario::{Self, ctx};
     use sui::object;
-    use sui::bcs;
-    // use sui::address as sui_address;
-    // use sui::ed25519;
     use sui::transfer;
 
     use ob_launchpad_v2::venue::{Self};
@@ -20,30 +11,30 @@ module ob_launchpad_v2::test_auth {
     use ob_launchpad_v2::test_utils;
     use ob_launchpad_v2::auth_request;
 
-    const SENDER: address = @0xA5C08;
+    const SENDER: address = @0xef20b433672911dbcc20c2a28b8175774209b250948a4f10dc92e952225e8025;
     const MARKETPLACE: address = @0xA1C08;
 
     #[test]
-    public fun it_works() {
+    public fun test_authenticated_launchpad() {
         let scenario = test_scenario::begin(SENDER);
 
         // 1. Create a Launchpad Listing and Venue
         let (listing, launch_cap, venue) = test_utils::create_fixed_bid_launchpad(&mut scenario);
 
-        let _counter = bcs::to_bytes(&1_u64);
-        let _sender = bcs::to_bytes(&SENDER);
-
         // Prepare the verification tx
-        let msg = b"00000000000000000000000000000000000000000000000000000000000a5c08";
-        let public_key = vector[51, 162, 43, 242, 237, 43, 157, 244, 90, 56, 10, 125, 5, 66, 211, 69, 231, 34, 7, 21, 141, 115, 110, 83, 163, 242, 128, 60, 64, 230, 137, 86];
-        let signature = vector[168, 104, 15, 53, 64, 166, 52, 0, 217, 94, 88, 48, 244, 21, 215, 151, 59, 227, 237, 82, 195, 172, 7, 181, 210, 145, 104, 121, 77, 85, 66, 127, 8, 168, 129, 41, 181, 81, 161, 89, 105, 240, 111, 180, 12, 238, 214, 4, 33, 43, 158, 188, 121, 131, 162, 16, 148, 65, 74, 215, 62, 149, 220, 12];
+        let (pub, _) = key_ed25519();
+
+        let (_msg, sig) = sig_ed25519();
 
         launchpad_auth::add_pubkey(
             &launch_cap,
             &mut venue,
-            copy public_key,
+            copy pub,
             ctx(&mut scenario),
         );
+
+        let counter = launchpad_auth::address_to_bytes(@0x000000000000000000000000000000000000000000000000000000000000000A);
+        launchpad_auth::set_test_counter(&mut venue, 10);
 
         let auth_request = auth_request::new(
             object::id(&venue),
@@ -53,8 +44,8 @@ module ob_launchpad_v2::test_auth {
 
         launchpad_auth::verify(
             &venue,
-            &signature,
-            &msg,
+            &sig,
+            copy counter,
             &mut auth_request,
             ctx(&mut scenario),
         );
@@ -68,37 +59,45 @@ module ob_launchpad_v2::test_auth {
         test_scenario::end(scenario);
     }
 
-    #[test]
-    public fun split_msg_with_bcs() {
-        // Prepare the verification tx
 
+    // === Utils ===
 
-        // 1. Try Peel with counter
+    /// Return public and private ED25519 key
+    fun key_ed25519(): (vector<u8>, vector<u8>) {
+        let pub = @0x8a1a8348dde5d979c85553c03e204c73efc3b91a2c9ce96b1004c9ec26eaacc8;
+        let priv = @0xac5dbb29bea100f5f6382ebcb116afc66fc7b05ff64d2d1e3fc60849504a29f0;
+        (launchpad_auth::address_to_bytes(pub), launchpad_auth::address_to_bytes(priv))
+    }
 
-        // let counter = 5;
-        // let counter_bcs = bcs::to_bytes(&counter);
+    /// Generate a message and valid signature for key returned by
+    /// `key_ed25519`
+    fun sig_ed25519(): (vector<u8>, vector<u8>) {
+        let (pub, _) = key_ed25519();
 
-        // debug::print(&counter);
-        // debug::print(&counter_bcs);
+        // Just construct a fake message from any byte data we can get
+        //
+        // Simulate this being a P2P authorization request
+        // `address` | `nonce`
 
+        // Number 1 in hexadecimal format (as an addresss type)
+        let counter = launchpad_auth::address_to_bytes(@0x000000000000000000000000000000000000000000000000000000000000000A);
 
-        // let counter_bcs_ = bcs::new(counter_bcs);
-        // let res = bcs::peel_u8(&mut counter_bcs_);
+        let msg = vector::empty();
+        // The sender address is @0xef20b433672911dbcc20c2a28b8175774209b250948a4f10dc92e952225e8025
+        vector::append(&mut msg, launchpad_auth::address_to_bytes(@0xef20b433672911dbcc20c2a28b8175774209b250948a4f10dc92e952225e8025));
+        // Simulate the nonce
+        vector::append(&mut msg, counter);
 
-        // debug::print(&res);
-        // debug::print(&counter_bcs_);
+        let p1 = @0x70E7F8F502AE2EDA298E50ADAAC05E49DC683FA2A2AD210B26851362483E4711;
+        let p2 = @0x577A448C24E4E943ADABE2AC90A1800789C5D0B66F699FD4C11702E16B9C7E08;
 
-        // 2.
+        let sig = vector::empty();
+        vector::append(&mut sig, launchpad_auth::address_to_bytes(p1));
+        vector::append(&mut sig, launchpad_auth::address_to_bytes(p2));
 
-        let msg = b"0x00000000000000000000000000000000000000000000000000000000000a5c08";
-        let msg_bcs = bcs::to_bytes(&msg);
+        // Sanity check
+        assert!(sui::ed25519::ed25519_verify(&sig, &pub, &msg), 0);
 
-        let msg_bcs_ = bcs::new(msg_bcs);
-        let res = bcs::peel_u8(&mut msg_bcs_);
-
-        debug::print(&res);
-        debug::print(&msg_bcs_);
-
-
+        (msg, sig)
     }
 }
