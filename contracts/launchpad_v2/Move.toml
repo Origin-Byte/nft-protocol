@@ -1,7 +1,7 @@
 [package]
 name = "LaunchpadV2"
 version = "1.0.0"
-published-at = "0x0124347740a76c3e7aa0e84e4f94d7fb525becf4109c11f16cbdd758bcc8657b"
+published-at = "0x19aefe1458b74f9c9106d535f24b24c57456afddd30fd8858453ec2b5e1fcf7d"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -18,4 +18,4 @@ rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 local = "./../nft_protocol"
 
 [addresses]
-ob_launchpad_v2 = "0x0124347740a76c3e7aa0e84e4f94d7fb525becf4109c11f16cbdd758bcc8657b"
+ob_launchpad_v2 = "0x19aefe1458b74f9c9106d535f24b24c57456afddd30fd8858453ec2b5e1fcf7d"
