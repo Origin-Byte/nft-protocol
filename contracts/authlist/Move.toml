@@ -1,7 +1,7 @@
 [package]
 name = "Authlist"
-version = "0.0.1"
-published-at = "0x"
+version = "1.0.0"
+published-at = "0x4ba6606d172d4dd3712aee62399ab5943cdcb021f6af22c9b78619ec96bc96a7"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -10,4 +10,4 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
 
 [addresses]
-ob_authlist = "0x"
+ob_authlist = "0x4ba6606d172d4dd3712aee62399ab5943cdcb021f6af22c9b78619ec96bc96a7"

@@ -7,6 +7,7 @@ dependencies = [
   { name = "Allowlist" },
   { name = "Authlist" },
   { name = "Kiosk" },
+  { name = "LiquidityLayer" },
   { name = "Originmate" },
   { name = "Request" },
   { name = "Sui" },
@@ -34,6 +35,20 @@ name = "Kiosk"
 source = { local = "../kiosk" }
 
 dependencies = [
+  { name = "Originmate" },
+  { name = "Request" },
+  { name = "Sui" },
+  { name = "Witness" },
+]
+
+[[move.package]]
+name = "LiquidityLayer"
+source = { local = "../liquidity_layer" }
+
+dependencies = [
+  { name = "Allowlist" },
+  { name = "Authlist" },
+  { name = "Kiosk" },
   { name = "Originmate" },
   { name = "Request" },
   { name = "Sui" },

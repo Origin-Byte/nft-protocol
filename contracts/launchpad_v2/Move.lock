@@ -11,7 +11,7 @@ dependencies = [
 
 [[move.package]]
 name = "Allowlist"
-source = { local = "../../contracts/allowlist" }
+source = { local = "../allowlist" }
 
 dependencies = [
   { name = "Sui" },
@@ -19,10 +19,35 @@ dependencies = [
 
 [[move.package]]
 name = "Authlist"
-source = { local = "../../contracts/authlist" }
+source = { local = "../authlist" }
 
 dependencies = [
   { name = "Sui" },
+]
+
+[[move.package]]
+name = "Kiosk"
+source = { local = "../kiosk" }
+
+dependencies = [
+  { name = "Originmate" },
+  { name = "Request" },
+  { name = "Sui" },
+  { name = "Witness" },
+]
+
+[[move.package]]
+name = "LiquidityLayer"
+source = { local = "../liquidity_layer" }
+
+dependencies = [
+  { name = "Allowlist" },
+  { name = "Authlist" },
+  { name = "Kiosk" },
+  { name = "Originmate" },
+  { name = "Request" },
+  { name = "Sui" },
+  { name = "Witness" },
 ]
 
 [[move.package]]
@@ -31,11 +56,13 @@ source = { git = "https://github.com/MystenLabs/sui.git", rev = "c525ba6489261ff
 
 [[move.package]]
 name = "NftProtocol"
-source = { local = "../.." }
+source = { local = "../nft_protocol" }
 
 dependencies = [
   { name = "Allowlist" },
   { name = "Authlist" },
+  { name = "Kiosk" },
+  { name = "LiquidityLayer" },
   { name = "Originmate" },
   { name = "Request" },
   { name = "Sui" },
@@ -52,7 +79,7 @@ dependencies = [
 
 [[move.package]]
 name = "Request"
-source = { local = "../../contracts/request" }
+source = { local = "../request" }
 
 dependencies = [
   { name = "Originmate" },
@@ -70,7 +97,7 @@ dependencies = [
 
 [[move.package]]
 name = "Witness"
-source = { local = "../../contracts/witness" }
+source = { local = "../witness" }
 
 dependencies = [
   { name = "Sui" },
