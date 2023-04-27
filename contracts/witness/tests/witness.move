@@ -33,13 +33,13 @@ module ob_witness::test_witness {
     }
 
     #[test]
-    #[expected_failure(abort_code = witness::utils::EInvalidWitnessModule)]
+    #[expected_failure(abort_code = ob_witness::utils::EInvalidWitnessModule)]
     public fun it_must_same_module() {
         utils::assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, test_foo::Witness>();
     }
 
     #[test]
-    #[expected_failure(abort_code = witness::utils::EInvalidWitness)]
+    #[expected_failure(abort_code = ob_witness::utils::EInvalidWitness)]
     public fun it_must_be_witness() {
         utils::assert_same_module_as_witness<ASSERT_SAME_MODULE_AS_WITNESS, Witness2>();
     }
