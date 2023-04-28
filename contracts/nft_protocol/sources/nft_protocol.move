@@ -17,7 +17,7 @@ module nft_protocol::nft_protocol {
     }
 
     /// Initialize official OriginByte `Allowlist`
-    fun init_allowlist(ctx: &mut TxContext) {
+    public fun init_allowlist(ctx: &mut TxContext) {
         let (allowlist, cap) = allowlist::new(ctx);
 
         // Thus far only `orderbook` and `bidding` can perform trades
@@ -38,7 +38,7 @@ module nft_protocol::nft_protocol {
     ///
     /// This keypair is expected to be removed in the early stages of mainnet
     /// and replaced with genuine authorities.
-    fun init_authlist(ctx: &mut TxContext) {
+    public fun init_authlist(ctx: &mut TxContext) {
         let (authlist, cap) = authlist::new(ctx);
 
         authlist::insert_authority(
