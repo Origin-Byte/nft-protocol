@@ -30,8 +30,6 @@ name = "Kiosk"
 source = { local = "../kiosk" }
 
 dependencies = [
-  { name = "Allowlist" },
-  { name = "Authlist" },
   { name = "Originmate" },
   { name = "Request" },
   { name = "Sui" },

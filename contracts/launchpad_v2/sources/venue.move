@@ -11,7 +11,7 @@ module ob_launchpad_v2::venue {
     use sui::transfer;
 
     use ob_request::request::{Self, Policy, PolicyCap};
-    use nft_protocol::utils_supply::{Self, Supply};
+    use nft_protocol::utils_supply::{Self as supply, Supply};
 
     use ob_launchpad_v2::launchpad::{Self, Listing, LaunchCap};
     use ob_launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQ};
@@ -99,13 +99,48 @@ module ob_launchpad_v2::venue {
         buyer: address,
     }
 
+    public fun register_supply<IW: drop>(
+        witness: IW,
+        cap: &LaunchCap,
+        venue: &mut Venue,
+        // UID provides extra guarantees compared to ID, since the function
+        // calling this function must have access to the object itself
+        inventory_uid: &UID,
+        new_supply: u64,
+    ) {
+        // Assert that the inventory type is correct
+        assert_called_from_inventory(witness, venue);
+
+        // Assert that is called by admin
+        assert_launch_cap(venue, cap);
+
+        // Increment global supply
+        if (option::is_some(&venue.supply)) {
+            let supply = option::borrow_mut(&mut venue.supply);
+
+            supply::increase_maximum(supply, new_supply);
+        } else {
+            option::fill(&mut venue.supply, supply::new(new_supply));
+        };
+
+        let inv_id = object::uid_to_inner(inventory_uid);
+
+        // Increment inventory supply
+        if (vec_map::contains(&venue.inventories, &inv_id)) {
+            let inv_supply = vec_map::get_mut(&mut venue.inventories, &inv_id);
+
+            *inv_supply = *inv_supply + new_supply;
+        } else {
+            vec_map::insert(&mut venue.inventories, inv_id, new_supply);
+        }
+    }
+
     // === Instantiators ===
 
     // Initiates and new `Venue` and returns it.
     public fun new(
         launchpad: &mut Listing,
         launch_cap: &LaunchCap,
-        supply: Option<Supply>,
         market: TypeName,
         inventory: TypeName,
         stock_policy: TypeName,
@@ -130,7 +165,7 @@ module ob_launchpad_v2::venue {
             id: uid,
             listing_id: launchpad::listing_id(launch_cap),
             policies: policies,
-            supply,
+            supply: option::none(),
             proceeds: proceeds::empty(ctx),
             inventories: vec_map::empty()
         }
@@ -140,7 +175,6 @@ module ob_launchpad_v2::venue {
     public fun create_and_share(
         launchpad: &mut Listing,
         launch_cap: &LaunchCap,
-        supply: Option<Supply>,
         market: TypeName,
         inventory: TypeName,
         stock_policy: TypeName,
@@ -150,7 +184,6 @@ module ob_launchpad_v2::venue {
         let venue = new(
             launchpad,
             launch_cap,
-            supply,
             market,
             inventory,
             stock_policy,
@@ -245,13 +278,13 @@ module ob_launchpad_v2::venue {
     /// #### Panics
     ///
     /// Panics if balance is not enough to fund price
-    public fun pay<AW: drop, FT, T: key>(
-        _market_witness: AW,
+    public fun pay<MW: drop, FT, T: key>(
+        market_witness: MW,
         venue: &mut Venue,
         balance: Balance<FT>,
         quantity: u64,
     ) {
-        assert_called_from_market<AW>(venue);
+        assert_called_from_market(market_witness, venue);
         proceeds::add(&mut venue.proceeds, balance, quantity);
     }
 
@@ -261,15 +294,15 @@ module ob_launchpad_v2::venue {
     ///
     /// The market module should ensure that when calling this function, it should
     /// also call `get_redeem_receipt` for the same `quantity`.
-    public fun increment_supply_if_any<AW: drop>(
-        _market_witness: AW,
+    public fun increment_supply_if_any<MW: drop>(
+        market_witness: MW,
         venue: &mut Venue,
         quantity: u64
     ) {
-        assert_called_from_market<AW>(venue);
+        assert_called_from_market(market_witness, venue);
 
         if (option::is_some(&venue.supply)) {
-            utils_supply::increment(option::borrow_mut(&mut venue.supply), quantity);
+            supply::increment(option::borrow_mut(&mut venue.supply), quantity);
         }
     }
 
@@ -378,9 +411,9 @@ module ob_launchpad_v2::venue {
     }
 
     public fun get_invetories_mut<SW: drop>(
-        _stock_witness: SW, venue: &mut Venue
+        stock_witness: SW, venue: &mut Venue
     ): &mut VecMap<ID, u64> {
-        assert_called_from_stock_method<SW>(venue);
+        assert_called_from_stock_method<SW>(stock_witness, venue);
         &mut venue.inventories
     }
 
@@ -396,6 +429,10 @@ module ob_launchpad_v2::venue {
 
     public fun get_supply(venue: &Venue): &Option<Supply> {
         &venue.supply
+    }
+
+    public fun get_inventory_supply(venue: &Venue, inventory: ID): u64 {
+        *vec_map::get(&venue.inventories, &inventory)
     }
 
     public fun get_proceeds(venue: &Venue): &Proceeds {
@@ -507,19 +544,19 @@ module ob_launchpad_v2::venue {
     }
 
     // TODO: These assertions are wrong because the Witnesses and Policy Objects are not the same...
-    public fun assert_called_from_market<AW: drop>(venue: &Venue) {
+    public fun assert_called_from_market<AW: drop>(_witness: AW, venue: &Venue) {
         assert!(type_name::get<AW>() == venue.policies.market, EMARKET_WITNESS_MISMATCH);
     }
 
-    public fun assert_called_from_stock_method<SW: drop>(venue: &Venue) {
+    public fun assert_called_from_stock_method<SW: drop>(_witness: SW, venue: &Venue) {
         assert!(type_name::get<SW>() == venue.policies.stock_policy, ESTOCK_WITNESS_MISMATCH);
     }
 
-    public fun assert_called_from_redeem_method<RW: drop>(venue: &Venue) {
+    public fun assert_called_from_redeem_method<RW: drop>(_witness: RW, venue: &Venue) {
         assert!(type_name::get<RW>() == venue.policies.redeem_policy, EREDEEM_WITNESS_MISMATCH);
     }
 
-    public fun assert_called_from_inventory<IW: drop>(venue: &Venue) {
+    public fun assert_called_from_inventory<IW: drop>(_witness: IW, venue: &Venue) {
         assert!(type_name::get<IW>() == venue.policies.inventory, EINVENTORY_ID_MISMATCH);
     }
 }

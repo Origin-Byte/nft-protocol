@@ -1,6 +1,6 @@
 module ob_request::borrow_request {
     use std::option::{Self, Option, some};
-    use std::type_name::TypeName;
+    use std::type_name::{Self, TypeName};
 
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
@@ -11,7 +11,6 @@ module ob_request::borrow_request {
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
 
     use ob_witness::witness::Witness as DelegatedWitness;
-    use ob_witness::marker;
 
     // === Error ===
 
@@ -123,7 +122,7 @@ module ob_request::borrow_request {
     ): (Field, ReturnPromise<T, Field>) {
         let nft_id = object::uid_to_inner(nft_uid);
 
-        let field: Field = df::remove(nft_uid, marker::marker<Field>());
+        let field: Field = df::remove(nft_uid, type_name::get<Field>());
 
         (field, ReturnPromise { nft_id })
     }
@@ -138,7 +137,7 @@ module ob_request::borrow_request {
         // is present before resolving the BorrowRequest
         // assert!(request.is_returned == false, 0);
         assert!(object::uid_to_inner(nft_uid) == promise.nft_id, 0);
-        df::add(nft_uid, marker::marker<Field>(), field);
+        df::add(nft_uid, type_name::get<Field>(), field);
 
         let ReturnPromise { nft_id: _ } = promise;
 

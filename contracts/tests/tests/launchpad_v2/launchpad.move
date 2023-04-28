@@ -1,5 +1,5 @@
 #[test_only]
-module ob_launchpad_v2::test_listing {
+module ob_tests::test_listing {
     use std::option::some;
     use std::type_name;
 
@@ -15,8 +15,6 @@ module ob_launchpad_v2::test_listing {
     use ob_launchpad_v2::pseudorand_redeem::{Witness as PseudoRandomWit};
     use ob_launchpad_v2::schedule;
 
-    use nft_protocol::utils_supply::Self as supply;
-
     const MARKETPLACE: address = @0xA1C08;
 
     #[test]
@@ -30,7 +28,6 @@ module ob_launchpad_v2::test_listing {
         let venue = venue::new(
             &mut listing,
             &launch_cap,
-            some(supply::new(1_000)),
             // Market type
             type_name::get<FixedBidWit>(),
             // Inventory Type
@@ -73,7 +70,6 @@ module ob_launchpad_v2::test_listing {
         let venue = venue::new(
             &mut listing,
             &launch_cap,
-            some(supply::new(1_000)),
             // Market type
             type_name::get<DutchAuctionWit>(),
             // Inventory Type

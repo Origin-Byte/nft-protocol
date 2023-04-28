@@ -31,6 +31,7 @@
 module ob_kiosk::ob_kiosk {
     use std::option::Option;
     use std::string::utf8;
+    use std::vector;
     use std::type_name::{Self, TypeName};
 
     use sui::display;
@@ -245,6 +246,35 @@ module ob_kiosk::ob_kiosk {
         // place underlying NFT to kiosk
         let cap = pop_cap(self);
         kiosk::place(self, &cap, nft);
+        set_cap(self, cap);
+    }
+
+    public fun deposit_batch<T: key + store>(
+        self: &mut Kiosk, nfts: vector<T>, ctx: &mut TxContext,
+    ) {
+        assert_can_deposit<T>(self, ctx);
+        let cap = pop_cap(self);
+        let len = vector::length(&nfts);
+
+        while (len > 0) {
+            let nft = vector::pop_back(&mut nfts);
+
+            // inner accounting
+            let nft_id = object::id(&nft);
+            let refs = nft_refs_mut(self);
+            table::add(refs, nft_id, NftRef {
+                auths: vec_set::empty(),
+                is_exclusively_listed: false,
+                nft_type: type_name::get<T>(),
+            });
+
+            // place underlying NFT to kiosk
+            kiosk::place(self, &cap, nft);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(nfts);
         set_cap(self, cap);
     }
 

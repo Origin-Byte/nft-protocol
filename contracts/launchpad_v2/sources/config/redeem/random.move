@@ -72,7 +72,7 @@ module ob_launchpad_v2::redeem_random {
     /// #### Panics
     ///
     /// Panics if transaction sender is not `Listing` admin
-    public entry fun add_pseudorand_inv(
+    public entry fun add_inventory_method(
         launch_cap: &LaunchCap,
         venue: &mut Venue,
     ) {
@@ -90,14 +90,14 @@ module ob_launchpad_v2::redeem_random {
     /// #### Panics
     ///
     /// Panics if transaction sender is not `Listing` admin
-    public entry fun add_pseudorand_nft(
+    public entry fun add_nft_method(
         launch_cap: &LaunchCap,
         venue: &mut Venue,
     ) {
         let rand_redeem = new(launch_cap, venue);
         let venue_uid = venue::uid_mut(venue, launch_cap);
 
-        df::add(venue_uid, RandInvDfKey {}, rand_redeem);
+        df::add(venue_uid, RandNftDfKey {}, rand_redeem);
     }
 
     /// Create a new `RedeemCommitment`

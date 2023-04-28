@@ -1,5 +1,5 @@
 #[test_only]
-module ob_launchpad_v2::test_auth {
+module ob_tests::test_auth {
     use std::vector;
 
     use sui::test_scenario::{Self, ctx};
@@ -8,7 +8,7 @@ module ob_launchpad_v2::test_auth {
 
     use ob_launchpad_v2::venue::{Self};
     use ob_launchpad_v2::launchpad_auth;
-    use ob_launchpad_v2::test_utils;
+    use ob_tests::test_utils;
     use ob_launchpad_v2::auth_request;
 
     const SENDER: address = @0xef20b433672911dbcc20c2a28b8175774209b250948a4f10dc92e952225e8025;
@@ -62,6 +62,7 @@ module ob_launchpad_v2::test_auth {
 
     // === Utils ===
 
+    // TODO: Dedup
     /// Return public and private ED25519 key
     fun key_ed25519(): (vector<u8>, vector<u8>) {
         let pub = @0x8a1a8348dde5d979c85553c03e204c73efc3b91a2c9ce96b1004c9ec26eaacc8;
@@ -69,6 +70,7 @@ module ob_launchpad_v2::test_auth {
         (launchpad_auth::address_to_bytes(pub), launchpad_auth::address_to_bytes(priv))
     }
 
+    // TODO: Dedup
     /// Generate a message and valid signature for key returned by
     /// `key_ed25519`
     fun sig_ed25519(): (vector<u8>, vector<u8>) {
