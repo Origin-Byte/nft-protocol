@@ -241,8 +241,7 @@ module ob_request::transfer_request {
 
     // === For creators ===
 
-    /// Creates a new policy oriented around transfer requests for the
-    /// given type.
+    /// Creates a new transfer policy for type `T`
     public fun init_policy<T>(
         publisher: &Publisher, ctx: &mut TxContext,
     ): (TransferPolicy<T>, TransferPolicyCap<T>) {

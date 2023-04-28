@@ -201,8 +201,8 @@ module ob_authlist::test_authlist {
 
         // Just construct a fake message from any byte data we can get
         //
-        // Simulate this being a P2P authorization request
-        // `nft_id` | `source` | `destination` | `tx_context::epoch` | `nonce`
+        // Simulate this being a P2P authorization request:
+        // `nft_id | source | destination | tx_context::epoch | nonce`
         let msg = vector::empty();
         vector::append(&mut msg, authlist::address_to_bytes(@0xef20b433672911dbcc20c2a28b8175774209b250948a4f10dc92e952225e8025));
         vector::append(&mut msg, pub);
