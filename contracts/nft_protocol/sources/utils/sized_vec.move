@@ -53,7 +53,6 @@ module nft_protocol::sized_vec {
     /// Add element `e` to the end of the vector `v`.
     public fun push_back<Element>(v: &mut SizedVec<Element>, e: Element) {
         assert!(vector::length(&v.vec) < v.capacity, ECAPACITY_REACHED);
-        v.capacity = v.capacity + 1;
         vector::push_back(&mut v.vec, e)
     }
 

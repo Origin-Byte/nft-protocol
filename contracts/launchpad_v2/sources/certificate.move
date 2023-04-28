@@ -2,6 +2,7 @@
 module ob_launchpad_v2::certificate {
     use sui::vec_map::{Self, VecMap};
     use std::type_name::{Self, TypeName};
+    // use std::debug;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
 
@@ -51,14 +52,14 @@ module ob_launchpad_v2::certificate {
     /// it must call the `Inventory` in a separate batch in order to retrieve
     /// the NFTs.
     public fun get_redeem_certificate<MW: drop>(
-        _market_witness: MW,
+        market_witness: MW,
         venue: &mut Venue,
         buyer: address,
         nfts_bought: u64,
         ctx: &mut TxContext,
     ): NftCertificate {
         // TODO: Consider emitting events
-        venue::assert_called_from_market<MW>(venue);
+        venue::assert_called_from_market<MW>(market_witness, venue);
 
         NftCertificate {
             id: object::new(ctx),
@@ -70,7 +71,6 @@ module ob_launchpad_v2::certificate {
         }
     }
 
-    // TODO
     // /// This function consumes the NftCert and signals that we have entered
     // /// the last step in our Launchpad voyage.
     // ///
@@ -79,12 +79,10 @@ module ob_launchpad_v2::certificate {
     // ///
     // /// This should be called in conjunction with the action of returning or
     // /// transferring the NFT to the buyer.
-    // public fun consume_certificate<IW: drop, INV: key + store>(
-    //     _inventory_witness: IW,
-    //     inventory: &INV,
+    // public fun consume_certificate(
     //     cert: NftCert,
     // ) {
-    //     assert_called_from_inventory<IW, INV>(inventory, &cert);
+
 
     //     let NftCert {
     //         id,
@@ -101,89 +99,30 @@ module ob_launchpad_v2::certificate {
     // === Certificates ===
 
     public fun get_nft_map_mut_as_stock<SW: drop>(
-        _stock_witness: SW, venue: &Venue, certificate: &mut NftCertificate
+        stock_witness: SW, venue: &Venue, certificate: &mut NftCertificate
     ): &mut VecMap<ID, SizedVec<u64>> {
         // TODO: Need to assert that certificate and venue are related
-        venue::assert_called_from_stock_method<SW>(venue);
+        venue::assert_called_from_stock_method<SW>(stock_witness, venue);
         &mut certificate.nft_map
     }
 
     public fun get_nft_map_mut_as_redeem<RW: drop>(
-        _redeem_witness: RW, venue: &Venue, certificate: &mut NftCertificate
+        redeem_witness: RW, venue: &Venue, certificate: &mut NftCertificate
     ): &mut VecMap<ID, SizedVec<u64>> {
         // TODO: Need to assert that certificate and venue are related
-        venue::assert_called_from_redeem_method<RW>(venue);
+        venue::assert_called_from_redeem_method<RW>(redeem_witness, venue);
         &mut certificate.nft_map
     }
 
     public fun get_nft_map_mut_as_inventory<IW: drop>(
-        _inventory_witness: IW, certificate: &mut NftCertificate
+        inventory_witness: IW, certificate: &mut NftCertificate
     ): &mut VecMap<ID, SizedVec<u64>> {
-        assert_called_from_inventory<IW>(certificate);
+        assert_called_from_inventory<IW>(inventory_witness, certificate);
         &mut certificate.nft_map
     }
 
-    // public fun extract_nft_indices<RW: drop>(
-    //     _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate
-    // ): vector<u64> {
-    //     // TODO: Need to assert that certificate and venue are related
-    //     venue::assert_called_from_redeem_method<RW>(venue);
-    //     option::extract(&mut certificate.nft_indices)
-    // }
-
-    // public fun insert_invetories<SW: drop>(
-    //     _stock_witness: SW, venue: &mut Venue, certificate: &mut NftCertificate, inventories: vector<ID>,
-    // ) {
-    //     // TODO: Need to assert that certificate and venue are related
-    //     venue::assert_called_from_stock_method<SW>(venue);
-
-    //     option::fill(&mut certificate.inventories, inventories)
-    // }
-
-    // public fun insert_nft_indices<RW: drop>(
-    //     _redeem_witness: RW, venue: &mut Venue, certificate: &mut NftCertificate, nft_idxs: vector<u64>
-    // ) {
-    //     // TODO: Need to assert that certificate and venue are related
-    //     venue::assert_called_from_redeem_method<RW>(venue);
-    //     option::fill(&mut certificate.nft_indices, nft_idxs)
-    // }
-
-    // public fun extract_invetories_as_inv<IW: drop>(
-    //     _inventory_witness: IW, certificate: &mut NftCertificate
-    // ): vector<ID> {
-    //     // TODO: Need to assert that certificate and venue are related
-    //     assert_called_from_inventory<IW>(certificate);
-    //     option::extract(&mut certificate.inventories)
-    // }
-
-    // public fun extract_nft_indices_as_inv<IW: drop>(
-    //     _inventory_witness: IW, certificate: &mut NftCertificate
-    // ): vector<u64> {
-    //     // TODO: Need to assert that certificate and venue are related
-    //     assert_called_from_inventory<IW>(certificate);
-    //     option::extract(&mut certificate.nft_indices)
-    // }
-
-    // public fun insert_invetories_as_inv<IW: drop>(
-    //     _inventory_witness: IW, certificate: &mut NftCertificate, inventories: vector<ID>,
-    // ) {
-    //     // TODO: Need to assert that certificate and venue are related
-    //     assert_called_from_inventory<IW>(certificate);
-
-    //     option::fill(&mut certificate.inventories, inventories)
-    // }
-
-    // public fun insert_nft_indices_as_inv<IW: drop>(
-    //     _inventory_witness: IW, certificate: &mut NftCertificate, nft_idxs: vector<u64>
-    // ) {
-    //     // TODO: Need to assert that certificate and venue are related
-    //     assert_called_from_inventory<IW>(certificate);
-    //     option::fill(&mut certificate.nft_indices, nft_idxs)
-    // }
-
-
-    public fun quantity_mut<IW: drop>(_inventory_witness: IW, certificate: &mut NftCertificate): &mut u64 {
-        assert_called_from_inventory<IW>(certificate);
+    public fun quantity_mut<IW: drop>(inventory_witness: IW, certificate: &mut NftCertificate): &mut u64 {
+        assert_called_from_inventory<IW>(inventory_witness, certificate);
         &mut certificate.quantity
     }
 
@@ -216,6 +155,11 @@ module ob_launchpad_v2::certificate {
         &cert.nft_map
     }
 
+    public fun inventory_type(cert: &NftCertificate): TypeName {
+        cert.inventory_type
+    }
+
+    // TODO: Should this not be protected?
     public fun cert_uid(cert: &NftCertificate): &UID {
         &cert.id
     }
@@ -236,7 +180,7 @@ module ob_launchpad_v2::certificate {
     //     assert!(type_name::get<AW>() == venue.policies.market, EMARKET_WITNESS_MISMATCH);
     // }
 
-    public fun assert_called_from_inventory<IW: drop>(certificate: &NftCertificate) {
+    public fun assert_called_from_inventory<IW: drop>(_witness: IW, certificate: &NftCertificate) {
         assert!(type_name::get<IW>() == certificate.inventory_type, EINVENTORY_ID_MISMATCH);
     }
 
@@ -247,4 +191,21 @@ module ob_launchpad_v2::certificate {
     // public fun assert_nft_type<T: key + store>(cert: &NftCert) {
     //     assert!(cert.nft_type == type_name::get<T>(), ENFT_TYPE_CERTIFICATE_MISMATCH);
     // }
+
+    // === Test-Only Functions ===
+
+    #[test_only]
+    public fun consume_for_test(cert: NftCertificate) {
+        let NftCertificate {
+            id,
+            venue_id: _,
+            quantity: _,
+            buyer: _,
+            nft_map: _,
+            inventory_type: _,
+        } = cert;
+
+        object::delete(id);
+
+    }
 }

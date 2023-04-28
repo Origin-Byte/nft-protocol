@@ -237,4 +237,11 @@ module ob_request::request {
     public fun assert_publisher<T>(pub: &Publisher) {
         assert!(package::from_package<T>(pub), EInvalidPublisher);
     }
+
+    // === Test-Only Functions ===
+
+    #[test_only]
+    public fun consume_test<P>(self: RequestBody<P>) {
+        destroy(self);
+    }
 }

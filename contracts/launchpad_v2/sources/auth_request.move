@@ -64,4 +64,18 @@ module ob_launchpad_v2::auth_request {
     public fun auth_sender(self: &AuthRequest): address { self.sender }
 
     public fun policy_id(self: &AuthRequest): ID { self.policy_id }
+
+    // === Test-Only Functions ===
+
+    #[test_only]
+    public fun consume_test(self: AuthRequest) {
+        let AuthRequest {
+            policy_id: _,
+            sender: _,
+            venue_id: _,
+            inner,
+        } = self;
+
+        request::consume_test(inner);
+    }
 }

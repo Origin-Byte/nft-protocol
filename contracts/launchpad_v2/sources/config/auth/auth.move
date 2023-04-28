@@ -6,11 +6,12 @@
 /// which asserts that the counter matches and the user address
 /// in the message match the ctx sender
 module ob_launchpad_v2::launchpad_auth {
-    use sui::bcs;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
-    use sui::ecdsa_k1;
+    use sui::ed25519;
+    use sui::address as sui_address;
+    use std::vector;
 
     use ob_launchpad_v2::launchpad::LaunchCap;
     use ob_launchpad_v2::venue::{Self, Venue};
@@ -31,7 +32,6 @@ module ob_launchpad_v2::launchpad_auth {
 
     // Dynamic field key used to store `Pubkey` in `Venue`
     struct PubkeyDfKey has store, copy, drop {}
-
 
     /// Issue a new `Pubkey` and add it to the Venue as a dynamic field
     /// with field key `PubkeyDfKey`.
@@ -69,33 +69,28 @@ module ob_launchpad_v2::launchpad_auth {
     public fun verify(
         venue: &Venue,
         signature: &vector<u8>,
-        msg: &vector<u8>,
-        hash: u8,
+        nonce: vector<u8>,
         request: &mut AuthRequest,
         ctx: &mut TxContext,
     ) {
         venue::assert_request(venue, request);
         let pubkey = venue::get_df<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
 
+        let sender = address_to_bytes(tx_context::sender(ctx));
+
+        let msg = vector::empty();
+        vector::append(&mut msg, sender);
+        vector::append(&mut msg, nonce);
+
         assert!(
-            ecdsa_k1::secp256k1_verify(signature, &pubkey.key, msg, hash),
+            ed25519::ed25519_verify(signature, &pubkey.key, &msg),
             EINCORRECT_SIGNATURE
         );
 
-        // Assert message has correct address and counter
-        let bcs_msg = bcs::new(*msg);
-        let counter = bcs::peel_u64(&mut bcs_msg);
+        let counter = (sui_address::to_u256(sui_address::from_bytes(nonce)) as u64);
 
         assert!(
-            counter == pubkey.counter,
-            EINCORRECT_MESSAGE_COUNTER
-        );
-
-        let sender = bcs::peel_address(&mut bcs_msg);
-
-        assert!(
-            sender == tx_context::sender(ctx),
-            EINCORRECT_MESSAGE_SENDER
+            counter == pubkey.counter, EINCORRECT_MESSAGE_COUNTER
         );
 
         auth_request::add_receipt(request, &LaunchpadAuth {});
@@ -111,7 +106,7 @@ module ob_launchpad_v2::launchpad_auth {
     ): Pubkey {
         Pubkey {
             id: object::new(ctx),
-            counter: 0,
+            counter: 1,
             key: pubkey,
         }
     }
@@ -123,5 +118,21 @@ module ob_launchpad_v2::launchpad_auth {
         venue: &mut Venue,
     ) {
         venue::register_rule(LaunchpadAuth {}, launch_cap, venue);
+    }
+
+    // TODO: Dedup
+    /// Convert `address` to `vector<u8>`
+    public fun address_to_bytes(addr: address): vector<u8> {
+        object::id_to_bytes(&object::id_from_address(addr))
+    }
+
+    #[test_only]
+    public fun set_test_counter(
+        venue: &mut Venue,
+        new_counter: u64,
+    ) {
+        let pubkey = venue::get_df_mut<PubkeyDfKey, Pubkey>(venue, PubkeyDfKey {});
+
+        pubkey.counter = new_counter;
     }
 }

@@ -36,5 +36,8 @@ local = "./../liquidity_layer"
 [dependencies.NftProtocol]
 local = "./../nft_protocol"
 
+[dependencies.LaunchpadV2]
+local = "./../launchpad_v2"
+
 [addresses]
 ob_tests = "0x"

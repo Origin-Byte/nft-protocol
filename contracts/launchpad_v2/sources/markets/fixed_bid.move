@@ -121,7 +121,7 @@ module ob_launchpad_v2::fixed_bid {
             FixedBidDfKey {}
         );
 
-        assert!(quantity <= market.max_buy, EMAX_BUY_QUANTITY_SURPASSED);
+        assert_quantity(market, quantity);
 
         venue::pay<Witness, FT, T>(
             Witness {},
@@ -192,5 +192,9 @@ module ob_launchpad_v2::fixed_bid {
     /// Return market price
     public fun max_buy<FT>(market: &FixedBidMarket<FT>): u64 {
         market.max_buy
+    }
+
+    public fun assert_quantity<FT>(market: &FixedBidMarket<FT>, quantity: u64) {
+        assert!(quantity <= market.max_buy, EMAX_BUY_QUANTITY_SURPASSED);
     }
 }

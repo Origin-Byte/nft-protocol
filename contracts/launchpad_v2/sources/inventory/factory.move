@@ -116,7 +116,7 @@ module ob_launchpad_v2::factory {
             let rel_index = sized_vec::remove(nft_idxs, i);
 
             let index = math::divide_and_round_up(
-                factory.total_deposited * rel_index,
+                (factory.total_deposited - 1) * rel_index,
                 10_000
             );
 

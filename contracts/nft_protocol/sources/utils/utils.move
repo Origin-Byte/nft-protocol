@@ -48,6 +48,35 @@ module nft_protocol::utils {
         set
     }
 
+    public fun vec_map_entries<K: copy + drop, V: copy>(map: &VecMap<K, V>): vector<V> {
+        let keys = vec_map::keys(map);
+
+        let i = 0;
+        let n = vector::length(&keys);
+        let values = vector::empty();
+        while (i < n) {
+            let key = vector::borrow(&keys, i);
+            let value = vec_map::get(map, key);
+            vector::push_back(&mut values, *value);
+            i = i + 1;
+        };
+        values
+    }
+
+    public fun sum_vector(vec: vector<u64>): u64 {
+        let len = vector::length(&vec);
+
+        let result = 0;
+        while (len > 0) {
+            let val = vector::pop_back(&mut vec);
+            result = result + val;
+
+            len = len - 1;
+        };
+
+        result
+    }
+
     public fun insert_vec_in_vec_set<T: store + copy + drop>(
         set: &mut VecSet<T>,
         vec: vector<T>,

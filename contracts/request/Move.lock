@@ -4,9 +4,27 @@
 version = 0
 
 dependencies = [
+  { name = "Allowlist" },
+  { name = "Authlist" },
   { name = "Originmate" },
   { name = "Sui" },
   { name = "Witness" },
+]
+
+[[move.package]]
+name = "Allowlist"
+source = { local = "contracts/allowlist" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
+name = "Authlist"
+source = { local = "contracts/authlist" }
+
+dependencies = [
+  { name = "Sui" },
 ]
 
 [[move.package]]
