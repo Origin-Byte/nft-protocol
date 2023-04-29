@@ -14,8 +14,8 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.33.0
 rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 
-[dependencies.Witness]
-local = "./../witness"
+[dependencies.Permissions]
+local = "./../permissions"
 
 [addresses]
 ob_request = "0xa37b19d59b762ff0b03a790b48b918cb3b194eec795f0af212e1c199070efabd"

@@ -1,7 +1,7 @@
 [package]
-name = "Witness"
+name = "Permissions"
 version = "1.0.0"
-published-at = "0xe913f2024aeeec54cc2e8951e8ef01e44fbfd639cca992e07acc275118e8ccae"
+published-at = "0x"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -13,4 +13,4 @@ rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
 local = "./../utils"
 
 [addresses]
-ob_witness = "0xe913f2024aeeec54cc2e8951e8ef01e44fbfd639cca992e07acc275118e8ccae"
+ob_permissions = "0x"

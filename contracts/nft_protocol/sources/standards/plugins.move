@@ -15,7 +15,7 @@ module nft_protocol::plugins {
     use sui::dynamic_field as df;
 
     use ob_utils::utils::{marker, Marker};
-    use ob_witness::witness::{
+    use ob_permissions::witness::{
         Self, WitnessGenerator, Witness as DelegatedWitness,
     };
 

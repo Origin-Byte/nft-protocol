@@ -16,7 +16,7 @@ module nft_protocol::test_p2p {
     use ob_kiosk::ob_kiosk;
 
     use nft_protocol::p2p_list;
-    use nft_protocol::originbyte;
+    use nft_protocol::nft_protocol;
 
     const CREATOR: address = @0xA1C04;
     const USER: address = @0xA1C067;
@@ -49,7 +49,7 @@ module nft_protocol::test_p2p {
     fun transfer() {
         let scenario = test_scenario::begin(CREATOR);
 
-        originbyte::init_authlist(ctx(&mut scenario));
+        nft_protocol::init_authlist(ctx(&mut scenario));
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         // Setup policy
@@ -88,7 +88,7 @@ module nft_protocol::test_p2p {
         let request = p2p_list::transfer(
             &authlist,
             &authlist::address_to_bytes(
-                originbyte::permissionless_public_key(),
+                nft_protocol::permissionless_public_key(),
             ),
             nft_id,
             &mut kiosk_0,

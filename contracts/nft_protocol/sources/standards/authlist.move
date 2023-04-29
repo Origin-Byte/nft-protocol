@@ -12,7 +12,7 @@ module nft_protocol::p2p_list_domain {
 
     use nft_protocol::collection::{Self, Collection};
     use ob_utils::utils::{marker, Marker};
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::Witness as DelegatedWitness;
 
     use ob_authlist::authlist::Authlist;
 

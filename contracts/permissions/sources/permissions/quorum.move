@@ -54,7 +54,7 @@
 /// and minority rules;
 /// - Implement different access-permission schemes (they can bypass
 /// the Admin-Member model and add their own model)
-module nft_protocol::quorum {
+module ob_permissions::quorum {
     // TODO: Function for poping_caps with vote
     // TODO: Generalise voting
     use std::type_name::{Self, TypeName};
@@ -67,8 +67,6 @@ module nft_protocol::quorum {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
-
-    use nft_protocol::mint_cap::MintCap;
 
     const ENOT_AN_ADMIN: u64 = 1;
     const ENOT_A_MEMBER: u64 = 2;
@@ -383,36 +381,6 @@ module nft_protocol::quorum {
     ) {
         assert_admin<F>(quorum, ctx);
         vec_set::remove(&mut quorum.members, &member);
-    }
-
-    // === MintCap Helper Functions ===
-
-    // TODO: Does it make sense to provide specific functions for MintCap?
-    // Or shall we stick to only the generics?
-
-    public fun insert_mint_cap<F, C>(
-        quorum: &mut Quorum<F>,
-        mint_cap: MintCap<C>,
-        admin_only: bool,
-        ctx: &mut TxContext,
-    ) {
-        insert_cap(quorum, mint_cap, admin_only, ctx);
-    }
-
-    public fun borrow_mint_cap<F, C>(
-        quorum: &mut Quorum<F>,
-        ctx: &mut TxContext,
-    ): (MintCap<C>, ReturnReceipt<F, MintCap<C>>) {
-        borrow_cap(quorum, ctx)
-    }
-
-    public fun return_mint_cap<F, C>(
-        quorum: &mut Quorum<F>,
-        mint_cap: MintCap<C>,
-        receipt: ReturnReceipt<F, MintCap<C>>,
-        ctx: &mut TxContext,
-    ) {
-        return_cap(quorum, mint_cap, receipt, ctx)
     }
 
     // === Object Functions ===

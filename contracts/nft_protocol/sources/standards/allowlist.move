@@ -12,7 +12,7 @@ module nft_protocol::transfer_allowlist_domain {
 
     use nft_protocol::collection::{Self, Collection};
     use ob_utils::utils::{marker, Marker};
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::Witness as DelegatedWitness;
 
     use ob_allowlist::allowlist::Allowlist;
 

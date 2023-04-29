@@ -45,7 +45,7 @@ module ob_request::transfer_request {
     use sui::transfer::public_transfer;
     use sui::tx_context::TxContext;
 
-    use ob_witness::witness::{Witness as DelegatedWitness};
+    use ob_permissions::witness::{Witness as DelegatedWitness};
 
     // === Errors ===
 

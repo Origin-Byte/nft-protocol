@@ -1,4 +1,4 @@
-module nft_protocol::originbyte {
+module nft_protocol::nft_protocol {
     use sui::package;
     use sui::transfer;
     use sui::object::{Self, ID};
@@ -11,9 +11,9 @@ module nft_protocol::originbyte {
 
     use ob_authlist::authlist;
 
-    struct ORIGINBYTE has drop {}
+    struct NFT_PROTOCOL has drop {}
 
-    fun init(otw: ORIGINBYTE, ctx: &mut TxContext) {
+    fun init(otw: NFT_PROTOCOL, ctx: &mut TxContext) {
         let pub = package::claim(otw, ctx);
         init_allowlist(ctx);
         init_authlist(ctx);

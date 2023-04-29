@@ -9,5 +9,8 @@ subdir = "crates/sui-framework/packages/sui-framework"
 # testnet-0.33.0
 rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
 
+[dependencies.Permissions]
+local = "./../permissions"
+
 [addresses]
 ob_allowlist = "0x458d24cec51b0fe63f9c541b14bee9d4e74a6a912382398d9a464554ea511922"

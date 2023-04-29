@@ -1,6 +1,6 @@
 /// Module of the `WitnessGenerator` used for generating authenticating
 /// witnesses on demand.
-module ob_witness::witness {
+module ob_permissions::witness {
     use sui::package::Publisher;
 
     use ob_utils::utils;

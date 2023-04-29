@@ -45,7 +45,7 @@ module examples::testract {
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self};
     use ob_allowlist::allowlist::{Self, Allowlist};
-    use ob_witness::witness::{Self, Witness as DelegatedWitness};
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
 
     /// OTW for constructing publisher
     struct TESTRACT has drop {}

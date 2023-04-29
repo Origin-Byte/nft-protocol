@@ -22,7 +22,7 @@ module nft_protocol::royalty {
     use sui::vec_set::{Self, VecSet};
 
     use ob_utils::utils::{Self, marker, Marker};
-    use ob_witness::witness;
+    use ob_permissions::witness;
 
     use nft_protocol::collection::{Self, Collection};
 

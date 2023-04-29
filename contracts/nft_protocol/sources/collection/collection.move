@@ -9,17 +9,19 @@
 module nft_protocol::collection {
     use std::type_name::{Self, TypeName};
     use std::option::Option;
+    use std::string;
 
     use sui::event;
+    use sui::display::{Self, Display};
     use sui::transfer;
     use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
 
-    use ob_witness::witness::Witness as DelegatedWitness;
-    use ob_utils::utils::{Self, marker, Marker};
-
     use nft_protocol::mint_cap::{Self, MintCap};
+    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_utils::utils::{Self, marker, Marker};
+    use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
 
     /// Domain not defined
     ///
@@ -30,6 +32,8 @@ module nft_protocol::collection {
     ///
     /// Call `collection::borrow` to borrow domain
     const EExistingDomain: u64 = 2;
+
+    struct Witness has drop {}
 
     /// NFT `Collection` object
     ///
@@ -251,6 +255,22 @@ module nft_protocol::collection {
         collection: &Collection<C>
     ) {
         assert!(!has_domain<C, Domain>(collection), EExistingDomain);
+    }
+
+    // === Display standard ===
+
+    /// Creates a new `Display` with some default settings.
+    public fun new_display<T: key + store>(
+        _witness: DelegatedWitness<T>,
+        pub: &FrozenPublisher,
+        ctx: &mut TxContext,
+    ): Display<Collection<T>> {
+        let display =
+            frozen_publisher::new_display<Witness, Collection<T>>(Witness {}, pub, ctx);
+
+        display::add(&mut display, string::utf8(b"type"), string::utf8(b"Collection"));
+
+        display
     }
 
     // === Test-Only ===

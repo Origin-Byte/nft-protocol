@@ -13,13 +13,18 @@
 /// `UnregulatedMintCap` is that they may not be used to further delegate more
 /// mint capabilities.
 module nft_protocol::mint_pass {
-    use sui::tx_context::TxContext;
-    use sui::object::{Self, UID};
+    use std::string;
+
     use sui::bcs;
     use sui::dynamic_field as df;
+    use sui::object::{Self, UID};
+    use sui::tx_context::TxContext;
+    use sui::display::{Self, Display};
 
     use nft_protocol::mint_cap::{Self, MintCap};
     use ob_utils::utils_supply::{Self, Supply};
+    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
 
     /// `MintCap` is unregulated when expected regulated
     const EMINT_CAP_UNREGULATED: u64 = 1;
@@ -29,6 +34,8 @@ module nft_protocol::mint_pass {
 
     /// `MintCap` is regulated when expected unregulated
     const EMINT_CAP_SUPPLY_FROZEN: u64 = 2;
+
+    struct Witness has drop {}
 
     // === MintCap ===
 
@@ -176,5 +183,21 @@ module nft_protocol::mint_pass {
         let MintPass { id, supply: _ } = mint_pass;
 
         object::delete(id);
+    }
+
+    // === Display standard ===
+
+    /// Creates a new `Display` with some default settings.
+    public fun new_display<T: key + store>(
+        _witness: DelegatedWitness<T>,
+        pub: &FrozenPublisher,
+        ctx: &mut TxContext,
+    ): Display<MintPass<T>> {
+        let display =
+            frozen_publisher::new_display<Witness, MintPass<T>>(Witness {}, pub, ctx);
+
+        display::add(&mut display, string::utf8(b"type"), string::utf8(b"MintPass"));
+
+        display
     }
 }

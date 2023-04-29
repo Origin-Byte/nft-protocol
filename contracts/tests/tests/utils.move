@@ -11,7 +11,7 @@ module ob_tests::test_utils {
     use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use sui::test_scenario::{Scenario, ctx};
 
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::Witness as DelegatedWitness;
     use liquidity_layer::bidding;
     use liquidity_layer::orderbook;
     use nft_protocol::mint_cap::MintCap;

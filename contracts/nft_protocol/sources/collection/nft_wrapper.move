@@ -14,14 +14,15 @@ module nft_protocol::nft {
 
     use sui::url::Url;
     use sui::event;
+    use sui::display::Display;
     use sui::dynamic_field as df;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::TxContext;
 
     use nft_protocol::mint_cap::{Self, MintCap};
-
-    use ob_witness::witness::{Witness as DelegatedWitness};
     use ob_utils::utils::{marker, Marker};
+    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
 
     /// Domain not defined
     ///
@@ -263,6 +264,20 @@ module nft_protocol::nft {
     /// Panics if domain exists on `Nft`.
     public fun assert_no_domain<C, Domain: store>(nft: &Nft<C>) {
         assert!(!has_domain<C, Domain>(nft), EExistingDomain);
+    }
+
+    // === Display standard ===
+
+    /// Creates a new `Display` with some default settings.
+    public fun new_display<C>(
+        _witness: DelegatedWitness<C>,
+        pub: &FrozenPublisher,
+        ctx: &mut TxContext,
+    ): Display<Nft<C>> {
+        let display =
+            frozen_publisher::new_display<Witness, Nft<C>>(Witness {}, pub, ctx);
+
+        display
     }
 
     // === Test helpers ===

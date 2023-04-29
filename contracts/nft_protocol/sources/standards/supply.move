@@ -12,7 +12,7 @@
 module nft_protocol::supply {
     use ob_utils::utils::{marker, Marker};
     use ob_utils::utils_supply;
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::Witness as DelegatedWitness;
 
     use sui::object::UID;
     use sui::dynamic_field as df;

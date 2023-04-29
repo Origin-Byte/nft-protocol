@@ -7,7 +7,7 @@ module nft_protocol::wallets {
     use sui::vec_set::{Self, VecSet};
 
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::Witness as DelegatedWitness;
 
     // === Errors ===
 

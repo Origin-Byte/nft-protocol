@@ -14,14 +14,17 @@
 /// mint capabilities.
 module nft_protocol::mint_cap {
     use std::option::{Self, Option};
+    use std::string;
 
     use sui::types;
+    use sui::display::{Self, Display};
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
     use ob_utils::utils_supply::{Self, Supply};
     use ob_utils::utils;
-
+    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
 
     /// `MintCap` is unlimited when expected limited
     const EMintCapunlimited: u64 = 1;
@@ -32,6 +35,8 @@ module nft_protocol::mint_cap {
     /// Expected one-time witness as `OTW` type paremeter to initialize
     /// `MintCap`
     const ENotOneTimeWitness: u64 = 3;
+
+    struct Witness has drop {}
 
     /// `MintCap<T>` delegates the capability of it's owner to mint `T`
     struct MintCap<phantom T> has key, store {
@@ -227,6 +232,22 @@ module nft_protocol::mint_cap {
     /// Panics if `MintCap` is limited.
     public fun assert_unlimited<T>(mint_cap: &MintCap<T>) {
         assert!(option::is_none(&mint_cap.supply), EMintCaplimited)
+    }
+
+    // === Display standard ===
+
+    /// Creates a new `Display` with some default settings.
+    public fun new_display<T: key + store>(
+        _witness: DelegatedWitness<T>,
+        pub: &FrozenPublisher,
+        ctx: &mut TxContext,
+    ): Display<MintCap<T>> {
+        let display =
+            frozen_publisher::new_display<Witness, MintCap<T>>(Witness {}, pub, ctx);
+
+        display::add(&mut display, string::utf8(b"type"), string::utf8(b"MintCap"));
+
+        display
     }
 
     // === Test-Only ===
