@@ -3,7 +3,7 @@ module ob_tests::test_fixed_bid {
     use std::type_name;
     use std::option;
     use std::vector;
-    use std::debug;
+    // use std::debug;
     // use std::string::utf8;
 
     use sui::test_scenario::{Self, ctx};
@@ -560,7 +560,6 @@ module ob_tests::test_fixed_bid {
 
         // Assert correct data in NftCertificate
         assert!(certificate::venue_id(&cert) == object::id(&venue), 0);
-        debug::print(&certificate::quantity(&cert));
         assert!(certificate::quantity(&cert) == nfts_to_buy, 0);
         assert!(certificate::nft_map(&cert) == &vec_map::empty<ID, SizedVec<u64>>(), 0);
         assert!(certificate::buyer(&cert) == BUYER, 0);

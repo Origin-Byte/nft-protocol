@@ -7,29 +7,28 @@
 module ob_tests::test_ob_kiok_to_kiosk_trade {
     use std::option;
 
+    use sui::coin;
+    use sui::object;
+    use sui::kiosk;
+    use sui::transfer;
+    use sui::sui::SUI;
+    use sui::kiosk::Kiosk;
+    use sui::test_scenario::{Self, ctx};
+    use sui::transfer_policy::{Self, TransferPolicy};
+
     // TODO:
     // fun it_fails_if_buyer_safe_eq_seller_safe()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
-    use nft_protocol::transfer_allowlist;
-    use liquidity_layer::orderbook::{Self, Orderbook};
-    use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
-    use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
-
-    use sui::coin;
-    use sui::transfer_policy::{Self, TransferPolicy};
-    use sui::sui::SUI;
-    use sui::object;
-    use sui::kiosk;
-    use sui::kiosk::Kiosk;
-    use sui::transfer;
-    use sui::test_scenario::{Self, ctx};
-
     use ob_witness::witness;
     use originmate::typed_id;
-    use ob_allowlist::allowlist::{Self, Allowlist};
-    use ob_kiosk::ob_kiosk::{Self, OwnerToken};
     use ob_request::transfer_request;
+    use ob_kiosk::ob_kiosk::{Self, OwnerToken};
+    use ob_allowlist::allowlist::{Self, Allowlist};
+    use liquidity_layer::orderbook::{Self, Orderbook};
+    use nft_protocol::transfer_allowlist;
+    use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
+    use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
 
     const OFFER_SUI: u64 = 100;
 
