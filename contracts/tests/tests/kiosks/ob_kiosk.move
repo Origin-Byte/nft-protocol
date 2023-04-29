@@ -313,6 +313,8 @@ module ob_tests::test_ob_kiosk {
         // Transfer NFT and get
         let rand_entity = object::new(ctx(&mut scenario));
 
+        test_scenario::next_tx(&mut scenario, fake_address());
+
         let request = ob_kiosk::transfer_delegated<Foo>(
             &mut kiosk,
             &mut buyer_kiosk,
@@ -848,7 +850,7 @@ module ob_tests::test_ob_kiosk {
         let rand_entity = object::new(ctx(&mut scenario));
 
         // 5. Create TransferPolicy
-        test_scenario::next_tx(&mut scenario, kiosk_owner);
+        test_scenario::next_tx(&mut scenario, fake_address());
 
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_withdrawable_policy(&publisher, ctx(&mut scenario));

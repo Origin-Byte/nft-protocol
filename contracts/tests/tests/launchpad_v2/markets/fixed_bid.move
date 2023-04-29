@@ -2,7 +2,7 @@
 module ob_tests::test_fixed_bid {
     use std::type_name;
     use std::option;
-    // use std::vector;
+    use std::vector;
     // use std::debug;
     // use std::string::utf8;
 
@@ -18,6 +18,7 @@ module ob_tests::test_fixed_bid {
     use ob_launchpad_v2::fixed_bid::{Self, Witness as FixedBidWit};
     use ob_launchpad_v2::warehouse::{Self, Warehouse, Witness as WarehouseWit};
     use ob_launchpad_v2::pseudorand_redeem::{Self as pseudorand, Witness as PseudoRandomWit};
+    use ob_launchpad_v2::sequential::{Self, Witness as SequentialWit};
     use ob_tests::test_utils::{Self as utils, Foo};
     use ob_launchpad_v2::certificate;
     use ob_kiosk::ob_kiosk;
@@ -29,7 +30,7 @@ module ob_tests::test_fixed_bid {
     const BUYER: address = @0xA1C10;
 
     #[test]
-    public fun buy_1_nft_fixed_bid() {
+    public fun buy_1_nft_pseudorand() {
         let scenario = test_scenario::begin(MARKETPLACE);
 
         // 1. Create a Launchpad Listing
@@ -54,14 +55,18 @@ module ob_tests::test_fixed_bid {
         pseudorand::add_inventory_method(&launch_cap, &mut venue);
         pseudorand::add_nft_method(&launch_cap, &mut venue);
 
+        let supply = 1_000;
+        let nfts_to_buy = 1;
+        let max_buy = 1;
+        let price = 10;
+
         // 3. Add market module
-        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, 10, 1, ctx(&mut scenario));
+        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
         // 4. Create warehouse
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // 5. Mint NFTs to the Warehouse
-        let supply = 1_000;
         utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
         warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
 
@@ -75,27 +80,27 @@ module ob_tests::test_fixed_bid {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let venue = test_scenario::take_shared<Venue>(&scenario);
-        let coin = coin::mint_for_testing<SUI>(10 * supply, ctx(&mut scenario));
+        let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
         let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
             &mut venue,
             &mut coin,
-            1,
+            nfts_to_buy,
             req,
             ctx(&mut scenario),
         );
 
         // Assert correct data in NftCertificate
         assert!(certificate::venue_id(&cert) == object::id(&venue), 0);
-        assert!(certificate::quantity(&cert) == 1, 0);
+        assert!(certificate::quantity(&cert) == nfts_to_buy, 0);
         assert!(certificate::nft_map(&cert) == &vec_map::empty<ID, SizedVec<u64>>(), 0);
         assert!(certificate::buyer(&cert) == BUYER, 0);
         assert!(certificate::inventory_type(&cert) == type_name::get<WarehouseWit>(), 0);
 
         // Assert correct update of Venue Supply
         assert!(supply::get_max(option::borrow(venue::get_supply(&venue))) == supply, 0);
-        assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == 1, 0);
+        assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == nfts_to_buy, 0);
 
         // The NFT has not been withdrawn from the inventory and therefore the supply
         // registered here is still 1_000
@@ -106,7 +111,7 @@ module ob_tests::test_fixed_bid {
 
         // Once the Inventory has been assigned, that's when we decrease the available supply
         // on the bookeeping
-        assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply - 1, 0);
+        assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply - nfts_to_buy, 0);
 
         // Since the redeem method is pseudo-random we have to call another transaction
         // to make sure we choose the correct warehouse
@@ -118,7 +123,7 @@ module ob_tests::test_fixed_bid {
         let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
         warehouse::redeem_nft_to_kiosk(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
 
-        certificate::consume_for_test(cert);
+        certificate::consume_for_test(cert);// TODO replace
         coin::burn_for_testing(coin);
 
         test_scenario::return_shared(venue);
@@ -129,7 +134,7 @@ module ob_tests::test_fixed_bid {
     }
 
     #[test]
-    public fun buy_all_nfts_fixed_bid() {
+    public fun buy_all_nfts_pseudo_rand() {
         let scenario = test_scenario::begin(MARKETPLACE);
 
         // 1. Create a Launchpad Listing
@@ -154,14 +159,18 @@ module ob_tests::test_fixed_bid {
         pseudorand::add_inventory_method(&launch_cap, &mut venue);
         pseudorand::add_nft_method(&launch_cap, &mut venue);
 
+        let supply = 1_000;
+        let nfts_to_buy = 1_000;
+        let max_buy = 1_000;
+        let price = 10;
+
         // 3. Add market module
-        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, 10, 1_000, ctx(&mut scenario));
+        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
         // 4. Create warehouse
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // 5. Mint NFTs to the Warehouse
-        let supply = 1_000;
         utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
         warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
 
@@ -175,27 +184,27 @@ module ob_tests::test_fixed_bid {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let venue = test_scenario::take_shared<Venue>(&scenario);
-        let coin = coin::mint_for_testing<SUI>(10 * supply, ctx(&mut scenario));
+        let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
         let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
             &mut venue,
             &mut coin,
-            1_000,
+            nfts_to_buy,
             req,
             ctx(&mut scenario),
         );
 
         // Assert correct data in NftCertificate
         assert!(certificate::venue_id(&cert) == object::id(&venue), 0);
-        assert!(certificate::quantity(&cert) == 1_000, 0);
+        assert!(certificate::quantity(&cert) == nfts_to_buy, 0);
         assert!(certificate::nft_map(&cert) == &vec_map::empty<ID, SizedVec<u64>>(), 0);
         assert!(certificate::buyer(&cert) == BUYER, 0);
         assert!(certificate::inventory_type(&cert) == type_name::get<WarehouseWit>(), 0);
 
         // Assert correct update of Venue Supply
         assert!(supply::get_max(option::borrow(venue::get_supply(&venue))) == supply, 0);
-        assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == supply, 0);
+        assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == nfts_to_buy, 0);
 
         // The NFT has not been withdrawn from the inventory and therefore the supply
         // registered here is stil 1_000
@@ -219,7 +228,7 @@ module ob_tests::test_fixed_bid {
         warehouse::redeem_nft_to_kiosk(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
 
 
-        certificate::consume_for_test(cert);
+        certificate::consume_for_test(cert);// TODO replace
         coin::burn_for_testing(coin);
 
         test_scenario::return_shared(venue);
@@ -256,14 +265,19 @@ module ob_tests::test_fixed_bid {
         pseudorand::add_inventory_method(&launch_cap, &mut venue);
         pseudorand::add_nft_method(&launch_cap, &mut venue);
 
+        let supply = 20;
+        let nfts_to_buy = 20;
+        let max_buy = 10;
+        let price = 10;
+
         // 3. Add market module
-        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, 10, 10, ctx(&mut scenario));
+        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
         // 4. Create warehouse
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // 5. Mint NFTs to the Warehouse
-        let supply = 20;
+        // let supply = 20;
         utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
         warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
 
@@ -275,19 +289,19 @@ module ob_tests::test_fixed_bid {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let venue = test_scenario::take_shared<Venue>(&scenario);
-        let coin = coin::mint_for_testing<SUI>(10 * supply, ctx(&mut scenario));
+        let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
         let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
             &mut venue,
             &mut coin,
             // FAILS here becuase the max buy is set to 10
-            11,
+            nfts_to_buy,
             req,
             ctx(&mut scenario),
         );
 
-        certificate::consume_for_test(cert);
+        certificate::consume_for_test(cert);// TODO replace
         coin::burn_for_testing(coin);
 
         test_scenario::return_shared(venue);
@@ -322,14 +336,19 @@ module ob_tests::test_fixed_bid {
         pseudorand::add_inventory_method(&launch_cap, &mut venue);
         pseudorand::add_nft_method(&launch_cap, &mut venue);
 
+        let supply = 10;
+        let nfts_to_buy = 11;
+        let max_buy = 10;
+        let price = 10;
+
         // 3. Add market module
-        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, 10, 10, ctx(&mut scenario));
+        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
         // 4. Create warehouse
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // 5. Mint NFTs to the Warehouse
-        let supply = 10;
+        // let supply = 10;
         utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
         warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
 
@@ -341,23 +360,492 @@ module ob_tests::test_fixed_bid {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         let venue = test_scenario::take_shared<Venue>(&scenario);
-        let coin = coin::mint_for_testing<SUI>(10 * supply, ctx(&mut scenario));
+        let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
         let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
             &mut venue,
             &mut coin,
             // FAILS here because we are trying to buy 11 NFTs whilst tehre are only 10 available
-            11,
+            nfts_to_buy,
             req,
             ctx(&mut scenario),
         );
 
-        certificate::consume_for_test(cert);
+        certificate::consume_for_test(cert); // TODO replace
         coin::burn_for_testing(coin);
 
         test_scenario::return_shared(venue);
         transfer::public_transfer(launch_cap, MARKETPLACE);
         test_scenario::end(scenario);
     }
+
+    #[test]
+    public fun buy_nfts_fifo() {
+        let scenario = test_scenario::begin(MARKETPLACE);
+
+        // 1. Create a Launchpad Listing
+        let (listing, launch_cap) = launchpad::new(ctx(&mut scenario));
+
+        // 2. Create Sales Venue
+        let venue = venue::new(
+            &mut listing,
+            &launch_cap,
+            // Market type
+            type_name::get<FixedBidWit>(),
+            // Inventory Type
+            type_name::get<WarehouseWit>(),
+            // Inventory Retrieval Method
+            type_name::get<SequentialWit>(),
+            // NFT Retrieval Method
+            type_name::get<SequentialWit>(),
+            ctx(&mut scenario),
+        );
+
+        // Add redeem rules for Inventory and NFT choice
+        sequential::add_inventory_method(&launch_cap, &mut venue);
+        sequential::add_nft_method(&launch_cap, &mut venue);
+
+        let supply = 10;
+        let nfts_to_buy = 5;
+        let max_buy = 5;
+        let price = 10;
+
+        // 3. Add market module
+        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
+
+        // 4. Create warehouse
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+        // 5. Mint NFTs to the Warehouse
+        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+        let warehouse_id = object::id(&warehouse);
+
+        transfer::public_share_object(warehouse);
+        transfer::public_share_object(listing);
+        transfer::public_share_object(venue);
+
+        // 6. Buy NFT
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+        let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
+        let req = venue::request_access(&venue, ctx(&mut scenario));
+
+        let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
+            &mut venue,
+            &mut coin,
+            nfts_to_buy,
+            req,
+            ctx(&mut scenario),
+        );
+
+        // Assert correct data in NftCertificate
+        assert!(certificate::venue_id(&cert) == object::id(&venue), 0);
+        assert!(certificate::quantity(&cert) == nfts_to_buy, 0);
+        assert!(certificate::nft_map(&cert) == &vec_map::empty<ID, SizedVec<u64>>(), 0);
+        assert!(certificate::buyer(&cert) == BUYER, 0);
+        assert!(certificate::inventory_type(&cert) == type_name::get<WarehouseWit>(), 0);
+
+        // Assert correct update of Venue Supply
+        assert!(supply::get_max(option::borrow(venue::get_supply(&venue))) == supply, 0);
+        assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == nfts_to_buy, 0);
+
+        // The NFT has not been withdrawn from the inventory and therefore the supply
+        // registered here is stil 10
+        assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply, 0);
+
+        sequential::assign_inventory(&mut venue, &mut cert);
+        sequential::assign_nft(&mut venue, &mut cert);
+
+        assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply - nfts_to_buy, 0);
+
+        // Since the redeem method is pseudo-random we have to call another transaction
+        // to make sure we choose the correct warehouse
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        // Redeem NFT from the warehouse
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let nfts = warehouse::test_redeem_nft(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
+
+        let len = vector::length(&nfts);
+        let i = 5;
+
+        while (len > 0) {
+            let nft = vector::borrow(&nfts, len - 1);
+
+            // For the FIFO method, we expect to get the first 5 NFTs deposited in the Warehouse
+            // which have index 1 to 5
+            assert!(utils::index(nft) == i, 0);
+
+            i = i - 1;
+            len = len - 1;
+        };
+
+        ob_kiosk::deposit_batch(&mut buyer_kiosk, nfts, ctx(&mut scenario));
+
+        certificate::consume_for_test(cert);// TODO replace
+        coin::burn_for_testing(coin);
+
+        test_scenario::return_shared(venue);
+        test_scenario::return_shared(warehouse);
+        transfer::public_transfer(launch_cap, MARKETPLACE);
+        transfer::public_share_object(buyer_kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun buy_all_nfts_fifo() {
+        let scenario = test_scenario::begin(MARKETPLACE);
+
+        // 1. Create a Launchpad Listing
+        let (listing, launch_cap) = launchpad::new(ctx(&mut scenario));
+
+        // 2. Create Sales Venue
+        let venue = venue::new(
+            &mut listing,
+            &launch_cap,
+            // Market type
+            type_name::get<FixedBidWit>(),
+            // Inventory Type
+            type_name::get<WarehouseWit>(),
+            // Inventory Retrieval Method
+            type_name::get<SequentialWit>(),
+            // NFT Retrieval Method
+            type_name::get<SequentialWit>(),
+            ctx(&mut scenario),
+        );
+
+        // Add redeem rules for Inventory and NFT choice
+        sequential::add_inventory_method(&launch_cap, &mut venue);
+        sequential::add_nft_method(&launch_cap, &mut venue);
+
+        let supply = 10;
+        let nfts_to_buy = 10;
+        let max_buy = 10;
+        let price = 10;
+
+        // 3. Add market module
+        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
+
+        // 4. Create warehouse
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+        // 5. Mint NFTs to the Warehouse
+        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+        let warehouse_id = object::id(&warehouse);
+
+        transfer::public_share_object(warehouse);
+        transfer::public_share_object(listing);
+        transfer::public_share_object(venue);
+
+        // 6. Buy NFT
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+        let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
+        let req = venue::request_access(&venue, ctx(&mut scenario));
+
+        let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
+            &mut venue,
+            &mut coin,
+            nfts_to_buy,
+            req,
+            ctx(&mut scenario),
+        );
+
+        // Assert correct data in NftCertificate
+        assert!(certificate::venue_id(&cert) == object::id(&venue), 0);
+        assert!(certificate::quantity(&cert) == nfts_to_buy, 0);
+        assert!(certificate::nft_map(&cert) == &vec_map::empty<ID, SizedVec<u64>>(), 0);
+        assert!(certificate::buyer(&cert) == BUYER, 0);
+        assert!(certificate::inventory_type(&cert) == type_name::get<WarehouseWit>(), 0);
+
+        // Assert correct update of Venue Supply
+        assert!(supply::get_max(option::borrow(venue::get_supply(&venue))) == supply, 0);
+        assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == nfts_to_buy, 0);
+
+        // The NFT has not been withdrawn from the inventory and therefore the supply
+        // registered here is stil 10
+        assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply, 0);
+
+        sequential::assign_inventory(&mut venue, &mut cert);
+        sequential::assign_nft(&mut venue, &mut cert);
+
+        assert!(!vec_map::contains(venue::get_invetories(&venue), &warehouse_id), 0);
+
+        // Since the redeem method is pseudo-random we have to call another transaction
+        // to make sure we choose the correct warehouse
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        // Redeem NFT from the warehouse
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let nfts = warehouse::test_redeem_nft(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
+
+        let len = vector::length(&nfts);
+        let i = 10;
+
+        while (len > 0) {
+            let nft = vector::borrow(&nfts, len - 1);
+
+            // For the FIFO method, we expect to get the first 5 NFTs deposited in the Warehouse
+            // which have index 1 to 5
+            assert!(utils::index(nft) == i, 0);
+
+            i = i - 1;
+            len = len - 1;
+        };
+
+        ob_kiosk::deposit_batch(&mut buyer_kiosk, nfts, ctx(&mut scenario));
+
+        certificate::consume_for_test(cert);// TODO replace
+        coin::burn_for_testing(coin);
+
+        test_scenario::return_shared(venue);
+        test_scenario::return_shared(warehouse);
+        transfer::public_transfer(launch_cap, MARKETPLACE);
+        transfer::public_share_object(buyer_kiosk);
+        test_scenario::end(scenario);
+    }
+
+    // #[test]
+    // public fun buy_nfts_lifo() {
+    //     let scenario = test_scenario::begin(MARKETPLACE);
+
+    //     // 1. Create a Launchpad Listing
+    //     let (listing, launch_cap) = launchpad::new(ctx(&mut scenario));
+
+    //     // 2. Create Sales Venue
+    //     let venue = venue::new(
+    //         &mut listing,
+    //         &launch_cap,
+    //         // Market type
+    //         type_name::get<FixedBidWit>(),
+    //         // Inventory Type
+    //         type_name::get<WarehouseWit>(),
+    //         // Inventory Retrieval Method
+    //         type_name::get<SequentialWit>(),
+    //         // NFT Retrieval Method
+    //         type_name::get<SequentialWit>(),
+    //         ctx(&mut scenario),
+    //     );
+
+    //     // Add redeem rules for Inventory and NFT choice
+    //     sequential::add_inventory_method(&launch_cap, &mut venue);
+    //     sequential::add_nft_method(&launch_cap, &mut venue);
+
+    //     let supply = 10;
+    //     let nfts_to_buy = 5;
+    //     let max_buy = 5;
+    //     let price = 10;
+
+    //     // 3. Add market module
+    //     fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
+
+    //     // 4. Create warehouse
+    //     let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+    //     // 5. Mint NFTs to the Warehouse
+    //     utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+    //     warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+    //     let warehouse_id = object::id(&warehouse);
+
+    //     transfer::public_share_object(warehouse);
+    //     transfer::public_share_object(listing);
+    //     transfer::public_share_object(venue);
+
+    //     // 6. Buy NFT
+    //     test_scenario::next_tx(&mut scenario, BUYER);
+
+    //     let venue = test_scenario::take_shared<Venue>(&scenario);
+    //     let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
+    //     let req = venue::request_access(&venue, ctx(&mut scenario));
+
+    //     let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
+    //         &mut venue,
+    //         &mut coin,
+    //         nfts_to_buy,
+    //         req,
+    //         ctx(&mut scenario),
+    //     );
+
+    //     // Assert correct data in NftCertificate
+    //     assert!(certificate::venue_id(&cert) == object::id(&venue), 0);
+    //     assert!(certificate::quantity(&cert) == nfts_to_buy, 0);
+    //     assert!(certificate::nft_map(&cert) == &vec_map::empty<ID, SizedVec<u64>>(), 0);
+    //     assert!(certificate::buyer(&cert) == BUYER, 0);
+    //     assert!(certificate::inventory_type(&cert) == type_name::get<WarehouseWit>(), 0);
+
+    //     // Assert correct update of Venue Supply
+    //     assert!(supply::get_max(option::borrow(venue::get_supply(&venue))) == supply, 0);
+    //     assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == nfts_to_buy, 0);
+
+    //     // The NFT has not been withdrawn from the inventory and therefore the supply
+    //     // registered here is stil 10
+    //     assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply, 0);
+
+    //     sequential::assign_inventory(&mut venue, &mut cert);
+    //     sequential::assign_nft(&mut venue, &mut cert);
+
+    //     assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply - nfts_to_buy, 0);
+
+    //     // Since the redeem method is pseudo-random we have to call another transaction
+    //     // to make sure we choose the correct warehouse
+    //     test_scenario::next_tx(&mut scenario, BUYER);
+
+    //     // Redeem NFT from the warehouse
+    //     let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+    //     let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+    //     let nfts = warehouse::test_redeem_nft(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
+
+    //     let len = vector::length(&nfts);
+    //     let i = 5;
+
+    //     while (len > 0) {
+    //         let nft = vector::borrow(&nfts, len - 1);
+
+    //         // For the FIFO method, we expect to get the first 5 NFTs deposited in the Warehouse
+    //         // which have index 1 to 5
+    //         assert!(utils::index(nft) == i, 0);
+
+    //         i = i - 1;
+    //         len = len - 1;
+    //     };
+
+    //     ob_kiosk::deposit_batch(&mut buyer_kiosk, nfts, ctx(&mut scenario));
+
+    //     certificate::consume_for_test(cert);// TODO replace
+    //     coin::burn_for_testing(coin);
+
+    //     test_scenario::return_shared(venue);
+    //     test_scenario::return_shared(warehouse);
+    //     transfer::public_transfer(launch_cap, MARKETPLACE);
+    //     transfer::public_share_object(buyer_kiosk);
+    //     test_scenario::end(scenario);
+    // }
+
+    // #[test]
+    // public fun buy_all_nfts_lifo() {
+    //     let scenario = test_scenario::begin(MARKETPLACE);
+
+    //     // 1. Create a Launchpad Listing
+    //     let (listing, launch_cap) = launchpad::new(ctx(&mut scenario));
+
+    //     // 2. Create Sales Venue
+    //     let venue = venue::new(
+    //         &mut listing,
+    //         &launch_cap,
+    //         // Market type
+    //         type_name::get<FixedBidWit>(),
+    //         // Inventory Type
+    //         type_name::get<WarehouseWit>(),
+    //         // Inventory Retrieval Method
+    //         type_name::get<SequentialWit>(),
+    //         // NFT Retrieval Method
+    //         type_name::get<SequentialWit>(),
+    //         ctx(&mut scenario),
+    //     );
+
+    //     // Add redeem rules for Inventory and NFT choice
+    //     sequential::add_inventory_method(&launch_cap, &mut venue);
+    //     sequential::add_nft_method(&launch_cap, &mut venue);
+
+    //     let supply = 10;
+    //     let nfts_to_buy = 10;
+    //     let max_buy = 10;
+    //     let price = 10;
+
+    //     // 3. Add market module
+    //     fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
+
+    //     // 4. Create warehouse
+    //     let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+    //     // 5. Mint NFTs to the Warehouse
+    //     utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+    //     warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+    //     let warehouse_id = object::id(&warehouse);
+
+    //     transfer::public_share_object(warehouse);
+    //     transfer::public_share_object(listing);
+    //     transfer::public_share_object(venue);
+
+    //     // 6. Buy NFT
+    //     test_scenario::next_tx(&mut scenario, BUYER);
+
+    //     let venue = test_scenario::take_shared<Venue>(&scenario);
+    //     let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
+    //     let req = venue::request_access(&venue, ctx(&mut scenario));
+
+    //     let cert = fixed_bid::buy_nft_cert<Foo, SUI>(
+    //         &mut venue,
+    //         &mut coin,
+    //         nfts_to_buy,
+    //         req,
+    //         ctx(&mut scenario),
+    //     );
+
+    //     // Assert correct data in NftCertificate
+    //     assert!(certificate::venue_id(&cert) == object::id(&venue), 0);
+    //     debug::print(&certificate::quantity(&cert));
+    //     assert!(certificate::quantity(&cert) == nfts_to_buy, 0);
+    //     assert!(certificate::nft_map(&cert) == &vec_map::empty<ID, SizedVec<u64>>(), 0);
+    //     assert!(certificate::buyer(&cert) == BUYER, 0);
+    //     assert!(certificate::inventory_type(&cert) == type_name::get<WarehouseWit>(), 0);
+
+    //     // Assert correct update of Venue Supply
+    //     assert!(supply::get_max(option::borrow(venue::get_supply(&venue))) == supply, 0);
+    //     assert!(supply::get_current(option::borrow(venue::get_supply(&venue))) == nfts_to_buy, 0);
+
+    //     // The NFT has not been withdrawn from the inventory and therefore the supply
+    //     // registered here is stil 10
+    //     assert!(venue::get_inventory_supply(&venue, warehouse_id) == supply, 0);
+
+    //     sequential::assign_inventory(&mut venue, &mut cert);
+    //     sequential::assign_nft(&mut venue, &mut cert);
+
+    //     assert!(!vec_map::contains(venue::get_invetories(&venue), &warehouse_id), 0);
+
+    //     // Since the redeem method is pseudo-random we have to call another transaction
+    //     // to make sure we choose the correct warehouse
+    //     test_scenario::next_tx(&mut scenario, BUYER);
+
+    //     // Redeem NFT from the warehouse
+    //     let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+    //     let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+    //     let nfts = warehouse::test_redeem_nft(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
+
+    //     let len = vector::length(&nfts);
+    //     let i = 10;
+
+    //     while (len > 0) {
+    //         let nft = vector::borrow(&nfts, len - 1);
+
+    //         // For the FIFO method, we expect to get the first 5 NFTs deposited in the Warehouse
+    //         // which have index 1 to 5
+    //         assert!(utils::index(nft) == i, 0);
+
+    //         i = i - 1;
+    //         len = len - 1;
+    //     };
+
+    //     ob_kiosk::deposit_batch(&mut buyer_kiosk, nfts, ctx(&mut scenario));
+
+    //     certificate::consume_for_test(cert);// TODO replace
+    //     coin::burn_for_testing(coin);
+
+    //     test_scenario::return_shared(venue);
+    //     test_scenario::return_shared(warehouse);
+    //     transfer::public_transfer(launch_cap, MARKETPLACE);
+    //     transfer::public_share_object(buyer_kiosk);
+    //     test_scenario::end(scenario);
+    // }
 }

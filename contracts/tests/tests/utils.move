@@ -54,6 +54,11 @@ module ob_tests::test_utils {
     public fun fake_address(): address { FAKE_ADDRESS }
 
     #[test_only]
+    public fun index(foo: &Foo): u64 {
+        foo.index
+    }
+
+    #[test_only]
     public fun init_collection_foo(
         ctx: &mut TxContext
     ): (Collection<Foo>, MintCap<Foo>) {

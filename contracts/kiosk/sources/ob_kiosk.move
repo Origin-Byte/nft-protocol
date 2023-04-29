@@ -382,7 +382,7 @@ module ob_kiosk::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        check_entity_and_pop_ref(source, uid_to_address(entity_id), nft_id);
+        check_entity_and_pop_ref(source, uid_to_address(entity_id), nft_id, ctx);
 
         let cap = pop_cap(source);
         kiosk::list<T>(source, &cap, nft_id, 0);
@@ -534,7 +534,7 @@ module ob_kiosk::ob_kiosk {
         price: u64,
         ctx: &mut TxContext,
     ): (T, TransferRequest<T>) {
-        let nft = get_nft(self, nft_id, originator);
+        let nft = get_nft(self, nft_id, originator, ctx);
 
         (nft, transfer_request::new(nft_id, originator, object::id(self), price, ctx))
     }
@@ -546,7 +546,7 @@ module ob_kiosk::ob_kiosk {
         originator: address,
         ctx: &mut TxContext,
     ): (T, WithdrawRequest<T>) {
-        let nft = get_nft(self, nft_id, originator);
+        let nft = get_nft(self, nft_id, originator, ctx);
 
         (nft, withdraw_request::new(originator, ctx))
     }
@@ -555,8 +555,9 @@ module ob_kiosk::ob_kiosk {
         self: &mut Kiosk,
         nft_id: ID,
         originator: address,
+        ctx: &mut TxContext,
     ): T {
-        check_entity_and_pop_ref(self, originator, nft_id);
+        check_entity_and_pop_ref(self, originator, nft_id, ctx);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
@@ -835,7 +836,7 @@ module ob_kiosk::ob_kiosk {
     }
 
     fun check_entity_and_pop_ref(
-        self: &mut Kiosk, entity: address, nft_id: ID
+        self: &mut Kiosk, entity: address, nft_id: ID, ctx: &mut TxContext
     ) {
         let refs = nft_refs_mut(self);
         // NFT is being transferred - destroy the ref
@@ -844,7 +845,7 @@ module ob_kiosk::ob_kiosk {
         // OR
         // entity MUST be included in the map
         assert!(
-            entity == kiosk::owner(self) || vec_set::contains(&ref.auths, &entity),
+            sender(ctx) == kiosk::owner(self) || vec_set::contains(&ref.auths, &entity),
             ENotAuthorized,
         );
     }
