@@ -7,8 +7,6 @@ module ob_launchpad_v2::factory {
     use sui::tx_context::TxContext;
     use sui::bcs::{Self, BCS};
     use sui::table_vec::{Self, TableVec};
-    use sui::transfer;
-    use sui::tx_context;
     use sui::vec_map;
 
     use nft_protocol::mint_pass::{Self, MintPass};
@@ -64,7 +62,7 @@ module ob_launchpad_v2::factory {
     ///
     /// Endpoint is unprotected and relies on safely obtaining a mutable
     /// reference to `Warehouse`.
-    public entry fun deposit_metadata<T: key + store>(
+    public fun deposit_metadata<T: key + store>(
         warehouse: &mut Factory<T>,
         metadata: vector<vector<u8>>,
     ) {
@@ -97,7 +95,7 @@ module ob_launchpad_v2::factory {
         factory: &mut Factory<T>,
         certificate: &mut NftCertificate,
         ctx: &mut TxContext,
-    ) {
+    ): vector<MintPass<T>> {
         certificate::assert_cert_buyer(certificate, ctx);
 
         let factory_id = object::id(factory);
@@ -109,9 +107,8 @@ module ob_launchpad_v2::factory {
 
         assert!(i > 0, EINVALID_CERTIFICATE);
 
-        let idxs = vector::empty();
+        let passes = vector::empty();
 
-        let j = 0;
         while (i > 0) {
             let rel_index = sized_vec::remove(nft_idxs, i);
 
@@ -120,24 +117,15 @@ module ob_launchpad_v2::factory {
                 10_000
             );
 
-            vector::push_back(&mut idxs, index);
+            let mint_pass = redeem_mint_pass_<T>(factory, index, ctx);
+            vector::push_back(&mut passes, mint_pass);
+
             i = i - 1;
-            j = j + 1;
-        };
-
-        sized_vec::decrease_capacity(nft_idxs, j);
-
-        while (j > 0) {
-            let index = vector::pop_back(&mut idxs);
-            // Calling this function cannot be done in the loop above because
-            // it interfers with the computation of the real indeces
-            redeem_mint_pass_and_transfer<T>(factory, index, ctx);
-
-            j = j - 1;
         };
 
         let quantity = certificate::quantity_mut(Witness {}, certificate);
         *quantity = *quantity - i;
+        passes
     }
 
     /// Mints NFT from `Factory`
@@ -152,7 +140,7 @@ module ob_launchpad_v2::factory {
         factory: &mut Factory<T>,
         certificate: &mut NftCertificate,
         ctx: &mut TxContext,
-    ) {
+    ): MintPass<T> {
         certificate::assert_cert_buyer(certificate, ctx);
 
         let factory_id = object::id(factory);
@@ -166,11 +154,12 @@ module ob_launchpad_v2::factory {
             10_000
         );
 
-        redeem_mint_pass_and_transfer<T>(factory, index, ctx);
+        let mint_pass = redeem_mint_pass_<T>(factory, index, ctx);
 
-        sized_vec::decrease_capacity(nft_idxs, 1);
         let quantity = certificate::quantity_mut(Witness {}, certificate);
         *quantity = *quantity - 1;
+
+        mint_pass
     }
 
     /// Redeems NFT from specific index in `Warehouse`
@@ -186,39 +175,7 @@ module ob_launchpad_v2::factory {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    fun redeem_mint_pass_and_transfer<T: key + store>(
-        factory: &mut Factory<T>,
-        index: u64,
-        ctx: &mut TxContext,
-    ) {
-        assert!(index < table_vec::length(&factory.metadata), EINDEX_OUT_OF_BOUNDS);
-
-        let metadata = *table_vec::borrow(&factory.metadata, index);
-
-        let mint_pass = mint_pass::new_with_metadata(
-            &mut factory.mint_cap,
-            1, // SUPPLY
-            &bcs::to_bytes(&metadata),
-            ctx,
-        );
-
-        transfer::public_transfer(mint_pass, tx_context::sender(ctx));
-    }
-
-    /// Redeems NFT from specific index in `Warehouse`
-    ///
-    /// Does not retain original order of NFTs in the bookkeeping vector.
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
-    /// `Warehouse` may not change the logical owner of an `Nft` when
-    /// redeeming as this would allow royalties to be trivially bypassed.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if index does not exist in `Warehouse`.
-    fun redeem_mint_pass<T: key + store>(
+    fun redeem_mint_pass_<T: key + store>(
         factory: &mut Factory<T>,
         index: u64,
         ctx: &mut TxContext,
