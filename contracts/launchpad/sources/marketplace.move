@@ -23,7 +23,7 @@
 module ob_launchpad::marketplace {
     // TODO: Function to delete a listing
     use sui::transfer;
-    use sui::object::{Self, UID, ID};
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use originmate::object_box::{Self as obox, ObjectBox};
