@@ -168,8 +168,13 @@ module ob_launchpad_v2::warehouse {
         certificate::assert_cert_buyer(certificate, ctx);
 
         let nfts = redeem_nfts(warehouse, certificate);
-
         ob_kiosk::deposit_batch(kiosk, nfts, ctx);
+    }
+
+    public fun reverse_nft_order<T: key + store>(
+        warehouse: &mut Warehouse<T>
+    ) {
+        vector::reverse(&mut warehouse.nfts);
     }
 
     /// Redeems NFT from `Warehouse`
@@ -206,7 +211,6 @@ module ob_launchpad_v2::warehouse {
             );
 
             let nft = redeem_nft<T>(warehouse, index);
-
             vector::push_back(&mut nfts, nft);
 
             i = i - 1;
@@ -308,4 +312,18 @@ module ob_launchpad_v2::warehouse {
         assert!(is_empty(warehouse), ENOT_EMPTY);
     }
 
+    #[test_only]
+    public fun test_redeem_nft<T: key + store>(
+        warehouse: &mut Warehouse<T>,
+        certificate: &mut NftCertificate,
+        kiosk: &mut Kiosk,
+        ctx: &mut TxContext,
+    ): vector<T> {
+        ob_kiosk::assert_is_ob_kiosk(kiosk);
+        ob_kiosk::assert_owner_address(kiosk, tx_context::sender(ctx));
+        ob_kiosk::assert_can_deposit_permissionlessly<T>(kiosk);
+        certificate::assert_cert_buyer(certificate, ctx);
+
+        redeem_nfts(warehouse, certificate)
+    }
 }

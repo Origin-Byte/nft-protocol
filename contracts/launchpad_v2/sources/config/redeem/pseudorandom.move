@@ -87,6 +87,7 @@ module ob_launchpad_v2::pseudorand_redeem {
         certificate: &mut NftCertificate,
         ctx: &mut TxContext,
     ) {
+        // ASSERT: Type of Redeem policy for better error message
         // TODO: ASSERT Certificate and Venue match
         let rand_redeem = venue::get_df_mut<PseudoRandInvDfKey, PseudoRandRedeem>(
             venue, PseudoRandInvDfKey {}
