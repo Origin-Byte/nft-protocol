@@ -155,11 +155,10 @@ module liquidity_layer::bidding {
         nft_id: ID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let transfer_req = ob_kiosk::transfer_delegated<T>(
+        let transfer_req = ob_kiosk::transfer_signed<T>(
             sellers_kiosk,
             buyers_kiosk,
             nft_id,
-            &bid.id,
             balance::value(&bid.offer),
             ctx,
         );
