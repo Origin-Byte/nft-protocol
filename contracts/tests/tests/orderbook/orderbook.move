@@ -34,6 +34,80 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
     const OFFER_SUI: u64 = 100;
 
     #[test]
+    fun create_exclusive_orderbook_as_originbyte_collection() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create OriginByte TransferPolicy and Orderbook
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (transfer_policy, policy_cap) = transfer_request::init_policy<Foo>(&publisher, ctx(&mut scenario));
+
+        // This function can only be called if the TransferPolicy is created
+        // from OriginByte's transfer_request module, or if at any time the
+        // creator adds an OriginByte rule to their TransferPolicy object.
+        let orderbook = orderbook::new_unprotected<Foo, SUI>(
+            witness::from_witness(test_utils::witness()),
+            &transfer_policy,
+            ctx(&mut scenario),
+        );
+
+        orderbook::share(orderbook);
+        transfer::public_share_object(transfer_policy);
+        transfer::public_transfer(policy_cap, creator());
+        transfer::public_transfer(publisher, creator());
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = orderbook::ENotOriginBytePolicy)]
+    fun fail_create_exclusive_orderbook_as_non_originbyte_collection() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create OriginByte TransferPolicy and Orderbook
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (transfer_policy, policy_cap) = transfer_policy::new<Foo>(&publisher, ctx(&mut scenario));
+
+        // This function can only be called if the TransferPolicy is created
+        // from OriginByte's transfer_request module, or if at any time the
+        // creator adds an OriginByte rule to their TransferPolicy object.
+        let orderbook = orderbook::new_unprotected<Foo, SUI>(
+            witness::from_witness(test_utils::witness()),
+            &transfer_policy,
+            ctx(&mut scenario),
+        );
+
+        orderbook::share(orderbook);
+        transfer::public_share_object(transfer_policy);
+        transfer::public_transfer(policy_cap, creator());
+        transfer::public_transfer(publisher, creator());
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = orderbook::ENotOriginBytePolicy)]
+    fun create_non_exclusive_orderbook_as_non_originbyte_collection() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create OriginByte TransferPolicy and Orderbook
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (transfer_policy, policy_cap) = transfer_policy::new<Foo>(&publisher, ctx(&mut scenario));
+
+        // This function can only be called if the TransferPolicy is created
+        // from OriginByte's transfer_request module, or if at any time the
+        // creator adds an OriginByte rule to their TransferPolicy object.
+        let orderbook = orderbook::new_unprotected<Foo, SUI>(
+            witness::from_witness(test_utils::witness()),
+            &transfer_policy,
+            ctx(&mut scenario),
+        );
+
+        orderbook::share(orderbook);
+        transfer::public_share_object(transfer_policy);
+        transfer::public_transfer(policy_cap, creator());
+        transfer::public_transfer(publisher, creator());
+        test_scenario::end(scenario);
+    }
+
+    #[test]
     fun test_trade_in_ob_kiosk() {
         let scenario = test_scenario::begin(creator());
 
