@@ -19,9 +19,9 @@ module nft_protocol::mint_cap {
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
 
-    use ob_witness::utils;
+    use ob_utils::utils_supply::{Self, Supply};
+    use ob_utils::utils;
 
-    use nft_protocol::utils_supply::{Self, Supply};
 
     /// `MintCap` is unlimited when expected limited
     const EMintCapunlimited: u64 = 1;

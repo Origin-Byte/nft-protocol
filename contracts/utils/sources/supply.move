@@ -2,7 +2,7 @@
 ///
 /// `Supply` is an unprotected type tracking the current supply and enforcing a
 /// maximum limit.
-module nft_protocol::utils_supply {
+module ob_utils::utils_supply {
     /// Could not increment supply due to breached limit
     const EExceededSupply: u64 = 1;
 

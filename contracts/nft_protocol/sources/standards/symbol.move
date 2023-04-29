@@ -5,7 +5,7 @@ module nft_protocol::symbol {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// `SymbolDomain` was not defined
     ///
@@ -46,7 +46,7 @@ module nft_protocol::symbol {
     /// Returns whether `Symbol` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<Symbol>, Symbol>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -57,7 +57,7 @@ module nft_protocol::symbol {
     /// Panics if `Symbol` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &Symbol {
         assert_symbol(nft);
-        df::borrow(nft, marker::marker<Symbol>())
+        df::borrow(nft, marker<Symbol>())
     }
 
     /// Mutably borrows `Symbol` from `Nft`
@@ -67,7 +67,7 @@ module nft_protocol::symbol {
     /// Panics if `Symbol` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut Symbol {
         assert_symbol(nft);
-        df::borrow_mut(nft, marker::marker<Symbol>())
+        df::borrow_mut(nft, marker<Symbol>())
     }
 
     /// Adds `Symbol` to `Nft`
@@ -80,7 +80,7 @@ module nft_protocol::symbol {
         domain: Symbol,
     ) {
         assert_no_symbol(nft);
-        df::add(nft, marker::marker<Symbol>(), domain);
+        df::add(nft, marker<Symbol>(), domain);
     }
 
     /// Remove `Symbol` from `Nft`
@@ -90,7 +90,7 @@ module nft_protocol::symbol {
     /// Panics if `Symbol` domain doesnt exist
     public fun remove_domain(nft: &mut UID): Symbol {
         assert_symbol(nft);
-        df::remove(nft, marker::marker<Symbol>())
+        df::remove(nft, marker<Symbol>())
     }
 
     // === Assertions ===

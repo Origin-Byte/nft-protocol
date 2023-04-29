@@ -1,4 +1,4 @@
-module nft_protocol::sized_vec {
+module ob_utils::sized_vec {
     use std::vector;
 
     struct SizedVec<Element> has copy, drop, store {

@@ -11,7 +11,7 @@ module nft_protocol::composable_svg {
     use sui::dynamic_field as df;
 
     use nft_protocol::svg;
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// `ComposableSvg` was not defined
     ///
@@ -296,7 +296,7 @@ module nft_protocol::composable_svg {
     /// Returns whether `ComposableSvg` is registered on NFT
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<ComposableSvg>, ComposableSvg>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -307,7 +307,7 @@ module nft_protocol::composable_svg {
     /// Panics if `ComposableSvg` is not registered on the NFT
     public fun borrow_domain(nft: &UID): &ComposableSvg {
         assert_composable_svg(nft);
-        df::borrow(nft, marker::marker<ComposableSvg>())
+        df::borrow(nft, marker<ComposableSvg>())
     }
 
     /// Mutably borrows `ComposableSvg` from NFT
@@ -317,7 +317,7 @@ module nft_protocol::composable_svg {
     /// Panics if `ComposableSvg` is not registered on the NFT
     public fun borrow_domain_mut(nft: &mut UID): &mut ComposableSvg {
         assert_composable_svg(nft);
-        df::borrow_mut(nft, marker::marker<ComposableSvg>())
+        df::borrow_mut(nft, marker<ComposableSvg>())
     }
 
     /// Adds `ComposableSvg` to NFT
@@ -330,7 +330,7 @@ module nft_protocol::composable_svg {
         domain: ComposableSvg,
     ) {
         assert_no_composable_svg(nft);
-        df::add(nft, marker::marker<ComposableSvg>(), domain);
+        df::add(nft, marker<ComposableSvg>(), domain);
     }
 
     /// Adds new `ComposableSvg` to NFT
@@ -353,7 +353,7 @@ module nft_protocol::composable_svg {
     /// Panics if `ComposableSvg` domain doesnt exist
     public fun remove_domain(nft: &mut UID): ComposableSvg {
         assert_composable_svg(nft);
-        df::remove(nft, marker::marker<ComposableSvg>())
+        df::remove(nft, marker<ComposableSvg>())
     }
 
     /// Delete `ComposableSvg`

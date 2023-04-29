@@ -15,7 +15,7 @@ module nft_protocol::nft_bag {
     use sui::dynamic_field as df;
     use sui::transfer;
 
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// `NftBag` was not defined
     ///
@@ -315,7 +315,7 @@ module nft_protocol::nft_bag {
     /// Returns whether `NftBag` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<NftBag>, NftBag>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -326,7 +326,7 @@ module nft_protocol::nft_bag {
     /// Panics if `NftBag` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &NftBag {
         assert_nft_bag(nft);
-        df::borrow(nft, marker::marker<NftBag>())
+        df::borrow(nft, marker<NftBag>())
     }
 
     /// Mutably borrows `NftBag` from `Nft`
@@ -338,7 +338,7 @@ module nft_protocol::nft_bag {
         nft: &mut UID,
     ): &mut NftBag {
         assert_nft_bag(nft);
-        df::borrow_mut(nft, marker::marker<NftBag>())
+        df::borrow_mut(nft, marker<NftBag>())
     }
 
     /// Adds `NftBag` to `Nft`
@@ -351,7 +351,7 @@ module nft_protocol::nft_bag {
         domain: NftBag,
     ) {
         assert_no_nft_bag(nft);
-        df::add(nft, marker::marker<NftBag>(), domain);
+        df::add(nft, marker<NftBag>(), domain);
     }
 
     /// Creates a new `NftBag` and inserts it into NFT
@@ -366,7 +366,7 @@ module nft_protocol::nft_bag {
     /// Panics if `NftBag` domain doesnt exist
     public fun remove_domain(nft: &mut UID): NftBag {
         assert_nft_bag(nft);
-        df::remove(nft, marker::marker<NftBag>())
+        df::remove(nft, marker<NftBag>())
     }
 
     // === Assertions ===

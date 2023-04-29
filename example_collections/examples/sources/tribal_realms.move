@@ -9,7 +9,7 @@ module examples::tribal_realms {
     use nft_protocol::mint_cap;
     use nft_protocol::mint_event;
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::display_info;
+    use ob_utils::display_info;
     use nft_protocol::mint_cap::{MintCap};
     use nft_protocol::composable_nft::{Self as c_nft};
     use ob_witness::witness;

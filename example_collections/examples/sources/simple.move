@@ -11,7 +11,7 @@ module examples::example_simple {
 
     use nft_protocol::collection;
     use ob_witness::witness;
-    use nft_protocol::display_info;
+    use ob_utils::display_info;
     use nft_protocol::mint_cap::MintCap;
 
     /// One time witness is only instantiated in the init method

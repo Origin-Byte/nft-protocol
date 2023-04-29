@@ -19,7 +19,7 @@ module nft_protocol::mint_pass {
     use sui::dynamic_field as df;
 
     use nft_protocol::mint_cap::{Self, MintCap};
-    use nft_protocol::utils_supply::{Self, Supply};
+    use ob_utils::utils_supply::{Self, Supply};
 
     /// `MintCap` is unregulated when expected regulated
     const EMINT_CAP_UNREGULATED: u64 = 1;

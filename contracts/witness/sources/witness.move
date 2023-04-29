@@ -3,7 +3,7 @@
 module ob_witness::witness {
     use sui::package::Publisher;
 
-    use ob_witness::utils;
+    use ob_utils::utils;
 
     /// Collection witness generator
     struct WitnessGenerator<phantom T> has store {}

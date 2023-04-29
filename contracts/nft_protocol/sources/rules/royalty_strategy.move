@@ -15,7 +15,7 @@ module nft_protocol::royalty_strategy_bps {
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::royalty;
-    use nft_protocol::utils;
+    use ob_utils::utils;
 
     /// === Errors ===
 

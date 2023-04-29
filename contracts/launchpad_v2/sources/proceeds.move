@@ -17,9 +17,7 @@ module ob_launchpad_v2::proceeds {
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
 
-    use ob_witness::marker::{Self, Marker};
-
-    use ob_launchpad_v2::lp_utils as utils;
+    use ob_utils::utils::{Self, marker, Marker};
 
     struct Proceeds has key, store {
         id: UID,
@@ -67,7 +65,7 @@ module ob_launchpad_v2::proceeds {
     ) {
         proceeds.qt_sold.total = proceeds.qt_sold.total + qty_sold;
 
-        let marker = marker::marker<FT>();
+        let marker = marker<FT>();
         let missing_df = !df::exists_with_type<Marker<FT>, Balance<FT>>(
             &proceeds.id, marker
         );
@@ -100,7 +98,7 @@ module ob_launchpad_v2::proceeds {
     ): (ID, ID) {
         let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
-            marker::marker<FT>(),
+            marker<FT>(),
         );
 
         let fee_balance = balance::split<FT>(
@@ -142,7 +140,7 @@ module ob_launchpad_v2::proceeds {
     ): ID {
         let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
-            marker::marker<FT>(),
+            marker<FT>(),
         );
 
         let balance_value = balance::value(balance);
@@ -177,7 +175,7 @@ module ob_launchpad_v2::proceeds {
     public fun balance<FT>(proceeds: &Proceeds): &Balance<FT> {
         df::borrow<Marker<FT>, Balance<FT>>(
             &proceeds.id,
-            marker::marker<FT>(),
+            marker<FT>(),
         )
     }
 
@@ -186,7 +184,7 @@ module ob_launchpad_v2::proceeds {
     ): &mut Balance<FT> {
         df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
-            marker::marker<FT>(),
+            marker<FT>(),
         )
     }
 }

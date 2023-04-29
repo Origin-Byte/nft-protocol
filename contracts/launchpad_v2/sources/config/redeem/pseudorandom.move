@@ -11,7 +11,7 @@ module ob_launchpad_v2::pseudorand_redeem {
     use ob_launchpad_v2::venue::{Self, Venue};
     use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
-    use nft_protocol::sized_vec;
+    use ob_utils::sized_vec;
 
     use originmate::pseudorandom;
 

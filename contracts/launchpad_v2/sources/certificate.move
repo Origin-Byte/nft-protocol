@@ -6,7 +6,7 @@ module ob_launchpad_v2::certificate {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
 
-    use nft_protocol::sized_vec::{Self, SizedVec};
+    use ob_utils::sized_vec::{Self, SizedVec};
 
     use ob_launchpad_v2::venue::{Self, Venue};
 

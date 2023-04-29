@@ -11,7 +11,7 @@ module ob_launchpad_v2::venue {
     use sui::transfer;
 
     use ob_request::request::{Self, Policy, PolicyCap};
-    use nft_protocol::utils_supply::{Self as supply, Supply};
+    use ob_utils::utils_supply::{Self as supply, Supply};
 
     use ob_launchpad_v2::launchpad::{Self, Listing, LaunchCap};
     use ob_launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQ};

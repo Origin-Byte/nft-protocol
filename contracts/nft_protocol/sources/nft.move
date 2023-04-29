@@ -21,7 +21,7 @@ module nft_protocol::nft {
     use nft_protocol::mint_cap::{Self, MintCap};
 
     use ob_witness::witness::{Witness as DelegatedWitness};
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// Domain not defined
     ///
@@ -130,7 +130,7 @@ module nft_protocol::nft {
     /// Check whether `Nft` has a domain
     public fun has_domain<C, Domain: store>(nft: &Nft<C>): bool {
         df::exists_with_type<Marker<Domain>, Domain>(
-            &nft.id, marker::marker<Domain>(),
+            &nft.id, marker<Domain>(),
         )
     }
 
@@ -141,7 +141,7 @@ module nft_protocol::nft {
     /// Panics if domain is not present on the `Nft`
     public fun borrow_domain<C, Domain: store>(nft: &Nft<C>): &Domain {
         assert_domain<C, Domain>(nft);
-        df::borrow(&nft.id, marker::marker<Domain>())
+        df::borrow(&nft.id, marker<Domain>())
     }
 
     /// Mutably borrow domain from `Nft`
@@ -160,7 +160,7 @@ module nft_protocol::nft {
         assert_domain<C, Domain>(nft);
         df::borrow_mut(
             borrow_uid_mut(witness, nft),
-            marker::marker<Domain>(),
+            marker<Domain>(),
         )
     }
 
@@ -178,7 +178,7 @@ module nft_protocol::nft {
         assert_no_domain<C, Domain>(nft);
         df::add(
             borrow_uid_mut(witness, nft),
-            marker::marker<Domain>(),
+            marker<Domain>(),
             domain,
         );
     }
@@ -195,7 +195,7 @@ module nft_protocol::nft {
         assert_domain<C, Domain>(nft);
         df::remove(
             borrow_uid_mut(witness, nft),
-            marker::marker<Domain>(),
+            marker<Domain>(),
         )
     }
 

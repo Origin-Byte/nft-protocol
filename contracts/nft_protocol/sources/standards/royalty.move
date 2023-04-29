@@ -21,11 +21,10 @@ module nft_protocol::royalty {
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
 
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{Self, marker, Marker};
     use ob_witness::witness;
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::utils;
 
     /// Field object `RoyaltyDomain` already defined as dynamic field.
     const EExistingRoyalty: u64 = 1;
@@ -276,18 +275,18 @@ module nft_protocol::royalty {
         let b = balance::split(source, amount);
 
         if (!df::exists_with_type<Marker<Balance<FT>>, Balance<FT>>(
-            aggregations, marker::marker<Balance<FT>>()
+            aggregations, marker<Balance<FT>>()
         )) {
             df::add(
                 aggregations,
-                marker::marker<Balance<FT>>(),
+                marker<Balance<FT>>(),
                 balance::zero<FT>(),
             );
         };
 
         let aggregate = df::borrow_mut(
             aggregations,
-            marker::marker<Balance<FT>>()
+            marker<Balance<FT>>()
         );
 
         balance::join(aggregate, b);
@@ -312,7 +311,7 @@ module nft_protocol::royalty {
         let shares = &domain.royalty_shares_bps;
         let aggregate: &mut Balance<FT> = df::borrow_mut(
             &mut domain.aggregations,
-            marker::marker<Balance<FT>>(),
+            marker<Balance<FT>>(),
         );
 
         distribute_balance(shares, aggregate, ctx);
@@ -363,7 +362,7 @@ module nft_protocol::royalty {
     /// Returns whether `RoyaltyDomain` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<RoyaltyDomain>, RoyaltyDomain>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -374,7 +373,7 @@ module nft_protocol::royalty {
     /// Panics if `RoyaltyDomain` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &RoyaltyDomain {
         assert_royalty(nft);
-        df::borrow(nft, marker::marker<RoyaltyDomain>())
+        df::borrow(nft, marker<RoyaltyDomain>())
     }
 
     /// Mutably borrows `RoyaltyDomain` from `Nft`
@@ -384,7 +383,7 @@ module nft_protocol::royalty {
     /// Panics if `RoyaltyDomain` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut RoyaltyDomain {
         assert_royalty(nft);
-        df::borrow_mut(nft, marker::marker<RoyaltyDomain>())
+        df::borrow_mut(nft, marker<RoyaltyDomain>())
     }
 
     /// Adds `RoyaltyDomain` to `Nft`
@@ -397,7 +396,7 @@ module nft_protocol::royalty {
         domain: RoyaltyDomain,
     ) {
         assert_no_royalty(nft);
-        df::add(nft, marker::marker<RoyaltyDomain>(), domain);
+        df::add(nft, marker<RoyaltyDomain>(), domain);
     }
 
     /// Remove `Plugins` from `Nft`
@@ -407,7 +406,7 @@ module nft_protocol::royalty {
     /// Panics if `Plugins` domain doesnt exist
     public fun remove_domain(nft: &mut UID): RoyaltyDomain {
         assert_royalty(nft);
-        df::remove(nft, marker::marker<RoyaltyDomain>())
+        df::remove(nft, marker<RoyaltyDomain>())
     }
 
     // === Assertions ===

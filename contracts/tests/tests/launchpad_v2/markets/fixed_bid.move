@@ -23,8 +23,8 @@ module ob_tests::test_fixed_bid {
     use ob_launchpad_v2::certificate;
     use ob_kiosk::ob_kiosk;
 
-    use nft_protocol::sized_vec::SizedVec;
-    use nft_protocol::utils_supply::{Self as supply};
+    use ob_utils::sized_vec::SizedVec;
+    use ob_utils::utils_supply::{Self as supply};
 
     const MARKETPLACE: address = @0xA1C08;
     const BUYER: address = @0xA1C10;
@@ -310,7 +310,7 @@ module ob_tests::test_fixed_bid {
     }
 
     #[test]
-    #[expected_failure(abort_code = nft_protocol::utils_supply::EExceededSupply)]
+    #[expected_failure(abort_code = ob_utils::utils_supply::EExceededSupply)]
     public fun try_buy_more_than_max_supply() {
         let scenario = test_scenario::begin(MARKETPLACE);
 

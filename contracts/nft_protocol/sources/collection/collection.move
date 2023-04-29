@@ -17,8 +17,7 @@ module nft_protocol::collection {
     use sui::dynamic_field as df;
 
     use ob_witness::witness::Witness as DelegatedWitness;
-    use ob_witness::marker::{Self, Marker};
-    use ob_witness::utils;
+    use ob_utils::utils::{Self, marker, Marker};
 
     use nft_protocol::mint_cap::{Self, MintCap};
 
@@ -150,7 +149,7 @@ module nft_protocol::collection {
         collection: &Collection<C>,
     ): bool {
         df::exists_with_type<Marker<Domain>, Domain>(
-            &collection.id, marker::marker<Domain>(),
+            &collection.id, marker<Domain>(),
         )
     }
 
@@ -163,7 +162,7 @@ module nft_protocol::collection {
         collection: &Collection<C>
     ): &Domain {
         assert_domain<C, Domain>(collection);
-        df::borrow(&collection.id, marker::marker<Domain>())
+        df::borrow(&collection.id, marker<Domain>())
     }
 
     /// Mutably borrow domain from `Collection`
@@ -182,7 +181,7 @@ module nft_protocol::collection {
         assert_domain<C, Domain>(collection);
         df::borrow_mut(
             &mut collection.id,
-            marker::marker<Domain>(),
+            marker<Domain>(),
         )
     }
 
@@ -199,7 +198,7 @@ module nft_protocol::collection {
         assert_no_domain<C, Domain>(collection);
         df::add(
             borrow_uid_mut(witness, collection),
-            marker::marker<Domain>(),
+            marker<Domain>(),
             domain,
         );
     }
@@ -216,7 +215,7 @@ module nft_protocol::collection {
         assert_domain<C, Domain>(collection);
         df::remove(
             &mut collection.id,
-            marker::marker<Domain>(),
+            marker<Domain>(),
         )
     }
 

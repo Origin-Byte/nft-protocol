@@ -19,8 +19,8 @@ module ob_launchpad_v2::warehouse {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
     use sui::vec_map::{Self, VecMap};
-    use nft_protocol::sized_vec;
-    use nft_protocol::utils;
+    use ob_utils::sized_vec;
+    use ob_utils::utils;
 
     use sui::kiosk::Kiosk;
     use ob_kiosk::ob_kiosk;

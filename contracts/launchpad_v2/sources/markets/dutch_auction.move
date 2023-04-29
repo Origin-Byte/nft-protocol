@@ -20,7 +20,7 @@ module ob_launchpad_v2::dutch_auction {
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
-    use nft_protocol::utils_supply as supply;
+    use ob_utils::utils_supply as supply;
 
     use ob_launchpad_v2::launchpad::LaunchCap;
     use ob_launchpad_v2::auth_request::{Self, AuthRequest};
