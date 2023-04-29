@@ -172,9 +172,12 @@ module nft_protocol::quorum {
         members: VecSet<address>,
         delegates: VecSet<ID>,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let quorum = create(witness, admins, members, delegates, ctx);
+        let quorum_id = object::id(&quorum);
+
         transfer::share_object(quorum);
+        quorum_id
     }
 
     public fun singleton<F>(

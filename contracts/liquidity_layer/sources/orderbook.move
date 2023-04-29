@@ -714,18 +714,22 @@ module liquidity_layer::orderbook {
         witness: DelegatedWitness<T>,
         transfer_policy: &TransferPolicy<T>,
         ctx: &mut TxContext
-    ) {
+    ): ID {
         let ob = new<T, FT>(witness, transfer_policy, no_protection(), ctx);
+        let ob_id = object::id(&ob);
         share_object(ob);
+        ob_id
     }
 
     public fun create_for_external<T: key + store, FT>(
         transfer_policy: &TransferPolicy<T>,
         ctx: &mut TxContext
-    ) {
+    ): ID {
         assert!(!transfer_request::is_originbyte(transfer_policy), ENotExternalPolicy);
         let ob = new_<T, FT>(no_protection(), ctx);
+        let ob_id = object::id(&ob);
         share_object(ob);
+        ob_id
     }
 
     fun new_<T: key + store, FT>(

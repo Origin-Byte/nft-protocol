@@ -8,7 +8,7 @@
 /// constraints nor they keep track of the number of minted objects.
 module nft_protocol::mint_supply {
     use sui::transfer;
-    use sui::object::UID;
+    use sui::object::{Self, UID, ID};
     use sui::dynamic_field as df;
     use sui::tx_context::TxContext;
 
@@ -119,9 +119,11 @@ module nft_protocol::mint_supply {
         quantity: u64,
         receiver: address,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let delegated = delegate(supply, quantity, ctx);
+        let deletaged_id = object::id(&delegated);
         transfer::public_transfer(delegated, receiver);
+        deletaged_id
     }
 
     /// Merge delegated `RegulatedMintCap`

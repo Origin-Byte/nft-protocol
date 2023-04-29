@@ -170,35 +170,43 @@ module ob_kiosk::ob_kiosk {
     ///
     /// Note that those collections which have restricted deposits will NOT be
     /// allowed to be transferred to the kiosk even on trades.
-    public fun new(ctx: &mut TxContext): Kiosk {
+    public fun new(ctx: &mut TxContext): (Kiosk, ID) {
         new_(sender(ctx), ctx)
     }
 
     /// Calls `new` and shares the kiosk
-    public fun create_for_sender(ctx: &mut TxContext) {
-        public_share_object(new(ctx));
+    public fun create_for_sender(ctx: &mut TxContext): (ID, ID) {
+        let (kiosk, token_id) = new(ctx);
+        let kiosk_id = object::id(&kiosk);
+
+        public_share_object(kiosk);
+        (kiosk_id, token_id)
     }
 
-    public fun new_for_address(owner: address, ctx: &mut TxContext): Kiosk {
+    public fun new_for_address(owner: address, ctx: &mut TxContext): (Kiosk, ID) {
         new_(owner, ctx)
     }
 
-    public fun create_for_address(owner: address, ctx: &mut TxContext) {
-        public_share_object(new_(owner, ctx));
+    public fun create_for_address(owner: address, ctx: &mut TxContext): (ID, ID) {
+        let (kiosk, token_id) = new_(owner, ctx);
+        let kiosk_id = object::id(&kiosk);
+
+        public_share_object(kiosk);
+        (kiosk_id, token_id)
     }
 
     /// All functions which would normally verify that the owner is the signer
     /// are callable.
     /// This means that the kiosk MUST be wrapped.
     /// Otherwise, anyone could call those functions.
-    public fun new_permissionless(ctx: &mut TxContext): Kiosk {
-        let kiosk = new(ctx);
+    public fun new_permissionless(ctx: &mut TxContext): (Kiosk, ID) {
+        let (kiosk, token_id) = new(ctx);
 
         let cap = pop_cap(&mut kiosk);
         kiosk::set_owner_custom(&mut kiosk, &cap, PermissionlessAddr);
         set_cap(&mut kiosk, cap);
 
-        kiosk
+        (kiosk, token_id)
     }
 
     /// Changes the owner of a kiosk to the given address.
@@ -557,7 +565,7 @@ module ob_kiosk::ob_kiosk {
         nft
     }
 
-    fun new_(owner: address, ctx: &mut TxContext): Kiosk {
+    fun new_(owner: address, ctx: &mut TxContext): (Kiosk, ID) {
         let (kiosk, kiosk_cap) = kiosk::new(ctx);
         kiosk::set_owner_custom(&mut kiosk, &kiosk_cap, owner);
         let kiosk_ext = ext(&mut kiosk);
@@ -569,13 +577,16 @@ module ob_kiosk::ob_kiosk {
             collections_with_enabled_deposits: vec_set::empty(),
         });
 
+        let token_uid = object::new(ctx);
+        let token_id = object::uid_to_inner(&token_uid);
+
         transfer(OwnerToken {
-            id: object::new(ctx),
+            id: token_uid,
             kiosk: object::id(&kiosk),
             owner,
         }, owner);
 
-        kiosk
+        (kiosk, token_id)
     }
 
     // === Request Auth ===

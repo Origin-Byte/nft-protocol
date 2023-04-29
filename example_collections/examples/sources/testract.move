@@ -216,7 +216,7 @@ module examples::testract {
         while(i < 5) {
             let price = 1000 + i * 100;
 
-            let kiosk = ob_kiosk::new(ctx);
+            let (kiosk, _) = ob_kiosk::new(ctx);
             orderbook::create_bid(
                 orderbook,
                 &mut kiosk,
@@ -234,7 +234,7 @@ module examples::testract {
         while(i < 5) {
             let price = 1300 + i * 100;
 
-            let kiosk = ob_kiosk::new(ctx);
+            let (kiosk, _) = ob_kiosk::new(ctx);
             let nft = TestNft {
                 id: object::new(ctx),
                 name: utf8(b"generate_orderbook_events"),
@@ -293,7 +293,7 @@ module examples::testract {
             &nft,
         );
 
-        let buyer_kiosk = ob_kiosk::new(ctx);
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx);
 
         let bid = bidding::new_bid(
             object::id(&buyer_kiosk),
@@ -419,7 +419,7 @@ module examples::testract {
             &nft,
         );
 
-        let kiosk = ob_kiosk::new(ctx);
+        let (kiosk, _) = ob_kiosk::new(ctx);
 
         let bid = bidding::new_bid(
             object::id(&kiosk),
@@ -444,7 +444,7 @@ module examples::testract {
         wallet: &mut Coin<SUI>,
         ctx: &mut TxContext,
     ) {
-        let kiosk = ob_kiosk::new(ctx);
+        let (kiosk, _) = ob_kiosk::new(ctx);
         orderbook::create_bid(
             orderbook,
             &mut kiosk,
@@ -455,7 +455,7 @@ module examples::testract {
         public_transfer(kiosk, sender(ctx));
         orderbook::cancel_bid(orderbook, 456, wallet, ctx);
 
-        let kiosk = ob_kiosk::new(ctx);
+        let (kiosk, _) = ob_kiosk::new(ctx);
         let nft = TestNft {
             id: object::new(ctx),
             name: utf8(b"generate_orderbook_close_events"),

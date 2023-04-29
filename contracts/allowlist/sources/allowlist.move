@@ -19,17 +19,17 @@
 ///     version of their witness type. The OB then uses this witness type
 ///     to authorize transfers.
 module ob_allowlist::allowlist {
+    use std::string::utf8;
+    use std::option::{Self, Option};
+    use std::type_name::{Self, TypeName};
+
     use sui::display;
+    use sui::transfer;
+    use sui::dynamic_field as df;
+    use sui::vec_set::{Self, VecSet};
     use sui::object::{Self, ID, UID};
     use sui::package::{Self, Publisher};
-    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
-    use sui::vec_set::{Self, VecSet};
-    use sui::dynamic_field as df;
-
-    use std::option::{Self, Option};
-    use std::string::utf8;
-    use std::type_name::{Self, TypeName};
 
     // === Errors ===
 
@@ -121,23 +121,33 @@ module ob_allowlist::allowlist {
     }
 
     /// Creates and shares a new `Allowlist`
-    public entry fun init_allowlist(ctx: &mut TxContext) {
+    public fun init_allowlist(ctx: &mut TxContext): (ID, ID) {
         let (allowlist, cap) = new(ctx);
+
+        let allowlist_id = object::id(&allowlist);
+        let cap_id = object::id(&cap);
 
         transfer::public_transfer(cap, tx_context::sender(ctx));
         transfer::public_share_object(allowlist);
+
+        (allowlist_id, cap_id)
     }
 
     /// Clones and shares a new `Allowlist`
-    public entry fun init_cloned(
+    public fun init_cloned(
         allowlist: &Allowlist,
         ctx: &mut TxContext,
-    ) {
+    ): (ID, ID) {
         let (allowlist, cap) =
             new_with_authorities(*borrow_authorities(allowlist), ctx);
 
+        let allowlist_id = object::id(&allowlist);
+        let cap_id = object::id(&cap);
+
         transfer::public_transfer(cap, tx_context::sender(ctx));
         transfer::public_share_object(allowlist);
+
+        (allowlist_id, cap_id)
     }
 
     /// Borrows authorities from `Allowlist`

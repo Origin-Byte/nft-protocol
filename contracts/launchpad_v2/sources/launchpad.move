@@ -79,13 +79,18 @@ module ob_launchpad_v2::launchpad {
 
     /// Initialises a `Listing` object, shares it, and transfers a
     /// cloanble `LaunchCap` to the transaction caller.
-    public entry fun init_listing(
+    public fun init_listing(
         ctx: &mut TxContext,
-    ) {
-        let (launch_cap, listing) = new_(ctx);
+    ): (ID, ID) {
+        let (listing, cap) = new_(ctx);
+
+        let listing_id = object::id(&listing);
+        let cap_id = object::id(&cap);
 
         transfer::public_share_object(listing);
-        transfer::public_transfer(launch_cap, tx_context::sender(ctx));
+        transfer::public_transfer(cap, tx_context::sender(ctx));
+
+        (listing_id, cap_id)
     }
 
     // === Admin functions ===

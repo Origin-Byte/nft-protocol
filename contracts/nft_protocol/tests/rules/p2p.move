@@ -63,8 +63,8 @@ module nft_protocol::test_p2p {
         let authlist = test_scenario::take_shared<Authlist>(&scenario);
         authlist::insert_collection<Foo>(&mut authlist, &publisher);
 
-        let kiosk_0 = ob_kiosk::new(ctx(&mut scenario));
-        let kiosk_1 = ob_kiosk::new_for_address(USER, ctx(&mut scenario));
+        let (kiosk_0, _) = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk_1, _) = ob_kiosk::new_for_address(USER, ctx(&mut scenario));
 
         // We are relying on determinism of generated IDs
         let nft = Foo { id: object::new(&mut tx_context::dummy()) };

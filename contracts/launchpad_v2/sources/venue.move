@@ -180,7 +180,7 @@ module ob_launchpad_v2::venue {
         stock_policy: TypeName,
         redeem_policy: TypeName,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let venue = new(
             launchpad,
             launch_cap,
@@ -191,7 +191,9 @@ module ob_launchpad_v2::venue {
             ctx,
         );
 
+        let venue_id = object::id(&venue);
         transfer::public_share_object(venue);
+        venue_id
     }
 
     // Initiates and new `Policies` object and returns it.

@@ -13,7 +13,7 @@ module ob_launchpad_v2::proceeds {
     use sui::vec_map::VecMap;
     use sui::table::{Self, Table};
     use sui::tx_context::TxContext;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
 
@@ -97,7 +97,7 @@ module ob_launchpad_v2::proceeds {
         marketplace_receiver: address,
         listing_receiver: address,
         ctx: &mut TxContext,
-    ) {
+    ): (ID, ID) {
         let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
             marker::marker<FT>(),
@@ -109,6 +109,7 @@ module ob_launchpad_v2::proceeds {
         );
 
         let fee = coin::from_balance(fee_balance, ctx);
+        let fee_id = object::id(&fee);
 
         transfer::public_transfer(
             fee,
@@ -124,18 +125,21 @@ module ob_launchpad_v2::proceeds {
         );
 
         let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
+        let proceeds_id = object::id(&proceeds_coin);
 
         transfer::public_transfer(
             proceeds_coin,
             listing_receiver,
         );
+
+        (proceeds_id, fee_id)
     }
 
     public fun collect_without_fees<FT>(
         proceeds: &mut Proceeds,
         listing_receiver: address,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let balance = df::borrow_mut<Marker<FT>, Balance<FT>>(
             &mut proceeds.id,
             marker::marker<FT>(),
@@ -150,11 +154,14 @@ module ob_launchpad_v2::proceeds {
         );
 
         let proceeds_coin = coin::from_balance(proceeds_balance, ctx);
+        let proceeds_id = object::id(&proceeds_coin);
 
         transfer::public_transfer(
             proceeds_coin,
             listing_receiver,
         );
+
+        proceeds_id
     }
 
     // === Getter Functions ===

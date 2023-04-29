@@ -103,10 +103,13 @@ module liquidity_layer::bidding {
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let bid =
             new_bid(buyers_kiosk, nft, price, option::none(), wallet, ctx);
+
+        let bid_id = object::id(&bid);
         share_object(bid);
+        bid_id
     }
 
     /// It performs the following:
@@ -128,14 +131,16 @@ module liquidity_layer::bidding {
         commission_ft: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let commission = trading::new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
         );
         let bid =
             new_bid(buyers_kiosk, nft, price, option::some(commission), wallet, ctx);
+        let bid_id = object::id(&bid);
         share_object(bid);
+        bid_id
     }
 
     /// Match a bid.

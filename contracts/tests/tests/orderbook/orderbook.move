@@ -124,13 +124,13 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
 
         // 3. Create Buyer Kiosk
         test_scenario::next_tx(&mut scenario, buyer());
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         transfer::public_share_object(buyer_kiosk);
 
         // 4. Create Seller Kiosk
         test_scenario::next_tx(&mut scenario, seller());
-        let seller_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (seller_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 4. Add NFT to Seller Kiosk
         let nft = test_utils::get_foo_nft(ctx(&mut scenario));
@@ -225,13 +225,13 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
 
         // 3. Create Buyer Kiosk
         test_scenario::next_tx(&mut scenario, buyer());
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         transfer::public_share_object(buyer_kiosk);
 
         // 4. Create Seller Kiosk
         test_scenario::next_tx(&mut scenario, seller());
-        let seller_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (seller_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 4. Add NFT to Seller Kiosk
         let nft = test_utils::get_foo_nft(ctx(&mut scenario));
@@ -317,13 +317,13 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
 
         // 3. Create Buyer Kiosk
         test_scenario::next_tx(&mut scenario, buyer());
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         transfer::public_share_object(buyer_kiosk);
 
         // 4. Create Seller Kiosk
         test_scenario::next_tx(&mut scenario, seller());
-        let seller_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (seller_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 4. Add NFT to Seller Kiosk
         let nft = test_utils::get_foo_nft(ctx(&mut scenario));

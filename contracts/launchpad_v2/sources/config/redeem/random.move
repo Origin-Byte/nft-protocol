@@ -4,7 +4,7 @@ module ob_launchpad_v2::redeem_random {
     use sui::transfer;
     use sui::vec_map;
     use sui::dynamic_field as df;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
 
     use ob_launchpad_v2::launchpad::LaunchCap;
@@ -138,9 +138,11 @@ module ob_launchpad_v2::redeem_random {
     public entry fun init_commitment(
         hashed_sender_commitment: vector<u8>,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let commitment = new_commitment(hashed_sender_commitment,  ctx);
+        let commit_id = object::id(&commitment);
         transfer::transfer(commitment, tx_context::sender(ctx));
+        commit_id
     }
 
     /// Consumes `RedeemCommitment`
