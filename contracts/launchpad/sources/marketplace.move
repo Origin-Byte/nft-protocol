@@ -59,12 +59,12 @@ module ob_launchpad::marketplace {
     }
 
     /// Initialises a `Marketplace` object and shares it
-    public fun init_marketplace<F: key + store>(
+    public entry fun init_marketplace<F: key + store>(
         admin: address,
         receiver: address,
         default_fee: F,
         ctx: &mut TxContext,
-    ): ID {
+    ) {
         let marketplace = new(
             admin,
             receiver,
@@ -72,9 +72,7 @@ module ob_launchpad::marketplace {
             ctx,
         );
 
-        let marketplace_id = object::id(&marketplace);
         transfer::public_share_object(marketplace);
-        marketplace_id
     }
 
     // === Getters ===
