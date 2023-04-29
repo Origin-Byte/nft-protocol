@@ -90,9 +90,11 @@ module ob_launchpad_v2::market_whitelist_2 {
         quantity: u64,
         recipient: address,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let certificate = new(launch_cap, venue, quantity, ctx);
+        let cert_id = object::id(&certificate);
         transfer::public_transfer(certificate, recipient);
+        cert_id
     }
 
     /// Burns a `Certificate`

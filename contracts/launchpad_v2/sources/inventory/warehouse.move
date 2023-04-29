@@ -89,8 +89,11 @@ module ob_launchpad_v2::warehouse {
     }
 
     /// Creates a `Warehouse` and transfers to transaction sender
-    public entry fun init_warehouse<T: key + store>(ctx: &mut TxContext) {
-        transfer::public_transfer(new<T>(ctx), tx_context::sender(ctx));
+    public fun init_warehouse<T: key + store>(ctx: &mut TxContext): ID {
+        let warehouse = new<T>(ctx);
+        let warehouse_id = object::id(&warehouse);
+        transfer::public_transfer(warehouse, tx_context::sender(ctx));
+        warehouse_id
     }
 
     /// Deposits NFT to `Warehouse`
