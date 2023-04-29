@@ -1,4 +1,5 @@
 module nft_protocol::nft_protocol {
+    use sui::package;
     use sui::transfer;
     use sui::object::{Self, ID};
     use sui::tx_context::{Self, TxContext};
@@ -12,9 +13,12 @@ module nft_protocol::nft_protocol {
 
     struct NFT_PROTOCOL has drop {}
 
-    fun init(_otw: NFT_PROTOCOL, ctx: &mut TxContext) {
+    fun init(otw: NFT_PROTOCOL, ctx: &mut TxContext) {
+        let pub = package::claim(otw, ctx);
         init_allowlist(ctx);
         init_authlist(ctx);
+
+        transfer::public_transfer(pub, tx_context::sender(ctx));
     }
 
     /// Initialize official OriginByte `Allowlist`

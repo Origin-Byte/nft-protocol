@@ -19,11 +19,15 @@ module ob_witness::utils {
     const EInvalidWitness: u64 = 4;
 
     public fun get_package_module_type<T>(): (String, String, String) {
-        let delimiter = string::utf8(b"::");
-
         let t = string::utf8(ascii::into_bytes(
             type_name::into_string(type_name::get<T>())
         ));
+
+        get_package_module_type_raw(t)
+    }
+
+    public fun get_package_module_type_raw(t: String): (String, String, String) {
+        let delimiter = string::utf8(b"::");
 
         // TBD: this can probably be hard-coded as all hex addrs are 32 bytes
         let package_delimiter_index = string::index_of(&t, &delimiter);

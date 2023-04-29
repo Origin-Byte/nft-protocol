@@ -1,6 +1,7 @@
 /// Utility functions
 module nft_protocol::utils {
     use std::vector;
+    use std::string::{utf8, String};
 
     use sui::vec_set::{Self, VecSet};
     use sui::package::{Self, Publisher};
@@ -12,6 +13,10 @@ module nft_protocol::utils {
     const EMismatchedKeyValueLength: u64 = 1;
 
     const EInvalidPublisher: u64 = 2;
+
+    public fun originbyte_docs_url(): String {
+        utf8(b"https://docs.originbyte.io")
+    }
 
     public fun table_vec_from_vec<T: store>(
         vec: vector<T>,
