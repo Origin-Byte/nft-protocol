@@ -1,5 +1,6 @@
 module nft_protocol::nft_protocol {
     use sui::transfer;
+    use sui::object::{Self, ID};
     use sui::tx_context::{Self, TxContext};
 
     use liquidity_layer::bidding;
@@ -17,15 +18,19 @@ module nft_protocol::nft_protocol {
     }
 
     /// Initialize official OriginByte `Allowlist`
-    public fun init_allowlist(ctx: &mut TxContext) {
+    public fun init_allowlist(ctx: &mut TxContext): (ID, ID) {
         let (allowlist, cap) = allowlist::new(ctx);
 
         // Thus far only `orderbook` and `bidding` can perform trades
         allowlist::insert_authority<orderbook::Witness>(&cap, &mut allowlist);
         allowlist::insert_authority<bidding::Witness>(&cap, &mut allowlist);
 
+        let allowlist_id = object::id(&allowlist);
+        let cap_id = object::id(&cap);
+
         transfer::public_transfer(cap, tx_context::sender(ctx));
         transfer::public_share_object(allowlist);
+        (allowlist_id, cap_id)
     }
 
     const PERMISSIONLESS_PUBLIC_KEY: address = @0x8a1a8348dde5d979c85553c03e204c73efc3b91a2c9ce96b1004c9ec26eaacc8;
@@ -38,15 +43,19 @@ module nft_protocol::nft_protocol {
     ///
     /// This keypair is expected to be removed in the early stages of mainnet
     /// and replaced with genuine authorities.
-    public fun init_authlist(ctx: &mut TxContext) {
+    public fun init_authlist(ctx: &mut TxContext): (ID, ID) {
         let (authlist, cap) = authlist::new(ctx);
 
         authlist::insert_authority(
             &cap, &mut authlist, authlist::address_to_bytes(PERMISSIONLESS_PUBLIC_KEY),
         );
 
+        let authlist_id = object::id(&authlist);
+        let cap_id = object::id(&cap);
+
         transfer::public_transfer(cap, tx_context::sender(ctx));
         transfer::public_share_object(authlist);
+        (authlist_id, cap_id)
     }
 
     public fun permissionless_public_key(): address {

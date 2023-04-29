@@ -155,18 +155,20 @@ module ob_launchpad::listing {
     }
 
     /// Initialises a standalone `Listing` object.
-    public entry fun init_listing(
+    public fun init_listing(
         listing_admin: address,
         receiver: address,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let listing = new(
             listing_admin,
             receiver,
             ctx,
         );
 
+        let listing_id = object::id(&listing);
         transfer::public_share_object(listing);
+        listing_id
     }
 
     /// Initializes a `Venue` on `Listing`

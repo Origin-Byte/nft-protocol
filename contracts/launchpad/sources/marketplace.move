@@ -23,7 +23,7 @@
 module ob_launchpad::marketplace {
     // TODO: Function to delete a listing
     use sui::transfer;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
 
     use originmate::object_box::{Self as obox, ObjectBox};
@@ -59,12 +59,12 @@ module ob_launchpad::marketplace {
     }
 
     /// Initialises a `Marketplace` object and shares it
-    public entry fun init_marketplace<F: key + store>(
+    public fun init_marketplace<F: key + store>(
         admin: address,
         receiver: address,
         default_fee: F,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let marketplace = new(
             admin,
             receiver,
@@ -72,7 +72,9 @@ module ob_launchpad::marketplace {
             ctx,
         );
 
+        let marketplace_id = object::id(&marketplace);
         transfer::public_share_object(marketplace);
+        marketplace_id
     }
 
     // === Getters ===

@@ -122,9 +122,12 @@ module nft_protocol::collection {
     public fun init_collection<C>(
         witness: DelegatedWitness<C>,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let collection = create(witness, ctx);
+        let collection_id = object::id(&collection);
+
         transfer::public_share_object(collection);
+        collection_id
     }
 
     // === Domain Functions ===

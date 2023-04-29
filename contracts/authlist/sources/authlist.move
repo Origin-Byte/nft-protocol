@@ -125,22 +125,32 @@ module ob_authlist::authlist {
     }
 
     /// Creates and shares a new `Authlist`
-    public entry fun init_authlist(ctx: &mut TxContext) {
+    public fun init_authlist(ctx: &mut TxContext): (ID, ID) {
         let (authlist, cap) = new(ctx);
+
+        let authlist_id = object::id(&authlist);
+        let cap_id = object::id(&cap);
 
         transfer::public_transfer(cap, tx_context::sender(ctx));
         transfer::public_share_object(authlist);
+
+        (authlist_id, cap_id)
     }
 
     /// Clones and shares a new `Authlist`
     public entry fun init_cloned(
         authlist: &Authlist,
         ctx: &mut TxContext,
-    ) {
+    ): (ID, ID) {
         let (authlist, cap) = clone(authlist, ctx);
+
+        let authlist_id = object::id(&authlist);
+        let cap_id = object::id(&cap);
 
         transfer::public_transfer(cap, tx_context::sender(ctx));
         transfer::public_share_object(authlist);
+
+        (authlist_id, cap_id)
     }
 
     /// Borrows authorities from `Authlist`

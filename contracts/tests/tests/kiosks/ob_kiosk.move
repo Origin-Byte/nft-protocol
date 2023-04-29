@@ -43,7 +43,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -69,7 +69,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -98,7 +98,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -131,7 +131,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -160,7 +160,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -190,7 +190,7 @@ module ob_tests::test_ob_kiosk {
 
         // 7. Assert NFT can be transferred..
         // Init Buyer's Kiosk
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
         // Transfer NFT and get
         let request = ob_kiosk::transfer_delegated<Foo>(
             &mut kiosk,
@@ -222,7 +222,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -252,7 +252,7 @@ module ob_tests::test_ob_kiosk {
 
         // 7. Assert NFT can be transferred..
         // Init Buyer's Kiosk
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
         // Transfer NFT and get
         let request = ob_kiosk::transfer_delegated<Foo>(
             &mut kiosk,
@@ -285,7 +285,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -309,7 +309,7 @@ module ob_tests::test_ob_kiosk {
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         // Init Buyer's Kiosk
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
         // Transfer NFT and get
         let rand_entity = object::new(ctx(&mut scenario));
 
@@ -344,7 +344,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -390,7 +390,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -435,7 +435,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -456,7 +456,7 @@ module ob_tests::test_ob_kiosk {
         // 5. Assert NFT can be transferred..
 
         // Init Buyer's Kiosk
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // Transfer NFT and get
         let request = ob_kiosk::transfer_signed(
@@ -487,7 +487,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -518,7 +518,7 @@ module ob_tests::test_ob_kiosk {
         // 7. Assert NFT can be transferred..
 
         // Init Buyer's Kiosk
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // Asserting that sender is effectively the authorised_address and not the owner
         assert!(tx_context::sender(ctx(&mut scenario)) == authorised_address, 0);
@@ -553,7 +553,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -580,7 +580,7 @@ module ob_tests::test_ob_kiosk {
         // 6. Assert NFT can be transferred..
 
         // Init Buyer's Kiosk
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // Asserting that sender is effectively the authorised_address and not the owner
         assert!(tx_context::sender(ctx(&mut scenario)) == unauthorised_address, 0);
@@ -614,7 +614,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -659,7 +659,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -717,7 +717,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -772,7 +772,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);
@@ -829,7 +829,7 @@ module ob_tests::test_ob_kiosk {
         let scenario = test_scenario::begin(kiosk_owner);
 
         // 1. Create kiosk
-        let kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // 2. Checks Kiosk's static and dynamic fields after creation
         check_new_kiosk(&mut kiosk, kiosk_owner);

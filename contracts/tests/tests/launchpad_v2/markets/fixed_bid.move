@@ -113,7 +113,7 @@ module ob_tests::test_fixed_bid {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         // Redeem NFT from the warehosue
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
         warehouse::redeem_nft_to_kiosk(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
@@ -213,7 +213,7 @@ module ob_tests::test_fixed_bid {
         test_scenario::next_tx(&mut scenario, BUYER);
 
         // Redeem NFT from the warehouse
-        let buyer_kiosk = ob_kiosk::new(ctx(&mut scenario));
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
         warehouse::redeem_nft_to_kiosk(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));

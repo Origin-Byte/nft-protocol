@@ -120,7 +120,7 @@ module nft_protocol::p2p_list {
         nonce: vector<u8>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let target_kiosk = ob_kiosk::new_for_address(target, ctx);
+        let (target_kiosk, _) = ob_kiosk::new_for_address(target, ctx);
 
         let req = ob_kiosk::transfer_signed<T>(
             source,
