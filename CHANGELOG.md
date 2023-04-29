@@ -14,6 +14,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Launchpad V2 Tests
 - P2P list tests
 - Bidding tests
+- `FrozenPublisher` as a primitive for providing access to inner type displays
+- All packages now have `init` and `pub` responsible for creating `Publisher` and `FrozenPublisher`
 
 ### Changed
 - Bugfix: Function `ob_launchpad::flat_fee::collect_proceeds_and_fees` was not dividing
@@ -26,6 +28,8 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
   within the programmable transaction block
 - Launchpad V2 Factory now returns `MintPass<T>` instead of transfering
 - Bidding: `bidding::sell_nft_from_kiosk` now uses `ob_kiosk::transfer_signed`
+- Carved out utils into a separate package
+- Grouped `witness`, `quorum` and `frozen_publisher` in a package called `Permissions`
 
 ## [1.0.0] - 2023-04-27
 
