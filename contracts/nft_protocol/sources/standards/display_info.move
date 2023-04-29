@@ -1,11 +1,11 @@
 /// Module of the `DisplayInfo`
-module nft_protocol::display_info {
+module ob_utils::display_info {
     use std::string::String;
 
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// `DisplayInfo` was not defined
     ///
@@ -104,7 +104,7 @@ module nft_protocol::display_info {
     /// Returns whether `DisplayInfo` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<DisplayInfo>, DisplayInfo>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -115,7 +115,7 @@ module nft_protocol::display_info {
     /// Panics if `DisplayInfo` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &DisplayInfo {
         assert_display(nft);
-        df::borrow(nft, marker::marker<DisplayInfo>())
+        df::borrow(nft, marker<DisplayInfo>())
     }
 
     /// Mutably borrows `DisplayInfo` from `Nft`
@@ -125,7 +125,7 @@ module nft_protocol::display_info {
     /// Panics if `DisplayInfo` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut DisplayInfo {
         assert_display(nft);
-        df::borrow_mut(nft, marker::marker<DisplayInfo>())
+        df::borrow_mut(nft, marker<DisplayInfo>())
     }
 
     /// Adds `DisplayInfo` to `Nft`
@@ -138,7 +138,7 @@ module nft_protocol::display_info {
         domain: DisplayInfo,
     ) {
         assert_no_display(nft);
-        df::add(nft, marker::marker<DisplayInfo>(), domain);
+        df::add(nft, marker<DisplayInfo>(), domain);
     }
 
     /// Remove `DisplayInfo` from `Nft`
@@ -148,7 +148,7 @@ module nft_protocol::display_info {
     /// Panics if `DisplayInfo` domain doesnt exist
     public fun remove_domain(nft: &mut UID): DisplayInfo {
         assert_display(nft);
-        df::remove(nft, marker::marker<DisplayInfo>())
+        df::remove(nft, marker<DisplayInfo>())
     }
 
     // === Assertions ===

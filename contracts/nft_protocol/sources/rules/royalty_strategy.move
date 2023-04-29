@@ -10,12 +10,12 @@ module nft_protocol::royalty_strategy_bps {
     use ob_request::transfer_request::{Self, TransferRequest, BalanceAccessCap};
     use ob_request::request::{Self, Policy, PolicyCap, WithNft};
     use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
-    use ob_witness::witness::{Witness as DelegatedWitness};
+    use ob_permissions::witness::{Witness as DelegatedWitness};
     use originmate::balances::{Self, Balances};
 
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::royalty;
-    use nft_protocol::utils;
+    use ob_utils::utils;
 
     /// === Errors ===
 

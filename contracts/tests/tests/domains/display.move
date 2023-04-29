@@ -10,7 +10,7 @@ module ob_tests::test_display {
 
     use nft_protocol::url;
     use nft_protocol::attributes;
-    use nft_protocol::display_info;
+    use ob_utils::display_info;
     use nft_protocol::symbol;
 
     struct Foo has key, store {

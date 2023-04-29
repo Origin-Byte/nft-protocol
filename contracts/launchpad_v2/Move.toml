@@ -17,5 +17,8 @@ rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 [dependencies.NftProtocol]
 local = "./../nft_protocol"
 
+[dependencies.Utils]
+local = "./../utils"
+
 [addresses]
 ob_launchpad_v2 = "0x19aefe1458b74f9c9106d535f24b24c57456afddd30fd8858453ec2b5e1fcf7d"

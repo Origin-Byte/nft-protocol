@@ -18,7 +18,7 @@ module examples::testract {
     use liquidity_layer::bidding;
     use liquidity_layer::orderbook::{Self, Orderbook};
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::display_info;
+    use ob_utils::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
@@ -45,7 +45,7 @@ module examples::testract {
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self};
     use ob_allowlist::allowlist::{Self, Allowlist};
-    use ob_witness::witness::{Self, Witness as DelegatedWitness};
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
 
     /// OTW for constructing publisher
     struct TESTRACT has drop {}
@@ -153,7 +153,7 @@ module examples::testract {
     public entry fun create_royalty_strategy(
         collection: &mut Collection<TestNft>, ctx: &mut TxContext,
     ) {
-        let one_percent = nft_protocol::utils::bps() / 100;
+        let one_percent = ob_utils::utils::bps() / 100;
 
         let royalty_strategy = royalty_strategy_bps::new(
             col_wit(), collection, one_percent, ctx,

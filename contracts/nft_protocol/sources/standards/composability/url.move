@@ -13,7 +13,7 @@ module nft_protocol::composable_url {
 
     use nft_protocol::url;
     use nft_protocol::attributes;
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// `ComposableUrl` was not defined
     ///
@@ -79,7 +79,7 @@ module nft_protocol::composable_url {
     /// Returns whether `ComposableUrl` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<ComposableUrl>, ComposableUrl>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -90,7 +90,7 @@ module nft_protocol::composable_url {
     /// Panics if `ComposableUrl` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &ComposableUrl {
         assert_composable_url(nft);
-        df::borrow(nft, marker::marker<ComposableUrl>())
+        df::borrow(nft, marker<ComposableUrl>())
     }
 
     /// Mutably borrows `ComposableUrl` from `Nft`
@@ -100,7 +100,7 @@ module nft_protocol::composable_url {
     /// Panics if `ComposableUrl` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut ComposableUrl {
         assert_composable_url(nft);
-        df::borrow_mut(nft, marker::marker<ComposableUrl>())
+        df::borrow_mut(nft, marker<ComposableUrl>())
     }
 
     /// Adds `ComposableUrl` to `Nft`
@@ -113,7 +113,7 @@ module nft_protocol::composable_url {
         domain: ComposableUrl,
     ) {
         assert_no_composable_url(nft);
-        df::add(nft, marker::marker<ComposableUrl>(), domain);
+        df::add(nft, marker<ComposableUrl>(), domain);
     }
 
     /// Remove `ComposableUrl` from `Nft`
@@ -123,7 +123,7 @@ module nft_protocol::composable_url {
     /// Panics if `ComposableUrl` domain doesnt exist
     public fun remove_domain(nft: &mut UID): ComposableUrl {
         assert_composable_url(nft);
-        df::remove(nft, marker::marker<ComposableUrl>())
+        df::remove(nft, marker<ComposableUrl>())
     }
 
     // === Assertions ===

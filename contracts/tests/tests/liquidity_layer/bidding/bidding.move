@@ -17,7 +17,7 @@ module ob_tests::test_bidding_safe_to_safe_generic_trade {
     use ob_kiosk::ob_kiosk::{Self};
     use sui::transfer;
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, fake_address};
-    use ob_witness::witness;
+    use ob_permissions::witness;
     use ob_request::transfer_request;
 
     const OFFER_SUI: u64 = 100;

@@ -14,9 +14,8 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.33.0
 rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 
-# TODO: This dependency should be removed in the long run
-[dependencies.Witness]
-local = "./../witness"
+[dependencies.Permissions]
+local = "./../permissions"
 
 [dependencies.Authlist]
 local = "./../authlist"
@@ -32,6 +31,9 @@ local = "./../kiosk"
 
 [dependencies.LiquidityLayer]
 local = "./../liquidity_layer"
+
+[dependencies.Utils]
+local = "./../utils"
 
 [addresses]
 nft_protocol = "0x2eead14abcb5a228b62a274ad22510555365f3f8e0af01bd6fb5de689f98f325"

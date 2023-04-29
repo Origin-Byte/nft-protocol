@@ -20,7 +20,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
     // fun it_fails_if_buyer_safe_eq_seller_safe()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
-    use ob_witness::witness;
+    use ob_permissions::witness;
     use originmate::typed_id;
     use ob_request::transfer_request;
     use ob_kiosk::ob_kiosk::{Self, OwnerToken};
