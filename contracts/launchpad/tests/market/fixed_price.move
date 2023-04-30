@@ -79,7 +79,7 @@ module ob_launchpad::test_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = warehouse::EEMPTY)]
+    #[expected_failure(abort_code = warehouse::EEmpty)]
     fun try_buy_no_supply() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);

@@ -29,8 +29,14 @@ module ob_utils::utils {
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
 
+    struct IsShared has copy, store, drop {}
+
     public fun marker<T>(): Marker<T> {
         Marker<T> {}
+    }
+
+    public fun is_shared(): IsShared {
+        IsShared {}
     }
 
     public fun get_package_module_type<T>(): (String, String, String) {
