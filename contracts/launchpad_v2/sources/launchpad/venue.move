@@ -147,7 +147,7 @@ module ob_launchpad_v2::venue {
         redeem_policy: TypeName,
         ctx: &mut TxContext,
     ): Venue {
-        let (auth_cap, policies) = init_policies(
+        let (policies, auth_cap) = init_policies(
             market,
             inventory,
             stock_policy,
@@ -203,16 +203,16 @@ module ob_launchpad_v2::venue {
         stock_policy: TypeName,
         redeem_policy: TypeName,
         ctx: &mut TxContext,
-    ): (PolicyCap, Policies) {
+    ): (Policies, PolicyCap) {
         let (auth_policy, auth_cap) = auth_request::init_policy(ctx);
 
-        (auth_cap, Policies {
+        (Policies {
             auth: auth_policy,
             inventory,
             stock_policy,
             redeem_policy,
             market,
-        })
+        }, auth_cap)
     }
 
     // === Venue Management ===
