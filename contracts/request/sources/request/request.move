@@ -207,7 +207,7 @@ module ob_request::request {
 
     public fun rule_state_mut<P, Rule: drop, State: store + drop>(
         self: &mut Policy<P>, _: Rule,
-    ): &State {
+    ): &mut State {
         df::borrow_mut(&mut self.id, RuleStateDfKey<Rule> {})
     }
 
