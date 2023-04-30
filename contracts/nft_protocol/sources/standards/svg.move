@@ -10,7 +10,7 @@ module nft_protocol::svg {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// `Svg` was not defined
     ///
@@ -55,7 +55,7 @@ module nft_protocol::svg {
     /// Returns whether `Svg` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<Svg>, Svg>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -66,7 +66,7 @@ module nft_protocol::svg {
     /// Panics if `Svg` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &Svg {
         assert_svg(nft);
-        df::borrow(nft, marker::marker<Svg>())
+        df::borrow(nft, marker<Svg>())
     }
 
     /// Mutably borrows `Svg` from `Nft`
@@ -76,7 +76,7 @@ module nft_protocol::svg {
     /// Panics if `Svg` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut Svg {
         assert_svg(nft);
-        df::borrow_mut(nft, marker::marker<Svg>())
+        df::borrow_mut(nft, marker<Svg>())
     }
 
     /// Adds `Svg` to `Nft`
@@ -89,7 +89,7 @@ module nft_protocol::svg {
         domain: Svg,
     ) {
         assert_no_svg(nft);
-        df::add(nft, marker::marker<Svg>(), domain);
+        df::add(nft, marker<Svg>(), domain);
     }
 
     /// Adds `Svg` to `Nft`
@@ -117,7 +117,7 @@ module nft_protocol::svg {
     /// Panics if `Svg` domain doesnt exist
     public fun remove_domain(nft: &mut UID): Svg {
         assert_svg(nft);
-        df::remove(nft, marker::marker<Svg>())
+        df::remove(nft, marker<Svg>())
     }
 
     // === Assertions ===

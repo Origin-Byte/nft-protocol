@@ -1,13 +1,13 @@
 module nft_protocol::wallets {
     use std::vector;
 
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::transfer;
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::Witness as DelegatedWitness;
 
     // === Errors ===
 
@@ -39,8 +39,11 @@ module nft_protocol::wallets {
     /// Creates and shares a new `Wallets`
     public fun init_wallets<Admin>(
         witness: DelegatedWitness<Admin>, wallets: VecSet<address>, ctx: &mut TxContext,
-    ) {
-        transfer::public_share_object(create(witness, wallets, ctx));
+    ): ID {
+        let wallets = create(witness, wallets, ctx);
+        let wallets_id = object::id(&wallets);
+        transfer::public_share_object(wallets);
+        wallets_id
     }
 
     public fun insert_addresses<T>(

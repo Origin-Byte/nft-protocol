@@ -45,7 +45,7 @@ module examples::testract {
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self};
     use ob_allowlist::allowlist::{Self, Allowlist};
-    use ob_witness::witness::{Self, Witness as DelegatedWitness};
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
 
     /// OTW for constructing publisher
     struct TESTRACT has drop {}
@@ -153,7 +153,7 @@ module examples::testract {
     public entry fun create_royalty_strategy(
         collection: &mut Collection<TestNft>, ctx: &mut TxContext,
     ) {
-        let one_percent = nft_protocol::utils::bps() / 100;
+        let one_percent = ob_utils::utils::bps() / 100;
 
         let royalty_strategy = royalty_strategy_bps::new(
             col_wit(), collection, one_percent, ctx,
@@ -216,7 +216,7 @@ module examples::testract {
         while(i < 5) {
             let price = 1000 + i * 100;
 
-            let kiosk = ob_kiosk::new(ctx);
+            let (kiosk, _) = ob_kiosk::new(ctx);
             orderbook::create_bid(
                 orderbook,
                 &mut kiosk,
@@ -234,7 +234,7 @@ module examples::testract {
         while(i < 5) {
             let price = 1300 + i * 100;
 
-            let kiosk = ob_kiosk::new(ctx);
+            let (kiosk, _) = ob_kiosk::new(ctx);
             let nft = TestNft {
                 id: object::new(ctx),
                 name: utf8(b"generate_orderbook_events"),
@@ -293,7 +293,7 @@ module examples::testract {
             &nft,
         );
 
-        let buyer_kiosk = ob_kiosk::new(ctx);
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx);
 
         let bid = bidding::new_bid(
             object::id(&buyer_kiosk),
@@ -419,7 +419,7 @@ module examples::testract {
             &nft,
         );
 
-        let kiosk = ob_kiosk::new(ctx);
+        let (kiosk, _) = ob_kiosk::new(ctx);
 
         let bid = bidding::new_bid(
             object::id(&kiosk),
@@ -444,7 +444,7 @@ module examples::testract {
         wallet: &mut Coin<SUI>,
         ctx: &mut TxContext,
     ) {
-        let kiosk = ob_kiosk::new(ctx);
+        let (kiosk, _) = ob_kiosk::new(ctx);
         orderbook::create_bid(
             orderbook,
             &mut kiosk,
@@ -455,7 +455,7 @@ module examples::testract {
         public_transfer(kiosk, sender(ctx));
         orderbook::cancel_bid(orderbook, 456, wallet, ctx);
 
-        let kiosk = ob_kiosk::new(ctx);
+        let (kiosk, _) = ob_kiosk::new(ctx);
         let nft = TestNft {
             id: object::new(ctx),
             name: utf8(b"generate_orderbook_close_events"),

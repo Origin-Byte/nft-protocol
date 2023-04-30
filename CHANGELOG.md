@@ -7,6 +7,30 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.1.0] - 2023-04-29
+
+### Added
+- Init Orderbook tests
+- Launchpad V2 Tests
+- P2P list tests
+- Bidding tests
+- `FrozenPublisher` as a primitive for providing access to inner type displays
+- All packages now have `init` and `pub` responsible for creating `Publisher` and `FrozenPublisher`
+
+### Changed
+- Bugfix: Function `ob_launchpad::flat_fee::collect_proceeds_and_fees` was not dividing
+  `10_000` to scale down basis points
+- BugFix: Fixed bug in SizedVec
+- BugFix: Launchpad V2 Auth has incorrect deserisalisation. this is now fixed and tested
+- Bugfix: Kiosk Transfer when sender is owner. The assertion in `ob_kiosk::check_entity_and_pop_ref`
+  was incorrect and it is now patched
+- Functions that create objects and transfer/share now return their IDs, providing discoverability
+  within the programmable transaction block
+- Launchpad V2 Factory now returns `MintPass<T>` instead of transfering
+- Bidding: `bidding::sell_nft_from_kiosk` now uses `ob_kiosk::transfer_signed`
+- Carved out utils into a separate package
+- Grouped `witness`, `quorum` and `frozen_publisher` in a package called `Permissions`
+
 ## [1.0.0] - 2023-04-27
 
 ### Added

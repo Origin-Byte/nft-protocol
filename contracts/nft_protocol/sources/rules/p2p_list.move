@@ -63,6 +63,8 @@ module nft_protocol::p2p_list {
 
     // === Structs ===
 
+    struct Witness has drop {}
+
     /// `sui::transfer_policy::TransferPolicy` can have this rule to enforce
     /// that only P2PListed contracts can transfer NFTs.
     ///
@@ -118,7 +120,7 @@ module nft_protocol::p2p_list {
         nonce: vector<u8>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        let target_kiosk = ob_kiosk::new_for_address(target, ctx);
+        let (target_kiosk, _) = ob_kiosk::new_for_address(target, ctx);
 
         let req = ob_kiosk::transfer_signed<T>(
             source,
@@ -178,6 +180,13 @@ module nft_protocol::p2p_list {
     /// It adds a signature to the request.
     /// In the end, if the Authlist rule is included in the transfer policy,
     /// the transfer request can only be finished if this rule is present.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if signed message does not use `authority` as public key, or
+    /// signature does not sign the following concatenation of properties.
+    ///
+    /// `nft_id | source | destination | tx_context::epoch | nonce`
     fun confirm_transfer_<T>(
         self: &Authlist,
         req: &mut TransferRequest<T>,
@@ -189,11 +198,21 @@ module nft_protocol::p2p_list {
         destination: address,
         ctx: &TxContext,
     ) {
-        let _auth = ob_kiosk::get_transfer_request_auth(req);
+        ob_kiosk::set_transfer_request_auth(req, &Witness {});
+
         confirm_<T>(self, authority, nft_id, source, destination, nonce, signature, ctx);
         transfer_request::add_receipt(req, P2PListRule {});
     }
 
+    /// Confirm that signature was correctly generated from transaction
+    /// properties
+    ///
+    /// #### Panics
+    ///
+    /// Panics if signed message does not use `authority` as public key, or
+    /// signature does not sign the following concatenation of properties:
+    ///
+    /// `nft_id | source | destination | tx_context::epoch | nonce`
     fun confirm_<T>(
         self: &Authlist,
         authority: &vector<u8>,

@@ -4,7 +4,7 @@ module ob_tests::test_royalty {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::collection::{Self, Collection};
-    use ob_witness::witness;
+    use ob_permissions::witness;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::royalty::RoyaltyDomain;
 

@@ -5,7 +5,7 @@ module ob_tests::test_mint_event {
     use sui::test_scenario::{Self, ctx};
 
     use nft_protocol::mint_event;
-    use ob_witness::witness;
+    use ob_permissions::witness;
 
     struct Foo has key, store {
         id: UID,

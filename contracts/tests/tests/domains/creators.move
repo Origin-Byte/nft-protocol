@@ -4,7 +4,7 @@ module ob_tests::test_creators {
     use sui::vec_set;
     use sui::test_scenario::{Self, ctx};
 
-    use ob_witness::witness;
+    use ob_permissions::witness;
     use nft_protocol::creators::{Self, Creators};
     use nft_protocol::collection::{Self, Collection};
 
