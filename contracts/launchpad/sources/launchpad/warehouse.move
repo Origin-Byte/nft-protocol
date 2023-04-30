@@ -498,7 +498,7 @@ module ob_launchpad::warehouse {
         let idx = 0;
         while (idx < supply) {
             let _idx = 0;
-            let (chunk_idx, _) = chunk_index(supply);
+            let (chunk_idx, _) = chunk_index(idx);
             let chunk = borrow_chunk(warehouse, chunk_idx);
             let length = vector::length(chunk);
             while (_idx < length) {
