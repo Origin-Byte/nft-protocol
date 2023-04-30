@@ -15,7 +15,7 @@ module examples::suitraders {
     use nft_protocol::creators;
     use nft_protocol::attributes::{Self, Attributes};
     use nft_protocol::collection;
-    use ob_utils::display_info;
+    use nft_protocol::display_info;
     use ob_utils::display as ob_display;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;

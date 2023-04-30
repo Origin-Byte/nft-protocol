@@ -10,7 +10,7 @@ module examples::example_symbol {
     use sui::vec_set::{Self, VecSet};
 
     use ob_permissions::witness;
-    use ob_utils::display_info;
+    use nft_protocol::display_info;
     use nft_protocol::collection::{Self, Collection};
 
     /// One time witness is only instantiated in the init method

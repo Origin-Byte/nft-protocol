@@ -18,7 +18,7 @@ module examples::testract {
     use liquidity_layer::bidding;
     use liquidity_layer::orderbook::{Self, Orderbook};
     use nft_protocol::collection::{Self, Collection};
-    use ob_utils::display_info;
+    use nft_protocol::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::mint_event;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
