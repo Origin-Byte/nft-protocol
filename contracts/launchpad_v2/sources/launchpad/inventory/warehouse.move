@@ -10,17 +10,16 @@
 /// while avoiding shared consensus transactions on `Listing`.
 module ob_launchpad_v2::warehouse {
     use std::vector;
-    // use std::debug;
-    // use std::string::utf8;
 
     use sui::transfer;
     use sui::math;
+    use sui::dynamic_field as df;
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
     use sui::vec_map::{Self, VecMap};
     use ob_utils::sized_vec;
-    use ob_utils::utils;
+    use ob_utils::utils::{Self, IsShared};
 
     use sui::kiosk::Kiosk;
     use ob_kiosk::ob_kiosk;
@@ -55,9 +54,9 @@ module ob_launchpad_v2::warehouse {
 
     const EINVALID_CERTIFICATE: u64 = 6;
 
+    const EWAREHOUSE_NOT_SHARED: u64 = 7;
 
     struct Witness has drop {}
-
 
     /// `Warehouse` object which stores NFTs
     ///
@@ -76,6 +75,7 @@ module ob_launchpad_v2::warehouse {
         // Since Warehouses and Venues are loosely linked, this helps ensuring that the
         // bookeeping of NFTs is done consistently on both sides.
         registry: VecMap<ID, u64>,
+        warehouse: UID,
     }
 
     /// Create a new `Warehouse`
@@ -85,6 +85,7 @@ module ob_launchpad_v2::warehouse {
             nfts: vector::empty(),
             total_deposited: 0,
             registry: vec_map::empty(),
+            warehouse: object::new(ctx),
         }
     }
 
@@ -92,8 +93,44 @@ module ob_launchpad_v2::warehouse {
     public fun init_warehouse<T: key + store>(ctx: &mut TxContext): ID {
         let warehouse = new<T>(ctx);
         let warehouse_id = object::id(&warehouse);
-        transfer::public_transfer(warehouse, tx_context::sender(ctx));
+        transfer::share_object(warehouse);
         warehouse_id
+    }
+
+    public fun share_from_private<T: key + store>(
+        warehouse: Warehouse<T>, ctx: &mut TxContext
+    ): ID {
+        let Warehouse {
+            id,
+            nfts,
+            total_deposited,
+            registry,
+            warehouse
+        } = warehouse;
+        object::delete(id);
+
+        let shared_warehouse = Warehouse<T> {
+            id: object::new(ctx),
+            nfts,
+            total_deposited,
+            registry,
+            warehouse,
+        };
+
+        // Adding a simple marker to flag that the object is shared
+        flag_as_shared(&mut shared_warehouse);
+
+        let new_id = object::id(&shared_warehouse);
+        transfer::share_object(shared_warehouse);
+        new_id
+    }
+
+    public fun share<T: key + store>(
+        warehouse: Warehouse<T>,
+    ) {
+        // Adding a simple marker to flag that the object is shared
+        flag_as_shared(&mut warehouse);
+        transfer::share_object(warehouse);
     }
 
     /// Deposits NFT to `Warehouse`
@@ -108,7 +145,7 @@ module ob_launchpad_v2::warehouse {
         vector::push_back(&mut warehouse.nfts, nft_id);
         warehouse.total_deposited = warehouse.total_deposited + 1;
 
-        dof::add(&mut warehouse.id, nft_id, nft);
+        dof::add(&mut warehouse.warehouse, nft_id, nft);
     }
 
     public fun deposit_nfts<T: key + store>(
@@ -123,7 +160,7 @@ module ob_launchpad_v2::warehouse {
             let nft_id = object::id(&nft);
             vector::push_back(&mut warehouse.nfts, nft_id);
 
-            dof::add(&mut warehouse.id, nft_id, nft);
+            dof::add(&mut warehouse.warehouse, nft_id, nft);
 
             len = len - 1;
         };
@@ -137,6 +174,8 @@ module ob_launchpad_v2::warehouse {
         self: &mut Warehouse<T>,
         new_supply: u64,
     ) {
+        assert_is_shared(self);
+
         let allocated_supply = utils::sum_vector(utils::vec_map_entries(&self.registry));
         let remaining_supply = self.total_deposited - allocated_supply;
 
@@ -258,7 +297,7 @@ module ob_launchpad_v2::warehouse {
             vector::pop_back(nfts);
         };
 
-        let nft = dof::remove<ID, T>(&mut warehouse.id, nft_id);
+        let nft = dof::remove<ID, T>(&mut warehouse.warehouse, nft_id);
         warehouse.total_deposited = warehouse.total_deposited - 1;
 
         nft
@@ -273,10 +312,14 @@ module ob_launchpad_v2::warehouse {
     /// Panics if `Warehouse` is not empty
     public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
-        let Warehouse { id, nfts: _, total_deposited: _, registry: _ } = warehouse;
+        let Warehouse { id, nfts: _, total_deposited: _, registry: _ , warehouse} = warehouse;
         object::delete(id);
+        object::delete(warehouse);
     }
 
+    fun flag_as_shared<T: key + store>(warehouse: &mut Warehouse<T>) {
+        df::add(&mut warehouse.warehouse, utils::marker<IsShared>(), utils::is_shared());
+    }
 
     // === Getter Functions ===
 
@@ -310,6 +353,13 @@ module ob_launchpad_v2::warehouse {
     /// Asserts that `Warehouse` is empty
     public fun assert_is_empty<T: key + store>(warehouse: &Warehouse<T>) {
         assert!(is_empty(warehouse), ENOT_EMPTY);
+    }
+
+    public fun assert_is_shared<T: key + store>(warehouse: &Warehouse<T>) {
+        assert!(
+            df::exists_(&warehouse.warehouse, utils::marker<IsShared>()),
+            EWAREHOUSE_NOT_SHARED
+        );
     }
 
     #[test_only]

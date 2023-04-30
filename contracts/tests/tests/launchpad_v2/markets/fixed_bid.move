@@ -5,6 +5,7 @@ module ob_tests::test_fixed_bid {
     use std::vector;
     // use std::debug;
     // use std::string::utf8;
+    // debug::print(&utf8(b"a"));
 
     use sui::test_scenario::{Self, ctx};
     use sui::sui::SUI;
@@ -63,23 +64,28 @@ module ob_tests::test_fixed_bid {
         // 3. Add market module
         fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
+        transfer::public_share_object(listing);
+        transfer::public_share_object(venue);
+
         // 4. Create warehouse
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse_id = object::id(&warehouse);
 
         // 5. Mint NFTs to the Warehouse
         utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::share(warehouse);
+
+        // 6. Register Supply
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+
         warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
-
-        let warehouse_id = object::id(&warehouse);
-
-        transfer::public_share_object(warehouse);
-        transfer::public_share_object(listing);
-        transfer::public_share_object(venue);
 
         // 6. Buy NFT
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        let venue = test_scenario::take_shared<Venue>(&scenario);
         let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
@@ -119,17 +125,16 @@ module ob_tests::test_fixed_bid {
 
         // Redeem NFT from the warehosue
         let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
-
-        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
         warehouse::redeem_nft_to_kiosk(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
 
         certificate::consume_for_test(cert);// TODO replace
         coin::burn_for_testing(coin);
 
-        test_scenario::return_shared(venue);
         test_scenario::return_shared(warehouse);
+        test_scenario::return_shared(venue);
         transfer::public_transfer(launch_cap, MARKETPLACE);
         transfer::public_share_object(buyer_kiosk);
+
         test_scenario::end(scenario);
     }
 
@@ -167,23 +172,27 @@ module ob_tests::test_fixed_bid {
         // 3. Add market module
         fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
-        // 4. Create warehouse
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
-
-        // 5. Mint NFTs to the Warehouse
-        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
-        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
-
-        let warehouse_id = object::id(&warehouse);
-
-        transfer::public_share_object(warehouse);
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
 
+        // 4. Create warehouse
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse_id = object::id(&warehouse);
+
+        // 5. Mint NFTs to the Warehouse
+        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::share(warehouse);
+
+        // 6. Register Supply
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+
+        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+
         // 6. Buy NFT
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let venue = test_scenario::take_shared<Venue>(&scenario);
         let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
@@ -223,16 +232,14 @@ module ob_tests::test_fixed_bid {
 
         // Redeem NFT from the warehouse
         let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
-
-        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
         warehouse::redeem_nft_to_kiosk(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
 
 
         certificate::consume_for_test(cert);// TODO replace
         coin::burn_for_testing(coin);
 
-        test_scenario::return_shared(venue);
         test_scenario::return_shared(warehouse);
+        test_scenario::return_shared(venue);
         transfer::public_transfer(launch_cap, MARKETPLACE);
         transfer::public_share_object(buyer_kiosk);
         test_scenario::end(scenario);
@@ -273,22 +280,26 @@ module ob_tests::test_fixed_bid {
         // 3. Add market module
         fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
-        // 4. Create warehouse
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
-
-        // 5. Mint NFTs to the Warehouse
-        // let supply = 20;
-        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
-        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
-
-        transfer::public_share_object(warehouse);
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
 
+        // 4. Create warehouse
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+        // 5. Mint NFTs to the Warehouse
+        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::share(warehouse);
+
+        // 6. Register Supply
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+
+        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+
         // 6. Buy NFT
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let venue = test_scenario::take_shared<Venue>(&scenario);
         let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
@@ -305,6 +316,7 @@ module ob_tests::test_fixed_bid {
         coin::burn_for_testing(coin);
 
         test_scenario::return_shared(venue);
+        test_scenario::return_shared(warehouse);
         transfer::public_transfer(launch_cap, MARKETPLACE);
         test_scenario::end(scenario);
     }
@@ -344,22 +356,26 @@ module ob_tests::test_fixed_bid {
         // 3. Add market module
         fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
-        // 4. Create warehouse
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
-
-        // 5. Mint NFTs to the Warehouse
-        // let supply = 10;
-        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
-        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
-
-        transfer::public_share_object(warehouse);
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
 
+        // 4. Create warehouse
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+        // 5. Mint NFTs to the Warehouse
+        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::share(warehouse);
+
+        // 6. Register Supply
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+
+        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+
         // 6. Buy NFT
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let venue = test_scenario::take_shared<Venue>(&scenario);
         let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
@@ -376,6 +392,7 @@ module ob_tests::test_fixed_bid {
         coin::burn_for_testing(coin);
 
         test_scenario::return_shared(venue);
+        test_scenario::return_shared(warehouse);
         transfer::public_transfer(launch_cap, MARKETPLACE);
         test_scenario::end(scenario);
     }
@@ -414,22 +431,27 @@ module ob_tests::test_fixed_bid {
         // 3. Add market module
         fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
-        // 4. Create warehouse
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
-
-        // 5. Mint NFTs to the Warehouse
-        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
-        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
-        let warehouse_id = object::id(&warehouse);
-
-        transfer::public_share_object(warehouse);
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
 
+        // 4. Create warehouse
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse_id = object::id(&warehouse);
+
+        // 5. Mint NFTs to the Warehouse
+        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::share(warehouse);
+
+        // 6. Register Supply
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+
+        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+
         // 6. Buy NFT
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let venue = test_scenario::take_shared<Venue>(&scenario);
         let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
@@ -467,8 +489,6 @@ module ob_tests::test_fixed_bid {
 
         // Redeem NFT from the warehouse
         let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
-
-        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
         let nfts = warehouse::test_redeem_nft(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
 
         let len = vector::length(&nfts);
@@ -531,22 +551,27 @@ module ob_tests::test_fixed_bid {
         // 3. Add market module
         fixed_bid::init_market<SUI>(&launch_cap, &mut venue, price, max_buy, ctx(&mut scenario));
 
-        // 4. Create warehouse
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
-
-        // 5. Mint NFTs to the Warehouse
-        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
-        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
-        let warehouse_id = object::id(&warehouse);
-
-        transfer::public_share_object(warehouse);
         transfer::public_share_object(listing);
         transfer::public_share_object(venue);
 
+        // 4. Create warehouse
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse_id = object::id(&warehouse);
+
+        // 5. Mint NFTs to the Warehouse
+        utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
+        warehouse::share(warehouse);
+
+        // 6. Register Supply
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
+        let venue = test_scenario::take_shared<Venue>(&scenario);
+
+        warehouse::register_supply(&launch_cap, &mut venue, &mut warehouse, supply);
+
         // 6. Buy NFT
         test_scenario::next_tx(&mut scenario, BUYER);
-
-        let venue = test_scenario::take_shared<Venue>(&scenario);
         let coin = coin::mint_for_testing<SUI>(price * nfts_to_buy, ctx(&mut scenario));
         let req = venue::request_access(&venue, ctx(&mut scenario));
 
@@ -584,8 +609,6 @@ module ob_tests::test_fixed_bid {
 
         // Redeem NFT from the warehouse
         let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
-
-        let warehouse = test_scenario::take_shared<Warehouse<Foo>>(&scenario);
         let nfts = warehouse::test_redeem_nft(&mut warehouse, &mut cert, &mut buyer_kiosk ,ctx(&mut scenario));
 
         let len = vector::length(&nfts);
