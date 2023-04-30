@@ -27,6 +27,8 @@ module ob_launchpad::dutch_auction {
     use ob_launchpad::inventory;
     use ob_launchpad::market_whitelist::{Self, Certificate};
 
+    use ob_kiosk::ob_kiosk;
+
     const U64_MAX: u64 = 18446744073709551615;
 
     /// Order price was below auction reserve price
@@ -273,7 +275,11 @@ module ob_launchpad::dutch_auction {
             balance::join<FT>(&mut total_funds, filled_funds);
 
             let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
-            transfer::public_transfer(nft, owner);
+
+            // Since we do not know the users Kiosk, create a new one for them
+            let (kiosk, _) = ob_kiosk::new(ctx);
+            ob_kiosk::deposit(&mut kiosk, nft, ctx);
+            transfer::public_share_object(kiosk);
 
             if (balance::value(&amount) == 0) {
                 balance::destroy_zero(amount);

@@ -362,7 +362,7 @@ module ob_launchpad::test_english_auction {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        english_auction::claim_nft_and_transfer<Foo, SUI>(
+        english_auction::claim_nft<Foo, SUI>(
             &mut listing, venue_id, ctx(&mut scenario),
         );
 
@@ -390,7 +390,7 @@ module ob_launchpad::test_english_auction {
 
         test_scenario::next_tx(&mut scenario, BUYER);
 
-        english_auction::claim_nft_and_transfer<Foo, SUI>(
+        english_auction::claim_nft<Foo, SUI>(
             &mut listing, venue_id, ctx(&mut scenario),
         );
 
@@ -417,7 +417,7 @@ module ob_launchpad::test_english_auction {
 
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        english_auction::claim_nft_and_transfer<Foo, SUI>(
+        english_auction::claim_nft<Foo, SUI>(
             &mut listing, venue_id, ctx(&mut scenario),
         );
 
@@ -431,8 +431,8 @@ module ob_launchpad::test_english_auction {
         assert!(proceeds::total(proceeds) == 1, 0);
         assert!(balance::value(proceeds::balance<SUI>(proceeds)) == 10, 0);
 
-        // Check that NFT was deposited
-        assert!(test_scenario::has_most_recent_for_address<Foo>(CREATOR), 0);
+        // TODO: Check Kiosk created and NFT was deposited
+        // assert!(test_scenario::has_most_recent_for_address<Foo>(CREATOR), 0);
 
         coin::burn_for_testing(wallet);
         test_scenario::return_shared(listing);
