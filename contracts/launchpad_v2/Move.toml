@@ -20,5 +20,8 @@ local = "./../nft_protocol"
 [dependencies.Utils]
 local = "./../utils"
 
+[dependencies.Launchpad]
+local = "./../launchpad"
+
 [addresses]
 ob_launchpad_v2 = "0xdbc3dea6f5ed15b078c9a5cd72b337e554336a9604c4066ea9caaccf46e81866"
