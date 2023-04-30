@@ -7,6 +7,7 @@ dependencies = [
   { name = "Allowlist" },
   { name = "Authlist" },
   { name = "Kiosk" },
+  { name = "LaunchpadV2" },
   { name = "LiquidityLayer" },
   { name = "NftProtocol" },
   { name = "Originmate" },
@@ -40,6 +41,16 @@ dependencies = [
   { name = "Request" },
   { name = "Sui" },
   { name = "Witness" },
+]
+
+[[move.package]]
+name = "LaunchpadV2"
+source = { local = "../launchpad_v2" }
+
+dependencies = [
+  { name = "NftProtocol" },
+  { name = "Originmate" },
+  { name = "Sui" },
 ]
 
 [[move.package]]

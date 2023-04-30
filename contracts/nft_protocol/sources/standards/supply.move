@@ -10,9 +10,9 @@
 /// of the current supply, whilst unregulated policies have no supply
 /// constraints nor they keep track of the number of minted objects.
 module nft_protocol::supply {
-    use ob_witness::marker::{Self, Marker};
-    use nft_protocol::utils_supply;
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_utils::utils::{marker, Marker};
+    use ob_utils::utils_supply;
+    use ob_permissions::witness::Witness as DelegatedWitness;
 
     use sui::object::UID;
     use sui::dynamic_field as df;
@@ -255,7 +255,7 @@ module nft_protocol::supply {
     /// Returns whether `Supply` is registered on object
     public fun has_domain<T>(nft: &UID): bool {
         df::exists_with_type<Marker<Supply<T>>, Supply<T>>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -266,7 +266,7 @@ module nft_protocol::supply {
     /// Panics if `Supply` is not registered on the object
     public fun borrow_domain<T>(nft: &UID): &Supply<T> {
         assert_supply<T>(nft);
-        df::borrow(nft, marker::marker<Supply<T>>())
+        df::borrow(nft, marker<Supply<T>>())
     }
 
     /// Mutably borrows `Supply` from object
@@ -276,7 +276,7 @@ module nft_protocol::supply {
     /// Panics if `Supply` is not registered on the object
     public fun borrow_domain_mut<T>(nft: &mut UID): &mut Supply<T> {
         assert_supply<T>(nft);
-        df::borrow_mut(nft, marker::marker<Supply<T>>())
+        df::borrow_mut(nft, marker<Supply<T>>())
     }
 
     /// Adds `Supply` to object
@@ -289,7 +289,7 @@ module nft_protocol::supply {
         domain: Supply<T>,
     ) {
         assert_no_supply<T>(nft);
-        df::add(nft, marker::marker<Supply<T>>(), domain);
+        df::add(nft, marker<Supply<T>>(), domain);
     }
 
     /// Adds new `Supply` to object
@@ -313,7 +313,7 @@ module nft_protocol::supply {
     /// Panics if `Supply` domain doesnt exist
     public fun remove_domain<T>(object: &mut UID): Supply<T> {
         assert_supply<T>(object);
-        df::remove(object, marker::marker<Supply<T>>())
+        df::remove(object, marker<Supply<T>>())
     }
 
     /// Delete a `Supply` object

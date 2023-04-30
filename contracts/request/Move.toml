@@ -1,7 +1,7 @@
 [package]
 name = "Request"
-version = "1.0.0"
-published-at = "0xa37b19d59b762ff0b03a790b48b918cb3b194eec795f0af212e1c199070efabd"
+version = "1.1.0"
+published-at = "0x33324b87a09f5b2928d8d62a00eb66f93baa8d7545330c8c8ca15da2c80cbc82"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -14,8 +14,8 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.33.0
 rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 
-[dependencies.Witness]
-local = "./../witness"
+[dependencies.Permissions]
+local = "./../permissions"
 
 [addresses]
-ob_request = "0xa37b19d59b762ff0b03a790b48b918cb3b194eec795f0af212e1c199070efabd"
+ob_request = "0x33324b87a09f5b2928d8d62a00eb66f93baa8d7545330c8c8ca15da2c80cbc82"

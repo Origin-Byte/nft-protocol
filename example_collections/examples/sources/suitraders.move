@@ -16,11 +16,11 @@ module examples::suitraders {
     use nft_protocol::attributes::{Self, Attributes};
     use nft_protocol::collection;
     use nft_protocol::display_info;
-    use nft_protocol::display as ob_display;
+    use ob_utils::display as ob_display;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
     use nft_protocol::tags;
-    use ob_witness::witness;
+    use ob_permissions::witness;
 
     use ob_launchpad::listing;
     use ob_launchpad::fixed_price;

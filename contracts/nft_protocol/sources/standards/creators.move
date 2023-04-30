@@ -6,7 +6,7 @@ module nft_protocol::creators {
     use sui::object::UID;
     use sui::dynamic_field as df;
 
-    use ob_witness::marker::{Self, Marker};
+    use ob_utils::utils::{marker, Marker};
 
     /// `CreatorsDomain` was not defined on `Collection`
     ///
@@ -96,7 +96,7 @@ module nft_protocol::creators {
     /// Returns whether `Creators` is registered on `Nft`
     public fun has_domain(nft: &UID): bool {
         df::exists_with_type<Marker<Creators>, Creators>(
-            nft, marker::marker(),
+            nft, marker(),
         )
     }
 
@@ -107,7 +107,7 @@ module nft_protocol::creators {
     /// Panics if `Creators` is not registered on the `Nft`
     public fun borrow_domain(nft: &UID): &Creators {
         assert_Creators(nft);
-        df::borrow(nft, marker::marker<Creators>())
+        df::borrow(nft, marker<Creators>())
     }
 
     /// Mutably borrows `Creators` from `Nft`
@@ -117,7 +117,7 @@ module nft_protocol::creators {
     /// Panics if `Creators` is not registered on the `Nft`
     public fun borrow_domain_mut(nft: &mut UID): &mut Creators {
         assert_Creators(nft);
-        df::borrow_mut(nft, marker::marker<Creators>())
+        df::borrow_mut(nft, marker<Creators>())
     }
 
     /// Adds `Creators` to `Nft`
@@ -130,7 +130,7 @@ module nft_protocol::creators {
         domain: Creators,
     ) {
         assert_no_Creators(nft);
-        df::add(nft, marker::marker<Creators>(), domain);
+        df::add(nft, marker<Creators>(), domain);
     }
 
     /// Remove `Creators` from `Nft`
@@ -140,7 +140,7 @@ module nft_protocol::creators {
     /// Panics if `Creators` domain doesnt exist
     public fun remove_domain(nft: &mut UID): Creators {
         assert_Creators(nft);
-        df::remove(nft, marker::marker<Creators>())
+        df::remove(nft, marker<Creators>())
     }
 
     /// Delete a `Creators` object

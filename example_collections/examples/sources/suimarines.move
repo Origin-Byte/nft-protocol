@@ -9,11 +9,11 @@ module examples::suimarines {
 
     use nft_protocol::tags;
     use nft_protocol::transfer_allowlist;
-    use nft_protocol::display as ob_display;
+    use ob_utils::display as ob_display;
     use nft_protocol::collection;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
-    use ob_witness::witness;
+    use ob_permissions::witness;
 
     use ob_request::transfer_request;
     use ob_request::borrow_request::{Self, BorrowRequest, ReturnPromise};

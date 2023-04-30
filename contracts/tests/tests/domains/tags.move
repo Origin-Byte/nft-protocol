@@ -8,7 +8,7 @@ module ob_tests::test_tags {
     use sui::object::UID;
 
     use nft_protocol::tags;
-    use nft_protocol::display as ob_display;
+    use ob_utils::display as ob_display;
 
     struct Foo has key, store {
         id: UID,

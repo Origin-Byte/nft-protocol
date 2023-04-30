@@ -47,7 +47,7 @@ module nft_protocol::session_token {
         receiver: address,
         expiry_ms: u64,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let field = option::none();
         issue_session_token_(
             kiosk,
@@ -56,7 +56,7 @@ module nft_protocol::session_token {
             expiry_ms,
             field,
             ctx,
-        );
+        )
     }
 
     public fun issue_session_token_field<T: key + store, Field: store>(
@@ -84,13 +84,14 @@ module nft_protocol::session_token {
         expiry_ms: u64,
         field: Option<TypeName>,
         ctx: &mut TxContext,
-    ) {
+    ): ID {
         let nft_id = typed_id::to_id(nft_id);
 
         // Only the owner can issue session tokens
         ob_kiosk::assert_owner_address(kiosk, sender(ctx));
 
         let ss_uid = object::new(ctx);
+        let ss_id = object::uid_to_inner(&ss_uid);
 
         let timeout = TimeOut<T> {
             id: object::new(ctx),
@@ -113,6 +114,7 @@ module nft_protocol::session_token {
 
         df::add(kiosk_uid, TimeOutDfKey { nft_id }, timeout);
         transfer::public_transfer(session_token, receiver);
+        ss_id
     }
 
     /// Registers a type to use `AccessPolicy` during the borrowing.

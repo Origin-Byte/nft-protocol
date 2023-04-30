@@ -1,7 +1,7 @@
 [package]
 name = "LiquidityLayer"
-version = "1.0.0"
-published-at = "0xda5ce01d0e365f2aac8df7d85d1cdfe271fd75db338daf248132991d74c2f1c8"
+version = "1.1.0"
+published-at = "0xd34b56feab8ec4e31e32b30564e1d6b11eb32f2985c3fbb85b5be715df006536"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -14,9 +14,8 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # devnet-0.33.0
 rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 
-# TODO: This dependency should be removed in the long run
-[dependencies.Witness]
-local = "./../witness"
+[dependencies.Permissions]
+local = "./../permissions"
 
 [dependencies.Authlist]
 local = "./../authlist"
@@ -31,4 +30,4 @@ local = "./../request"
 local = "./../kiosk"
 
 [addresses]
-liquidity_layer = "0xda5ce01d0e365f2aac8df7d85d1cdfe271fd75db338daf248132991d74c2f1c8"
+liquidity_layer = "0xd34b56feab8ec4e31e32b30564e1d6b11eb32f2985c3fbb85b5be715df006536"

@@ -4,7 +4,7 @@ module ob_tests::test_composable_nft {
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
 
-    use ob_witness::witness;
+    use ob_permissions::witness;
     use nft_protocol::collection;
     use nft_protocol::nft_bag::{Self, NftBag};
     use nft_protocol::composable_nft::{Self as c_nft, Composition};

@@ -7,6 +7,7 @@ dependencies = [
   { name = "NftProtocol" },
   { name = "Originmate" },
   { name = "Sui" },
+  { name = "Utils" },
 ]
 
 [[move.package]]
@@ -14,6 +15,7 @@ name = "Allowlist"
 source = { local = "../allowlist" }
 
 dependencies = [
+  { name = "Permissions" },
   { name = "Sui" },
 ]
 
@@ -22,6 +24,7 @@ name = "Authlist"
 source = { local = "../authlist" }
 
 dependencies = [
+  { name = "Permissions" },
   { name = "Sui" },
 ]
 
@@ -31,9 +34,9 @@ source = { local = "../kiosk" }
 
 dependencies = [
   { name = "Originmate" },
+  { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
-  { name = "Witness" },
 ]
 
 [[move.package]]
@@ -45,9 +48,9 @@ dependencies = [
   { name = "Authlist" },
   { name = "Kiosk" },
   { name = "Originmate" },
+  { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
-  { name = "Witness" },
 ]
 
 [[move.package]]
@@ -64,9 +67,10 @@ dependencies = [
   { name = "Kiosk" },
   { name = "LiquidityLayer" },
   { name = "Originmate" },
+  { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
-  { name = "Witness" },
+  { name = "Utils" },
 ]
 
 [[move.package]]
@@ -78,13 +82,22 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Permissions"
+source = { local = "../permissions" }
+
+dependencies = [
+  { name = "Sui" },
+  { name = "Utils" },
+]
+
+[[move.package]]
 name = "Request"
 source = { local = "../request" }
 
 dependencies = [
   { name = "Originmate" },
+  { name = "Permissions" },
   { name = "Sui" },
-  { name = "Witness" },
 ]
 
 [[move.package]]
@@ -96,9 +109,10 @@ dependencies = [
 ]
 
 [[move.package]]
-name = "Witness"
-source = { local = "../witness" }
+name = "Utils"
+source = { local = "../utils" }
 
 dependencies = [
+  { name = "Originmate" },
   { name = "Sui" },
 ]

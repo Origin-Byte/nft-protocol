@@ -8,11 +8,11 @@ module nft_protocol::access_policy {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use ob_witness::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::Witness as DelegatedWitness;
     use ob_request::request::{Self, Policy, PolicyCap, WithNft};
     use ob_request::borrow_request::{Self, BorrowRequest};
 
-    use nft_protocol::utils;
+    use ob_utils::utils;
     use nft_protocol::collection::{Self, Collection};
 
     /// When trying to create an access policy when it already exists
