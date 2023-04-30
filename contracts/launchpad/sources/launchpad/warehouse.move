@@ -79,10 +79,7 @@ module ob_launchpad::warehouse {
         /// within dynamic fields. Avoids overhead of dynamic fields for most
         /// use-cases.
         nfts: vector<ID>,
-        /// Current supply of NFTs within warehouse
-        supply: u64,
-        // By subtracting `warehouse.total_deposited` to the length of `warehouse.nfts`
-        // one can get total redeemed
+        // Current supply of NFTs within warehouse
         total_deposited: u64,
     }
 
@@ -91,7 +88,6 @@ module ob_launchpad::warehouse {
         Warehouse {
             id: object::new(ctx),
             nfts: vector::empty(),
-            supply: 0,
             total_deposited: 0,
         }
     }
@@ -119,7 +115,7 @@ module ob_launchpad::warehouse {
     ) {
         let nft_id = object::id(&nft);
 
-        let (chunk_idx, _) = chunk_index(warehouse.supply);
+        let (chunk_idx, _) = chunk_index(warehouse.total_deposited);
         if (has_chunk(warehouse, chunk_idx)) {
             let chunk = borrow_chunk_mut(warehouse, chunk_idx);
             vector::push_back(chunk, nft_id);
@@ -127,7 +123,6 @@ module ob_launchpad::warehouse {
             insert_chunk(warehouse, chunk_idx, nft_id);
         };
 
-        warehouse.supply = warehouse.supply + 1;
         warehouse.total_deposited = warehouse.total_deposited + 1;
 
         df::add(&mut warehouse.id, nft_id, nft);
@@ -144,9 +139,9 @@ module ob_launchpad::warehouse {
     public fun redeem_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
     ): T {
-        assert!(warehouse.supply > 0, EEmpty);
+        assert!(warehouse.total_deposited > 0, EEmpty);
 
-        let (chunk_idx, idx) = chunk_index(warehouse.supply - 1);
+        let (chunk_idx, idx) = chunk_index(warehouse.total_deposited - 1);
         let nft_id = if (idx > 0) {
             let chunk = borrow_chunk_mut(warehouse, chunk_idx);
             vector::pop_back(chunk)
@@ -154,7 +149,7 @@ module ob_launchpad::warehouse {
             remove_chunk(warehouse, chunk_idx)
         };
 
-        warehouse.supply = warehouse.supply - 1;
+        warehouse.total_deposited = warehouse.total_deposited - 1;
 
         df::remove(&mut warehouse.id, nft_id)
     }
@@ -194,11 +189,11 @@ module ob_launchpad::warehouse {
         warehouse: &mut Warehouse<T>,
         index: u64,
     ): T {
-        assert!(warehouse.supply > 0, EEmpty);
-        assert!(index < warehouse.supply, EIndexOutOfBounds);
+        assert!(warehouse.total_deposited > 0, EEmpty);
+        assert!(index < warehouse.total_deposited, EIndexOutOfBounds);
 
         let (chunk_idx_remove, idx_remove) = chunk_index(index);
-        let (chunk_idx_last, idx_last) = chunk_index(warehouse.supply - 1);
+        let (chunk_idx_last, idx_last) = chunk_index(warehouse.total_deposited - 1);
 
         let chunk_last = borrow_chunk_mut(warehouse, chunk_idx_last);
 
@@ -229,7 +224,7 @@ module ob_launchpad::warehouse {
             id_remove
         };
 
-        warehouse.supply = warehouse.supply - 1;
+        warehouse.total_deposited = warehouse.total_deposited - 1;
 
         df::remove(&mut warehouse.id, nft_id)
     }
@@ -449,7 +444,7 @@ module ob_launchpad::warehouse {
     /// Panics if `Warehouse` is not empty
     public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
-        let Warehouse { id, supply: _, total_deposited: _, nfts: _ } = warehouse;
+        let Warehouse { id, total_deposited: _, nfts: _ } = warehouse;
         object::delete(id);
     }
 
@@ -468,12 +463,12 @@ module ob_launchpad::warehouse {
 
     /// Return how many `Nft` there are to sell
     public fun supply<T: key + store>(warehouse: &Warehouse<T>): u64 {
-        warehouse.supply
+        warehouse.total_deposited
     }
 
     /// Return whether there are any `Nft` in the `Warehouse`
     public fun is_empty<T: key + store>(warehouse: &Warehouse<T>): bool {
-        warehouse.supply == 0
+        warehouse.total_deposited == 0
     }
 
     /// Returns list of NFTs held statically within `Warehouse`
@@ -505,7 +500,7 @@ module ob_launchpad::warehouse {
         warehouse: &mut Warehouse<T>,
         nft_id: &ID,
     ): u64 {
-        let supply = warehouse.supply;
+        let supply = warehouse.total_deposited;
         assert!(supply > 0, EEmpty);
 
         let idx = 0;
