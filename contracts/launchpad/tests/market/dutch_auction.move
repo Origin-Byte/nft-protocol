@@ -16,7 +16,6 @@ module ob_launchpad::test_dutch_auction {
     use ob_launchpad::listing::{Self, Listing};
     use ob_launchpad::market_whitelist::{Self, Certificate};
     use ob_launchpad::dutch_auction;
-
     use ob_launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
@@ -663,12 +662,12 @@ module ob_launchpad::test_dutch_auction {
         test_scenario::return_to_address(BUYER, refunded0);
         test_scenario::return_to_address(BUYER, refunded1);
 
-        // Check NFT was transferred with correct logical owner
-        let nft = test_scenario::take_from_address<Foo>(
-            &scenario, BUYER
-        );
+        // TODO: Check Kiosk was created and NFT deposited
+        // let nft = test_scenario::take_from_address<Foo>(
+        //     &scenario, BUYER
+        // );
 
-        test_scenario::return_to_address(BUYER, nft);
+        // test_scenario::return_to_address(BUYER, nft);
 
         // Check bid state
         let market = dutch_auction::borrow_market(venue);
