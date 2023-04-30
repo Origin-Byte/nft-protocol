@@ -18,9 +18,6 @@ module ob_launchpad::warehouse {
 
     use originmate::pseudorandom;
 
-    #[test_only]
-    friend ob_launchpad::test_warehouse;
-
     /// Limit of NFTs held within each ID chunk
     const LIMIT: u64 = 7998;
 
@@ -553,7 +550,7 @@ module ob_launchpad::warehouse {
     // === Chunks ===
 
     /// Check whether chunk exists
-    public(friend) fun has_chunk<T: key + store>(
+    public fun has_chunk<T: key + store>(
         warehouse: &Warehouse<T>,
         chunk_idx: u64,
     ): bool {
@@ -565,7 +562,7 @@ module ob_launchpad::warehouse {
     }
 
     /// Borrow chunk of NFT IDs
-    public(friend) fun borrow_chunk<T: key + store>(
+    public fun borrow_chunk<T: key + store>(
         warehouse: & Warehouse<T>,
         chunk_idx: u64,
     ): &vector<ID> {
