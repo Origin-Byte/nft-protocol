@@ -7,7 +7,8 @@ module ob_launchpad::test_warehouse {
     use sui::tx_context::TxContext;
     use sui::test_scenario::{Self, ctx};
 
-    use ob_launchpad::warehouse::{Self, Warehouse};
+    use ob_launchpad::warehouse::{Self, nfts, Warehouse};
+    use ob_utils::dynamic_vector::{Self as dyn_vector};
 
     const CREATOR: address = @0xA1C05;
 
@@ -33,21 +34,22 @@ module ob_launchpad::test_warehouse {
         let scenario = test_scenario::begin(CREATOR);
 
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
-        assert!(warehouse::has_chunk(&warehouse, 0), 0);
+        assert!(dyn_vector::has_chunk(nfts(&warehouse), 0), 0);
 
         // Deposit up to `Warehouse` single-vector limit
-        deposit_many(7998, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7_500, &mut warehouse, ctx(&mut scenario));
 
-        assert!(!warehouse::has_chunk(&warehouse, 1), 0);
+        assert!(!dyn_vector::has_chunk(nfts(&warehouse), 1), 0);
 
-        // Fill up as many as test limitations will allow us
-        deposit_many(7999, &mut warehouse, ctx(&mut scenario));
+        // // Fill up as many as test limitations will allow us
+        deposit_many(7_501, &mut warehouse, ctx(&mut scenario));
 
-        assert!(vector::length(warehouse::borrow_chunk(&warehouse, 1)) == 7998, 0);
-        assert!(vector::length(warehouse::borrow_chunk(&warehouse, 2)) == 1, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 0)) == 7_500, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 1)) == 7_500, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 2)) == 1, 0);
 
         // Redeem all NFTs
-        redeem_many(7998 + 7999, &mut warehouse);
+        redeem_many(7500 + 7501, &mut warehouse);
 
         warehouse::destroy(warehouse);
         test_scenario::end(scenario);
@@ -115,13 +117,13 @@ module ob_launchpad::test_warehouse {
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // Deposit up to `Warehouse` single-vector limit
-        deposit_many(7998, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7_500, &mut warehouse, ctx(&mut scenario));
         let nft_0 = deposit(&mut warehouse, ctx(&mut scenario));
 
-        let nft = warehouse::redeem_nft_at_index(&mut warehouse, 7998 + 0);
+        let nft = warehouse::redeem_nft_at_index(&mut warehouse, 7_500 + 0);
         assert!(object::id(&nft) == nft_0, 0);
 
-        assert!(!warehouse::has_chunk(&warehouse, 1), 0);
+        assert!(!dyn_vector::has_chunk(nfts(&warehouse), 1), 0);
 
         transfer::public_transfer(nft, CREATOR);
         transfer::public_transfer(warehouse, CREATOR);
@@ -137,16 +139,16 @@ module ob_launchpad::test_warehouse {
         let nft_0 = deposit(&mut warehouse, ctx(&mut scenario));
 
         // Deposit up to `Warehouse` single-vector limit and some extra
-        deposit_many(7998 - 1 + 3, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7_500 - 1 + 3, &mut warehouse, ctx(&mut scenario));
 
-        assert!(vector::length(warehouse::borrow_chunk(&warehouse, 0)) == 7998, 0);
-        assert!(vector::length(warehouse::borrow_chunk(&warehouse, 1)) == 3, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 0)) == 7_500, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 1)) == 3, 0);
 
         let nft = warehouse::redeem_nft_at_index(&mut warehouse, 0);
         assert!(object::id(&nft) == nft_0, 0);
 
-        assert!(vector::length(warehouse::borrow_chunk(&warehouse, 0)) == 7998, 0);
-        assert!(vector::length(warehouse::borrow_chunk(&warehouse, 1)) == 2, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 0)) == 7_500, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 1)) == 2, 0);
 
         transfer::public_transfer(nft, CREATOR);
         transfer::public_transfer(warehouse, CREATOR);
@@ -162,12 +164,12 @@ module ob_launchpad::test_warehouse {
         let nft_0 = deposit(&mut warehouse, ctx(&mut scenario));
 
         // Deposit up to `Warehouse` single-vector limit and some extra
-        deposit_many(7998, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7_500, &mut warehouse, ctx(&mut scenario));
 
         let nft = warehouse::redeem_nft_at_index(&mut warehouse, 0);
         assert!(object::id(&nft) == nft_0, 0);
 
-        assert!(!warehouse::has_chunk(&warehouse, 1), 0);
+        assert!(!dyn_vector::has_chunk(nfts(&warehouse), 1), 0);
 
         transfer::public_transfer(nft, CREATOR);
         transfer::public_transfer(warehouse, CREATOR);
@@ -179,7 +181,7 @@ module ob_launchpad::test_warehouse {
         let scenario = test_scenario::begin(CREATOR);
 
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
-        assert!(warehouse::has_chunk(&warehouse, 0), 0);
+        assert!(dyn_vector::has_chunk(nfts(&warehouse), 0), 0);
 
         // Deposit up to `Warehouse` single-vector limit
         deposit_many(2 * 7998, &mut warehouse, ctx(&mut scenario));

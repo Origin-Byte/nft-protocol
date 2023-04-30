@@ -16,10 +16,12 @@ module ob_launchpad::warehouse {
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
+    use ob_utils::dynamic_vector::{Self as dyn_vector, DynVec};
     use originmate::pseudorandom;
 
     /// Limit of NFTs held within each ID chunk
-    const LIMIT: u64 = 7998;
+    /// The real limitation is at `7998` but we give a slight buffer
+    const LIMIT: u64 = 7500;
 
     /// `Warehouse` does not have NFTs left to withdraw
     ///
@@ -78,7 +80,7 @@ module ob_launchpad::warehouse {
         /// If this vector is overflowed, additional NFT IDs will be stored
         /// within dynamic fields. Avoids overhead of dynamic fields for most
         /// use-cases.
-        nfts: vector<ID>,
+        nfts: DynVec<ID>,
         // Current supply of NFTs within warehouse
         total_deposited: u64,
     }
@@ -87,7 +89,7 @@ module ob_launchpad::warehouse {
     public fun new<T: key + store>(ctx: &mut TxContext): Warehouse<T> {
         Warehouse {
             id: object::new(ctx),
-            nfts: vector::empty(),
+            nfts: dyn_vector::empty(LIMIT, ctx),
             total_deposited: 0,
         }
     }
@@ -107,14 +109,7 @@ module ob_launchpad::warehouse {
     ) {
         let nft_id = object::id(&nft);
 
-        let (chunk_idx, _) = chunk_index(warehouse.total_deposited);
-        if (has_chunk(warehouse, chunk_idx)) {
-            let chunk = borrow_chunk_mut(warehouse, chunk_idx);
-            vector::push_back(chunk, nft_id);
-        } else {
-            insert_chunk(warehouse, chunk_idx, nft_id);
-        };
-
+        dyn_vector::push_back(&mut warehouse.nfts, nft_id);
         warehouse.total_deposited = warehouse.total_deposited + 1;
 
         df::add(&mut warehouse.id, nft_id, nft);
@@ -133,14 +128,7 @@ module ob_launchpad::warehouse {
     ): T {
         assert!(warehouse.total_deposited > 0, EEmpty);
 
-        let (chunk_idx, idx) = chunk_index(warehouse.total_deposited - 1);
-        let nft_id = if (idx > 0) {
-            let chunk = borrow_chunk_mut(warehouse, chunk_idx);
-            vector::pop_back(chunk)
-        } else {
-            remove_chunk(warehouse, chunk_idx)
-        };
-
+        let nft_id = dyn_vector::pop_back(&mut warehouse.nfts);
         warehouse.total_deposited = warehouse.total_deposited - 1;
 
         df::remove(&mut warehouse.id, nft_id)
@@ -184,37 +172,7 @@ module ob_launchpad::warehouse {
         assert!(warehouse.total_deposited > 0, EEmpty);
         assert!(index < warehouse.total_deposited, EIndexOutOfBounds);
 
-        let (chunk_idx_remove, idx_remove) = chunk_index(index);
-        let (chunk_idx_last, idx_last) = chunk_index(warehouse.total_deposited - 1);
-
-        let chunk_last = borrow_chunk_mut(warehouse, chunk_idx_last);
-
-        let nft_id = if (chunk_idx_remove == chunk_idx_last) {
-            // If the chunk to remove from is the last chunk
-            // - Perform swap remove
-            // - Cleanup last chunk if it is now empty
-            if (idx_last > 0) {
-                vector::swap_remove(chunk_last, idx_remove)
-            } else {
-                remove_chunk(warehouse, chunk_idx_last)
-            }
-        } else {
-            // If the chunk to remove from is not the last chunk
-            // - Perform swap remove in remove chunk
-            // - Pop ID from last chunk and push to remove chunk
-            // - Cleanup last chunk if now empty
-            let id_last = if (idx_last > 0) {
-                vector::pop_back(chunk_last)
-            } else {
-                remove_chunk(warehouse, chunk_idx_last)
-            };
-
-            let chunk_remove = borrow_chunk_mut(warehouse, chunk_idx_remove);
-            let id_remove = vector::swap_remove(chunk_remove, idx_remove);
-            vector::push_back(chunk_remove, id_last);
-
-            id_remove
-        };
+        let nft_id = dyn_vector::pop_at_index(&mut warehouse.nfts, index);
 
         warehouse.total_deposited = warehouse.total_deposited - 1;
 
@@ -436,8 +394,9 @@ module ob_launchpad::warehouse {
     /// Panics if `Warehouse` is not empty
     public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
-        let Warehouse { id, total_deposited: _, nfts: _ } = warehouse;
+        let Warehouse { id, total_deposited: _, nfts } = warehouse;
         object::delete(id);
+        dyn_vector::delete(nfts);
     }
 
     /// Destroyes `RedeemCommitment`
@@ -464,7 +423,7 @@ module ob_launchpad::warehouse {
     }
 
     /// Returns list of all NFTs stored in `Warehouse`
-    public fun nfts<T: key + store>(warehouse: &Warehouse<T>): &vector<ID> {
+    public fun nfts<T: key + store>(warehouse: &Warehouse<T>): &DynVec<ID> {
         &warehouse.nfts
     }
 
@@ -493,8 +452,8 @@ module ob_launchpad::warehouse {
         let idx = 0;
         while (idx < supply) {
             let _idx = 0;
-            let (chunk_idx, _) = chunk_index(idx);
-            let chunk = borrow_chunk(warehouse, chunk_idx);
+            let (chunk_idx, _) = dyn_vector::chunk_index(&warehouse.nfts, idx);
+            let chunk = dyn_vector::borrow_chunk(&warehouse.nfts, chunk_idx);
             let length = vector::length(chunk);
             while (_idx < length) {
                 let t_nft_id = vector::borrow(chunk, _idx);
@@ -532,80 +491,5 @@ module ob_launchpad::warehouse {
         let random = pseudorandom::u256_from_bytes(random);
         let mod  = random % (bound as u256);
         (mod as u64)
-    }
-
-    /// Outputs chunk index and NFT index within that chunk
-    fun chunk_index(idx: u64): (u64, u64) {
-        let chunk_idx = idx / LIMIT;
-        let _idx = idx % LIMIT;
-
-        (chunk_idx, _idx)
-    }
-
-    // === Chunks ===
-
-    /// Check whether chunk exists
-    public fun has_chunk<T: key + store>(
-        warehouse: &Warehouse<T>,
-        chunk_idx: u64,
-    ): bool {
-        if (chunk_idx == 0) {
-            true
-        } else {
-            df::exists_(&warehouse.id, chunk_idx)
-        }
-    }
-
-    /// Borrow chunk of NFT IDs
-    public fun borrow_chunk<T: key + store>(
-        warehouse: & Warehouse<T>,
-        chunk_idx: u64,
-    ): &vector<ID> {
-        if (chunk_idx == 0) {
-            &warehouse.nfts
-        } else {
-            df::borrow(&warehouse.id, chunk_idx)
-        }
-    }
-
-    /// Borrow chunk of NFT IDs
-    fun borrow_chunk_mut<T: key + store>(
-        warehouse: &mut Warehouse<T>,
-        chunk_idx: u64,
-    ): &mut vector<ID> {
-        if (chunk_idx == 0) {
-            &mut warehouse.nfts
-        } else {
-            df::borrow_mut(&mut warehouse.id, chunk_idx)
-        }
-    }
-
-    /// Insert new chunk
-    fun insert_chunk<T: key + store>(
-        warehouse: &mut Warehouse<T>,
-        chunk_idx: u64,
-        id: ID,
-    ) {
-        let chunk = vector::singleton(id);
-        df::add(&mut warehouse.id, chunk_idx, chunk)
-    }
-
-    /// Remove chunk
-    ///
-    /// #### Panics
-    ///
-    /// Panics if it had more than one element left
-    fun remove_chunk<T: key + store>(
-        warehouse: &mut Warehouse<T>,
-        chunk_idx: u64,
-    ): ID {
-        if (chunk_idx == 0) {
-            vector::pop_back(&mut warehouse.nfts)
-        } else {
-            let chunk = df::remove(&mut warehouse.id, chunk_idx);
-            let nft_id = vector::pop_back(&mut chunk);
-            vector::destroy_empty(chunk);
-            nft_id
-        }
     }
 }

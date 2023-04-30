@@ -1,4 +1,4 @@
-module ob_utils::dyn_vec {
+module ob_utils::dynamic_vector {
     use std::vector;
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
@@ -102,7 +102,6 @@ module ob_utils::dyn_vec {
         elem
     }
 
-
     public fun pop_at_index<Element: store>(
         v: &mut DynVec<Element>,
         index: u64,
@@ -146,10 +145,9 @@ module ob_utils::dyn_vec {
         elem
     }
 
-
     // === Chunks ===
 
-    fun chunk_index<Element: store>(v: &DynVec<Element>, idx: u64): (u64, u64) {
+    public fun chunk_index<Element: store>(v: &DynVec<Element>, idx: u64): (u64, u64) {
         let chunk_idx = idx / v.limit;
         let _idx = idx % v.limit;
 
@@ -178,6 +176,11 @@ module ob_utils::dyn_vec {
         } else {
             df::borrow(&v.vecs, chunk_idx)
         }
+    }
+
+    public fun delete<Element: store + drop>(v: DynVec<Element>) {
+        let DynVec<Element> { vec_0: _, vecs, current_chunk: _, tip_length: _, total_length: _, limit: _ } = v;
+        object::delete(vecs);
     }
 
     /// Borrow chunk mutably
