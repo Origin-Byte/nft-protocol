@@ -73,26 +73,26 @@ module ob_launchpad::warehouse {
     struct Warehouse<phantom T: key + store> has key, store {
         /// `Warehouse` ID
         id: UID,
-        /// Current supply of NFTs within warehouse
-        supply: u64,
-        // By subtracting `warehouse.total_deposited` to the length of `warehouse.nfts`
-        // one can get total redeemed
-        total_deposited: u64,
         /// Initial vector of NFT IDs stored within `Warehouse`
         ///
         /// If this vector is overflowed, additional NFT IDs will be stored
         /// within dynamic fields. Avoids overhead of dynamic fields for most
         /// use-cases.
         nfts: vector<ID>,
+        /// Current supply of NFTs within warehouse
+        supply: u64,
+        // By subtracting `warehouse.total_deposited` to the length of `warehouse.nfts`
+        // one can get total redeemed
+        total_deposited: u64,
     }
 
     /// Create a new `Warehouse`
     public fun new<T: key + store>(ctx: &mut TxContext): Warehouse<T> {
         Warehouse {
             id: object::new(ctx),
+            nfts: vector::empty(),
             supply: 0,
             total_deposited: 0,
-            nfts: vector::empty(),
         }
     }
 
