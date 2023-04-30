@@ -21,6 +21,10 @@ module ob_launchpad_v2::factory {
     use ob_launchpad_v2::certificate::{Self, NftCertificate};
     use ob_launchpad_v2::launchpad::{Self, LaunchCap};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
+
     /// `Warehouse` does not have NFT at specified index
     ///
     /// Call `Warehouse::redeem_nft_at_index` with an index that exists.
@@ -38,6 +42,7 @@ module ob_launchpad_v2::factory {
     struct Factory<phantom T> has key, store {
         /// `Factory` ID
         id: UID,
+        version: u64,
         listing_id: ID,
         // TODO: To convert to table vec, need to add fetch_idx helper
         metadata: TableVec<vector<BCS>>,
@@ -65,6 +70,7 @@ module ob_launchpad_v2::factory {
     ): Factory<T> {
         Factory {
             id: object::new(ctx),
+            version: VERSION,
             listing_id: launchpad::listing_id(launch_cap),
             metadata: table_vec::empty(ctx),
             total_deposited: 0,
@@ -90,6 +96,7 @@ module ob_launchpad_v2::factory {
     ): ID {
         let Factory {
             id,
+            version: _,
             listing_id,
             metadata,
             total_deposited,
@@ -100,6 +107,7 @@ module ob_launchpad_v2::factory {
 
         let shared_factory = Factory<T> {
             id: object::new(ctx),
+            version: VERSION,
             listing_id,
             metadata,
             total_deposited,

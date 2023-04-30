@@ -80,6 +80,7 @@ module ob_launchpad_v2::dutch_auction {
         venue: &mut Venue,
         reserve_price: u64,
     ) {
+        // TODO: Need to assert the market policy
         venue::assert_launch_cap(venue, launch_cap);
 
         let market = new<FT>(reserve_price);

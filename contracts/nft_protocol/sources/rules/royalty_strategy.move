@@ -17,6 +17,9 @@ module nft_protocol::royalty_strategy_bps {
     use nft_protocol::royalty;
     use ob_utils::utils;
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     /// === Errors ===
 
     /// If the strategy has `is_enabled` set to false, cannot confirm any
@@ -29,6 +32,7 @@ module nft_protocol::royalty_strategy_bps {
     /// `BpsRoyaltyStrategyRule` to `TransferRequest`.
     struct BpsRoyaltyStrategy<phantom T> has key {
         id: UID,
+        version: u64,
         /// Royalty charged on trades in basis points
         royalty_fee_bps: u16,
         /// Allows this middleware to touch the balance paid.
@@ -66,6 +70,7 @@ module nft_protocol::royalty_strategy_bps {
 
         BpsRoyaltyStrategy {
             id,
+            version: VERSION,
             is_enabled: true,
             royalty_fee_bps,
             access_cap: option::none(),

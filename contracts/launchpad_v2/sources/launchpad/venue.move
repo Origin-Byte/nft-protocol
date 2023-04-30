@@ -17,21 +17,16 @@ module ob_launchpad_v2::venue {
     use ob_launchpad_v2::auth_request::{Self, AuthRequest, AUTH_REQ};
     use ob_launchpad_v2::proceeds::{Self, Proceeds};
 
-    const ELAUNCHCAP_VENUE_MISMATCH: u64 = 1;
+    // Track the current version of the module
+    const VERSION: u64 = 1;
 
-    const EMARKET_WITNESS_MISMATCH: u64 = 2;
+    // === Errors ===
 
-    const EREDEEM_WITNESS_MISMATCH: u64 = 3;
-
-    const ESTOCK_WITNESS_MISMATCH: u64 = 4;
-
-    const EINVENTORY_ID_MISMATCH: u64 = 5;
-
-    const EBUYER_CERTIFICATE_MISMATCH: u64 = 6;
-
-    const EINVENTORY_CERTIFICATE_MISMATCH: u64 = 7;
-
-    const ENFT_TYPE_CERTIFICATE_MISMATCH: u64 = 8;
+    const ELaunchCapVenueMismatch: u64 = 1;
+    const EMarketWitnessMismatch: u64 = 2;
+    const ERedeemWitnessMismatch: u64 = 3;
+    const EStockWitnessMismatch: u64 = 4;
+    const EInventoryIDMistmatch: u64 = 5;
 
     /// `Venue` object
     ///
@@ -48,6 +43,7 @@ module ob_launchpad_v2::venue {
     /// from the sale?
     struct Venue has key, store {
         id: UID,
+        version: u64,
         /// A `Venue` belongs to a `Listing` and therefore we store here
         /// to what listing this obejct belongs to.
         listing_id: ID,
@@ -163,6 +159,7 @@ module ob_launchpad_v2::venue {
 
         Venue {
             id: uid,
+            version: VERSION,
             listing_id: launchpad::listing_id(launch_cap),
             policies: policies,
             supply: option::none(),
@@ -537,7 +534,7 @@ module ob_launchpad_v2::venue {
     public fun assert_launch_cap(venue: &Venue, launch_cap: &LaunchCap) {
         assert!(
             venue.listing_id == launchpad::listing_id(launch_cap),
-            ELAUNCHCAP_VENUE_MISMATCH
+            ELaunchCapVenueMismatch
         );
     }
 
@@ -547,18 +544,18 @@ module ob_launchpad_v2::venue {
 
     // TODO: These assertions are wrong because the Witnesses and Policy Objects are not the same...
     public fun assert_called_from_market<AW: drop>(_witness: AW, venue: &Venue) {
-        assert!(type_name::get<AW>() == venue.policies.market, EMARKET_WITNESS_MISMATCH);
+        assert!(type_name::get<AW>() == venue.policies.market, EMarketWitnessMismatch);
     }
 
     public fun assert_called_from_stock_method<SW: drop>(_witness: SW, venue: &Venue) {
-        assert!(type_name::get<SW>() == venue.policies.stock_policy, ESTOCK_WITNESS_MISMATCH);
+        assert!(type_name::get<SW>() == venue.policies.stock_policy, EStockWitnessMismatch);
     }
 
     public fun assert_called_from_redeem_method<RW: drop>(_witness: RW, venue: &Venue) {
-        assert!(type_name::get<RW>() == venue.policies.redeem_policy, EREDEEM_WITNESS_MISMATCH);
+        assert!(type_name::get<RW>() == venue.policies.redeem_policy, ERedeemWitnessMismatch);
     }
 
     public fun assert_called_from_inventory<IW: drop>(_witness: IW, venue: &Venue) {
-        assert!(type_name::get<IW>() == venue.policies.inventory, EINVENTORY_ID_MISMATCH);
+        assert!(type_name::get<IW>() == venue.policies.inventory, EInventoryIDMistmatch);
     }
 }

@@ -31,6 +31,9 @@ module ob_allowlist::allowlist {
     use sui::package::{Self, Publisher};
     use sui::tx_context::{Self, TxContext};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     // === Errors ===
 
     /// Package publisher mismatch
@@ -62,6 +65,7 @@ module ob_allowlist::allowlist {
     struct Allowlist has key, store {
         /// `Allowlist` ID
         id: UID,
+        version: u64,
         /// `Allowlist` is controlled by `AllowlistOwnerCap` but can be
         /// optionally configured to be controlled by a contract identified by
         /// the admin witness
@@ -105,6 +109,7 @@ module ob_allowlist::allowlist {
 
         let allowlist = Allowlist {
             id: allowlist_id,
+            version: VERSION,
             admin_witness: option::none(),
             authorities,
         };
@@ -157,7 +162,7 @@ module ob_allowlist::allowlist {
 
     /// Delete `Allowlist`
     public entry fun delete_allowlist(allowlist: Allowlist) {
-        let Allowlist { id, admin_witness: _, authorities: _ } = allowlist;
+        let Allowlist { id, version: _, admin_witness: _, authorities: _ } = allowlist;
         object::delete(id);
     }
 
@@ -187,6 +192,7 @@ module ob_allowlist::allowlist {
     ): Allowlist {
         Allowlist {
             id: object::new(ctx),
+            version: VERSION,
             admin_witness: option::some(type_name::get<Admin>()),
             authorities,
         }
