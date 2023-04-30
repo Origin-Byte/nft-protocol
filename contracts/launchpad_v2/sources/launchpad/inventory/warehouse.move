@@ -362,15 +362,18 @@ module ob_launchpad_v2::warehouse {
         nft
     }
 
-
-    // TODO: ONLY CREATOR SHOULD BE ABLE TO DESTROY
     /// Destroys `Warehouse`
     ///
     /// #### Panics
     ///
     /// Panics if `Warehouse` is not empty
-    public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
+    public fun destroy<T: key + store>(
+        launch_cap: &LaunchCap,
+        warehouse: Warehouse<T>
+    ) {
+        assert_launch_cap(launch_cap, &warehouse);
         assert_is_empty(&warehouse);
+
         let Warehouse { id, listing_id: _, nfts: _, total_deposited: _, registry: _ , warehouse} = warehouse;
         object::delete(id);
         object::delete(warehouse);
