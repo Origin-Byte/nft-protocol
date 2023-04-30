@@ -15,10 +15,10 @@ module ob_launchpad_v2::warehouse {
 
     use sui::transfer;
     use sui::math;
+    use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
     use sui::vec_map::{Self, VecMap};
-
     use ob_utils::sized_vec;
     use ob_utils::utils;
 
@@ -27,8 +27,6 @@ module ob_launchpad_v2::warehouse {
     use ob_launchpad_v2::venue::{Self, Venue};
     use ob_launchpad_v2::launchpad::LaunchCap;
     use ob_launchpad_v2::certificate::{Self, NftCertificate};
-
-    use ob_launchpad::warehouse as warehouse_v1;
 
     /// `Warehouse` does not have NFTs left to withdraw
     ///
@@ -66,11 +64,11 @@ module ob_launchpad_v2::warehouse {
     /// The reason that the type is limited is to easily support random
     /// withdrawals. If multiple types are allowed then user will not be able
     /// to predict the type of the object they withdraw.
-    struct Warehouse<phantom T: key + store> has key, store {
+    struct Warehouse<phantom T> has key, store {
         /// `Warehouse` ID
         id: UID,
-        /// Inner warehouse object
-        inner: warehouse_v1::Warehouse<T>,
+        /// NFTs that are currently on sale
+        nfts: vector<ID>,
         // By subtracting `warehouse.total_deposited` to the length of `warehouse.nfts`
         // one can get total redeemed
         total_deposited: u64,
@@ -84,31 +82,33 @@ module ob_launchpad_v2::warehouse {
     public fun new<T: key + store>(ctx: &mut TxContext): Warehouse<T> {
         Warehouse<T> {
             id: object::new(ctx),
-            inner: warehouse_v1::new(ctx),
+            nfts: vector::empty(),
             total_deposited: 0,
             registry: vec_map::empty(),
         }
     }
 
     /// Creates a `Warehouse` and transfers to transaction sender
-    public fun create_warehouse<T: key + store>(ctx: &mut TxContext): ID {
+    public fun init_warehouse<T: key + store>(ctx: &mut TxContext): ID {
         let warehouse = new<T>(ctx);
         let warehouse_id = object::id(&warehouse);
         transfer::public_transfer(warehouse, tx_context::sender(ctx));
         warehouse_id
     }
 
-     /// Creates a `Warehouse` and transfers to transaction sender
-    public entry fun init_warehouse<T: key + store>(ctx: &mut TxContext) {
-        create_warehouse<T>(ctx);
-    }
-
     /// Deposits NFT to `Warehouse`
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Warehouse`.
     public entry fun deposit_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
         nft: T,
     ) {
-        warehouse_v1::deposit_nft(&mut warehouse.inner, nft)
+        let nft_id = object::id(&nft);
+        vector::push_back(&mut warehouse.nfts, nft_id);
+        warehouse.total_deposited = warehouse.total_deposited + 1;
+
+        dof::add(&mut warehouse.id, nft_id, nft);
     }
 
     public fun deposit_nfts<T: key + store>(
@@ -120,7 +120,10 @@ module ob_launchpad_v2::warehouse {
 
         while (len > 0) {
             let nft = vector::pop_back(&mut nfts);
-            deposit_nft(warehouse, nft);
+            let nft_id = object::id(&nft);
+            vector::push_back(&mut warehouse.nfts, nft_id);
+
+            dof::add(&mut warehouse.id, nft_id, nft);
 
             len = len - 1;
         };
@@ -166,6 +169,12 @@ module ob_launchpad_v2::warehouse {
 
         let nfts = redeem_nfts(warehouse, certificate);
         ob_kiosk::deposit_batch(kiosk, nfts, ctx);
+    }
+
+    public fun reverse_nft_order<T: key + store>(
+        warehouse: &mut Warehouse<T>
+    ) {
+        vector::reverse(&mut warehouse.nfts);
     }
 
     /// Redeems NFT from `Warehouse`
@@ -231,8 +240,28 @@ module ob_launchpad_v2::warehouse {
         warehouse: &mut Warehouse<T>,
         index: u64,
     ): T {
+        let nfts = &mut warehouse.nfts;
+        let length = vector::length(nfts);
+
+        assert!(index < vector::length(nfts), EINDEX_OUT_OF_BOUNDS);
+
+        let nft_id = *vector::borrow(nfts, index);
+
+        if (index == length) {
+            vector::pop_back(nfts);
+        } else {
+            // Swap index to remove with last element avoids shifting entire vector
+            // of NFTs.
+            //
+            // `length - 1` is guaranteed to always resolve correctly
+            vector::swap(nfts, index, length - 1);
+            vector::pop_back(nfts);
+        };
+
+        let nft = dof::remove<ID, T>(&mut warehouse.id, nft_id);
         warehouse.total_deposited = warehouse.total_deposited - 1;
-        warehouse_v1::redeem_nft_at_index(&mut warehouse.inner, index)
+
+        nft
     }
 
 
@@ -244,8 +273,7 @@ module ob_launchpad_v2::warehouse {
     /// Panics if `Warehouse` is not empty
     public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
-        let Warehouse { id, inner, total_deposited: _, registry: _ } = warehouse;
-        warehouse_v1::destroy(inner);
+        let Warehouse { id, nfts: _, total_deposited: _, registry: _ } = warehouse;
         object::delete(id);
     }
 
@@ -254,22 +282,17 @@ module ob_launchpad_v2::warehouse {
 
     /// Return how many `Nft` there are to sell
     public fun supply<T: key + store>(warehouse: &Warehouse<T>): u64 {
-        warehouse_v1::supply(&warehouse.inner)
+        vector::length(&warehouse.nfts)
     }
 
     /// Return whether there are any `Nft` in the `Warehouse`
     public fun is_empty<T: key + store>(warehouse: &Warehouse<T>): bool {
-        warehouse_v1::is_empty(&warehouse.inner)
+        vector::is_empty(&warehouse.nfts)
     }
 
-    /// Returns list of NFTs held statically within `Warehouse`
-    ///
-    /// In order to support depositing large amounts of NFTs within `Warehouse`
-    /// the vector of NFTs is dynamically extended when the static vector
-    /// overflows. In order to query any NFTs that might be deposited within
-    /// dynamic vectors call `borrow_chunk`.
+    /// Returns list of all NFTs stored in `Warehouse`
     public fun nfts<T: key + store>(warehouse: &Warehouse<T>): &vector<ID> {
-        warehouse_v1::nfts(&warehouse.inner)
+        &warehouse.nfts
     }
 
     /// Return cumulated amount of `Nft`s deposited in the `Warehouse`
@@ -279,25 +302,7 @@ module ob_launchpad_v2::warehouse {
 
     /// Return cumulated amount of `Nft`s redeemed in the `Warehouse`
     public fun total_redeemed<T: key + store>(warehouse: &Warehouse<T>): u64 {
-        warehouse.total_deposited - supply(warehouse)
-    }
-
-    // === Chunks ===
-
-    /// Check whether chunk exists
-    public fun has_chunk<T: key + store>(
-        warehouse: &Warehouse<T>,
-        chunk_idx: u64,
-    ): bool {
-        warehouse_v1::has_chunk(&warehouse.inner, chunk_idx)
-    }
-
-    /// Borrow chunk of NFT IDs
-    public fun borrow_chunk<T: key + store>(
-        warehouse: & Warehouse<T>,
-        chunk_idx: u64,
-    ): &vector<ID> {
-        warehouse_v1::borrow_chunk(&warehouse.inner, chunk_idx)
+        warehouse.total_deposited - vector::length(&warehouse.nfts)
     }
 
     // === Assertions ===

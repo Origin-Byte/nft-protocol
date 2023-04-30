@@ -93,16 +93,8 @@ module ob_launchpad::warehouse {
     }
 
     /// Creates a `Warehouse` and transfers to transaction sender
-    public fun create_warehouse<T: key + store>(ctx: &mut TxContext): ID {
-        let warehouse = new<T>(ctx);
-        let warehouse_id = object::id(&warehouse);
-        transfer::public_transfer(warehouse, tx_context::sender(ctx));
-        warehouse_id
-    }
-
-    /// Creates a `Warehouse` and transfers to transaction sender
     public entry fun init_warehouse<T: key + store>(ctx: &mut TxContext) {
-        create_warehouse<T>(ctx);
+        transfer::public_transfer(new<T>(ctx), tx_context::sender(ctx));
     }
 
     /// Deposits NFT to `Warehouse`
@@ -471,12 +463,7 @@ module ob_launchpad::warehouse {
         warehouse.total_deposited == 0
     }
 
-    /// Returns list of NFTs held statically within `Warehouse`
-    ///
-    /// In order to support depositing large amounts of NFTs within `Warehouse`
-    /// the vector of NFTs is dynamically extended when the static vector
-    /// overflows. In order to query any NFTs that might be deposited within
-    /// dynamic vectors call `borrow_chunk`.
+    /// Returns list of all NFTs stored in `Warehouse`
     public fun nfts<T: key + store>(warehouse: &Warehouse<T>): &vector<ID> {
         &warehouse.nfts
     }
