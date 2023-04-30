@@ -341,7 +341,6 @@ module ob_launchpad_v2::warehouse {
         assert!(index < warehouse.total_deposited, EIndexOutOfBounds);
 
         let nft_id = dyn_vector::pop_at_index(&mut warehouse.nfts, index);
-
         warehouse.total_deposited = warehouse.total_deposited - 1;
 
         dof::remove(&mut warehouse.warehouse, nft_id)
