@@ -1,7 +1,7 @@
 [package]
 name = "Kiosk"
-version = "1.0.0"
-published-at = "0xfc53c7688742374df1ef719b2ce177997aae409238baa0c6682832aa74da517e"
+version = "1.1.0"
+published-at = "0xb880efb88af9174c16cf561a07db6aebbca74ace27916761c374f711abb42a76"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -21,4 +21,4 @@ local = "./../permissions"
 local = "./../request"
 
 [addresses]
-ob_kiosk = "0xfc53c7688742374df1ef719b2ce177997aae409238baa0c6682832aa74da517e"
+ob_kiosk = "0xb880efb88af9174c16cf561a07db6aebbca74ace27916761c374f711abb42a76"

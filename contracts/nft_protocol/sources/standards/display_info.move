@@ -1,5 +1,5 @@
 /// Module of the `DisplayInfo`
-module ob_utils::display_info {
+module nft_protocol::display_info {
     use std::string::String;
 
     use sui::object::UID;

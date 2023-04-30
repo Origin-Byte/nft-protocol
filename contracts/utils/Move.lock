@@ -5,8 +5,6 @@ version = 0
 
 dependencies = [
   { name = "Originmate" },
-  { name = "Permissions" },
-  { name = "Request" },
   { name = "Sui" },
 ]
 
@@ -23,37 +21,9 @@ dependencies = [
 ]
 
 [[move.package]]
-name = "Permissions"
-source = { local = "../permissions" }
-
-dependencies = [
-  { name = "Sui" },
-  { name = "Utils" },
-]
-
-[[move.package]]
-name = "Request"
-source = { local = "../request" }
-
-dependencies = [
-  { name = "Originmate" },
-  { name = "Permissions" },
-  { name = "Sui" },
-]
-
-[[move.package]]
 name = "Sui"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
-]
-
-[[move.package]]
-name = "Utils"
-source = { local = "../utils" }
-
-dependencies = [
-  { name = "Originmate" },
-  { name = "Sui" },
 ]

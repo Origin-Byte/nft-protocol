@@ -1,7 +1,7 @@
 [package]
 name = "Utils"
-version = "1.0.0"
-published-at = "0x"
+version = "1.1.0"
+published-at = "0xc22e4db1586bebccd222895a2507120fd877893561f03866e94472d226e2233a"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -15,4 +15,4 @@ git = "https://github.com/Origin-Byte/originmate.git"
 rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 
 [addresses]
-ob_utils = "0x"
+ob_utils = "0xc22e4db1586bebccd222895a2507120fd877893561f03866e94472d226e2233a"

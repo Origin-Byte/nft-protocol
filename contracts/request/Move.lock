@@ -4,26 +4,8 @@
 version = 0
 
 dependencies = [
-  { name = "Allowlist" },
-  { name = "Authlist" },
   { name = "Originmate" },
-  { name = "Sui" },
-  { name = "Witness" },
-]
-
-[[move.package]]
-name = "Allowlist"
-source = { local = "contracts/allowlist" }
-
-dependencies = [
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "Authlist"
-source = { local = "contracts/authlist" }
-
-dependencies = [
+  { name = "Permissions" },
   { name = "Sui" },
 ]
 
@@ -40,6 +22,15 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Permissions"
+source = { local = "../permissions" }
+
+dependencies = [
+  { name = "Sui" },
+  { name = "Utils" },
+]
+
+[[move.package]]
 name = "Sui"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3", subdir = "crates/sui-framework/packages/sui-framework" }
 
@@ -48,9 +39,10 @@ dependencies = [
 ]
 
 [[move.package]]
-name = "Witness"
-source = { local = "../witness" }
+name = "Utils"
+source = { local = "../utils" }
 
 dependencies = [
+  { name = "Originmate" },
   { name = "Sui" },
 ]

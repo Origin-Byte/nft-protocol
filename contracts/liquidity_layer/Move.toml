@@ -1,7 +1,7 @@
 [package]
 name = "LiquidityLayer"
-version = "1.0.0"
-published-at = "0xda5ce01d0e365f2aac8df7d85d1cdfe271fd75db338daf248132991d74c2f1c8"
+version = "1.1.0"
+published-at = "0xd34b56feab8ec4e31e32b30564e1d6b11eb32f2985c3fbb85b5be715df006536"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -30,4 +30,4 @@ local = "./../request"
 local = "./../kiosk"
 
 [addresses]
-liquidity_layer = "0xda5ce01d0e365f2aac8df7d85d1cdfe271fd75db338daf248132991d74c2f1c8"
+liquidity_layer = "0xd34b56feab8ec4e31e32b30564e1d6b11eb32f2985c3fbb85b5be715df006536"

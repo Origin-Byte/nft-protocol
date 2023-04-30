@@ -16,9 +16,9 @@ source = { local = "../kiosk" }
 
 dependencies = [
   { name = "Originmate" },
+  { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
-  { name = "Witness" },
 ]
 
 [[move.package]]
@@ -34,13 +34,22 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Permissions"
+source = { local = "../permissions" }
+
+dependencies = [
+  { name = "Sui" },
+  { name = "Utils" },
+]
+
+[[move.package]]
 name = "Request"
 source = { local = "../request" }
 
 dependencies = [
   { name = "Originmate" },
+  { name = "Permissions" },
   { name = "Sui" },
-  { name = "Witness" },
 ]
 
 [[move.package]]
@@ -52,9 +61,10 @@ dependencies = [
 ]
 
 [[move.package]]
-name = "Witness"
-source = { local = "../witness" }
+name = "Utils"
+source = { local = "../utils" }
 
 dependencies = [
+  { name = "Originmate" },
   { name = "Sui" },
 ]
