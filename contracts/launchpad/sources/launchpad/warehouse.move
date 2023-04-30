@@ -412,11 +412,6 @@ module ob_launchpad::warehouse {
 
     // === Getter Functions ===
 
-    /// Return how many `Nft` there are to sell
-    public fun supply<T: key + store>(warehouse: &Warehouse<T>): u64 {
-        warehouse.total_deposited
-    }
-
     /// Return whether there are any `Nft` in the `Warehouse`
     public fun is_empty<T: key + store>(warehouse: &Warehouse<T>): bool {
         warehouse.total_deposited == 0
@@ -427,14 +422,9 @@ module ob_launchpad::warehouse {
         &warehouse.nfts
     }
 
-    /// Return cumulated amount of `Nft`s deposited in the `Warehouse`
-    public fun total_deposited<T: key + store>(warehouse: &Warehouse<T>): u64 {
+    /// Return the net amount of `Nft`s deposited in the `Warehouse`
+    public fun supply<T: key + store>(warehouse: &Warehouse<T>): u64 {
         warehouse.total_deposited
-    }
-
-    /// Return cumulated amount of `Nft`s redeemed in the `Warehouse`
-    public fun total_redeemed<T: key + store>(warehouse: &Warehouse<T>): u64 {
-        warehouse.total_deposited - supply(warehouse)
     }
 
     /// Get index of NFT given ID
