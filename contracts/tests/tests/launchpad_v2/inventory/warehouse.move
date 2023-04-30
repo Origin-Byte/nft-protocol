@@ -25,7 +25,7 @@ module ob_tests::test_warehouse {
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
 
         // 4. Create warehouse
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
 
         // 5. Mint NFTs to the Warehouse
         let supply = 7_000;
@@ -50,18 +50,23 @@ module ob_tests::test_warehouse {
     public fun create_private_warehouse_and_share() {
         let scenario = test_scenario::begin(MARKETPLACE);
 
-        // 1. Create warehouse and make it a private object
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        // 1. Create a Launchpad Listing
+        let (listing, launch_cap) = launchpad::new(ctx(&mut scenario));
+        transfer::public_share_object(listing);
+
+        // 2. Create warehouse and make it a private object
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
 
         transfer::public_transfer(warehouse, MARKETPLACE);
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
 
-        // 2. Share Warehouse with a new UID, keeping all its internal state
+        // 3. Share Warehouse with a new UID, keeping all its internal state
         let warehouse = test_scenario::take_from_address<Warehouse<Foo>>(
             &scenario, MARKETPLACE
         );
         warehouse::share_from_private(warehouse, ctx(&mut scenario));
 
+        transfer::public_transfer(launch_cap, MARKETPLACE);
         test_scenario::end(scenario);
     }
 }

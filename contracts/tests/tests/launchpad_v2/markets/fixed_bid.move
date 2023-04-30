@@ -69,7 +69,7 @@ module ob_tests::test_fixed_bid {
 
         // 4. Create warehouse
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
         let warehouse_id = object::id(&warehouse);
 
         // 5. Mint NFTs to the Warehouse
@@ -177,7 +177,7 @@ module ob_tests::test_fixed_bid {
 
         // 4. Create warehouse
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
         let warehouse_id = object::id(&warehouse);
 
         // 5. Mint NFTs to the Warehouse
@@ -285,7 +285,7 @@ module ob_tests::test_fixed_bid {
 
         // 4. Create warehouse
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
 
         // 5. Mint NFTs to the Warehouse
         utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
@@ -361,7 +361,7 @@ module ob_tests::test_fixed_bid {
 
         // 4. Create warehouse
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
 
         // 5. Mint NFTs to the Warehouse
         utils::batch_mint_foo_nft_to_warehouse(&mut warehouse, supply, ctx(&mut scenario));
@@ -436,7 +436,7 @@ module ob_tests::test_fixed_bid {
 
         // 4. Create warehouse
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
         let warehouse_id = object::id(&warehouse);
 
         // 5. Mint NFTs to the Warehouse
@@ -556,7 +556,7 @@ module ob_tests::test_fixed_bid {
 
         // 4. Create warehouse
         test_scenario::next_tx(&mut scenario, MARKETPLACE);
-        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+        let warehouse = warehouse::new<Foo>(&launch_cap, ctx(&mut scenario));
         let warehouse_id = object::id(&warehouse);
 
         // 5. Mint NFTs to the Warehouse

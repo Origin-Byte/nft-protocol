@@ -24,7 +24,7 @@ module ob_launchpad_v2::warehouse {
     use sui::kiosk::Kiosk;
     use ob_kiosk::ob_kiosk;
     use ob_launchpad_v2::venue::{Self, Venue};
-    use ob_launchpad_v2::launchpad::LaunchCap;
+    use ob_launchpad_v2::launchpad::{Self, LaunchCap};
     use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     /// `Warehouse` does not have NFTs left to withdraw
@@ -56,6 +56,10 @@ module ob_launchpad_v2::warehouse {
 
     const EWAREHOUSE_NOT_SHARED: u64 = 7;
 
+    const EWAREHOUSE_IS_PRIVATE: u64 = 8;
+
+    const ELAUNCHCAP_WAREHOUSE_MISMATCH: u64 = 9;
+
     struct Witness has drop {}
 
     /// `Warehouse` object which stores NFTs
@@ -66,6 +70,7 @@ module ob_launchpad_v2::warehouse {
     struct Warehouse<phantom T> has key, store {
         /// `Warehouse` ID
         id: UID,
+        listing_id: ID,
         /// NFTs that are currently on sale
         nfts: vector<ID>,
         // By subtracting `warehouse.total_deposited` to the length of `warehouse.nfts`
@@ -79,9 +84,13 @@ module ob_launchpad_v2::warehouse {
     }
 
     /// Create a new `Warehouse`
-    public fun new<T: key + store>(ctx: &mut TxContext): Warehouse<T> {
+    public fun new<T: key + store>(
+        launch_cap: &LaunchCap,
+        ctx: &mut TxContext
+    ): Warehouse<T> {
         Warehouse<T> {
             id: object::new(ctx),
+            listing_id: launchpad::listing_id(launch_cap),
             nfts: vector::empty(),
             total_deposited: 0,
             registry: vec_map::empty(),
@@ -90,8 +99,11 @@ module ob_launchpad_v2::warehouse {
     }
 
     /// Creates a `Warehouse` and transfers to transaction sender
-    public fun init_warehouse<T: key + store>(ctx: &mut TxContext): ID {
-        let warehouse = new<T>(ctx);
+    public fun init_warehouse<T: key + store>(
+        launch_cap: &LaunchCap,
+        ctx: &mut TxContext
+    ): ID {
+        let warehouse = new<T>(launch_cap, ctx);
         let warehouse_id = object::id(&warehouse);
         transfer::share_object(warehouse);
         warehouse_id
@@ -102,6 +114,7 @@ module ob_launchpad_v2::warehouse {
     ): ID {
         let Warehouse {
             id,
+            listing_id,
             nfts,
             total_deposited,
             registry,
@@ -111,6 +124,7 @@ module ob_launchpad_v2::warehouse {
 
         let shared_warehouse = Warehouse<T> {
             id: object::new(ctx),
+            listing_id,
             nfts,
             total_deposited,
             registry,
@@ -141,6 +155,8 @@ module ob_launchpad_v2::warehouse {
         warehouse: &mut Warehouse<T>,
         nft: T,
     ) {
+        assert_is_private(warehouse);
+
         let nft_id = object::id(&nft);
         vector::push_back(&mut warehouse.nfts, nft_id);
         warehouse.total_deposited = warehouse.total_deposited + 1;
@@ -152,6 +168,49 @@ module ob_launchpad_v2::warehouse {
         warehouse: &mut Warehouse<T>,
         nfts: vector<T>,
     ) {
+        assert_is_private(warehouse);
+
+        let len = vector::length(&nfts);
+        warehouse.total_deposited = warehouse.total_deposited + len;
+
+        while (len > 0) {
+            let nft = vector::pop_back(&mut nfts);
+            let nft_id = object::id(&nft);
+            vector::push_back(&mut warehouse.nfts, nft_id);
+
+            dof::add(&mut warehouse.warehouse, nft_id, nft);
+
+            len = len - 1;
+        };
+
+        vector::destroy_empty(nfts);
+    }
+
+    /// Deposits NFT to `Warehouse`
+    ///
+    /// Endpoint is unprotected and relies on safely obtaining a mutable
+    /// reference to `Warehouse`.
+    public entry fun deposit_nft_as_admin<T: key + store>(
+        launch_cap: &LaunchCap,
+        warehouse: &mut Warehouse<T>,
+        nft: T,
+    ) {
+        assert_launch_cap(launch_cap, warehouse);
+
+        let nft_id = object::id(&nft);
+        vector::push_back(&mut warehouse.nfts, nft_id);
+        warehouse.total_deposited = warehouse.total_deposited + 1;
+
+        dof::add(&mut warehouse.warehouse, nft_id, nft);
+    }
+
+    public fun deposit_nfts_as_admin<T: key + store>(
+        launch_cap: &LaunchCap,
+        warehouse: &mut Warehouse<T>,
+        nfts: vector<T>,
+    ) {
+        assert_launch_cap(launch_cap, warehouse);
+
         let len = vector::length(&nfts);
         warehouse.total_deposited = warehouse.total_deposited + len;
 
@@ -312,7 +371,7 @@ module ob_launchpad_v2::warehouse {
     /// Panics if `Warehouse` is not empty
     public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
-        let Warehouse { id, nfts: _, total_deposited: _, registry: _ , warehouse} = warehouse;
+        let Warehouse { id, listing_id: _, nfts: _, total_deposited: _, registry: _ , warehouse} = warehouse;
         object::delete(id);
         object::delete(warehouse);
     }
@@ -355,10 +414,24 @@ module ob_launchpad_v2::warehouse {
         assert!(is_empty(warehouse), ENOT_EMPTY);
     }
 
+    public fun assert_launch_cap<T: key + store>(launch_cap: &LaunchCap, warehouse: &Warehouse<T>) {
+        assert!(
+            warehouse.listing_id == launchpad::listing_id(launch_cap),
+            ELAUNCHCAP_WAREHOUSE_MISMATCH
+        );
+    }
+
     public fun assert_is_shared<T: key + store>(warehouse: &Warehouse<T>) {
         assert!(
             df::exists_(&warehouse.warehouse, utils::marker<IsShared>()),
             EWAREHOUSE_NOT_SHARED
+        );
+    }
+
+    public fun assert_is_private<T: key + store>(warehouse: &Warehouse<T>) {
+        assert!(
+            !df::exists_(&warehouse.warehouse, utils::marker<IsShared>()),
+            EWAREHOUSE_IS_PRIVATE
         );
     }
 
