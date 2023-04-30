@@ -50,6 +50,9 @@ module ob_launchpad::listing {
 
     friend ob_launchpad::flat_fee;
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     /// `Venue` was not defined on `Listing`
     ///
     /// Call `Listing::init_venue` to initialize a `Venue`
@@ -79,6 +82,7 @@ module ob_launchpad::listing {
 
     struct Listing has key, store {
         id: UID,
+        version: u64,
         /// The ID of the marketplace if any
         marketplace_id: Option<TypedID<Marketplace>>,
         /// The address of the `Listing` administrator
@@ -144,6 +148,7 @@ module ob_launchpad::listing {
 
         Listing {
             id,
+            version: VERSION,
             marketplace_id: option::none(),
             admin: listing_admin,
             receiver,

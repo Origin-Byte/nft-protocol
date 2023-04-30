@@ -23,6 +23,9 @@ module nft_protocol::collection {
     use ob_utils::utils::{Self, marker, Marker};
     use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     /// Domain not defined
     ///
     /// Call `collection::add_domain` to add domains
@@ -52,6 +55,7 @@ module nft_protocol::collection {
     struct Collection<phantom T> has key, store {
         /// `Collection` ID
         id: UID,
+        version: u64,
     }
 
     /// Event signalling that a `Collection` was minted
@@ -113,7 +117,7 @@ module nft_protocol::collection {
             type_name: type_name::get<T>(),
         });
 
-        Collection { id }
+        Collection { id, version: VERSION }
     }
 
     /// Creates a shared `Collection<C>`, where `C` will typically be the
@@ -229,7 +233,7 @@ module nft_protocol::collection {
     ///
     /// Panics if any domains are still registered on the `Collection`.
     public entry fun delete<C>(collection: Collection<C>) {
-        let Collection { id } = collection;
+        let Collection { id, version: _ } = collection;
         object::delete(id);
     }
 

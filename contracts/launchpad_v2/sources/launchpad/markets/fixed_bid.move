@@ -70,9 +70,9 @@ module ob_launchpad_v2::fixed_bid {
         max_buy: u64,
         ctx: &mut TxContext,
     ) {
+        // TODO: Need to assert the market policy
         venue::assert_launch_cap(venue, launch_cap);
         let market = new<FT>(price, max_buy, ctx);
-
         let venue_uid = venue::uid_mut(venue, launch_cap);
 
         df::add(venue_uid, FixedBidDfKey {}, market);

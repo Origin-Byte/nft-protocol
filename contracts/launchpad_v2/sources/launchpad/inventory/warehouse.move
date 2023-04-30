@@ -29,6 +29,9 @@ module ob_launchpad_v2::warehouse {
 
     use ob_utils::dynamic_vector::{Self as dyn_vector, DynVec};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     /// Limit of NFTs held within each ID chunk
     /// The real limitation is at `7998` but we give a slight buffer
     const LIMIT: u64 = 7500;
@@ -76,6 +79,7 @@ module ob_launchpad_v2::warehouse {
     struct Warehouse<phantom T> has key, store {
         /// `Warehouse` ID
         id: UID,
+        version: u64,
         listing_id: ID,
         /// NFTs that are currently on sale
         nfts: DynVec<ID>,
@@ -95,6 +99,7 @@ module ob_launchpad_v2::warehouse {
     ): Warehouse<T> {
         Warehouse<T> {
             id: object::new(ctx),
+            version: VERSION,
             listing_id: launchpad::listing_id(launch_cap),
             nfts: dyn_vector::empty(LIMIT, ctx),
             total_deposited: 0,
@@ -119,6 +124,7 @@ module ob_launchpad_v2::warehouse {
     ): ID {
         let Warehouse {
             id,
+            version: _,
             listing_id,
             nfts,
             total_deposited,
@@ -129,6 +135,7 @@ module ob_launchpad_v2::warehouse {
 
         let shared_warehouse = Warehouse<T> {
             id: object::new(ctx),
+            version: VERSION,
             listing_id,
             nfts,
             total_deposited,
@@ -358,7 +365,7 @@ module ob_launchpad_v2::warehouse {
         assert_launch_cap(launch_cap, &warehouse);
         assert_is_empty(&warehouse);
 
-        let Warehouse { id, listing_id: _, nfts, total_deposited: _, registry: _ , warehouse} = warehouse;
+        let Warehouse { id, version: _, listing_id: _, nfts, total_deposited: _, registry: _ , warehouse} = warehouse;
 
         object::delete(id);
         dyn_vector::delete(nfts);
