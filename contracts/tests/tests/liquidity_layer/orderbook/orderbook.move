@@ -6,6 +6,7 @@
 /// collection.
 module ob_tests::test_ob_kiok_to_kiosk_trade {
     use std::option;
+    use std::debug;
 
     use sui::coin;
     use sui::object;
@@ -541,16 +542,23 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
         // 4. Create Seller Kiosk
         test_scenario::next_tx(&mut scenario, seller());
         let (seller_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+        transfer::public_share_object(seller_kiosk);
 
         // 5. Create asks order for NFT
+        test_scenario::next_tx(&mut scenario, seller());
         let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
-        let quantity = 280;
+        let quantity = 3_000;
         let i = quantity;
-        let price = 100;
+        let price = 1;
 
         while (i > 0) {
+            test_scenario::next_tx(&mut scenario, seller());
+
             // Create and deposit NFT
+            debug::print(&price);
+            // debug::print(&i);
             let nft = test_utils::get_foo_nft(ctx(&mut scenario));
             let nft_id = object::id(&nft);
             ob_kiosk::deposit(&mut seller_kiosk, nft, ctx(&mut scenario));
@@ -567,7 +575,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
             price = price + 1;
         };
 
-        transfer::public_share_object(seller_kiosk);
+
         test_scenario::next_tx(&mut scenario, buyer());
 
         // let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
@@ -604,7 +612,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
         transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         // test_scenario::return_shared(tx_policy);
-        // test_scenario::return_shared(seller_kiosk);
+        test_scenario::return_shared(seller_kiosk);
         // test_scenario::return_shared(buyer_kiosk);
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
