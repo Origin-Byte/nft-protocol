@@ -36,4 +36,4 @@ local = "./../liquidity_layer"
 local = "./../utils"
 
 [addresses]
-nft_protocol = "0x"
+nft_protocol = "0x10"

@@ -3,9 +3,6 @@ module ob_tests::test_fixed_bid {
     use std::type_name;
     use std::option;
     use std::vector;
-    // use std::debug;
-    // use std::string::utf8;
-    // debug::print(&utf8(b"a"));
 
     use sui::test_scenario::{Self, ctx};
     use sui::sui::SUI;

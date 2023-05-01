@@ -5,7 +5,7 @@ module nft_protocol::royalty_strategy_bps {
     use sui::balance::{Self, Balance};
     use sui::object::{Self, UID};
     use sui::transfer::share_object;
-    use sui::tx_context::{sender, TxContext};
+    use sui::tx_context::TxContext;
 
     use ob_request::transfer_request::{Self, TransferRequest, BalanceAccessCap};
     use ob_request::request::{Self, Policy, PolicyCap, WithNft};
@@ -14,7 +14,7 @@ module nft_protocol::royalty_strategy_bps {
     use originmate::balances::{Self, Balances};
 
     use nft_protocol::collection::{Self, Collection};
-    use nft_protocol::royalty;
+    use nft_protocol::royalty::{Self, RoyaltyDomain};
     use ob_utils::utils;
 
     // Track the current version of the module
@@ -194,10 +194,10 @@ module nft_protocol::royalty_strategy_bps {
     public fun create_domain_and_add_strategy<T>(
         witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
+        royalty_domain: RoyaltyDomain,
         bps: u16,
         ctx: &mut TxContext,
     ) {
-        let royalty_domain = royalty::from_address(sender(ctx), ctx);
         collection::add_domain(witness, collection, royalty_domain);
 
         let royalty_strategy = new(witness, collection, bps, ctx);

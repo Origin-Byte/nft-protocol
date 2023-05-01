@@ -21,4 +21,4 @@ local = "./../request"
 local = "./../kiosk"
 
 [addresses]
-ob_launchpad = "0x"
+ob_launchpad = "0x6"

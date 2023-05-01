@@ -14,4 +14,4 @@ local = "./../permissions"
 
 
 [addresses]
-ob_authlist = "0x"
+ob_authlist = "0x4"

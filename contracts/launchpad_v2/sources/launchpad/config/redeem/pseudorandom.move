@@ -1,8 +1,6 @@
 module ob_launchpad_v2::pseudorand_redeem {
     // TODO: Assigning Inventory and NFTs Indices should not touch the Venue, otherwise it creates contention...
     use std::vector;
-    // use std::string::utf8;
-    // use std::debug;
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
     use sui::vec_map;
