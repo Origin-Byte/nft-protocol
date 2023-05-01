@@ -6,7 +6,6 @@ version = 0
 dependencies = [
   { name = "Kiosk" },
   { name = "Originmate" },
-  { name = "Request" },
   { name = "Sui" },
 ]
 
