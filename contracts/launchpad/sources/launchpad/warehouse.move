@@ -12,7 +12,7 @@ module ob_launchpad::warehouse {
     use std::vector;
 
     use sui::transfer;
-    use sui::dynamic_field as df;
+    use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, ID , UID};
 
@@ -112,7 +112,7 @@ module ob_launchpad::warehouse {
         dyn_vector::push_back(&mut warehouse.nfts, nft_id);
         warehouse.total_deposited = warehouse.total_deposited + 1;
 
-        df::add(&mut warehouse.id, nft_id, nft);
+        dof::add(&mut warehouse.id, nft_id, nft);
     }
 
     /// Redeems NFT from `Warehouse` sequentially
@@ -131,7 +131,7 @@ module ob_launchpad::warehouse {
         let nft_id = dyn_vector::pop_back(&mut warehouse.nfts);
         warehouse.total_deposited = warehouse.total_deposited - 1;
 
-        df::remove(&mut warehouse.id, nft_id)
+        dof::remove(&mut warehouse.id, nft_id)
     }
 
     /// Redeems NFT from `Warehouse` sequentially and transfers to sender
@@ -176,7 +176,7 @@ module ob_launchpad::warehouse {
 
         warehouse.total_deposited = warehouse.total_deposited - 1;
 
-        df::remove(&mut warehouse.id, nft_id)
+        dof::remove(&mut warehouse.id, nft_id)
     }
 
     /// Redeems NFT from specific index in `Warehouse` and transfers to sender

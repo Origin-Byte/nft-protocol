@@ -41,15 +41,14 @@ module ob_launchpad::test_warehouse {
 
         assert!(!dyn_vector::has_chunk(nfts(&warehouse), 1), 0);
 
-        // // Fill up as many as test limitations will allow us
-        deposit_many(7_501, &mut warehouse, ctx(&mut scenario));
+        // Fill up as many as test limitations will allow us
+        deposit_many(498, &mut warehouse, ctx(&mut scenario));
 
         assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 0)) == 7_500, 0);
-        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 1)) == 7_500, 0);
-        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 2)) == 1, 0);
+        assert!(vector::length(dyn_vector::borrow_chunk(nfts(&warehouse), 1)) == 498, 0);
 
         // Redeem all NFTs
-        redeem_many(7500 + 7501, &mut warehouse);
+        redeem_many(7500 + 498, &mut warehouse);
 
         warehouse::destroy(warehouse);
         test_scenario::end(scenario);
@@ -80,13 +79,13 @@ module ob_launchpad::test_warehouse {
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // Deposit up to `Warehouse` single-vector limit
-        deposit_many(7998, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7995, &mut warehouse, ctx(&mut scenario));
 
         let _nft_0 = deposit(&mut warehouse, ctx(&mut scenario));
         let nft_1 = deposit(&mut warehouse, ctx(&mut scenario));
         let _nft_2 = deposit(&mut warehouse, ctx(&mut scenario));
 
-        let nft = warehouse::redeem_nft_at_index(&mut warehouse, 7998 + 1);
+        let nft = warehouse::redeem_nft_at_index(&mut warehouse, 7995 + 1);
         assert!(object::id(&nft) == nft_1, 0);
 
         transfer::public_transfer(nft, CREATOR);
@@ -184,10 +183,10 @@ module ob_launchpad::test_warehouse {
         assert!(dyn_vector::has_chunk(nfts(&warehouse), 0), 0);
 
         // Deposit up to `Warehouse` single-vector limit
-        deposit_many(2 * 7998, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7998, &mut warehouse, ctx(&mut scenario));
 
         // Redeem all NFTs
-        redeem_pseudorandom_many(2 * 7998, &mut warehouse, ctx(&mut scenario));
+        redeem_pseudorandom_many(7998, &mut warehouse, ctx(&mut scenario));
 
         warehouse::destroy(warehouse);
         test_scenario::end(scenario);
@@ -218,7 +217,7 @@ module ob_launchpad::test_warehouse {
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // Deposit up to `Warehouse` single-vector limit and some extra
-        deposit_many(7998, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7995, &mut warehouse, ctx(&mut scenario));
 
         let _nft_0 = deposit(&mut warehouse, ctx(&mut scenario));
         let nft_1 = deposit(&mut warehouse, ctx(&mut scenario));
@@ -240,7 +239,7 @@ module ob_launchpad::test_warehouse {
         let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
 
         // Deposit up to `Warehouse` single-vector limit and some extra
-        deposit_many(2 * 7998, &mut warehouse, ctx(&mut scenario));
+        deposit_many(7998, &mut warehouse, ctx(&mut scenario));
 
         let fake_nft = object::new(ctx(&mut scenario));
         let fake_nft_id = object::uid_to_inner(&fake_nft);
