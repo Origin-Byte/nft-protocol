@@ -1,7 +1,7 @@
 [package]
 name = "NftProtocol"
-version = "1.1.0"
-published-at = "0xd624568412019443dbea9c4e97a6c474cececa7e9daef307457cb34dd04eee0d"
+version = "1.2.0"
+published-at = "0x"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -36,4 +36,4 @@ local = "./../liquidity_layer"
 local = "./../utils"
 
 [addresses]
-nft_protocol = "0xd624568412019443dbea9c4e97a6c474cececa7e9daef307457cb34dd04eee0d"
+nft_protocol = "0x"
