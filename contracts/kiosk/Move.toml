@@ -21,4 +21,4 @@ local = "./../permissions"
 local = "./../request"
 
 [addresses]
-ob_kiosk = "0x"
+ob_kiosk = "0x5"

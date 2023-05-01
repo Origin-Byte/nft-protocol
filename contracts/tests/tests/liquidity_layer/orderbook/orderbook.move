@@ -27,6 +27,7 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
     use ob_allowlist::allowlist::{Self, Allowlist};
     use liquidity_layer::orderbook::{Self, Orderbook};
     use nft_protocol::transfer_allowlist;
+    use nft_protocol::royalty;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
 
@@ -233,8 +234,10 @@ module ob_tests::test_ob_kiok_to_kiosk_trade {
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
 
         // 2. Add Royalty Policy and Allowlist
+        let royalty_domain = royalty::from_address(creator(), ctx(&mut scenario));
+
         royalty_strategy_bps::create_domain_and_add_strategy<Foo>(
-            witness::from_witness(test_utils::witness()), &mut collection, 100, ctx(&mut scenario),
+            witness::from_witness(test_utils::witness()), &mut collection, royalty_domain, 100, ctx(&mut scenario),
         );
 
         // Get allowlist. This can be any allowlist created by anyone but we create

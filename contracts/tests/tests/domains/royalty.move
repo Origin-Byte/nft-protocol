@@ -6,7 +6,7 @@ module ob_tests::test_royalty {
     use nft_protocol::collection::{Self, Collection};
     use ob_permissions::witness;
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::royalty::RoyaltyDomain;
+    use nft_protocol::royalty::{Self, RoyaltyDomain};
 
     struct Foo has drop {}
     struct Witness has drop {}
@@ -23,8 +23,10 @@ module ob_tests::test_royalty {
             delegated_witness, ctx(&mut scenario),
         );
 
+        let royalty_domain = royalty::from_address(CREATOR, ctx(&mut scenario));
+
         royalty_strategy_bps::create_domain_and_add_strategy(
-            delegated_witness, &mut collection, 100, ctx(&mut scenario),
+            delegated_witness, &mut collection, royalty_domain, 100, ctx(&mut scenario),
         );
 
         collection::assert_domain<Foo, RoyaltyDomain>(&collection);

@@ -18,4 +18,4 @@ rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
 local = "./../permissions"
 
 [addresses]
-ob_request = "0x"
+ob_request = "0x2"

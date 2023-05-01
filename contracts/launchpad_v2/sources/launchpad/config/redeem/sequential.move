@@ -1,7 +1,5 @@
 module ob_launchpad_v2::sequential {
     use std::vector;
-    // use std::string::utf8;
-    // use std::debug;
     use sui::dynamic_field as df;
     use sui::vec_map;
 

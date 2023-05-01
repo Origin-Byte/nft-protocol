@@ -13,4 +13,4 @@ rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
 local = "./../utils"
 
 [addresses]
-ob_permissions = "0x"
+ob_permissions = "0x1"

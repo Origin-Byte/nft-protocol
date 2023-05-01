@@ -30,4 +30,4 @@ local = "./../request"
 local = "./../kiosk"
 
 [addresses]
-liquidity_layer = "0x"
+liquidity_layer = "0x9"

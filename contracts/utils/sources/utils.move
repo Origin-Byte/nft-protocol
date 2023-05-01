@@ -162,7 +162,7 @@ module ob_utils::utils {
         let len = vector::length(vec);
 
         while (len > 0) {
-            let elem = vector::borrow(vec, len);
+            let elem = vector::borrow(vec, len - 1);
             vec_set::insert(&mut set, *elem);
 
             len = len - 1;

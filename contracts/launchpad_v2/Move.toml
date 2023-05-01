@@ -21,4 +21,4 @@ local = "./../nft_protocol"
 local = "./../utils"
 
 [addresses]
-ob_launchpad_v2 = "0x"
+ob_launchpad_v2 = "0x7"
