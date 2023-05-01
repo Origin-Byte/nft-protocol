@@ -4,7 +4,7 @@
 ///
 /// We simulate a trade between two Safes, end to end, including royalty
 /// collection.
-module ob_tests::test_ob_kiok_to_kiosk_trade {
+module ob_tests::orderbook {
     use std::option;
     // use std::debug;
     use std::vector;

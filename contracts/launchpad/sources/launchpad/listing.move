@@ -23,9 +23,6 @@
 /// In essence, `Listing` is a shared object that provides a safe API to the
 /// underlying inventories which are unprotected.
 module ob_launchpad::listing {
-    // TODO: Currently, to issue whitelist token one has to call a function
-    // times the number of whitelist addresses. Let us consider more gas efficient
-    // ways of mass emiting whitelist tokens.
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
