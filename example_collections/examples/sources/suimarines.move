@@ -7,15 +7,16 @@ module examples::suimarines {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
-    use nft_protocol::tags;
     use ob_utils::utils;
+    use nft_protocol::tags;
+    use nft_protocol::mint_event;
     use nft_protocol::royalty;
     use nft_protocol::creators;
     use nft_protocol::transfer_allowlist;
     use nft_protocol::p2p_list;
     use ob_utils::display as ob_display;
     use nft_protocol::collection;
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::royalty_strategy_bps;
     use ob_permissions::witness;
 
@@ -154,7 +155,7 @@ module examples::suimarines {
     }
 
     public entry fun mint_nft(
-        _mint_cap: &MintCap<Submarine>,
+        mint_cap: &MintCap<Submarine>,
         name: String,
         index: u64,
         warehouse: &mut Warehouse<Submarine>,
@@ -164,6 +165,12 @@ module examples::suimarines {
             name,
             index,
             ctx
+        );
+
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
         );
 
         warehouse::deposit_nft(warehouse, nft);
