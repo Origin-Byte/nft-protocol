@@ -6,7 +6,6 @@
 /// collection.
 module ob_tests::orderbook {
     use std::option;
-    // use std::debug;
     use std::vector;
 
     use sui::coin;
