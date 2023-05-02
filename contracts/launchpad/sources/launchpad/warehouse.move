@@ -19,6 +19,12 @@ module ob_launchpad::warehouse {
     use ob_utils::dynamic_vector::{Self as dyn_vector, DynVec};
     use originmate::pseudorandom;
 
+    friend ob_launchpad::inventory;
+    friend ob_launchpad::english_auction;
+
+    #[test_only]
+    friend ob_launchpad::test_warehouse;
+
     /// Limit of NFTs held within each ID chunk
     /// The real limitation is at `7998` but we give a slight buffer
     const LIMIT: u64 = 7500;
@@ -117,13 +123,10 @@ module ob_launchpad::warehouse {
 
     /// Redeems NFT from `Warehouse` sequentially
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty.
-    public fun redeem_nft<T: key + store>(
+    public(friend) fun redeem_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
     ): T {
         assert!(warehouse.total_deposited > 0, EEmpty);
@@ -147,7 +150,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty.
-    public entry fun redeem_nft_and_transfer<T: key + store>(
+    public(friend) fun redeem_nft_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ) {
@@ -159,13 +162,10 @@ module ob_launchpad::warehouse {
     ///
     /// Does not retain original order of NFTs in the bookkeeping vector.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public fun redeem_nft_at_index<T: key + store>(
+    public(friend) fun redeem_nft_at_index<T: key + store>(
         warehouse: &mut Warehouse<T>,
         index: u64,
     ): T {
@@ -186,7 +186,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public entry fun redeem_nft_at_index_and_transfer<T: key + store>(
+    public(friend) fun redeem_nft_at_index_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         index: u64,
         ctx: &mut TxContext,
@@ -199,13 +199,10 @@ module ob_launchpad::warehouse {
     ///
     /// Does not retain original order of NFTs in the bookkeeping vector.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// #### Panics
     ///
     /// Panics if NFT with ID does not exist in `Warehouse`.
-    public fun redeem_nft_with_id<T: key + store>(
+    public(friend) fun redeem_nft_with_id<T: key + store>(
         warehouse: &mut Warehouse<T>,
         nft_id: ID,
     ): T {
@@ -220,7 +217,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public entry fun redeem_nft_with_id_and_transfer<T: key + store>(
+    public(friend) fun redeem_nft_with_id_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         nft_id: ID,
         ctx: &mut TxContext,
@@ -234,13 +231,10 @@ module ob_launchpad::warehouse {
     /// Endpoint is susceptible to validator prediction of the resulting index,
     /// use `random_redeem_nft` instead.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty
-    public fun redeem_pseudorandom_nft<T: key + store>(
+    public(friend) fun redeem_pseudorandom_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ): T {
@@ -267,7 +261,7 @@ module ob_launchpad::warehouse {
     /// Entry mint functions like `suimarines::mint_nft` take an `Warehouse`
     /// object to deposit into. Calling `redeem_nft_and_transfer` allows one to
     /// withdraw an NFT and own it directly.
-    public entry fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
+    public(friend) fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ) {
@@ -325,14 +319,11 @@ module ob_launchpad::warehouse {
     /// You can obtain a `RedeemCommitment` by calling
     /// `init_redeem_commitment`.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty or `user_commitment` does not match the
     /// hashed commitment in `RedeemCommitment`.
-    public fun redeem_random_nft<T: key + store>(
+    public(friend) fun redeem_random_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -375,7 +366,7 @@ module ob_launchpad::warehouse {
     ///
     /// Panics if `Warehouse` is empty or `user_commitment` does not match the
     /// hashed commitment in `RedeemCommitment`.
-    public entry fun redeem_random_nft_and_transfer<T: key + store>(
+    public(friend) fun redeem_random_nft_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -392,7 +383,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is not empty
-    public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
+    public(friend) fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
         let Warehouse { id, total_deposited: _, nfts } = warehouse;
         object::delete(id);

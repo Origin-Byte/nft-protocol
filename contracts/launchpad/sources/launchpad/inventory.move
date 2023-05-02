@@ -13,6 +13,10 @@ module ob_launchpad::inventory {
 
     use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
 
+    friend ob_launchpad::listing;
+    friend ob_launchpad::english_auction;
+    friend ob_launchpad::dutch_auction;
+
     /// `Inventory` is not a `Warehouse`
     ///
     /// Call `from_warehouse` to create an `Inventory` from `Warehouse`
@@ -44,8 +48,7 @@ module ob_launchpad::inventory {
 
     /// Deposits NFT to `Inventory`
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
+    /// Endpoint is exclusive to friend modules.
     ///
     /// #### Panics
     ///
@@ -60,14 +63,12 @@ module ob_launchpad::inventory {
 
     /// Redeems NFT from `Inventory` sequentially
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
+    /// Endpoint is exclusive to friend modules.
     ///
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
-        // TODO: This will be restuctured before merge to main
+    public(friend) fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
         assert!(is_warehouse(inventory), 0);
 
         let warehouse = borrow_warehouse_mut(inventory);
@@ -81,7 +82,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public entry fun redeem_nft_and_transfer<T: key + store>(
+    public(friend) fun redeem_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
@@ -91,18 +92,16 @@ module ob_launchpad::inventory {
 
     /// Redeems NFT from specific index in `Inventory`
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
+    /// Endpoint is exclusive to friend modules.
     ///
     /// #### Panics
     ///
     /// Panics if underlying type is not a `Warehouse` and index does not
     /// exist.
-    public fun redeem_nft_at_index<T: key + store>(
+    public(friend) fun redeem_nft_at_index<T: key + store>(
         inventory: &mut Inventory<T>,
         index: u64,
     ): T {
-        // TODO: This will be restuctured before merge to main
         assert!(is_warehouse(inventory), 0);
 
         let warehouse = borrow_warehouse_mut(inventory);
@@ -117,7 +116,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if underlying type is not a `Warehouse` and index does not
     /// exist.
-    public entry fun redeem_nft_at_index_and_transfer<T: key + store>(
+    public(friend) fun redeem_nft_at_index_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         index: u64,
         ctx: &mut TxContext,
@@ -128,18 +127,16 @@ module ob_launchpad::inventory {
 
     /// Redeems NFT with specific ID from `Inventory`
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
+    /// Endpoint is exclusive to friend modules.
     ///
     /// #### Panics
     ///
     /// Panics if underlying type is not a `Warehouse` and NFT with ID does not
     /// exist.
-    public fun redeem_nft_with_id<T: key + store>(
+    public(friend) fun redeem_nft_with_id<T: key + store>(
         inventory: &mut Inventory<T>,
         nft_id: ID,
     ): T {
-        // TODO: This will be restuctured before merge to main
         assert!(is_warehouse(inventory), 0);
 
         let warehouse = borrow_warehouse_mut(inventory);
@@ -153,7 +150,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public entry fun redeem_nft_with_id_and_transfer<T: key + store>(
+    public(friend) fun redeem_nft_with_id_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         nft_id: ID,
         ctx: &mut TxContext,
@@ -167,8 +164,7 @@ module ob_launchpad::inventory {
     /// Endpoint is susceptible to validator prediction of the resulting index,
     /// use `random_redeem_nft` instead.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
+    /// Endpoint is exclusive to friend modules.
     ///
     /// If the underlying `Inventory` is a `Factory` then logic will fallback to
     /// using sequential withdraw.
@@ -176,11 +172,10 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public fun redeem_pseudorandom_nft<T: key + store>(
+    public(friend) fun redeem_pseudorandom_nft<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ): T {
-        // TODO: This will be restuctured before merge to main
         assert!(is_warehouse(inventory), 0);
 
         let warehouse = borrow_warehouse_mut(inventory);
@@ -194,7 +189,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public entry fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
+    public(friend) fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
@@ -209,8 +204,7 @@ module ob_launchpad::inventory {
     /// You can obtain a `RedeemCommitment` by calling
     /// `warehouse::init_redeem_commitment`.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Inventory`.
+    /// Endpoint is exclusive to friend modules.
     ///
     /// If the underlying `Inventory` is a `Factory` then logic will fallback to
     /// using sequential withdraw.
@@ -219,13 +213,12 @@ module ob_launchpad::inventory {
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public fun redeem_random_nft<T: key + store>(
+    public(friend) fun redeem_random_nft<T: key + store>(
         inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
     ): T {
-        // TODO: This will be restuctured before merge to main
         assert!(is_warehouse(inventory), 0);
 
         let warehouse = borrow_warehouse_mut(inventory);
@@ -242,7 +235,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public entry fun redeem_random_nft_and_transfer<T: key + store>(
+    public(friend) fun redeem_random_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -277,7 +270,6 @@ module ob_launchpad::inventory {
     ///
     /// Panics if supply was exceeded.
     public fun supply<T: key + store>(inventory: &Inventory<T>): Option<u64> {
-        // TODO: This will be restuctured before merge to main
         assert!(is_warehouse(inventory), 0);
 
         let warehouse = borrow_warehouse(inventory);

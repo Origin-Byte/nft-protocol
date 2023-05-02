@@ -5,14 +5,11 @@ module ob_launchpad::mint_and_sell {
     use sui::sui::SUI;
     use sui::transfer;
     use sui::test_scenario::{Self, ctx};
-    use sui::kiosk::Kiosk;
 
     use ob_launchpad::fixed_price;
     use ob_launchpad::listing;
     use ob_launchpad::warehouse;
     use ob_launchpad::test_listing;
-
-    use ob_kiosk::ob_kiosk;
 
     struct Foo has key, store {
         id: UID,
@@ -41,8 +38,6 @@ module ob_launchpad::mint_and_sell {
 
         // 3. Mint NFT to listing `Warehouse`
         let nft = Foo { id: object::new(ctx(&mut scenario)) };
-
-        let nft_id = object::id(&nft);
         listing::add_nft(&mut listing, inventory_id, nft, ctx(&mut scenario));
 
         // 5. Buy the NFT
@@ -59,9 +54,11 @@ module ob_launchpad::mint_and_sell {
         // 6. Verify NFT was bought
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
-        ob_kiosk::assert_nft_type<Foo>(&mut kiosk, nft_id);
-        test_scenario::return_shared(kiosk);
+        // Check NFT was transferred with correct logical owner
+        let nft = test_scenario::take_from_address<Foo>(
+            &scenario, CREATOR
+        );
+        transfer::public_transfer(nft, CREATOR);
 
         // Return objects and end test
         transfer::public_transfer(wallet, CREATOR);
@@ -81,7 +78,6 @@ module ob_launchpad::mint_and_sell {
         // 3. Mint NFT to `Warehouse`
         let nft = Foo { id: object::new(ctx(&mut scenario)) };
 
-        let nft_id = object::id(&nft);
         warehouse::deposit_nft(&mut warehouse, nft);
 
         // 4. Insert `Warehouse` into `Listing` and create market
@@ -113,9 +109,11 @@ module ob_launchpad::mint_and_sell {
         // 6. Verify NFT was bought
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
-        ob_kiosk::assert_nft_type<Foo>(&mut kiosk, nft_id);
-        test_scenario::return_shared(kiosk);
+        // Check NFT was transferred with correct logical owner
+        let nft = test_scenario::take_from_address<Foo>(
+            &scenario, CREATOR
+        );
+        transfer::public_transfer(nft, CREATOR);
 
         // Return objects and end test
         transfer::public_transfer(wallet, CREATOR);

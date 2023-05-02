@@ -12,6 +12,10 @@ module ob_launchpad::venue {
     use sui::object::{Self, UID};
     use sui::dynamic_field as df;
 
+    friend ob_launchpad::listing;
+    friend ob_launchpad::english_auction;
+    friend ob_launchpad::dutch_auction;
+
     /// `Venue` is not live
     ///
     /// Call `Venue::set_live` or `Listing::sale_on` to make it live.
@@ -81,10 +85,7 @@ module ob_launchpad::venue {
     }
 
     /// Set market's live status
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Venue`.
-    public entry fun set_live(
+    public(friend) fun set_live(
         venue: &mut Venue,
         is_live: bool,
     ) {
@@ -92,10 +93,7 @@ module ob_launchpad::venue {
     }
 
     /// Set market's whitelist status
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Venue`.
-    public entry fun set_whitelisted(
+    public(friend) fun set_whitelisted(
         venue: &mut Venue,
         is_whitelisted: bool,
     ) {
@@ -129,13 +127,10 @@ module ob_launchpad::venue {
 
     /// Mutably borrow `Venue` market
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Venue`.
-    ///
     /// #### Panics
     ///
     /// Panics if incorrect type was provided for the underlying market.
-    public fun borrow_market_mut<Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun borrow_market_mut<Market: store, MarketKey: copy + drop + store>(
         key: MarketKey,
         venue: &mut Venue,
     ): &mut Market {
@@ -148,7 +143,7 @@ module ob_launchpad::venue {
     /// #### Panics
     ///
     /// Panics if underlying market does not match the provided type.
-    public fun delete<Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun delete<Market: store, MarketKey: copy + drop + store>(
         key: MarketKey,
         venue: Venue,
     ): Market {
