@@ -6,6 +6,7 @@ version = 0
 dependencies = [
   { name = "Kiosk" },
   { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
 ]
 
@@ -14,7 +15,6 @@ name = "Kiosk"
 source = { local = "../kiosk" }
 
 dependencies = [
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
@@ -42,11 +42,18 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Pseudorandom"
+source = { local = "../pseudorandom" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
 name = "Request"
 source = { local = "../request" }
 
 dependencies = [
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Sui" },
 ]
@@ -64,6 +71,6 @@ name = "Utils"
 source = { local = "../utils" }
 
 dependencies = [
-  { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
 ]

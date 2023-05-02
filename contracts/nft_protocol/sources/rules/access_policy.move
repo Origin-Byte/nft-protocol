@@ -281,9 +281,9 @@ module nft_protocol::access_policy {
 
     // Only the publisher of type `T` can upgrade
     entry fun migrate_as_creator<T: key + store>(
-        _witness: DelegatedWitness<T>,
-        self: &mut AccessPolicy<T>,
+        self: &mut AccessPolicy<T>, pub: &Publisher
     ) {
+        assert!(package::from_package<T>(pub), 0);
         self.version = VERSION;
     }
 

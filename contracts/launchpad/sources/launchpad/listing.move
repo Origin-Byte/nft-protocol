@@ -51,6 +51,9 @@ module ob_launchpad::listing {
     friend ob_launchpad::limited_fixed_price;
     friend ob_launchpad::english_auction;
 
+    #[test_only]
+    friend ob_launchpad::test_fees;
+
     // Track the current version of the module
     const VERSION: u64 = 1;
 
@@ -661,7 +664,7 @@ module ob_launchpad::listing {
     }
 
     /// To be called by `Listing` admins for standalone `Listings`.
-    /// Standalone Listings do not envolve marketplace fees, and therefore
+    /// Standalone Listings do not involve marketplace fees, and therefore
     /// the listing admin can freely call this entrypoint.
     public entry fun collect_proceeds<FT>(
         listing: &mut Listing,

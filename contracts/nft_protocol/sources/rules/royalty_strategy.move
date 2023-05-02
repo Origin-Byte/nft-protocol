@@ -238,9 +238,9 @@ module nft_protocol::royalty_strategy_bps {
 
     // Only the publisher of type `T` can upgrade
     entry fun migrate_as_creator<T>(
-        _witness: DelegatedWitness<T>,
-        self: &mut BpsRoyaltyStrategy<T>,
+        self: &mut BpsRoyaltyStrategy<T>, pub: &Publisher,
     ) {
+        assert!(package::from_package<T>(pub), 0);
         self.version = VERSION;
     }
 

@@ -51,8 +51,6 @@ module ob_kiosk::ob_kiosk {
     use ob_request::request::{Self, Policy, RequestBody, WithNft};
     use ob_kiosk::kiosk::KIOSK;
 
-    use originmate::typed_id::{Self, TypedID};
-
     // Track the current version of the module
     const VERSION: u64 = 1;
 
@@ -140,8 +138,6 @@ module ob_kiosk::ob_kiosk {
         /// If set to true, then `listed_with` must have length of 1 and
         /// listed_for must be "none".
         is_exclusively_listed: bool,
-        /// Kiosk is heterogeneous
-        nft_type: TypeName,
     }
 
     /// Configures how deposits without owner signing are limited
@@ -264,7 +260,6 @@ module ob_kiosk::ob_kiosk {
         table::add(refs, nft_id, NftRef {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
-            nft_type: type_name::get<T>(),
         });
 
         // place underlying NFT to kiosk
@@ -291,7 +286,6 @@ module ob_kiosk::ob_kiosk {
             table::add(refs, nft_id, NftRef {
                 auths: vec_set::empty(),
                 is_exclusively_listed: false,
-                nft_type: type_name::get<T>(),
             });
 
             // place underlying NFT to kiosk
@@ -578,13 +572,11 @@ module ob_kiosk::ob_kiosk {
 
     public fun register_nft<T: key>(
         self: &mut Kiosk,
-        nft_id: TypedID<T>,
+        nft_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_version(ext(self));
         assert_permission(self, ctx);
-
-        let nft_id = typed_id::to_id(nft_id);
 
         // Assert that Kiosk has NFT
         assert_has_nft(self, nft_id);
@@ -598,7 +590,6 @@ module ob_kiosk::ob_kiosk {
         table::add(refs, nft_id, NftRef {
             auths: vec_set::empty(),
             is_exclusively_listed: false,
-            nft_type: type_name::get<T>(),
         });
     }
 
@@ -842,12 +833,6 @@ module ob_kiosk::ob_kiosk {
 
     // === Assertions and getters ===
 
-    public fun nft_type(self: &mut Kiosk, nft_id: ID): &TypeName {
-        let refs = nft_refs_mut(self);
-        let ref = table::borrow(refs, nft_id);
-        &ref.nft_type
-    }
-
     public fun is_ob_kiosk(self: &mut Kiosk): bool {
         df::exists_(ext(self), NftRefsDfKey {})
     }
@@ -870,8 +855,8 @@ module ob_kiosk::ob_kiosk {
             )
     }
 
-    public fun assert_nft_type<T>(self: &mut Kiosk, nft_id: ID) {
-        assert!(nft_type(self, nft_id) == &type_name::get<T>(), ENftTypeMismatch);
+    public fun assert_nft_type<T: key + store>(self: &Kiosk, nft_id: ID) {
+        assert!(kiosk::has_item_with_type<T>(self, nft_id), ENftTypeMismatch);
     }
 
     public fun assert_can_deposit<T>(self: &mut Kiosk, ctx: &mut TxContext) {

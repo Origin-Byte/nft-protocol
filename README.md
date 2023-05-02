@@ -19,15 +19,14 @@ The ecosystem is partitioned into three critical components:
 ## Resources
 
 - Protocol contracts:
-  - [Permissions](https://explorer.sui.io/object/0x1d01a03fefe5d70c7cea863811f61150544d2265625dfae91408ccbba8a16704)
-  - [Allowlist](https://explorer.sui.io/object/0x5a396593d6d7f2e3708be81bb45f85859c5600c77267e1fe54c68871e9ff88a7)
-  - [Authlist](https://explorer.sui.io/object/0xb499426ff54e7ec709a6ebcf9300b51b12e8d1133b80462b724f91417f68b279)
-  - [Request](https://explorer.sui.io/object/0x7de232c970371d5016c1e90d15f6879867af327dcc84c79f99fce10e44d15b2f)
-  - [Kiosk](https://explorer.sui.io/object/0x58877c047ef49d8b2602587b2a26730b3f6a5b5004c4840eb00c24609c3e1c5e)
-  - [Liquidity Layer](https://explorer.sui.io/object/0x3fdcd4efe728d281142f74760d62fc64986f8da88a7c6e4bb39d018efd70ca3f)
-  - [Launchpad](https://explorer.sui.io/object/0x550e453a75ae4e8c6682003eac1944087f04624e728fa1af0b46cf45933937b9)
-  - [NftProtocol](https://explorer.sui.io/object/0xf71ea35aa531a662dfbf8cf7695a5b475bc09f82cd218a801d1aa7c4df3e63e7)
-  - [LaunchpadV2](https://explorer.sui.io/object/0x9533382218a78eca52299c14767fc40f94af048e0985cc0695a168bf9c851230)
+  - [Permissions](https://explorer.sui.io/object/0x0c0dfe1d585dd2a208d16a23ea769b70ad5c682f161bde613c56eabcbca8b138)
+  - [Allowlist](https://explorer.sui.io/object/0x505c310fb3adfac0601b77408c1317abe078828670410feb2b77e1d19a03083f)
+  - [Authlist](https://explorer.sui.io/object/0x9cc4dda2ad1477b2d4a23d646e87d906a2f48270a45330f3edf0f2da382aadf5)
+  - [Request](https://explorer.sui.io/object/0x5f60d9a2b56de29cd953907b1e3825b078c99c3bf44fdbcfa24248ceae019944)
+  - [Kiosk](https://explorer.sui.io/object/0x0bdb0c4adbabbdc04b5843548f283c5381dc557019c53aa750a7138997d41e98)
+  - [Liquidity Layer](https://explorer.sui.io/object/0xedb26437833b9a8c06463a39f2af6508f44687b59f0014ecbd3b7da3c867a0f0)
+  - [Launchpad](https://explorer.sui.io/object/0xbcd22c469cdf81b19f167227a373c3dff30a986384ff568667fe0cfe1eb2419f)
+  - [NftProtocol](https://explorer.sui.io/object/0xc1c6dff093fbcff4c0f1d252e226ffcc5271c7d6f1523c60514068a76dab86d3)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/) (WIP)
 

@@ -328,7 +328,8 @@ module ob_utils::dynamic_vector {
 
     #[test_only]
     use sui::test_scenario::{Self, ctx};
-    use originmate::pseudorandom;
+    #[test_only]
+    use ob_pseudorandom::pseudorandom;
 
     #[test_only]
     fun destroy_test<Element: store + drop>(v: DynVec<Element>) {
@@ -537,9 +538,8 @@ module ob_utils::dynamic_vector {
         let i = total_items;
 
         while (i > 0) {
-            let rand_idx = select(
-                i,
-                &pseudorandom::rand_with_nonce(b"Some random bytes..."),
+            let rand_idx = pseudorandom::select_u64(
+                i, &pseudorandom::rand_with_nonce(b"Some random bytesSome random bytes"),
             );
 
             let _elem = pop_at_index(&mut vec, rand_idx);
@@ -554,15 +554,5 @@ module ob_utils::dynamic_vector {
 
         destroy_test(vec);
         test_scenario::end(scenario);
-    }
-
-    /// Outputs modulo of a random `u256` number and a bound
-    ///
-    /// Due to `random >> bound` we `select` does not exhibit significant
-    /// modulo bias.
-    fun select(bound: u64, random: &vector<u8>): u64 {
-        let random = pseudorandom::u256_from_bytes(random);
-        let mod  = random % (bound as u256);
-        (mod as u64)
     }
 }

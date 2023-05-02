@@ -12,6 +12,7 @@ module nft_protocol::collection {
     use std::string;
 
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::display::{Self, Display};
     use sui::transfer;
     use sui::object::{Self, UID, ID};
@@ -288,9 +289,10 @@ module nft_protocol::collection {
 
     // Only the publisher of type `T` can upgrade
     entry fun migrate_as_creator<T: key + store>(
-        _witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
+        pub: &Publisher
     ) {
+        assert!(package::from_package<T>(pub), 0);
         collection.version = VERSION;
     }
 

@@ -1,7 +1,7 @@
 [package]
 name = "Allowlist"
 version = "1.2.0"
-published-at = "0x5a396593d6d7f2e3708be81bb45f85859c5600c77267e1fe54c68871e9ff88a7"
+published-at = "0x505c310fb3adfac0601b77408c1317abe078828670410feb2b77e1d19a03083f"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -13,4 +13,4 @@ rev = "09b2081498366df936abae26eea4b2d5cafb2788"
 local = "./../permissions"
 
 [addresses]
-ob_allowlist = "0x5a396593d6d7f2e3708be81bb45f85859c5600c77267e1fe54c68871e9ff88a7"
+ob_allowlist = "0x505c310fb3adfac0601b77408c1317abe078828670410feb2b77e1d19a03083f"

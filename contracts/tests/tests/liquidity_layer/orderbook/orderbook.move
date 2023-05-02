@@ -6,7 +6,6 @@
 /// collection.
 module ob_tests::orderbook {
     use std::option;
-    // use std::debug;
     use std::vector;
 
     use sui::coin;
@@ -23,7 +22,6 @@ module ob_tests::orderbook {
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
     use ob_permissions::witness;
-    use originmate::typed_id;
     use ob_utils::crit_bit::{Self};
     use ob_request::transfer_request;
     use ob_kiosk::ob_kiosk::{Self, OwnerToken};
@@ -450,19 +448,19 @@ module ob_tests::orderbook {
 
         // 4. Add NFT to Seller Kiosk
         let nft = test_utils::get_foo_nft(ctx(&mut scenario));
-        let nft_id = typed_id::new(&nft);
+        let nft_id = object::id(&nft);
         kiosk::place(&mut seller_kiosk, &seller_cap, nft);
 
         // 5. Create ask order for NFT
         ob_kiosk::install_extension(&mut seller_kiosk, seller_cap, ctx(&mut scenario));
-        ob_kiosk::register_nft(&mut seller_kiosk, nft_id, ctx(&mut scenario));
+        ob_kiosk::register_nft<Foo>(&mut seller_kiosk, nft_id, ctx(&mut scenario));
 
         let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
         orderbook::create_ask(
             &mut book,
             &mut seller_kiosk,
             100_000_000,
-            typed_id::to_id(nft_id),
+            nft_id,
             ctx(&mut scenario),
         );
 
