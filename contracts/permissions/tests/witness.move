@@ -2,12 +2,39 @@
 module ob_permissions::test_witness {
     use std::string;
 
+    use sui::test_utils as sui_utils;
+    use sui::package;
+    use sui::transfer;
+
     use ob_utils::utils;
+    use ob_permissions::witness;
     use ob_permissions::test_foo;
+    use sui::test_scenario::{Self, ctx};
 
     struct Witness has drop {}
     struct Witness2 has drop {}
+    struct TEST_WITNESS has drop {}
     struct ASSERT_SAME_MODULE_AS_WITNESS has drop {}
+
+    struct Foo has store {}
+
+    #[test]
+    fun get_dw_from_wit() {
+        witness::from_witness<Foo, Witness>(Witness {});
+    }
+
+    #[test]
+    fun get_dw_from_publisher() {
+        let scenario = test_scenario::begin(@0x0);
+
+        let otw = sui_utils::create_one_time_witness<TEST_WITNESS>();
+        let pub = package::claim(otw, ctx(&mut scenario));
+        witness::from_publisher<Foo>(&pub);
+
+        transfer::public_transfer(pub, @0x0);
+
+        test_scenario::end(scenario);
+    }
 
     #[test]
     public fun it_returns_package_module_type() {

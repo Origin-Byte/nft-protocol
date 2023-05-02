@@ -14,6 +14,9 @@ module ob_request::request {
     use sui::tx_context::TxContext;
     use sui::vec_set::{Self, VecSet};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     // === Errors ===
 
     /// Package publisher mismatch
@@ -54,6 +57,7 @@ module ob_request::request {
     /// `P` represents the policy type that can confirm this request body.
     struct Policy<phantom P> has key, store {
         id: UID,
+        version: u64,
         rules: VecSet<TypeName>,
     }
 
@@ -130,6 +134,7 @@ module ob_request::request {
     ): (Policy<P>, PolicyCap) {
         let policy = Policy {
             id: object::new(ctx),
+            version: VERSION,
             rules: vec_set::empty(),
         };
         let cap = PolicyCap {
@@ -157,6 +162,7 @@ module ob_request::request {
 
         let policy = Policy {
             id: object::new(ctx),
+            version: VERSION,
             rules: vec_set::empty(),
         };
         let cap = PolicyCap {
@@ -207,7 +213,7 @@ module ob_request::request {
 
     public fun rule_state_mut<P, Rule: drop, State: store + drop>(
         self: &mut Policy<P>, _: Rule,
-    ): &State {
+    ): &mut State {
         df::borrow_mut(&mut self.id, RuleStateDfKey<Rule> {})
     }
 

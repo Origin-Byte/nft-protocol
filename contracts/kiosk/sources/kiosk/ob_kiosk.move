@@ -331,6 +331,45 @@ module ob_kiosk::ob_kiosk {
         ref.is_exclusively_listed = true;
     }
 
+    /// This function is exposed only to the client side, therefore
+    /// if allows NFT owners to perform transfers from Kiosk to Kiosk without
+    /// having to pay royalties.
+    ///
+    /// This will always work if the signer is the owner of the kiosk.
+    entry fun p2p_transfer<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_permission(source, ctx);
+
+        let refs = df::borrow_mut(ext(source), NftRefsDfKey {});
+        let ref = table::remove(refs, nft_id);
+        assert_ref_not_exclusively_listed(&ref);
+
+        let cap = pop_cap(source);
+        let nft = kiosk::take<T>(source, &cap, nft_id);
+        set_cap(source, cap);
+
+        deposit(target, nft, ctx);
+    }
+
+    entry fun p2p_transfer_and_create_target_kiosk<T: key + store>(
+        source: &mut Kiosk,
+        target: address,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): (ID, ID) {
+        let (target_kiosk, target_token) = new_for_address(target, ctx);
+        let target_kiosk_id = object::id(&target_kiosk);
+
+        p2p_transfer<T>(source, &mut target_kiosk, nft_id, ctx);
+        public_share_object(target_kiosk);
+
+        (target_kiosk_id, target_token)
+    }
+
     /// Can be called by an entity that has been authorized by the owner to
     /// withdraw given NFT.
     ///
@@ -927,5 +966,27 @@ module ob_kiosk::ob_kiosk {
         let refs = df::borrow(ext(self), NftRefsDfKey {});
         let ref = table::borrow<ID, NftRef>(refs, nft_id);
         assert!(ref.is_exclusively_listed, 0);
+    }
+
+    // Helper for testing entry function
+    #[test_only]
+    public fun p2p_transfer_test<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        p2p_transfer<T>(source, target, nft_id, ctx);
+    }
+
+    // Helper for testing entry function
+    #[test_only]
+    public fun p2p_transfer_and_create_target_kiosk_test<T: key + store>(
+        source: &mut Kiosk,
+        target: address,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): (ID, ID) {
+        p2p_transfer_and_create_target_kiosk<T>(source, target, nft_id, ctx)
     }
 }

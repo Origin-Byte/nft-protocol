@@ -28,11 +28,15 @@ module ob_launchpad::marketplace {
 
     use originmate::object_box::{Self as obox, ObjectBox};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     /// Transaction sender was not admin of marketplace
     const EInvalidAdmin: u64 = 1;
 
     struct Marketplace has key, store {
         id: UID,
+        version: u64,
         /// The address of the marketplace administrator
         admin: address,
         /// Receiver of marketplace fees
@@ -52,6 +56,7 @@ module ob_launchpad::marketplace {
 
         Marketplace {
             id: uid,
+            version: VERSION,
             admin,
             receiver,
             default_fee,

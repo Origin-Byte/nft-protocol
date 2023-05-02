@@ -6,6 +6,7 @@ version = 0
 dependencies = [
   { name = "NftProtocol" },
   { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
   { name = "Utils" },
 ]
@@ -55,7 +56,7 @@ dependencies = [
 
 [[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "09b2081498366df936abae26eea4b2d5cafb2788", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "NftProtocol"
@@ -68,6 +69,7 @@ dependencies = [
   { name = "LiquidityLayer" },
   { name = "Originmate" },
   { name = "Permissions" },
+  { name = "Pseudorandom" },
   { name = "Request" },
   { name = "Sui" },
   { name = "Utils" },
@@ -75,7 +77,7 @@ dependencies = [
 
 [[move.package]]
 name = "Originmate"
-source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3", subdir = "" }
+source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "de8360c7c25f52bf2593721a82cd6c7b66001faf", subdir = "" }
 
 dependencies = [
   { name = "Sui" },
@@ -91,18 +93,25 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Pseudorandom"
+source = { local = "../pseudorandom" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
 name = "Request"
 source = { local = "../request" }
 
 dependencies = [
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Sui" },
 ]
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "09b2081498366df936abae26eea4b2d5cafb2788", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
@@ -113,6 +122,6 @@ name = "Utils"
 source = { local = "../utils" }
 
 dependencies = [
-  { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
 ]

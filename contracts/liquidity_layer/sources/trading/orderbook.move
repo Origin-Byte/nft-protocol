@@ -41,6 +41,9 @@ module liquidity_layer::orderbook {
 
     use liquidity_layer::trading;
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     // === Errors ===
 
     /// A protected action was called without a witness.
@@ -90,6 +93,7 @@ module liquidity_layer::orderbook {
     /// 2. asks DESC
     struct Orderbook<phantom T: key + store, phantom FT> has key {
         id: UID,
+        version: u64,
         /// Actions which have a flag set to true can only be called via a
         /// witness protected implementation.
         protected_actions: WitnessProtectedActions,
@@ -746,6 +750,7 @@ module liquidity_layer::orderbook {
 
         Orderbook<T, FT> {
             id,
+            version: VERSION,
             protected_actions,
             asks: crit_bit::empty(),
             bids: crit_bit::empty(),
@@ -1092,6 +1097,11 @@ module liquidity_layer::orderbook {
             vector::remove(price_level, index);
         balance::join(coin::balance_mut(wallet), offer);
 
+        if (vector::length(price_level) == 0) {
+            // to simplify impl, always delete empty price level
+            vector::destroy_empty(crit_bit::pop(bids, bid_price_level));
+        };
+
         event::emit(BidClosedEvent {
             owner: sender,
             kiosk,
@@ -1387,6 +1397,13 @@ module liquidity_layer::orderbook {
 
         assert!(index < asks_count, EOrderDoesNotExist);
 
-        vector::remove(price_level, index)
+        let ask = vector::remove(price_level, index);
+
+        if (vector::length(price_level) == 0) {
+            // to simplify impl, always delete empty price level
+            vector::destroy_empty(crit_bit::pop(asks, price));
+        };
+
+        ask
     }
 }

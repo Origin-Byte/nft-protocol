@@ -12,8 +12,6 @@ module ob_launchpad::test_listing {
     ): Listing {
         test_scenario::next_tx(scenario, creator);
 
-        test_scenario::next_tx(scenario, creator);
-
         listing::init_listing(
             creator,
             creator,
@@ -29,14 +27,15 @@ module ob_launchpad::test_listing {
     public fun init_listing_and_marketplace(
         creator: address,
         marketplace_admin: address,
+        default_fee: u64,
         scenario: &mut Scenario,
     ): (Marketplace, Listing) {
         test_scenario::next_tx(scenario, marketplace_admin);
 
         marketplace::init_marketplace(
-            creator,
-            creator,
-            flat_fee::new(0, ctx(scenario)),
+            marketplace_admin,
+            marketplace_admin,
+            flat_fee::new(default_fee, ctx(scenario)),
             ctx(scenario),
         );
 

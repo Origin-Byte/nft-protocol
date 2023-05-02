@@ -17,6 +17,9 @@ module ob_authlist::authlist {
 
     const ED25519_LENGTH: u64 = 32;
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     // === Errors ===
 
     /// Package publisher mismatch
@@ -54,6 +57,7 @@ module ob_authlist::authlist {
     struct Authlist has key, store {
         /// `Authlist` ID
         id: UID,
+        version: u64,
         /// `Authlist` is controlled by `AuthlistOwnerCap` but can be
         /// optionally configured to be controlled by a contract identified by
         /// the admin witness
@@ -105,6 +109,7 @@ module ob_authlist::authlist {
 
         let authlist = Authlist {
             id: authlist_id,
+            version: VERSION,
             admin_witness: option::none(),
             names: vec_map::empty(),
             authorities,
@@ -165,7 +170,7 @@ module ob_authlist::authlist {
 
     /// Delete `Authlist`
     public entry fun delete_authlist(authlist: Authlist) {
-        let Authlist { id, admin_witness: _, names: _, authorities: _ } =
+        let Authlist { id, version: _, admin_witness: _, names: _, authorities: _ } =
             authlist;
         object::delete(id);
     }
@@ -199,6 +204,7 @@ module ob_authlist::authlist {
     ): Authlist {
         Authlist {
             id: object::new(ctx),
+            version: VERSION,
             admin_witness: option::some(type_name::get<Admin>()),
             names,
             authorities,

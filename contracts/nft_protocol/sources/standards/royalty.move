@@ -10,8 +10,6 @@
 ///
 /// The module relies on an external contract to drive the royalty gathering.
 module nft_protocol::royalty {
-    use std::fixed_point32;
-
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::dynamic_field as df;
@@ -22,6 +20,7 @@ module nft_protocol::royalty {
     use sui::vec_set::{Self, VecSet};
 
     use ob_utils::utils::{Self, marker, Marker};
+    use ob_utils::math;
     use ob_permissions::witness;
 
     use nft_protocol::collection::{Self, Collection};
@@ -328,10 +327,7 @@ module nft_protocol::royalty {
         ctx: &mut TxContext,
     ) {
         // balance * share_of_royalty_bps / BPS
-        let total = fixed_point32::create_from_rational(
-            balance::value(aggregate),
-            (utils::bps() as u64)
-        );
+        let balance_value = balance::value(aggregate);
 
         let i = 0;
         while (i < vec_map::size(shares)) {
@@ -339,9 +335,10 @@ module nft_protocol::royalty {
 
             // Truncates fractional part of the result thus ensuring that sum
             // of royalty shares is not greater than total balance.
-            let owed_royalty = fixed_point32::multiply_u64(
-                (*share as u64),
-                total,
+            let (_, rate) = math::div_round((*share as u64), (utils::bps() as u64));
+
+            let (_, owed_royalty) = math::mul_round(
+                rate, balance_value
             );
 
             if (owed_royalty != 0) {
@@ -456,4 +453,67 @@ module nft_protocol::royalty {
     public fun assert_no_royalty(nft: &UID) {
         assert!(!has_domain(nft), EExistingRoyalty);
     }
+
+    // === Tests ===
+
+    #[test_only]
+    use ob_pseudorandom::pseudorandom;
+
+    #[test_only]
+    fun check_sum(vec: vector<u64>, total: u64) {
+        let sum = utils::sum_vector(vec);
+        assert!(sum == total, 0);
+    }
+
+    #[test]
+    fun test_precision() {
+        // Round 1
+        let balance_value = 100_000_000_0000;
+
+        // 100% royalties
+        let share_1 = 3_333;
+        let share_2 = 3_333;
+        let share_3 = 3_334;
+
+        let (_, rate_1) = math::div_round((share_1 as u64), (utils::bps() as u64));
+        let (_, rate_2) = math::div_round((share_2 as u64), (utils::bps() as u64));
+        let (_, rate_3) = math::div_round((share_3 as u64), (utils::bps() as u64));
+
+        let (_, royalty_1) = math::mul_round(rate_1, balance_value);
+        let (_, royalty_2) = math::mul_round(rate_2, balance_value);
+        let (_, royalty_3) = math::mul_round(rate_3, balance_value);
+
+        check_sum(vector[ royalty_1, royalty_2, royalty_3], balance_value);
+    }
+
+    #[test]
+    fun fuzzy_test() {
+        let balance_value = 100_000_000_0000;
+
+        let limit = 10_000;
+        let i = 0;
+
+        let seed = pseudorandom::rand_with_nonce(b"Some random seedSome random seed");
+
+        while (i < limit) {
+            let share_1 = pseudorandom::select_u64(10_000, &seed);
+            let share_2 = pseudorandom::select_u64(10_000 - share_1, &seed);
+            let share_3 = 10_000 - share_1 - share_2;
+
+            assert!(share_1 + share_2 + share_3 == 10_000, 0);
+
+            let (_, rate_1) = math::div_round((share_1 as u64), (utils::bps() as u64));
+            let (_, rate_2) = math::div_round((share_2 as u64), (utils::bps() as u64));
+            let (_, rate_3) = math::div_round((share_3 as u64), (utils::bps() as u64));
+
+            let (_, royalty_1) = math::mul_round(rate_1, balance_value);
+            let (_, royalty_2) = math::mul_round(rate_2, balance_value);
+            let (_, royalty_3) = math::mul_round(rate_3, balance_value);
+
+            check_sum(vector[ royalty_1, royalty_2, royalty_3], balance_value);
+
+            i = i + 1;
+        };
+    }
+
 }

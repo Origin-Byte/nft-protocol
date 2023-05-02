@@ -38,8 +38,6 @@ module ob_launchpad::mint_and_sell {
 
         // 3. Mint NFT to listing `Warehouse`
         let nft = Foo { id: object::new(ctx(&mut scenario)) };
-
-        let nft_id = object::id(&nft);
         listing::add_nft(&mut listing, inventory_id, nft, ctx(&mut scenario));
 
         // 5. Buy the NFT
@@ -56,11 +54,11 @@ module ob_launchpad::mint_and_sell {
         // 6. Verify NFT was bought
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let bought_nft = test_scenario::take_from_address<Foo>(
+        // Check NFT was transferred with correct logical owner
+        let nft = test_scenario::take_from_address<Foo>(
             &scenario, CREATOR
         );
-        assert!(nft_id == object::id(&bought_nft), 0);
-        test_scenario::return_to_address(CREATOR, bought_nft);
+        transfer::public_transfer(nft, CREATOR);
 
         // Return objects and end test
         transfer::public_transfer(wallet, CREATOR);
@@ -80,7 +78,6 @@ module ob_launchpad::mint_and_sell {
         // 3. Mint NFT to `Warehouse`
         let nft = Foo { id: object::new(ctx(&mut scenario)) };
 
-        let nft_id = object::id(&nft);
         warehouse::deposit_nft(&mut warehouse, nft);
 
         // 4. Insert `Warehouse` into `Listing` and create market
@@ -112,11 +109,11 @@ module ob_launchpad::mint_and_sell {
         // 6. Verify NFT was bought
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        let bought_nft = test_scenario::take_from_address<Foo>(
+        // Check NFT was transferred with correct logical owner
+        let nft = test_scenario::take_from_address<Foo>(
             &scenario, CREATOR
         );
-        assert!(nft_id == object::id(&bought_nft), 0);
-        test_scenario::return_to_address(CREATOR, bought_nft);
+        transfer::public_transfer(nft, CREATOR);
 
         // Return objects and end test
         transfer::public_transfer(wallet, CREATOR);

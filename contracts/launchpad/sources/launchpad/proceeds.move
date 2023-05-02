@@ -7,7 +7,6 @@
 /// and therefore the `Slot.receiver` receives the proceeds net of fees.
 module ob_launchpad::proceeds {
     // TODO: Function to destroy Proceeds object
-    // TODO: reconsider `Proceeds.total` to accomodate for multiple FTs
     use std::type_name::{Self, TypeName};
 
     use sui::coin;
@@ -16,6 +15,10 @@ module ob_launchpad::proceeds {
     use sui::object::{Self, UID};
     use sui::balance::{Self, Balance};
     use sui::dynamic_field as df;
+
+    friend ob_launchpad::flat_fee;
+    friend ob_launchpad::listing;
+    friend ob_launchpad::venue;
 
     struct Proceeds has key, store {
         id: UID,
@@ -43,7 +46,7 @@ module ob_launchpad::proceeds {
         }
     }
 
-    public fun add<FT>(
+    public(friend) fun add<FT>(
         proceeds: &mut Proceeds,
         new_proceeds: Balance<FT>,
         qty_sold: u64,
@@ -71,7 +74,7 @@ module ob_launchpad::proceeds {
         }
     }
 
-    public fun collect_with_fees<FT>(
+    public(friend) fun collect_with_fees<FT>(
         proceeds: &mut Proceeds,
         fees: u64,
         marketplace_receiver: address,
@@ -107,7 +110,7 @@ module ob_launchpad::proceeds {
         );
     }
 
-    public fun collect_without_fees<FT>(
+    public(friend) fun collect_without_fees<FT>(
         proceeds: &mut Proceeds,
         listing_receiver: address,
         ctx: &mut TxContext,
@@ -145,6 +148,8 @@ module ob_launchpad::proceeds {
             type_name::get<FT>(),
         )
     }
+
+    // === Private Functions ===
 
     fun balance_mut<FT>(
         proceeds: &mut Proceeds,

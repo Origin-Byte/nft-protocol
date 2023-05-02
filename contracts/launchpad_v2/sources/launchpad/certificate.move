@@ -2,7 +2,6 @@
 module ob_launchpad_v2::certificate {
     use sui::vec_map::{Self, VecMap};
     use std::type_name::{Self, TypeName};
-    // use std::debug;
     use sui::tx_context::{Self, TxContext};
     use sui::object::{Self, UID, ID};
 

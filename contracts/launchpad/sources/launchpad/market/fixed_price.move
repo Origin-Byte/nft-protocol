@@ -10,7 +10,7 @@ module ob_launchpad::fixed_price {
     use sui::kiosk::Kiosk;
     use sui::balance::{Self, Balance};
     use sui::object::{Self, ID, UID};
-    use sui::transfer::public_transfer;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
     use ob_kiosk::ob_kiosk;
@@ -66,7 +66,7 @@ module ob_launchpad::fixed_price {
         ctx: &mut TxContext,
     ) {
         let market = new<FT>(inventory_id, price, ctx);
-        public_transfer(market, tx_context::sender(ctx));
+        transfer::public_transfer(market, tx_context::sender(ctx));
     }
 
     /// Initializes a `Venue` with `FixedPriceMarket<FT>`
@@ -127,7 +127,7 @@ module ob_launchpad::fixed_price {
 
     // === Entrypoints ===
 
-    /// Buy NFT for non-whitelisted sale
+    /// Buy NFT for non-whitelisted sale into new Kiosk
     ///
     /// #### Panics
     ///
@@ -145,7 +145,7 @@ module ob_launchpad::fixed_price {
 
         let nft =
             buy_nft_<T, FT>(listing, venue_id, coin::balance_mut(wallet), ctx);
-        public_transfer(nft, tx_context::sender(ctx));
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Buy NFT for non-whitelisted sale
@@ -170,7 +170,7 @@ module ob_launchpad::fixed_price {
         ob_kiosk::deposit(buyer_kiosk, nft, ctx);
     }
 
-    /// Buy NFT for whitelisted sale
+    /// Buy NFT for whitelisted sale into new Kiosk
     ///
     /// #### Panics
     ///
@@ -183,14 +183,11 @@ module ob_launchpad::fixed_price {
         whitelist_token: Certificate,
         ctx: &mut TxContext,
     ) {
-        let venue = listing::borrow_venue(listing, venue_id);
-        venue::assert_is_live(venue);
-        market_whitelist::assert_whitelist(&whitelist_token, venue);
-        market_whitelist::burn(whitelist_token);
-
-        let nft =
-            buy_nft_<T, FT>(listing, venue_id, coin::balance_mut(wallet), ctx);
-        public_transfer(nft, tx_context::sender(ctx));
+        let (kiosk, _) = ob_kiosk::new(ctx);
+        buy_whitelisted_nft_into_kiosk<T, FT>(
+            listing, venue_id, wallet, &mut kiosk, whitelist_token, ctx,
+        );
+        transfer::public_share_object(kiosk);
     }
 
     /// Buy NFT for whitelisted sale

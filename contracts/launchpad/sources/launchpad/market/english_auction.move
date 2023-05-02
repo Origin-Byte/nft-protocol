@@ -260,13 +260,14 @@ module ob_launchpad::english_auction {
     /// #### Panics
     ///
     /// Panics if `Venue` does not exist or has not yet concluded.
-    public entry fun claim_nft_and_transfer<T: key + store, FT>(
+    public entry fun claim_nft<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        let nft = claim_nft<T, FT>(listing, venue_id, ctx);
-        transfer::public_transfer(nft, tx_context::sender(ctx));
+        let (kiosk, _) = ob_kiosk::new(ctx);
+        claim_nft_into_kiosk<T, FT>(listing, venue_id, &mut kiosk, ctx);
+        transfer::public_share_object(kiosk);
     }
 
     /// Claim NFT into kiosk after auction has concluded
@@ -280,7 +281,7 @@ module ob_launchpad::english_auction {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ) {
-        let nft = claim_nft<T, FT>(listing, venue_id, ctx);
+        let nft = claim_nft_<T, FT>(listing, venue_id, ctx);
         ob_kiosk::deposit(buyer_kiosk, nft, ctx);
     }
 
@@ -289,7 +290,7 @@ module ob_launchpad::english_auction {
     /// #### Panics
     ///
     /// Panics if `Venue` does not exist or has not yet concluded.
-    public fun claim_nft<T: key + store, FT>(
+    fun claim_nft_<T: key + store, FT>(
         listing: &mut Listing,
         venue_id: ID,
         ctx: &mut TxContext,

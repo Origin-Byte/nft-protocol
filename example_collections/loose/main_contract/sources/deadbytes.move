@@ -62,7 +62,6 @@ module loose::deadbytes {
         // Commit first version of `Display` to apply changes.
         display::update_version(&mut display);
 
-        // TODO: should this be owned or shared?
         transfer::public_transfer(display, tx_context::sender(ctx));
     }
 

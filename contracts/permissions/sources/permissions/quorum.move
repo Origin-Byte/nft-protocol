@@ -68,20 +68,23 @@ module ob_permissions::quorum {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    const ENOT_AN_ADMIN: u64 = 1;
-    const ENOT_A_MEMBER: u64 = 2;
-    const ENOT_AN_ADMIN_NOR_MEMBER: u64 = 3;
-    const EMIN_ADMIN_COUNT_IS_ONE: u64 = 4;
-    const EADDRESS_IS_NOT_ADMIN: u64 = 5;
-    const EQUORUM_EXTENSION_MISMATCH: u64 = 6;
-    const EINVALID_DELEGATE: u64 = 7;
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
+    // === Errors ===
+
+    const ENotAnAdmin: u64 = 1;
+    const ENotAMember: u64 = 2;
+    const ENotAnAdminNorMember: u64 = 3;
+    const EMinAdminCountIsOne: u64 = 4;
+    const EQuorumExtensionMismatch: u64 = 5;
+    const EInvalidDelegate: u64 = 6;
 
     struct Quorum<phantom F> has key, store {
         id: UID,
-        // TODO: Ideally move to TableSet
+        version: u64,
         admins: VecSet<address>,
         members: VecSet<address>,
-        // TODO: quorum delegates
         delegates: VecSet<ID>,
         admin_count: u64
     }
@@ -93,7 +96,6 @@ module ob_permissions::quorum {
     }
 
     struct Signatures<phantom F> has store, copy, drop {
-        // TODO: make this TableSet
         list: VecSet<address>,
     }
 
@@ -148,7 +150,7 @@ module ob_permissions::quorum {
 
         let admin_count = vec_set::size(&admins);
 
-        Quorum { id, admins, members, delegates, admin_count }
+        Quorum { id, version: VERSION, admins, members, delegates, admin_count }
     }
 
     public fun create_for_extension<F>(
@@ -213,7 +215,7 @@ module ob_permissions::quorum {
         old_admin: address,
         ctx: &mut TxContext,
     ) {
-        assert!(quorum.admin_count == 1, EMIN_ADMIN_COUNT_IS_ONE);
+        assert!(quorum.admin_count == 1, EMinAdminCountIsOne);
 
         let (vote_count, threshold) = vote(quorum, RemoveAdmin { admin: old_admin}, ctx);
 
@@ -267,7 +269,7 @@ module ob_permissions::quorum {
         entity: ID,
         ctx: &mut TxContext,
     ) {
-        assert!(quorum.admin_count > 1, EMIN_ADMIN_COUNT_IS_ONE);
+        assert!(quorum.admin_count > 1, EMinAdminCountIsOne);
 
         let (vote_count, threshold) = vote(quorum, RemoveDelegate { entity }, ctx);
 
@@ -337,8 +339,6 @@ module ob_permissions::quorum {
         (vote_count, threshold)
     }
 
-    // TODO: As it stands this is not safe to be public because
-    // it has no admin check
     fun sign<F>(
         sigs: &mut Signatures<F>,
         ctx: &mut TxContext,
@@ -577,28 +577,28 @@ module ob_permissions::quorum {
     }
 
     public fun assert_admin<F>(quorum: &Quorum<F>, ctx: &TxContext) {
-        assert!(vec_set::contains(&quorum.admins, &tx_context::sender(ctx)), ENOT_AN_ADMIN);
+        assert!(vec_set::contains(&quorum.admins, &tx_context::sender(ctx)), ENotAnAdmin);
     }
 
     public fun assert_member<F>(quorum: &Quorum<F>, ctx: &TxContext) {
-        assert!(vec_set::contains(&quorum.members, &tx_context::sender(ctx)), ENOT_A_MEMBER);
+        assert!(vec_set::contains(&quorum.members, &tx_context::sender(ctx)), ENotAMember);
     }
 
     public fun assert_member_or_admin<F>(quorum: &Quorum<F>, ctx: &TxContext) {
         assert!(
             vec_set::contains(&quorum.admins, &tx_context::sender(ctx))
                 || vec_set::contains(&quorum.members, &tx_context::sender(ctx)),
-            ENOT_AN_ADMIN_NOR_MEMBER);
+            ENotAnAdminNorMember);
     }
 
     public fun assert_extension_token<F>(quorum: &Quorum<F>, ext_token: &ExtensionToken<F>) {
-        assert!(object::id(quorum) == ext_token.quorum_id, EQUORUM_EXTENSION_MISMATCH);
+        assert!(object::id(quorum) == ext_token.quorum_id, EQuorumExtensionMismatch);
     }
 
     public fun assert_delegate<F1>(quorum: &Quorum<F1>, delegate_uid: &UID) {
         assert!(
             vec_set::contains(&quorum.delegates, object::uid_as_inner(delegate_uid)),
-            EINVALID_DELEGATE
+            EInvalidDelegate
         );
     }
 }

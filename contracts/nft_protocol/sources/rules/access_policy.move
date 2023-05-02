@@ -15,6 +15,9 @@ module nft_protocol::access_policy {
     use ob_utils::utils;
     use nft_protocol::collection::{Self, Collection};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     /// When trying to create an access policy when it already exists
     const EACCESS_POLICY_ALREADY_EXISTS: u64 = 1;
 
@@ -27,7 +30,6 @@ module nft_protocol::access_policy {
         id: UID,
         version: u64,
         parent_access: VecSet<address>,
-        // TODO: Consider if TypeName is safe here
         field_access: Table<TypeName, VecSet<address>>,
     }
 
@@ -37,8 +39,6 @@ module nft_protocol::access_policy {
     struct NewPolicyEvent has copy, drop {
         policy_id: ID,
         type_name: TypeName,
-        // Version starts at 1
-        version: u64,
     }
 
     // === Instantiators ===
@@ -56,7 +56,6 @@ module nft_protocol::access_policy {
         event::emit(NewPolicyEvent {
             policy_id: object::uid_to_inner(&id),
             type_name: type_name::get<T>(),
-            version: 1,
         });
 
         let parent_access = empty_parent_access();
@@ -64,7 +63,7 @@ module nft_protocol::access_policy {
 
         AccessPolicy {
             id,
-            version: 1,
+            version: VERSION,
             parent_access,
             field_access,
         }
@@ -87,7 +86,6 @@ module nft_protocol::access_policy {
         event::emit(NewPolicyEvent {
             policy_id: object::uid_to_inner(&id),
             type_name: type_name::get<T>(),
-            version: 1,
         });
 
         let parent_access = empty_parent_access();
@@ -95,7 +93,7 @@ module nft_protocol::access_policy {
 
         let access_policy = AccessPolicy<T> {
             id,
-            version: 1,
+            version: VERSION,
             parent_access,
             field_access,
         };

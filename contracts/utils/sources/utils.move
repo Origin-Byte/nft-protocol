@@ -29,8 +29,14 @@ module ob_utils::utils {
     /// Used to mark type fields in dynamic fields
     struct Marker<phantom T> has copy, drop, store {}
 
+    struct IsShared has copy, store, drop {}
+
     public fun marker<T>(): Marker<T> {
         Marker<T> {}
+    }
+
+    public fun is_shared(): IsShared {
+        IsShared {}
     }
 
     public fun get_package_module_type<T>(): (String, String, String) {
@@ -156,7 +162,7 @@ module ob_utils::utils {
         let len = vector::length(vec);
 
         while (len > 0) {
-            let elem = vector::borrow(vec, len);
+            let elem = vector::borrow(vec, len - 1);
             vec_set::insert(&mut set, *elem);
 
             len = len - 1;

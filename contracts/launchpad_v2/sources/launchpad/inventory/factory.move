@@ -1,9 +1,13 @@
 /// Module of `Factory` type
 module ob_launchpad_v2::factory {
+    // TODO: Destroy function
     use std::vector;
 
     use sui::math;
-    use sui::object::{Self, UID};
+    use sui::dynamic_field as df;
+    use sui::vec_map::VecMap;
+    use sui::transfer;
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::TxContext;
     use sui::bcs::{Self, BCS};
     use sui::table_vec::{Self, TableVec};
@@ -12,13 +16,23 @@ module ob_launchpad_v2::factory {
     use nft_protocol::mint_pass::{Self, MintPass};
     use nft_protocol::mint_cap::{MintCap};
     use ob_utils::sized_vec;
+    use ob_utils::utils::{Self, IsShared};
+    use ob_launchpad_v2::venue::{Self, Venue};
     use ob_launchpad_v2::certificate::{Self, NftCertificate};
+    use ob_launchpad_v2::launchpad::{Self, LaunchCap};
+
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
 
     /// `Warehouse` does not have NFT at specified index
     ///
     /// Call `Warehouse::redeem_nft_at_index` with an index that exists.
     const EINDEX_OUT_OF_BOUNDS: u64 = 1;
     const EINVALID_CERTIFICATE: u64 = 2;
+    const EFACTORY_IS_PRIVATE: u64 = 3;
+    const ELAUNCHCAP_FACTORY_MISMATCH: u64 = 4;
+    const EFACTORY_NOT_SHARED: u64 = 5;
 
     struct Witness has drop {}
 
@@ -28,12 +42,15 @@ module ob_launchpad_v2::factory {
     struct Factory<phantom T> has key, store {
         /// `Factory` ID
         id: UID,
+        version: u64,
+        listing_id: ID,
         // TODO: To convert to table vec, need to add fetch_idx helper
         metadata: TableVec<vector<BCS>>,
         /// `LooseMintCap` responsible for generating `PointerDomain` and
         /// maintianing supply invariants on `Collection` and `Archetype`
         /// levels.
         total_deposited: u64,
+        registry: VecMap<ID, u64>,
         mint_cap: MintCap<T>,
     }
 
@@ -47,25 +64,80 @@ module ob_launchpad_v2::factory {
     /// - Archetype `RegistryDomain` is not registered
     /// - `Archetype` does not exist
     public fun new<T>(
+        launch_cap: &LaunchCap,
         mint_cap: MintCap<T>,
         ctx: &mut TxContext,
     ): Factory<T> {
         Factory {
             id: object::new(ctx),
+            version: VERSION,
+            listing_id: launchpad::listing_id(launch_cap),
             metadata: table_vec::empty(ctx),
             total_deposited: 0,
+            registry: vec_map::empty(),
             mint_cap,
         }
     }
 
+    /// Creates a `Warehouse` and transfers to transaction sender
+    public fun init_factory<T: key + store>(
+        launch_cap: &LaunchCap,
+        mint_cap: MintCap<T>,
+        ctx: &mut TxContext
+    ): ID {
+        let factory = new<T>(launch_cap, mint_cap, ctx);
+        let factory_id = object::id(&factory);
+        transfer::share_object(factory);
+        factory_id
+    }
+
+    public fun share_from_private<T: key + store>(
+        factory: Factory<T>, ctx: &mut TxContext
+    ): ID {
+        let Factory {
+            id,
+            version: _,
+            listing_id,
+            metadata,
+            total_deposited,
+            registry,
+            mint_cap,
+        } = factory;
+        object::delete(id);
+
+        let shared_factory = Factory<T> {
+            id: object::new(ctx),
+            version: VERSION,
+            listing_id,
+            metadata,
+            total_deposited,
+            registry,
+            mint_cap,
+        };
+
+        // Adding a simple marker to flag that the object is shared
+        flag_as_shared(&mut shared_factory);
+
+        let new_id = object::id(&shared_factory);
+        transfer::share_object(shared_factory);
+        new_id
+    }
+
+    public fun share<T: key + store>(
+        factory: Factory<T>,
+    ) {
+        // Adding a simple marker to flag that the object is shared
+        flag_as_shared(&mut factory);
+        transfer::share_object(factory);
+    }
+
     /// Deposits NFT to `Warehouse`
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
     public fun deposit_metadata<T: key + store>(
         warehouse: &mut Factory<T>,
         metadata: vector<vector<u8>>,
     ) {
+        assert_is_private(warehouse);
+
         let i = vector::length(&metadata);
         let metadata_bcs = vector::empty();
 
@@ -83,10 +155,48 @@ module ob_launchpad_v2::factory {
         warehouse.total_deposited = warehouse.total_deposited + 1;
     }
 
+    /// Deposits NFT to `Warehouse`
+    public fun deposit_metadata_as_admin<T: key + store>(
+        launch_cap: &LaunchCap,
+        warehouse: &mut Factory<T>,
+        metadata: vector<vector<u8>>,
+    ) {
+        assert_launch_cap(launch_cap, warehouse);
+
+        let i = vector::length(&metadata);
+        let metadata_bcs = vector::empty();
+
+        // TODO: Test that the order is preserved
+        while (i > 0) {
+            vector::push_back(
+                &mut metadata_bcs,
+                bcs::new(vector::pop_back(&mut metadata)),
+            );
+        };
+
+        vector::reverse(&mut metadata_bcs);
+
+        table_vec::push_back(&mut warehouse.metadata, metadata_bcs);
+        warehouse.total_deposited = warehouse.total_deposited + 1;
+    }
+
+    public fun register_supply<T: key + store>(
+        launch_cap: &LaunchCap,
+        venue: &mut Venue,
+        self: &mut Factory<T>,
+        new_supply: u64,
+    ) {
+        assert_is_shared(self);
+
+        let allocated_supply = utils::sum_vector(utils::vec_map_entries(&self.registry));
+        let remaining_supply = self.total_deposited - allocated_supply;
+
+        assert!(new_supply <= remaining_supply, 0);
+
+        venue::register_supply(Witness {}, launch_cap, venue, &self.id, new_supply);
+    }
+
     /// Mints NFT from `Factory`
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Factory`.
     ///
     /// #### Panics
     ///
@@ -130,9 +240,6 @@ module ob_launchpad_v2::factory {
 
     /// Mints NFT from `Factory`
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Factory`.
-    ///
     /// #### Panics
     ///
     /// Panics if supply was exceeded.
@@ -166,9 +273,6 @@ module ob_launchpad_v2::factory {
     ///
     /// Does not retain original order of NFTs in the bookkeeping vector.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// `Warehouse` may not change the logical owner of an `Nft` when
     /// redeeming as this would allow royalties to be trivially bypassed.
     ///
@@ -190,5 +294,30 @@ module ob_launchpad_v2::factory {
             &bcs::to_bytes(&metadata),
             ctx,
         )
+    }
+
+    fun flag_as_shared<T: key + store>(factory: &mut Factory<T>) {
+        df::add(&mut factory.id, utils::marker<IsShared>(), utils::is_shared());
+    }
+
+    public fun assert_is_private<T: key + store>(factory: &Factory<T>) {
+        assert!(
+            !df::exists_(&factory.id, utils::marker<IsShared>()),
+            EFACTORY_IS_PRIVATE
+        );
+    }
+
+    public fun assert_launch_cap<T: key + store>(launch_cap: &LaunchCap, factory: &Factory<T>) {
+        assert!(
+            factory.listing_id == launchpad::listing_id(launch_cap),
+            ELAUNCHCAP_FACTORY_MISMATCH
+        );
+    }
+
+    public fun assert_is_shared<T: key + store>(factory: &Factory<T>) {
+        assert!(
+            df::exists_(&factory.id, utils::marker<IsShared>()),
+            EFACTORY_NOT_SHARED
+        );
     }
 }

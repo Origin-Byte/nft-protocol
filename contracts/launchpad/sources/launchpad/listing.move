@@ -23,9 +23,6 @@
 /// In essence, `Listing` is a shared object that provides a safe API to the
 /// underlying inventories which are unprotected.
 module ob_launchpad::listing {
-    // TODO: Currently, to issue whitelist token one has to call a function
-    // times the number of whitelist addresses. Let us consider more gas efficient
-    // ways of mass emiting whitelist tokens.
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
@@ -49,6 +46,13 @@ module ob_launchpad::listing {
     use ob_launchpad::venue::{Self, Venue};
 
     friend ob_launchpad::flat_fee;
+    friend ob_launchpad::dutch_auction;
+    friend ob_launchpad::fixed_price;
+    friend ob_launchpad::limited_fixed_price;
+    friend ob_launchpad::english_auction;
+
+    // Track the current version of the module
+    const VERSION: u64 = 1;
 
     /// `Venue` was not defined on `Listing`
     ///
@@ -79,6 +83,7 @@ module ob_launchpad::listing {
 
     struct Listing has key, store {
         id: UID,
+        version: u64,
         /// The ID of the marketplace if any
         marketplace_id: Option<TypedID<Marketplace>>,
         /// The address of the `Listing` administrator
@@ -144,6 +149,7 @@ module ob_launchpad::listing {
 
         Listing {
             id,
+            version: VERSION,
             marketplace_id: option::none(),
             admin: listing_admin,
             receiver,
@@ -615,7 +621,7 @@ module ob_launchpad::listing {
     }
 
     /// To be called by `Listing` admins for standalone `Listings`.
-    /// Standalone Listings do not envolve marketplace fees, and therefore
+    /// Standalone Listings do not involve marketplace fees, and therefore
     /// the listing admin can freely call this entrypoint.
     public entry fun collect_proceeds<FT>(
         listing: &mut Listing,
@@ -697,7 +703,7 @@ module ob_launchpad::listing {
     ///
     /// `Venue` and inventories are unprotected therefore only market modules
     /// registered on a `Venue` can gain mutable access to it.
-    public fun venue_internal_mut<Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun venue_internal_mut<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         venue_id: ID,
@@ -712,7 +718,7 @@ module ob_launchpad::listing {
     ///
     /// `Market` is unprotected therefore only market modules registered
     /// on a `Venue` can gain mutable access to it.
-    public fun market_internal_mut<Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun market_internal_mut<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         venue_id: ID,
@@ -728,7 +734,7 @@ module ob_launchpad::listing {
     ///
     /// Panics if the `Venue` did not exist or delegated witness did not match
     /// the market being removed.
-    public fun remove_venue<Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun remove_venue<Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         venue_id: ID,
@@ -776,10 +782,7 @@ module ob_launchpad::listing {
     }
 
     /// Mutably borrow an `Inventory`
-    ///
-    /// `Inventory` is unprotected therefore only market modules
-    /// registered on a `Venue` can gain mutable access to it.
-    public fun inventory_internal_mut<T, Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun inventory_internal_mut<T, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         venue_id: ID,
@@ -791,8 +794,7 @@ module ob_launchpad::listing {
 
     /// Mutably borrow an `Inventory`
     ///
-    /// `Inventory` is unprotected therefore admin is allowed to access it
-    /// directly._
+    /// This call is protected and only the administrator can call it
     ///
     /// #### Panics
     ///
