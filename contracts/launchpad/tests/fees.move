@@ -20,7 +20,7 @@ module ob_launchpad::test_fees {
             CREATOR, MARKETPLACE, 2000, &mut scenario,
         );
 
-        listing::pay(&mut listing, balance::create_for_testing<SUI>(20000), 1);
+        listing::pay(&mut listing, balance::create_for_testing<SUI>(1123), 1);
 
         flat_fee::collect_proceeds_and_fees<SUI>(
             &marketplace, &mut listing, ctx(&mut scenario),
@@ -30,13 +30,13 @@ module ob_launchpad::test_fees {
 
         let marketplace_proceeds =
             test_scenario::take_from_address<Coin<SUI>>(&scenario, MARKETPLACE);
-        assert!(coin::value(&marketplace_proceeds) == 4000, 0);
+        assert!(coin::value(&marketplace_proceeds) == 224, 0);
 
         test_scenario::return_to_address(MARKETPLACE, marketplace_proceeds);
 
         let creator_proceeds =
             test_scenario::take_from_address<Coin<SUI>>(&scenario, CREATOR);
-        assert!(coin::value(&creator_proceeds) == 16000, 0);
+        assert!(coin::value(&creator_proceeds) == 899, 0);
 
         test_scenario::return_to_address(CREATOR, creator_proceeds);
 
@@ -58,7 +58,7 @@ module ob_launchpad::test_fees {
         let fee = flat_fee::new(4000, ctx(&mut scenario));
         listing::add_fee(&marketplace, &mut listing, fee, ctx(&mut scenario));
 
-        listing::pay(&mut listing, balance::create_for_testing<SUI>(20000), 1);
+        listing::pay(&mut listing, balance::create_for_testing<SUI>(1123), 1);
 
         flat_fee::collect_proceeds_and_fees<SUI>(
             &marketplace, &mut listing, ctx(&mut scenario),
@@ -68,17 +68,44 @@ module ob_launchpad::test_fees {
 
         let marketplace_proceeds =
             test_scenario::take_from_address<Coin<SUI>>(&scenario, MARKETPLACE);
-        assert!(coin::value(&marketplace_proceeds) == 8000, 0);
+        assert!(coin::value(&marketplace_proceeds) == 449, 0);
 
         test_scenario::return_to_address(MARKETPLACE, marketplace_proceeds);
 
         let creator_proceeds =
             test_scenario::take_from_address<Coin<SUI>>(&scenario, CREATOR);
-        assert!(coin::value(&creator_proceeds) == 12000, 0);
+        assert!(coin::value(&creator_proceeds) == 674, 0);
 
         test_scenario::return_to_address(CREATOR, creator_proceeds);
 
         test_scenario::return_shared(marketplace);
+        test_scenario::return_shared(listing);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun standalone_listing() {
+        let scenario = test_scenario::begin(MARKETPLACE);
+
+        // Creates `Marketplace` with default fee
+        let listing = test_listing::init_listing(
+            CREATOR, &mut scenario,
+        );
+
+        listing::pay(&mut listing, balance::create_for_testing<SUI>(1123), 1);
+
+        listing::collect_proceeds<SUI>(&mut listing, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+
+        assert!(!test_scenario::has_most_recent_for_address<Coin<SUI>>(MARKETPLACE), 0);
+
+        let creator_proceeds =
+            test_scenario::take_from_address<Coin<SUI>>(&scenario, CREATOR);
+        assert!(coin::value(&creator_proceeds) == 1123, 0);
+
+        test_scenario::return_to_address(CREATOR, creator_proceeds);
+
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
