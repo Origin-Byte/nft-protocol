@@ -199,9 +199,6 @@ module ob_launchpad_v2::warehouse {
     }
 
     /// Deposits NFT to `Warehouse`
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
     public entry fun deposit_nft_as_admin<T: key + store>(
         launch_cap: &LaunchCap,
         warehouse: &mut Warehouse<T>,
@@ -257,9 +254,6 @@ module ob_launchpad_v2::warehouse {
 
     /// Redeems NFT from `Warehouse`
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// `Warehouse` may not change the logical owner of an `Nft` when
     /// redeeming as this would allow royalties to be trivially bypassed.
     ///
@@ -282,9 +276,6 @@ module ob_launchpad_v2::warehouse {
     }
 
     /// Redeems NFT from `Warehouse`
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
     ///
     /// `Warehouse` may not change the logical owner of an `Nft` when
     /// redeeming as this would allow royalties to be trivially bypassed.
@@ -330,9 +321,6 @@ module ob_launchpad_v2::warehouse {
     /// Redeems NFT from specific index in `Warehouse`
     ///
     /// Does not retain original order of NFTs in the bookkeeping vector.
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
     ///
     /// `Warehouse` may not change the logical owner of an `Nft` when
     /// redeeming as this would allow royalties to be trivially bypassed.

@@ -1,14 +1,11 @@
 #[test_only]
 module ob_launchpad::test_fixed_price {
     use sui::sui::SUI;
-    use sui::kiosk::Kiosk;
     use sui::coin;
     use sui::balance;
     use sui::transfer;
     use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
-
-    use ob_kiosk::ob_kiosk;
 
     use ob_launchpad::venue;
     use ob_launchpad::proceeds;
@@ -113,7 +110,6 @@ module ob_launchpad::test_fixed_price {
             init_market(&mut listing, 10, false, &mut scenario);
 
         let nft = Foo { id: object::new(ctx(&mut scenario)) };
-        let nft_id = object::id(&nft);
 
         listing::add_nft(
             &mut listing, warehouse_id, nft, ctx(&mut scenario)
@@ -143,9 +139,10 @@ module ob_launchpad::test_fixed_price {
         assert!(balance::value(proceeds::balance<SUI>(proceeds)) == 10, 0);
 
         // Check NFT was transferred with correct logical owner
-        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
-        ob_kiosk::assert_nft_type<Foo>(&mut kiosk, nft_id);
-        test_scenario::return_shared(kiosk);
+        let nft = test_scenario::take_from_address<Foo>(
+            &scenario, BUYER
+        );
+        transfer::public_transfer(nft, BUYER);
 
         transfer::public_transfer(wallet, BUYER);
         test_scenario::return_shared(listing);

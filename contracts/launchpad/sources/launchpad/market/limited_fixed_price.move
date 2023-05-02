@@ -208,9 +208,13 @@ module ob_launchpad::limited_fixed_price {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let (kiosk, _) = ob_kiosk::new(ctx);
-        buy_nft_into_kiosk<T, FT>(listing, venue_id, wallet, &mut kiosk, ctx);
-        transfer::public_share_object(kiosk);
+        let venue = listing::borrow_venue(listing, venue_id);
+        venue::assert_is_live(venue);
+        venue::assert_is_not_whitelisted(venue);
+
+        let nft =
+            buy_nft_<T, FT>(listing, venue_id, coin::balance_mut(wallet), ctx);
+        transfer::public_transfer(nft, tx_context::sender(ctx));
     }
 
     /// Buy NFT for non-whitelisted sale

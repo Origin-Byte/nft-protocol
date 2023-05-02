@@ -104,9 +104,6 @@ module ob_launchpad_v2::sequential {
     /// Endpoint is susceptible to validator prediction of the resulting index,
     /// use `random_redeem_nft` instead.
     ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
-    ///
     /// `Warehouse` may not change the logical owner of an `Nft` when
     /// redeeming as this would allow royalties to be trivially bypassed.
     ///
