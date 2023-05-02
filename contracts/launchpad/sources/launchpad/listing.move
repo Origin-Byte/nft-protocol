@@ -617,7 +617,7 @@ module ob_launchpad::listing {
     }
 
     /// To be called by `Listing` admins for standalone `Listings`.
-    /// Standalone Listings do not envolve marketplace fees, and therefore
+    /// Standalone Listings do not involve marketplace fees, and therefore
     /// the listing admin can freely call this entrypoint.
     public entry fun collect_proceeds<FT>(
         listing: &mut Listing,
