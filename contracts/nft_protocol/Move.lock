@@ -39,7 +39,6 @@ name = "Kiosk"
 source = { local = "../kiosk" }
 
 dependencies = [
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
@@ -53,10 +52,10 @@ dependencies = [
   { name = "Allowlist" },
   { name = "Authlist" },
   { name = "Kiosk" },
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
+  { name = "Utils" },
 ]
 
 [[move.package]]
