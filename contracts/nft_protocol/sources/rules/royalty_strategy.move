@@ -212,6 +212,9 @@ module nft_protocol::royalty_strategy_bps {
 
     // === Tests ===
 
+    #[test_only]
+    use std::debug;
+
     #[test]
     fun test_royalties() {
         let trade = 1_000_000;
