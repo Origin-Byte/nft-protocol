@@ -33,8 +33,8 @@ module ob_launchpad::test_listing {
         test_scenario::next_tx(scenario, marketplace_admin);
 
         marketplace::init_marketplace(
-            creator,
-            creator,
+            marketplace_admin,
+            marketplace_admin,
             flat_fee::new(default_fee, ctx(scenario)),
             ctx(scenario),
         );

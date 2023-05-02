@@ -84,6 +84,9 @@ module ob_launchpad::proceeds {
             fees,
         );
 
+        std::debug::print(&marketplace_receiver);
+        std::debug::print(&listing_receiver);
+
         let fee = coin::from_balance(fee_balance, ctx);
 
         transfer::public_transfer(

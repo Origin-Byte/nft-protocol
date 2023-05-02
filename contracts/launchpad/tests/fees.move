@@ -35,10 +35,10 @@ module ob_launchpad::test_fees {
         test_scenario::return_to_address(MARKETPLACE, marketplace_proceeds);
 
         let creator_proceeds =
-            test_scenario::take_from_address<Coin<SUI>>(&scenario, MARKETPLACE);
+            test_scenario::take_from_address<Coin<SUI>>(&scenario, CREATOR);
         assert!(coin::value(&creator_proceeds) == 16000, 0);
 
-        test_scenario::return_to_address(MARKETPLACE, creator_proceeds);
+        test_scenario::return_to_address(CREATOR, creator_proceeds);
 
         test_scenario::return_shared(marketplace);
         test_scenario::return_shared(listing);
