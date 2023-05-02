@@ -1,5 +1,4 @@
 module nft_protocol::royalty_strategy_bps {
-    use std::fixed_point32;
     use std::option::{Self, Option};
 
     use sui::balance::{Self, Balance};
@@ -16,6 +15,7 @@ module nft_protocol::royalty_strategy_bps {
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use ob_utils::utils;
+    use ob_utils::math;
 
     // Track the current version of the module
     const VERSION: u64 = 1;
@@ -132,7 +132,6 @@ module nft_protocol::royalty_strategy_bps {
         royalty::collect_royalty<T, FT>(collection, balance, amount);
     }
 
-    // TODO: add for generic request body
     /// Uses the balance associated with the request to deduct royalty.
     public fun confirm_transfer<T, FT>(
         self: &mut BpsRoyaltyStrategy<T>, req: &mut TransferRequest<T>,
@@ -147,7 +146,6 @@ module nft_protocol::royalty_strategy_bps {
         transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
 
-    // TODO: add for generic request body
     /// Instead of using the balance associated with the `TransferRequest`,
     /// pay the royalty in the given token.
     public fun confirm_transfer_with_balance<T, FT>(
@@ -168,18 +166,22 @@ module nft_protocol::royalty_strategy_bps {
         self.royalty_fee_bps
     }
 
-    public fun calculate<T>(self: &BpsRoyaltyStrategy<T>, amount: u64): u64  {
+    public fun calculate<T>(self: &BpsRoyaltyStrategy<T>, amount: u64): u64 {
         // TODO: Need to consider implementing Decimals module for increased
         // precision, or wait for native support
-        let royalty_rate = fixed_point32::create_from_rational(
-            (royalty_fee_bps(self) as u64),
-            (utils::bps() as u64)
+        compute_(royalty_fee_bps(self), amount)
+    }
+
+    fun compute_(bps: u16, amount: u64): u64 {
+        // Royalty BPS has a cap of 10_000
+        let (_, royalty_rate) = math::div_round(
+            (bps as u64), (utils::bps() as u64)
+        );
+        let (_, royalties) = math::mul_round(
+            amount, royalty_rate,
         );
 
-        fixed_point32::multiply_u64(
-            amount,
-            royalty_rate,
-        )
+        royalties
     }
 
     // === Helpers ===
@@ -206,5 +208,172 @@ module nft_protocol::royalty_strategy_bps {
             transfer_request::grant_balance_access_cap(witness),
         );
         share(royalty_strategy);
+    }
+
+    // === Tests ===
+
+    #[test_only]
+    use std::debug;
+
+    #[test]
+    fun test_royalties() {
+        let trade = 1_000_000;
+
+        let (_, royalty_rate) = math::div_round(
+            (1_000 as u64), (utils::bps() as u64)
+        );
+
+        debug::print(&royalty_rate);
+
+        let (_, royalties) = math::mul_round(
+            trade, royalty_rate,
+        );
+
+        debug::print(&royalties);
+    }
+
+    #[test]
+    fun test_precision_1_000_bps() {
+        // Round 1
+        let trade = 1;
+
+        let royalties = compute_(1_000, trade);
+        assert!(royalties == 0, 0);
+
+        // Round 2
+        let trade = 10;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 0, 0);
+
+        // Round 3
+        let trade = 100;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 0, 0);
+
+        // Round 4
+        let trade = 1_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 0, 0);
+
+        // Round 5
+        let trade = 10_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 1, 0);
+
+        // Round 6
+        let trade = 100_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 10, 0);
+    }
+
+
+    #[test]
+    fun test_precision() {
+        // Round 1
+        let trade = 10_000_000_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 1_000_000_000_000_000, 0);
+
+        // Round 2
+        let trade = 1_000_000_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 100_000_000_000_000, 0);
+
+        // Round 3
+        let trade = 100_000_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 10_000_000_000_000, 0);
+
+        // Round 4
+        let trade = 10_000_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 1_000_000_000_000, 0);
+
+        // Round 5
+        let trade = 1_000_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 100_000_000_000, 0);
+
+        // Round 6
+        let trade = 100_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 10_000_000_000, 0);
+
+        // Round 7
+        let trade = 10_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 1_000_000_000, 0);
+
+        // Round 8
+        let trade = 1_000_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 100_000_000, 0);
+
+        // Round 9
+        let trade = 100_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 10_000_000, 0);
+
+        // Round 10
+        let trade = 10_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 1_000_000, 0);
+
+        // Round 11
+        let trade = 1_000_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 100_000, 0);
+
+        // Round 12
+        let trade = 100_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 10_000, 0);
+
+        // Round 13
+        let trade = 10_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 1_000, 0);
+
+        // Round 14
+        let trade = 1_000_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 100, 0);
+
+        // Round 15
+        let trade = 100_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 10, 0);
+
+        // Round 16
+        let trade = 10_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 1, 0);
+
+        // Round 17
+        let trade = 1_000;
+
+        let royalties = compute_(1, trade);
+        assert!(royalties == 0, 0);
     }
 }
