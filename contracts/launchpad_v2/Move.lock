@@ -6,6 +6,7 @@ version = 0
 dependencies = [
   { name = "NftProtocol" },
   { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
   { name = "Utils" },
 ]
@@ -68,6 +69,7 @@ dependencies = [
   { name = "LiquidityLayer" },
   { name = "Originmate" },
   { name = "Permissions" },
+  { name = "Pseudorandom" },
   { name = "Request" },
   { name = "Sui" },
   { name = "Utils" },
@@ -91,11 +93,18 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Pseudorandom"
+source = { local = "../pseudorandom" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
 name = "Request"
 source = { local = "../request" }
 
 dependencies = [
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Sui" },
 ]
@@ -113,6 +122,6 @@ name = "Utils"
 source = { local = "../utils" }
 
 dependencies = [
-  { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
 ]
