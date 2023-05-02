@@ -199,14 +199,19 @@ module ob_kiosk::ob_kiosk {
     /// are callable.
     /// This means that the kiosk MUST be wrapped.
     /// Otherwise, anyone could call those functions.
-    public fun new_permissionless(ctx: &mut TxContext): (Kiosk, ID) {
-        let (kiosk, token_id) = new(ctx);
+    public fun new_permissionless(ctx: &mut TxContext): Kiosk {
+        let (kiosk, kiosk_cap) = kiosk::new(ctx);
+        kiosk::set_owner_custom(&mut kiosk, &kiosk_cap, PermissionlessAddr);
+        let kiosk_ext = ext(&mut kiosk);
 
-        let cap = pop_cap(&mut kiosk);
-        kiosk::set_owner_custom(&mut kiosk, &cap, PermissionlessAddr);
-        set_cap(&mut kiosk, cap);
+        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
+        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
+        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
+            enable_any_deposit: true,
+            collections_with_enabled_deposits: vec_set::empty(),
+        });
 
-        (kiosk, token_id)
+        kiosk
     }
 
     /// Changes the owner of a kiosk to the given address.
