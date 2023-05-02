@@ -32,6 +32,9 @@ local = "./../kiosk"
 [dependencies.LiquidityLayer]
 local = "./../liquidity_layer"
 
+[dependencies.Pseudorandom]
+local = "./../pseudorandom"
+
 [dependencies.Utils]
 local = "./../utils"
 

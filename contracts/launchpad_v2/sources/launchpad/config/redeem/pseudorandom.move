@@ -10,8 +10,7 @@ module ob_launchpad_v2::pseudorand_redeem {
     use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     use ob_utils::sized_vec;
-
-    use originmate::pseudorandom;
+    use ob_pseudorandom::pseudorandom;
 
     const SCALE: u64 = 10_000;
 

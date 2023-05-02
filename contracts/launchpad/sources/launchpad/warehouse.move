@@ -17,7 +17,8 @@ module ob_launchpad::warehouse {
     use sui::object::{Self, ID , UID};
 
     use ob_utils::dynamic_vector::{Self as dyn_vector, DynVec};
-    use originmate::pseudorandom;
+
+    use ob_pseudorandom::pseudorandom;
 
     friend ob_launchpad::inventory;
     friend ob_launchpad::english_auction;

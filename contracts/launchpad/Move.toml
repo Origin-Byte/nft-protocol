@@ -17,5 +17,8 @@ rev = "de8360c7c25f52bf2593721a82cd6c7b66001faf"
 [dependencies.Kiosk]
 local = "./../kiosk"
 
+[dependencies.Pseudorandom]
+local = "./../pseudorandom"
+
 [addresses]
 ob_launchpad = "0xba0811db92a433a3eff8afeabfeb81d7b8216e7ef4d3a0c580eaf2792410d3b4"

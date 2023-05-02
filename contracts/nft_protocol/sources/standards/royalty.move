@@ -457,6 +457,9 @@ module nft_protocol::royalty {
     // === Tests ===
 
     #[test_only]
+    use ob_pseudorandom::pseudorandom;
+
+    #[test_only]
     fun check_sum(vec: vector<u64>, total: u64) {
         let sum = utils::sum_vector(vec);
         assert!(sum == total, 0);
@@ -490,11 +493,11 @@ module nft_protocol::royalty {
         let limit = 10_000;
         let i = 0;
 
-        let seed = b"Some random seed";
+        let seed = b"Some random seedSome random seed";
 
         while (i < limit) {
-            let share_1 = utils::random_number(10_000, &seed);
-            let share_2 = utils::random_number(10_000 - share_1, &seed);
+            let share_1 = pseudorandom::select_u64(10_000, &seed);
+            let share_2 = pseudorandom::select_u64(10_000 - share_1, &seed);
             let share_3 = 10_000 - share_1 - share_2;
 
             assert!(share_1 + share_2 + share_3 == 10_000, 0);

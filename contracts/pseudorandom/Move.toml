@@ -1,7 +1,6 @@
 [package]
-name = "Utils"
-version = "1.1.0"
-published-at = "0x5fdac1fc4eec02c101156a3aea028328bd85ab76f5e14850d49d1f72989afc48"
+name = "Pseudorandom"
+version = "1.0.0"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -10,4 +9,4 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "09b2081498366df936abae26eea4b2d5cafb2788"
 
 [addresses]
-ob_utils = "0x5fdac1fc4eec02c101156a3aea028328bd85ab76f5e14850d49d1f72989afc48"
+ob_pseudorandom = "0x0"

@@ -4,7 +4,6 @@
 version = 0
 
 dependencies = [
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Sui" },
 ]
