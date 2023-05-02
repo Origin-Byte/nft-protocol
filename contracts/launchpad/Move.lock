@@ -5,6 +5,7 @@ version = 0
 
 dependencies = [
   { name = "Kiosk" },
+  { name = "Originmate" },
   { name = "Pseudorandom" },
   { name = "Sui" },
 ]
@@ -54,7 +55,6 @@ name = "Request"
 source = { local = "../request" }
 
 dependencies = [
-  { name = "Originmate" },
   { name = "Permissions" },
   { name = "Sui" },
 ]
@@ -72,6 +72,6 @@ name = "Utils"
 source = { local = "../utils" }
 
 dependencies = [
-  { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
 ]

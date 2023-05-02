@@ -13,8 +13,8 @@ name = "MoveStdlib"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "09b2081498366df936abae26eea4b2d5cafb2788", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
-name = "Originmate"
-source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "de8360c7c25f52bf2593721a82cd6c7b66001faf", subdir = "" }
+name = "Pseudorandom"
+source = { local = "../pseudorandom" }
 
 dependencies = [
   { name = "Sui" },
@@ -33,6 +33,6 @@ name = "Utils"
 source = { local = "../utils" }
 
 dependencies = [
-  { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
 ]
