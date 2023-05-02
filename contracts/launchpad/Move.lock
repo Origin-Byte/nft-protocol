@@ -5,7 +5,7 @@ version = 0
 
 dependencies = [
   { name = "Kiosk" },
-  { name = "Originmate" },
+  { name = "Pseudorandom" },
   { name = "Sui" },
 ]
 
@@ -39,6 +39,14 @@ source = { local = "../permissions" }
 dependencies = [
   { name = "Sui" },
   { name = "Utils" },
+]
+
+[[move.package]]
+name = "Pseudorandom"
+source = { local = "../pseudorandom" }
+
+dependencies = [
+  { name = "Sui" },
 ]
 
 [[move.package]]
