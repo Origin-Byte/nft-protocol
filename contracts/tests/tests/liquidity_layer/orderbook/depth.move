@@ -15,7 +15,7 @@ module ob_tests::orderbook_depth {
     use sui::test_scenario::{Self, ctx};
 
     use ob_permissions::witness;
-    use originmate::crit_bit_u64::{Self as crit_bit};
+    use ob_utils::crit_bit::{Self};
     use liquidity_layer::orderbook::{Self, Orderbook};
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator};
     use ob_kiosk::ob_kiosk;
@@ -54,7 +54,7 @@ module ob_tests::orderbook_depth {
         let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         // We had one here to account for the first iteration
-        let price_levels = crit_bit::length(orderbook::borrow_asks(&book)) + 1;
+        let price_levels = crit_bit::size(orderbook::borrow_asks(&book)) + 1;
 
         let quantity = 100;
         let depth = 10;
@@ -64,7 +64,6 @@ module ob_tests::orderbook_depth {
         let price = 1;
 
         while (i > 0) {
-            // debug::print(&i);
             test_scenario::next_tx(&mut scenario, seller());
 
             // Create and deposit NFT
@@ -87,7 +86,7 @@ module ob_tests::orderbook_depth {
             ob_kiosk::assert_exclusively_listed(&mut seller_kiosk, nft_id);
 
             // 2. New price level gets added with new Ask
-            assert!(crit_bit::length(orderbook::borrow_asks(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_asks(&book)) == price_levels, 0);
 
             if (j == depth) {
                 price_levels = price_levels + 1;
@@ -98,17 +97,17 @@ module ob_tests::orderbook_depth {
             i = i - 1;
         };
 
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 1)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 2)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 3)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 4)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 5)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 6)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 7)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 8)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 9)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 10)) == 10, 0);
-        assert!(crit_bit::has_key(orderbook::borrow_asks(&book), 11) == false, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 1)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 2)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 3)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 4)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 5)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 6)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 7)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 8)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 9)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 10)) == 10, 0);
+        assert!(crit_bit::has_leaf(orderbook::borrow_asks(&book), 11) == false, 0);
 
         test_scenario::next_tx(&mut scenario, buyer());
 
@@ -197,7 +196,7 @@ module ob_tests::orderbook_depth {
         let initial_funds = 1_000_000;
         let funds_locked = 0;
 
-        let price_levels = crit_bit::length(orderbook::borrow_bids(&book)) + 1;
+        let price_levels = crit_bit::size(orderbook::borrow_bids(&book)) + 1;
         let coin = coin::mint_for_testing<SUI>(initial_funds, ctx(&mut scenario));
 
         let quantity = 100;
@@ -233,7 +232,7 @@ module ob_tests::orderbook_depth {
             assert!(coin::value(&coin) == initial_funds - funds_locked, 0);
 
             // 2. New price level gets added with new Bid
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == price_levels, 0);
 
             if (j == depth) {
                 price_levels = price_levels + 1;
@@ -244,17 +243,17 @@ module ob_tests::orderbook_depth {
             i = i - 1;
         };
 
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 1)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 2)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 3)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 4)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 5)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 6)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 7)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 8)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 9)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 10)) == 10, 0);
-        assert!(crit_bit::has_key(orderbook::borrow_bids(&book), 11) == false, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 1)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 2)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 3)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 4)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 5)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 6)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 7)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 8)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 9)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 10)) == 10, 0);
+        assert!(crit_bit::has_leaf(orderbook::borrow_bids(&book), 11) == false, 0);
 
 
         test_scenario::next_tx(&mut scenario, seller());
@@ -342,7 +341,7 @@ module ob_tests::orderbook_depth {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         // We had one here to account for the first iteration
-        let price_levels = crit_bit::length(orderbook::borrow_asks(&book)) + 1;
+        let price_levels = crit_bit::size(orderbook::borrow_asks(&book)) + 1;
 
         let quantity = 100;
         let depth = 10;
@@ -354,7 +353,6 @@ module ob_tests::orderbook_depth {
         let nfts = vector::empty();
 
         while (i > 0) {
-            // debug::print(&i);
             test_scenario::next_tx(&mut scenario, seller());
 
             // Create and deposit NFT
@@ -379,7 +377,7 @@ module ob_tests::orderbook_depth {
             ob_kiosk::assert_exclusively_listed(&mut seller_kiosk, nft_id);
 
             // 2. New price level gets added with new Ask
-            assert!(crit_bit::length(orderbook::borrow_asks(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_asks(&book)) == price_levels, 0);
 
             if (j == depth) {
                 price_levels = price_levels + 1;
@@ -390,17 +388,17 @@ module ob_tests::orderbook_depth {
             i = i - 1;
         };
 
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 1)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 2)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 3)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 4)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 5)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 6)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 7)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 8)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 9)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_asks(&book), 10)) == 10, 0);
-        assert!(crit_bit::has_key(orderbook::borrow_asks(&book), 11) == false, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 1)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 2)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 3)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 4)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 5)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 6)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 7)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 8)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 9)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_asks(&book), 10)) == 10, 0);
+        assert!(crit_bit::has_leaf(orderbook::borrow_asks(&book), 11) == false, 0);
 
         let i = quantity;
         let price = 10;
@@ -479,7 +477,7 @@ module ob_tests::orderbook_depth {
         let initial_funds = 1_000_000;
         let funds_locked = 0;
 
-        let price_levels = crit_bit::length(orderbook::borrow_bids(&book)) + 1;
+        let price_levels = crit_bit::size(orderbook::borrow_bids(&book)) + 1;
         let coin = coin::mint_for_testing<SUI>(initial_funds, ctx(&mut scenario));
 
         let quantity = 100;
@@ -510,7 +508,7 @@ module ob_tests::orderbook_depth {
             assert!(coin::value(&coin) == initial_funds - funds_locked, 0);
 
             // 2. New price level gets added with new Bid
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == price_levels, 0);
 
             if (j == depth) {
                 price_levels = price_levels + 1;
@@ -521,17 +519,17 @@ module ob_tests::orderbook_depth {
             i = i - 1;
         };
 
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 1)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 2)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 3)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 4)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 5)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 6)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 7)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 8)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 9)) == 10, 0);
-        assert!(vector::length(crit_bit::borrow(orderbook::borrow_bids(&book), 10)) == 10, 0);
-        assert!(crit_bit::has_key(orderbook::borrow_bids(&book), 11) == false, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 1)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 2)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 3)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 4)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 5)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 6)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 7)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 8)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 9)) == 10, 0);
+        assert!(vector::length(crit_bit::borrow_leaf_by_key(orderbook::borrow_bids(&book), 10)) == 10, 0);
+        assert!(crit_bit::has_leaf(orderbook::borrow_bids(&book), 11) == false, 0);
 
         let i = quantity;
         let price = 10;
@@ -635,9 +633,12 @@ module ob_tests::orderbook_depth {
         };
 
         // Assert that orderbook state
-        assert!(crit_bit::max_key(orderbook::borrow_asks(&book)) == 300, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_asks(&book)) == 1, 0);
-        assert!(crit_bit::length(orderbook::borrow_asks(&book)) == 300, 0);
+        let (max_leaf_key, _) = crit_bit::max_leaf(orderbook::borrow_asks(&book));
+        let (min_leaf_key, _) = crit_bit::min_leaf(orderbook::borrow_asks(&book));
+
+        assert!(max_leaf_key == 300, 0);
+        assert!(min_leaf_key == 1, 0);
+        assert!(crit_bit::size(orderbook::borrow_asks(&book)) == 300, 0);
 
         let i = quantity;
         let price = 1;
@@ -662,10 +663,13 @@ module ob_tests::orderbook_depth {
 
         // Assert that orderbook state
         // All orders are concentrated into one price level
-        assert!(crit_bit::length(orderbook::borrow_asks(&book)) == 1, 0);
+        assert!(crit_bit::size(orderbook::borrow_asks(&book)) == 1, 0);
 
-        assert!(crit_bit::max_key(orderbook::borrow_asks(&book)) == 500, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_asks(&book)) == 500, 0);
+        let (max_leaf_key, _) = crit_bit::max_leaf(orderbook::borrow_asks(&book));
+        let (min_leaf_key, _) = crit_bit::min_leaf(orderbook::borrow_asks(&book));
+
+        assert!(max_leaf_key== 500, 0);
+        assert!(min_leaf_key == 500, 0);
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());

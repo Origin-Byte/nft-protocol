@@ -11,6 +11,7 @@ dependencies = [
   { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
+  { name = "Utils" },
 ]
 
 [[move.package]]
