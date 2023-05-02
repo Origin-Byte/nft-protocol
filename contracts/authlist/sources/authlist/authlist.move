@@ -20,6 +20,9 @@ module ob_authlist::authlist {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
+    const ENotUpgrade: u64 = 999;
+    const EWrongVersion: u64 = 1000;
+
     // === Errors ===
 
     /// Package publisher mismatch
@@ -499,5 +502,17 @@ module ob_authlist::authlist {
 
         transfer::public_share_object(display);
         package::burn_publisher(publisher);
+    }
+
+    // === Upgradeability ===
+
+    fun assert_version(authlist: &Authlist) {
+        assert!(authlist.version == VERSION, EWrongVersion);
+    }
+
+    entry fun migrate(authlist: &mut Authlist, cap: &AuthlistOwnerCap) {
+        assert_cap(authlist, cap);
+        assert!(authlist.version < VERSION, ENotUpgrade);
+        authlist.version = VERSION;
     }
 }
