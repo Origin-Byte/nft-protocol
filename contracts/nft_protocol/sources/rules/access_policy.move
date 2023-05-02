@@ -30,7 +30,6 @@ module nft_protocol::access_policy {
         id: UID,
         version: u64,
         parent_access: VecSet<address>,
-        // TODO: Consider if TypeName is safe here
         field_access: Table<TypeName, VecSet<address>>,
     }
 

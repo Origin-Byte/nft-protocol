@@ -7,9 +7,6 @@ module ob_launchpad_v2::market_whitelist_2 {
     use ob_launchpad_v2::venue::{Self, Venue};
     use ob_launchpad_v2::auth_request::{Self, AuthRequest};
 
-    // TODO: There should be a way to create different types of whitelists
-    // currently it's only possile to have one type.
-
     // TODO: Add split/merge function for certificates, actually, we should use
     // the Coin<T> api to do this, no need ot reinvent the wheel
 
