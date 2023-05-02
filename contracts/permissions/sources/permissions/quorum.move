@@ -83,10 +83,8 @@ module ob_permissions::quorum {
     struct Quorum<phantom F> has key, store {
         id: UID,
         version: u64,
-        // TODO: Ideally move to TableSet
         admins: VecSet<address>,
         members: VecSet<address>,
-        // TODO: quorum delegates
         delegates: VecSet<ID>,
         admin_count: u64
     }
@@ -98,7 +96,6 @@ module ob_permissions::quorum {
     }
 
     struct Signatures<phantom F> has store, copy, drop {
-        // TODO: make this TableSet
         list: VecSet<address>,
     }
 
@@ -342,8 +339,6 @@ module ob_permissions::quorum {
         (vote_count, threshold)
     }
 
-    // TODO: As it stands this is not safe to be public because
-    // it has no admin check
     fun sign<F>(
         sigs: &mut Signatures<F>,
         ctx: &mut TxContext,

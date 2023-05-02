@@ -109,7 +109,6 @@ module ob_utils::dynamic_vector {
         assert!(v.total_length > 0, EEmpty);
         assert!(index < v.total_length, EIndexOutOfBounds);
 
-        // TODO: Test, why is it - 1 here?
         let (target_chunk_idx, target_idx) = chunk_index(v, index);
 
         let last_chunk = v.current_chunk;
@@ -490,7 +489,6 @@ module ob_utils::dynamic_vector {
         let scenario = test_scenario::begin(@0x0);
 
         let limit = 7_500;
-        // TODO: test can we redeem number 50_000?
         let total_items = 50_000;
 
         let vec = empty<u64>(limit, ctx(&mut scenario));
