@@ -11,7 +11,7 @@ module ob_tests::test_utils {
     use sui::transfer_policy::{TransferPolicy, TransferPolicyCap};
     use sui::test_scenario::{Scenario, ctx};
 
-    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use liquidity_layer::bidding;
     use liquidity_layer::orderbook;
     use nft_protocol::mint_cap::MintCap;
@@ -143,6 +143,7 @@ module ob_tests::test_utils {
         scenario: &mut Scenario
     ): ID {
         let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, ctx(scenario));
+        orderbook::change_tick_size<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
         let ob_id = object::id(&ob);
 
         orderbook::share(ob);
