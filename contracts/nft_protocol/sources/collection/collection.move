@@ -26,6 +26,9 @@ module nft_protocol::collection {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
+    const ENotUpgrade: u64 = 999;
+    const EWrongVersion: u64 = 1000;
+
     /// Domain not defined
     ///
     /// Call `collection::add_domain` to add domains
@@ -276,6 +279,21 @@ module nft_protocol::collection {
 
         display
     }
+
+    // === Upgradeability ===
+
+    fun assert_version<T: key + store>(collection: &Collection<T>) {
+        assert!(collection.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `T` can upgrade
+    entry fun migrate_as_creator<T: key + store>(
+        _witness: DelegatedWitness<T>,
+        collection: &mut Collection<T>,
+    ) {
+        collection.version = VERSION;
+    }
+
 
     // === Test-Only ===
 

@@ -35,7 +35,7 @@ module ob_kiosk::ob_kiosk {
     use std::type_name::{Self, TypeName};
 
     use sui::display;
-    use sui::package;
+    use sui::package::{Self, Publisher};
     use sui::dynamic_field::{Self as df};
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap, uid_mut as ext};
     use sui::object::{Self, ID, UID, uid_to_address};
@@ -49,6 +49,7 @@ module ob_kiosk::ob_kiosk {
     use ob_request::withdraw_request::{Self, WithdrawRequest};
     use ob_request::borrow_request::{Self, BorrowRequest, BORROW_REQ};
     use ob_request::request::{Self, Policy, RequestBody, WithNft};
+    use ob_kiosk::kiosk::KIOSK;
 
     use originmate::typed_id::{Self, TypedID};
 
@@ -995,6 +996,16 @@ module ob_kiosk::ob_kiosk {
         assert_permission(self, ctx);
         let kiosk_ext = ext(self);
 
+        let version = df::borrow_mut<VersionDfKey, u64>(kiosk_ext, VersionDfKey {});
+
+        assert!(*version < VERSION, ENotUpgrade);
+        *version = VERSION;
+    }
+
+    entry fun migrate_as_pub(self: &mut Kiosk, pub: &Publisher) {
+        assert!(package::from_package<KIOSK>(pub), 0);
+
+        let kiosk_ext = ext(self);
         let version = df::borrow_mut<VersionDfKey, u64>(kiosk_ext, VersionDfKey {});
 
         assert!(*version < VERSION, ENotUpgrade);

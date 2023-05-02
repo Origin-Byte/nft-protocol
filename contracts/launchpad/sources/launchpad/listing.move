@@ -409,6 +409,7 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
+        mkt::assert_version(marketplace);
         assert_version(listing);
         assert_listing_admin(listing, ctx);
 
@@ -439,6 +440,7 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
+        mkt::assert_version(marketplace);
         assert_version(listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
@@ -475,6 +477,7 @@ module ob_launchpad::listing {
         fee: FeeType,
         ctx: &mut TxContext,
     ) {
+        mkt::assert_version(marketplace);
         assert_version(listing);
         assert_listing_marketplace_match(marketplace, listing);
 
@@ -629,6 +632,7 @@ module ob_launchpad::listing {
     ) {
         assert_version(listing);
         assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_version(marketplace);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
         venue::set_live(
@@ -647,6 +651,7 @@ module ob_launchpad::listing {
     ) {
         assert_version(listing);
         assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_version(marketplace);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
         venue::set_live(
