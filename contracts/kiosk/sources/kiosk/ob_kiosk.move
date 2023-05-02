@@ -50,8 +50,6 @@ module ob_kiosk::ob_kiosk {
     use ob_request::borrow_request::{Self, BorrowRequest, BORROW_REQ};
     use ob_request::request::{Self, Policy, RequestBody, WithNft};
 
-    use originmate::typed_id::{Self, TypedID};
-
     // === Errors ===
 
     /// Trying to access an NFT that is not in the kiosk
@@ -541,12 +539,10 @@ module ob_kiosk::ob_kiosk {
 
     public fun register_nft<T: key>(
         self: &mut Kiosk,
-        nft_id: TypedID<T>,
+        nft_id: ID,
         ctx: &mut TxContext,
     ) {
         assert_permission(self, ctx);
-
-        let nft_id = typed_id::to_id(nft_id);
 
         // Assert that Kiosk has NFT
         assert_has_nft(self, nft_id);
