@@ -32,7 +32,7 @@ module ob_launchpad::marketplace {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
-    const ENotUpgrade: u64 = 999;
+    const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
     /// Transaction sender was not admin of marketplace
@@ -122,7 +122,7 @@ module ob_launchpad::marketplace {
     entry fun migrate(marketplace: &mut Marketplace, ctx: &mut TxContext) {
         assert_marketplace_admin(marketplace, ctx);
 
-        assert!(marketplace.version < VERSION, ENotUpgrade);
+        assert!(marketplace.version < VERSION, ENotUpgraded);
         marketplace.version = VERSION;
     }
 }

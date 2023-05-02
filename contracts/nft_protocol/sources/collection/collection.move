@@ -27,7 +27,7 @@ module nft_protocol::collection {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
-    const ENotUpgrade: u64 = 999;
+    const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
     /// Domain not defined

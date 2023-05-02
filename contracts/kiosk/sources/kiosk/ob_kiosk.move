@@ -54,7 +54,7 @@ module ob_kiosk::ob_kiosk {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
-    const ENotUpgrade: u64 = 999;
+    const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
     struct VersionDfKey has copy, store, drop {}
@@ -983,7 +983,7 @@ module ob_kiosk::ob_kiosk {
 
         let version = df::borrow_mut<VersionDfKey, u64>(kiosk_ext, VersionDfKey {});
 
-        assert!(*version < VERSION, ENotUpgrade);
+        assert!(*version < VERSION, ENotUpgraded);
         *version = VERSION;
     }
 
@@ -993,7 +993,7 @@ module ob_kiosk::ob_kiosk {
         let kiosk_ext = ext(self);
         let version = df::borrow_mut<VersionDfKey, u64>(kiosk_ext, VersionDfKey {});
 
-        assert!(*version < VERSION, ENotUpgrade);
+        assert!(*version < VERSION, ENotUpgraded);
         *version = VERSION;
     }
 
