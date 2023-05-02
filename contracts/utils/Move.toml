@@ -9,5 +9,8 @@ subdir = "crates/sui-framework/packages/sui-framework"
 # testnet-1.0.0
 rev = "09b2081498366df936abae26eea4b2d5cafb2788"
 
+[dependencies.Pseudorandom]
+local = "./../pseudorandom"
+
 [addresses]
 ob_utils = "0x5fdac1fc4eec02c101156a3aea028328bd85ab76f5e14850d49d1f72989afc48"

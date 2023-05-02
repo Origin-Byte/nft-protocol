@@ -493,7 +493,7 @@ module nft_protocol::royalty {
         let limit = 10_000;
         let i = 0;
 
-        let seed = b"Some random seedSome random seed";
+        let seed = pseudorandom::rand_with_nonce(b"Some random seedSome random seed");
 
         while (i < limit) {
             let share_1 = pseudorandom::select_u64(10_000, &seed);
