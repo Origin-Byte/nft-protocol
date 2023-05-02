@@ -12,6 +12,8 @@ module ob_utils::utils {
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::TxContext;
 
+    use originmate::pseudorandom;
+
     /// Mismatched length of key and value vectors used in `from_vec_to_map`
     const EMismatchedKeyValueLength: u64 = 1;
 
@@ -37,6 +39,16 @@ module ob_utils::utils {
 
     public fun is_shared(): IsShared {
         IsShared {}
+    }
+
+    /// Outputs modulo of a random `u256` number and a bound
+    ///
+    /// Due to `random >> bound` we `select` does not exhibit significant
+    /// modulo bias.
+    public fun random_number(bound: u64, random: &vector<u8>): u64 {
+        let random = pseudorandom::u256_from_bytes(random);
+        let mod  = random % (bound as u256);
+        (mod as u64)
     }
 
     public fun get_package_module_type<T>(): (String, String, String) {
