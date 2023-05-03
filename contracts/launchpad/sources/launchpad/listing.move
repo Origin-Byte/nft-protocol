@@ -51,8 +51,14 @@ module ob_launchpad::listing {
     friend ob_launchpad::limited_fixed_price;
     friend ob_launchpad::english_auction;
 
+    #[test_only]
+    friend ob_launchpad::test_fees;
+
     // Track the current version of the module
     const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
 
     /// `Venue` was not defined on `Listing`
     ///
@@ -100,8 +106,6 @@ module ob_launchpad::listing {
         /// Field with Object Box holding a Custom Fee implementation if any.
         /// In case this box is empty the calculation will applied on the
         /// default fee object in the associated Marketplace
-        //
-        // TODO: Turn into dynamic field like RequestToJoin
         custom_fee: ObjectBox,
     }
 
@@ -187,6 +191,7 @@ module ob_launchpad::listing {
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ) {
+        // Version asserted in `create_venue`
         create_venue(listing, key, market, is_whitelisted, ctx);
     }
 
@@ -202,6 +207,8 @@ module ob_launchpad::listing {
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ): ID {
+        assert_version(listing);
+
         let venue = venue::new(key, market, is_whitelisted, ctx);
         let venue_id = object::id(&venue);
         add_venue(listing, venue, ctx);
@@ -235,6 +242,8 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
+        assert_version(listing);
+
         let inventory = inventory::from_warehouse(warehouse::new<T>(ctx), ctx);
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
@@ -242,17 +251,19 @@ module ob_launchpad::listing {
     }
 
     /// Pay for `Nft` sale and direct funds to `Listing` proceeds
-    public fun pay<FT>(
+    public(friend) fun pay<FT>(
         listing: &mut Listing,
         balance: Balance<FT>,
         quantity: u64,
     ) {
+        assert_version(listing);
+
         let proceeds = borrow_proceeds_mut(listing);
         proceeds::add(proceeds, balance, quantity);
     }
 
     /// Emits `NftSoldEvent` for provided `Nft`
-    public fun emit_sold_event<FT, T: key>(
+    public(friend) fun emit_sold_event<FT, T: key>(
         nft: &T,
         price: u64,
         buyer: address,
@@ -274,12 +285,14 @@ module ob_launchpad::listing {
     /// #### Panics
     ///
     /// Panics if balance is not enough to fund price
-    public fun pay_and_emit_sold_event<FT, T: key>(
+    public(friend) fun pay_and_emit_sold_event<FT, T: key>(
         listing: &mut Listing,
         nft: &T,
         funds: Balance<FT>,
         buyer: address,
     ) {
+        assert_version(listing);
+
         emit_sold_event<FT, T>(nft, balance::value(&funds), buyer);
         pay(listing, funds, 1);
     }
@@ -297,7 +310,7 @@ module ob_launchpad::listing {
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - No supply is available from underlying `Inventory`
-    public fun buy_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun buy_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         inventory_id: ID,
@@ -305,6 +318,8 @@ module ob_launchpad::listing {
         buyer: address,
         funds: Balance<FT>,
     ): T {
+        assert_version(listing);
+
         let inventory = inventory_internal_mut<T, Market, MarketKey>(
             listing, key, venue_id, inventory_id,
         );
@@ -326,7 +341,7 @@ module ob_launchpad::listing {
     ///
     /// - `Market` type does not correspond to `venue_id` on the `Listing`
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
-    public fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         inventory_id: ID,
@@ -335,6 +350,8 @@ module ob_launchpad::listing {
         funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
+        assert_version(listing);
+
         let inventory = inventory_internal_mut<T, Market, MarketKey>(
             listing, key, venue_id, inventory_id,
         );
@@ -360,7 +377,7 @@ module ob_launchpad::listing {
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
     /// - `user_commitment` does not match the hashed commitment in
     /// `RedeemCommitment`
-    public fun buy_random_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun buy_random_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         commitment: RedeemCommitment,
@@ -371,6 +388,8 @@ module ob_launchpad::listing {
         funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
+        assert_version(listing);
+
         let inventory = inventory_internal_mut<T, Market, MarketKey>(
             listing, key, venue_id, inventory_id,
         );
@@ -393,6 +412,8 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
+        mkt::assert_version(marketplace);
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
 
         assert!(
@@ -422,6 +443,8 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
+        mkt::assert_version(marketplace);
+        assert_version(listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
         assert!(
@@ -450,6 +473,10 @@ module ob_launchpad::listing {
 
     /// Adds a fee object to the Listing's `custom_fee`
     ///
+    /// This function should be called by the marketplace.
+    /// If there the listing is not attached to a marketplace
+    /// then if does not make sense to pay fees.
+    ///
     /// Can only be called by the `Marketplace` admin
     public entry fun add_fee<FeeType: key + store>(
         marketplace: &Marketplace,
@@ -457,12 +484,12 @@ module ob_launchpad::listing {
         fee: FeeType,
         ctx: &mut TxContext,
     ) {
-        assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_version(marketplace);
+        assert_version(listing);
 
-        // This function should be called by the marketplace.
-        // If there the listing is not attached to a marketplace
-        // then if does not make sense to pay fees.
+        assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
+
         obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
 
@@ -477,7 +504,9 @@ module ob_launchpad::listing {
         venue: Venue,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
+
         object_table::add(
             &mut listing.venues,
             object::id(&venue),
@@ -501,6 +530,7 @@ module ob_launchpad::listing {
         nft: T,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
 
         let inventory = borrow_inventory_mut(listing, inventory_id);
@@ -522,6 +552,7 @@ module ob_launchpad::listing {
         inventory: Inventory<T>,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
 
         let inventory_id = object::id(&inventory);
@@ -542,6 +573,10 @@ module ob_launchpad::listing {
         warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
+        // We are asserting that the caller is the listing admin in
+        // the call `add_inventory`
+
         insert_warehouse(listing, warehouse, ctx);
     }
 
@@ -558,6 +593,10 @@ module ob_launchpad::listing {
         warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ): ID {
+        assert_version(listing);
+        // We are asserting that the caller is the listing admin in
+        // the call `add_inventory`
+
         let inventory = inventory::from_warehouse(warehouse, ctx);
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
@@ -571,6 +610,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
         venue::set_live(borrow_venue_mut(listing, venue_id), true);
     }
@@ -582,6 +622,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
         venue::set_live(borrow_venue_mut(listing, venue_id), false);
     }
@@ -594,7 +635,9 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
         assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_version(marketplace);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
         venue::set_live(
@@ -611,7 +654,9 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
         assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_version(marketplace);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
         venue::set_live(
@@ -627,6 +672,9 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
+        assert_version(listing);
+        assert_listing_admin(listing, ctx);
+
         assert!(
             option::is_none(&listing.marketplace_id),
             EActionExclusiveToStandaloneListing,
@@ -708,6 +756,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): &mut Venue {
+        assert_version(listing);
         let venue = borrow_venue_mut(listing, venue_id);
         venue::assert_market<Market, MarketKey>(key, venue);
 
@@ -723,6 +772,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): &mut Market {
+        assert_version(listing);
         let venue =
             venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
         venue::borrow_market_mut(key, venue)
@@ -739,6 +789,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): Venue {
+        assert_version(listing);
         let venue = object_table::remove(&mut listing.venues, venue_id);
         venue::assert_market<Market, MarketKey>(key, &venue);
         venue
@@ -788,6 +839,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         inventory_id: ID,
     ): &mut Inventory<T> {
+        assert_version(listing);
         venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
         borrow_inventory_mut(listing, inventory_id)
     }
@@ -804,6 +856,7 @@ module ob_launchpad::listing {
         inventory_id: ID,
         ctx: &mut TxContext,
     ): &mut Inventory<T> {
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
         borrow_inventory_mut(listing, inventory_id)
     }
@@ -827,6 +880,10 @@ module ob_launchpad::listing {
     // === Assertions ===
 
     public fun assert_listing_marketplace_match(marketplace: &Marketplace, listing: &Listing) {
+        assert!(
+            option::is_some<TypedID<Marketplace>>(&listing.marketplace_id), EMarketplaceListingMismatch
+        );
+
         assert!(
             object::id(marketplace) == *typed_id::as_id(
                 option::borrow<TypedID<Marketplace>>(&listing.marketplace_id)
@@ -872,5 +929,18 @@ module ob_launchpad::listing {
         assert!(
             contains_inventory<T>(listing, inventory_id), EUndefinedInventory,
         );
+    }
+
+    // === Upgradeability ===
+
+    fun assert_version(listing: &Listing) {
+        assert!(listing.version == VERSION, EWrongVersion);
+    }
+
+    entry fun migrate(listing: &mut Listing, ctx: &mut TxContext) {
+        assert_listing_admin(listing, ctx);
+
+        assert!(listing.version < VERSION, ENotUpgraded);
+        listing.version = VERSION;
     }
 }

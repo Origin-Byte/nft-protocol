@@ -2,6 +2,7 @@ module nft_protocol::royalty_strategy_bps {
     use std::option::{Self, Option};
 
     use sui::balance::{Self, Balance};
+    use sui::package::{Self, Publisher};
     use sui::object::{Self, UID};
     use sui::transfer::share_object;
     use sui::tx_context::TxContext;
@@ -13,12 +14,16 @@ module nft_protocol::royalty_strategy_bps {
     use originmate::balances::{Self, Balances};
 
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::nft_protocol::NFT_PROTOCOL;
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use ob_utils::utils;
     use ob_utils::math;
 
     // Track the current version of the module
     const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
 
     /// === Errors ===
 
@@ -83,23 +88,36 @@ module nft_protocol::royalty_strategy_bps {
     public fun add_balance_access_cap<T>(
         self: &mut BpsRoyaltyStrategy<T>,
         cap: BalanceAccessCap<T>,
-    ) { self.access_cap = option::some(cap); }
+    ) {
+        assert_version(self);
+
+        self.access_cap = option::some(cap);
+    }
 
     public fun drop_balance_access_cap<T>(
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
-    ) { self.access_cap = option::none(); }
+    ) {
+        assert_version(self);
+        self.access_cap = option::none();
+    }
 
     public fun enable<T>(
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
-    ) { self.is_enabled = true; }
+    ) {
+        assert_version(self);
+        self.is_enabled = true;
+    }
 
     /// Can't issue receipts for `TransferRequest<T>` anymore.
     public fun disable<T>(
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
-    ) { self.is_enabled = false; }
+    ) {
+        assert_version(self);
+        self.is_enabled = false;
+    }
 
     /// Registers collection to use `BpsRoyaltyStrategy` during the transfer.
     public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
@@ -127,6 +145,8 @@ module nft_protocol::royalty_strategy_bps {
     public fun collect_royalties<T, FT>(
         collection: &mut Collection<T>, strategy: &mut BpsRoyaltyStrategy<T>,
     ) {
+        assert_version(strategy);
+
         let balance = balances::borrow_mut(&mut strategy.aggregator);
         let amount = balance::value(balance);
         royalty::collect_royalty<T, FT>(collection, balance, amount);
@@ -136,6 +156,7 @@ module nft_protocol::royalty_strategy_bps {
     public fun confirm_transfer<T, FT>(
         self: &mut BpsRoyaltyStrategy<T>, req: &mut TransferRequest<T>,
     ) {
+        assert_version(self);
         assert!(self.is_enabled, ENotEnabled);
 
         let cap = option::borrow(&self.access_cap);
@@ -153,6 +174,7 @@ module nft_protocol::royalty_strategy_bps {
         req: &mut TransferRequest<T>,
         wallet: &mut Balance<FT>,
     ) {
+        assert_version(self);
         assert!(self.is_enabled, ENotEnabled);
 
         let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
@@ -167,13 +189,11 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     public fun calculate<T>(self: &BpsRoyaltyStrategy<T>, amount: u64): u64 {
-        // TODO: Need to consider implementing Decimals module for increased
-        // precision, or wait for native support
         compute_(royalty_fee_bps(self), amount)
     }
 
     fun compute_(bps: u16, amount: u64): u64 {
-        // Royalty BPS has a cap of 10_000
+        // Royalty BPS has a cap of 10_777
         let (_, royalty_rate) = math::div_round(
             (bps as u64), (utils::bps() as u64)
         );
@@ -210,10 +230,28 @@ module nft_protocol::royalty_strategy_bps {
         share(royalty_strategy);
     }
 
-    // === Tests ===
+    // === Upgradeability ===
 
-    #[test_only]
-    use std::debug;
+    fun assert_version<T>(self: &BpsRoyaltyStrategy<T>) {
+        assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `T` can upgrade
+    entry fun migrate_as_creator<T>(
+        self: &mut BpsRoyaltyStrategy<T>, pub: &Publisher,
+    ) {
+        assert!(package::from_package<T>(pub), 0);
+        self.version = VERSION;
+    }
+
+    entry fun migrate_as_pub<T>(
+        self: &mut BpsRoyaltyStrategy<T>, pub: &Publisher
+    ) {
+        assert!(package::from_package<NFT_PROTOCOL>(pub), 0);
+        self.version = VERSION;
+    }
+
+    // === Tests ===
 
     #[test]
     fun test_royalties() {
@@ -223,13 +261,9 @@ module nft_protocol::royalty_strategy_bps {
             (1_000 as u64), (utils::bps() as u64)
         );
 
-        debug::print(&royalty_rate);
-
-        let (_, royalties) = math::mul_round(
+        let (_, _) = math::mul_round(
             trade, royalty_rate,
         );
-
-        debug::print(&royalties);
     }
 
     #[test]
@@ -375,5 +409,38 @@ module nft_protocol::royalty_strategy_bps {
 
         let royalties = compute_(1, trade);
         assert!(royalties == 0, 0);
+    }
+
+    #[test]
+    fun test_precision_() {
+        // Round 1
+        let trade = 7_777_777_777_777_777_777;
+        let rate = 555;
+
+        assert!(compute_(555, trade) == 431_666_666_666_666_666, 0);
+
+        // Round 2
+        let trade = 777_777_777_777_777_777;
+        assert!(compute_(rate, trade) == 431_666_666_666_666_66, 0);
+
+        // Round 3
+        let trade = 777_777_777_777_777_77;
+        assert!(compute_(rate, trade) == 431_666_666_666_666_6, 0);
+
+        // Round 4
+        let trade = 777_777_777_777_777_7;
+        assert!(compute_(rate, trade) == 431_666_666_666_666, 0);
+
+        // Round 5
+        let trade = 777_777_777_777;
+        assert!(compute_(rate, trade) == 431_666_666_66, 0);
+
+        // Round 6
+        let trade = 777_777_777;
+        assert!(compute_(rate, trade) == 431_666_66, 0);
+
+        // Round 7
+        let trade = 777_777;
+        assert!(compute_(rate, trade) == 431_66, 0);
     }
 }

@@ -20,7 +20,7 @@ module ob_launchpad::dutch_auction {
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
 
-    use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+    use ob_utils::crit_bit::{Self, CritbitTree};
 
     use ob_launchpad::venue::{Self, Venue};
     use ob_launchpad::listing::{Self, Listing};
@@ -46,7 +46,7 @@ module ob_launchpad::dutch_auction {
         reserve_price: u64,
         /// A bid order stores the amount of fungible token, FT, that the
         /// buyer is willing to purchase.
-        bids: CBTree<vector<Bid<FT>>>,
+        bids: CritbitTree<vector<Bid<FT>>>,
         /// `Warehouse` or `Factory` that the market will redeem from
         inventory_id: ID,
     }
@@ -73,7 +73,7 @@ module ob_launchpad::dutch_auction {
         DutchAuctionMarket {
             id: object::new(ctx),
             reserve_price,
-            bids: crit_bit::empty(),
+            bids: crit_bit::new(ctx),
             inventory_id,
         }
     }
@@ -308,7 +308,7 @@ module ob_launchpad::dutch_auction {
     }
 
     /// Get the auction's bids
-    public fun bids<FT>(market: &DutchAuctionMarket<FT>): &CBTree<vector<Bid<FT>>> {
+    public fun bids<FT>(market: &DutchAuctionMarket<FT>): &CritbitTree<vector<Bid<FT>>> {
         &market.bids
     }
 
@@ -335,8 +335,10 @@ module ob_launchpad::dutch_auction {
         );
 
         // Create price level if it does not exist
-        if (!crit_bit::has_key(&auction.bids, price)) {
-            crit_bit::insert(
+        let (has_key, _) = crit_bit::find_leaf(&auction.bids, price);
+
+        if (!has_key) {
+            crit_bit::insert_leaf(
                 &mut auction.bids,
                 price,
                 vector::empty()
@@ -344,7 +346,7 @@ module ob_launchpad::dutch_auction {
         };
 
         let price_level =
-            crit_bit::borrow_mut(&mut auction.bids, price);
+            crit_bit::borrow_mut_leaf_by_key(&mut auction.bids, price);
 
         // Make `quantity` number of bids
         let index = 0;
@@ -364,12 +366,11 @@ module ob_launchpad::dutch_auction {
     ) {
         let bids = &mut auction.bids;
 
-        assert!(
-            crit_bit::has_key(bids, price),
-            EInvalidOrder
-        );
+        let (has_leaf, _) = crit_bit::find_leaf(bids, price);
 
-        let price_level = crit_bit::borrow_mut(bids, price);
+        assert!(has_leaf, EInvalidOrder);
+
+        let price_level = crit_bit::borrow_mut_leaf_by_key(bids, price);
 
         let bid_index = 0;
         let bid_count = vector::length(price_level);
@@ -388,7 +389,7 @@ module ob_launchpad::dutch_auction {
         refund_bid(bid, wallet, &sender);
 
         if (vector::is_empty(price_level)) {
-            let price_level = crit_bit::pop(bids, price);
+            let price_level = crit_bit::remove_leaf_by_key(bids, price);
             vector::destroy_empty(price_level);
         }
     }
@@ -401,8 +402,8 @@ module ob_launchpad::dutch_auction {
         let bids = &mut book.bids;
 
         while (!crit_bit::is_empty(bids)) {
-            let min_key = crit_bit::min_key(bids);
-            let price_level = crit_bit::pop(bids, min_key);
+            let (min_key, _) = crit_bit::max_leaf(bids);
+            let price_level = crit_bit::remove_leaf_by_key(bids, min_key);
             while (!vector::is_empty(&price_level)) {
                 let bid = vector::pop_back(&mut price_level);
 
@@ -448,11 +449,11 @@ module ob_launchpad::dutch_auction {
         while (nfts_to_sell > 0 && !crit_bit::is_empty(bids)) {
             // Get key of maximum price level representing the price level from
             // which the next winning bid is extracted.
-            let max_key = crit_bit::max_key(bids);
-            let price_level = crit_bit::borrow_mut(bids, max_key);
+            let (max_key, _) = crit_bit::max_leaf(bids);
+            let price_level = crit_bit::borrow_mut_leaf_by_key(bids, max_key);
 
             if (vector::is_empty(price_level)) {
-                let price_level = crit_bit::pop(bids, max_key);
+                let price_level = crit_bit::remove_leaf_by_key(bids, max_key);
                 vector::destroy_empty(price_level);
                 continue
             };

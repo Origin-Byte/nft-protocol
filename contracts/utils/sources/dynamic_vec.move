@@ -75,6 +75,12 @@ module ob_utils::dynamic_vector {
         v.current_chunk
     }
 
+    public fun singleton<Element: store>(e: Element, limit: u64, ctx: &mut TxContext): DynVec<Element> {
+        let v = empty(limit, ctx);
+        push_back(&mut v, e);
+        v
+    }
+
     public fun push_back<Element: store>(
         v: &mut DynVec<Element>,
         elem: Element,
@@ -144,6 +150,19 @@ module ob_utils::dynamic_vector {
         elem
     }
 
+    public fun borrow_at_index<Element: store>(
+        v: &mut DynVec<Element>,
+        index: u64,
+    ): &Element {
+        assert!(v.total_length > 0, EEmpty);
+        assert!(index < v.total_length, EIndexOutOfBounds);
+
+        let (target_chunk_idx, target_idx) = chunk_index(v, index);
+
+        let target_chunk = borrow_chunk(v, target_chunk_idx);
+        vector::borrow(target_chunk, target_idx)
+    }
+
     // === Chunks ===
 
     public fun chunk_index<Element: store>(v: &DynVec<Element>, idx: u64): (u64, u64) {
@@ -177,8 +196,11 @@ module ob_utils::dynamic_vector {
         }
     }
 
-    public fun delete<Element: store + drop>(v: DynVec<Element>) {
-        let DynVec<Element> { vec_0: _, vecs, current_chunk: _, tip_length: _, total_length: _, limit: _ } = v;
+    public fun delete<Element: store>(v: DynVec<Element>) {
+        let DynVec<Element> { vec_0, vecs, current_chunk: _, tip_length: _, total_length: _, limit: _ } = v;
+        vector::destroy_empty(vec_0);
+
+        // TODO: Function to remove dynamic fields
         object::delete(vecs);
     }
 

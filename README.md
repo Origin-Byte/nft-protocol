@@ -19,22 +19,22 @@ The ecosystem is partitioned into three critical components:
 ## Resources
 
 - Protocol contracts:
-  - [Permissions](https://explorer.sui.io/object/0x1d01a03fefe5d70c7cea863811f61150544d2265625dfae91408ccbba8a16704)
-  - [Allowlist](https://explorer.sui.io/object/0x5a396593d6d7f2e3708be81bb45f85859c5600c77267e1fe54c68871e9ff88a7)
-  - [Authlist](https://explorer.sui.io/object/0xb499426ff54e7ec709a6ebcf9300b51b12e8d1133b80462b724f91417f68b279)
-  - [Request](https://explorer.sui.io/object/0x7de232c970371d5016c1e90d15f6879867af327dcc84c79f99fce10e44d15b2f)
-  - [Kiosk](https://explorer.sui.io/object/0x58877c047ef49d8b2602587b2a26730b3f6a5b5004c4840eb00c24609c3e1c5e)
-  - [Liquidity Layer](https://explorer.sui.io/object/0x3fdcd4efe728d281142f74760d62fc64986f8da88a7c6e4bb39d018efd70ca3f)
-  - [Launchpad](https://explorer.sui.io/object/0x550e453a75ae4e8c6682003eac1944087f04624e728fa1af0b46cf45933937b9)
-  - [NftProtocol](https://explorer.sui.io/object/0xf71ea35aa531a662dfbf8cf7695a5b475bc09f82cd218a801d1aa7c4df3e63e7)
-  - [LaunchpadV2](https://explorer.sui.io/object/0x9533382218a78eca52299c14767fc40f94af048e0985cc0695a168bf9c851230)
+  - [PseudoRandom](https://explorer.sui.io/object/0x9e5962d5183664be8a7762fbe94eee6e3457c0cc701750c94c17f7f8ac5a32fb)
+  - [Permissions](https://explorer.sui.io/object/0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40)
+  - [Allowlist](https://explorer.sui.io/object/0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa)
+  - [Authlist](https://explorer.sui.io/object/0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4)
+  - [Request](https://explorer.sui.io/object/0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43)
+  - [Kiosk](https://explorer.sui.io/object/0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b)
+  - [Liquidity Layer](https://explorer.sui.io/object/0xae5e376b646e4d095b99e2eeaa222e40d5a6c26250419f00c4fc613a9cfb2e18)
+  - [Launchpad](https://explorer.sui.io/object/0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b)
+  - [NftProtocol](https://explorer.sui.io/object/0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/) (WIP)
 
 
 In addition, you can find transfer lists curated by OriginByte here:
-- [Trading Allowlist](https://explorer.sui.io/object/0xe8daf9d689bc1d9284eebbebe4cda69a36a45db02a475acf9cc0f60557437376)
-- [P2P Transfer Authlist](https://explorer.sui.io/object/0x83ef9e893f0385575cb5eae66f62ddd3d3c7bba6883ac3452d00fe6c2d23122c)
+- [Trading Allowlist](https://explorer.sui.io/object/0xb9353bccfb7ad87b9195c6956b2ac81551350b104d5bfec9cf0ea6f5c467c6d1)
+- [P2P Transfer Authlist](https://explorer.sui.io/object/0xedf545c164dacf55acf37431b90f6b5e55acd5925f4683de8753760d2b5e74fa)
 
 # Install
 

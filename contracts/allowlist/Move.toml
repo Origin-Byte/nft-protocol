@@ -1,16 +1,16 @@
 [package]
 name = "Allowlist"
 version = "1.2.0"
-published-at = "0x505c310fb3adfac0601b77408c1317abe078828670410feb2b77e1d19a03083f"
+published-at = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
 # testnet-1.0.0
-rev = "09b2081498366df936abae26eea4b2d5cafb2788"
+rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
 
 [dependencies.Permissions]
 local = "./../permissions"
 
 [addresses]
-ob_allowlist = "0x505c310fb3adfac0601b77408c1317abe078828670410feb2b77e1d19a03083f"
+ob_allowlist = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa"

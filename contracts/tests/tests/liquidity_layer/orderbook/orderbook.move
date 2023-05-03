@@ -8,7 +8,7 @@ module ob_tests::orderbook {
     use std::option;
     use std::vector;
 
-    use sui::coin;
+    use sui::coin::{Self, Coin};
     use sui::object;
     use sui::kiosk;
     use sui::transfer;
@@ -22,14 +22,14 @@ module ob_tests::orderbook {
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
     // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
     use ob_permissions::witness;
-    use originmate::typed_id;
-    use originmate::crit_bit_u64::{Self as crit_bit};
+    use ob_utils::crit_bit::{Self};
     use ob_request::transfer_request;
     use ob_kiosk::ob_kiosk::{Self, OwnerToken};
     use ob_allowlist::allowlist::{Self, Allowlist};
     use liquidity_layer::orderbook::{Self, Orderbook};
     use nft_protocol::transfer_allowlist;
     use nft_protocol::royalty;
+    use nft_protocol::collection::Collection;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
 
@@ -234,12 +234,13 @@ module ob_tests::orderbook {
         // 1. Create Collection and Orderbook
         let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let dw = witness::from_witness(test_utils::witness());
 
         // 2. Add Royalty Policy and Allowlist
         let royalty_domain = royalty::from_address(creator(), ctx(&mut scenario));
 
         royalty_strategy_bps::create_domain_and_add_strategy<Foo>(
-            witness::from_witness(test_utils::witness()), &mut collection, royalty_domain, 100, ctx(&mut scenario),
+            dw, &mut collection, royalty_domain, 100, ctx(&mut scenario),
         );
 
         // Get allowlist. This can be any allowlist created by anyone but we create
@@ -282,7 +283,7 @@ module ob_tests::orderbook {
         orderbook::create_ask(
             &mut book,
             &mut seller_kiosk,
-            100,
+            100_000_000,
             nft_id,
             ctx(&mut scenario),
         );
@@ -294,12 +295,12 @@ module ob_tests::orderbook {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         // 6. Create bid for NFT
-        let coin = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
+        let coin = coin::mint_for_testing<SUI>(100_000_000, ctx(&mut scenario));
 
         let trade_opt = orderbook::create_bid(
             &mut book,
             &mut buyer_kiosk,
-            100,
+            100_000_000,
             &mut coin,
             ctx(&mut scenario),
         );
@@ -327,6 +328,27 @@ module ob_tests::orderbook {
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
+        // Collect royalties as the creator
+        test_scenario::next_tx(&mut scenario, creator());
+
+        let collection = test_scenario::take_shared<Collection<Foo>>(&mut scenario);
+
+        royalty_strategy_bps::collect_royalties<Foo, SUI>(
+            &mut collection, &mut royalty_engine
+        );
+
+        royalty::distribute_royalties<Foo, SUI>(&mut collection, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, creator());
+        let profits =
+            test_scenario::take_from_address<Coin<SUI>>(&scenario, creator());
+
+        // The trade price is 100_000_000
+        // The royalty is 100 basis points (i.e. 1%)
+        // Therefore the profits are 1_000_000
+        assert!(coin::value(&profits) == 1_000_000, 0);
+
+        test_scenario::return_to_address(creator(), profits);
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
         transfer::public_transfer(mint_cap, creator());
@@ -337,6 +359,7 @@ module ob_tests::orderbook {
         test_scenario::return_shared(book);
         test_scenario::return_shared(al);
         test_scenario::return_shared(royalty_engine);
+        test_scenario::return_shared(collection);
         test_scenario::end(scenario);
     }
 
@@ -374,7 +397,7 @@ module ob_tests::orderbook {
         orderbook::create_ask(
             &mut book,
             &mut seller_kiosk,
-            100,
+            100_000_000,
             nft_id,
             ctx(&mut scenario),
         );
@@ -386,12 +409,12 @@ module ob_tests::orderbook {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         // 6. Create bid for NFT
-        let coin = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
+        let coin = coin::mint_for_testing<SUI>(100_000_000, ctx(&mut scenario));
 
         let trade_opt = orderbook::create_bid(
             &mut book,
             &mut buyer_kiosk,
-            100,
+            100_000_000,
             &mut coin,
             ctx(&mut scenario),
         );
@@ -449,19 +472,19 @@ module ob_tests::orderbook {
 
         // 4. Add NFT to Seller Kiosk
         let nft = test_utils::get_foo_nft(ctx(&mut scenario));
-        let nft_id = typed_id::new(&nft);
+        let nft_id = object::id(&nft);
         kiosk::place(&mut seller_kiosk, &seller_cap, nft);
 
         // 5. Create ask order for NFT
         ob_kiosk::install_extension(&mut seller_kiosk, seller_cap, ctx(&mut scenario));
-        ob_kiosk::register_nft(&mut seller_kiosk, nft_id, ctx(&mut scenario));
+        ob_kiosk::register_nft<Foo>(&mut seller_kiosk, nft_id, ctx(&mut scenario));
 
         let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
         orderbook::create_ask(
             &mut book,
             &mut seller_kiosk,
-            100,
-            typed_id::to_id(nft_id),
+            100_000_000,
+            nft_id,
             ctx(&mut scenario),
         );
 
@@ -472,13 +495,13 @@ module ob_tests::orderbook {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         // 6. Create bid for NFT
-        let coin = coin::mint_for_testing<SUI>(100, ctx(&mut scenario));
+        let coin = coin::mint_for_testing<SUI>(100_000_000, ctx(&mut scenario));
         ob_kiosk::install_extension(&mut buyer_kiosk, buyer_cap, ctx(&mut scenario));
 
         let trade_opt = orderbook::create_bid(
             &mut book,
             &mut buyer_kiosk,
-            100,
+            100_000_000,
             &mut coin,
             ctx(&mut scenario),
         );
@@ -549,7 +572,7 @@ module ob_tests::orderbook {
         let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
         let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
-        let price_levels = crit_bit::length(orderbook::borrow_asks(&book));
+        let price_levels = crit_bit::size(orderbook::borrow_asks(&book));
 
         let quantity = 300;
         let i = quantity;
@@ -577,7 +600,7 @@ module ob_tests::orderbook {
 
             // 2. New price level gets added with new Ask
             price_levels = price_levels + 1;
-            assert!(crit_bit::length(orderbook::borrow_asks(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_asks(&book)) == price_levels, 0);
 
             i = i - 1;
             price = price + 1;
@@ -658,7 +681,7 @@ module ob_tests::orderbook {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         let initial_funds = 1_000_000;
-        let price_levels = crit_bit::length(orderbook::borrow_bids(&book));
+        let price_levels = crit_bit::size(orderbook::borrow_bids(&book));
         let funds_locked = 0;
 
         let coin = coin::mint_for_testing<SUI>(initial_funds, ctx(&mut scenario));
@@ -687,7 +710,7 @@ module ob_tests::orderbook {
 
             // 2. New price level gets added with new Bid
             price_levels = price_levels + 1;
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == price_levels, 0);
 
             price = price + 1;
             i = i - 1;
@@ -768,7 +791,7 @@ module ob_tests::orderbook {
         let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
         let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
-        let price_levels = crit_bit::length(orderbook::borrow_asks(&book));
+        let price_levels = crit_bit::size(orderbook::borrow_asks(&book));
 
         let quantity = 300;
         let i = quantity;
@@ -796,7 +819,7 @@ module ob_tests::orderbook {
 
             // 2. New price level gets added with new Ask
             price_levels = price_levels + 1;
-            assert!(crit_bit::length(orderbook::borrow_asks(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_asks(&book)) == price_levels, 0);
 
             i = i - 1;
             price = price + 1;
@@ -835,7 +858,7 @@ module ob_tests::orderbook {
 
             // 2. Ask gets popped and price level removed
             price_levels = price_levels - 1;
-            assert!(crit_bit::length(orderbook::borrow_asks(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_asks(&book)) == price_levels, 0);
 
             // 3. Assert trade match
             let trade_info = option::extract(&mut trade_info_opt);
@@ -893,7 +916,7 @@ module ob_tests::orderbook {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         let initial_funds = 1_000_000;
-        let bid_price_levels = crit_bit::length(orderbook::borrow_bids(&book));
+        let bid_price_levels = crit_bit::size(orderbook::borrow_bids(&book));
         let funds_locked = 0;
 
         let coin = coin::mint_for_testing<SUI>(1_000_000, ctx(&mut scenario));
@@ -922,7 +945,7 @@ module ob_tests::orderbook {
 
             // 2. New price level gets added with new Bid
             bid_price_levels = bid_price_levels + 1;
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == bid_price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == bid_price_levels, 0);
 
             price = price + 1;
             i = i - 1;
@@ -931,7 +954,7 @@ module ob_tests::orderbook {
         test_scenario::next_tx(&mut scenario, buyer());
 
         // Seller gets best price (highest)
-        let ask_price_levels = crit_bit::length(orderbook::borrow_asks(&book));
+        let ask_price_levels = crit_bit::size(orderbook::borrow_asks(&book));
         let price = 301;
         let i = quantity;
 
@@ -959,17 +982,23 @@ module ob_tests::orderbook {
 
             // 2. New price level gets added with new Ask
             ask_price_levels = ask_price_levels + 1;
-            assert!(crit_bit::length(orderbook::borrow_asks(&book)) == ask_price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_asks(&book)) == ask_price_levels, 0);
 
             i = i - 1;
             price = price + 1;
         };
 
         // Assert orderbook state
-        assert!(crit_bit::max_key(orderbook::borrow_bids(&book)) == 300, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_bids(&book)) == 1, 0);
-        assert!(crit_bit::max_key(orderbook::borrow_asks(&book)) == 600, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_asks(&book)) == 301, 0);
+
+        let (max_key_bid, _) = crit_bit::max_leaf(orderbook::borrow_bids(&book));
+        let (min_key_bid, _) = crit_bit::min_leaf(orderbook::borrow_bids(&book));
+        let (max_key_ask, _) = crit_bit::max_leaf(orderbook::borrow_asks(&book));
+        let (min_key_ask, _) = crit_bit::min_leaf(orderbook::borrow_asks(&book));
+
+        assert!(max_key_bid == 300, 0);
+        assert!(min_key_bid == 1, 0);
+        assert!(max_key_ask == 600, 0);
+        assert!(min_key_ask == 301, 0);
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
@@ -1044,8 +1073,11 @@ module ob_tests::orderbook {
         };
 
         // Assert that orderbook state
-        assert!(crit_bit::max_key(orderbook::borrow_asks(&book)) == 300, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_asks(&book)) == 1, 0);
+        let (max_key_ask, _) = crit_bit::max_leaf(orderbook::borrow_asks(&book));
+        let (min_key_ask, _) = crit_bit::min_leaf(orderbook::borrow_asks(&book));
+
+        assert!(max_key_ask == 300, 0);
+        assert!(min_key_ask == 1, 0);
 
         let i = quantity;
         let price = 1;
@@ -1113,7 +1145,7 @@ module ob_tests::orderbook {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         let initial_funds = 1_000_000;
-        let price_levels = crit_bit::length(orderbook::borrow_bids(&book));
+        let price_levels = crit_bit::size(orderbook::borrow_bids(&book));
         let funds_locked = 0;
 
         let coin = coin::mint_for_testing<SUI>(initial_funds, ctx(&mut scenario));
@@ -1142,15 +1174,19 @@ module ob_tests::orderbook {
 
             // 2. New price level gets added with new Bid
             price_levels = price_levels + 1;
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == price_levels, 0);
 
             price = price + 1;
             i = i - 1;
         };
 
         // Assert that orderbook state
-        assert!(crit_bit::max_key(orderbook::borrow_bids(&book)) == 300, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_bids(&book)) == 1, 0);
+        let (max_key_bid, _) = crit_bit::max_leaf(orderbook::borrow_bids(&book));
+        let (min_key_bid, _) = crit_bit::min_leaf(orderbook::borrow_bids(&book));
+
+
+        assert!(max_key_bid == 300, 0);
+        assert!(min_key_bid == 1, 0);
 
         let i = quantity;
         let price = 1;
@@ -1175,7 +1211,7 @@ module ob_tests::orderbook {
 
             // 2. New price level gets removed with Bid popped
             price_levels = price_levels - 1;
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == price_levels, 0);
 
             price = price + 1;
             i = i - 1;
@@ -1257,9 +1293,12 @@ module ob_tests::orderbook {
         };
 
         // Assert that orderbook state
-        assert!(crit_bit::max_key(orderbook::borrow_asks(&book)) == 300, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_asks(&book)) == 1, 0);
-        assert!(crit_bit::length(orderbook::borrow_asks(&book)) == 300, 0);
+        let (max_key_ask, _) = crit_bit::max_leaf(orderbook::borrow_asks(&book));
+        let (min_key_ask, _) = crit_bit::min_leaf(orderbook::borrow_asks(&book));
+
+        assert!(max_key_ask == 300, 0);
+        assert!(min_key_ask == 1, 0);
+        assert!(crit_bit::size(orderbook::borrow_asks(&book)) == 300, 0);
 
         let i = quantity;
         let price = 1;
@@ -1284,10 +1323,13 @@ module ob_tests::orderbook {
 
         // Assert that orderbook state
         // All orders are concentrated into one price level
-        assert!(crit_bit::length(orderbook::borrow_asks(&book)) == 1, 0);
+        assert!(crit_bit::size(orderbook::borrow_asks(&book)) == 1, 0);
 
-        assert!(crit_bit::max_key(orderbook::borrow_asks(&book)) == 500, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_asks(&book)) == 500, 0);
+        let (max_key_ask, _) = crit_bit::max_leaf(orderbook::borrow_asks(&book));
+        let (min_key_ask, _) = crit_bit::min_leaf(orderbook::borrow_asks(&book));
+
+        assert!(max_key_ask == 500, 0);
+        assert!(min_key_ask == 500, 0);
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
@@ -1332,7 +1374,7 @@ module ob_tests::orderbook {
         let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
 
         let initial_funds = 1_000_000;
-        let price_levels = crit_bit::length(orderbook::borrow_bids(&book));
+        let price_levels = crit_bit::size(orderbook::borrow_bids(&book));
         let funds_locked = 0;
 
         let coin = coin::mint_for_testing<SUI>(initial_funds, ctx(&mut scenario));
@@ -1361,15 +1403,18 @@ module ob_tests::orderbook {
 
             // 2. New price level gets added with new Bid
             price_levels = price_levels + 1;
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == price_levels, 0);
 
             price = price + 1;
             i = i - 1;
         };
 
         // Assert that orderbook state
-        assert!(crit_bit::max_key(orderbook::borrow_bids(&book)) == 300, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_bids(&book)) == 1, 0);
+        let (max_key_bid, _) = crit_bit::max_leaf(orderbook::borrow_bids(&book));
+        let (min_key_bid, _) = crit_bit::min_leaf(orderbook::borrow_bids(&book));
+
+        assert!(max_key_bid == 300, 0);
+        assert!(min_key_bid == 1, 0);
 
         let i = quantity;
         let price = 1;
@@ -1398,7 +1443,7 @@ module ob_tests::orderbook {
             // price level - In the first iteration the length does not really change because
             // we are just swapping one price level for another.
             price_levels = if (i == quantity) {price_levels} else {price_levels - 1};
-            assert!(crit_bit::length(orderbook::borrow_bids(&book)) == price_levels, 0);
+            assert!(crit_bit::size(orderbook::borrow_bids(&book)) == price_levels, 0);
 
             price = price + 1;
             i = i - 1;
@@ -1406,10 +1451,13 @@ module ob_tests::orderbook {
 
         // Assert orderbook state
         // All orders are concentrated into one price level
-        assert!(crit_bit::length(orderbook::borrow_bids(&book)) == 1, 0);
+        assert!(crit_bit::size(orderbook::borrow_bids(&book)) == 1, 0);
 
-        assert!(crit_bit::max_key(orderbook::borrow_bids(&book)) == 500, 0);
-        assert!(crit_bit::min_key(orderbook::borrow_bids(&book)) == 500, 0);
+        let (max_key_bid, _) = crit_bit::max_leaf(orderbook::borrow_bids(&book));
+        let (min_key_bid, _) = crit_bit::min_leaf(orderbook::borrow_bids(&book));
+
+        assert!(max_key_bid == 500, 0);
+        assert!(min_key_bid == 500, 0);
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
