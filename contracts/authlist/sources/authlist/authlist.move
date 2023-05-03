@@ -20,7 +20,7 @@ module ob_authlist::authlist {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
-    const ENotUpgrade: u64 = 999;
+    const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
     // === Errors ===
@@ -512,7 +512,7 @@ module ob_authlist::authlist {
 
     entry fun migrate(authlist: &mut Authlist, cap: &AuthlistOwnerCap) {
         assert_cap(authlist, cap);
-        assert!(authlist.version < VERSION, ENotUpgrade);
+        assert!(authlist.version < VERSION, ENotUpgraded);
         authlist.version = VERSION;
     }
 }

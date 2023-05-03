@@ -20,7 +20,7 @@ module nft_protocol::access_policy {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
-    const ENotUpgrade: u64 = 999;
+    const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
     /// When trying to create an access policy when it already exists

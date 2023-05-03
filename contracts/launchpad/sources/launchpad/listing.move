@@ -57,7 +57,7 @@ module ob_launchpad::listing {
     // Track the current version of the module
     const VERSION: u64 = 1;
 
-    const ENotUpgrade: u64 = 999;
+    const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
     /// `Venue` was not defined on `Listing`
@@ -935,7 +935,7 @@ module ob_launchpad::listing {
     entry fun migrate(listing: &mut Listing, ctx: &mut TxContext) {
         assert_listing_admin(listing, ctx);
 
-        assert!(listing.version < VERSION, ENotUpgrade);
+        assert!(listing.version < VERSION, ENotUpgraded);
         listing.version = VERSION;
     }
 }
