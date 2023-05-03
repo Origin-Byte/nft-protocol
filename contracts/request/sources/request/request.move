@@ -111,15 +111,9 @@ module ob_request::request {
     /// Asserts all rules have been met.
     public fun confirm<P>(self: RequestBody<P>, policy: &Policy<P>) {
         let receipts = destroy(self);
-
         let completed = vec_set::into_keys(receipts);
-        let total = vector::length(&completed);
-        assert!(total == vec_set::size(&policy.rules), EPolicyNotSatisfied);
-        while (total > 0) {
-            let rule_type = vector::pop_back(&mut completed);
-            assert!(vec_set::contains(&policy.rules, &rule_type), EIllegalRule);
-            total = total - 1;
-        };
+
+        confirm_(completed, &policy.rules);
     }
 
     public fun receipts<P>(request: &RequestBody<P>): &VecSet<TypeName> {
@@ -233,6 +227,19 @@ module ob_request::request {
         &policy.id
     }
 
+    // === Private Functions ===
+
+    fun confirm_(completed: vector<TypeName>, rules: &VecSet<TypeName>) {
+        let total = vector::length(&completed);
+        assert!(total == vec_set::size(rules), EPolicyNotSatisfied);
+
+        while (total > 0) {
+            let rule_type = vector::pop_back(&mut completed);
+            assert!(vec_set::contains(rules, &rule_type), EIllegalRule);
+            total = total - 1;
+        };
+    }
+
     // === Assertions ===
 
     /// Asserts that `Publisher` is of type `T`
@@ -247,7 +254,83 @@ module ob_request::request {
     // === Test-Only Functions ===
 
     #[test_only]
+    public fun new_policy_test<P: drop>(
+        ctx: &mut TxContext,
+    ): (Policy<P>, PolicyCap) {
+        let policy = Policy {
+            id: object::new(ctx),
+            version: VERSION,
+            rules: vec_set::empty(),
+        };
+        let cap = PolicyCap {
+            id: object::new(ctx),
+            for: object::id(&policy),
+        };
+
+        (policy, cap)
+    }
+
+    #[test_only]
     public fun consume_test<P>(self: RequestBody<P>) {
         destroy(self);
+    }
+
+    // === Tests ===
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+    #[test_only]
+    use sui::transfer;
+
+    #[test_only]
+    struct POLICY_TYPE has drop {}
+
+    #[test_only]
+    struct DummyRuleA has drop {}
+    #[test_only]
+    struct DummyRuleB has drop {}
+    #[test_only]
+    struct DummyRuleC has drop {}
+
+    #[test]
+    fun test_confirm() {
+        let scenario = test_scenario::begin(@0xA1);
+
+        let (policy, cap) = new_policy_test<POLICY_TYPE>(ctx(&mut scenario));
+
+        enforce_rule_no_state<POLICY_TYPE, DummyRuleA>(&mut policy, &cap);
+        enforce_rule_no_state<POLICY_TYPE, DummyRuleB>(&mut policy, &cap);
+        enforce_rule_no_state<POLICY_TYPE, DummyRuleC>(&mut policy, &cap);
+
+        let req = new<POLICY_TYPE>(ctx(&mut scenario));
+
+        add_receipt(&mut req, &DummyRuleA {});
+        add_receipt(&mut req, &DummyRuleB {});
+        add_receipt(&mut req, &DummyRuleC {});
+
+        confirm(req, &policy);
+
+        transfer::transfer(cap, @0xA1);
+        transfer::share_object(policy);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = ob_request::request::ENotAllowed)]
+    fun fails_to_spoof_cap() {
+        let scenario = test_scenario::begin(@0xA1);
+
+        let (policy, cap) = new_policy_test<POLICY_TYPE>(ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, @0xB1);
+        let (fake_policy, fake_cap) = new_policy_test<POLICY_TYPE>(ctx(&mut scenario));
+
+        enforce_rule_no_state<POLICY_TYPE, DummyRuleA>(&mut policy, &fake_cap);
+
+        transfer::transfer(cap, @0xA1);
+        transfer::transfer(fake_cap, @0xB1);
+        transfer::share_object(policy);
+        transfer::share_object(fake_policy);
+        test_scenario::end(scenario);
     }
 }

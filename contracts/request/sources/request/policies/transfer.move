@@ -245,6 +245,7 @@ module ob_request::transfer_request {
     public fun init_policy<T>(
         publisher: &Publisher, ctx: &mut TxContext,
     ): (TransferPolicy<T>, TransferPolicyCap<T>) {
+        // Asserts Publisher in `new`
         let (policy, cap) = transfer_policy::new(publisher, ctx);
 
         // Register policy in the OriginByte ecosystem

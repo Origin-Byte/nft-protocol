@@ -7,6 +7,8 @@ module ob_launchpad::flat_fee {
 
     use originmate::object_box;
 
+    use ob_utils::math;
+    use ob_utils::utils;
     use ob_launchpad::proceeds;
     use ob_launchpad::listing::{Self, Listing};
     use ob_launchpad::marketplace::{Self as mkt, Marketplace};
@@ -61,7 +63,7 @@ module ob_launchpad::flat_fee {
 
         let policy = object_box::borrow<FlatFee>(fee_policy);
 
-        let fee = balance::value(proceeds_value) * policy.rate_bps / 10_000;
+        let fee = calc_fee(balance::value(proceeds_value), policy.rate_bps);
 
         proceeds::collect_with_fees<FT>(
             listing::borrow_proceeds_mut(listing),
@@ -70,5 +72,53 @@ module ob_launchpad::flat_fee {
             listing_receiver,
             ctx,
         );
+    }
+
+    fun calc_fee(proceeds_value: u64, rate_bps: u64): u64 {
+        let (_, div) = math::div_round(rate_bps, (utils::bps() as u64));
+        let (_, result) = math::mul_round(div, proceeds_value);
+        result
+    }
+
+    // === Tests ==
+
+    #[test]
+    fun test_calc_fee() {
+        let proceeds = 143_534_456;
+        let rate_bps = 700; // 5%
+
+        assert!(calc_fee(proceeds, rate_bps) == 10_047_411, 0);
+    }
+
+    #[test]
+    fun test_precision_() {
+        // Round 1
+        let trade = 7_777_777_777_777_777_777;
+
+        assert!(calc_fee(trade, 555) == 431_666_666_666_666_666, 0);
+
+        // Round 2
+        let trade = 777_777_777_777_777_777;
+        assert!(calc_fee(trade, 555) == 431_666_666_666_666_66, 0);
+
+        // Round 3
+        let trade = 777_777_777_777_777_77;
+        assert!(calc_fee(trade, 555) == 431_666_666_666_666_6, 0);
+
+        // Round 4
+        let trade = 777_777_777_777_777_7;
+        assert!(calc_fee(trade, 555) == 431_666_666_666_666, 0);
+
+        // Round 5
+        let trade = 777_777_777_777;
+        assert!(calc_fee(trade, 555) == 431_666_666_66, 0);
+
+        // Round 6
+        let trade = 777_777_777;
+        assert!(calc_fee(trade, 555) == 431_666_66, 0);
+
+        // Round 7
+        let trade = 777_777;
+        assert!(calc_fee(trade, 555) == 431_66, 0);
     }
 }
