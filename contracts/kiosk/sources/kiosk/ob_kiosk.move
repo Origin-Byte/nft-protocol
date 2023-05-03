@@ -980,7 +980,8 @@ module ob_kiosk::ob_kiosk {
             utf8(b"Stores NFTs, manages listings, sales and more!"),
         );
 
-        public_share_object(display);
+        display::update_version(&mut display);
+        public_transfer(display, tx_context::sender(ctx));
         package::burn_publisher(publisher);
     }
 

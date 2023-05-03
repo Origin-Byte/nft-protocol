@@ -429,7 +429,8 @@ module ob_allowlist::allowlist {
             utf8(b"Defines which contracts are allowed to transfer collections"),
         );
 
-        transfer::public_share_object(display);
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
         package::burn_publisher(publisher);
     }
 

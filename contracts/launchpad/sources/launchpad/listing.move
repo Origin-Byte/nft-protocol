@@ -756,6 +756,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): &mut Venue {
+        assert_version(listing);
         let venue = borrow_venue_mut(listing, venue_id);
         venue::assert_market<Market, MarketKey>(key, venue);
 
@@ -771,6 +772,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): &mut Market {
+        assert_version(listing);
         let venue =
             venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
         venue::borrow_market_mut(key, venue)
@@ -787,6 +789,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): Venue {
+        assert_version(listing);
         let venue = object_table::remove(&mut listing.venues, venue_id);
         venue::assert_market<Market, MarketKey>(key, &venue);
         venue
@@ -836,6 +839,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         inventory_id: ID,
     ): &mut Inventory<T> {
+        assert_version(listing);
         venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
         borrow_inventory_mut(listing, inventory_id)
     }
@@ -852,6 +856,7 @@ module ob_launchpad::listing {
         inventory_id: ID,
         ctx: &mut TxContext,
     ): &mut Inventory<T> {
+        assert_version(listing);
         assert_listing_admin(listing, ctx);
         borrow_inventory_mut(listing, inventory_id)
     }
