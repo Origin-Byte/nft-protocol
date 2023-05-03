@@ -266,6 +266,7 @@ module nft_protocol::royalty {
         amount: u64,
     ) {
         let delegated_witness = witness::from_witness(Witness {});
+
         let domain: &mut RoyaltyDomain =
             collection::borrow_domain_mut(delegated_witness, collection);
 

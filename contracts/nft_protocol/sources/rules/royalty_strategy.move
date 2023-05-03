@@ -253,9 +253,6 @@ module nft_protocol::royalty_strategy_bps {
 
     // === Tests ===
 
-    #[test_only]
-    use std::debug;
-
     #[test]
     fun test_royalties() {
         let trade = 1_000_000;
@@ -264,13 +261,9 @@ module nft_protocol::royalty_strategy_bps {
             (1_000 as u64), (utils::bps() as u64)
         );
 
-        debug::print(&royalty_rate);
-
-        let (_, royalties) = math::mul_round(
+        let (_, _) = math::mul_round(
             trade, royalty_rate,
         );
-
-        debug::print(&royalties);
     }
 
     #[test]
