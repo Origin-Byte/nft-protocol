@@ -187,7 +187,7 @@ module nft_protocol::collection {
     ///
     /// Panics if domain does not exist.
     public fun borrow_domain_mut<C, Domain: store>(
-        _witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<Domain>,
         collection: &mut Collection<C>,
     ): &mut Domain {
         assert_domain<C, Domain>(collection);
