@@ -3,6 +3,7 @@ module nft_protocol::access_policy {
     use std::type_name::{Self, TypeName};
 
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::table::{Self, Table};
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
@@ -14,9 +15,13 @@ module nft_protocol::access_policy {
 
     use ob_utils::utils;
     use nft_protocol::collection::{Self, Collection};
+    use nft_protocol::nft_protocol::NFT_PROTOCOL;
 
     // Track the current version of the module
     const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
 
     /// When trying to create an access policy when it already exists
     const EACCESS_POLICY_ALREADY_EXISTS: u64 = 1;
@@ -115,6 +120,8 @@ module nft_protocol::access_policy {
     public fun confirm<Auth: drop, T: key + store>(
         self: &AccessPolicy<T>, req: &mut BorrowRequest<Auth, T>, ctx: &mut TxContext,
     ) {
+        assert_version(self);
+
         if (borrow_request::is_borrow_field(req)) {
             let field = borrow_request::field(req);
             assert_field_auth<T>(self, field, ctx);
@@ -132,6 +139,7 @@ module nft_protocol::access_policy {
             collection
         );
 
+        assert_version(access_policy);
         confirm(access_policy, req, ctx);
     }
 
@@ -147,6 +155,8 @@ module nft_protocol::access_policy {
         access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
     ) {
+        assert_version(access_policy);
+
         utils::insert_vec_in_vec_set(
             &mut access_policy.parent_access,
             addresses
@@ -163,6 +173,8 @@ module nft_protocol::access_policy {
         access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
     ) {
+        assert_version(access_policy);
+
         // Get table vec
         let vec_set = table::borrow_mut(
             &mut access_policy.field_access, type_name::get<Field>()
@@ -187,6 +199,8 @@ module nft_protocol::access_policy {
             collection
         );
 
+        assert_version(access_policy);
+
         utils::insert_vec_in_vec_set(&mut access_policy.parent_access, addresses);
     }
 
@@ -204,6 +218,8 @@ module nft_protocol::access_policy {
             witness,
             collection
         );
+
+        assert_version(access_policy);
 
         // Get table vec
         let vec_set = table::borrow_mut(
@@ -257,4 +273,24 @@ module nft_protocol::access_policy {
         table::new(ctx)
     }
 
+    // === Upgradeability ===
+
+    fun assert_version<T: key + store>(self: &AccessPolicy<T>) {
+        assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `T` can upgrade
+    entry fun migrate_as_creator<T: key + store>(
+        self: &mut AccessPolicy<T>, pub: &Publisher
+    ) {
+        assert!(package::from_package<T>(pub), 0);
+        self.version = VERSION;
+    }
+
+    entry fun migrate_as_pub<T: key + store>(
+        self: &mut AccessPolicy<T>, pub: &Publisher
+    ) {
+        assert!(package::from_package<NFT_PROTOCOL>(pub), 0);
+        self.version = VERSION;
+    }
 }

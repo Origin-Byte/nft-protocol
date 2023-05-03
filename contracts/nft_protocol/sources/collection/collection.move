@@ -12,6 +12,7 @@ module nft_protocol::collection {
     use std::string;
 
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::display::{Self, Display};
     use sui::transfer;
     use sui::object::{Self, UID, ID};
@@ -25,6 +26,9 @@ module nft_protocol::collection {
 
     // Track the current version of the module
     const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
 
     /// Domain not defined
     ///
@@ -276,6 +280,22 @@ module nft_protocol::collection {
 
         display
     }
+
+    // === Upgradeability ===
+
+    fun assert_version<T: key + store>(collection: &Collection<T>) {
+        assert!(collection.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `T` can upgrade
+    entry fun migrate_as_creator<T: key + store>(
+        collection: &mut Collection<T>,
+        pub: &Publisher
+    ) {
+        assert!(package::from_package<T>(pub), 0);
+        collection.version = VERSION;
+    }
+
 
     // === Test-Only ===
 

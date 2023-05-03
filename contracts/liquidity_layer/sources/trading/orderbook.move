@@ -28,6 +28,7 @@ module liquidity_layer::orderbook {
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::kiosk::{Self, Kiosk};
     use sui::object::{Self, ID, UID};
     use sui::transfer::share_object;
@@ -40,9 +41,13 @@ module liquidity_layer::orderbook {
     use ob_utils::crit_bit::{Self, CritbitTree};
 
     use liquidity_layer::trading;
+    use liquidity_layer::liquidity_layer::LIQUIDITY_LAYER;
 
     // Track the current version of the module
     const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
 
     // 1 SUI == 1_000_000_000 MIST
     // 0.1 SUI == 100_000_000 MIST
@@ -871,6 +876,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        assert_version(book);
         assert_tick_level(price, book.tick_size);
 
         ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
@@ -1095,6 +1101,8 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<trading::BidCommission<FT>> {
+        assert_version(book);
+
         let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
 
@@ -1143,6 +1151,8 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
+        assert_version(book);
+
         let commission =
             cancel_bid_except_commission(book, bid_price_level, wallet, ctx);
 
@@ -1185,6 +1195,7 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        assert_version(book);
         assert_tick_level(price, book.tick_size);
 
         // we cannot transfer the NFT straight away because we don't know
@@ -1265,6 +1276,8 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<trading::AskCommission> {
+        assert_version(book);
+
         let sender = tx_context::sender(ctx);
 
         let Ask {
@@ -1299,6 +1312,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        assert_version(book);
         let buyer = tx_context::sender(ctx);
 
         let Ask {
@@ -1350,6 +1364,8 @@ module liquidity_layer::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        assert_version(book);
+
         let trade = df::remove(
             &mut book.id, TradeIntermediateDfKey<T, FT> { trade_id }
         );
@@ -1443,6 +1459,27 @@ module liquidity_layer::orderbook {
         price >= tick_size
     }
 
+    // === Upgradeability ===
+
+    fun assert_version<T: key + store, FT>(self: &Orderbook<T, FT>) {
+        assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `T` can upgrade
+    entry fun migrate_as_creator<T: key + store, FT>(
+        self: &mut Orderbook<T, FT>, pub: &Publisher
+    ) {
+        assert!(package::from_package<T>(pub), 0);
+        self.version = VERSION;
+    }
+
+    entry fun migrate_as_pub<T: key + store, FT>(
+        self: &mut Orderbook<T, FT>, pub: &Publisher
+    ) {
+        assert!(package::from_package<LIQUIDITY_LAYER>(pub), 0);
+        self.version = VERSION;
+    }
+
     #[test]
     fun test_tick_size_enforcement() {
         // 1 SUI == 1_000_000_000 MIST
@@ -1450,7 +1487,6 @@ module liquidity_layer::orderbook {
         // 0.01 SUI == 10_000_000 MIST
         // 0.001 SUI == 1_000_000 MIST
         // const DEFAULT_TICK_SIZE: u64 = 1_000_000;
-
 
         assert!(check_tick_level(1, DEFAULT_TICK_SIZE) == false, 0);
         assert!(check_tick_level(10, DEFAULT_TICK_SIZE) == false, 0);
@@ -1473,7 +1509,6 @@ module liquidity_layer::orderbook {
         assert!(check_tick_level(100_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
         assert!(check_tick_level(1_000_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
         assert!(check_tick_level(10_000_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
-
     }
 
     #[test]

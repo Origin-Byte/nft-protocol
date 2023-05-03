@@ -61,6 +61,7 @@ module ob_permissions::quorum {
     use std::option;
 
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::math;
     use sui::transfer;
     use sui::vec_set::{Self, VecSet};
@@ -68,8 +69,13 @@ module ob_permissions::quorum {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
+    use ob_permissions::permissions::PERMISSIONS;
+
     // Track the current version of the module
     const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
 
     // === Errors ===
 
@@ -201,6 +207,8 @@ module ob_permissions::quorum {
         new_admin: address,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
+
         let (vote_count, threshold) = vote(quorum, AddAdmin { admin: new_admin}, ctx);
 
         if (vote_count >= threshold) {
@@ -215,6 +223,8 @@ module ob_permissions::quorum {
         old_admin: address,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
+
         assert!(quorum.admin_count == 1, EMinAdminCountIsOne);
 
         let (vote_count, threshold) = vote(quorum, RemoveAdmin { admin: old_admin}, ctx);
@@ -232,6 +242,7 @@ module ob_permissions::quorum {
         ext_token: &ExtensionToken<F>,
         new_admin: address,
     ) {
+        assert_version(quorum);
         assert_extension_token(quorum, ext_token);
 
         vec_set::insert(&mut quorum.admins, new_admin);
@@ -243,6 +254,7 @@ module ob_permissions::quorum {
         ext_token: &ExtensionToken<F>,
         old_admin: address,
     ) {
+        assert_version(quorum);
         assert_extension_token(quorum, ext_token);
         vec_set::remove(&mut quorum.admins, &old_admin);
 
@@ -256,6 +268,8 @@ module ob_permissions::quorum {
         entity: ID,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
+
         let (vote_count, threshold) = vote(quorum, AddDelegate { entity }, ctx);
 
         if (vote_count >= threshold) {
@@ -269,6 +283,8 @@ module ob_permissions::quorum {
         entity: ID,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
+
         assert!(quorum.admin_count > 1, EMinAdminCountIsOne);
 
         let (vote_count, threshold) = vote(quorum, RemoveDelegate { entity }, ctx);
@@ -284,6 +300,7 @@ module ob_permissions::quorum {
         ext_token: &ExtensionToken<F>,
         entity: ID,
     ) {
+        assert_version(quorum);
         assert_extension_token(quorum, ext_token);
         vec_set::insert(&mut quorum.delegates, entity);
     }
@@ -293,6 +310,7 @@ module ob_permissions::quorum {
         ext_token: &ExtensionToken<F>,
         entity: ID,
     ) {
+        assert_version(quorum);
         assert_extension_token(quorum, ext_token);
         vec_set::remove(&mut quorum.delegates, &entity);
     }
@@ -302,6 +320,7 @@ module ob_permissions::quorum {
         field: Field,
         ctx: &mut TxContext,
     ): (u64, u64) {
+        assert_version(quorum);
         assert_admin(quorum, ctx);
 
         let signatures_exist = df::exists_(
@@ -370,7 +389,9 @@ module ob_permissions::quorum {
         member: address,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
         assert_admin<F>(quorum, ctx);
+
         vec_set::insert(&mut quorum.members, member);
     }
 
@@ -379,7 +400,9 @@ module ob_permissions::quorum {
         member: address,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
         assert_admin<F>(quorum, ctx);
+
         vec_set::remove(&mut quorum.members, &member);
     }
 
@@ -391,6 +414,7 @@ module ob_permissions::quorum {
         admin_only: bool,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
         assert_admin<F>(quorum, ctx);
         insert_cap_(quorum, cap_object, admin_only);
     }
@@ -399,6 +423,7 @@ module ob_permissions::quorum {
         quorum: &mut Quorum<F>,
         ctx: &mut TxContext,
     ): (T, ReturnReceipt<F, T>) {
+        assert_version(quorum);
         assert_member_or_admin(quorum, ctx);
         let is_admin_field = df::exists_(
             &mut quorum.id, AdminField {type_name: type_name::get<T>()}
@@ -435,6 +460,7 @@ module ob_permissions::quorum {
         receipt: ReturnReceipt<F, T>,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
         return_cap_(quorum, cap_object, ctx);
         burn_receipt(receipt);
     }
@@ -444,6 +470,7 @@ module ob_permissions::quorum {
         delegate: &Quorum<F2>,
         ctx: &mut TxContext,
     ): (T, ReturnReceipt<F1, T>) {
+        assert_version(quorum);
         assert_delegate(quorum, &delegate.id);
         assert_member_or_admin(delegate, ctx);
 
@@ -483,6 +510,7 @@ module ob_permissions::quorum {
         receipt: ReturnReceipt<F1, T>,
         ctx: &mut TxContext,
     ) {
+        assert_version(quorum);
         assert_delegate(quorum, &delegate.id);
         assert_member_or_admin(delegate, ctx);
 
@@ -600,5 +628,26 @@ module ob_permissions::quorum {
             vec_set::contains(&quorum.delegates, object::uid_as_inner(delegate_uid)),
             EInvalidDelegate
         );
+    }
+
+    // === Upgradeability ===
+
+    fun assert_version<F>(self: &Quorum<F>) {
+        assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `F` can upgrade
+    entry fun migrate_as_creator<F>(
+        self: &mut Quorum<F>, pub: &Publisher,
+    ) {
+        assert!(package::from_package<F>(pub), 0);
+        self.version = VERSION;
+    }
+
+    entry fun migrate_as_pub<F>(
+        self: &mut Quorum<F>, pub: &Publisher
+    ) {
+        assert!(package::from_package<PERMISSIONS>(pub), 0);
+        self.version = VERSION;
     }
 }
