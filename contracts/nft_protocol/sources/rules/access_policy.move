@@ -9,7 +9,7 @@ module nft_protocol::access_policy {
     use sui::tx_context::{Self, TxContext};
     use sui::vec_set::{Self, VecSet};
 
-    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use ob_request::request::{Self, Policy, PolicyCap, WithNft};
     use ob_request::borrow_request::{Self, BorrowRequest};
 
@@ -190,12 +190,14 @@ module nft_protocol::access_policy {
     ///
     /// This endpoint is witness protected on a collection `C` level.
     public fun add_parent_access<T: key + store>(
-        witness: DelegatedWitness<T>,
+        _witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         addresses: vector<address>,
     ) {
+        let delegated_witness = witness::from_witness(Witness {});
+
         let access_policy = collection::borrow_domain_mut<T, AccessPolicy<T>>(
-            witness,
+            delegated_witness,
             collection
         );
 
@@ -210,12 +212,14 @@ module nft_protocol::access_policy {
     ///
     /// This endpoint is witness protected on a collection `C` level.
     public fun add_field_access<T: key + store, Field: store>(
-        witness: DelegatedWitness<T>,
+        _witness: DelegatedWitness<T>,
         collection: &mut Collection<T>,
         addresses: vector<address>,
     ) {
+        let delegated_witness = witness::from_witness(Witness {});
+
         let access_policy = collection::borrow_domain_mut<T, AccessPolicy<T>>(
-            witness,
+            delegated_witness,
             collection
         );
 
