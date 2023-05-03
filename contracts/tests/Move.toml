@@ -32,6 +32,9 @@ local = "./../kiosk"
 [dependencies.LiquidityLayer]
 local = "./../liquidity_layer"
 
+[dependencies.LiquidityLayerV1]
+local = "./../liquidity_layer_v1"
+
 [dependencies.NftProtocol]
 local = "./../nft_protocol"
 
