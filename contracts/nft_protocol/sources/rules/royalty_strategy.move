@@ -1,8 +1,6 @@
 module nft_protocol::royalty_strategy_bps {
     use std::option::{Self, Option};
 
-    use std::debug;
-
     use sui::balance::{Self, Balance};
     use sui::package::{Self, Publisher};
     use sui::object::{Self, UID};
