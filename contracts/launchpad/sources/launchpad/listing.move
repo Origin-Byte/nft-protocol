@@ -285,7 +285,7 @@ module ob_launchpad::listing {
     /// #### Panics
     ///
     /// Panics if balance is not enough to fund price
-    public fun pay_and_emit_sold_event<FT, T: key>(
+    public(friend) fun pay_and_emit_sold_event<FT, T: key>(
         listing: &mut Listing,
         nft: &T,
         funds: Balance<FT>,
@@ -377,7 +377,7 @@ module ob_launchpad::listing {
     /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
     /// - `user_commitment` does not match the hashed commitment in
     /// `RedeemCommitment`
-    public fun buy_random_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
+    public(friend) fun buy_random_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
         listing: &mut Listing,
         key: MarketKey,
         commitment: RedeemCommitment,
@@ -473,6 +473,10 @@ module ob_launchpad::listing {
 
     /// Adds a fee object to the Listing's `custom_fee`
     ///
+    /// This function should be called by the marketplace.
+    /// If there the listing is not attached to a marketplace
+    /// then if does not make sense to pay fees.
+    ///
     /// Can only be called by the `Marketplace` admin
     public entry fun add_fee<FeeType: key + store>(
         marketplace: &Marketplace,
@@ -482,12 +486,10 @@ module ob_launchpad::listing {
     ) {
         mkt::assert_version(marketplace);
         assert_version(listing);
-        assert_listing_marketplace_match(marketplace, listing);
 
-        // This function should be called by the marketplace.
-        // If there the listing is not attached to a marketplace
-        // then if does not make sense to pay fees.
+        assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
+
         obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
 
@@ -873,6 +875,10 @@ module ob_launchpad::listing {
     // === Assertions ===
 
     public fun assert_listing_marketplace_match(marketplace: &Marketplace, listing: &Listing) {
+        assert!(
+            option::is_some<TypedID<Marketplace>>(&listing.marketplace_id), EMarketplaceListingMismatch
+        );
+
         assert!(
             object::id(marketplace) == *typed_id::as_id(
                 option::borrow<TypedID<Marketplace>>(&listing.marketplace_id)
