@@ -451,6 +451,8 @@ module ob_kiosk::ob_kiosk {
         price: u64,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        assert_version(ext(source));
+
         let (nft, req) = transfer_nft_(source, nft_id, sender(ctx), price, ctx);
         deposit(target, nft, ctx);
         req
@@ -568,6 +570,7 @@ module ob_kiosk::ob_kiosk {
         owner_token: OwnerToken,
         ctx: &mut TxContext,
     ) {
+        assert_version(ext(self));
         assert!(owner_token.kiosk == object::id(self), EIncorrectOwnerToken);
         assert_owner_address(self, sender(ctx));
 
@@ -1071,5 +1074,17 @@ module ob_kiosk::ob_kiosk {
         ctx: &mut TxContext,
     ): (ID, ID) {
         p2p_transfer_and_create_target_kiosk<T>(source, target, nft_id, ctx)
+    }
+
+    #[test_only]
+    use sui::test_scenario::{Self, ctx};
+
+    #[test]
+    public fun assert_version_test() {
+        let scenario = test_scenario::begin(@0x2);
+        let kiosk = new_permissionless(ctx(&mut scenario));
+        assert_version(ext(&mut kiosk));
+        public_share_object(kiosk);
+        test_scenario::end(scenario);
     }
 }
