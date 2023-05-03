@@ -500,7 +500,8 @@ module ob_authlist::authlist {
             utf8(b"Defines which pubkeys are allowed to perform protected actions on collections."),
         );
 
-        transfer::public_share_object(display);
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
         package::burn_publisher(publisher);
     }
 
