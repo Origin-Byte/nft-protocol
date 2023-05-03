@@ -193,7 +193,7 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     fun compute_(bps: u16, amount: u64): u64 {
-        // Royalty BPS has a cap of 10_000
+        // Royalty BPS has a cap of 10_777
         let (_, royalty_rate) = math::div_round(
             (bps as u64), (utils::bps() as u64)
         );
@@ -409,5 +409,38 @@ module nft_protocol::royalty_strategy_bps {
 
         let royalties = compute_(1, trade);
         assert!(royalties == 0, 0);
+    }
+
+    #[test]
+    fun test_precision_() {
+        // Round 1
+        let trade = 7_777_777_777_777_777_777;
+        let rate = 555;
+
+        assert!(compute_(555, trade) == 431_666_666_666_666_666, 0);
+
+        // Round 2
+        let trade = 777_777_777_777_777_777;
+        assert!(compute_(rate, trade) == 431_666_666_666_666_66, 0);
+
+        // Round 3
+        let trade = 777_777_777_777_777_77;
+        assert!(compute_(rate, trade) == 431_666_666_666_666_6, 0);
+
+        // Round 4
+        let trade = 777_777_777_777_777_7;
+        assert!(compute_(rate, trade) == 431_666_666_666_666, 0);
+
+        // Round 5
+        let trade = 777_777_777_777;
+        assert!(compute_(rate, trade) == 431_666_666_66, 0);
+
+        // Round 6
+        let trade = 777_777_777;
+        assert!(compute_(rate, trade) == 431_666_66, 0);
+
+        // Round 7
+        let trade = 777_777;
+        assert!(compute_(rate, trade) == 431_66, 0);
     }
 }

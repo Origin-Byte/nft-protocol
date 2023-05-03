@@ -20,5 +20,8 @@ local = "./../kiosk"
 [dependencies.Pseudorandom]
 local = "./../pseudorandom"
 
+[dependencies.Utils]
+local = "./../utils"
+
 [addresses]
 ob_launchpad = "0xbcd22c469cdf81b19f167227a373c3dff30a986384ff568667fe0cfe1eb2419f"

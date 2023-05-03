@@ -953,6 +953,63 @@ module ob_tests::test_ob_kiosk {
         test_scenario::end(scenario);
     }
 
+    #[test]
+    public fun test_kiosk_new_permissionless() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        ob_kiosk::create_permissionless(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        check_new_kiosk(&mut kiosk, @0xb);
+
+        // 3. Checks `OwnerToken` was not created
+        assert!(!test_scenario::has_most_recent_immutable<OwnerToken>(), 0);
+
+        test_scenario::return_shared(kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = ob_kiosk::ob_kiosk::EKioskNotPermissionless)]
+    public fun test_try_permissionless_to_permissioned() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        ob_kiosk::create_for_sender(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        ob_kiosk::set_permissionless_to_permissioned(
+            &mut kiosk, creator(), ctx(&mut scenario),
+        );
+
+        check_new_kiosk(&mut kiosk, creator());
+
+        test_scenario::return_shared(kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_permissionless_to_permissioned() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        ob_kiosk::create_permissionless(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        ob_kiosk::set_permissionless_to_permissioned(
+            &mut kiosk, creator(), ctx(&mut scenario),
+        );
+
+        test_scenario::return_shared(kiosk);
+        test_scenario::end(scenario);
+    }
+
     fun check_new_kiosk(kiosk: &mut Kiosk, kiosk_owner: address) {
         // 1. Check all static fields
         assert!(kiosk::owner(kiosk) == kiosk_owner, 0);
