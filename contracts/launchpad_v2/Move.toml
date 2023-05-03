@@ -12,7 +12,7 @@ rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
 # testnet-1.0.0
-rev = "d42ea29d49cb33efce81e214d9e733ef15440a91"
+rev = "36e02283fa00451e8476a1bbc201af9a248396de"
 
 [dependencies.NftProtocol]
 local = "./../nft_protocol"
