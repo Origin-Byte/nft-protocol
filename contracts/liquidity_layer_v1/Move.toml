@@ -1,7 +1,7 @@
 [package]
-name = "LaunchpadV2"
+name = "LiquidityLayerV1"
 version = "1.2.0"
-published-at = "0x10"
+published-at = "0x8"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -14,14 +14,23 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # testnet-1.0.0
 rev = "36e02283fa00451e8476a1bbc201af9a248396de"
 
-[dependencies.NftProtocol]
-local = "./../nft_protocol"
+[dependencies.Permissions]
+local = "./../permissions"
+
+[dependencies.Authlist]
+local = "./../authlist"
+
+[dependencies.Allowlist]
+local = "./../allowlist"
+
+[dependencies.Request]
+local = "./../request"
+
+[dependencies.Kiosk]
+local = "./../kiosk"
 
 [dependencies.Utils]
 local = "./../utils"
 
-[dependencies.Pseudorandom]
-local = "./../pseudorandom"
-
 [addresses]
-ob_launchpad_v2 = "0x10"
+liquidity_layer_v1 = "0x8"
