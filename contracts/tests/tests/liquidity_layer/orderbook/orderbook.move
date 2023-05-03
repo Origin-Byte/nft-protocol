@@ -8,7 +8,7 @@ module ob_tests::orderbook {
     use std::option;
     use std::vector;
 
-    use sui::coin;
+    use sui::coin::{Self, Coin};
     use sui::object;
     use sui::kiosk;
     use sui::transfer;
@@ -29,6 +29,7 @@ module ob_tests::orderbook {
     use liquidity_layer::orderbook::{Self, Orderbook};
     use nft_protocol::transfer_allowlist;
     use nft_protocol::royalty;
+    use nft_protocol::collection::Collection;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
 
@@ -233,12 +234,13 @@ module ob_tests::orderbook {
         // 1. Create Collection and Orderbook
         let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let dw = witness::from_witness(test_utils::witness());
 
         // 2. Add Royalty Policy and Allowlist
         let royalty_domain = royalty::from_address(creator(), ctx(&mut scenario));
 
         royalty_strategy_bps::create_domain_and_add_strategy<Foo>(
-            witness::from_witness(test_utils::witness()), &mut collection, royalty_domain, 100, ctx(&mut scenario),
+            dw, &mut collection, royalty_domain, 100, ctx(&mut scenario),
         );
 
         // Get allowlist. This can be any allowlist created by anyone but we create
@@ -326,6 +328,27 @@ module ob_tests::orderbook {
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
+        // Collect royalties as the creator
+        test_scenario::next_tx(&mut scenario, creator());
+
+        let collection = test_scenario::take_shared<Collection<Foo>>(&mut scenario);
+
+        royalty_strategy_bps::collect_royalties<Foo, SUI>(
+            &mut collection, &mut royalty_engine
+        );
+
+        royalty::distribute_royalties<Foo, SUI>(&mut collection, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, creator());
+        let profits =
+            test_scenario::take_from_address<Coin<SUI>>(&scenario, creator());
+
+        // The trade price is 100_000_000
+        // The royalty is 100 basis points (i.e. 1%)
+        // Therefore the profits are 1_000_000
+        assert!(coin::value(&profits) == 1_000_000, 0);
+
+        test_scenario::return_to_address(creator(), profits);
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
         transfer::public_transfer(mint_cap, creator());
@@ -336,6 +359,7 @@ module ob_tests::orderbook {
         test_scenario::return_shared(book);
         test_scenario::return_shared(al);
         test_scenario::return_shared(royalty_engine);
+        test_scenario::return_shared(collection);
         test_scenario::end(scenario);
     }
 

@@ -1,3 +1,4 @@
+#[test_only]
 module ob_launchpad::test_fees {
     use sui::balance;
     use sui::sui::SUI;
