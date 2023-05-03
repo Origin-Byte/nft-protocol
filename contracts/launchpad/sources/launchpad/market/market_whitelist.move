@@ -67,7 +67,7 @@ module ob_launchpad::market_whitelist {
     }
 
     /// Burns a `Certificate`
-    public fun burn(
+    public entry fun burn(
         certificate: Certificate,
     ) {
         let Certificate {
