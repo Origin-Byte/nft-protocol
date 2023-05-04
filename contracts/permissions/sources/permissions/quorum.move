@@ -285,7 +285,7 @@ module ob_permissions::quorum {
     ) {
         assert_version(quorum);
 
-        assert!(quorum.admin_count > 1, EMinAdminCountIsOne);
+        assert!(quorum.admin_count >= 1, EMinAdminCountIsOne);
 
         let (vote_count, threshold) = vote(quorum, RemoveDelegate { entity }, ctx);
 
@@ -979,6 +979,31 @@ module ob_permissions::quorum {
         let quorum: Quorum<Foo> = create(&Foo {}, vec_set::empty(), vec_set::empty(), vec_set::empty(), ctx);    
 
         vote_add_delegate(&mut quorum, delegate_inner_id_1, ctx);
+
+        object::delete(delegate_uid_1);
+        transfer::public_share_object(quorum);
+        ts::end(scenario);
+    }
+
+    #[test]
+    fun test_vote_remove_delegate_success() {
+        use sui::test_scenario as ts;
+        use ob_utils::utils::{Self};
+
+        let scenario = ts::begin(QUORUM);
+        let sender = ts::sender(&mut scenario);
+        let admins = utils::vec_set_from_vec(&vector[sender]); 
+
+        let delegate_uid_1 = ts::new_object(&mut scenario);
+        let delegate_inner_id_1 = object::uid_to_inner(&delegate_uid_1);
+        let delegates = utils::vec_set_from_vec(&vector[delegate_inner_id_1]);
+
+        let ctx = ts::ctx(&mut scenario);
+        let quorum: Quorum<Foo> = create(&Foo {}, admins, vec_set::empty(), delegates, ctx);    
+
+        vote_remove_delegate(&mut quorum, delegate_inner_id_1, ctx);
+
+        assert!(!vec_set::contains(&quorum.delegates, &delegate_inner_id_1), 1);
 
         object::delete(delegate_uid_1);
         transfer::public_share_object(quorum);
