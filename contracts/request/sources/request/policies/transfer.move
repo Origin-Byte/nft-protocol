@@ -31,6 +31,8 @@
 /// * `nft_protocol::allowlist::enforce`
 /// * `nft_protocol::royalty_strategy_bps::enforce`
 module ob_request::transfer_request {
+    use std::option::{Self, Option, none, some};
+
     use sui::balance::{Self, Balance};
     use sui::coin;
     use sui::dynamic_field as df;
@@ -87,6 +89,11 @@ module ob_request::transfer_request {
         metadata: UID,
     }
 
+    struct FeeBalance<phantom FT> has store {
+        balance: Balance<FT>,
+        beneficiary: address,
+    }
+
     /// TLDR:
     /// * + easier interface
     /// * + pay royalties from what's been paid
@@ -124,6 +131,11 @@ module ob_request::transfer_request {
     /// Stores balance on `TransferRequest` as dynamic field in the metadata.
     struct BalanceDfKey has copy, store, drop {}
 
+    // Stores inner fee from the trde price. Sometimes the BalanceDfKey will only
+    // capture the net price, and in those cases we capture the rest of the gross
+    // price here.
+    struct FeeBalanceDfKey has copy, store, drop {}
+
     struct OBCustomRulesDfKey has copy, store, drop {}
 
     // === TransferRequest ===
@@ -152,6 +164,22 @@ module ob_request::transfer_request {
     ) {
         self.beneficiary = beneficiary;
         df::add(metadata_mut(self), BalanceDfKey {}, paid);
+    }
+
+    /// Aborts unless called exactly once.
+    public fun set_paid_with_fee<T, FT>(
+        self: &mut TransferRequest<T>,
+        paid: Balance<FT>,
+        beneficiary: address,
+        fee: Balance<FT>,
+        fee_beneficiary: address,
+    ) {
+        self.beneficiary = beneficiary;
+        df::add(metadata_mut(self), BalanceDfKey {}, paid);
+        df::add(
+            metadata_mut(self),
+            FeeBalanceDfKey {}, FeeBalance {balance: fee, beneficiary: fee_beneficiary}
+        );
     }
 
     /// Sets empty SUI token balance.
@@ -226,6 +254,7 @@ module ob_request::transfer_request {
         // the sui transfer policy doesn't support our balance association
         // and therefore just send the coin to the beneficiary directly
         distribute_balance_to_beneficiary<T, SUI>(&mut self, ctx);
+        distribute_fee_to_intermediary<T, SUI>(&mut self, ctx);
 
         let TransferRequest {
             nft: _,
@@ -309,6 +338,8 @@ module ob_request::transfer_request {
         ctx: &mut TxContext,
     ) {
         distribute_balance_to_beneficiary<T, FT>(&mut self, ctx);
+        distribute_fee_to_intermediary<T, SUI>(&mut self, ctx);
+
         let TransferRequest {
             nft: _,
             originator: _,
@@ -344,6 +375,31 @@ module ob_request::transfer_request {
         };
     }
 
+    public fun distribute_fee_to_intermediary<T, FT>(
+        self: &mut TransferRequest<T>, ctx: &mut TxContext,
+    ) {
+        let metadata = metadata_mut(self);
+
+        let fee_opt = df::remove_if_exists<FeeBalanceDfKey, FeeBalance<FT>>(metadata, FeeBalanceDfKey {});
+
+        if (option::is_none(&fee_opt)) {
+            option::destroy_none(fee_opt);
+            return
+        };
+
+        let fee_balance: FeeBalance<FT> = option::extract(&mut fee_opt);
+
+        let FeeBalance<FT> { balance, beneficiary } = fee_balance;
+
+        if (balance::value(&balance) > 0) {
+            public_transfer(coin::from_balance(balance, ctx), beneficiary);
+        } else {
+            balance::destroy_zero(balance);
+        };
+
+        option::destroy_none(fee_opt);
+    }
+
     // === Getters ===
 
     public fun paid_in_ft_mut<T, FT>(
@@ -358,6 +414,13 @@ module ob_request::transfer_request {
     ): (&mut Balance<SUI>, address) {
         let beneficiary = self.beneficiary;
         (balance_mut_(self), beneficiary)
+    }
+
+    public fun paid_in_fees_mut<T, FT>(
+        self: &mut TransferRequest<T>, _cap: &BalanceAccessCap<T>,
+    ): (&mut Balance<FT>, address) {
+        let fee_balance = df::borrow_mut<FeeBalanceDfKey, FeeBalance<FT>>(&mut self.metadata, FeeBalanceDfKey {});
+        (&mut fee_balance.balance, fee_balance.beneficiary)
     }
 
     /// Returns the amount and beneficiary.
@@ -375,6 +438,12 @@ module ob_request::transfer_request {
         let ext = transfer_policy::uid(self);
 
         df::exists_(ext, OBCustomRulesDfKey {})
+    }
+
+    public fun has_fees<T>(
+        self: &TransferRequest<T>,
+    ): bool {
+        df::exists_(&mut self.metadata, FeeBalanceDfKey {})
     }
 
     /// Which entity started the trade.
