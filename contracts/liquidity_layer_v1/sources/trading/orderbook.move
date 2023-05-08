@@ -23,22 +23,25 @@ module liquidity_layer_v1::orderbook {
     use std::option::{Self, Option};
     use std::type_name;
     use std::vector;
+    use std::debug;
 
     use sui::event;
+    use sui::address as sui_address;
     use sui::package::{Self, Publisher};
     use sui::transfer_policy::TransferPolicy;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::kiosk::{Self, Kiosk};
     use sui::object::{Self, ID, UID};
-    use sui::transfer::share_object;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self, TransferRequest};
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+    use ob_utils::utils;
 
     use liquidity_layer_v1::trading;
     use liquidity_layer_v1::liquidity_layer::LIQUIDITY_LAYER;
@@ -54,6 +57,9 @@ module liquidity_layer_v1::orderbook {
     // 0.01 SUI == 10_000_000 MIST
     // 0.001 SUI == 1_000_000 MIST
     const DEFAULT_TICK_SIZE: u64 = 1_000_000;
+
+    // TODO: Change to actual package
+    const V2_PACKAGE: address = @0x20;
 
     // === Errors ===
 
@@ -88,6 +94,12 @@ module liquidity_layer_v1::orderbook {
     /// that are external to the OriginByte ecosystem, without itself being external
     const ENotExternalPolicy: u64 = 8;
 
+    /// Orderbook has been frozen and cannot be unprotected
+    const EOrderbookUnderMigration: u64 = 9;
+
+    /// Tried to cancel permissionlesly while orderbook was not frozen
+    const EOrderbookNotUnderMigration: u64 = 10;
+
     // === Structs ===
 
     /// Add this witness type to allowlists via
@@ -98,6 +110,8 @@ module liquidity_layer_v1::orderbook {
     struct TradeIntermediateDfKey<phantom T, phantom FT> has copy, store, drop {
         trade_id: ID,
     }
+
+    struct MigrationHalt has copy, drop, store {}
 
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
@@ -410,7 +424,8 @@ module liquidity_layer_v1::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        cancel_bid_(book, bid_price_level, wallet, ctx)
+        let bid = remove_bid(book, bid_price_level, ctx);
+        refund_bid(bid, book, wallet);
     }
 
     /// To cancel an offer on a specific NFT, the client provides the price they
@@ -428,7 +443,8 @@ module liquidity_layer_v1::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        cancel_ask_(book, seller_kiosk, nft_price_level, nft_id, ctx);
+        let (owner, _) = cancel_ask_(book, seller_kiosk, nft_price_level, nft_id);
+        assert!(owner == tx_context::sender(ctx), EOrderOwnerMustBeSender);
     }
 
     // === Create ask ===
@@ -570,7 +586,9 @@ module liquidity_layer_v1::orderbook {
     ) {
         assert!(!book.protected_actions.create_ask, EActionNotPublic);
 
-        let commission = cancel_ask_(book, seller_kiosk, old_price, nft_id, ctx);
+        let (owner, commission) = cancel_ask_(book, seller_kiosk, old_price, nft_id);
+        assert!(owner == tx_context::sender(ctx), EOrderOwnerMustBeSender);
+
         create_ask_(book, seller_kiosk, new_price, commission, nft_id, ctx);
     }
 
@@ -735,7 +753,7 @@ module liquidity_layer_v1::orderbook {
     ): ID {
         let ob = new<T, FT>(witness, transfer_policy, no_protection(), ctx);
         let ob_id = object::id(&ob);
-        share_object(ob);
+        transfer::share_object(ob);
         ob_id
     }
 
@@ -746,7 +764,7 @@ module liquidity_layer_v1::orderbook {
         assert!(!transfer_request::is_originbyte(transfer_policy), ENotExternalPolicy);
         let ob = new_<T, FT>(no_protection(), ctx);
         let ob_id = object::id(&ob);
-        share_object(ob);
+        transfer::share_object(ob);
         ob_id
     }
 
@@ -783,7 +801,7 @@ module liquidity_layer_v1::orderbook {
     }
 
     public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
-        share_object(ob);
+        transfer::share_object(ob);
     }
 
     /// Settings where all endpoints can be called as entry point functions.
@@ -811,7 +829,39 @@ module liquidity_layer_v1::orderbook {
         protected_actions: WitnessProtectedActions,
     ) {
         assert_version(ob);
+        assert!(!is_being_migrated(ob), EOrderbookUnderMigration);
+
         ob.protected_actions = protected_actions;
+    }
+
+    /// Helper method to unprotect all endpoints thus enabling trading
+    ///
+    /// #### Panics
+    ///
+    /// Panics if provided `Publisher` did not publish type `T`
+    public entry fun enable_trading<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        set_protection(
+            witness::from_publisher(publisher), orderbook, no_protection(),
+        )
+    }
+
+    /// Helper method to protect all endpoints thus disabling trading
+    ///
+    /// #### Panics
+    ///
+    /// Panics if provided `Publisher` did not publish type `T`
+    public entry fun disable_trading<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        set_protection(
+            witness::from_publisher(publisher),
+            orderbook,
+            custom_protection(true, true, true),
+        )
     }
 
     // === Getters ===
@@ -848,6 +898,12 @@ module liquidity_layer_v1::orderbook {
         protected_actions: &WitnessProtectedActions
     ): bool { protected_actions.buy_nft }
 
+    public fun is_being_migrated<T: key + store, FT>(
+        orderbook: &Orderbook<T, FT>,
+    ): bool {
+        df::exists_(&orderbook.id, MigrationHalt {})
+    }
+
     public fun trade_id(trade: &TradeInfo): ID {
         trade.trade_id
     }
@@ -860,6 +916,116 @@ module liquidity_layer_v1::orderbook {
         df::borrow(
             &book.id, TradeIntermediateDfKey<T, FT> { trade_id }
         )
+    }
+
+    // === Migrations to Orderbook V2 ===
+
+    /// Halts Orderbook for migration
+    ///
+    /// Protects all endpoints and prevents them from getting reactivated.
+    ///
+    /// Allows orders to be cancelled permissionless-ly in order to remove
+    /// exclusive locks on NFTs.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if orderbook is already frozen
+    public fun start_migration_with_witness<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        // Disables Trading
+        set_protection(
+            witness,
+            orderbook,
+            custom_protection(true, true, true),
+        );
+
+        // Marks orderbook as being under the Migration process
+        df::add(&mut orderbook.id, MigrationHalt {}, true);
+    }
+
+    /// Permanently disable unprotected trading on Orderbook
+    ///
+    /// Protects all endpoints and prevents them from getting reactivated.
+    ///
+    /// Allows orders to be cancelled permissionless-ly in order to remove
+    /// exclusive locks on NFTs.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if orderbook is already frozen
+    public entry fun start_migration<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        start_migration_with_witness(
+            witness::from_publisher(publisher), orderbook,
+        );
+    }
+
+    public fun migrate_bid<V2Witness: drop, T: key + store, FT>(
+        _v2_witness: V2Witness,
+        _witness: DelegatedWitness<T>,
+        book: &mut Orderbook<T, FT>,
+    ): (address, Balance<FT>, ID, Option<trading::BidCommission<FT>>) {
+        let (v2_package, _v2_module, _v2_type) = utils::get_package_module_type<V2Witness>();
+
+        assert!(v2_package == sui_address::to_string(V2_PACKAGE), 0);
+        assert!(is_being_migrated(book), EOrderbookNotUnderMigration);
+
+        debug::print(&book.bids);
+        let price = crit_bit::min_key(&book.bids);
+        let price_level = crit_bit::borrow_mut(&mut book.bids, price);
+        let bid = vector::pop_back(price_level);
+
+        if (vector::length(price_level) == 0) {
+            vector::destroy_empty(crit_bit::pop(&mut book.bids, price));
+        };
+
+        let Bid {
+            owner: buyer,
+            offer: bid_offer,
+            kiosk: buyer_kiosk_id,
+            commission: bid_commission,
+        } = bid;
+
+        (buyer, bid_offer, buyer_kiosk_id, bid_commission)
+    }
+
+    public fun migrate_ask<V2Witness: drop, T: key + store, FT>(
+        _v2_witness: V2Witness,
+        _witness: DelegatedWitness<T>,
+        kiosk: &mut Kiosk,
+        book: &mut Orderbook<T, FT>,
+    ): (u64, address, ID, ID, Option<trading::AskCommission>) {
+        let (v2_package, _v2_module, _v2_type) = utils::get_package_module_type<V2Witness>();
+
+        assert!(v2_package == sui_address::to_string(V2_PACKAGE), 0);
+        assert!(is_being_migrated(book), EOrderbookNotUnderMigration);
+
+        let price = crit_bit::max_key(&book.asks);
+
+        let price_level = crit_bit::borrow_mut(&mut book.asks, price);
+        let ask = vector::pop_back(price_level);
+
+        if (vector::length(price_level) == 0) {
+            vector::destroy_empty(crit_bit::pop(&mut book.asks, price));
+        };
+
+        ob_kiosk::assert_has_nft(kiosk, ask.nft_id);
+        ob_kiosk::remove_auth_transfer(kiosk, ask.nft_id, &book.id);
+
+
+        let Ask {
+            price,
+            owner: seller,
+            nft_id,
+            kiosk_id,
+            commission: ask_commission,
+        } = ask;
+
+        (price, seller, nft_id, kiosk_id, ask_commission)
     }
 
     // === Priv fns ===
@@ -1093,15 +1259,16 @@ module liquidity_layer_v1::orderbook {
         trade_intermediate_id
     }
 
-    /// Removes bid from the state and returns the commission which contains
-    /// tokens that the buyer was meant to pay as a commission on a successful
-    /// trade.
-    fun cancel_bid_except_commission<T: key + store, FT>(
+    /// Removes bid belonging to transaction sender from the state
+    ///
+    /// #### Panics
+    ///
+    /// Panics if order does not exist or transaction sender was not order owner
+    fun remove_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         bid_price_level: u64,
-        wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
-    ): Option<trading::BidCommission<FT>> {
+    ): Bid<FT> {
         let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
 
@@ -1121,44 +1288,55 @@ module liquidity_layer_v1::orderbook {
         // we iterated over all bids and didn't find one where owner is sender
         assert!(index < bids_count, EOrderOwnerMustBeSender);
 
-        let Bid { offer, owner: _owner, commission, kiosk } =
-            vector::remove(price_level, index);
-        balance::join(coin::balance_mut(wallet), offer);
+        let bid = vector::remove(price_level, index);
 
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            vector::destroy_empty(crit_bit::pop(bids, bid_price_level));
+            let price_level = crit_bit::pop(bids, bid_price_level);
+            vector::destroy_empty(price_level);
         };
 
+        bid
+    }
+
+    /// Returns commission which contains token that the buyer was meant to pay
+    /// as a commission on a successful trade.
+    fun refund_bid_except_commission<T: key + store, FT>(
+        bid: Bid<FT>,
+        orderbook: &Orderbook<T, FT>,
+        wallet: &mut Coin<FT>,
+    ): Option<trading::BidCommission<FT>> {
+        let Bid { offer, owner, commission, kiosk } = bid;
+
         event::emit(BidClosedEvent {
-            owner: sender,
+            owner,
             kiosk,
-            orderbook: object::id(book),
-            price: bid_price_level,
+            orderbook: object::id(orderbook),
+            price: balance::value(&offer),
             nft_type: type_name::into_string(type_name::get<T>()),
             ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
+        balance::join(coin::balance_mut(wallet), offer);
+
         commission
     }
 
-    fun cancel_bid_<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        bid_price_level: u64,
+    /// Refunds bid and commission if buyer was meant to pay one
+    fun refund_bid<T: key + store, FT>(
+        bid: Bid<FT>,
+        orderbook: &Orderbook<T, FT>,
         wallet: &mut Coin<FT>,
-        ctx: &mut TxContext,
     ) {
-        let commission =
-            cancel_bid_except_commission(book, bid_price_level, wallet, ctx);
+        let commission = refund_bid_except_commission(bid, orderbook, wallet);
 
         if (option::is_some(&commission)) {
             let (cut, _beneficiary) =
                 trading::destroy_bid_commission(option::extract(&mut commission));
-            balance::join(
-                coin::balance_mut(wallet),
-                cut,
-            );
+
+            balance::join(coin::balance_mut(wallet), cut);
         };
+
         option::destroy_none(commission);
     }
 
@@ -1170,8 +1348,8 @@ module liquidity_layer_v1::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let commission =
-            cancel_bid_except_commission(book, old_price, wallet, ctx);
+        let bid = remove_bid(book, old_price, ctx);
+        let commission = refund_bid_except_commission(bid, book, wallet);
 
         create_bid_(book, buyer_kiosk, new_price, commission, wallet, ctx);
     }
@@ -1261,16 +1439,13 @@ module liquidity_layer_v1::orderbook {
         }
     }
 
-    /// * cancels the exclusive listing
+    /// Cancels exclusive listing returning (owner, commission)
     fun cancel_ask_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         kiosk: &mut Kiosk,
         nft_price_level: u64,
         nft_id: ID,
-        ctx: &mut TxContext,
-    ): Option<trading::AskCommission> {
-        let sender = tx_context::sender(ctx);
-
+    ): (address, Option<trading::AskCommission>) {
         let Ask {
             owner,
             price: _,
@@ -1283,15 +1458,14 @@ module liquidity_layer_v1::orderbook {
             price: nft_price_level,
             orderbook: object::id(book),
             nft: nft_id,
-            owner: sender,
+            owner,
             nft_type: type_name::into_string(type_name::get<T>()),
             ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
-        assert!(owner == sender, EOrderOwnerMustBeSender);
         ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.id);
 
-        commission
+        (owner, commission)
     }
 
     fun buy_nft_<T: key + store, FT>(

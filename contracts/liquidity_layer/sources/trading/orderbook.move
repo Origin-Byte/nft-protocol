@@ -40,9 +40,12 @@ module liquidity_layer::orderbook {
     use ob_request::transfer_request::{Self, TransferRequest};
     use ob_utils::crit_bit::{Self, CritbitTree};
     use ob_request_extensions::fee_balance;
+    use ob_permissions::witness;
 
     use liquidity_layer::trading;
     use liquidity_layer::liquidity_layer::LIQUIDITY_LAYER;
+    use liquidity_layer_v1::orderbook::{Self as ob_v1, Orderbook as OrderbookV1};
+    use liquidity_layer_v1::trading::{Self as trading_v1};
 
     // Track the current version of the module
     const VERSION: u64 = 1;
@@ -859,6 +862,149 @@ module liquidity_layer::orderbook {
         )
     }
 
+    // === Migrations from Orderbook V1 ===
+
+    /// Halts Orderbook for migration
+    ///
+    /// Protects all endpoints and prevents them from getting reactivated.
+    ///
+    /// Allows orders to be cancelled permissionless-ly in order to remove
+    /// exclusive locks on NFTs.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if orderbook is already frozen
+    public fun new_from_v1_with_witness<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext,
+    ) {
+        let orderbook = new_with_protected_actions<T, FT>(
+            witness,
+            transfer_policy,
+            custom_protection(true, true, true),
+            ctx,
+        );
+
+        share(orderbook);
+    }
+
+    /// Permanently disable unprotected trading on Orderbook
+    ///
+    /// Protects all endpoints and prevents them from getting reactivated.
+    ///
+    /// Allows orders to be cancelled permissionless-ly in order to remove
+    /// exclusive locks on NFTs.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if orderbook is already frozen
+    public entry fun new_from_v1<T: key + store, FT>(
+        publisher: &Publisher,
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext,
+    ) {
+        new_from_v1_with_witness<T, FT>(
+            witness::from_publisher(publisher), transfer_policy, ctx,
+        );
+    }
+
+    public fun migrate_bid<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        book_v1: &mut OrderbookV1<T, FT>,
+        book_v2: &mut Orderbook<T, FT>,
+    ) {
+        let (buyer, bid_offer, buyer_kiosk_id, bid_commission_v1) = ob_v1::migrate_bid(
+            Witness {}, witness, book_v1
+        );
+
+        let bid_commission_v2 = option::none();
+
+        if (option::is_some(&bid_commission_v1)) {
+            let (commission, bid_beneficiary) = trading_v1::destroy_bid_commission(
+                option::extract(&mut bid_commission_v1)
+            );
+
+            option::fill(&mut bid_commission_v2, trading::new_bid_commission(bid_beneficiary, commission));
+        };
+
+        option::destroy_none(bid_commission_v1);
+        let price = balance::value(&bid_offer);
+
+
+        // TODO: Encapsulate A
+        let order = Bid {
+            offer: bid_offer,
+            owner: buyer,
+            kiosk: buyer_kiosk_id,
+            commission: bid_commission_v2,
+        };
+
+        let (has_key, _) = crit_bit::find_leaf(&book_v2.bids, price);
+
+        if (has_key) {
+            vector::push_back(
+                crit_bit::borrow_mut_leaf_by_key(&mut book_v2.bids, price),
+                order
+            );
+        } else {
+            crit_bit::insert_leaf(
+                &mut book_v2.bids,
+                price,
+                vector::singleton(order),
+            );
+        };
+    }
+
+    public fun migrate_ask<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        seller_kiosk: &mut Kiosk,
+        book_v1: &mut OrderbookV1<T, FT>,
+        book_v2: &mut Orderbook<T, FT>,
+        ctx: &mut TxContext,
+    ) {
+        let (price, seller, nft_id, kiosk_id, ask_commission_v1) = ob_v1::migrate_ask(
+            Witness {}, witness, seller_kiosk, book_v1
+        );
+
+        let ask_commission_v2 = option::none();
+
+        if (option::is_some(&ask_commission_v1)) {
+            let (commission, bid_beneficiary) = trading_v1::destroy_ask_commission(
+                option::extract(&mut ask_commission_v1)
+            );
+
+            option::fill(&mut ask_commission_v2, trading::new_ask_commission(bid_beneficiary, commission));
+        };
+
+        option::destroy_none(ask_commission_v1);
+
+        // will fail if not OB kiosk
+        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book_v2.id, ctx);
+
+        // prevent listing of NFTs which don't belong to the collection
+        ob_kiosk::assert_nft_type<T>(seller_kiosk, nft_id);
+
+        // TODO: Encapsulate B
+        let order = Ask {
+                price,
+                nft_id,
+                kiosk_id: kiosk_id,
+                owner: seller,
+                commission: ask_commission_v2,
+            };
+            // store the Ask object
+            let (has_key, _) = crit_bit::find_leaf(&book_v2.asks, price);
+
+            if (has_key) {
+                vector::push_back(
+                    crit_bit::borrow_mut_leaf_by_key(&mut book_v2.asks, price), order
+                );
+            } else {
+                crit_bit::insert_leaf(&mut book_v2.asks, price, vector::singleton(order));
+            };
+    }
+
     // === Priv fns ===
 
     /// * buyer kiosk must be in Originbyte ecosystem
@@ -926,6 +1072,7 @@ module liquidity_layer::orderbook {
             // wallet
             let bid_offer = balance::split(coin::balance_mut(wallet), price);
 
+            // TODO: Encapsulate A
             let order = Bid {
                 offer: bid_offer,
                 owner: buyer,
@@ -1247,6 +1394,7 @@ module liquidity_layer::orderbook {
                 ft_type: type_name::into_string(type_name::get<FT>()),
             });
 
+            // TODO: Encapsulate B
             let ask = Ask {
                 price,
                 nft_id,

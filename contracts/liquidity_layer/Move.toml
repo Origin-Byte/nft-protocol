@@ -27,6 +27,9 @@ local = "./../kiosk"
 [dependencies.Utils]
 local = "./../utils"
 
+[dependencies.LiquidityLayerV1]
+local = "./../liquidity_layer_v1"
+
 [dependencies.RequestExtensions]
 local = "./../request_extensions"
 

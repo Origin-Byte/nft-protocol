@@ -62,6 +62,13 @@ module liquidity_layer_v1::trading {
         };
     }
 
+    public fun destroy_ask_commission(
+        commission: AskCommission,
+    ): (u64, address) {
+        let AskCommission { cut, beneficiary } = commission;
+        (cut, beneficiary)
+    }
+
     public fun transfer_ask_commission<FT>(
         commission: &mut Option<AskCommission>,
         source: &mut Balance<FT>,
