@@ -188,7 +188,13 @@ module nft_protocol::royalty_strategy_bps {
         let fee_amount = calculate(self, paid);
         balances::take_from(&mut self.aggregator, wallet, fee_amount);
 
-        // TODO: NEED TO CHECK FOR THE COMMISSION...
+        // Deduct royalty from fees if any
+        if (transfer_request::has_fees<T>(req)) {
+            let cap = option::borrow(&self.access_cap);
+            let (fee_paid , _) = transfer_request::paid_in_fees_mut<T, FT>(req, cap);
+            let royalty_amount = calculate(self, balance::value(fee_paid));
+            balances::take_from(&mut self.aggregator, fee_paid, royalty_amount);
+        };
 
         transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
