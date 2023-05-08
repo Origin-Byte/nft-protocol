@@ -43,7 +43,8 @@ module ob_permissions::witness {
         Witness {}
     }
 
-    // === Test Only ===
+    // === Test-Only Functions ===
+
     #[test_only]
     public fun test_dw<T>(): Witness<T> {
         Witness {}

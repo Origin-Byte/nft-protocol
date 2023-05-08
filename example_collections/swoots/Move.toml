@@ -6,8 +6,8 @@ published-at = "0x"
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-0.32.0
-rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
+# testnet-1.0.0
+rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
 
 [dependencies.NftProtocol]
 local = "../../contracts/nft_protocol"

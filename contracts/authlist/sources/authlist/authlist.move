@@ -17,6 +17,12 @@ module ob_authlist::authlist {
 
     const ED25519_LENGTH: u64 = 32;
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
+
     // === Errors ===
 
     /// Package publisher mismatch
@@ -54,6 +60,7 @@ module ob_authlist::authlist {
     struct Authlist has key, store {
         /// `Authlist` ID
         id: UID,
+        version: u64,
         /// `Authlist` is controlled by `AuthlistOwnerCap` but can be
         /// optionally configured to be controlled by a contract identified by
         /// the admin witness
@@ -105,6 +112,7 @@ module ob_authlist::authlist {
 
         let authlist = Authlist {
             id: authlist_id,
+            version: VERSION,
             admin_witness: option::none(),
             names: vec_map::empty(),
             authorities,
@@ -165,7 +173,7 @@ module ob_authlist::authlist {
 
     /// Delete `Authlist`
     public entry fun delete_authlist(authlist: Authlist) {
-        let Authlist { id, admin_witness: _, names: _, authorities: _ } =
+        let Authlist { id, version: _, admin_witness: _, names: _, authorities: _ } =
             authlist;
         object::delete(id);
     }
@@ -199,6 +207,7 @@ module ob_authlist::authlist {
     ): Authlist {
         Authlist {
             id: object::new(ctx),
+            version: VERSION,
             admin_witness: option::some(type_name::get<Admin>()),
             names,
             authorities,
@@ -224,6 +233,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         collection_pub: &Publisher,
     ) {
+        assert_version(self);
         assert_publisher<T>(collection_pub);
         insert_collection_<T>(self)
     }
@@ -245,12 +255,14 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         collection_pub: &Publisher,
     ) {
+        assert_version(self);
         assert_publisher<T>(collection_pub);
         remove_collection_<T>(self)
     }
 
     /// Register collection and provide error reporting
     public entry fun remove_collection_<T>(self: &mut Authlist) {
+        assert_version(self);
         let collection_type = type_name::get<T>();
         assert_collection(self, collection_type);
         df::remove<TypeName, bool>(&mut self.id, collection_type);
@@ -284,6 +296,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: vector<u8>,
     ) {
+        assert_version(self);
         assert_cap(self, cap);
         insert_authority_(self, authority)
     }
@@ -299,6 +312,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: vector<u8>,
     ) {
+        assert_version(self);
         assert_admin_witness<Admin>(self);
         insert_authority_(self, authority);
     }
@@ -322,6 +336,7 @@ module ob_authlist::authlist {
         authority: vector<u8>,
         name: String,
     ) {
+        assert_version(self);
         assert_cap(self, cap);
         set_name_(self, &authority, name)
     }
@@ -338,6 +353,7 @@ module ob_authlist::authlist {
         authority: &vector<u8>,
         name: String,
     ) {
+        assert_version(self);
         assert_admin_witness<Admin>(self);
         set_name_(self, authority, name);
     }
@@ -368,6 +384,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: vector<u8>
     ) {
+        assert_version(self);
         assert_cap(self, cap);
         remove_authority_(self, &authority)
     }
@@ -383,6 +400,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: &vector<u8>
     ) {
+        assert_version(self);
         assert_admin_witness<Admin>(self);
         remove_authority_(self, authority)
     }
@@ -491,7 +509,20 @@ module ob_authlist::authlist {
             utf8(b"Defines which pubkeys are allowed to perform protected actions on collections."),
         );
 
-        transfer::public_share_object(display);
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
         package::burn_publisher(publisher);
+    }
+
+    // === Upgradeability ===
+
+    fun assert_version(authlist: &Authlist) {
+        assert!(authlist.version == VERSION, EWrongVersion);
+    }
+
+    entry fun migrate(authlist: &mut Authlist, cap: &AuthlistOwnerCap) {
+        assert_cap(authlist, cap);
+        assert!(authlist.version < VERSION, ENotUpgraded);
+        authlist.version = VERSION;
     }
 }

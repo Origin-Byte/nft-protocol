@@ -7,6 +7,9 @@ module ob_launchpad_v2::launchpad {
     use sui::object::{Self, ID , UID};
     use sui::tx_context::{Self, TxContext};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
     /// The `LaunchCap` provided does not correspond to the `Listing` provided.
     const ELauchCapListingMismatch: u64 = 1;
 
@@ -20,6 +23,7 @@ module ob_launchpad_v2::launchpad {
     /// `Factory`s.
     struct Listing has key, store {
         id: UID,
+        version: u64,
         // List of all `LaunchCap`s, for discoverability purposes.
         launch_caps: VecSet<ID>,
         // List of all associated sale `Venue`s
@@ -178,6 +182,7 @@ module ob_launchpad_v2::launchpad {
 
         let listing = Listing {
             id: listing_uid,
+            version: VERSION,
             launch_caps,
             venues: vec_set::empty(),
             inventories: vec_set::empty(),

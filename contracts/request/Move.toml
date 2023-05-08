@@ -1,21 +1,16 @@
 [package]
 name = "Request"
-version = "1.1.0"
-published-at = "0x33324b87a09f5b2928d8d62a00eb66f93baa8d7545330c8c8ca15da2c80cbc82"
+version = "1.0.0"
+published-at = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-0.33.0
-rev = "c525ba6489261ff6db65e87bf9a3fdda0a6c7be3"
-
-[dependencies.Originmate]
-git = "https://github.com/Origin-Byte/originmate.git"
-# devnet-0.33.0
-rev = "38743a3700abf8577a17e2751e82a4c0c249dfb3"
+# testnet-1.0.0
+rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
 
 [dependencies.Permissions]
 local = "./../permissions"
 
 [addresses]
-ob_request = "0x33324b87a09f5b2928d8d62a00eb66f93baa8d7545330c8c8ca15da2c80cbc82"
+ob_request = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43"

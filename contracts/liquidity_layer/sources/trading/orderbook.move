@@ -28,6 +28,7 @@ module liquidity_layer::orderbook {
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::kiosk::{Self, Kiosk};
     use sui::object::{Self, ID, UID};
     use sui::transfer::share_object;
@@ -37,9 +38,22 @@ module liquidity_layer::orderbook {
     use ob_permissions::witness::Witness as DelegatedWitness;
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self, TransferRequest};
-    use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
+    use ob_utils::crit_bit::{Self, CritbitTree};
 
     use liquidity_layer::trading;
+    use liquidity_layer::liquidity_layer::LIQUIDITY_LAYER;
+
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
+
+    // 1 SUI == 1_000_000_000 MIST
+    // 0.1 SUI == 100_000_000 MIST
+    // 0.01 SUI == 10_000_000 MIST
+    // 0.001 SUI == 1_000_000 MIST
+    const DEFAULT_TICK_SIZE: u64 = 1_000_000;
 
     // === Errors ===
 
@@ -90,6 +104,8 @@ module liquidity_layer::orderbook {
     /// 2. asks DESC
     struct Orderbook<phantom T: key + store, phantom FT> has key {
         id: UID,
+        version: u64,
+        tick_size: u64,
         /// Actions which have a flag set to true can only be called via a
         /// witness protected implementation.
         protected_actions: WitnessProtectedActions,
@@ -97,12 +113,12 @@ module liquidity_layer::orderbook {
         /// such an order is saying:
         ///
         /// > for this NFT, I want to receive at least this amount of FT.
-        asks: CBTree<vector<Ask>>,
+        asks: CritbitTree<vector<Ask>>,
         /// A bid order stores amount of tokens of type "B"(id) to trade. A bid
         /// order is saying:
         ///
         /// > for any NFT in this collection, I will spare this many tokens
-        bids: CBTree<vector<Bid<FT>>>,
+        bids: CritbitTree<vector<Bid<FT>>>,
     }
 
     /// The contract which creates the orderbook can restrict specific actions
@@ -732,6 +748,15 @@ module liquidity_layer::orderbook {
         ob_id
     }
 
+    public fun change_tick_size<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        book: &mut Orderbook<T, FT>,
+        new_tick: u64,
+    ) {
+        assert!(new_tick < book.tick_size, 0);
+        book.tick_size = new_tick;
+    }
+
     fun new_<T: key + store, FT>(
         protected_actions: WitnessProtectedActions,
         ctx: &mut TxContext,
@@ -746,9 +771,11 @@ module liquidity_layer::orderbook {
 
         Orderbook<T, FT> {
             id,
+            version: VERSION,
+            tick_size: DEFAULT_TICK_SIZE,
             protected_actions,
-            asks: crit_bit::empty(),
-            bids: crit_bit::empty(),
+            asks: crit_bit::new(ctx),
+            bids: crit_bit::new(ctx),
         }
     }
 
@@ -787,7 +814,7 @@ module liquidity_layer::orderbook {
 
     public fun borrow_bids<T: key + store, FT>(
         book: &Orderbook<T, FT>,
-    ): &CBTree<vector<Bid<FT>>> { &book.bids }
+    ): &CritbitTree<vector<Bid<FT>>> { &book.bids }
 
     public fun bid_offer<FT>(bid: &Bid<FT>): &Balance<FT> { &bid.offer }
 
@@ -795,7 +822,7 @@ module liquidity_layer::orderbook {
 
     public fun borrow_asks<T: key + store, FT>(
         book: &Orderbook<T, FT>,
-    ): &CBTree<vector<Ask>> { &book.asks }
+    ): &CritbitTree<vector<Ask>> { &book.asks }
 
     public fun ask_price(ask: &Ask): u64 { ask.price }
 
@@ -849,6 +876,9 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        assert_version(book);
+        assert_tick_level(price, book.tick_size);
+
         ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
         ob_kiosk::assert_permission(buyer_kiosk, ctx);
         ob_kiosk::assert_can_deposit_permissionlessly<T>(buyer_kiosk);
@@ -862,7 +892,7 @@ module liquidity_layer::orderbook {
         let (can_be_filled, lowest_ask_price) = if (crit_bit::is_empty(asks)) {
             (false, 0)
         } else {
-            let lowest_ask_price = crit_bit::min_key(asks);
+            let (lowest_ask_price, _) = crit_bit::min_leaf(asks);
 
             (lowest_ask_price <= price, lowest_ask_price)
         };
@@ -902,13 +932,15 @@ module liquidity_layer::orderbook {
                 commission: bid_commission,
             };
 
-            if (crit_bit::has_key(&book.bids, price)) {
+            let (has_key, _) = crit_bit::find_leaf(&book.bids, price);
+
+            if (has_key) {
                 vector::push_back(
-                    crit_bit::borrow_mut(&mut book.bids, price),
+                    crit_bit::borrow_mut_leaf_by_key(&mut book.bids, price),
                     order
                 );
             } else {
-                crit_bit::insert(
+                crit_bit::insert_leaf(
                     &mut book.bids,
                     price,
                     vector::singleton(order),
@@ -929,7 +961,7 @@ module liquidity_layer::orderbook {
     ): ID {
         let asks = &mut book.asks;
         let buyer = tx_context::sender(ctx);
-        let price_level = crit_bit::borrow_mut(asks, lowest_ask_price);
+        let price_level = crit_bit::borrow_mut_leaf_by_key(asks, lowest_ask_price);
 
         let ask = vector::remove(
             price_level,
@@ -938,7 +970,7 @@ module liquidity_layer::orderbook {
         );
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            vector::destroy_empty(crit_bit::pop(asks, lowest_ask_price));
+            vector::destroy_empty(crit_bit::remove_leaf_by_key(asks, lowest_ask_price));
         };
 
         let Ask {
@@ -1000,7 +1032,7 @@ module liquidity_layer::orderbook {
     ): ID {
         let bids = &mut book.bids;
         let seller = tx_context::sender(ctx);
-        let price_level = crit_bit::borrow_mut(bids, highest_bid_price);
+        let price_level = crit_bit::borrow_mut_leaf_by_key(bids, highest_bid_price);
 
         let bid = vector::remove(
             price_level,
@@ -1009,7 +1041,7 @@ module liquidity_layer::orderbook {
         );
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            vector::destroy_empty(crit_bit::pop(bids, highest_bid_price));
+            vector::destroy_empty(crit_bit::remove_leaf_by_key(bids, highest_bid_price));
         };
 
         let Bid {
@@ -1069,11 +1101,15 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<trading::BidCommission<FT>> {
+        assert_version(book);
+
         let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
 
-        assert!(crit_bit::has_key(bids, bid_price_level), EOrderDoesNotExist);
-        let price_level = crit_bit::borrow_mut(bids, bid_price_level);
+        let (has_key, _) = crit_bit::find_leaf(bids, bid_price_level);
+
+        assert!(has_key, EOrderDoesNotExist);
+        let price_level = crit_bit::borrow_mut_leaf_by_key(bids, bid_price_level);
 
         let index = 0;
         let bids_count = vector::length(price_level);
@@ -1091,6 +1127,11 @@ module liquidity_layer::orderbook {
         let Bid { offer, owner: _owner, commission, kiosk } =
             vector::remove(price_level, index);
         balance::join(coin::balance_mut(wallet), offer);
+
+        if (vector::length(price_level) == 0) {
+            // to simplify impl, always delete empty price level
+            vector::destroy_empty(crit_bit::remove_leaf_by_key(bids, bid_price_level));
+        };
 
         event::emit(BidClosedEvent {
             owner: sender,
@@ -1110,6 +1151,8 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
+        assert_version(book);
+
         let commission =
             cancel_bid_except_commission(book, bid_price_level, wallet, ctx);
 
@@ -1152,6 +1195,8 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        assert_version(book);
+        assert_tick_level(price, book.tick_size);
 
         // we cannot transfer the NFT straight away because we don't know
         // the buyers kiosk at the point of sending the tx
@@ -1171,7 +1216,7 @@ module liquidity_layer::orderbook {
         let (can_be_filled, highest_bid_price) = if (crit_bit::is_empty(bids)) {
             (false, 0)
         } else {
-            let highest_bid_price = crit_bit::max_key(bids);
+            let (highest_bid_price, _) = crit_bit::max_leaf(bids);
 
             (highest_bid_price >= price, highest_bid_price)
         };
@@ -1209,12 +1254,14 @@ module liquidity_layer::orderbook {
                 commission: ask_commission,
             };
             // store the Ask object
-            if (crit_bit::has_key(&book.asks, price)) {
+            let (has_key, _) = crit_bit::find_leaf(&book.asks, price);
+
+            if (has_key) {
                 vector::push_back(
-                    crit_bit::borrow_mut(&mut book.asks, price), ask
+                    crit_bit::borrow_mut_leaf_by_key(&mut book.asks, price), ask
                 );
             } else {
-                crit_bit::insert(&mut book.asks, price, vector::singleton(ask));
+                crit_bit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
             };
 
             option::none()
@@ -1229,6 +1276,8 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<trading::AskCommission> {
+        assert_version(book);
+
         let sender = tx_context::sender(ctx);
 
         let Ask {
@@ -1263,6 +1312,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        assert_version(book);
         let buyer = tx_context::sender(ctx);
 
         let Ask {
@@ -1314,6 +1364,8 @@ module liquidity_layer::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        assert_version(book);
+
         let trade = df::remove(
             &mut book.id, TradeIntermediateDfKey<T, FT> { trade_id }
         );
@@ -1368,10 +1420,12 @@ module liquidity_layer::orderbook {
 
     /// Finds an ask of a given NFT advertized for the given price. Removes it
     /// from the asks vector preserving order and returns it.
-    fun remove_ask(asks: &mut CBTree<vector<Ask>>, price: u64, nft_id: ID): Ask {
-        assert!(crit_bit::has_key(asks, price), EOrderDoesNotExist);
+    fun remove_ask(asks: &mut CritbitTree<vector<Ask>>, price: u64, nft_id: ID): Ask {
+        let (has_key, _) = crit_bit::find_leaf(asks, price);
 
-        let price_level = crit_bit::borrow_mut(asks, price);
+        assert!(has_key, EOrderDoesNotExist);
+
+        let price_level = crit_bit::borrow_mut_leaf_by_key(asks, price);
 
         let index = 0;
         let asks_count = vector::length(price_level);
@@ -1387,6 +1441,106 @@ module liquidity_layer::orderbook {
 
         assert!(index < asks_count, EOrderDoesNotExist);
 
-        vector::remove(price_level, index)
+        let ask = vector::remove(price_level, index);
+
+        if (vector::length(price_level) == 0) {
+            // to simplify impl, always delete empty price level
+            vector::destroy_empty(crit_bit::remove_leaf_by_key(asks, price));
+        };
+
+        ask
+    }
+
+    fun assert_tick_level(price: u64, tick_size: u64) {
+        assert!(check_tick_level(price, tick_size), 0);
+    }
+
+    fun check_tick_level(price: u64, tick_size: u64): bool {
+        price >= tick_size
+    }
+
+    // === Upgradeability ===
+
+    fun assert_version<T: key + store, FT>(self: &Orderbook<T, FT>) {
+        assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `T` can upgrade
+    entry fun migrate_as_creator<T: key + store, FT>(
+        self: &mut Orderbook<T, FT>, pub: &Publisher
+    ) {
+        assert!(package::from_package<T>(pub), 0);
+        self.version = VERSION;
+    }
+
+    entry fun migrate_as_pub<T: key + store, FT>(
+        self: &mut Orderbook<T, FT>, pub: &Publisher
+    ) {
+        assert!(package::from_package<LIQUIDITY_LAYER>(pub), 0);
+        self.version = VERSION;
+    }
+
+    #[test]
+    fun test_tick_size_enforcement() {
+        // 1 SUI == 1_000_000_000 MIST
+        // 0.1 SUI == 100_000_000 MIST
+        // 0.01 SUI == 10_000_000 MIST
+        // 0.001 SUI == 1_000_000 MIST
+        // const DEFAULT_TICK_SIZE: u64 = 1_000_000;
+
+        assert!(check_tick_level(1, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(10, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(100, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(1_000, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(10_000, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(100_000, DEFAULT_TICK_SIZE) == false, 0);
+
+        assert!(check_tick_level(1_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(10_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(100_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(1_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(10_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(100_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(1_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(10_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(100_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(1_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(10_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(100_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(1_000_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(10_000_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+    }
+
+    #[test]
+    fun test_tick_size_enforcement_with() {
+        // 1 SUI == 1_000_000_000 MIST
+        // 0.1 SUI == 100_000_000 MIST
+        // 0.01 SUI == 10_000_000 MIST
+        // 0.001 SUI == 1_000_000 MIST
+        // const DEFAULT_TICK_SIZE: u64 = 1_000_000;
+
+
+        assert!(check_tick_level(7, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(77, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(777, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(7_777, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(77_777, DEFAULT_TICK_SIZE) == false, 0);
+        assert!(check_tick_level(777_777, DEFAULT_TICK_SIZE) == false, 0);
+
+        assert!(check_tick_level(7_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(77_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(7_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(77_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(7_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(70_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(700_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(7_777_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(77_777_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(777_777_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        assert!(check_tick_level(7_777_777_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
+        // assert!(check_tick_level(70_000_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
+
     }
 }

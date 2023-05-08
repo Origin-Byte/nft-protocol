@@ -31,6 +31,12 @@ module ob_allowlist::allowlist {
     use sui::package::{Self, Publisher};
     use sui::tx_context::{Self, TxContext};
 
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
+
     // === Errors ===
 
     /// Package publisher mismatch
@@ -62,6 +68,7 @@ module ob_allowlist::allowlist {
     struct Allowlist has key, store {
         /// `Allowlist` ID
         id: UID,
+        version: u64,
         /// `Allowlist` is controlled by `AllowlistOwnerCap` but can be
         /// optionally configured to be controlled by a contract identified by
         /// the admin witness
@@ -105,6 +112,7 @@ module ob_allowlist::allowlist {
 
         let allowlist = Allowlist {
             id: allowlist_id,
+            version: VERSION,
             admin_witness: option::none(),
             authorities,
         };
@@ -157,7 +165,9 @@ module ob_allowlist::allowlist {
 
     /// Delete `Allowlist`
     public entry fun delete_allowlist(allowlist: Allowlist) {
-        let Allowlist { id, admin_witness: _, authorities: _ } = allowlist;
+        assert_version(&allowlist);
+
+        let Allowlist { id, version: _, admin_witness: _, authorities: _ } = allowlist;
         object::delete(id);
     }
 
@@ -187,6 +197,7 @@ module ob_allowlist::allowlist {
     ): Allowlist {
         Allowlist {
             id: object::new(ctx),
+            version: VERSION,
             admin_witness: option::some(type_name::get<Admin>()),
             authorities,
         }
@@ -211,7 +222,9 @@ module ob_allowlist::allowlist {
         self: &mut Allowlist,
         collection_pub: &Publisher,
     ) {
+        assert_version(self);
         assert_publisher<T>(collection_pub);
+
         insert_collection_<T>(self)
     }
 
@@ -232,12 +245,15 @@ module ob_allowlist::allowlist {
         self: &mut Allowlist,
         collection_pub: &Publisher,
     ) {
+        assert_version(self);
         assert_publisher<T>(collection_pub);
         remove_collection_<T>(self)
     }
 
     /// Register collection and provide error reporting
     public entry fun remove_collection_<T>(self: &mut Allowlist) {
+        assert_version(self);
+
         let collection_type = type_name::get<T>();
         assert_collection(self, collection_type);
         df::remove<TypeName, bool>(&mut self.id, collection_type);
@@ -260,7 +276,9 @@ module ob_allowlist::allowlist {
         cap: &AllowlistOwnerCap,
         self: &mut Allowlist,
     ) {
+        assert_version(self);
         assert_cap(self, cap);
+
         insert_authority_<Auth>(self)
     }
 
@@ -274,7 +292,9 @@ module ob_allowlist::allowlist {
         _witness: Admin,
         self: &mut Allowlist,
     ) {
+        assert_version(self);
         assert_admin_witness<Admin>(self);
+
         insert_authority_<Auth>(self)
     }
 
@@ -295,7 +315,9 @@ module ob_allowlist::allowlist {
         cap: &AllowlistOwnerCap,
         self: &mut Allowlist,
     ) {
+        assert_version(self);
         assert_cap(self, cap);
+
         remove_authority_<Auth>(self)
     }
 
@@ -309,7 +331,9 @@ module ob_allowlist::allowlist {
         _witness: Admin,
         self: &mut Allowlist,
     ) {
+        assert_version(self);
         assert_admin_witness<Admin>(self);
+
         remove_authority_<Auth>(self)
     }
 
@@ -384,6 +408,7 @@ module ob_allowlist::allowlist {
     /// Panics if neither `T` is not transferrable or `Auth` is not a
     /// valid authority.
     public fun assert_transferable(allowlist: &Allowlist, collection: TypeName, auth: &TypeName) {
+        // TODO: add --> assert_version(allowlist);
         assert_collection(allowlist, collection);
         assert_authority(allowlist, auth);
     }
@@ -404,7 +429,20 @@ module ob_allowlist::allowlist {
             utf8(b"Defines which contracts are allowed to transfer collections"),
         );
 
-        transfer::public_share_object(display);
+        display::update_version(&mut display);
+        transfer::public_transfer(display, tx_context::sender(ctx));
         package::burn_publisher(publisher);
+    }
+
+    // === Upgradeability ===
+
+    fun assert_version(allowlist: &Allowlist) {
+        assert!(allowlist.version == VERSION, EWrongVersion);
+    }
+
+    entry fun migrate(allowlist: &mut Allowlist, cap: &AllowlistOwnerCap) {
+        assert_cap(allowlist, cap);
+        assert!(allowlist.version < VERSION, ENotUpgraded);
+        allowlist.version = VERSION;
     }
 }

@@ -21,18 +21,26 @@
 /// strategy, that is the primary market sale. Primary market sales can take
 /// many shapes, depending on the business level requirements.
 module ob_launchpad::marketplace {
-    // TODO: Function to delete a listing
     use sui::transfer;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
     use originmate::object_box::{Self as obox, ObjectBox};
 
+    friend ob_launchpad::listing;
+
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
+
     /// Transaction sender was not admin of marketplace
     const EInvalidAdmin: u64 = 1;
 
     struct Marketplace has key, store {
         id: UID,
+        version: u64,
         /// The address of the marketplace administrator
         admin: address,
         /// Receiver of marketplace fees
@@ -52,6 +60,7 @@ module ob_launchpad::marketplace {
 
         Marketplace {
             id: uid,
+            version: VERSION,
             admin,
             receiver,
             default_fee,
@@ -102,5 +111,18 @@ module ob_launchpad::marketplace {
             tx_context::sender(ctx) == marketplace.admin,
             EInvalidAdmin,
         );
+    }
+
+    // === Upgradeability ===
+
+    public(friend)fun assert_version(marketplace: &Marketplace) {
+        assert!(marketplace.version == VERSION, EWrongVersion);
+    }
+
+    entry fun migrate(marketplace: &mut Marketplace, ctx: &mut TxContext) {
+        assert_marketplace_admin(marketplace, ctx);
+
+        assert!(marketplace.version < VERSION, ENotUpgraded);
+        marketplace.version = VERSION;
     }
 }

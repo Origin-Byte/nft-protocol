@@ -12,6 +12,7 @@ module nft_protocol::collection {
     use std::string;
 
     use sui::event;
+    use sui::package::{Self, Publisher};
     use sui::display::{Self, Display};
     use sui::transfer;
     use sui::object::{Self, UID, ID};
@@ -22,6 +23,12 @@ module nft_protocol::collection {
     use ob_permissions::witness::Witness as DelegatedWitness;
     use ob_utils::utils::{Self, marker, Marker};
     use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
+
+    // Track the current version of the module
+    const VERSION: u64 = 1;
+
+    const ENotUpgraded: u64 = 999;
+    const EWrongVersion: u64 = 1000;
 
     /// Domain not defined
     ///
@@ -52,6 +59,7 @@ module nft_protocol::collection {
     struct Collection<phantom T> has key, store {
         /// `Collection` ID
         id: UID,
+        version: u64,
     }
 
     /// Event signalling that a `Collection` was minted
@@ -113,7 +121,7 @@ module nft_protocol::collection {
             type_name: type_name::get<T>(),
         });
 
-        Collection { id }
+        Collection { id, version: VERSION }
     }
 
     /// Creates a shared `Collection<C>`, where `C` will typically be the
@@ -179,7 +187,7 @@ module nft_protocol::collection {
     ///
     /// Panics if domain does not exist.
     public fun borrow_domain_mut<C, Domain: store>(
-        _witness: DelegatedWitness<C>,
+        _witness: DelegatedWitness<Domain>,
         collection: &mut Collection<C>,
     ): &mut Domain {
         assert_domain<C, Domain>(collection);
@@ -229,7 +237,7 @@ module nft_protocol::collection {
     ///
     /// Panics if any domains are still registered on the `Collection`.
     public entry fun delete<C>(collection: Collection<C>) {
-        let Collection { id } = collection;
+        let Collection { id, version: _ } = collection;
         object::delete(id);
     }
 
@@ -272,6 +280,22 @@ module nft_protocol::collection {
 
         display
     }
+
+    // === Upgradeability ===
+
+    fun assert_version<T: key + store>(collection: &Collection<T>) {
+        assert!(collection.version == VERSION, EWrongVersion);
+    }
+
+    // Only the publisher of type `T` can upgrade
+    entry fun migrate_as_creator<T: key + store>(
+        collection: &mut Collection<T>,
+        pub: &Publisher
+    ) {
+        assert!(package::from_package<T>(pub), 0);
+        collection.version = VERSION;
+    }
+
 
     // === Test-Only ===
 

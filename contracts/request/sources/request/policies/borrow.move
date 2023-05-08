@@ -9,10 +9,9 @@ module ob_request::borrow_request {
     use sui::kiosk::Borrow;
 
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
-
     use ob_permissions::witness::Witness as DelegatedWitness;
 
-    // === Error ===
+    // === Errors ===
 
     const EPolicyMismatch: u64 = 1;
 

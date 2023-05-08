@@ -35,7 +35,7 @@ module ob_tests::test_ob_kiosk {
     use ob_request::withdraw_request;
     use ob_kiosk::ob_kiosk::{Self, OwnerToken};
 
-    use ob_tests::test_utils::{Self, Foo, seller, fake_address, creator};
+    use ob_tests::test_utils::{Self, Foo, seller, buyer, fake_address, creator};
 
     #[test]
     public fun test_kiosk_new() {
@@ -89,6 +89,82 @@ module ob_tests::test_ob_kiosk {
         test_scenario::next_tx(&mut scenario, kiosk_owner);
 
         // 5. Make kiosk shared
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_p2p_tranfer() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let (source_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut source_kiosk, kiosk_owner);
+
+        // 3.Deposit NFT
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut source_kiosk, nft, ctx(&mut scenario));
+
+        // 4. Check deposited NFT
+        // Indirectly asserts that NftRef has been created, otherwise
+        // this function call will fail
+        ob_kiosk::assert_not_listed(&mut source_kiosk, nft_id);
+        ob_kiosk::assert_not_exclusively_listed(&mut source_kiosk, nft_id);
+
+        // 5. P2P Transfer
+        let (target_kiosk, _) = ob_kiosk::new_for_address(buyer(), ctx(&mut scenario));
+        // This is a helper for testing the entry function `p2p_transfer`
+        ob_kiosk::p2p_transfer_test<Foo>(&mut source_kiosk, &mut target_kiosk, nft_id, ctx(&mut scenario));
+
+        // 6. Assert that NFT has been sent
+        ob_kiosk::assert_has_nft(&target_kiosk, nft_id);
+
+        transfer::public_share_object(source_kiosk);
+        transfer::public_share_object(target_kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_p2p_tranfer_in_new_kiosk() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        let (source_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        check_new_kiosk(&mut source_kiosk, kiosk_owner);
+
+        // 3.Deposit NFT
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut source_kiosk, nft, ctx(&mut scenario));
+
+        // 4. Check deposited NFT
+        // Indirectly asserts that NftRef has been created, otherwise
+        // this function call will fail
+        ob_kiosk::assert_not_listed(&mut source_kiosk, nft_id);
+        ob_kiosk::assert_not_exclusively_listed(&mut source_kiosk, nft_id);
+
+        transfer::public_share_object(source_kiosk);
+        test_scenario::next_tx(&mut scenario, seller());
+        let source_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        // 5. P2P Transfer
+        // This is a helper for testing the entry function `p2p_transfer`
+        ob_kiosk::p2p_transfer_and_create_target_kiosk_test<Foo>(&mut source_kiosk, buyer(), nft_id, ctx(&mut scenario));
+
+        test_scenario::next_tx(&mut scenario, buyer());
+        let target_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+
+        // 6. Assert that NFT has been sent
+        ob_kiosk::assert_has_nft(&target_kiosk, nft_id);
+
+        test_scenario::return_shared(target_kiosk);
+        test_scenario::return_shared(source_kiosk);
         test_scenario::end(scenario);
     }
 
@@ -874,6 +950,63 @@ module ob_tests::test_ob_kiosk {
         test_scenario::return_shared(kiosk);
         object::delete(rand_entity);
 
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_kiosk_new_permissionless() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        // 1. Create kiosk
+        ob_kiosk::create_permissionless(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        // 2. Checks Kiosk's static and dynamic fields after creation
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        check_new_kiosk(&mut kiosk, @0xb);
+
+        // 3. Checks `OwnerToken` was not created
+        assert!(!test_scenario::has_most_recent_immutable<OwnerToken>(), 0);
+
+        test_scenario::return_shared(kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = ob_kiosk::ob_kiosk::EKioskNotPermissionless)]
+    public fun test_try_permissionless_to_permissioned() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        ob_kiosk::create_for_sender(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        ob_kiosk::set_permissionless_to_permissioned(
+            &mut kiosk, creator(), ctx(&mut scenario),
+        );
+
+        check_new_kiosk(&mut kiosk, creator());
+
+        test_scenario::return_shared(kiosk);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    public fun test_permissionless_to_permissioned() {
+        let kiosk_owner = seller();
+        let scenario = test_scenario::begin(kiosk_owner);
+
+        ob_kiosk::create_permissionless(ctx(&mut scenario));
+        test_scenario::next_tx(&mut scenario, kiosk_owner);
+
+        let kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        ob_kiosk::set_permissionless_to_permissioned(
+            &mut kiosk, creator(), ctx(&mut scenario),
+        );
+
+        test_scenario::return_shared(kiosk);
         test_scenario::end(scenario);
     }
 

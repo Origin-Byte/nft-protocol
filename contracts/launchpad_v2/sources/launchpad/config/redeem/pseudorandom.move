@@ -1,8 +1,6 @@
 module ob_launchpad_v2::pseudorand_redeem {
     // TODO: Assigning Inventory and NFTs Indices should not touch the Venue, otherwise it creates contention...
     use std::vector;
-    // use std::string::utf8;
-    // use std::debug;
     use sui::tx_context::TxContext;
     use sui::dynamic_field as df;
     use sui::vec_map;
@@ -12,8 +10,7 @@ module ob_launchpad_v2::pseudorand_redeem {
     use ob_launchpad_v2::certificate::{Self, NftCertificate};
 
     use ob_utils::sized_vec;
-
-    use originmate::pseudorandom;
+    use ob_pseudorandom::pseudorandom;
 
     const SCALE: u64 = 10_000;
 
@@ -141,9 +138,6 @@ module ob_launchpad_v2::pseudorand_redeem {
     ///
     /// Endpoint is susceptible to validator prediction of the resulting index,
     /// use `random_redeem_nft` instead.
-    ///
-    /// Endpoint is unprotected and relies on safely obtaining a mutable
-    /// reference to `Warehouse`.
     ///
     /// `Warehouse` may not change the logical owner of an `Nft` when
     /// redeeming as this would allow royalties to be trivially bypassed.

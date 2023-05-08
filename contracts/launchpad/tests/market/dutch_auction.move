@@ -9,14 +9,13 @@ module ob_launchpad::test_dutch_auction {
     use sui::object::{Self, UID, ID};
     use sui::test_scenario::{Self, Scenario, ctx};
 
-    use originmate::crit_bit_u64 as crit_bit;
+    use ob_utils::crit_bit;
 
     use ob_launchpad::proceeds;
     use ob_launchpad::venue;
     use ob_launchpad::listing::{Self, Listing};
     use ob_launchpad::market_whitelist::{Self, Certificate};
     use ob_launchpad::dutch_auction;
-
     use ob_launchpad::test_listing::init_listing;
 
     struct Foo has key, store {
@@ -162,7 +161,7 @@ module ob_launchpad::test_dutch_auction {
         let bids = dutch_auction::bids<SUI>(market);
 
         // Test bids at price level 10
-        let level = crit_bit::borrow(bids, 10);
+        let level = crit_bit::borrow_leaf_by_key(bids, 10);
         let bid = vector::borrow(level, 0);
         assert!(dutch_auction::bid_owner(bid) == BUYER, 0);
         assert!(balance::value(dutch_auction::bid_amount(bid)) == 10, 0);
@@ -171,7 +170,7 @@ module ob_launchpad::test_dutch_auction {
         assert!(balance::value(dutch_auction::bid_amount(bid)) == 10, 0);
 
         // Test bids at price level 12
-        let level = crit_bit::borrow(bids, 12);
+        let level = crit_bit::borrow_leaf_by_key(bids, 12);
         let bid = vector::borrow(level, 0);
         assert!(dutch_auction::bid_owner(bid) == CREATOR, 0);
         assert!(balance::value(dutch_auction::bid_amount(bid)) == 12, 0);
@@ -337,7 +336,7 @@ module ob_launchpad::test_dutch_auction {
         );
         let bids = dutch_auction::bids<SUI>(market);
 
-        let level = crit_bit::borrow(bids, 10);
+        let level = crit_bit::borrow_leaf_by_key(bids, 10);
         assert!(vector::length(level) == 3, 0);
         let bid = vector::borrow(level, 0);
         assert!(dutch_auction::bid_owner(bid) == BUYER, 0);
@@ -361,7 +360,7 @@ module ob_launchpad::test_dutch_auction {
         );
         let bids = dutch_auction::bids<SUI>(market);
 
-        let level = crit_bit::borrow(bids, 10);
+        let level = crit_bit::borrow_leaf_by_key(bids, 10);
         assert!(vector::length(level) == 2, 0);
         let bid = vector::borrow(level, 0);
         assert!(dutch_auction::bid_owner(bid) == CREATOR, 0);
@@ -381,7 +380,7 @@ module ob_launchpad::test_dutch_auction {
         );
         let bids = dutch_auction::bids<SUI>(market);
 
-        let level = crit_bit::borrow(bids, 10);
+        let level = crit_bit::borrow_leaf_by_key(bids, 10);
         assert!(vector::length(level) == 1, 0);
         let bid = vector::borrow(level, 0);
         assert!(dutch_auction::bid_owner(bid) == CREATOR, 0);
@@ -663,12 +662,12 @@ module ob_launchpad::test_dutch_auction {
         test_scenario::return_to_address(BUYER, refunded0);
         test_scenario::return_to_address(BUYER, refunded1);
 
-        // Check NFT was transferred with correct logical owner
-        let nft = test_scenario::take_from_address<Foo>(
-            &scenario, BUYER
-        );
+        // TODO: Check Kiosk was created and NFT deposited
+        // let nft = test_scenario::take_from_address<Foo>(
+        //     &scenario, BUYER
+        // );
 
-        test_scenario::return_to_address(BUYER, nft);
+        // test_scenario::return_to_address(BUYER, nft);
 
         // Check bid state
         let market = dutch_auction::borrow_market(venue);
