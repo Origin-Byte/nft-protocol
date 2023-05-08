@@ -1,6 +1,6 @@
 [package]
 name = "Allowlist"
-version = "1.2.0"
+version = "1.0.0"
 published-at = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa"
 
 [dependencies.Sui]
