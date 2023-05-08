@@ -7,6 +7,8 @@
 module ob_tests::orderbook {
     use std::option;
     use std::vector;
+    // use std::debug;
+    // use std::string::utf8;
 
     use sui::coin::{Self, Coin};
     use sui::object;
@@ -17,10 +19,6 @@ module ob_tests::orderbook {
     use sui::test_scenario::{Self, ctx};
     use sui::transfer_policy::{Self, TransferPolicy};
 
-    // TODO:
-    // fun it_fails_if_buyer_safe_eq_seller_safe()
-    // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
-    // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
     use ob_permissions::witness;
     use ob_utils::crit_bit::{Self};
     use ob_request::transfer_request;
@@ -31,6 +29,7 @@ module ob_tests::orderbook {
     use nft_protocol::royalty;
     use nft_protocol::collection::Collection;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
+    use ob_request_extensions::fee_balance;
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
 
     const OFFER_SUI: u64 = 100;
@@ -307,9 +306,14 @@ module ob_tests::orderbook {
             ctx(&mut scenario),
         );
 
+        fee_balance::distribute_fee_to_intermediary<Foo, SUI>(
+            &mut request, ctx(&mut scenario)
+        );
+
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, marketplace());
+
         // Assert that marketplace has received two coins, the buyer coin of 2 MIST
         // and the seller coin of 5 MIST. LIFO, Last in First out: The ASK Commission
         // is the last one to be transferred.
@@ -445,7 +449,7 @@ module ob_tests::orderbook {
 
         // 8. Pay royalties
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
-        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request);
+        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
@@ -466,10 +470,8 @@ module ob_tests::orderbook {
 
         // The trade price is 100_000_000
         // The royalty is 100 basis points (i.e. 1%)
-        // Therefore the profits are 1_000_000 if we include the ask commission,
-        // however currently, the royalties are applied on the net trade amount.
-        // Therefore we remove the ask commission * 1 => 20_000
-        assert!(coin::value(&profits) == 1_000_000 - 20_000, 0);
+        // Therefore the profits are 1_000_000.
+        assert!(coin::value(&profits) == 1_000_000, 0);
 
         test_scenario::return_to_address(creator(), profits);
         coin::burn_for_testing(coin);
@@ -485,8 +487,6 @@ module ob_tests::orderbook {
         test_scenario::return_shared(collection);
         test_scenario::end(scenario);
     }
-
-
 
     #[test]
     fun test_trade_in_ob_kiosk_full_royalty_enforcement() {
@@ -585,7 +585,7 @@ module ob_tests::orderbook {
 
         // 8. Pay royalties
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
-        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request);
+        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 

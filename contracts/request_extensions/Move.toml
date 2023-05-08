@@ -1,0 +1,19 @@
+[package]
+name = "RequestExtensions"
+version = "1.0.0"
+published-at = "0x"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-framework"
+# testnet-1.0.0
+rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+
+[dependencies.Permissions]
+local = "./../permissions"
+
+[dependencies.Request]
+local = "./../request"
+
+[addresses]
+ob_request_extensions = "0x"
