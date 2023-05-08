@@ -405,7 +405,7 @@ module liquidity_layer::orderbook {
 
     /// Cancel a bid owned by the sender at given price. If there are two bids
     /// with the same price, the one created later is cancelled.
-    public fun cancel_bid<T: key + store, FT>(
+    public entry fun cancel_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         bid_price_level: u64,
         wallet: &mut Coin<FT>,
@@ -422,7 +422,7 @@ module liquidity_layer::orderbook {
     //
     // This API might be improved in future as we use a different data
     // structure for the orderbook.
-    public fun cancel_ask<T: key + store, FT>(
+    public entry fun cancel_ask<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         nft_price_level: u64,
