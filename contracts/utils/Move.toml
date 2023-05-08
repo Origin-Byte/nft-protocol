@@ -1,7 +1,7 @@
 [package]
 name = "Utils"
 version = "1.0.0"
-published-at = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb"
+published-at = "0xe7e338021db7ce6b03c1a610c8bd0f0dbe952d6661637d5d54d1781fc57b7a16"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -13,4 +13,4 @@ rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
 local = "./../pseudorandom"
 
 [addresses]
-ob_utils = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb"
+ob_utils = "0xe7e338021db7ce6b03c1a610c8bd0f0dbe952d6661637d5d54d1781fc57b7a16"
