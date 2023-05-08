@@ -443,7 +443,7 @@ module ob_request::transfer_request {
     public fun has_fees<T>(
         self: &TransferRequest<T>,
     ): bool {
-        df::exists_(&mut self.metadata, FeeBalanceDfKey {})
+        df::exists_(&self.metadata, FeeBalanceDfKey {})
     }
 
     /// Which entity started the trade.
