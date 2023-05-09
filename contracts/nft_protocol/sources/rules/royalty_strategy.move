@@ -18,6 +18,7 @@ module nft_protocol::royalty_strategy_bps {
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use ob_utils::utils;
     use ob_utils::math;
+    use ob_request_extensions::fee_balance;
 
     // Track the current version of the module
     const VERSION: u64 = 1;
