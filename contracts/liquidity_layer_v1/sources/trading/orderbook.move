@@ -23,8 +23,6 @@ module liquidity_layer_v1::orderbook {
     use std::option::{Self, Option};
     use std::type_name;
     use std::vector;
-    use std::debug;
-    use std::string::utf8;
 
     use sui::event;
     use sui::package::{Self, Publisher};
@@ -420,7 +418,7 @@ module liquidity_layer_v1::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let bid = remove_bid(book, bid_price_level, ctx);
+        let bid = remove_bid(book, bid_price_level, tx_context::sender(ctx));
         refund_bid(bid, book, wallet);
     }
 
@@ -480,15 +478,39 @@ module liquidity_layer_v1::orderbook {
     ///
     /// Allows migrations to newer versions to be performed seamlessly
     /// by cancelling and returning all funds to market participants.
+    public entry fun cancel_bid_permissionless<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        bid_price_level: u64,
+        bidder: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(is_frozen(book), EOrderbookNotFrozen);
+        let bid = remove_bid(book, bid_price_level, bidder);
+
+        assert!(bid.owner == bidder, 0);
+
+        let wallet = coin::zero<FT>(ctx);
+        refund_bid(bid, book, &mut wallet);
+
+        transfer::public_transfer(wallet, bidder);
+    }
+
+    /// Cancel ask permissionlesly
+    ///
+    /// Requires that Orderbook is frozen thus this order would not be able to
+    /// execute eitherway.
+    ///
+    /// Allows migrations to newer versions to be performed seamlessly
+    /// by cancelling and returning all funds to market participants.
     public entry fun cancel_ask_permissionless<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
-        nft_price_level: u64,
+        ask_price_level: u64,
         nft_id: ID,
     ) {
         ob_kiosk::assert_has_nft(seller_kiosk, nft_id);
         assert!(is_frozen(book), EOrderbookNotFrozen);
-        cancel_ask_(book, seller_kiosk, nft_price_level, nft_id);
+        cancel_ask_(book, seller_kiosk, ask_price_level, nft_id);
     }
 
     // === Create ask ===
@@ -1237,9 +1259,8 @@ module liquidity_layer_v1::orderbook {
     fun remove_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         bid_price_level: u64,
-        ctx: &mut TxContext,
+        sender: address,
     ): Bid<FT> {
-        let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
 
         assert!(crit_bit::has_key(bids, bid_price_level), EOrderDoesNotExist);
@@ -1318,7 +1339,7 @@ module liquidity_layer_v1::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let bid = remove_bid(book, old_price, ctx);
+        let bid = remove_bid(book, old_price, tx_context::sender(ctx));
         let commission = refund_bid_except_commission(bid, book, wallet);
 
         create_bid_(book, buyer_kiosk, new_price, commission, wallet, ctx);
@@ -1433,10 +1454,7 @@ module liquidity_layer_v1::orderbook {
             ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
-        debug::print(&utf8(b"we good?"));
-
         ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.id);
-        debug::print(&utf8(b"we are_"));
 
         (owner, commission)
     }
@@ -1567,7 +1585,6 @@ module liquidity_layer_v1::orderbook {
             let ask = vector::borrow(price_level, index);
             // on the same price level, we search for the specified NFT
             if (nft_id == ask.nft_id) {
-                debug::print(&utf8(b"gotcha1"));
                 break
             };
 
