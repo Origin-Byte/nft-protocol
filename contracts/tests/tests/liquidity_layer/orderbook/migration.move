@@ -135,19 +135,16 @@ module ob_tests::orderbook_migration {
         // [..., 296, 297, 298, 299, 300]
         vector::reverse(&mut nfts);
         // vector::reverse(&mut seller_kiosks);
-        debug::print(&utf8(b"dude"));
 
         let i = order_no;
         price = 300;
 
         while (i > 0) {
             test_scenario::next_tx(&mut scenario, creator());
-            debug::print(&utf8(b"where's"));
 
             let seller_kiosk = vector::borrow_mut(&mut seller_kiosks, i - 1);
             let nft_id = vector::borrow(&mut nfts, i - 1);
 
-            debug::print(&utf8(b"my"));
             debug::print(seller_kiosk);
             debug::print(&price);
             debug::print(nft_id);
@@ -157,14 +154,12 @@ module ob_tests::orderbook_migration {
                 price,
                 *nft_id,
             );
-            debug::print(&utf8(b"car?"));
 
             i = i -1;
             price = price -1;
         };
 
-        debug::print(&utf8(b"It's here. The car is here."));
-
+        let i = order_no;
 
         while (i > 0) {
             let kiosk = vector::pop_back(&mut seller_kiosks);
@@ -172,8 +167,8 @@ module ob_tests::orderbook_migration {
             // these should be shared
             transfer::public_transfer(kiosk, seller());
             i = i - 1;
+            debug::print(&vector::length(&seller_kiosks));
         };
-        debug::print(&vector::length(&seller_kiosks));
 
         vector::destroy_empty(seller_kiosks);
 
