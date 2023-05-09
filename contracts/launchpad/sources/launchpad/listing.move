@@ -29,6 +29,7 @@ module ob_launchpad::listing {
 
     use sui::event;
     use sui::transfer;
+    use sui::kiosk::Kiosk;
     use sui::balance::{Self, Balance};
     use sui::object::{Self, ID , UID};
     use sui::dynamic_object_field as dof;
@@ -44,6 +45,8 @@ module ob_launchpad::listing {
     use ob_launchpad::marketplace::{Self as mkt, Marketplace};
     use ob_launchpad::proceeds::{Self, Proceeds};
     use ob_launchpad::venue::{Self, Venue};
+
+    use ob_kiosk::ob_kiosk;
 
     friend ob_launchpad::flat_fee;
     friend ob_launchpad::dutch_auction;
@@ -665,9 +668,14 @@ module ob_launchpad::listing {
         );
     }
 
-    /// To be called by `Listing` admins for standalone `Listings`.
-    /// Standalone Listings do not involve marketplace fees, and therefore
-    /// the listing admin can freely call this entrypoint.
+    /// Collect proceeds and fees from standalone listing
+    ///
+    /// Requires that caller is listing admin in order to protect against
+    /// rugpulls.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Listing` was attached to the `Marketplace`.
     public entry fun collect_proceeds<FT>(
         listing: &mut Listing,
         ctx: &mut TxContext,
@@ -844,23 +852,6 @@ module ob_launchpad::listing {
         borrow_inventory_mut(listing, inventory_id)
     }
 
-    /// Mutably borrow an `Inventory`
-    ///
-    /// This call is protected and only the administrator can call it
-    ///
-    /// #### Panics
-    ///
-    /// Panics if transaction sender is not an admin or inventory does not exist.
-    public fun inventory_admin_mut<T>(
-        listing: &mut Listing,
-        inventory_id: ID,
-        ctx: &mut TxContext,
-    ): &mut Inventory<T> {
-        assert_version(listing);
-        assert_listing_admin(listing, ctx);
-        borrow_inventory_mut(listing, inventory_id)
-    }
-
     /// Returns how many NFTs can be withdrawn
     ///
     /// Returns none if the supply is uncapped
@@ -873,8 +864,189 @@ module ob_launchpad::listing {
         inventory_id: ID,
     ): Option<u64> {
         assert_inventory<T>(listing, inventory_id);
+
         let inventory = borrow_inventory<T>(listing, inventory_id);
         inventory::supply(inventory)
+    }
+
+    // === Admin ===
+
+    /// Mutably borrow an `Inventory`
+    ///
+    /// This call is protected and only the `Listing` administrator can call it
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not an admin or inventory does not exist.
+    public fun inventory_admin_mut<T>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        ctx: &mut TxContext,
+    ): &mut Inventory<T> {
+        assert_version(listing);
+        assert_listing_admin(listing, ctx);
+
+        borrow_inventory_mut(listing, inventory_id)
+    }
+
+    /// Redeem NFT from `Listing`
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public fun admin_redeem_nft<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        ctx: &mut TxContext,
+    ): T {
+        let inventory = inventory_admin_mut<T>(listing, inventory_id, ctx);
+        inventory::redeem_nft(inventory)
+    }
+
+    /// Redeem NFT from `Listing` and send to address
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public entry fun admin_redeem_nft_and_transfer<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        receiver: address,
+        ctx: &mut TxContext
+    ) {
+        let nft = admin_redeem_nft<T>(listing, inventory_id, ctx);
+        transfer::public_transfer(nft, receiver);
+    }
+
+    /// Redeem NFT from `Listing` and airdrop to `Kiosk`
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public entry fun admin_redeem_nft_to_kiosk<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        receiver: &mut Kiosk,
+        ctx: &mut TxContext
+    ) {
+        let nft = admin_redeem_nft<T>(listing, inventory_id, ctx);
+        ob_kiosk::deposit(receiver, nft, ctx);
+    }
+
+    /// Redeem NFT from `Listing` and airdrop to new `Kiosk`
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public entry fun admin_redeem_nft_to_new_kiosk<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        receiver: address,
+        ctx: &mut TxContext
+    ) {
+        let nft = admin_redeem_nft<T>(listing, inventory_id, ctx);
+        let (kiosk, _) = ob_kiosk::new_for_address(receiver, ctx);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx);
+        transfer::public_share_object(kiosk);
+    }
+
+    /// Redeem NFT from `Listing` with ID
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public fun admin_redeem_nft_with_id<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): T {
+        let inventory = inventory_admin_mut<T>(listing, inventory_id, ctx);
+        inventory::redeem_nft_with_id(inventory, nft_id)
+    }
+
+    /// Redeem NFT from `Listing` with ID and send to address
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public entry fun admin_redeem_nft_with_id_and_transfer<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        nft_id: ID,
+        receiver: address,
+        ctx: &mut TxContext
+    ) {
+        let nft = admin_redeem_nft_with_id<T>(
+            listing, inventory_id, nft_id, ctx,
+        );
+        transfer::public_transfer(nft, receiver);
+    }
+
+    /// Redeem NFT from `Listing` and airdrop to `Kiosk`
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public entry fun admin_redeem_nft_with_id_to_kiosk<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        nft_id: ID,
+        receiver: &mut Kiosk,
+        ctx: &mut TxContext
+    ) {
+        let nft = admin_redeem_nft_with_id<T>(listing, inventory_id, nft_id, ctx);
+        ob_kiosk::deposit(receiver, nft, ctx);
+    }
+
+    /// Redeem NFT from `Listing` and airdrop to new `Kiosk`
+    ///
+    /// This call is protected and only the `Listing` administrator can call
+    /// it. Used for business situations when launch strategy is changed during
+    /// launches.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not admin, inventory or NFT does not exist.
+    public entry fun admin_redeem_nft_with_id_to_new_kiosk<T: key + store>(
+        listing: &mut Listing,
+        inventory_id: ID,
+        nft_id: ID,
+        receiver: address,
+        ctx: &mut TxContext
+    ) {
+        let nft = admin_redeem_nft_with_id<T>(listing, inventory_id, nft_id, ctx);
+        let (kiosk, _) = ob_kiosk::new_for_address(receiver, ctx);
+        ob_kiosk::deposit(&mut kiosk, nft, ctx);
+        transfer::public_share_object(kiosk);
     }
 
     // === Assertions ===
