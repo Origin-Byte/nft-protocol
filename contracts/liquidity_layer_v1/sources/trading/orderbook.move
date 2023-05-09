@@ -881,9 +881,10 @@ module liquidity_layer_v1::orderbook {
     ///
     /// Panics if orderbook is already frozen
     public fun freeze_orderbook_with_witness<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+        witness: DelegatedWitness<T>,
         orderbook: &mut Orderbook<T, FT>,
     ) {
+        set_protection(witness, orderbook, custom_protection(true, true, true));
         df::add(&mut orderbook.id, OrderbookFreeze {}, true);
     }
 

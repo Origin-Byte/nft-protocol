@@ -93,10 +93,6 @@ module ob_tests::orderbook_migration {
         // === Initiate Migration ===
         test_scenario::next_tx(&mut scenario, creator());
 
-        orderbook_v1::disable_trading(
-            &publisher, &mut book_v1,
-        );
-
         orderbook_v1::freeze_orderbook_with_witness(
             dw, &mut book_v1
         );
@@ -210,10 +206,6 @@ module ob_tests::orderbook_migration {
 
         // === Initiate Migration ===
         test_scenario::next_tx(&mut scenario, creator());
-
-        orderbook_v1::disable_trading(
-            &publisher, &mut book_v1,
-        );
 
         orderbook_v1::freeze_orderbook_with_witness(
             dw, &mut book_v1
