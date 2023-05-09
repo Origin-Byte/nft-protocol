@@ -23,6 +23,8 @@ module liquidity_layer_v1::orderbook {
     use std::option::{Self, Option};
     use std::type_name;
     use std::vector;
+    use std::debug;
+    use std::string::utf8;
 
     use sui::event;
     use sui::package::{Self, Publisher};
@@ -484,6 +486,7 @@ module liquidity_layer_v1::orderbook {
         nft_price_level: u64,
         nft_id: ID,
     ) {
+        ob_kiosk::assert_has_nft(seller_kiosk, nft_id);
         assert!(is_frozen(book), EOrderbookNotFrozen);
         cancel_ask_(book, seller_kiosk, nft_price_level, nft_id);
     }
@@ -1430,7 +1433,10 @@ module liquidity_layer_v1::orderbook {
             ft_type: type_name::into_string(type_name::get<FT>()),
         });
 
+        debug::print(&utf8(b"we good?"));
+
         ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.id);
+        debug::print(&utf8(b"we are_"));
 
         (owner, commission)
     }
@@ -1561,6 +1567,7 @@ module liquidity_layer_v1::orderbook {
             let ask = vector::borrow(price_level, index);
             // on the same price level, we search for the specified NFT
             if (nft_id == ask.nft_id) {
+                debug::print(&utf8(b"gotcha1"));
                 break
             };
 
