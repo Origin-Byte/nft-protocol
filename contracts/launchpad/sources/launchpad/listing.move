@@ -32,7 +32,6 @@ module ob_launchpad::listing {
     use sui::balance::{Self, Balance};
     use sui::object::{Self, ID , UID};
     use sui::dynamic_field as df;
-    use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
     use sui::object_bag::{Self, ObjectBag};
@@ -107,7 +106,7 @@ module ob_launchpad::listing {
 
     /// An ephemeral object representing the intention of a `Listing` admin
     /// to join a given Marketplace.
-    struct RequestToJoin has key, store {
+    struct RequestToJoin has store {
         marketplace_id: ID,
     }
 
@@ -421,9 +420,7 @@ module ob_launchpad::listing {
             marketplace_id: object::id(marketplace),
         };
 
-        dof::add(
-            &mut listing.id, RequestToJoinDfKey {}, request
-        );
+        df::add(&mut listing.id, RequestToJoinDfKey {}, request);
     }
 
     /// To be called by the `Marketplace` administrator, to accept the `Listing`
@@ -447,7 +444,7 @@ module ob_launchpad::listing {
 
         let marketplace_id = object::id(marketplace);
 
-        let request = dof::remove<RequestToJoinDfKey, RequestToJoin>(
+        let request: RequestToJoin = df::remove(
             &mut listing.id, RequestToJoinDfKey {}
         );
 
