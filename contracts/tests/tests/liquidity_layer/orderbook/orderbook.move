@@ -7,7 +7,7 @@
 module ob_tests::orderbook {
     use std::option;
     use std::vector;
-    use std::debug;
+    // use std::debug;
     // use std::string::utf8;
 
     use sui::coin::{Self, Coin};
@@ -471,7 +471,6 @@ module ob_tests::orderbook {
         // The trade price is 100_000_000
         // The royalty is 100 basis points (i.e. 1%)
         // Therefore the profits are 1_000_000.
-        debug::print(&coin::value(&profits));
         assert!(coin::value(&profits) == 1_000_000, 0);
 
         test_scenario::return_to_address(creator(), profits);
