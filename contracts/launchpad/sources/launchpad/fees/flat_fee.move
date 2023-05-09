@@ -5,8 +5,6 @@ module ob_launchpad::flat_fee {
     use sui::object::{Self, UID};
     use sui::tx_context::TxContext;
 
-    use originmate::object_box;
-
     use ob_utils::math;
     use ob_utils::utils;
     use ob_launchpad::proceeds;
@@ -35,13 +33,21 @@ module ob_launchpad::flat_fee {
         public_transfer(new(rate, ctx), tx_context::sender(ctx));
     }
 
+    /// Collect proceeds and fees
+    ///
+    /// Can be called permissionlessly as funds are distributed to the
+    /// appropriate receiver irregardless of who calls the function.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Listing` was not attached to the `Marketplace` or
+    /// `Marketplace` did not define a flat fee.
     public entry fun collect_proceeds_and_fees<FT>(
         marketplace: &Marketplace,
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
         listing::assert_listing_marketplace_match(marketplace, listing);
-        listing::assert_correct_admin(marketplace, listing, ctx);
 
         let (proceeds_value, listing_receiver) = {
             let proceeds = listing::borrow_proceeds(listing);
@@ -50,18 +56,11 @@ module ob_launchpad::flat_fee {
             (proceeds_value, listing_receiver)
         };
 
-        let fee_policy = if (listing::contains_custom_fee(listing)) {
-            listing::custom_fee(listing)
+        let policy = if (listing::contains_custom_fee(listing)) {
+            listing::custom_fee<FlatFee>(listing)
         } else {
-            mkt::default_fee(marketplace)
+            mkt::default_fee<FlatFee>(marketplace)
         };
-
-        assert!(
-            object_box::has_object<FlatFee>(fee_policy),
-            EInvalidFeePolicy,
-        );
-
-        let policy = object_box::borrow<FlatFee>(fee_policy);
 
         let fee = calc_fee(balance::value(proceeds_value), policy.rate_bps);
 

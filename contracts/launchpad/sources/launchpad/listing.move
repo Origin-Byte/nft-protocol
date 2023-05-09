@@ -31,13 +31,11 @@ module ob_launchpad::listing {
     use sui::transfer;
     use sui::balance::{Self, Balance};
     use sui::object::{Self, ID , UID};
+    use sui::dynamic_field as df;
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
     use sui::object_table::{Self, ObjectTable};
     use sui::object_bag::{Self, ObjectBag};
-
-    use originmate::typed_id::{Self, TypedID};
-    use originmate::object_box::{Self as obox, ObjectBox};
 
     use ob_launchpad::inventory::{Self, Inventory};
     use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
@@ -87,11 +85,13 @@ module ob_launchpad::listing {
 
     const EHasCustomFeePolicy: u64 = 9;
 
+    const EInvalidFeePolicy: u64 = 10;
+
     struct Listing has key, store {
         id: UID,
         version: u64,
         /// The ID of the marketplace if any
-        marketplace_id: Option<TypedID<Marketplace>>,
+        marketplace_id: Option<ID>,
         /// The address of the `Listing` administrator
         admin: address,
         /// The address of the receiver of funds
@@ -103,20 +103,17 @@ module ob_launchpad::listing {
         venues: ObjectTable<ID, Venue>,
         /// Main object that holds all inventories part of the listing
         inventories: ObjectBag,
-        /// Field with Object Box holding a Custom Fee implementation if any.
-        /// In case this box is empty the calculation will applied on the
-        /// default fee object in the associated Marketplace
-        custom_fee: ObjectBox,
     }
 
     /// An ephemeral object representing the intention of a `Listing` admin
     /// to join a given Marketplace.
     struct RequestToJoin has key, store {
-        id: UID,
-        marketplace_id: TypedID<Marketplace>,
+        marketplace_id: ID,
     }
 
     struct RequestToJoinDfKey has store, copy, drop {}
+
+    struct FeeDfKey has store, copy, drop {}
 
     // === Events ===
 
@@ -160,7 +157,6 @@ module ob_launchpad::listing {
             proceeds: proceeds::empty(ctx),
             venues: object_table::new(ctx),
             inventories: object_bag::new(ctx),
-            custom_fee: obox::empty(ctx),
         }
     }
 
@@ -421,11 +417,8 @@ module ob_launchpad::listing {
             EListingAlreadyAttached,
         );
 
-        let marketplace_id = typed_id::new(marketplace);
-
         let request = RequestToJoin {
-            id: object::new(ctx),
-            marketplace_id,
+            marketplace_id: object::id(marketplace),
         };
 
         dof::add(
@@ -452,7 +445,7 @@ module ob_launchpad::listing {
             EListingAlreadyAttached,
         );
 
-        let marketplace_id = typed_id::new(marketplace);
+        let marketplace_id = object::id(marketplace);
 
         let request = dof::remove<RequestToJoinDfKey, RequestToJoin>(
             &mut listing.id, RequestToJoinDfKey {}
@@ -463,10 +456,7 @@ module ob_launchpad::listing {
             EListingHasNotApplied,
         );
 
-        let RequestToJoin {
-            id, marketplace_id: _,
-        } = request;
-        object::delete(id);
+        let RequestToJoin { marketplace_id: _ } = request;
 
         option::fill(&mut listing.marketplace_id, marketplace_id);
     }
@@ -490,7 +480,7 @@ module ob_launchpad::listing {
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
-        obox::add<FeeType>(&mut listing.custom_fee, fee);
+        df::add(&mut listing.id, FeeDfKey {}, fee);
     }
 
     /// Adds a `Venue` to the `Listing`
@@ -702,11 +692,16 @@ module ob_launchpad::listing {
     }
 
     public fun contains_custom_fee(listing: &Listing): bool {
-        !obox::is_empty(&listing.custom_fee)
+        df::exists_(&listing.id, FeeDfKey {})
     }
 
-    public fun custom_fee(listing: &Listing): &ObjectBox {
-        &listing.custom_fee
+    public fun custom_fee<Fee: store>(listing: &Listing): &Fee {
+        assert!(
+            df::exists_with_type<FeeDfKey, Fee>(&listing.id, FeeDfKey {}),
+            EInvalidFeePolicy,
+        );
+
+        df::borrow(&listing.id, FeeDfKey {})
     }
 
     /// Borrow the Listing's `Proceeds`
@@ -879,15 +874,17 @@ module ob_launchpad::listing {
 
     // === Assertions ===
 
-    public fun assert_listing_marketplace_match(marketplace: &Marketplace, listing: &Listing) {
+    public fun assert_listing_marketplace_match(
+        marketplace: &Marketplace,
+        listing: &Listing,
+    ) {
         assert!(
-            option::is_some<TypedID<Marketplace>>(&listing.marketplace_id), EMarketplaceListingMismatch
+            option::is_some(&listing.marketplace_id),
+            EMarketplaceListingMismatch
         );
 
         assert!(
-            object::id(marketplace) == *typed_id::as_id(
-                option::borrow<TypedID<Marketplace>>(&listing.marketplace_id)
-            ),
+            object::id(marketplace) == *option::borrow(&listing.marketplace_id),
             EMarketplaceListingMismatch,
         );
     }
@@ -915,8 +912,7 @@ module ob_launchpad::listing {
 
     public fun assert_default_fee(listing: &Listing) {
         assert!(
-            !obox::is_empty(&listing.custom_fee),
-            EHasCustomFeePolicy,
+            !contains_custom_fee(listing), EHasCustomFeePolicy,
         );
     }
 

@@ -24,8 +24,7 @@ module ob_launchpad::marketplace {
     use sui::transfer;
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
-
-    use originmate::object_box::{Self as obox, ObjectBox};
+    use sui::dynamic_field as df;
 
     friend ob_launchpad::listing;
 
@@ -45,25 +44,25 @@ module ob_launchpad::marketplace {
         admin: address,
         /// Receiver of marketplace fees
         receiver: address,
-        default_fee: ObjectBox,
     }
 
+    struct FeeDfKey has store, copy, drop {}
+
     /// Initialises a `Marketplace` object and returns it
-    public fun new<F: key + store>(
+    public fun new<Fee: key + store>(
         admin: address,
         receiver: address,
-        default_fee: F,
+        default_fee: Fee,
         ctx: &mut TxContext,
     ): Marketplace {
         let uid = object::new(ctx);
-        let default_fee = obox::new(default_fee, ctx);
+        df::add(&mut uid, FeeDfKey {}, default_fee);
 
         Marketplace {
             id: uid,
             version: VERSION,
             admin,
             receiver,
-            default_fee,
         }
     }
 
@@ -97,8 +96,8 @@ module ob_launchpad::marketplace {
     }
 
     /// Get the Marketplace's `default_fee`
-    public fun default_fee(marketplace: &Marketplace): &ObjectBox {
-        &marketplace.default_fee
+    public fun default_fee<Fee: store>(marketplace: &Marketplace): &Fee {
+        df::borrow(&marketplace.id, FeeDfKey {})
     }
 
     // === Assertions ===
