@@ -670,8 +670,8 @@ module ob_launchpad::listing {
 
     /// Collect proceeds and fees from standalone listing
     ///
-    /// Can be called permissionlessly as funds are distributed to the
-    /// appropriate receiver irregardless of who calls the function.
+    /// Requires that caller is listing admin in order to protect against
+    /// rugpulls.
     ///
     /// #### Panics
     ///
@@ -681,6 +681,7 @@ module ob_launchpad::listing {
         ctx: &mut TxContext,
     ) {
         assert_version(listing);
+        assert_listing_admin(listing, ctx);
 
         assert!(
             option::is_none(&listing.marketplace_id),

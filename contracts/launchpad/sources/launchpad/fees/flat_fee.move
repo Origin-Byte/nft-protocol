@@ -37,8 +37,8 @@ module ob_launchpad::flat_fee {
 
     /// Collect proceeds and fees
     ///
-    /// Can be called permissionlessly as funds are distributed to the
-    /// appropriate receiver irregardless of who calls the function.
+    /// Requires that caller is listing admin in order to protect against
+    /// rugpulls.
     ///
     /// #### Panics
     ///
@@ -50,6 +50,7 @@ module ob_launchpad::flat_fee {
         ctx: &mut TxContext,
     ) {
         listing::assert_listing_marketplace_match(marketplace, listing);
+        listing::assert_listing_admin(listing, ctx);
 
         let (proceeds_value, listing_receiver) = {
             let proceeds = listing::borrow_proceeds(listing);
