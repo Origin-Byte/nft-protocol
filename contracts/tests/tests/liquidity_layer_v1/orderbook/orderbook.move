@@ -17,6 +17,10 @@ module ob_tests::orderbook_v1 {
     use sui::test_scenario::{Self, ctx};
     use sui::transfer_policy::{Self, TransferPolicy};
 
+    // TODO:
+    // fun it_fails_if_buyer_safe_eq_seller_safe()
+    // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection()
+    // fun it_fails_if_buyer_safe_eq_seller_safe_with_generic_collection() {
     use ob_permissions::witness;
     use originmate::crit_bit_u64::{Self as crit_bit};
     use ob_request::transfer_request;
