@@ -75,6 +75,15 @@ module liquidity_layer_v1::trading {
         };
     }
 
+    public fun extract_ask_commission<FT>(
+        commission: AskCommission,
+        source: &mut Balance<FT>,
+    ): (Balance<FT>, address) {
+        let AskCommission { beneficiary, cut } = commission;
+
+        (balance::split(source, cut), beneficiary)
+    }
+
     // === Getters ===
 
     public fun bid_commission_amount<FT>(bid: &BidCommission<FT>): u64 {

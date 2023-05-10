@@ -18,6 +18,7 @@ module nft_protocol::royalty_strategy_bps {
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use ob_utils::utils;
     use ob_utils::math;
+    use ob_request_extensions::fee_balance;
 
     // Track the current version of the module
     const VERSION: u64 = 1;
@@ -154,15 +155,26 @@ module nft_protocol::royalty_strategy_bps {
 
     /// Uses the balance associated with the request to deduct royalty.
     public fun confirm_transfer<T, FT>(
-        self: &mut BpsRoyaltyStrategy<T>, req: &mut TransferRequest<T>,
+        self: &mut BpsRoyaltyStrategy<T>,
+        req: &mut TransferRequest<T>,
+        ctx: &mut TxContext,
     ) {
         assert_version(self);
         assert!(self.is_enabled, ENotEnabled);
 
         let cap = option::borrow(&self.access_cap);
         let (paid, _) = transfer_request::paid_in_ft_mut<T, FT>(req, cap);
-        let fee_amount = calculate(self, balance::value(paid));
-        balances::take_from(&mut self.aggregator, paid, fee_amount);
+        let royalty_amount = calculate(self, balance::value(paid));
+        balances::take_from(&mut self.aggregator, paid, royalty_amount);
+
+        // Deduct royalty from fees if any
+        if (fee_balance::has_fees<T>(req)) {
+            let (fee_paid , _) = fee_balance::paid_in_fees_mut<T, FT>(req, cap);
+            let royalty_amount = calculate(self, balance::value(fee_paid));
+            balances::take_from(&mut self.aggregator, fee_paid, royalty_amount);
+
+            fee_balance::distribute_fee_to_intermediary<T, FT>(req, ctx);
+        };
 
         transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
@@ -173,6 +185,7 @@ module nft_protocol::royalty_strategy_bps {
         self: &mut BpsRoyaltyStrategy<T>,
         req: &mut TransferRequest<T>,
         wallet: &mut Balance<FT>,
+        ctx: &mut TxContext,
     ) {
         assert_version(self);
         assert!(self.is_enabled, ENotEnabled);
@@ -180,6 +193,16 @@ module nft_protocol::royalty_strategy_bps {
         let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
         let fee_amount = calculate(self, paid);
         balances::take_from(&mut self.aggregator, wallet, fee_amount);
+
+        // Deduct royalty from fees if any
+        if (fee_balance::has_fees<T>(req)) {
+            let cap = option::borrow(&self.access_cap);
+            let (fee_paid , _) = fee_balance::paid_in_fees_mut<T, FT>(req, cap);
+            let royalty_amount = calculate(self, balance::value(fee_paid));
+            balances::take_from(&mut self.aggregator, fee_paid, royalty_amount);
+
+            fee_balance::distribute_fee_to_intermediary<T, FT>(req, ctx);
+        };
 
         transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
