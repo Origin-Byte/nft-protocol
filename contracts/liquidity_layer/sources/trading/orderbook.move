@@ -31,18 +31,19 @@ module liquidity_layer::orderbook {
     use sui::package::{Self, Publisher};
     use sui::kiosk::{Self, Kiosk};
     use sui::object::{Self, ID, UID};
-    use sui::transfer::share_object;
+    use sui::transfer;
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self, TransferRequest};
-    use ob_utils::crit_bit::{Self, CritbitTree};
     use ob_request_extensions::fee_balance;
 
     use liquidity_layer::trading;
     use liquidity_layer::liquidity_layer::LIQUIDITY_LAYER;
+
+    use critbit::critbit_u64::{Self as critbit, CritbitTree};
 
     // Track the current version of the module
     const VERSION: u64 = 1;
@@ -103,7 +104,7 @@ module liquidity_layer::orderbook {
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
     /// 2. asks DESC
-    struct Orderbook<phantom T: key + store, phantom FT> has key {
+    struct Orderbook<phantom T: key + store, phantom FT> has key, store {
         id: UID,
         version: u64,
         tick_size: u64,
@@ -120,6 +121,7 @@ module liquidity_layer::orderbook {
         ///
         /// > for any NFT in this collection, I will spare this many tokens
         bids: CritbitTree<vector<Bid<FT>>>,
+        transfer_signer: UID,
     }
 
     /// The contract which creates the orderbook can restrict specific actions
@@ -280,6 +282,211 @@ module liquidity_layer::orderbook {
         ft_type: String,
     }
 
+    /// Create a new `Orderbook<T, FT>`
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
+    public fun new<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        buy_nft: bool,
+        create_ask: bool,
+        create_bid: bool,
+        ctx: &mut TxContext,
+    ): Orderbook<T, FT> {
+        assert!(
+            transfer_request::is_originbyte(transfer_policy),
+            ENotOriginBytePolicy,
+        );
+
+        new_(WitnessProtectedActions { buy_nft, create_ask, create_bid }, ctx)
+    }
+
+    /// Create an unprotected new `Orderbook<T, FT>`
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
+    public fun new_unprotected<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): Orderbook<T, FT> {
+        new<T, FT>(witness, transfer_policy, false, false, false, ctx)
+    }
+
+    /// Create a new `Orderbook<T, FT>` and immediately share it, returning
+    /// it's ID
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
+    public fun create<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        buy_nft: bool,
+        create_ask: bool,
+        create_bid: bool,
+        ctx: &mut TxContext,
+    ): ID {
+        let orderbook = new<T, FT>(
+            witness, transfer_policy, buy_nft, create_ask, create_bid, ctx,
+        );
+        let orderbook_id = object::id(&orderbook);
+        transfer::share_object(orderbook);
+        orderbook_id
+    }
+
+    /// Create a new unprotected `Orderbook<T, FT>` and immediately share it
+    /// returning it's ID
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
+    public fun create_unprotected<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): ID {
+        create<T, FT>(witness, transfer_policy, false, false, false, ctx)
+    }
+
+    /// Create a new `Orderbook<T, FT>` and immediately share it
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
+    public entry fun init_orderbook<T: key + store, FT>(
+        publisher: &Publisher,
+        transfer_policy: &TransferPolicy<T>,
+        buy_nft: bool,
+        create_ask: bool,
+        create_bid: bool,
+        ctx: &mut TxContext,
+    ) {
+        create<T, FT>(
+            witness::from_publisher(publisher),
+            transfer_policy,
+            buy_nft,
+            create_ask,
+            create_bid,
+            ctx,
+        );
+    }
+
+    /// Create a new unprotected `Orderbook<T, FT>` and immediately share it
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
+    public entry fun init_unprotected_orderbook<T: key + store, FT>(
+        publisher: &Publisher,
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ) {
+        create_unprotected<T, FT>(
+            witness::from_publisher(publisher), transfer_policy, ctx,
+        );
+    }
+
+    /// Create a new `Orderbook<T, FT>` for external `TransferPolicy`
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is an OriginByte policy.
+    public fun new_external<T: key + store, FT>(
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): Orderbook<T, FT> {
+        assert!(
+            !transfer_request::is_originbyte(transfer_policy),
+            ENotExternalPolicy,
+        );
+
+        new_<T, FT>(
+            WitnessProtectedActions {
+                buy_nft: false,
+                create_ask: false,
+                create_bid: false,
+            },
+            ctx,
+        )
+    }
+
+    /// Create a new `Orderbook<T, FT>` for external `TransferPolicy` and
+    /// immediately share it returning its ID
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is an OriginByte policy.
+    public fun create_external<T: key + store, FT>(
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): ID {
+        let orderbook = new_external<T, FT>(transfer_policy, ctx);
+        let orderbook_id = object::id(&orderbook);
+        transfer::share_object(orderbook);
+        orderbook_id
+    }
+
+    /// Create a new `Orderbook<T, FT>` for external `TransferPolicy` and
+    /// immediately share it
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is an OriginByte policy.
+    public entry fun init_external<T: key + store, FT>(
+        transfer_policy: &TransferPolicy<T>,
+        ctx: &mut TxContext
+    ) {
+        create_external<T, FT>(transfer_policy, ctx);
+    }
+
+    /// Create a new `Orderbook<T, FT>`
+    fun new_<T: key + store, FT>(
+        protected_actions: WitnessProtectedActions,
+        ctx: &mut TxContext,
+    ): Orderbook<T, FT> {
+        let id = object::new(ctx);
+
+        event::emit(OrderbookCreatedEvent {
+            orderbook: object::uid_to_inner(&id),
+            nft_type: type_name::into_string(type_name::get<T>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
+
+        Orderbook<T, FT> {
+            id,
+            version: VERSION,
+            tick_size: DEFAULT_TICK_SIZE,
+            protected_actions,
+            asks: critbit::new(ctx),
+            bids: critbit::new(ctx),
+            transfer_signer: object::new(ctx)
+        }
+    }
+
     // === Create bid ===
 
     /// How many (`price`) fungible tokens should be taken from sender's wallet
@@ -391,13 +598,12 @@ module liquidity_layer::orderbook {
         ctx: &mut TxContext,
     ): TradeInfo {
         let is_matched_with_price = create_bid(
-            book,
-            buyer_kiosk,
-            max_price,
-            wallet,
-            ctx,
+            book, buyer_kiosk, max_price, wallet, ctx,
         );
-        assert!(option::is_some(&is_matched_with_price), EMarketOrderNotFilled);
+        assert!(
+            option::is_some(&is_matched_with_price),
+            EMarketOrderNotFilled,
+        );
         option::destroy_some(is_matched_with_price)
     }
 
@@ -405,7 +611,7 @@ module liquidity_layer::orderbook {
 
     /// Cancel a bid owned by the sender at given price. If there are two bids
     /// with the same price, the one created later is cancelled.
-    public fun cancel_bid<T: key + store, FT>(
+    public entry fun cancel_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         bid_price_level: u64,
         wallet: &mut Coin<FT>,
@@ -422,7 +628,7 @@ module liquidity_layer::orderbook {
     //
     // This API might be improved in future as we use a different data
     // structure for the orderbook.
-    public fun cancel_ask<T: key + store, FT>(
+    public entry fun cancel_ask<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         nft_price_level: u64,
@@ -493,7 +699,12 @@ module liquidity_layer::orderbook {
             beneficiary, commission_ft,
         );
         create_ask_<T, FT>(
-            book, seller_kiosk, requested_tokens, option::some(commission), nft_id, ctx
+            book,
+            seller_kiosk,
+            requested_tokens,
+            option::some(commission),
+            nft_id,
+            ctx,
         )
     }
 
@@ -519,7 +730,12 @@ module liquidity_layer::orderbook {
             commission_ft,
         );
         create_ask_<T, FT>(
-            book, seller_kiosk, requested_tokens, option::some(commission), nft_id, ctx
+            book,
+            seller_kiosk,
+            requested_tokens,
+            option::some(commission),
+            nft_id,
+            ctx,
         )
     }
 
@@ -550,7 +766,10 @@ module liquidity_layer::orderbook {
             nft_id,
             ctx,
         );
-        assert!(option::is_some(&is_matched_with_price), EMarketOrderNotFilled);
+        assert!(
+            option::is_some(&is_matched_with_price),
+            EMarketOrderNotFilled,
+        );
         option::destroy_some(is_matched_with_price)
     }
 
@@ -561,7 +780,7 @@ module liquidity_layer::orderbook {
     /// Firstly, we always emit `AskRemovedEvent` for the old ask.
     /// Then either `AskCreatedEvent` or `TradeFilledEvent`.
     /// Depends on whether the ask is filled immediately or not.
-    public fun edit_ask<T: key + store, FT>(
+    public entry fun edit_ask<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         old_price: u64,
@@ -571,12 +790,14 @@ module liquidity_layer::orderbook {
     ) {
         assert!(!book.protected_actions.create_ask, EActionNotPublic);
 
-        let commission = cancel_ask_(book, seller_kiosk, old_price, nft_id, ctx);
+        let commission = cancel_ask_(
+            book, seller_kiosk, old_price, nft_id, ctx,
+        );
         create_ask_(book, seller_kiosk, new_price, commission, nft_id, ctx);
     }
 
     /// Cancels the old bid and creates a new one with new price.
-    public fun edit_bid<T: key + store, FT>(
+    public entry fun edit_bid<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
         old_price: u64,
@@ -671,179 +892,157 @@ module liquidity_layer::orderbook {
         trade_id: ID,
         seller_kiosk: &mut Kiosk,
         buyer_kiosk: &mut Kiosk,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): Option<TransferRequest<T>> {
         let t = trade(book, trade_id);
-        let kiosks_match = &t.seller_kiosk == &object::id(seller_kiosk) && &t.buyer_kiosk == &object::id(buyer_kiosk);
+        let kiosks_match = &t.seller_kiosk == &object::id(seller_kiosk)
+            && &t.buyer_kiosk == &object::id(buyer_kiosk);
 
         if (kiosks_match) {
-            option::some(finish_trade(book, trade_id, seller_kiosk, buyer_kiosk, ctx))
+            option::some(
+                finish_trade(book, trade_id, seller_kiosk, buyer_kiosk, ctx),
+            )
         } else {
             option::none()
         }
     }
 
-    // === Create orderbook ===
+    // === Manage orderbook ===
 
-    /// NFTs of type `T` to be traded, and `F`ungible `T`oken to be
-    /// quoted for an NFT in such a collection.
+    /// Change tick size of orderbook
     ///
-    /// By default, an orderbook has no restriction on actions, ie. all can be
-    /// called with public functions.
+    /// #### Panics
     ///
-    /// To implement specific logic in your smart contract, you can toggle the
-    /// protection on specific actions. That will make them only accessible via
-    /// witness protected methods.
-    public fun new<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
-        transfer_policy: &TransferPolicy<T>,
-        protected_actions: WitnessProtectedActions,
-        ctx: &mut TxContext,
-    ): Orderbook<T, FT> {
-        assert!(transfer_request::is_originbyte(transfer_policy), ENotOriginBytePolicy);
-
-        new_(protected_actions, ctx)
-    }
-
-    /// Returns a new orderbook without any protection, ie. all endpoints can
-    /// be called as entry points.
-    public fun new_unprotected<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
-        transfer_policy: &TransferPolicy<T>,
-        ctx: &mut TxContext
-    ): Orderbook<T, FT> {
-        new<T, FT>(witness, transfer_policy, no_protection(), ctx)
-    }
-
-    public fun new_with_protected_actions<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
-        transfer_policy: &TransferPolicy<T>,
-        protected_actions: WitnessProtectedActions,
-        ctx: &mut TxContext,
-    ): Orderbook<T, FT> {
-        new<T, FT>(witness, transfer_policy, protected_actions, ctx)
-    }
-
-    /// Creates a new empty orderbook as a shared object.
-    ///
-    /// All actions can be called as entry points.
-    public fun create_unprotected<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
-        transfer_policy: &TransferPolicy<T>,
-        ctx: &mut TxContext
-    ): ID {
-        let ob = new<T, FT>(witness, transfer_policy, no_protection(), ctx);
-        let ob_id = object::id(&ob);
-        share_object(ob);
-        ob_id
-    }
-
-    public fun create_for_external<T: key + store, FT>(
-        transfer_policy: &TransferPolicy<T>,
-        ctx: &mut TxContext
-    ): ID {
-        assert!(!transfer_request::is_originbyte(transfer_policy), ENotExternalPolicy);
-        let ob = new_<T, FT>(no_protection(), ctx);
-        let ob_id = object::id(&ob);
-        share_object(ob);
-        ob_id
-    }
-
-    public fun change_tick_size<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
-        book: &mut Orderbook<T, FT>,
-        new_tick: u64,
+    /// Panics if provided `Publisher` did not publish type `T`
+    public entry fun change_tick_size<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+        tick_size: u64,
     ) {
-        assert!(new_tick < book.tick_size, 0);
-        book.tick_size = new_tick;
+        change_tick_size_with_witness(
+            witness::from_publisher(publisher), orderbook, tick_size,
+        )
     }
 
-    fun new_<T: key + store, FT>(
-        protected_actions: WitnessProtectedActions,
-        ctx: &mut TxContext,
-    ): Orderbook<T, FT> {
-        let id = object::new(ctx);
-
-        event::emit(OrderbookCreatedEvent {
-            orderbook: object::uid_to_inner(&id),
-            nft_type: type_name::into_string(type_name::get<T>()),
-            ft_type: type_name::into_string(type_name::get<FT>()),
-        });
-
-        Orderbook<T, FT> {
-            id,
-            version: VERSION,
-            tick_size: DEFAULT_TICK_SIZE,
-            protected_actions,
-            asks: crit_bit::new(ctx),
-            bids: crit_bit::new(ctx),
-        }
+    /// Change tick size of orderbook
+    public fun change_tick_size_with_witness<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+        tick_size: u64,
+    ) {
+        assert!(tick_size < orderbook.tick_size, 0);
+        orderbook.tick_size = tick_size;
     }
 
-    public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
-        share_object(ob);
-    }
-
-    /// Settings where all endpoints can be called as entry point functions.
-    public fun no_protection(): WitnessProtectedActions {
-        custom_protection(false, false, false)
-    }
-
-    /// Select which actions are witness protected (true).
-    public fun custom_protection(
+    /// Change protection level of an existing orderbook
+    ///
+    /// #### Panics
+    ///
+    /// Panics if provided `Publisher` did not publish type `T`
+    public entry fun set_protection<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
         buy_nft: bool,
         create_ask: bool,
         create_bid: bool,
-    ): WitnessProtectedActions {
-        WitnessProtectedActions {
+    ) {
+        set_protection_with_witness<T, FT>(
+            witness::from_publisher(publisher),
+            orderbook,
             buy_nft,
             create_ask,
             create_bid,
-        }
+        )
     }
 
-    /// Change protection level of an existing orderbook.
-    public fun set_protection<T: key + store, FT>(
+    /// Change protection level of an existing orderbook
+    public fun set_protection_with_witness<T: key + store, FT>(
         _witness: DelegatedWitness<T>,
-        ob: &mut Orderbook<T, FT>,
-        protected_actions: WitnessProtectedActions,
+        orderbook: &mut Orderbook<T, FT>,
+        buy_nft: bool,
+        create_ask: bool,
+        create_bid: bool,
     ) {
-        ob.protected_actions = protected_actions;
+        orderbook.protected_actions = WitnessProtectedActions {
+            buy_nft, create_ask, create_bid,
+        };
+    }
+
+    /// Helper method to protect all endpoints thus disabling trading
+    ///
+    /// #### Panics
+    ///
+    /// Panics if provided `Publisher` did not publish type `T`
+    public entry fun disable_trading<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        set_protection_with_witness<T, FT>(
+            witness::from_publisher(publisher), orderbook, true, true, true,
+        )
+    }
+
+    /// Helper method to unprotect all endpoints thus enabling trading
+    ///
+    /// #### Panics
+    ///
+    /// Panics if provided `Publisher` did not publish type `T`
+    public entry fun enable_trading<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        set_protection_with_witness<T, FT>(
+            witness::from_publisher(publisher), orderbook, false, false, false,
+        )
     }
 
     // === Getters ===
 
     public fun borrow_bids<T: key + store, FT>(
         book: &Orderbook<T, FT>,
-    ): &CritbitTree<vector<Bid<FT>>> { &book.bids }
+    ): &CritbitTree<vector<Bid<FT>>> {
+        &book.bids
+    }
 
-    public fun bid_offer<FT>(bid: &Bid<FT>): &Balance<FT> { &bid.offer }
+    public fun bid_offer<FT>(bid: &Bid<FT>): &Balance<FT> {
+        &bid.offer
+    }
 
-    public fun bid_owner<FT>(bid: &Bid<FT>): address { bid.owner }
+    public fun bid_owner<FT>(bid: &Bid<FT>): address {
+        bid.owner
+    }
 
     public fun borrow_asks<T: key + store, FT>(
         book: &Orderbook<T, FT>,
-    ): &CritbitTree<vector<Ask>> { &book.asks }
+    ): &CritbitTree<vector<Ask>> {
+        &book.asks
+    }
 
-    public fun ask_price(ask: &Ask): u64 { ask.price }
+    public fun ask_price(ask: &Ask): u64 {
+        ask.price
+    }
 
-    public fun ask_owner(ask: &Ask): address { ask.owner }
+    public fun ask_owner(ask: &Ask): address {
+        ask.owner
+    }
 
-    public fun protected_actions<T: key + store, FT>(
-        book: &Orderbook<T, FT>,
-    ): &WitnessProtectedActions { &book.protected_actions }
+    public fun is_create_ask_protected<T: key + store, FT>(
+        orderbook: &Orderbook<T, FT>,
+    ): bool {
+        orderbook.protected_actions.create_ask
+    }
 
-    public fun is_create_ask_protected(
-        protected_actions: &WitnessProtectedActions
-    ): bool { protected_actions.create_ask }
+    public fun is_create_bid_protected<T: key + store, FT>(
+        orderbook: &Orderbook<T, FT>,
+    ): bool {
+        orderbook.protected_actions.create_bid
+    }
 
-    public fun is_create_bid_protected(
-        protected_actions: &WitnessProtectedActions
-    ): bool { protected_actions.create_bid }
-
-    public fun is_buy_nft_protected(
-        protected_actions: &WitnessProtectedActions
-    ): bool { protected_actions.buy_nft }
+    public fun is_buy_nft_protected<T: key + store, FT>(
+        orderbook: &Orderbook<T, FT>,
+    ): bool {
+        orderbook.protected_actions.buy_nft
+    }
 
     public fun trade_id(trade: &TradeInfo): ID {
         trade.trade_id
@@ -853,10 +1052,11 @@ module liquidity_layer::orderbook {
         trade.trade_price
     }
 
-    public fun trade<T: key + store, FT>(book: &Orderbook<T, FT>, trade_id: ID): &TradeIntermediate<T, FT> {
-        df::borrow(
-            &book.id, TradeIntermediateDfKey<T, FT> { trade_id }
-        )
+    public fun trade<T: key + store, FT>(
+        book: &Orderbook<T, FT>,
+        trade_id: ID,
+    ): &TradeIntermediate<T, FT> {
+        df::borrow(&book.id, TradeIntermediateDfKey<T, FT> { trade_id })
     }
 
     // === Priv fns ===
@@ -890,10 +1090,10 @@ module liquidity_layer::orderbook {
         let asks = &mut book.asks;
 
         // if map empty, then lowest ask price is 0
-        let (can_be_filled, lowest_ask_price) = if (crit_bit::is_empty(asks)) {
+        let (can_be_filled, lowest_ask_price) = if (critbit::is_empty(asks)) {
             (false, 0)
         } else {
-            let (lowest_ask_price, _) = crit_bit::min_leaf(asks);
+            let (lowest_ask_price, _) = critbit::min_leaf(asks);
 
             (lowest_ask_price <= price, lowest_ask_price)
         };
@@ -933,18 +1133,19 @@ module liquidity_layer::orderbook {
                 commission: bid_commission,
             };
 
-            let (has_key, _) = crit_bit::find_leaf(&book.bids, price);
+            let (has_key, price_level_idx) =
+                critbit::find_leaf(&book.bids, price);
 
             if (has_key) {
                 vector::push_back(
-                    crit_bit::borrow_mut_leaf_by_key(&mut book.bids, price),
+                    critbit::borrow_mut_leaf_by_index(
+                        &mut book.bids, price_level_idx,
+                    ),
                     order
                 );
             } else {
-                crit_bit::insert_leaf(
-                    &mut book.bids,
-                    price,
-                    vector::singleton(order),
+                critbit::insert_leaf(
+                    &mut book.bids, price, vector::singleton(order),
                 );
             };
 
@@ -962,16 +1163,17 @@ module liquidity_layer::orderbook {
     ): ID {
         let asks = &mut book.asks;
         let buyer = tx_context::sender(ctx);
-        let price_level = crit_bit::borrow_mut_leaf_by_key(asks, lowest_ask_price);
+        let price_level =
+            critbit::borrow_mut_leaf_by_key(asks, lowest_ask_price);
 
-        let ask = vector::remove(
-            price_level,
-            // remove zeroth for FIFO, must exist due to `can_be_filled`
-            0,
-        );
+        // remove zeroth for FIFO, must exist due to `can_be_filled`
+        let ask = vector::remove(price_level, 0);
+
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            vector::destroy_empty(crit_bit::remove_leaf_by_key(asks, lowest_ask_price));
+            let price_level =
+                critbit::remove_leaf_by_key(asks, lowest_ask_price);
+            vector::destroy_empty(price_level);
         };
 
         let Ask {
@@ -1033,16 +1235,16 @@ module liquidity_layer::orderbook {
     ): ID {
         let bids = &mut book.bids;
         let seller = tx_context::sender(ctx);
-        let price_level = crit_bit::borrow_mut_leaf_by_key(bids, highest_bid_price);
+        let price_level = critbit::borrow_mut_leaf_by_key(bids, highest_bid_price);
 
-        let bid = vector::remove(
-            price_level,
-            // remove zeroth for FIFO, must exist due to `can_be_filled`
-            0,
-        );
+        // remove zeroth for FIFO, must exist due to `can_be_filled`
+        let bid = vector::remove(price_level, 0);
+
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            vector::destroy_empty(crit_bit::remove_leaf_by_key(bids, highest_bid_price));
+            let price_level =
+                critbit::remove_leaf_by_key(bids, highest_bid_price);
+            vector::destroy_empty(price_level);
         };
 
         let Bid {
@@ -1107,10 +1309,13 @@ module liquidity_layer::orderbook {
         let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
 
-        let (has_key, _) = crit_bit::find_leaf(bids, bid_price_level);
+        let (has_key, price_level_idx) =
+            critbit::find_leaf(bids, bid_price_level);
 
         assert!(has_key, EOrderDoesNotExist);
-        let price_level = crit_bit::borrow_mut_leaf_by_key(bids, bid_price_level);
+
+        let price_level =
+            critbit::borrow_mut_leaf_by_index(bids, price_level_idx);
 
         let index = 0;
         let bids_count = vector::length(price_level);
@@ -1131,7 +1336,8 @@ module liquidity_layer::orderbook {
 
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            vector::destroy_empty(crit_bit::remove_leaf_by_key(bids, bid_price_level));
+            let price_level = critbit::remove_leaf_by_index(bids, price_level_idx);
+            vector::destroy_empty(price_level);
         };
 
         event::emit(BidClosedEvent {
@@ -1203,7 +1409,7 @@ module liquidity_layer::orderbook {
         // the buyers kiosk at the point of sending the tx
 
         // will fail if not OB kiosk
-        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.id, ctx);
+        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.transfer_signer, ctx);
 
         // prevent listing of NFTs which don't belong to the collection
         ob_kiosk::assert_nft_type<T>(seller_kiosk, nft_id);
@@ -1214,10 +1420,10 @@ module liquidity_layer::orderbook {
         let bids = &mut book.bids;
 
         // if map empty, then highest bid ask price is 0
-        let (can_be_filled, highest_bid_price) = if (crit_bit::is_empty(bids)) {
+        let (can_be_filled, highest_bid_price) = if (critbit::is_empty(bids)) {
             (false, 0)
         } else {
-            let (highest_bid_price, _) = crit_bit::max_leaf(bids);
+            let (highest_bid_price, _) = critbit::max_leaf(bids);
 
             (highest_bid_price >= price, highest_bid_price)
         };
@@ -1255,14 +1461,18 @@ module liquidity_layer::orderbook {
                 commission: ask_commission,
             };
             // store the Ask object
-            let (has_key, _) = crit_bit::find_leaf(&book.asks, price);
+            let (has_key, price_level_idx) =
+                critbit::find_leaf(&book.asks, price);
 
             if (has_key) {
                 vector::push_back(
-                    crit_bit::borrow_mut_leaf_by_key(&mut book.asks, price), ask
+                    critbit::borrow_mut_leaf_by_index(
+                        &mut book.asks, price_level_idx,
+                    ),
+                    ask,
                 );
             } else {
-                crit_bit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
+                critbit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
             };
 
             option::none()
@@ -1278,7 +1488,6 @@ module liquidity_layer::orderbook {
         ctx: &mut TxContext,
     ): Option<trading::AskCommission> {
         assert_version(book);
-
         let sender = tx_context::sender(ctx);
 
         let Ask {
@@ -1299,7 +1508,7 @@ module liquidity_layer::orderbook {
         });
 
         assert!(owner == sender, EOrderOwnerMustBeSender);
-        ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.id);
+        ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.transfer_signer);
 
         commission
     }
@@ -1343,7 +1552,7 @@ module liquidity_layer::orderbook {
             seller_kiosk,
             buyer_kiosk,
             nft_id,
-            &book.id,
+            &book.transfer_signer,
             price,
             ctx,
         );
@@ -1405,7 +1614,7 @@ module liquidity_layer::orderbook {
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                &book.id,
+                &book.transfer_signer,
                 ctx,
             )
         } else {
@@ -1413,7 +1622,7 @@ module liquidity_layer::orderbook {
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                &book.id,
+                &book.transfer_signer,
                 price,
                 ctx,
             )
@@ -1443,11 +1652,10 @@ module liquidity_layer::orderbook {
     /// Finds an ask of a given NFT advertized for the given price. Removes it
     /// from the asks vector preserving order and returns it.
     fun remove_ask(asks: &mut CritbitTree<vector<Ask>>, price: u64, nft_id: ID): Ask {
-        let (has_key, _) = crit_bit::find_leaf(asks, price);
-
+        let (has_key, price_level_idx) = critbit::find_leaf(asks, price);
         assert!(has_key, EOrderDoesNotExist);
 
-        let price_level = crit_bit::borrow_mut_leaf_by_key(asks, price);
+        let price_level = critbit::borrow_mut_leaf_by_index(asks, price_level_idx);
 
         let index = 0;
         let asks_count = vector::length(price_level);
@@ -1467,7 +1675,8 @@ module liquidity_layer::orderbook {
 
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            vector::destroy_empty(crit_bit::remove_leaf_by_key(asks, price));
+            let price_level = critbit::remove_leaf_by_index(asks, price_level_idx);
+            vector::destroy_empty(price_level);
         };
 
         ask
@@ -1489,14 +1698,16 @@ module liquidity_layer::orderbook {
 
     // Only the publisher of type `T` can upgrade
     entry fun migrate_as_creator<T: key + store, FT>(
-        self: &mut Orderbook<T, FT>, pub: &Publisher
+        self: &mut Orderbook<T, FT>,
+        pub: &Publisher,
     ) {
         assert!(package::from_package<T>(pub), 0);
         self.version = VERSION;
     }
 
     entry fun migrate_as_pub<T: key + store, FT>(
-        self: &mut Orderbook<T, FT>, pub: &Publisher
+        self: &mut Orderbook<T, FT>,
+        pub: &Publisher,
     ) {
         assert!(package::from_package<LIQUIDITY_LAYER>(pub), 0);
         self.version = VERSION;
@@ -1563,6 +1774,5 @@ module liquidity_layer::orderbook {
         assert!(check_tick_level(777_777_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
         assert!(check_tick_level(7_777_777_777_777_777_777, DEFAULT_TICK_SIZE) == true, 0);
         // assert!(check_tick_level(70_000_000_000_000_000_000, DEFAULT_TICK_SIZE) == true, 0);
-
     }
 }

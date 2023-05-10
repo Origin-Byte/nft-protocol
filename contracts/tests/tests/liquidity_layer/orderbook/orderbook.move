@@ -20,11 +20,13 @@ module ob_tests::orderbook {
     use sui::transfer_policy::{Self, TransferPolicy};
 
     use ob_permissions::witness;
-    use ob_utils::crit_bit::{Self};
     use ob_request::transfer_request;
     use ob_kiosk::ob_kiosk::{Self, OwnerToken};
     use ob_allowlist::allowlist::{Self, Allowlist};
+
     use liquidity_layer::orderbook::{Self, Orderbook};
+    use critbit::critbit_u64 as crit_bit;
+
     use nft_protocol::transfer_allowlist;
     use nft_protocol::royalty;
     use nft_protocol::collection::Collection;
@@ -51,7 +53,7 @@ module ob_tests::orderbook {
             ctx(&mut scenario),
         );
 
-        orderbook::share(orderbook);
+        transfer::public_share_object(orderbook);
         transfer::public_share_object(transfer_policy);
         transfer::public_transfer(policy_cap, creator());
         transfer::public_transfer(publisher, creator());
@@ -76,7 +78,7 @@ module ob_tests::orderbook {
             ctx(&mut scenario),
         );
 
-        orderbook::share(orderbook);
+        transfer::public_share_object(orderbook);
         transfer::public_share_object(transfer_policy);
         transfer::public_transfer(policy_cap, creator());
         transfer::public_transfer(publisher, creator());
@@ -95,7 +97,7 @@ module ob_tests::orderbook {
         // to OriginByte, in other words, if the creator did not use OriginByte
         // transfer_request module to initiate the policy or never added OriginByte
         // rules to the policy.
-        orderbook::create_for_external<Foo, SUI>(
+        orderbook::create_external<Foo, SUI>(
             &transfer_policy,
             ctx(&mut scenario),
         );
@@ -106,7 +108,7 @@ module ob_tests::orderbook {
         let transfer_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
         // When this is the case, anyone can come in a create an orderbook
-        orderbook::create_for_external<Foo, SUI>(
+        orderbook::create_external<Foo, SUI>(
             &transfer_policy,
             ctx(&mut scenario),
         );
@@ -132,7 +134,7 @@ module ob_tests::orderbook {
         let transfer_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
         // When this is the case, anyone can come in a create an orderbook
-        orderbook::create_for_external<Foo, SUI>(
+        orderbook::create_external<Foo, SUI>(
             &transfer_policy,
             ctx(&mut scenario),
         );

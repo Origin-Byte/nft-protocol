@@ -31,7 +31,8 @@ module ob_request_extensions::fee_balance {
     ) {
         df::add(
             tr::metadata_mut(self),
-            FeeBalanceDfKey {}, FeeBalance {balance: fee, beneficiary: fee_beneficiary}
+            FeeBalanceDfKey {},
+            FeeBalance {balance: fee, beneficiary: fee_beneficiary},
         );
     }
 

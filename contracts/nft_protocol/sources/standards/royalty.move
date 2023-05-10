@@ -300,7 +300,7 @@ module nft_protocol::royalty {
     /// ##### Panics
     ///
     /// Panics if there is no aggregate for token `FT`.\
-    public fun distribute_royalties<T, FT>(
+    public entry fun distribute_royalties<T, FT>(
         collection: &mut Collection<T>,
         ctx: &mut TxContext,
     ) {
