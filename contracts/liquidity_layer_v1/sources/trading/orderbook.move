@@ -45,7 +45,7 @@ module liquidity_layer_v1::orderbook {
     use liquidity_layer_v1::liquidity_layer::LIQUIDITY_LAYER;
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
