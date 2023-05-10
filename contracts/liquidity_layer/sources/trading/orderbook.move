@@ -46,7 +46,7 @@ module liquidity_layer::orderbook {
     use ob_utils::crit_bit::{Self, CritbitTree};
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
