@@ -449,7 +449,7 @@ module ob_tests::orderbook {
 
         // 8. Pay royalties
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
-        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
+        royalty_strategy_bps::confirm_transfer_with_fees<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
@@ -585,7 +585,7 @@ module ob_tests::orderbook {
 
         // 8. Pay royalties
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
-        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
+        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request);
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 

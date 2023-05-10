@@ -148,7 +148,7 @@ module nft_protocol::p2p_list {
     }
 
     /// Registers collection to use `Authlist` during the transfer.
-    public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
+    public entry fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
         transfer_request::add_originbyte_rule<T, P2PListRule, bool>(
             P2PListRule {}, policy, cap, false,
         );
@@ -160,7 +160,7 @@ module nft_protocol::p2p_list {
         );
     }
 
-    public fun enforce_<T, P>(
+    public entry fun enforce_<T, P>(
         policy: &mut Policy<WithNft<T, P>>,
         cap: &PolicyCap,
     ) {
