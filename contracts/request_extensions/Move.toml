@@ -1,7 +1,7 @@
 [package]
 name = "RequestExtensions"
 version = "1.0.0"
-published-at = "0x"
+published-at = "0xffe9703dc31c17b294c37b2ffae7815b197d3e823bbb9f9b9f285f60afb524f2"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -16,4 +16,4 @@ local = "./../permissions"
 local = "./../request"
 
 [addresses]
-ob_request_extensions = "0x"
+ob_request_extensions = "0xffe9703dc31c17b294c37b2ffae7815b197d3e823bbb9f9b9f285f60afb524f2"
