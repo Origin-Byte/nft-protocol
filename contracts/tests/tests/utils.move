@@ -4,6 +4,7 @@ module ob_tests::test_utils {
     use std::type_name;
     use std::vector;
 
+    use sui::transfer;
     use sui::sui::SUI;
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
@@ -145,10 +146,10 @@ module ob_tests::test_utils {
         scenario: &mut Scenario
     ): ID {
         let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, ctx(scenario));
-        orderbook::change_tick_size<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
+        orderbook::change_tick_size_with_witness<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
         let ob_id = object::id(&ob);
 
-        orderbook::share(ob);
+        transfer::public_share_object(ob);
 
         ob_id
     }
@@ -173,7 +174,7 @@ module ob_tests::test_utils {
         transfer_policy: &TransferPolicy<T>,
         scenario: &mut Scenario
     ) {
-        orderbook::create_for_external<T, SUI>(transfer_policy, ctx(scenario));
+        orderbook::create_external<T, SUI>(transfer_policy, ctx(scenario));
     }
 
     #[test_only]
