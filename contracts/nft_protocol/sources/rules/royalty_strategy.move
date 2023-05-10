@@ -21,7 +21,7 @@ module nft_protocol::royalty_strategy_bps {
     use ob_request_extensions::fee_balance;
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -121,7 +121,7 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     /// Registers collection to use `BpsRoyaltyStrategy` during the transfer.
-    public fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
+    public entry fun enforce<T>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
         transfer_request::add_originbyte_rule<T, BpsRoyaltyStrategyRule, bool>(
             BpsRoyaltyStrategyRule {}, policy, cap, false,
         );
@@ -134,7 +134,7 @@ module nft_protocol::royalty_strategy_bps {
     }
 
     /// Registers collection to use `BpsRoyaltyStrategy` during the transfer.
-    public fun enforce_<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
+    public entry fun enforce_<T, P>(policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap) {
         request::enforce_rule_no_state<WithNft<T, P>, BpsRoyaltyStrategyRule>(policy, cap);
     }
 
@@ -155,6 +155,41 @@ module nft_protocol::royalty_strategy_bps {
 
     /// Uses the balance associated with the request to deduct royalty.
     public fun confirm_transfer<T, FT>(
+        self: &mut BpsRoyaltyStrategy<T>,
+        req: &mut TransferRequest<T>,
+    ) {
+        assert_version(self);
+        assert!(self.is_enabled, ENotEnabled);
+        assert!(!fee_balance::has_fees<T>(req), 0);
+
+        let cap = option::borrow(&self.access_cap);
+        let (paid, _) = transfer_request::paid_in_ft_mut<T, FT>(req, cap);
+        let royalty_amount = calculate(self, balance::value(paid));
+        balances::take_from(&mut self.aggregator, paid, royalty_amount);
+
+        transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
+    }
+
+    /// Instead of using the balance associated with the `TransferRequest`,
+    /// pay the royalty in the given token.
+    public fun confirm_transfer_with_balance<T, FT>(
+        self: &mut BpsRoyaltyStrategy<T>,
+        req: &mut TransferRequest<T>,
+        wallet: &mut Balance<FT>,
+    ) {
+        assert_version(self);
+        assert!(self.is_enabled, ENotEnabled);
+        assert!(!fee_balance::has_fees<T>(req), 0);
+
+        let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
+        let fee_amount = calculate(self, paid);
+        balances::take_from(&mut self.aggregator, wallet, fee_amount);
+
+        transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
+    }
+
+    /// Uses the balance associated with the request to deduct royalty.
+    public fun confirm_transfer_with_fees<T, FT>(
         self: &mut BpsRoyaltyStrategy<T>,
         req: &mut TransferRequest<T>,
         ctx: &mut TxContext,
@@ -181,7 +216,7 @@ module nft_protocol::royalty_strategy_bps {
 
     /// Instead of using the balance associated with the `TransferRequest`,
     /// pay the royalty in the given token.
-    public fun confirm_transfer_with_balance<T, FT>(
+    public fun confirm_transfer_with_balance_with_fees<T, FT>(
         self: &mut BpsRoyaltyStrategy<T>,
         req: &mut TransferRequest<T>,
         wallet: &mut Balance<FT>,

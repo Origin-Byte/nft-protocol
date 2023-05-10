@@ -107,7 +107,7 @@ module nft_protocol::access_policy {
     }
 
     /// Registers a type to use `AccessPolicy` during the borrowing.
-    public fun enforce<T, P>(
+    public entry fun enforce<T, P>(
         policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap,
     ) {
         request::enforce_rule_no_state<WithNft<T, P>, AccessPolicyRule>(policy, cap);

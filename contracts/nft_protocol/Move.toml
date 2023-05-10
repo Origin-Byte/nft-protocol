@@ -29,8 +29,8 @@ local = "./../request"
 [dependencies.Kiosk]
 local = "./../kiosk"
 
-[dependencies.LiquidityLayer]
-local = "./../liquidity_layer"
+# [dependencies.LiquidityLayer]
+# local = "./../liquidity_layer"
 
 [dependencies.Pseudorandom]
 local = "./../pseudorandom"
@@ -42,4 +42,4 @@ local = "./../utils"
 local = "./../request_extensions"
 
 [addresses]
-nft_protocol = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"
+nft_protocol = "0x"
