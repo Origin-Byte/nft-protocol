@@ -43,7 +43,7 @@ module liquidity_layer::orderbook {
     use liquidity_layer::trading;
     use liquidity_layer::liquidity_layer::LIQUIDITY_LAYER;
 
-    use critbit::critbit_u64::{Self as critbit, CritbitTree};
+    use ob_utils::crit_bit::{Self as critbit, CritbitTree};
 
     // Track the current version of the module
     const VERSION: u64 = 1;
@@ -1133,13 +1133,14 @@ module liquidity_layer::orderbook {
                 commission: bid_commission,
             };
 
-            let (has_key, price_level_idx) =
+            let (has_key, _) =
                 critbit::find_leaf(&book.bids, price);
 
             if (has_key) {
                 vector::push_back(
-                    critbit::borrow_mut_leaf_by_index(
-                        &mut book.bids, price_level_idx,
+                    critbit::borrow_mut_leaf_by_key(
+                        &mut book.bids,
+                        price
                     ),
                     order
                 );
@@ -1309,13 +1310,15 @@ module liquidity_layer::orderbook {
         let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
 
-        let (has_key, price_level_idx) =
+        let (has_key, _) =
             critbit::find_leaf(bids, bid_price_level);
 
         assert!(has_key, EOrderDoesNotExist);
 
-        let price_level =
-            critbit::borrow_mut_leaf_by_index(bids, price_level_idx);
+        let price_level = critbit::borrow_mut_leaf_by_key(
+            bids,
+            bid_price_level
+        );
 
         let index = 0;
         let bids_count = vector::length(price_level);
@@ -1336,8 +1339,7 @@ module liquidity_layer::orderbook {
 
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            let price_level = critbit::remove_leaf_by_index(bids, price_level_idx);
-            vector::destroy_empty(price_level);
+            vector::destroy_empty(critbit::remove_leaf_by_key(bids, bid_price_level));
         };
 
         event::emit(BidClosedEvent {
@@ -1461,15 +1463,11 @@ module liquidity_layer::orderbook {
                 commission: ask_commission,
             };
             // store the Ask object
-            let (has_key, price_level_idx) =
-                critbit::find_leaf(&book.asks, price);
+            let (has_key, _) = critbit::find_leaf(&book.asks, price);
 
             if (has_key) {
                 vector::push_back(
-                    critbit::borrow_mut_leaf_by_index(
-                        &mut book.asks, price_level_idx,
-                    ),
-                    ask,
+                    critbit::borrow_mut_leaf_by_key(&mut book.asks, price), ask
                 );
             } else {
                 critbit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
@@ -1652,10 +1650,10 @@ module liquidity_layer::orderbook {
     /// Finds an ask of a given NFT advertized for the given price. Removes it
     /// from the asks vector preserving order and returns it.
     fun remove_ask(asks: &mut CritbitTree<vector<Ask>>, price: u64, nft_id: ID): Ask {
-        let (has_key, price_level_idx) = critbit::find_leaf(asks, price);
+        let (has_key, _) = critbit::find_leaf(asks, price);
         assert!(has_key, EOrderDoesNotExist);
 
-        let price_level = critbit::borrow_mut_leaf_by_index(asks, price_level_idx);
+        let price_level = critbit::borrow_mut_leaf_by_key(asks, price);
 
         let index = 0;
         let asks_count = vector::length(price_level);
@@ -1675,8 +1673,7 @@ module liquidity_layer::orderbook {
 
         if (vector::length(price_level) == 0) {
             // to simplify impl, always delete empty price level
-            let price_level = critbit::remove_leaf_by_index(asks, price_level_idx);
-            vector::destroy_empty(price_level);
+            vector::destroy_empty(critbit::remove_leaf_by_key(asks, price));
         };
 
         ask
