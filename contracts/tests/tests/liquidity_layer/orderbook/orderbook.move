@@ -7,8 +7,6 @@
 module ob_tests::orderbook {
     use std::option;
     use std::vector;
-    // use std::debug;
-    // use std::string::utf8;
 
     use sui::coin::{Self, Coin};
     use sui::object;
