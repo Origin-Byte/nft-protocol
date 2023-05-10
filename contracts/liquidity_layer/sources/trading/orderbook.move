@@ -119,6 +119,7 @@ module liquidity_layer::orderbook {
         ///
         /// > for any NFT in this collection, I will spare this many tokens
         bids: CritbitTree<vector<Bid<FT>>>,
+        transfer_signer: UID,
     }
 
     /// The contract which creates the orderbook can restrict specific actions
@@ -776,6 +777,7 @@ module liquidity_layer::orderbook {
             protected_actions,
             asks: crit_bit::new(ctx),
             bids: crit_bit::new(ctx),
+            transfer_signer: object::new(ctx),
         }
     }
 
@@ -1202,7 +1204,7 @@ module liquidity_layer::orderbook {
         // the buyers kiosk at the point of sending the tx
 
         // will fail if not OB kiosk
-        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.id, ctx);
+        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.transfer_signer, ctx);
 
         // prevent listing of NFTs which don't belong to the collection
         ob_kiosk::assert_nft_type<T>(seller_kiosk, nft_id);
@@ -1298,7 +1300,7 @@ module liquidity_layer::orderbook {
         });
 
         assert!(owner == sender, EOrderOwnerMustBeSender);
-        ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.id);
+        ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.transfer_signer);
 
         commission
     }
@@ -1347,7 +1349,7 @@ module liquidity_layer::orderbook {
             seller_kiosk,
             buyer_kiosk,
             nft_id,
-            &book.id,
+            &book.transfer_signer,
             price,
             ctx,
         );
@@ -1396,7 +1398,7 @@ module liquidity_layer::orderbook {
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                &book.id,
+                &book.transfer_signer,
                 ctx,
             )
         } else {
@@ -1404,7 +1406,7 @@ module liquidity_layer::orderbook {
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                &book.id,
+                &book.transfer_signer,
                 price,
                 ctx,
             )
