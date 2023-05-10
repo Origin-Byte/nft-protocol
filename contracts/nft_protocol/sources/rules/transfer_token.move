@@ -47,17 +47,6 @@ module nft_protocol::transfer_token {
         token_id
     }
 
-    /// Creates a new `TransferToken<T>` list
-    public entry fun airdrop<T>(
-        witness: DelegatedWitness<T>,
-        receiver: address,
-        current_owner: address,
-        ctx: &mut TxContext,
-    ) {
-        create_and_transfer(witness, receiver, current_owner, ctx);
-    }
-
-
     // === Actions ===
 
     /// Registers collection to use `Allowlist` during the transfer.
