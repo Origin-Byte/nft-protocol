@@ -23,7 +23,7 @@ module ob_tests::orderbook {
     use ob_allowlist::allowlist::{Self, Allowlist};
 
     use liquidity_layer::orderbook::{Self, Orderbook};
-    use critbit::critbit_u64 as crit_bit;
+    use ob_utils::crit_bit as crit_bit;
 
     use nft_protocol::transfer_allowlist;
     use nft_protocol::royalty;

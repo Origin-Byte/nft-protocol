@@ -15,7 +15,7 @@ module ob_tests::orderbook_depth {
     use sui::test_scenario::{Self, ctx};
 
     use ob_permissions::witness;
-    use critbit::critbit_u64 as crit_bit;
+    use ob_utils::crit_bit;
     use liquidity_layer::orderbook::{Self, Orderbook};
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator};
     use ob_kiosk::ob_kiosk;
