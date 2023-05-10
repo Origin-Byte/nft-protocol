@@ -32,6 +32,8 @@ module nft_protocol::royalty_strategy_bps {
     /// `TransferRequest`.s
     const ENotEnabled: u64 = 1;
 
+    const ETransferRequestHasFeeBalance: u64 = 2;
+
     /// === Structs ===
 
     /// A shared object which can be used to add receipts of type
@@ -160,7 +162,7 @@ module nft_protocol::royalty_strategy_bps {
     ) {
         assert_version(self);
         assert!(self.is_enabled, ENotEnabled);
-        assert!(!fee_balance::has_fees<T>(req), 0);
+        assert!(!fee_balance::has_fees<T>(req), ETransferRequestHasFeeBalance);
 
         let cap = option::borrow(&self.access_cap);
         let (paid, _) = transfer_request::paid_in_ft_mut<T, FT>(req, cap);
@@ -179,7 +181,7 @@ module nft_protocol::royalty_strategy_bps {
     ) {
         assert_version(self);
         assert!(self.is_enabled, ENotEnabled);
-        assert!(!fee_balance::has_fees<T>(req), 0);
+        assert!(!fee_balance::has_fees<T>(req), ETransferRequestHasFeeBalance);
 
         let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
         let fee_amount = calculate(self, paid);
