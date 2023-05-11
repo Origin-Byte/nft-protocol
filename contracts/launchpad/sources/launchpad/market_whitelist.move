@@ -1,3 +1,4 @@
+/// Module responsible for the creation and destruction of Whitelist certificates.
 module ob_launchpad::market_whitelist {
     use sui::transfer;
     use sui::object::{Self, ID , UID};

@@ -1,12 +1,4 @@
-/// Module defining the OriginByte `NFT` type
-///
-/// OriginByte's NFT protocol brings dynamism, composability and extendability
-/// to NFTs. The current design allows creators to create NFTs with custom
-/// domain-specific fields, with their own bespoke behavior.
-///
-/// OriginByte provides a set of standard domains which implement common NFT
-/// use-cases such as `DisplayDomain` which allows wallets and marketplaces to
-/// easily display your NFT.
+/// Module defining a wrapper `NFT` type
 module nft_protocol::nft {
     use std::ascii;
     use std::string;

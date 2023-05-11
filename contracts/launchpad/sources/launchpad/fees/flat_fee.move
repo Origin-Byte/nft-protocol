@@ -1,3 +1,5 @@
+/// A module responsible for the calculation and distribution
+/// of Launchpad proceeds and fees.
 module ob_launchpad::flat_fee {
     use sui::balance;
     use sui::tx_context;

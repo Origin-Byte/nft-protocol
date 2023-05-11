@@ -1,3 +1,8 @@
+/// *** Attention ***
+/// Orderbook V1 is scheduled to be deprecated in favor of Orderbook V2, which
+/// uses dynamic fields. The use of Orderbook V1 is limited by the current Sui
+/// object size limiteation of 250 kb.
+///
 /// Orderbook where bids are fungible tokens and asks are NFTs.
 /// A bid is a request to buy one NFT from a specific collection.
 /// An ask is one NFT with a min price condition.
