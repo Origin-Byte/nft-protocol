@@ -1,16 +1,16 @@
 [package]
 name = "Utils"
 version = "1.0.0"
-published-at = "0xe7e338021db7ce6b03c1a610c8bd0f0dbe952d6661637d5d54d1781fc57b7a16"
+published-at = "0xaa3050d40ba97970599a4d4f16e6419330c938dc210aaac4c4c12c1b0c19c5a4"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.0.0
-rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+# devnet-1.1.0
+rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 
 [dependencies.Pseudorandom]
 local = "./../pseudorandom"
 
 [addresses]
-ob_utils = "0xe7e338021db7ce6b03c1a610c8bd0f0dbe952d6661637d5d54d1781fc57b7a16"
+ob_utils = "0xaa3050d40ba97970599a4d4f16e6419330c938dc210aaac4c4c12c1b0c19c5a4"

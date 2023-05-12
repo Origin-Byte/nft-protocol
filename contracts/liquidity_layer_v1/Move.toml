@@ -1,18 +1,18 @@
 [package]
 name = "LiquidityLayerV1"
 version = "1.0.0"
-published-at = "0x6f3b8331c1a100f198604602ab1409aa967933fb62717a9e537895e601c86ecd"
+published-at = "0xe1be317bb4aa5937c2e6806aba9ba9c37fd8a349d73e76c87b668577837a9492"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.0.0
-rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+# devnet-1.1.0
+rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
-# testnet-1.0.0
-rev = "067f5878e9264924377cb39400b96637865b449c"
+# devnet-1.1.0
+rev = "3d39cbc93848ee940fda6a32df614c78e393150e"
 
 [dependencies.Permissions]
 local = "./../permissions"
@@ -33,4 +33,4 @@ local = "./../kiosk"
 local = "./../utils"
 
 [addresses]
-liquidity_layer_v1 = "0x6f3b8331c1a100f198604602ab1409aa967933fb62717a9e537895e601c86ecd"
+liquidity_layer_v1 = "0xe1be317bb4aa5937c2e6806aba9ba9c37fd8a349d73e76c87b668577837a9492"

@@ -1,13 +1,13 @@
 [package]
 name = "Kiosk"
 version = "1.0.0"
-published-at = "0x650f6faf9e5d8e4bcc1f13906317fad34996d5795fad2ba946fe6982cdc080cf"
+published-at = "0xf795d18e3fdfd2c5a622ee125a560b1901896acb3df3007bb0683f01c98c96da"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.0.0
-rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+# devnet-1.1.0
+rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 
 [dependencies.Permissions]
 local = "./../permissions"
@@ -16,4 +16,4 @@ local = "./../permissions"
 local = "./../request"
 
 [addresses]
-ob_kiosk = "0x650f6faf9e5d8e4bcc1f13906317fad34996d5795fad2ba946fe6982cdc080cf"
+ob_kiosk = "0xf795d18e3fdfd2c5a622ee125a560b1901896acb3df3007bb0683f01c98c96da"
