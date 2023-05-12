@@ -1,3 +1,12 @@
+/// A primitive for Creators to update Dynamic NFTs on behalf of users.
+/// An access policy list for a given NFT type is a policy rule for controlling
+/// mutable access to NFTs. Creators can register addresses that are allowed to
+/// gain access over an NFT type. The access can either be parent-level access,
+/// which means access to the NFT in its entirity, or field-level access.
+///
+/// This rule can be conjugated with Session Tokens rule to create a dNFT access
+/// policy where the creators can assign mutable access to the NFT type `T` only
+/// and only with the owner's consent.
 module nft_protocol::access_policy {
     // Borrow NFT from &UID (Programmatic entity)
     use std::type_name::{Self, TypeName};
