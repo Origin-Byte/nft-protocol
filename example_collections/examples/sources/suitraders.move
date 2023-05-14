@@ -7,19 +7,29 @@ module examples::suitraders {
     use sui::display;
     use sui::transfer;
     use sui::object::{Self, UID};
-    use sui::vec_set;
     use sui::tx_context::{Self, TxContext};
 
+    use nft_protocol::mint_cap;
     use nft_protocol::mint_event;
+    use nft_protocol::p2p_list;
     use nft_protocol::creators;
+    use ob_utils::utils;
+    use ob_request::transfer_request;
+    use nft_protocol::royalty;
+    use nft_protocol::transfer_allowlist;
     use nft_protocol::attributes::{Self, Attributes};
     use nft_protocol::collection;
     use nft_protocol::display_info;
-    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::royalty_strategy_bps;
+    use ob_utils::display as ob_display;
+    use nft_protocol::mint_cap::MintCap;
     use nft_protocol::tags;
-    use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::witness;
+    use ob_permissions::witness;
+
+    use ob_launchpad::listing;
+    use ob_launchpad::fixed_price;
+    use ob_launchpad::dutch_auction;
+    use ob_launchpad::warehouse::{Self, Warehouse};
 
     /// One time witness is only instantiated in the init method
     struct SUITRADERS has drop {}
@@ -40,67 +50,98 @@ module examples::suitraders {
     fun init(otw: SUITRADERS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
-        // Init Collection & MintCap with unlimited supply
+        // 1. Init Collection & MintCap with unlimited supply
         let (collection, mint_cap) = collection::create_with_mint_cap<SUITRADERS, Suitrader>(
             &otw, option::none(), ctx
         );
 
-        // Init Publisher
+        // 2. Init Publisher & Delegated Witness
         let publisher = sui::package::claim(otw, ctx);
+        let dw = witness::from_witness(Witness {});
 
-        // Init Display
+        // === NFT DISPLAY ===
+
+        // 3. Init Display
+        let tags = vector[tags::art(), tags::game_asset()];
+
         let display = display::new<Suitrader>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::add(&mut display, string::utf8(b"description"), string::utf8(b"{description}"));
         display::add(&mut display, string::utf8(b"image_url"), string::utf8(b"https://{url}"));
         display::add(&mut display, string::utf8(b"attributes"), string::utf8(b"{attributes}"));
+        display::add(&mut display, string::utf8(b"tags"), ob_display::from_vec(tags));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
-        // Get the Delegated Witness
-        let dw = witness::from_witness(Witness {});
+        // === COLLECTION DOMAINS ===
 
-        // Add name and description to Collection
+        // 4. Add name and description to Collection
         collection::add_domain(
             dw,
             &mut collection,
             display_info::new(
-                string::utf8(b"Suimarines"),
-                string::utf8(b"A unique NFT collection of Suimarines on Sui"),
+                string::utf8(b"Suitraders"),
+                string::utf8(b"A unique NFT collection of Traders on Sui"),
             ),
         );
 
-        // Creators domain
+        // 5. Add Creator metadata to the collection
+        // Add Creator metadata to the collection
+        // Insert Creator addresses here
+        let creators = vector[
+            @0xA01, @0xA05, @0xA06, @0xA07, @0x08
+        ];
+
         collection::add_domain(
             dw,
             &mut collection,
-            creators::new(vec_set::singleton(sender)),
+            creators::new(utils::vec_set_from_vec(&creators)),
         );
 
-        // Royalties
+        // 6. Setup royalty basis points
+        // 2_000 BPS == 20%
+        let shares = vector[2_000, 2_000, 2_000, 2_000, 2_000];
+
+        let shares = utils::from_vec_to_map(creators, shares);
+
         royalty_strategy_bps::create_domain_and_add_strategy(
-            dw, &mut collection, 100, ctx,
+            dw, &mut collection, royalty::from_shares(shares, ctx), 100, ctx,
         );
 
-        // Tags
-        let tags = tags::empty(ctx);
-        tags::add_tag(&mut tags, tags::art());
-        collection::add_domain(dw, &mut collection, tags);
+        // === TRANSFER POLICIES ===
 
-        // Setup primary market. Note that this step can also be done
+        // 7. Creates a new policy and registers an allowlist rule to it.
+        // Therefore now to finish a transfer, the allowlist must be included
+        // in the chain.
+        let (transfer_policy, transfer_policy_cap) =
+            transfer_request::init_policy<Suitrader>(&publisher, ctx);
+
+        royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);
+        transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);
+
+        // 8. P2P Transfers are a separate transfer workflow and therefore require a
+        // separate policy
+        let (p2p_policy, p2p_policy_cap) =
+            transfer_request::init_policy<Suitrader>(&publisher, ctx);
+
+        p2p_list::enforce(&mut p2p_policy, &p2p_policy_cap);
+
+        // === PRIMARY MARKET ===
+
+        // 9. Setup primary market. Note that this step can also be done
         // not in the init function but on the client side by calling
         // the launchpad functions directly
-        let listing = nft_protocol::listing::new(
+        let listing = listing::new(
             tx_context::sender(ctx),
             tx_context::sender(ctx),
             ctx,
         );
 
-        let inventory_id = nft_protocol::listing::create_warehouse<Suitrader>(
+        let inventory_id = listing::create_warehouse<Suitrader>(
             &mut listing, ctx
         );
 
-        nft_protocol::fixed_price::init_venue<Suitrader, sui::sui::SUI>(
+        fixed_price::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -108,7 +149,7 @@ module examples::suitraders {
             ctx,
         );
 
-        nft_protocol::dutch_auction::init_venue<Suitrader, sui::sui::SUI>(
+        dutch_auction::init_venue<Suitrader, sui::sui::SUI>(
             &mut listing,
             inventory_id,
             false, // is whitelisted
@@ -116,10 +157,16 @@ module examples::suitraders {
             ctx,
         );
 
+        // === CLOSE ===
+
         transfer::public_transfer(publisher, sender);
+        transfer::public_transfer(p2p_policy_cap, sender);
+        transfer::public_transfer(transfer_policy_cap, sender);
         transfer::public_transfer(mint_cap, sender);
         transfer::public_share_object(listing);
         transfer::public_share_object(collection);
+        transfer::public_share_object(p2p_policy);
+        transfer::public_share_object(transfer_policy);
     }
 
     public entry fun mint_nft(
@@ -140,7 +187,13 @@ module examples::suitraders {
             attributes: attributes::from_vec(attribute_keys, attribute_values)
         };
 
-        mint_event::mint_unlimited(mint_cap, &nft);
+
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
+        );
+
         warehouse::deposit_nft(warehouse, nft);
     }
 

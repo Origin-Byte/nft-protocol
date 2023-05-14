@@ -18,13 +18,23 @@ The ecosystem is partitioned into three critical components:
 
 ## Resources
 
-- Protocol contract:
-  - [DevNet](https://explorer.sui.io/object/0xe8eb600429f7f391d3a9e8112288a4fa1e752239dc1f3d44b66672e85b153c2c?network=devnet)
-- LaunchpadV2 contract:
-  - [DevNet](https://explorer.sui.io/object/0x322af0117dc1dc52cb2d3e7a2bcf6b5ceeb6380bbbc1f787ba23c6768089602f?network=devnet)
-
+- Protocol contracts:
+  - [PseudoRandom](https://explorer.sui.io/object/0x9e5962d5183664be8a7762fbe94eee6e3457c0cc701750c94c17f7f8ac5a32fb)
+  - [Permissions](https://explorer.sui.io/object/0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40)
+  - [Allowlist](https://explorer.sui.io/object/0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa)
+  - [Authlist](https://explorer.sui.io/object/0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4)
+  - [Request](https://explorer.sui.io/object/0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43)
+  - [Kiosk](https://explorer.sui.io/object/0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b)
+  - [Liquidity Layer](https://explorer.sui.io/object/0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a)
+  - [Launchpad](https://explorer.sui.io/object/0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b)
+  - [NftProtocol](https://explorer.sui.io/object/0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
-- [Developer Documentation](https://origin-byte.github.io/)
+- [Developer Documentation](https://origin-byte.github.io/) (WIP)
+
+
+In addition, you can find transfer lists curated by OriginByte here:
+- [Trading Allowlist](https://explorer.sui.io/object/0xb9353bccfb7ad87b9195c6956b2ac81551350b104d5bfec9cf0ea6f5c467c6d1)
+- [P2P Transfer Authlist](https://explorer.sui.io/object/0xedf545c164dacf55acf37431b90f6b5e55acd5925f4683de8753760d2b5e74fa)
 
 # Install
 

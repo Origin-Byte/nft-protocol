@@ -1,0 +1,69 @@
+contracts:
+  - pseudorandom
+  - utils
+  - permissions
+  - request
+  - request_extensions
+  - kiosk
+  - allowlist
+  - authlist
+  - launchpad
+  - liquidity_layer_v1
+  - liquidity_layer
+  - nft_protocol
+
+objects:
+    pseudorandom:
+        contract: 0x5859fb33cdba241faba3ae75a4a6baf421ecbf9e5d9f06e66be8f9faedc8b7cb
+        upgrade_cap: 0x64be2d5712d6178f216910092db805e3bca4125a75fe20374ea3231e5f3e4a40
+    utils:
+        contract: 0xaa3050d40ba97970599a4d4f16e6419330c938dc210aaac4c4c12c1b0c19c5a4
+        upgrade_cap: 0x981565ba8403c4b7e3094eb5deb6ba4ae698f8497c13831ea4dc8670f7ccb675
+    permissions:
+        contract: 0x6504728885c5cecf5855289d0a00d4cb49b983721ad5097eb12382fc976a9698
+        upgrade_cap: 0x227cecc1d46618b85e6feef7faba766490c54aaa0d280d85c299918311f718c5
+        publisher: 0x8175bd64c28b35c80998fb61d51886152a0f1ab26e9539e0fd271265ba9c7098
+        frozen_publisher: 0xbfc5e918ee1d6d4675a50e4d42317451ff0244adb9f2499ed3843ad8cd19e578
+    request:
+        contract: 0xc256ac80a2de95cbad286a6a38aa24cda1318c7290a3f5ddf62300fb82530728
+        upgrade_cap: 0x8cd0af912af1fdd9055d57ef59b708dfe0cdfec5ba6a24928f470ae78df81620
+        publisher: 0xa364c7e42711c10bb0a2b42b1670c21e690ccfe40b877d3b0b9a5c9595cf415d
+        frozen_publisher: 0x9690459bba1e9bce585a06db9fb292a965123c371e54212497657c84812fc806
+    kiosk:
+        contract: 0xf795d18e3fdfd2c5a622ee125a560b1901896acb3df3007bb0683f01c98c96da
+        upgrade_cap: 0x7557587a007ed4ab5de8afad8053282c9a4faa78ad43f66435deaec160a585fa
+        publisher: 0x11e911d3546b028b525436efcfb82fe30716ddf1fbb90412aaf3811695a5418f
+        frozen_publisher: 0x1306806b017bf84d2c5d8ff3a57f5d92896c68e0a16218890bdfd3d23abfb66a
+    allowlist:
+        contract: 0xe9aff75fd10b4209e0b53e0ba422858910d35430dba8425110805c04044bf15d
+        upgrade_cap: 0xa872a1814900dde181b4f336825c9dcdcc488b70b5f3ceeb51879f9c6e51ec48
+        publisher: 0x14ebbc01e305ee2364514ef20c8cce9d992e19eecae84a6fcb2047792fdff1a0
+        frozen_publisher: 0xb6ea70c4fd76317d2d0f236a1058c53d20b1f7a150d452d2be83c4f0f42aba14
+    authlist:
+        contract: 0x75cca70806de196ac08b544dbdf587a5de856a3b42b85abc0e6bb61445af86f4
+        upgrade_cap: 0xd898fbea3a05379af3ba919380e69082e4edfa668320dcb44ba6dbc9b5db382e
+        publisher: 0x0b38d29e47f14a7a847b274d03acf946116f233620997e7fc22f0baf9090dfac
+        frozen_publisher: 0x4116efcca6f165f1a2493751be7cafb309dbe25fc4a23ba56ff25eb6d640b8b5
+    originmate:
+        contract: 0x8dcb0eadc6a810cdb33291fea00aaac93f331e07f70d2135bf22b4aff9db423c
+        upgrade_cap: 0xd4c1b29fa48312f6e5ff24b7e3b191a5fd75d7bcea30237218d6bcc5f82aa464
+    launchpad:
+        contract: 0x08f4366883139c68b3d41b47a558e865d8b35842493d1334daa6cea49cc2ddb0
+        upgrade_cap: 0xf27236e3e34d89cbd489a2a2db546086a32f48f57a850eea352f3dccec4cd450
+        publisher: 0x4be5510097bb62a232383a9ea3f2c6e54fa91195b92f6cccfad378a40643f1d7
+        frozen_publisher: 0xc1f91e8f518f30594ad3764034adb2fc6b79a4e47cac00913286ae3235640d18
+    liquidity_layer_v1:
+        contract: 0xe1be317bb4aa5937c2e6806aba9ba9c37fd8a349d73e76c87b668577837a9492
+        upgrade_cap: 0xe1b83e6eb02b9da6631d5c9c722160be09a94f795e3aa3a89d2ef75ec65327f5
+        publisher: 0xcb122720965701b373ec7140975e134db30040a0137cfd6f360ed34f95d1b291
+        frozen_publisher: 0x0bbfbd8ea9e065716f378020ae955e4dee2fba6470de20886ce05336d38c58c0
+  liquidity_layer:
+        contract: 0x7c40ebc86ee38c431c9a59626f3d37718e4471139e6f8894256b145cb5fc8f3d
+        upgrade_cap: 0xb2e43b867cf4ef79858b8f6542fc6314895aa4c05b3dcb2dc608f0c36f6af6f3
+        publisher: 0x52cf6bf2c4c2037587fd767298d2ed00ca3d1d6dc8d4945faa1e6101f24cbd8c
+        frozen_publisher: 0x67d417d4489f178d72dbfce679d44d3ab8864b5b6252f6a66b46213a92518072
+  nft_protocol:
+        contract: 0xd02ed005d050fb8ae1e9c104bc05ece8441aca0613f9af58e98fd8efe22444e4
+        upgrade_cap: 0x5a100b1526973f163b06fb54ee471e859bdff56d60092a407a6dd172016bb8a9
+        publisher: 0x361d3ef9de5d7b6189bb4e72e6edad04a3ec8744b174e84649c892dd261d8a2c
+        frozen_publisher: 0xc846e0335d4c27a9b702033fd347649c6e3760d384aad306956a95ac2afd8fbb

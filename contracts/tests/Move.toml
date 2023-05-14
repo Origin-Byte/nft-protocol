@@ -1,0 +1,45 @@
+[package]
+name = "IntegrationTests"
+version = "1.0.0"
+published-at = "0x"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-framework"
+# testnet-1.0.0
+rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+
+[dependencies.Originmate]
+git = "https://github.com/Origin-Byte/originmate.git"
+# testnet-1.0.0
+rev = "36e02283fa00451e8476a1bbc201af9a248396de"
+
+[dependencies.Permissions]
+local = "./../permissions"
+
+[dependencies.Authlist]
+local = "./../authlist"
+
+[dependencies.Allowlist]
+local = "./../allowlist"
+
+[dependencies.Request]
+local = "./../request"
+
+[dependencies.Kiosk]
+local = "./../kiosk"
+
+[dependencies.LiquidityLayer]
+local = "./../liquidity_layer"
+
+[dependencies.LiquidityLayerV1]
+local = "./../liquidity_layer_v1"
+
+[dependencies.NftProtocol]
+local = "./../nft_protocol"
+
+[dependencies.LaunchpadV2]
+local = "./../launchpad_v2"
+
+[addresses]
+ob_tests = "0x"

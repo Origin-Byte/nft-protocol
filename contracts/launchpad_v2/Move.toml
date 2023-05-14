@@ -1,0 +1,27 @@
+[package]
+name = "LaunchpadV2"
+version = "1.0.0"
+published-at = "0x10"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-framework"
+# devnet-1.1.0
+rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
+
+[dependencies.Originmate]
+git = "https://github.com/Origin-Byte/originmate.git"
+# testnet-1.0.0
+rev = "36e02283fa00451e8476a1bbc201af9a248396de"
+
+[dependencies.NftProtocol]
+local = "./../nft_protocol"
+
+[dependencies.Utils]
+local = "./../utils"
+
+[dependencies.Pseudorandom]
+local = "./../pseudorandom"
+
+[addresses]
+ob_launchpad_v2 = "0x10"

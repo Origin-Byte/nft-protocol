@@ -7,12 +7,22 @@ module examples::suimarines {
     use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
 
+    use ob_utils::utils;
+    use nft_protocol::tags;
+    use nft_protocol::mint_event;
+    use nft_protocol::royalty;
+    use nft_protocol::creators;
+    use nft_protocol::transfer_allowlist;
+    use nft_protocol::p2p_list;
+    use ob_utils::display as ob_display;
     use nft_protocol::collection;
-    use nft_protocol::mut_lock::{Self, MutLock, ReturnFieldPromise};
-    use nft_protocol::mint_cap::MintCap;
+    use nft_protocol::mint_cap::{Self, MintCap};
     use nft_protocol::royalty_strategy_bps;
-    use nft_protocol::warehouse::{Self, Warehouse};
-    use nft_protocol::witness;
+    use ob_permissions::witness;
+
+    use ob_request::transfer_request;
+    use ob_request::borrow_request::{Self, BorrowRequest, ReturnPromise};
+    use ob_launchpad::warehouse::{Self, Warehouse};
 
     const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
     const EWRONG_URL_LENGTH: u64 = 2;
@@ -36,63 +46,116 @@ module examples::suimarines {
     fun init(otw: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
-        // Init Collection & MintCap with unlimited supply
+        // 1. Init Collection & MintCap with unlimited supply
         let (collection, mint_cap) = collection::create_with_mint_cap<SUIMARINES, Submarine>(
             &otw, option::none(), ctx
         );
 
-        // Init Publisher
+        // 2. Init Publisher & Delegated Witness
         let publisher = sui::package::claim(otw, ctx);
+        let dw = witness::from_witness(Witness {});
 
-        // Init Display
+        // === NFT DISPLAY ===
+
+        // 3. Init Display
+        let tags = vector[tags::art(), tags::collectible()];
+
         let display = display::new<Submarine>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
+        display::add(&mut display, string::utf8(b"tags"), ob_display::from_vec(tags));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
-        // Creates a new policy and registers an allowlist rule to it.
+        // === COLLECTION DOMAINS ===
+
+        // 4. Add Creator metadata to the collection
+
+        // Insert Creator addresses here
+        let creators = vector[
+            @0xA01, @0xA05, @0xA06, @0xA07, @0x08
+        ];
+
+        collection::add_domain(
+            dw,
+            &mut collection,
+            creators::new(utils::vec_set_from_vec(&creators)),
+        );
+
+        // 5. Setup royalty basis points
+        // 2_000 BPS == 20%
+        let shares = vector[2_000, 2_000, 2_000, 2_000, 2_000];
+        let shares = utils::from_vec_to_map(creators, shares);
+
+        royalty_strategy_bps::create_domain_and_add_strategy(
+            dw, &mut collection, royalty::from_shares(shares, ctx), 100, ctx,
+        );
+
+        // === TRANSFER POLICIES ===
+
+        // 6. Creates a new policy and registers an allowlist rule to it.
         // Therefore now to finish a transfer, the allowlist must be included
         // in the chain.
         let (transfer_policy, transfer_policy_cap) =
-            sui::transfer_policy::new<SUIMARINES>(&publisher, ctx);
-        nft_protocol::transfer_allowlist::add_policy_rule(
-            &mut transfer_policy,
-            &transfer_policy_cap,
-        );
+            transfer_request::init_policy<Submarine>(&publisher, ctx);
 
-        royalty_strategy_bps::create_domain_and_add_strategy<Submarine>(
-            witness::from_witness(Witness {}), &mut collection, 100, ctx,
-        );
+        royalty_strategy_bps::enforce(&mut transfer_policy, &transfer_policy_cap);
+        transfer_allowlist::enforce(&mut transfer_policy, &transfer_policy_cap);
+
+        // 7. P2P Transfers are a separate transfer workflow and therefore require a
+        // separate policy
+        let (p2p_policy, p2p_policy_cap) =
+            transfer_request::init_policy<Submarine>(&publisher, ctx);
+
+        p2p_list::enforce(&mut p2p_policy, &p2p_policy_cap);
+
+        // === CLOSE ===
 
         transfer::public_transfer(mint_cap, sender);
         transfer::public_transfer(publisher, sender);
         transfer::public_transfer(transfer_policy_cap, sender);
-        transfer::public_share_object(transfer_policy);
+        transfer::public_transfer(p2p_policy_cap, sender);
         transfer::public_share_object(collection);
+        transfer::public_share_object(transfer_policy);
+        transfer::public_share_object(p2p_policy);
     }
 
-    public fun get_nft_field<Field: store>(
-        locked_nft: &mut MutLock<Submarine>,
-    ): (Field, ReturnFieldPromise<Field>) {
+    public fun get_nft_field<Auth: drop, Field: store>(
+        request: &mut BorrowRequest<Auth, Submarine>,
+    ): (Field, ReturnPromise<Submarine, Field>) {
         let dw = witness::from_witness(Witness {});
-        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+        let nft = borrow_request::borrow_nft_ref_mut(dw, request);
 
-        mut_lock::borrow_field_with_promise<Field>(&mut nft.id)
+        borrow_request::borrow_field(dw, &mut nft.id)
     }
 
-    public fun return_nft_field<Field: store>(
-        locked_nft: &mut MutLock<Submarine>,
+    public fun return_nft_field<Auth: drop, Field: store>(
+        request: &mut BorrowRequest<Auth, Submarine>,
         field: Field,
-        promise: ReturnFieldPromise<Field>
+        promise: ReturnPromise<Submarine, Field>,
     ) {
         let dw = witness::from_witness(Witness {});
-        let nft = mut_lock::borrow_nft_as_witness(dw, locked_nft);
+        let nft = borrow_request::borrow_nft_ref_mut(dw, request);
 
-        mut_lock::consume_field_promise(&mut nft.id, field, promise);
+        borrow_request::return_field(dw, &mut nft.id, promise, field)
+    }
+
+    public fun get_nft<Auth: drop>(
+        request: &mut BorrowRequest<Auth, Submarine>,
+    ): Submarine {
+        let dw = witness::from_witness(Witness {});
+        borrow_request::borrow_nft(dw, request)
+    }
+
+    public fun return_nft<Auth: drop>(
+        request: &mut BorrowRequest<Auth, Submarine>,
+        nft: Submarine,
+    ) {
+        let dw = witness::from_witness(Witness {});
+        borrow_request::return_nft(dw, request, nft);
     }
 
     public entry fun mint_nft(
-        _mint_cap: &MintCap<Submarine>,
+        mint_cap: &MintCap<Submarine>,
         name: String,
         index: u64,
         warehouse: &mut Warehouse<Submarine>,
@@ -102,6 +165,12 @@ module examples::suimarines {
             name,
             index,
             ctx
+        );
+
+        mint_event::emit_mint(
+            witness::from_witness(Witness {}),
+            mint_cap::collection_id(mint_cap),
+            &nft,
         );
 
         warehouse::deposit_nft(warehouse, nft);
