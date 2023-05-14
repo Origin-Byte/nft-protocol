@@ -1,7 +1,7 @@
 [package]
 name = "Authlist"
 version = "1.0.0"
-published-at = "0x75cca70806de196ac08b544dbdf587a5de856a3b42b85abc0e6bb61445af86f4"
+published-at = "0x"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -13,4 +13,4 @@ rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 local = "./../permissions"
 
 [addresses]
-ob_authlist = "0x75cca70806de196ac08b544dbdf587a5de856a3b42b85abc0e6bb61445af86f4"
+ob_authlist = "0x"

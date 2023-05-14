@@ -1,7 +1,7 @@
 [package]
 name = "Permissions"
 version = "1.0.0"
-published-at = "0x6504728885c5cecf5855289d0a00d4cb49b983721ad5097eb12382fc976a9698"
+published-at = "0x"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -13,4 +13,4 @@ rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 local = "./../utils"
 
 [addresses]
-ob_permissions = "0x6504728885c5cecf5855289d0a00d4cb49b983721ad5097eb12382fc976a9698"
+ob_permissions = "0x"

@@ -1,7 +1,7 @@
 [package]
 name = "Request"
 version = "1.0.0"
-published-at = "0xc256ac80a2de95cbad286a6a38aa24cda1318c7290a3f5ddf62300fb82530728"
+published-at = "0x"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -13,4 +13,4 @@ rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 local = "./../permissions"
 
 [addresses]
-ob_request = "0xc256ac80a2de95cbad286a6a38aa24cda1318c7290a3f5ddf62300fb82530728"
+ob_request = "0x"
