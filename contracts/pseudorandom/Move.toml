@@ -1,7 +1,7 @@
 [package]
 name = "Pseudorandom"
 version = "1.0.0"
-published-at = "0x"
+published-at = "0x04b4ebbcaeead1d059a4b8bc4e8d532e9470d4d514e2539c6350b2b11c22b6aa"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -10,4 +10,4 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 
 [addresses]
-ob_pseudorandom = "0x"
+ob_pseudorandom = "0x04b4ebbcaeead1d059a4b8bc4e8d532e9470d4d514e2539c6350b2b11c22b6aa"
