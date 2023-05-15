@@ -35,7 +35,7 @@ dependencies = [
 
 [[move.package]]
 name = "Critbit"
-source = { git = "https://github.com/Origin-Byte/critbit.git", rev = "v1.0.1-mainnet", subdir = "" }
+source = { git = "https://github.com/Origin-Byte/critbit.git", rev = "f849ec8efc3458eb2c56cabae602e19453e5ab68", subdir = "" }
 
 dependencies = [
   { name = "Sui" },

@@ -1,13 +1,13 @@
 [package]
 name = "RequestExtensions"
 version = "1.0.0"
-published-at = "0xffe9703dc31c17b294c37b2ffae7815b197d3e823bbb9f9b9f285f60afb524f2"
+published-at = "0x355d32aaf760dfdb01d62650c4554cf402ae98d34f150e1b378441864ddee95e"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.0.0
-rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+# devnet-1.1.0
+rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 
 [dependencies.Permissions]
 local = "./../permissions"
@@ -16,4 +16,4 @@ local = "./../permissions"
 local = "./../request"
 
 [addresses]
-ob_request_extensions = "0xffe9703dc31c17b294c37b2ffae7815b197d3e823bbb9f9b9f285f60afb524f2"
+ob_request_extensions = "0x355d32aaf760dfdb01d62650c4554cf402ae98d34f150e1b378441864ddee95e"

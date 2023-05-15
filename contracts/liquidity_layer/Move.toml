@@ -1,7 +1,7 @@
 [package]
 name = "LiquidityLayer"
 version = "1.0.0"
-published-at = "0x8fd52f3c8a969e5c01b8ad26ede5f6750bd6708156dde720ac844a50f97c9f77"
+published-at = "0x17598ec33ed2d4ab4a65afe6aed97ed41a0c50efdfea61e62e76e94d20490fb8"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -11,7 +11,7 @@ rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 
 [dependencies.Critbit]
 git = "https://github.com/Origin-Byte/critbit.git"
-rev = "v1.0.1-mainnet"
+rev = "f849ec8efc3458eb2c56cabae602e19453e5ab68"
 
 [dependencies.Permissions]
 local = "./../permissions"
@@ -35,5 +35,5 @@ local = "./../utils"
 local = "./../request_extensions"
 
 [addresses]
-liquidity_layer = "0x8fd52f3c8a969e5c01b8ad26ede5f6750bd6708156dde720ac844a50f97c9f77"
+liquidity_layer = "0x17598ec33ed2d4ab4a65afe6aed97ed41a0c50efdfea61e62e76e94d20490fb8"
 
