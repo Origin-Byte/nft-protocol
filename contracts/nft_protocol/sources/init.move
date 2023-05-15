@@ -4,9 +4,6 @@ module nft_protocol::nft_protocol {
     use sui::object::{Self, ID};
     use sui::tx_context::{Self, TxContext};
 
-    use liquidity_layer::bidding;
-    use liquidity_layer::orderbook;
-
     use ob_allowlist::allowlist;
 
     use ob_authlist::authlist;
@@ -24,10 +21,6 @@ module nft_protocol::nft_protocol {
     /// Initialize official OriginByte `Allowlist`
     public fun init_allowlist(ctx: &mut TxContext): (ID, ID) {
         let (allowlist, cap) = allowlist::new(ctx);
-
-        // Thus far only `orderbook` and `bidding` can perform trades
-        allowlist::insert_authority<orderbook::Witness>(&cap, &mut allowlist);
-        allowlist::insert_authority<bidding::Witness>(&cap, &mut allowlist);
 
         let allowlist_id = object::id(&allowlist);
         let cap_id = object::id(&cap);

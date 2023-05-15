@@ -9,6 +9,10 @@ subdir = "crates/sui-framework/packages/sui-framework"
 # devnet-1.1.0
 rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
 
+[dependencies.Critbit]
+git = "https://github.com/Origin-Byte/critbit.git"
+rev = "v1.0.1-mainnet"
+
 [dependencies.Permissions]
 local = "./../permissions"
 
@@ -26,6 +30,9 @@ local = "./../kiosk"
 
 [dependencies.Utils]
 local = "./../utils"
+
+[dependencies.RequestExtensions]
+local = "./../request_extensions"
 
 [addresses]
 liquidity_layer = "0x8fd52f3c8a969e5c01b8ad26ede5f6750bd6708156dde720ac844a50f97c9f77"

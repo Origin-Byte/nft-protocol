@@ -47,11 +47,10 @@ module nft_protocol::transfer_token {
         token_id
     }
 
-
     // === Actions ===
 
     /// Registers collection to use `Allowlist` during the transfer.
-    public fun enforce<T, P>(
+    public entry fun enforce<T, P>(
         policy: &mut Policy<WithNft<T, P>>, cap: &PolicyCap,
     ) {
         request::enforce_rule_no_state<WithNft<T, P>, TransferTokenRule>(policy, cap);

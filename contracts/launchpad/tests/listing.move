@@ -4,8 +4,6 @@ module ob_launchpad::test_listing {
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::sui::SUI;
-    // use std::debug;
-    // use std::string::utf8;
 
     use ob_launchpad::flat_fee;
     use ob_launchpad::marketplace as mkt;

@@ -127,7 +127,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty.
-    public(friend) fun redeem_nft<T: key + store>(
+    public fun redeem_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
     ): T {
         assert!(warehouse.total_deposited > 0, EEmpty);
@@ -151,7 +151,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty.
-    public(friend) fun redeem_nft_and_transfer<T: key + store>(
+    public entry fun redeem_nft_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ) {
@@ -166,7 +166,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public(friend) fun redeem_nft_at_index<T: key + store>(
+    public fun redeem_nft_at_index<T: key + store>(
         warehouse: &mut Warehouse<T>,
         index: u64,
     ): T {
@@ -187,7 +187,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public(friend) fun redeem_nft_at_index_and_transfer<T: key + store>(
+    public entry fun redeem_nft_at_index_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         index: u64,
         ctx: &mut TxContext,
@@ -203,7 +203,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if NFT with ID does not exist in `Warehouse`.
-    public(friend) fun redeem_nft_with_id<T: key + store>(
+    public fun redeem_nft_with_id<T: key + store>(
         warehouse: &mut Warehouse<T>,
         nft_id: ID,
     ): T {
@@ -218,7 +218,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public(friend) fun redeem_nft_with_id_and_transfer<T: key + store>(
+    public entry fun redeem_nft_with_id_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         nft_id: ID,
         ctx: &mut TxContext,
@@ -235,7 +235,7 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is empty
-    public(friend) fun redeem_pseudorandom_nft<T: key + store>(
+    public fun redeem_pseudorandom_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ): T {
@@ -262,7 +262,7 @@ module ob_launchpad::warehouse {
     /// Entry mint functions like `suimarines::mint_nft` take an `Warehouse`
     /// object to deposit into. Calling `redeem_nft_and_transfer` allows one to
     /// withdraw an NFT and own it directly.
-    public(friend) fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
+    public entry fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         ctx: &mut TxContext,
     ) {
@@ -324,7 +324,7 @@ module ob_launchpad::warehouse {
     ///
     /// Panics if `Warehouse` is empty or `user_commitment` does not match the
     /// hashed commitment in `RedeemCommitment`.
-    public(friend) fun redeem_random_nft<T: key + store>(
+    public fun redeem_random_nft<T: key + store>(
         warehouse: &mut Warehouse<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -367,7 +367,7 @@ module ob_launchpad::warehouse {
     ///
     /// Panics if `Warehouse` is empty or `user_commitment` does not match the
     /// hashed commitment in `RedeemCommitment`.
-    public(friend) fun redeem_random_nft_and_transfer<T: key + store>(
+    public entry fun redeem_random_nft_and_transfer<T: key + store>(
         warehouse: &mut Warehouse<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -384,8 +384,9 @@ module ob_launchpad::warehouse {
     /// #### Panics
     ///
     /// Panics if `Warehouse` is not empty
-    public(friend) fun destroy<T: key + store>(warehouse: Warehouse<T>) {
+    public entry fun destroy<T: key + store>(warehouse: Warehouse<T>) {
         assert_is_empty(&warehouse);
+
         let Warehouse { id, total_deposited: _, nfts } = warehouse;
         object::delete(id);
         dyn_vector::delete(nfts);
