@@ -662,6 +662,7 @@ module liquidity_layer_v1::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        // Version is being checked in function call `finish_trade_`
         finish_trade_<T, FT>(book, trade_id, seller_kiosk, buyer_kiosk, ctx)
     }
 
@@ -672,7 +673,7 @@ module liquidity_layer_v1::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext
     ): Option<TransferRequest<T>> {
-        assert_version(book);
+        // Version is being checked in function call `finish_trade_`
 
         let t = trade(book, trade_id);
         let kiosks_match = &t.seller_kiosk == &object::id(seller_kiosk) && &t.buyer_kiosk == &object::id(buyer_kiosk);
@@ -777,8 +778,9 @@ module liquidity_layer_v1::orderbook {
         book: &mut Orderbook<T, FT>,
         new_tick: u64,
     ) {
-        assert_version(book);
+        upgrade_version_if_old(book);
         assert!(new_tick < book.tick_size, 0);
+
         book.tick_size = new_tick;
     }
 
@@ -810,7 +812,7 @@ module liquidity_layer_v1::orderbook {
         ob: &mut Orderbook<T, FT>,
         protected_actions: WitnessProtectedActions,
     ) {
-        assert_version(ob);
+        upgrade_version_if_old(ob);
         ob.protected_actions = protected_actions;
     }
 
@@ -880,7 +882,7 @@ module liquidity_layer_v1::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert_version(book);
+        upgrade_version_if_old(book);
         assert_tick_level(price, book.tick_size);
         ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
         ob_kiosk::assert_permission(buyer_kiosk, ctx);
@@ -1102,6 +1104,8 @@ module liquidity_layer_v1::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<trading::BidCommission<FT>> {
+        upgrade_version_if_old(book);
+
         let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
 
@@ -1190,7 +1194,7 @@ module liquidity_layer_v1::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert_version(book);
+        upgrade_version_if_old(book);
         assert_tick_level(price, book.tick_size);
 
         // we cannot transfer the NFT straight away because we don't know
@@ -1269,6 +1273,8 @@ module liquidity_layer_v1::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<trading::AskCommission> {
+        upgrade_version_if_old(book);
+
         let sender = tx_context::sender(ctx);
 
         let Ask {
@@ -1303,6 +1309,8 @@ module liquidity_layer_v1::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        upgrade_version_if_old(book);
+
         let buyer = tx_context::sender(ctx);
 
         let Ask {
@@ -1355,6 +1363,7 @@ module liquidity_layer_v1::orderbook {
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         assert_version(book);
+
         let trade = df::remove(
             &mut book.id, TradeIntermediateDfKey<T, FT> { trade_id }
         );
@@ -1450,6 +1459,12 @@ module liquidity_layer_v1::orderbook {
 
     fun assert_version<T: key + store, FT>(self: &Orderbook<T, FT>) {
         assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    fun upgrade_version_if_old<T: key + store, FT>(self: &mut Orderbook<T, FT>) {
+        if (self.version != VERSION) {
+            self.version = VERSION;
+        };
     }
 
     // Only the publisher of type `T` can upgrade
