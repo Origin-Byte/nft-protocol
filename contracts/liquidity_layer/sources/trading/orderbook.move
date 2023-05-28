@@ -97,6 +97,8 @@ module liquidity_layer::orderbook {
     /// that allowlist.
     struct Witness has drop {}
 
+    // TODO: This DF Key does not need to have generics, as the generics are
+    // the same across the engier orderbook.
     struct TradeIntermediateDfKey<phantom T, phantom FT> has copy, store, drop {
         trade_id: ID,
     }
@@ -121,6 +123,8 @@ module liquidity_layer::orderbook {
         ///
         /// > for any NFT in this collection, I will spare this many tokens
         bids: CritbitTree<vector<Bid<FT>>>,
+        // TODO: Since we cannot destruct a shared object, we need to guarantee
+        // that this UID is movable for the purpose of migrations.
         transfer_signer: UID,
     }
 
