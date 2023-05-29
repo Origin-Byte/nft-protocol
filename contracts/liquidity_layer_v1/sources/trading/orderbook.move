@@ -35,13 +35,15 @@ module liquidity_layer_v1::orderbook {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
-    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::{Witness as DelegatedWitness};
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self, TransferRequest};
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
 
     use liquidity_layer_v1::trading;
     use liquidity_layer_v1::liquidity_layer::LIQUIDITY_LAYER;
+
+    friend liquidity_layer_v1::migration;
 
     // Track the current version of the module
     const VERSION: u64 = 3;
@@ -99,9 +101,7 @@ module liquidity_layer_v1::orderbook {
         trade_id: ID,
     }
 
-    struct TransferSignerDfKey has copy, store, drop {}
-
-    struct SignerDfKey has copy, store, drop { nft: ID }
+    struct DeprecatedFlagDfKey has copy, drop, store {}
 
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
@@ -820,39 +820,6 @@ module liquidity_layer_v1::orderbook {
         ob.protected_actions = protected_actions;
     }
 
-    public fun add_transfer_signer<T: key + store, FT>(
-        // TODO: Potentially make this permiossionless to facilitate migration
-        _witness: DelegatedWitness<T>,
-        ob: &mut Orderbook<T, FT>,
-        ctx: &mut TxContext,
-    ) {
-        df::add(
-            &mut ob.id,
-            TransferSignerDfKey {},
-            object::new(ctx)
-        );
-    }
-
-    fun add_transfer_signer_<T: key + store, FT>(
-        ob: &mut Orderbook<T, FT>,
-        ctx: &mut TxContext,
-    ) {
-        df::add(
-            &mut ob.id,
-            TransferSignerDfKey {},
-            object::new(ctx)
-        );
-    }
-
-    public fun migrate_to_transfer_signer<T: key + store, FT>(
-        // TODO: Potentially make this permiossionless to facilitate migration
-        _witness: DelegatedWitness<T>,
-        ob: &mut Orderbook<T, FT>,
-        ctx: &mut TxContext,
-    ) {
-
-    }
-
     // === Getters ===
 
     public fun borrow_bids<T: key + store, FT>(
@@ -1238,7 +1205,7 @@ module liquidity_layer_v1::orderbook {
         // the buyers kiosk at the point of sending the tx
 
         // will fail if not OB kiosk
-        auth_exclusive_transfer(book, seller_kiosk, nft_id, ctx);
+        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.id, ctx);
 
         // prevent listing of NFTs which don't belong to the collection
         ob_kiosk::assert_nft_type<T>(seller_kiosk, nft_id);
@@ -1333,8 +1300,7 @@ module liquidity_layer_v1::orderbook {
 
         assert!(owner == sender, EOrderOwnerMustBeSender);
 
-        let tf_signer = get_tf_signer(book, nft_id);
-        ob_kiosk::remove_auth_transfer(kiosk, nft_id, tf_signer);
+        ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.id);
 
         commission
     }
@@ -1380,13 +1346,11 @@ module liquidity_layer_v1::orderbook {
         );
         option::destroy_none(maybe_commission);
 
-        let tf_signer = get_tf_signer(book, nft_id);
-
         let transfer_req = ob_kiosk::transfer_delegated<T>(
             seller_kiosk,
             buyer_kiosk,
             nft_id,
-            tf_signer,
+            &book.id,
             price,
             ctx,
         );
@@ -1431,14 +1395,12 @@ module liquidity_layer_v1::orderbook {
 
         trading::transfer_ask_commission<FT>(&mut maybe_commission, &mut paid, ctx);
 
-        let tf_signer = get_tf_signer(book, nft_id);
-
         let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
             ob_kiosk::transfer_locked_nft<T>(
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                tf_signer,
+                &book.id,
                 ctx,
             )
         } else {
@@ -1446,7 +1408,7 @@ module liquidity_layer_v1::orderbook {
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                tf_signer,
+                &book.id,
                 price,
                 ctx,
             )
@@ -1499,29 +1461,80 @@ module liquidity_layer_v1::orderbook {
         price >= tick_size
     }
 
-    fun auth_exclusive_transfer<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        seller_kiosk: &mut Kiosk,
-        nft_id: ID,
-        ctx: &mut TxContext,
+    // === Migration ===
+
+    /// Permanently disable unprotected trading on Orderbook
+    ///
+    /// Protects all endpoints and prevents them from getting reactivated.
+    ///
+    /// Allows orders to be cancelled permissionless-ly in order to remove
+    /// exclusive locks on NFTs.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if orderbook is already frozen
+    fun deprecate_orderbook_with_witness<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
     ) {
-        if (!df::exists_(&book.id, TransferSignerDfKey {})) {
-            add_transfer_signer_(book, ctx);
-        };
-
-        let tf_signer = df::borrow(&book.id, TransferSignerDfKey {});
-        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, tf_signer, ctx);
-
-        // Need to add a marker to signal that this ask used the dynamic transfer signer
-        df::add(&mut book.id, SignerDfKey { nft: nft_id }, true);
+        set_protection(witness, orderbook, custom_protection(true, true, true));
+        df::add(&mut orderbook.id, DeprecatedFlagDfKey {}, true);
     }
 
-    fun get_tf_signer<T: key + store, FT>(book: &Orderbook<T, FT>, nft_id: ID): &UID {
-        if (df::exists_(&book.id, SignerDfKey { nft: nft_id })) {
-            df::borrow(&book.id, TransferSignerDfKey {})
-        } else {
-            &book.id
-        }
+    public (friend) fun migrate_bid_<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        book: &mut Orderbook<T, FT>,
+    ): (address, Balance<FT>, ID, Option<trading::BidCommission<FT>>) {
+        let price = crit_bit::min_key(&book.bids);
+        let price_level = crit_bit::borrow_mut(&mut book.bids, price);
+        let bid = vector::pop_back(price_level);
+
+        if (vector::length(price_level) == 0) {
+            vector::destroy_empty(crit_bit::pop(&mut book.bids, price));
+        };
+
+        let Bid {
+            owner: buyer,
+            offer: bid_offer,
+            kiosk: buyer_kiosk_id,
+            commission: bid_commission,
+        } = bid;
+
+        (buyer, bid_offer, buyer_kiosk_id, bid_commission)
+    }
+
+    public (friend) fun migrate_ask_<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        kiosk: &mut Kiosk,
+        book: &mut Orderbook<T, FT>,
+    ): (u64, address, ID, ID, Option<trading::AskCommission>) {
+        let price = crit_bit::max_key(&book.asks);
+
+        let price_level = crit_bit::borrow_mut(&mut book.asks, price);
+        let ask = vector::pop_back(price_level);
+
+        if (vector::length(price_level) == 0) {
+            vector::destroy_empty(crit_bit::pop(&mut book.asks, price));
+        };
+
+        ob_kiosk::assert_has_nft(kiosk, ask.nft_id);
+
+        let Ask {
+            price,
+            owner: seller,
+            nft_id,
+            kiosk_id,
+            commission: ask_commission,
+        } = ask;
+
+        (price, seller, nft_id, kiosk_id, ask_commission)
+    }
+
+    public (friend) fun transfer_signer<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        book: &mut Orderbook<T, FT>,
+    ): &UID {
+        &book.id
     }
 
     // === Upgradeability ===
@@ -1531,7 +1544,9 @@ module liquidity_layer_v1::orderbook {
     }
 
     fun upgrade_version_if_old<T: key + store, FT>(self: &mut Orderbook<T, FT>) {
-        if (self.version != VERSION) {
+        assert!(self.version <= VERSION, EWrongVersion);
+
+        if (self.version < VERSION) {
             self.version = VERSION;
         };
     }

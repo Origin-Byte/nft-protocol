@@ -31,7 +31,7 @@ module liquidity_layer::orderbook {
     use sui::package::{Self, Publisher};
     use sui::kiosk::{Self, Kiosk};
     use sui::object::{Self, ID, UID};
-    use sui::transfer;
+    use sui::transfer::share_object;
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
 
@@ -123,9 +123,6 @@ module liquidity_layer::orderbook {
         ///
         /// > for any NFT in this collection, I will spare this many tokens
         bids: CritbitTree<vector<Bid<FT>>>,
-        // TODO: Since we cannot destruct a shared object, we need to guarantee
-        // that this UID is movable for the purpose of migrations.
-        transfer_signer: UID,
     }
 
     /// The contract which creates the orderbook can restrict specific actions
@@ -346,7 +343,7 @@ module liquidity_layer::orderbook {
             witness, transfer_policy, buy_nft, create_ask, create_bid, ctx,
         );
         let orderbook_id = object::id(&orderbook);
-        transfer::share_object(orderbook);
+        share(orderbook);
         orderbook_id
     }
 
@@ -446,7 +443,7 @@ module liquidity_layer::orderbook {
     ): ID {
         let orderbook = new_external<T, FT>(transfer_policy, ctx);
         let orderbook_id = object::id(&orderbook);
-        transfer::share_object(orderbook);
+        share(orderbook);
         orderbook_id
     }
 
@@ -487,7 +484,6 @@ module liquidity_layer::orderbook {
             protected_actions,
             asks: critbit::new(ctx),
             bids: critbit::new(ctx),
-            transfer_signer: object::new(ctx)
         }
     }
 
@@ -928,6 +924,10 @@ module liquidity_layer::orderbook {
         )
     }
 
+    public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
+        share_object(ob);
+    }
+
     /// Change tick size of orderbook
     public fun change_tick_size_with_witness<T: key + store, FT>(
         _witness: DelegatedWitness<T>,
@@ -1117,44 +1117,62 @@ module liquidity_layer::orderbook {
                 trade_id,
             })
         } else {
-            event::emit(BidCreatedEvent {
-                orderbook: object::id(book),
-                owner: buyer,
+            insert_bid_(
+                book,
+                buyer_kiosk_id,
                 price,
-                kiosk: buyer_kiosk_id,
-                nft_type: type_name::into_string(type_name::get<T>()),
-                ft_type: type_name::into_string(type_name::get<FT>()),
-            });
-
-            // take the amount that the sender wants to create a bid with from their
-            // wallet
-            let bid_offer = balance::split(coin::balance_mut(wallet), price);
-
-            let order = Bid {
-                offer: bid_offer,
-                owner: buyer,
-                kiosk: buyer_kiosk_id,
-                commission: bid_commission,
-            };
-
-            let (has_key, price_level_idx) =
-                critbit::find_leaf(&book.bids, price);
-
-            if (has_key) {
-                vector::push_back(
-                    critbit::borrow_mut_leaf_by_index(
-                        &mut book.bids, price_level_idx,
-                    ),
-                    order
-                );
-            } else {
-                critbit::insert_leaf(
-                    &mut book.bids, price, vector::singleton(order),
-                );
-            };
+                bid_commission,
+                wallet,
+                buyer,
+            );
 
             option::none()
         }
+    }
+
+    fun insert_bid_<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        buyer_kiosk_id: ID,
+        price: u64,
+        bid_commission: Option<trading::BidCommission<FT>>,
+        wallet: &mut Coin<FT>,
+        buyer: address,
+    ) {
+        event::emit(BidCreatedEvent {
+            orderbook: object::id(book),
+            owner: buyer,
+            price,
+            kiosk: buyer_kiosk_id,
+            nft_type: type_name::into_string(type_name::get<T>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
+
+        // take the amount that the sender wants to create a bid with from their
+        // wallet
+        let bid_offer = balance::split(coin::balance_mut(wallet), price);
+
+        let order = Bid {
+            offer: bid_offer,
+            owner: buyer,
+            kiosk: buyer_kiosk_id,
+            commission: bid_commission,
+        };
+
+        let (has_key, price_level_idx) =
+            critbit::find_leaf(&book.bids, price);
+
+        if (has_key) {
+            vector::push_back(
+                critbit::borrow_mut_leaf_by_index(
+                    &mut book.bids, price_level_idx,
+                ),
+                order
+            );
+        } else {
+            critbit::insert_leaf(
+                &mut book.bids, price, vector::singleton(order),
+            );
+        };
     }
 
     fun match_buy_with_ask_<T: key + store, FT>(
@@ -1413,7 +1431,7 @@ module liquidity_layer::orderbook {
         // the buyers kiosk at the point of sending the tx
 
         // will fail if not OB kiosk
-        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.transfer_signer, ctx);
+        ob_kiosk::auth_exclusive_transfer(seller_kiosk, nft_id, &book.id, ctx);
 
         // prevent listing of NFTs which don't belong to the collection
         ob_kiosk::assert_nft_type<T>(seller_kiosk, nft_id);
@@ -1447,37 +1465,14 @@ module liquidity_layer::orderbook {
                 trade_id,
             })
         } else {
-            event::emit(AskCreatedEvent {
-                nft: nft_id,
-                orderbook: object::id(book),
-                owner: seller,
+            insert_ask_(
+                book,
+                object::id(seller_kiosk),
                 price,
-                kiosk: seller_kiosk_id,
-                nft_type: type_name::into_string(type_name::get<T>()),
-                ft_type: type_name::into_string(type_name::get<FT>()),
-            });
-
-            let ask = Ask {
-                price,
+                ask_commission,
                 nft_id,
-                kiosk_id: seller_kiosk_id,
-                owner: seller,
-                commission: ask_commission,
-            };
-            // store the Ask object
-            let (has_key, price_level_idx) =
-                critbit::find_leaf(&book.asks, price);
-
-            if (has_key) {
-                vector::push_back(
-                    critbit::borrow_mut_leaf_by_index(
-                        &mut book.asks, price_level_idx,
-                    ),
-                    ask,
-                );
-            } else {
-                critbit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
-            };
+                seller,
+            );
 
             option::none()
         }
@@ -1512,7 +1507,7 @@ module liquidity_layer::orderbook {
         });
 
         assert!(owner == sender, EOrderOwnerMustBeSender);
-        ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.transfer_signer);
+        ob_kiosk::remove_auth_transfer(kiosk, nft_id, &book.id);
 
         commission
     }
@@ -1556,7 +1551,7 @@ module liquidity_layer::orderbook {
             seller_kiosk,
             buyer_kiosk,
             nft_id,
-            &book.transfer_signer,
+            &book.id,
             price,
             ctx,
         );
@@ -1618,7 +1613,7 @@ module liquidity_layer::orderbook {
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                &book.transfer_signer,
+                &book.id,
                 ctx,
             )
         } else {
@@ -1626,7 +1621,7 @@ module liquidity_layer::orderbook {
                 seller_kiosk,
                 buyer_kiosk,
                 nft_id,
-                &book.transfer_signer,
+                &book.id,
                 price,
                 ctx,
             )
@@ -1692,6 +1687,89 @@ module liquidity_layer::orderbook {
 
     fun check_tick_level(price: u64, tick_size: u64): bool {
         price >= tick_size
+    }
+
+    public fun insert_bid_as_witness<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        book: &mut Orderbook<T, FT>,
+        buyer_kiosk_id: ID,
+        price: u64,
+        bid_commission: Option<trading::BidCommission<FT>>,
+        wallet: &mut Coin<FT>,
+        buyer: address,
+    ) {
+        insert_bid_(
+            book,
+            buyer_kiosk_id,
+            price,
+            bid_commission,
+            wallet,
+            buyer,
+        );
+    }
+
+    public fun insert_ask_as_witness<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        book: &mut Orderbook<T, FT>,
+        seller_kiosk: &mut Kiosk,
+        price: u64,
+        ask_commission: Option<trading::AskCommission>,
+        nft_id: ID,
+        seller: address,
+        transfer_auth: &UID,
+    ) {
+        // will fail if not OB kiosk
+        ob_kiosk::delegate_exclusive_auth(seller_kiosk, nft_id, transfer_auth, &book.id);
+
+        insert_ask_(
+            book,
+            object::id(seller_kiosk),
+            price,
+            ask_commission,
+            nft_id,
+            seller,
+        );
+    }
+
+    fun insert_ask_<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        seller_kiosk_id: ID,
+        price: u64,
+        ask_commission: Option<trading::AskCommission>,
+        nft_id: ID,
+        seller: address,
+    ) {
+        event::emit(AskCreatedEvent {
+            nft: nft_id,
+            orderbook: object::id(book),
+            owner: seller,
+            price,
+            kiosk: seller_kiosk_id,
+            nft_type: type_name::into_string(type_name::get<T>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
+
+        let ask = Ask {
+            price,
+            nft_id,
+            kiosk_id: seller_kiosk_id,
+            owner: seller,
+            commission: ask_commission,
+        };
+        // store the Ask object
+        let (has_key, price_level_idx) =
+            critbit::find_leaf(&book.asks, price);
+
+        if (has_key) {
+            vector::push_back(
+                critbit::borrow_mut_leaf_by_index(
+                    &mut book.asks, price_level_idx,
+                ),
+                ask,
+            );
+        } else {
+            critbit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
+        };
     }
 
     // === Upgradeability ===
