@@ -4,9 +4,8 @@ module liquidity_layer_v1::migration {
     use sui::balance;
     use sui::coin;
     use sui::kiosk::Kiosk;
-    use sui::object::{Self, ID};
+    use sui::object;
     use sui::tx_context::TxContext;
-    use sui::transfer_policy::TransferPolicy;
 
     use ob_permissions::witness::Witness as DelegatedWitness;
 
@@ -16,35 +15,6 @@ module liquidity_layer_v1::migration {
     use liquidity_layer::trading as trading_v2;
 
     const EIncorrectSellerKiosk: u64 = 1;
-
-    public fun migrate_orderbook<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
-        transfer_policy: &TransferPolicy<T>,
-        book_v1: &mut OrderbookV1<T, FT>,
-        ctx: &mut TxContext,
-    ): ID {
-        let actions = orderbook_v1::protected_actions(book_v1);
-
-        let buy_nft = orderbook_v1::is_buy_nft_protected(actions);
-        let create_ask = orderbook_v1::is_create_ask_protected(actions);
-        let create_bid = orderbook_v1::is_create_bid_protected(actions);
-
-        let orderbook_v2 = orderbook_v2::new<T, FT>(
-            witness,
-            transfer_policy,
-            buy_nft,
-            create_ask,
-            create_bid,
-            ctx,
-        );
-
-        // Only operations that buy NFTs can be completed
-        orderbook_v1::set_protection(witness, book_v1, orderbook_v1::custom_protection(buy_nft, true, true));
-
-        let orderbook_id = object::id(&orderbook_v2);
-        orderbook_v2::share(orderbook_v2);
-        orderbook_id
-    }
 
     public fun migrate_bid<T: key + store, FT>(
         witness: DelegatedWitness<T>,

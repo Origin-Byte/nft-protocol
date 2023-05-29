@@ -101,7 +101,8 @@ module liquidity_layer_v1::orderbook {
         trade_id: ID,
     }
 
-    struct DeprecatedFlagDfKey has copy, drop, store {}
+    struct UnderMigration has copy, drop, store {}
+    struct IsDeprecated has copy, drop, store {}
 
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
@@ -1473,12 +1474,22 @@ module liquidity_layer_v1::orderbook {
     /// #### Panics
     ///
     /// Panics if orderbook is already frozen
-    fun deprecate_orderbook_with_witness<T: key + store, FT>(
+    public fun deprecate_orderbook_with_witness<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        let _: bool = df::remove(&mut orderbook.id, UnderMigration {});
+
+        set_protection(witness, orderbook, custom_protection(true, true, true));
+        df::add(&mut orderbook.id, IsDeprecated {}, true);
+    }
+
+    public fun start_migration_with_witness<T: key + store, FT>(
         witness: DelegatedWitness<T>,
         orderbook: &mut Orderbook<T, FT>,
     ) {
         set_protection(witness, orderbook, custom_protection(true, true, true));
-        df::add(&mut orderbook.id, DeprecatedFlagDfKey {}, true);
+        df::add(&mut orderbook.id, UnderMigration {}, true);
     }
 
     public (friend) fun migrate_bid_<T: key + store, FT>(
