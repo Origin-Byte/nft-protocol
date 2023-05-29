@@ -449,7 +449,7 @@ module ob_tests::orderbook {
 
         // 8. Pay royalties
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
-        royalty_strategy_bps::confirm_transfer_with_fees<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
+        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request);
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
@@ -469,9 +469,13 @@ module ob_tests::orderbook {
             test_scenario::take_from_address<Coin<SUI>>(&scenario, creator());
 
         // The trade price is 100_000_000
-        // The royalty is 100 basis points (i.e. 1%)
+        // The royalty is 100 basis points (i.e. 1%) and is applied over
+        // trade price - ask_commission (i.e. 2%)
+        // 100_000_000 - 2_000_000 = 98_000_000
+        // Therefore royalties are:
+        // 98_000_000 * 1% = 980_000
         // Therefore the profits are 1_000_000.
-        assert!(coin::value(&profits) == 1_000_000, 0);
+        assert!(coin::value(&profits) == 980_000, 0);
 
         test_scenario::return_to_address(creator(), profits);
         coin::burn_for_testing(coin);
