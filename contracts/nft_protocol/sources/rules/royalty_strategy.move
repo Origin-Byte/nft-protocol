@@ -91,7 +91,7 @@ module nft_protocol::royalty_strategy_bps {
         self: &mut BpsRoyaltyStrategy<T>,
         cap: BalanceAccessCap<T>,
     ) {
-        assert_version(self);
+        upgrade_version_if_old(self);
 
         self.access_cap = option::some(cap);
     }
@@ -100,7 +100,7 @@ module nft_protocol::royalty_strategy_bps {
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(self);
+        upgrade_version_if_old(self);
         self.access_cap = option::none();
     }
 
@@ -108,7 +108,7 @@ module nft_protocol::royalty_strategy_bps {
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(self);
+        upgrade_version_if_old(self);
         self.is_enabled = true;
     }
 
@@ -117,7 +117,7 @@ module nft_protocol::royalty_strategy_bps {
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(self);
+        upgrade_version_if_old(self);
         self.is_enabled = false;
     }
 
@@ -147,7 +147,7 @@ module nft_protocol::royalty_strategy_bps {
     public fun collect_royalties<T, FT>(
         collection: &mut Collection<T>, strategy: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(strategy);
+        upgrade_version_if_old(strategy);
 
         let balance = balances::borrow_mut(&mut strategy.aggregator);
         let amount = balance::value(balance);
@@ -159,7 +159,7 @@ module nft_protocol::royalty_strategy_bps {
         self: &mut BpsRoyaltyStrategy<T>,
         req: &mut TransferRequest<T>,
     ) {
-        assert_version(self);
+        upgrade_version_if_old(self);
         assert!(self.is_enabled, ENotEnabled);
 
         let cap = option::borrow(&self.access_cap);
@@ -177,7 +177,7 @@ module nft_protocol::royalty_strategy_bps {
         req: &mut TransferRequest<T>,
         wallet: &mut Balance<FT>,
     ) {
-        assert_version(self);
+        upgrade_version_if_old(self);
         assert!(self.is_enabled, ENotEnabled);
 
         let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
@@ -257,6 +257,14 @@ module nft_protocol::royalty_strategy_bps {
 
     fun assert_version<T>(self: &BpsRoyaltyStrategy<T>) {
         assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    fun upgrade_version_if_old<T>(self: &mut BpsRoyaltyStrategy<T>) {
+        assert!(self.version <= VERSION, EWrongVersion);
+
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
     }
 
     // Only the publisher of type `T` can upgrade

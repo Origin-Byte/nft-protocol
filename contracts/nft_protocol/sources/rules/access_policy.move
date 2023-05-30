@@ -18,7 +18,7 @@ module nft_protocol::access_policy {
     use nft_protocol::nft_protocol::NFT_PROTOCOL;
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -155,7 +155,7 @@ module nft_protocol::access_policy {
         access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
     ) {
-        assert_version(access_policy);
+        upgrade_version_if_old(access_policy);
 
         utils::insert_vec_in_vec_set(
             &mut access_policy.parent_access,
@@ -173,7 +173,7 @@ module nft_protocol::access_policy {
         access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
     ) {
-        assert_version(access_policy);
+        upgrade_version_if_old(access_policy);
 
         // Get table vec
         let vec_set = table::borrow_mut(
@@ -201,7 +201,7 @@ module nft_protocol::access_policy {
             collection
         );
 
-        assert_version(access_policy);
+        upgrade_version_if_old(access_policy);
 
         utils::insert_vec_in_vec_set(&mut access_policy.parent_access, addresses);
     }
@@ -223,7 +223,7 @@ module nft_protocol::access_policy {
             collection
         );
 
-        assert_version(access_policy);
+        upgrade_version_if_old(access_policy);
 
         // Get table vec
         let vec_set = table::borrow_mut(
@@ -281,6 +281,14 @@ module nft_protocol::access_policy {
 
     fun assert_version<T: key + store>(self: &AccessPolicy<T>) {
         assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    fun upgrade_version_if_old<T: key + store>(self: &mut AccessPolicy<T>) {
+        assert!(self.version <= VERSION, EWrongVersion);
+
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
     }
 
     // Only the publisher of type `T` can upgrade

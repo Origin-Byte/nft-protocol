@@ -52,7 +52,7 @@ module ob_kiosk::ob_kiosk {
     use ob_kiosk::kiosk::KIOSK;
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -273,7 +273,7 @@ module ob_kiosk::ob_kiosk {
     public entry fun deposit<T: key + store>(
         self: &mut Kiosk, nft: T, ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_can_deposit<T>(self, ctx);
 
         // inner accounting
@@ -293,7 +293,7 @@ module ob_kiosk::ob_kiosk {
     public fun deposit_batch<T: key + store>(
         self: &mut Kiosk, nfts: vector<T>, ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_can_deposit<T>(self, ctx);
 
         let cap = pop_cap(self);
@@ -334,7 +334,7 @@ module ob_kiosk::ob_kiosk {
         entity: address,
         ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
@@ -357,7 +357,7 @@ module ob_kiosk::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
@@ -373,7 +373,7 @@ module ob_kiosk::ob_kiosk {
         old_entity: &UID,
         new_entity: &UID,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
 
         let refs = nft_refs_mut(self);
         let ref = table::borrow_mut(refs, nft_id);
@@ -400,7 +400,7 @@ module ob_kiosk::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert_version(ext(source));
+        upgrade_version_if_old(ext(source));
         assert_permission(source, ctx);
 
         let refs = df::borrow_mut(ext(source), NftRefsDfKey {});
@@ -455,7 +455,7 @@ module ob_kiosk::ob_kiosk {
         price: u64,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        assert_version(ext(source));
+        upgrade_version_if_old(ext(source));
 
         let (nft, req) = transfer_nft_(source, nft_id, uid_to_address(entity_id), price, ctx);
         deposit(target, nft, ctx);
@@ -473,7 +473,7 @@ module ob_kiosk::ob_kiosk {
         price: u64,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        assert_version(ext(source));
+        upgrade_version_if_old(ext(source));
 
         let (nft, req) = transfer_nft_(source, nft_id, sender(ctx), price, ctx);
         deposit(target, nft, ctx);
@@ -487,7 +487,7 @@ module ob_kiosk::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        assert_version(ext(source));
+        upgrade_version_if_old(ext(source));
 
         check_entity_and_pop_ref(source, uid_to_address(entity_id), nft_id, ctx);
 
@@ -518,7 +518,7 @@ module ob_kiosk::ob_kiosk {
         entity_id: &UID,
         ctx: &mut TxContext,
     ): (T, WithdrawRequest<T>) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
 
         withdraw_nft_(self, nft_id, uid_to_address(entity_id), ctx)
     }
@@ -532,7 +532,7 @@ module ob_kiosk::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ): (T, WithdrawRequest<T>) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
 
         withdraw_nft_(self, nft_id, sender(ctx), ctx)
     }
@@ -544,7 +544,7 @@ module ob_kiosk::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert_version(ext(source));
+        upgrade_version_if_old(ext(source));
         assert_permission(source, ctx);
         // could result in a royalty free trading by everyone wrapping over our
         // kiosk
@@ -592,7 +592,7 @@ module ob_kiosk::ob_kiosk {
         owner_token: OwnerToken,
         ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert!(owner_token.kiosk == object::id(self), EIncorrectOwnerToken);
         assert_owner_address(self, sender(ctx));
 
@@ -622,7 +622,7 @@ module ob_kiosk::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         // Assert that Kiosk has NFT
@@ -743,7 +743,7 @@ module ob_kiosk::ob_kiosk {
     public fun delist_nft_as_owner(
         self: &mut Kiosk, nft_id: ID, ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
@@ -757,7 +757,7 @@ module ob_kiosk::ob_kiosk {
     public fun remove_auth_transfer_as_owner(
         self: &mut Kiosk, nft_id: ID, entity: address, ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         let refs = nft_refs_mut(self);
@@ -770,7 +770,7 @@ module ob_kiosk::ob_kiosk {
     public fun remove_auth_transfer(
         self: &mut Kiosk, nft_id: ID, entity: &UID,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
 
         let entity = uid_to_address(entity);
 
@@ -786,7 +786,7 @@ module ob_kiosk::ob_kiosk {
     public entry fun restrict_deposits(
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         let settings = deposit_setting_mut(self);
@@ -797,7 +797,7 @@ module ob_kiosk::ob_kiosk {
     public entry fun enable_any_deposit(
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         let settings = deposit_setting_mut(self);
@@ -812,7 +812,7 @@ module ob_kiosk::ob_kiosk {
     public entry fun disable_deposits_of_collection<C>(
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_permission(self, ctx);
 
         let settings = deposit_setting_mut(self);
@@ -829,7 +829,7 @@ module ob_kiosk::ob_kiosk {
         self: &mut Kiosk, ctx: &mut TxContext,
     ) {
         assert_permission(self, ctx);
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
 
         let settings = deposit_setting_mut(self);
         let col_type = type_name::get<C>();
@@ -844,7 +844,7 @@ module ob_kiosk::ob_kiosk {
         field: Option<TypeName>,
         ctx: &mut TxContext,
     ): BorrowRequest<Witness, T> {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
         assert_not_listed(self, nft_id);
 
         let cap = pop_cap(self);
@@ -860,7 +860,7 @@ module ob_kiosk::ob_kiosk {
         borrowed_nft: BorrowRequest<Witness, T>,
         policy: &Policy<WithNft<T, BORROW_REQ>>
     ) {
-        assert_version(ext(self));
+        upgrade_version_if_old(ext(self));
 
         let (nft, promise) = borrow_request::confirm(Witness {}, borrowed_nft, policy);
 
@@ -1013,6 +1013,16 @@ module ob_kiosk::ob_kiosk {
         let version = df::borrow<VersionDfKey, u64>(kiosk_uid, VersionDfKey {});
 
         assert!(*version == VERSION, EWrongVersion);
+    }
+
+    fun upgrade_version_if_old(kiosk_uid: &mut UID) {
+        let version = df::borrow_mut<VersionDfKey, u64>(kiosk_uid, VersionDfKey {});
+
+        assert!(*version <= VERSION, EWrongVersion);
+
+        if (*version < VERSION) {
+            *version = VERSION;
+        };
     }
 
     // Migrate as owner
