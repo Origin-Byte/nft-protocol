@@ -17,7 +17,6 @@ module ob_tests::orderbook_migration {
     use originmate::crit_bit_u64::{Self as crit_bit};
     use liquidity_layer::orderbook::{Self as orderbook_v2, Orderbook as OrderbookV2};
     use liquidity_layer_v1::orderbook::{Self as orderbook_v1, Orderbook as OrderbookV1};
-    use liquidity_layer_v1::migration;
 
     const OFFER_SUI: u64 = 100;
 
@@ -108,7 +107,8 @@ module ob_tests::orderbook_migration {
             ctx(&mut scenario),
         );
 
-        orderbook_v1::start_migration_with_witness(dw, &mut book_v1);
+        orderbook_v1::start_migration_to_v2(dw, &mut book_v1, &book_v2);
+        orderbook_v2::start_migration_from_v1(dw, &mut book_v2, object::id(&book_v1));
 
         transfer::public_share_object(book_v2);
         test_scenario::next_tx(&mut scenario, creator());
@@ -120,7 +120,7 @@ module ob_tests::orderbook_migration {
 
             let seller_kiosk = vector::pop_back(&mut kiosks);
 
-            migration::migrate_ask<Foo, SUI>(
+            orderbook_v1::migrate_ask<Foo, SUI>(
                 dw,
                 &mut seller_kiosk,
                 &mut book_v1,
@@ -155,6 +155,9 @@ module ob_tests::orderbook_migration {
 
         assert!(critbit::size(orderbook_v2::borrow_bids(&book_v2)) == 0, 0);
         assert!(critbit::size(orderbook_v2::borrow_asks(&book_v2)) == 10, 0);
+
+        orderbook_v2::finish_migration_from_v1(dw, &mut book_v2);
+        orderbook_v1::finish_migration_to_v2(dw, &mut book_v1);
 
         transfer::public_transfer(publisher, creator());
         transfer::public_transfer(mint_cap, creator());
@@ -244,7 +247,8 @@ module ob_tests::orderbook_migration {
             ctx(&mut scenario),
         );
 
-        orderbook_v1::start_migration_with_witness(dw, &mut book_v1);
+        orderbook_v1::start_migration_to_v2(dw, &mut book_v1, &book_v2);
+        orderbook_v2::start_migration_from_v1(dw, &mut book_v2, object::id(&book_v1));
 
         transfer::public_share_object(book_v2);
         test_scenario::next_tx(&mut scenario, creator());
@@ -254,7 +258,7 @@ module ob_tests::orderbook_migration {
         while (i > 0) {
             test_scenario::next_tx(&mut scenario, seller());
 
-            migration::migrate_bid<Foo, SUI>(
+            orderbook_v1::migrate_bid<Foo, SUI>(
                 dw,
                 &mut book_v1,
                 &mut book_v2,
@@ -283,6 +287,9 @@ module ob_tests::orderbook_migration {
 
         assert!(critbit::size(orderbook_v2::borrow_asks(&book_v2)) == 0, 0);
         assert!(critbit::size(orderbook_v2::borrow_bids(&book_v2)) == 10, 0);
+
+        orderbook_v2::finish_migration_from_v1(dw, &mut book_v2);
+        orderbook_v1::finish_migration_to_v2(dw, &mut book_v1);
 
         transfer::public_transfer(publisher, creator());
         transfer::public_transfer(mint_cap, creator());

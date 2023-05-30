@@ -103,6 +103,8 @@ module liquidity_layer::orderbook {
         trade_id: ID,
     }
 
+    struct UnderMigrationFrom has copy, store, drop {}
+
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
     /// 2. asks DESC
@@ -343,7 +345,7 @@ module liquidity_layer::orderbook {
             witness, transfer_policy, buy_nft, create_ask, create_bid, ctx,
         );
         let orderbook_id = object::id(&orderbook);
-        share(orderbook);
+        share_object(orderbook);
         orderbook_id
     }
 
@@ -443,7 +445,7 @@ module liquidity_layer::orderbook {
     ): ID {
         let orderbook = new_external<T, FT>(transfer_policy, ctx);
         let orderbook_id = object::id(&orderbook);
-        share(orderbook);
+        share_object(orderbook);
         orderbook_id
     }
 
@@ -922,10 +924,6 @@ module liquidity_layer::orderbook {
         change_tick_size_with_witness(
             witness::from_publisher(publisher), orderbook, tick_size,
         )
-    }
-
-    public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
-        share_object(ob);
     }
 
     /// Change tick size of orderbook
@@ -1689,15 +1687,39 @@ module liquidity_layer::orderbook {
         price >= tick_size
     }
 
-    public fun insert_bid_as_witness<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+    public fun start_migration_from_v1<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        book_v2: &mut Orderbook<T, FT>,
+        book_v1_id: ID,
+    ) {
+        df::add(&mut book_v2.id, UnderMigrationFrom {}, book_v1_id);
+        set_protection_with_witness(witness, book_v2, true, true, true);
+    }
+
+    public fun finish_migration_from_v1<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        book: &mut Orderbook<T, FT>,
+    ) {
+        let _: ID = df::remove(&mut book.id, UnderMigrationFrom {});
+
+        set_protection_with_witness(witness, book, false, false, false);
+    }
+
+    public fun migrate_bid_v1<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         buyer_kiosk_id: ID,
         price: u64,
         bid_commission: Option<trading::BidCommission<FT>>,
         wallet: &mut Coin<FT>,
         buyer: address,
+        book_v1_uid: &UID,
     ) {
+        let book_v1_id = df::borrow(&book.id, UnderMigrationFrom {});
+
+        assert!(
+            object::uid_to_inner(book_v1_uid) == *book_v1_id, 0
+        );
+
         insert_bid_(
             book,
             buyer_kiosk_id,
@@ -1708,18 +1730,23 @@ module liquidity_layer::orderbook {
         );
     }
 
-    public fun insert_ask_as_witness<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+    public fun migrate_ask_v1<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         price: u64,
         ask_commission: Option<trading::AskCommission>,
         nft_id: ID,
         seller: address,
-        transfer_auth: &UID,
+        book_v1_uid: &UID,
     ) {
+        let book_v1_id = df::borrow(&book.id, UnderMigrationFrom {});
+
+        assert!(
+            object::uid_to_inner(book_v1_uid) == *book_v1_id, 0
+        );
+
         // will fail if not OB kiosk
-        ob_kiosk::delegate_exclusive_auth(seller_kiosk, nft_id, transfer_auth, &book.id);
+        ob_kiosk::delegate_exclusive_auth(seller_kiosk, nft_id, book_v1_uid, &book.id);
 
         insert_ask_(
             book,

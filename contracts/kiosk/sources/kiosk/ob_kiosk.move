@@ -380,11 +380,6 @@ module ob_kiosk::ob_kiosk {
 
         assert!(ref.is_exclusively_listed, ENotAuthorized);
 
-        assert!(
-            vec_set::contains(&ref.auths, &uid_to_address(old_entity)),
-            ENotAuthorized,
-        );
-
         vec_set::remove(&mut ref.auths, &uid_to_address(old_entity));
         vec_set::insert(&mut ref.auths, uid_to_address(new_entity));
     }
