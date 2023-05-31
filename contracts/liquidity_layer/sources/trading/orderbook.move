@@ -90,6 +90,18 @@ module liquidity_layer::orderbook {
     /// that are external to the OriginByte ecosystem, without itself being external
     const ENotExternalPolicy: u64 = 8;
 
+    /// Trying to add migrated liquidity to an orderbook whilst referencing the
+    /// incorrect Orderbook V1
+    const EIncorrectOrderbookV1: u64 = 9;
+
+    /// Trying to add migrated liquidity to an orderbook which
+    /// itself is not under migration
+    const ENotUnderMigration: u64 = 10;
+
+    /// Trying to call `set_protection_with_witness` whilst the orderbook is under
+    /// migration. This is a non-authorized operation during liquidity migration
+    const EUnderMigration: u64 = 11;
+
     // === Structs ===
 
     /// Add this witness type to allowlists via
@@ -103,7 +115,7 @@ module liquidity_layer::orderbook {
         trade_id: ID,
     }
 
-    struct UnderMigrationFrom has copy, store, drop {}
+    struct UnderMigrationFromDfKey has copy, store, drop {}
 
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
@@ -965,6 +977,8 @@ module liquidity_layer::orderbook {
         create_ask: bool,
         create_bid: bool,
     ) {
+        assert_version_and_upgrade(orderbook);
+        assert_not_under_migration(orderbook);
         orderbook.protected_actions = WitnessProtectedActions {
             buy_nft, create_ask, create_bid,
         };
@@ -1079,7 +1093,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert_version(book);
+        assert_version_and_upgrade(book);
         assert_tick_level(price, book.tick_size);
 
         ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
@@ -1324,7 +1338,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<trading::BidCommission<FT>> {
-        assert_version(book);
+        assert_version_and_upgrade(book);
 
         let sender = tx_context::sender(ctx);
         let bids = &mut book.bids;
@@ -1378,7 +1392,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert_version(book);
+        assert_version_and_upgrade(book);
 
         let commission =
             cancel_bid_except_commission(book, bid_price_level, wallet, ctx);
@@ -1422,7 +1436,7 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert_version(book);
+        assert_version_and_upgrade(book);
         assert_tick_level(price, book.tick_size);
 
         // we cannot transfer the NFT straight away because we don't know
@@ -1484,7 +1498,7 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<trading::AskCommission> {
-        assert_version(book);
+        assert_version_and_upgrade(book);
         let sender = tx_context::sender(ctx);
 
         let Ask {
@@ -1519,7 +1533,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        assert_version(book);
+        assert_version_and_upgrade(book);
         let buyer = tx_context::sender(ctx);
 
         let Ask {
@@ -1679,10 +1693,6 @@ module liquidity_layer::orderbook {
         ask
     }
 
-    fun assert_tick_level(price: u64, tick_size: u64) {
-        assert!(check_tick_level(price, tick_size), 0);
-    }
-
     fun check_tick_level(price: u64, tick_size: u64): bool {
         price >= tick_size
     }
@@ -1692,17 +1702,15 @@ module liquidity_layer::orderbook {
         book_v2: &mut Orderbook<T, FT>,
         book_v1_id: ID,
     ) {
-        df::add(&mut book_v2.id, UnderMigrationFrom {}, book_v1_id);
+        df::add(&mut book_v2.id, UnderMigrationFromDfKey {}, book_v1_id);
         set_protection_with_witness(witness, book_v2, true, true, true);
     }
 
     public fun finish_migration_from_v1<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
+        _witness: DelegatedWitness<T>,
         book: &mut Orderbook<T, FT>,
     ) {
-        let _: ID = df::remove(&mut book.id, UnderMigrationFrom {});
-
-        set_protection_with_witness(witness, book, false, false, false);
+        let _: ID = df::remove(&mut book.id, UnderMigrationFromDfKey {});
     }
 
     public fun migrate_bid_v1<T: key + store, FT>(
@@ -1714,11 +1722,8 @@ module liquidity_layer::orderbook {
         buyer: address,
         book_v1_uid: &UID,
     ) {
-        let book_v1_id = df::borrow(&book.id, UnderMigrationFrom {});
-
-        assert!(
-            object::uid_to_inner(book_v1_uid) == *book_v1_id, 0
-        );
+        assert_under_migration(book);
+        assert_orderbook_v1(book, book_v1_uid);
 
         insert_bid_(
             book,
@@ -1739,11 +1744,8 @@ module liquidity_layer::orderbook {
         seller: address,
         book_v1_uid: &UID,
     ) {
-        let book_v1_id = df::borrow(&book.id, UnderMigrationFrom {});
-
-        assert!(
-            object::uid_to_inner(book_v1_uid) == *book_v1_id, 0
-        );
+        assert_under_migration(book);
+        assert_orderbook_v1(book, book_v1_uid);
 
         // will fail if not OB kiosk
         ob_kiosk::delegate_exclusive_auth(seller_kiosk, nft_id, book_v1_uid, &book.id);
@@ -1805,6 +1807,13 @@ module liquidity_layer::orderbook {
         assert!(self.version == VERSION, EWrongVersion);
     }
 
+    fun assert_version_and_upgrade<T: key + store, FT>(self: &mut Orderbook<T, FT>) {
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
+        assert_version(self);
+    }
+
     // Only the publisher of type `T` can upgrade
     entry fun migrate_as_creator<T: key + store, FT>(
         self: &mut Orderbook<T, FT>,
@@ -1820,6 +1829,26 @@ module liquidity_layer::orderbook {
     ) {
         assert!(package::from_package<LIQUIDITY_LAYER>(pub), 0);
         self.version = VERSION;
+    }
+
+    // === Assertions ===
+
+    fun assert_tick_level(price: u64, tick_size: u64) {
+        assert!(check_tick_level(price, tick_size), 0);
+    }
+
+    fun assert_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
+        assert!(df::exists_(&self.id, UnderMigrationFromDfKey {}), ENotUnderMigration);
+    }
+
+    fun assert_not_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
+        assert!(!df::exists_(&self.id, UnderMigrationFromDfKey {}), EUnderMigration);
+    }
+
+    fun assert_orderbook_v1<T: key + store, FT>(book_v2: &Orderbook<T, FT>, book_v1_uid: &UID) {
+        let book_v1_id = df::borrow(&book_v2.id, UnderMigrationFromDfKey {});
+
+        assert!(object::uid_to_inner(book_v1_uid) == *book_v1_id, EIncorrectOrderbookV1);
     }
 
     #[test]
