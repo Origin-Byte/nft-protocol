@@ -18,7 +18,6 @@
 /// - https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook
 /// - https://origin-byte.github.io/orderbook.html
 module liquidity_layer::orderbook {
-    // TODO: eviction of lowest bid/highest ask on OOM
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
@@ -109,9 +108,7 @@ module liquidity_layer::orderbook {
     /// that allowlist.
     struct Witness has drop {}
 
-    // TODO: This DF Key does not need to have generics, as the generics are
-    // the same across the engier orderbook.
-    struct TradeIntermediateDfKey<phantom T, phantom FT> has copy, store, drop {
+    struct TradeIntermediateDfKey has copy, store, drop {
         trade_id: ID,
     }
 
@@ -1072,7 +1069,7 @@ module liquidity_layer::orderbook {
         book: &Orderbook<T, FT>,
         trade_id: ID,
     ): &TradeIntermediate<T, FT> {
-        df::borrow(&book.id, TradeIntermediateDfKey<T, FT> { trade_id })
+        df::borrow(&book.id, TradeIntermediateDfKey { trade_id })
     }
 
     // === Priv fns ===
@@ -1236,7 +1233,7 @@ module liquidity_layer::orderbook {
         // Add TradeIntermediate as a dynamic field to the Orderbook
         df::add(
             &mut book.id,
-            TradeIntermediateDfKey<T, FT> { trade_id: trade_intermediate_id },
+            TradeIntermediateDfKey { trade_id: trade_intermediate_id },
             trade_intermediate
         );
 
@@ -1306,7 +1303,7 @@ module liquidity_layer::orderbook {
         // Add TradeIntermediate as a dynamic field to the Orderbook
         df::add(
             &mut book.id,
-            TradeIntermediateDfKey<T, FT> { trade_id: trade_intermediate_id },
+            TradeIntermediateDfKey { trade_id: trade_intermediate_id },
             trade_intermediate
         );
 
@@ -1598,7 +1595,7 @@ module liquidity_layer::orderbook {
         assert_version(book);
 
         let trade = df::remove(
-            &mut book.id, TradeIntermediateDfKey<T, FT> { trade_id }
+            &mut book.id, TradeIntermediateDfKey { trade_id }
         );
 
         let TradeIntermediate<T, FT> {
@@ -1702,8 +1699,8 @@ module liquidity_layer::orderbook {
         book_v2: &mut Orderbook<T, FT>,
         book_v1_id: ID,
     ) {
-        df::add(&mut book_v2.id, UnderMigrationFromDfKey {}, book_v1_id);
         set_protection_with_witness(witness, book_v2, true, true, true);
+        df::add(&mut book_v2.id, UnderMigrationFromDfKey {}, book_v1_id);
     }
 
     public fun finish_migration_from_v1<T: key + store, FT>(
@@ -1748,7 +1745,7 @@ module liquidity_layer::orderbook {
         assert_orderbook_v1(book, book_v1_uid);
 
         // will fail if not OB kiosk
-        ob_kiosk::delegate_exclusive_auth(seller_kiosk, nft_id, book_v1_uid, &book.id);
+        ob_kiosk::delegate_auth(seller_kiosk, nft_id, book_v1_uid, object::uid_to_address(&book.id));
 
         insert_ask_(
             book,
