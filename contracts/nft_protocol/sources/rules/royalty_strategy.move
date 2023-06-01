@@ -22,6 +22,7 @@ module nft_protocol::royalty_strategy_bps {
     // Track the current version of the module
     const VERSION: u64 = 3;
 
+    const EDeprecatedApi: u64 = 998;
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
@@ -193,7 +194,7 @@ module nft_protocol::royalty_strategy_bps {
         _req: &mut TransferRequest<T>,
         _ctx: &mut TxContext,
     ) {
-        abort(0)
+        abort(EDeprecatedApi)
     }
 
     /// Instead of using the balance associated with the `TransferRequest`,
@@ -204,7 +205,7 @@ module nft_protocol::royalty_strategy_bps {
         _wallet: &mut Balance<FT>,
         _ctx: &mut TxContext,
     ) {
-        abort(0)
+        abort(EDeprecatedApi)
     }
 
     public fun royalty_fee_bps<T>(self: &BpsRoyaltyStrategy<T>): u16 {
