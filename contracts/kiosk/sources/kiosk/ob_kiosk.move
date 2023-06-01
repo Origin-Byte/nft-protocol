@@ -367,11 +367,11 @@ module ob_kiosk::ob_kiosk {
         ref.is_exclusively_listed = true;
     }
 
-    public fun delegate_exclusive_auth(
+    public fun delegate_auth(
         self: &mut Kiosk,
         nft_id: ID,
         old_entity: &UID,
-        new_entity: &UID,
+        new_entity: address,
     ) {
         assert_version(ext(self));
 
@@ -384,7 +384,7 @@ module ob_kiosk::ob_kiosk {
         );
 
         vec_set::remove(&mut ref.auths, &uid_to_address(old_entity));
-        vec_set::insert(&mut ref.auths, uid_to_address(new_entity));
+        vec_set::insert(&mut ref.auths, new_entity);
     }
 
     /// This function is exposed only to the client side, therefore
