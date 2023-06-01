@@ -233,7 +233,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         collection_pub: &Publisher,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_publisher<T>(collection_pub);
         insert_collection_<T>(self)
     }
@@ -255,14 +255,14 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         collection_pub: &Publisher,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_publisher<T>(collection_pub);
         remove_collection_<T>(self)
     }
 
     /// Register collection and provide error reporting
     public entry fun remove_collection_<T>(self: &mut Authlist) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         let collection_type = type_name::get<T>();
         assert_collection(self, collection_type);
         df::remove<TypeName, bool>(&mut self.id, collection_type);
@@ -296,7 +296,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: vector<u8>,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_cap(self, cap);
         insert_authority_(self, authority)
     }
@@ -312,7 +312,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: vector<u8>,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_admin_witness<Admin>(self);
         insert_authority_(self, authority);
     }
@@ -336,7 +336,7 @@ module ob_authlist::authlist {
         authority: vector<u8>,
         name: String,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_cap(self, cap);
         set_name_(self, &authority, name)
     }
@@ -353,7 +353,7 @@ module ob_authlist::authlist {
         authority: &vector<u8>,
         name: String,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_admin_witness<Admin>(self);
         set_name_(self, authority, name);
     }
@@ -384,7 +384,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: vector<u8>
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_cap(self, cap);
         remove_authority_(self, &authority)
     }
@@ -400,7 +400,7 @@ module ob_authlist::authlist {
         self: &mut Authlist,
         authority: &vector<u8>
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_admin_witness<Admin>(self);
         remove_authority_(self, authority)
     }
@@ -520,12 +520,11 @@ module ob_authlist::authlist {
         assert!(authlist.version == VERSION, EWrongVersion);
     }
 
-    fun upgrade_version_if_old(self: &mut Authlist) {
-        assert!(self.version <= VERSION, EWrongVersion);
-
+    fun assert_version_and_upgrade(self: &mut Authlist) {
         if (self.version < VERSION) {
             self.version = VERSION;
         };
+        assert_version(self);
     }
 
     entry fun migrate(authlist: &mut Authlist, cap: &AuthlistOwnerCap) {

@@ -155,7 +155,7 @@ module nft_protocol::access_policy {
         access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
     ) {
-        upgrade_version_if_old(access_policy);
+        assert_version_and_upgrade(access_policy);
 
         utils::insert_vec_in_vec_set(
             &mut access_policy.parent_access,
@@ -173,7 +173,7 @@ module nft_protocol::access_policy {
         access_policy: &mut AccessPolicy<T>,
         addresses: vector<address>,
     ) {
-        upgrade_version_if_old(access_policy);
+        assert_version_and_upgrade(access_policy);
 
         // Get table vec
         let vec_set = table::borrow_mut(
@@ -201,7 +201,7 @@ module nft_protocol::access_policy {
             collection
         );
 
-        upgrade_version_if_old(access_policy);
+        assert_version_and_upgrade(access_policy);
 
         utils::insert_vec_in_vec_set(&mut access_policy.parent_access, addresses);
     }
@@ -223,7 +223,7 @@ module nft_protocol::access_policy {
             collection
         );
 
-        upgrade_version_if_old(access_policy);
+        assert_version_and_upgrade(access_policy);
 
         // Get table vec
         let vec_set = table::borrow_mut(
@@ -283,12 +283,11 @@ module nft_protocol::access_policy {
         assert!(self.version == VERSION, EWrongVersion);
     }
 
-    fun upgrade_version_if_old<T: key + store>(self: &mut AccessPolicy<T>) {
-        assert!(self.version <= VERSION, EWrongVersion);
-
+    fun assert_version_and_upgrade<T:  key + store>(self: &mut AccessPolicy<T>) {
         if (self.version < VERSION) {
             self.version = VERSION;
         };
+        assert_version(self);
     }
 
     // Only the publisher of type `T` can upgrade

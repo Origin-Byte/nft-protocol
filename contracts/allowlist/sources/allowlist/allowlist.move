@@ -165,7 +165,7 @@ module ob_allowlist::allowlist {
 
     /// Delete `Allowlist`
     public entry fun delete_allowlist(allowlist: Allowlist) {
-        upgrade_version_if_old(&mut allowlist);
+        assert_version_and_upgrade(&mut allowlist);
 
         let Allowlist { id, version: _, admin_witness: _, authorities: _ } = allowlist;
         object::delete(id);
@@ -222,7 +222,7 @@ module ob_allowlist::allowlist {
         self: &mut Allowlist,
         collection_pub: &Publisher,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_publisher<T>(collection_pub);
 
         insert_collection_<T>(self)
@@ -245,14 +245,14 @@ module ob_allowlist::allowlist {
         self: &mut Allowlist,
         collection_pub: &Publisher,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_publisher<T>(collection_pub);
         remove_collection_<T>(self)
     }
 
     /// Register collection and provide error reporting
     public entry fun remove_collection_<T>(self: &mut Allowlist) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
 
         let collection_type = type_name::get<T>();
         assert_collection(self, collection_type);
@@ -276,7 +276,7 @@ module ob_allowlist::allowlist {
         cap: &AllowlistOwnerCap,
         self: &mut Allowlist,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_cap(self, cap);
 
         insert_authority_<Auth>(self)
@@ -292,7 +292,7 @@ module ob_allowlist::allowlist {
         _witness: Admin,
         self: &mut Allowlist,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_admin_witness<Admin>(self);
 
         insert_authority_<Auth>(self)
@@ -315,7 +315,7 @@ module ob_allowlist::allowlist {
         cap: &AllowlistOwnerCap,
         self: &mut Allowlist,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_cap(self, cap);
 
         remove_authority_<Auth>(self)
@@ -331,7 +331,7 @@ module ob_allowlist::allowlist {
         _witness: Admin,
         self: &mut Allowlist,
     ) {
-        upgrade_version_if_old(self);
+        assert_version_and_upgrade(self);
         assert_admin_witness<Admin>(self);
 
         remove_authority_<Auth>(self)
@@ -439,12 +439,11 @@ module ob_allowlist::allowlist {
         assert!(allowlist.version == VERSION, EWrongVersion);
     }
 
-    fun upgrade_version_if_old(self: &mut Allowlist) {
-        assert!(self.version <= VERSION, EWrongVersion);
-
+    fun assert_version_and_upgrade(self: &mut Allowlist) {
         if (self.version < VERSION) {
             self.version = VERSION;
         };
+        assert_version(self);
     }
 
     entry fun migrate(allowlist: &mut Allowlist, cap: &AllowlistOwnerCap) {

@@ -210,7 +210,7 @@ module ob_launchpad::listing {
         is_whitelisted: bool,
         ctx: &mut TxContext,
     ): ID {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         let venue = venue::new(key, market, is_whitelisted, ctx);
         let venue_id = object::id(&venue);
@@ -245,7 +245,7 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ): ID {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         let inventory = inventory::from_warehouse(warehouse::new<T>(ctx), ctx);
         let inventory_id = object::id(&inventory);
@@ -259,7 +259,7 @@ module ob_launchpad::listing {
         balance: Balance<FT>,
         quantity: u64,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         let proceeds = borrow_proceeds_mut(listing);
         proceeds::add(proceeds, balance, quantity);
@@ -294,7 +294,7 @@ module ob_launchpad::listing {
         funds: Balance<FT>,
         buyer: address,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         emit_sold_event<FT, T>(nft, balance::value(&funds), buyer);
         pay(listing, funds, 1);
@@ -321,7 +321,7 @@ module ob_launchpad::listing {
         buyer: address,
         funds: Balance<FT>,
     ): T {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         let inventory = inventory_internal_mut<T, Market, MarketKey>(
             listing, key, venue_id, inventory_id,
@@ -353,7 +353,7 @@ module ob_launchpad::listing {
         funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         let inventory = inventory_internal_mut<T, Market, MarketKey>(
             listing, key, venue_id, inventory_id,
@@ -391,7 +391,7 @@ module ob_launchpad::listing {
         funds: Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         let inventory = inventory_internal_mut<T, Market, MarketKey>(
             listing, key, venue_id, inventory_id,
@@ -416,7 +416,7 @@ module ob_launchpad::listing {
         ctx: &mut TxContext,
     ) {
         mkt::assert_version(marketplace);
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
 
         assert!(
@@ -447,7 +447,7 @@ module ob_launchpad::listing {
         ctx: &mut TxContext,
     ) {
         mkt::assert_version(marketplace);
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
 
         assert!(
@@ -488,7 +488,7 @@ module ob_launchpad::listing {
         ctx: &mut TxContext,
     ) {
         mkt::assert_version(marketplace);
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
 
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_marketplace_admin(marketplace, ctx);
@@ -507,7 +507,7 @@ module ob_launchpad::listing {
         venue: Venue,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
 
         object_table::add(
@@ -533,7 +533,7 @@ module ob_launchpad::listing {
         nft: T,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
 
         let inventory = borrow_inventory_mut(listing, inventory_id);
@@ -555,7 +555,7 @@ module ob_launchpad::listing {
         inventory: Inventory<T>,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
 
         let inventory_id = object::id(&inventory);
@@ -576,7 +576,7 @@ module ob_launchpad::listing {
         warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         // We are asserting that the caller is the listing admin in
         // the call `add_inventory`
 
@@ -596,7 +596,7 @@ module ob_launchpad::listing {
         warehouse: Warehouse<T>,
         ctx: &mut TxContext,
     ): ID {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         // We are asserting that the caller is the listing admin in
         // the call `add_inventory`
 
@@ -613,7 +613,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
         venue::set_live(borrow_venue_mut(listing, venue_id), true);
     }
@@ -625,7 +625,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
         venue::set_live(borrow_venue_mut(listing, venue_id), false);
     }
@@ -638,7 +638,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_version(marketplace);
         mkt::assert_marketplace_admin(marketplace, ctx);
@@ -657,7 +657,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_version(marketplace);
         mkt::assert_marketplace_admin(marketplace, ctx);
@@ -680,7 +680,7 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
 
         assert!(
@@ -764,7 +764,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): &mut Venue {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         let venue = borrow_venue_mut(listing, venue_id);
         venue::assert_market<Market, MarketKey>(key, venue);
 
@@ -780,7 +780,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): &mut Market {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         let venue =
             venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
         venue::borrow_market_mut(key, venue)
@@ -797,7 +797,7 @@ module ob_launchpad::listing {
         key: MarketKey,
         venue_id: ID,
     ): Venue {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         let venue = object_table::remove(&mut listing.venues, venue_id);
         venue::assert_market<Market, MarketKey>(key, &venue);
         venue
@@ -847,7 +847,7 @@ module ob_launchpad::listing {
         venue_id: ID,
         inventory_id: ID,
     ): &mut Inventory<T> {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
         borrow_inventory_mut(listing, inventory_id)
     }
@@ -883,7 +883,7 @@ module ob_launchpad::listing {
         inventory_id: ID,
         ctx: &mut TxContext,
     ): &mut Inventory<T> {
-        upgrade_version_if_old(listing);
+        assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
 
         borrow_inventory_mut(listing, inventory_id)
@@ -1109,12 +1109,11 @@ module ob_launchpad::listing {
         assert!(listing.version == VERSION, EWrongVersion);
     }
 
-    fun upgrade_version_if_old(self: &mut Listing) {
-        assert!(self.version <= VERSION, EWrongVersion);
-
+    fun assert_version_and_upgrade(self: &mut Listing) {
         if (self.version < VERSION) {
             self.version = VERSION;
         };
+        assert_version(self);
     }
 
     entry fun migrate(listing: &mut Listing, ctx: &mut TxContext) {
