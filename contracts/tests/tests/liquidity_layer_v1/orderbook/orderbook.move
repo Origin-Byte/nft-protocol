@@ -27,7 +27,6 @@ module ob_tests::orderbook_v1 {
     use nft_protocol::collection::Collection;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
-    use ob_request_extensions::fee_balance;
 
     use liquidity_layer_v1::orderbook::{Self, Orderbook};
 
@@ -305,10 +304,6 @@ module ob_tests::orderbook_v1 {
             &mut seller_kiosk,
             &mut buyer_kiosk,
             ctx(&mut scenario),
-        );
-
-        fee_balance::distribute_fee_to_intermediary<Foo, SUI>(
-            &mut request, ctx(&mut scenario)
         );
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
