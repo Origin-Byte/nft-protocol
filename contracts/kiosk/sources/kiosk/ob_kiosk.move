@@ -1246,6 +1246,7 @@ module ob_kiosk::ob_kiosk {
         df::borrow_mut(ext(self), DepositSettingDfKey {})
     }
 
+    #[test_only]
     /// Borrow `NftRef` accounting structure
     ///
     /// #### Panics
@@ -1253,7 +1254,7 @@ module ob_kiosk::ob_kiosk {
     /// Panics if `Kiosk` is not OriginByte `Kiosk`
     //
     // TODO: Replace with immutable API
-    fun nft_refs(self: &mut Kiosk): &Table<ID, NftRef> {
+    public fun nft_refs(self: &mut Kiosk): &Table<ID, NftRef> {
         assert_is_ob_kiosk(self);
         df::borrow(uid(self), NftRefsDfKey {})
     }
