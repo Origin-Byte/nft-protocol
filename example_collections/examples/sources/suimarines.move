@@ -63,6 +63,7 @@ module examples::suimarines {
         let display = display::new<Submarine>(&publisher, ctx);
         display::add(&mut display, string::utf8(b"name"), string::utf8(b"{name}"));
         display::add(&mut display, string::utf8(b"tags"), ob_display::from_vec(tags));
+        display::add(&mut display, string::utf8(b"collection_id"), ob_display::id_to_string(&object::id(&collection)));
         display::update_version(&mut display);
         transfer::public_transfer(display, tx_context::sender(ctx));
 
