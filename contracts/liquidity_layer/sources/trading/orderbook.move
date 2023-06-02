@@ -1594,7 +1594,7 @@ module liquidity_layer::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        assert_version_and_upgrade(book);
+        assert_version(book);
 
         let trade = df::remove(
             &mut book.id, TradeIntermediateDfKey { trade_id }

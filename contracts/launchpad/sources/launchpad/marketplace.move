@@ -30,7 +30,7 @@ module ob_launchpad::marketplace {
     friend ob_launchpad::listing;
 
     // Track the current version of the module
-    const VERSION: u64 = 2;
+    const VERSION: u64 = 1;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -115,7 +115,7 @@ module ob_launchpad::marketplace {
 
     // === Upgradeability ===
 
-    public (friend) fun assert_version(marketplace: &Marketplace) {
+    public(friend)fun assert_version(marketplace: &Marketplace) {
         assert!(marketplace.version == VERSION, EWrongVersion);
     }
 
