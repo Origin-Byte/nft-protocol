@@ -33,6 +33,7 @@ module liquidity_layer::orderbook {
     use sui::transfer::share_object;
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
+    use sui::clock::{Self, Clock};
 
     use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use ob_kiosk::ob_kiosk;
@@ -88,17 +89,20 @@ module liquidity_layer::orderbook {
     /// that are external to the OriginByte ecosystem, without itself being external
     const ENotExternalPolicy: u64 = 8;
 
+    /// Trying to enable an time-locked orderbook before its start time
+    const EOrderbookTimeLocked: u64 = 9;
+
     /// Trying to add migrated liquidity to an orderbook whilst referencing the
     /// incorrect Orderbook V1
-    const EIncorrectOrderbookV1: u64 = 9;
+    const EIncorrectOrderbookV1: u64 = 10;
 
     /// Trying to add migrated liquidity to an orderbook which
     /// itself is not under migration
-    const ENotUnderMigration: u64 = 10;
+    const ENotUnderMigration: u64 = 11;
 
     /// Trying to call `set_protection_with_witness` whilst the orderbook is under
     /// migration. This is a non-authorized operation during liquidity migration
-    const EUnderMigration: u64 = 11;
+    const EUnderMigration: u64 = 12;
 
     // === Structs ===
 
@@ -111,6 +115,7 @@ module liquidity_layer::orderbook {
         trade_id: ID,
     }
 
+    struct TimeLockDfKey has copy, store, drop {}
     struct UnderMigrationFromDfKey has copy, store, drop {}
 
     /// A critbit order book implementation. Contains two ordered trees:
@@ -973,11 +978,12 @@ module liquidity_layer::orderbook {
         create_ask: bool,
         create_bid: bool,
     ) {
-        assert_version_and_upgrade(orderbook);
-        assert_not_under_migration(orderbook);
-        orderbook.protected_actions = WitnessProtectedActions {
-            buy_nft, create_ask, create_bid,
-        };
+        set_protection_(
+            orderbook,
+            buy_nft,
+            create_ask,
+            create_bid,
+        )
     }
 
     /// Helper method to protect all endpoints thus disabling trading
@@ -1008,9 +1014,48 @@ module liquidity_layer::orderbook {
         )
     }
 
-    public fun add_df<T: key + store, FT, DFKey, DFValue>(
-        book: &mut Orderbook<T, FT>,
-    ) {}
+    public entry fun set_start_time<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+        start_time: u64,
+    ) {
+        set_start_time_with_witness(
+            witness::from_publisher(publisher), orderbook, start_time
+        )
+    }
+
+    public entry fun set_start_time_with_witness<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+        start_time: u64,
+    ) {
+        if (df::exists_(&mut orderbook.id, TimeLockDfKey {})) {
+            let time = df::borrow_mut(&mut orderbook.id, TimeLockDfKey {});
+            *time = start_time
+        } else {
+            df::add(&mut orderbook.id, TimeLockDfKey {}, start_time);
+        };
+    }
+
+    /// Method for permissionlessly unlock trading whenever the opening
+    /// time starts.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the current time provided by the Clock's timestamp is
+    /// less than the opening time.
+    public entry fun enable_trading_permissionless<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        clock: &Clock
+    ) {
+        let start_time = df::borrow(&orderbook.id, TimeLockDfKey {});
+
+        assert!(clock::timestamp_ms(clock) >= *start_time, EOrderbookTimeLocked);
+
+        set_protection_(
+            orderbook, false, false, false,
+        );
+    }
 
     // === Getters ===
 
@@ -1690,6 +1735,63 @@ module liquidity_layer::orderbook {
         price >= tick_size
     }
 
+    /// Change protection level of an existing orderbook
+    fun set_protection_<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        buy_nft: bool,
+        create_ask: bool,
+        create_bid: bool,
+    ) {
+        assert_version_and_upgrade(orderbook);
+        assert_not_under_migration(orderbook);
+        orderbook.protected_actions = WitnessProtectedActions {
+            buy_nft, create_ask, create_bid,
+        };
+    }
+
+    fun insert_ask_<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        seller_kiosk_id: ID,
+        price: u64,
+        ask_commission: Option<trading::AskCommission>,
+        nft_id: ID,
+        seller: address,
+    ) {
+        event::emit(AskCreatedEvent {
+            nft: nft_id,
+            orderbook: object::id(book),
+            owner: seller,
+            price,
+            kiosk: seller_kiosk_id,
+            nft_type: type_name::into_string(type_name::get<T>()),
+            ft_type: type_name::into_string(type_name::get<FT>()),
+        });
+
+        let ask = Ask {
+            price,
+            nft_id,
+            kiosk_id: seller_kiosk_id,
+            owner: seller,
+            commission: ask_commission,
+        };
+        // store the Ask object
+        let (has_key, price_level_idx) =
+            critbit::find_leaf(&book.asks, price);
+
+        if (has_key) {
+            vector::push_back(
+                critbit::borrow_mut_leaf_by_index(
+                    &mut book.asks, price_level_idx,
+                ),
+                ask,
+            );
+        } else {
+            critbit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
+        };
+    }
+
+    // === Liquidity Migration ===
+
     public fun start_migration_from_v1<T: key + store, FT>(
         witness: DelegatedWitness<T>,
         book_v2: &mut Orderbook<T, FT>,
@@ -1753,46 +1855,6 @@ module liquidity_layer::orderbook {
         );
     }
 
-    fun insert_ask_<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        seller_kiosk_id: ID,
-        price: u64,
-        ask_commission: Option<trading::AskCommission>,
-        nft_id: ID,
-        seller: address,
-    ) {
-        event::emit(AskCreatedEvent {
-            nft: nft_id,
-            orderbook: object::id(book),
-            owner: seller,
-            price,
-            kiosk: seller_kiosk_id,
-            nft_type: type_name::into_string(type_name::get<T>()),
-            ft_type: type_name::into_string(type_name::get<FT>()),
-        });
-
-        let ask = Ask {
-            price,
-            nft_id,
-            kiosk_id: seller_kiosk_id,
-            owner: seller,
-            commission: ask_commission,
-        };
-        // store the Ask object
-        let (has_key, price_level_idx) =
-            critbit::find_leaf(&book.asks, price);
-
-        if (has_key) {
-            vector::push_back(
-                critbit::borrow_mut_leaf_by_index(
-                    &mut book.asks, price_level_idx,
-                ),
-                ask,
-            );
-        } else {
-            critbit::insert_leaf(&mut book.asks, price, vector::singleton(ask));
-        };
-    }
 
     // === Upgradeability ===
 
