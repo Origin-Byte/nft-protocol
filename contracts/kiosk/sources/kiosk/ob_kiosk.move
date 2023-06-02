@@ -70,7 +70,6 @@ module ob_kiosk::ob_kiosk {
     /// Trying to withdraw profits and sender is not owner
     const EPermissionlessDepositsDisabled: u64 = 4;
     /// The provided Kiosk is not an OriginByte extension
-    ///
     const EKioskNotOriginByteVersion: u64 = 5;
     /// The ID provided does not match the Kiosk
     const EIncorrectKioskId: u64 = 6;
@@ -242,6 +241,16 @@ module ob_kiosk::ob_kiosk {
         create_for_address(owner, ctx);
     }
 
+    /// Create a new OriginByte `Kiosk`
+    fun new_(owner: address, ctx: &mut TxContext): Kiosk {
+        let (kiosk, kiosk_cap) = kiosk::new(ctx);
+
+        kiosk::set_owner_custom(&mut kiosk, &kiosk_cap, owner);
+        install_extension_(&mut kiosk, kiosk_cap, ctx);
+
+        kiosk
+    }
+
     /// Create a new permissionless `Kiosk`
     ///
     /// A `Kiosk` object will be created with all functions that would normally
@@ -275,15 +284,14 @@ module ob_kiosk::ob_kiosk {
         create_permissionless(ctx);
     }
 
-
-    /// Changes the owner of a kiosk to the given address.
-    /// This is only possible if the kiosk is currently permissionless.
-    /// Ie. the old owner is `PermissionlessAddr`.
+    /// Changes the owner of a `Kiosk` to the given address.
     ///
-    /// Note that we don't support changing ownership of a kiosk that's not
-    /// permissionless.
     /// The address that is set as the owner of the kiosk is the address that
     /// will remain the owner forever.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the `Kiosk` is not permissionless.
     public entry fun set_permissionless_to_permissioned(
         self: &mut Kiosk, user: address, ctx: &mut TxContext
     ) {
@@ -371,12 +379,18 @@ module ob_kiosk::ob_kiosk {
 
     // === Withdraw from the Kiosk ===
 
-    /// Authorizes given entity to take given NFT out.
-    /// The entity must prove with their `&UID` in `transfer_delegated` or
-    /// must be the signer in `transfer_signed`.
+    /// Authorizes non-exclusively the given entity to take the NFT out of the
+    /// `Kiosk`.
     ///
-    /// Use the `object::id_to_address` to authorize entities which only live
-    /// on chain.
+    /// Entity address can be derived from the `UID` of an object or from the
+    /// address of a user. The entity must prove with their `&UID` in
+    /// `transfer_delegated` or must be the signer in `transfer_signed`.
+    ///
+    /// #### Panics
+    ///
+    /// - Transaction sender is not `Kiosk` owner
+    /// - NFT does not exist
+    /// - NFT is already exclusively locked
     public fun auth_transfer(
         self: &mut Kiosk,
         nft_id: ID,
@@ -386,20 +400,26 @@ module ob_kiosk::ob_kiosk {
         assert_version_and_upgrade(ext(self));
         assert_permission(self, ctx);
 
-        let refs = nft_refs_mut(self);
-        let ref = table::borrow_mut(refs, nft_id);
+        let ref = nft_ref_mut(self, nft_id);
         assert_ref_not_exclusively_listed(ref);
+
         vec_set::insert(&mut ref.auths, entity);
     }
 
-    /// Authorizes ONLY given entity to take given NFT out.
-    /// No one else (including the owner) can perform a transfer.
+    /// Authorizes exclusively the given entity to take the NFT out of the
+    /// `Kiosk`.
     ///
-    /// The entity must prove with their `&UID` in `transfer_delegated`.
+    /// Entity address can be derived from the `UID` of an object or from the
+    /// address of a user. The entity must prove with their `&UID` in
+    /// `transfer_delegated` or must be the signer in `transfer_signed`.
     ///
-    /// Only the given entity can then delist their listing.
-    /// This is a dangerous action to be used only with audited contracts
-    /// because the NFT is locked until given entity agrees to release it.
+    /// Non-exclusive locks for the NFT are removed from the `Kiosk`.
+    ///
+    /// #### Panics
+    ///
+    /// - Transaction sender is not `Kiosk` owner
+    /// - NFT does not exist
+    /// - NFT is already exclusively locked
     public fun auth_exclusive_transfer(
         self: &mut Kiosk,
         nft_id: ID,
@@ -409,10 +429,12 @@ module ob_kiosk::ob_kiosk {
         assert_version_and_upgrade(ext(self));
         assert_permission(self, ctx);
 
-        let refs = nft_refs_mut(self);
-        let ref = table::borrow_mut(refs, nft_id);
-        assert_ref_not_listed(ref);
-        vec_set::insert(&mut ref.auths, uid_to_address(entity_id));
+        // Check that NFT is not exclusively listed before overwriting all
+        // previous authorities to replace with new exclusive authority
+        let ref = nft_ref_mut(self, nft_id);
+        assert_ref_not_exclusively_listed(ref);
+
+        ref.auths = vec_set::singleton(uid_to_address(entity_id));
         ref.is_exclusively_listed = true;
     }
 
@@ -810,7 +832,7 @@ module ob_kiosk::ob_kiosk {
         price: u64,
         ctx: &mut TxContext,
     ): (T, TransferRequest<T>) {
-        let nft = get_nft(self, nft_id, originator, ctx);
+        let nft = remove_nft(self, nft_id, originator, ctx);
         (nft, transfer_request::new(nft_id, originator, object::id(self), price, ctx))
     }
 
@@ -827,7 +849,7 @@ module ob_kiosk::ob_kiosk {
         originator: address,
         ctx: &mut TxContext,
     ): (T, WithdrawRequest<T>) {
-        let nft = get_nft(self, nft_id, originator, ctx);
+        let nft = remove_nft(self, nft_id, originator, ctx);
         (nft, withdraw_request::new(originator, ctx))
     }
 
@@ -838,7 +860,7 @@ module ob_kiosk::ob_kiosk {
     /// - Originator is not authorized to withdraw and transaction sender is
     /// not owner.
     /// - NFT does not exist
-    fun get_nft<T: key + store>(
+    fun remove_nft<T: key + store>(
         self: &mut Kiosk,
         nft_id: ID,
         originator: address,
@@ -851,14 +873,6 @@ module ob_kiosk::ob_kiosk {
         set_cap(self, cap);
 
         nft
-    }
-
-    /// Create a new OriginByte `Kiosk`
-    fun new_(owner: address, ctx: &mut TxContext): Kiosk {
-        let (kiosk, kiosk_cap) = kiosk::new(ctx);
-        kiosk::set_owner_custom(&mut kiosk, &kiosk_cap, owner);
-        install_extension_(&mut kiosk, kiosk_cap, ctx);
-        kiosk
     }
 
     // === Request Auth ===
@@ -901,22 +915,33 @@ module ob_kiosk::ob_kiosk {
 
     // === De-listing of NFTs ===
 
-    /// Removes _all_ entities from access to the NFT.
-    /// Cannot be performed if the NFT is exclusively listed.
+
+    /// Removes all non-exclusive locks for the NFT in a `Kiosk`
+    ///
+    /// #### Panics
+    ///
+    /// - Transaction sender is not `Kiosk` owner
+    /// - NFT does not exist
+    /// - NFT is exclusively listed
     public fun delist_nft_as_owner(
         self: &mut Kiosk, nft_id: ID, ctx: &mut TxContext,
     ) {
         assert_version_and_upgrade(ext(self));
         assert_permission(self, ctx);
 
-        let refs = nft_refs_mut(self);
-        let ref = table::borrow_mut(refs, nft_id);
+        let ref = nft_ref_mut(self, nft_id);
         assert_ref_not_exclusively_listed(ref);
         ref.auths = vec_set::empty();
     }
 
-    /// Removes a specific NFT from access to the NFT.
-    /// Cannot be performed if the NFT is exclusively listed.
+    /// Removes specific non-exclusive lock for the NFT in a `Kiosk`
+    ///
+    /// #### Panics
+    ///
+    /// - Transaction sender is not `Kiosk` owner
+    /// - NFT does not exist
+    /// - NFT is exclusively listed
+    /// - Provided address is not a non-exclusive authority
     public fun remove_auth_transfer_as_owner(
         self: &mut Kiosk,
         nft_id: ID,
@@ -926,24 +951,49 @@ module ob_kiosk::ob_kiosk {
         assert_version_and_upgrade(ext(self));
         assert_permission(self, ctx);
 
-        let refs = nft_refs_mut(self);
-        let ref = table::borrow_mut(refs, nft_id);
+        let ref = nft_ref_mut(self, nft_id);
         assert_ref_not_exclusively_listed(ref);
         vec_set::remove(&mut ref.auths, &entity);
     }
 
-    /// This is the only path to delist an exclusively listed NFT.
+    /// Removes non-exclusive or exclusive lock placed by an object entity
+    ///
+    /// #### Panics
+    ///
+    /// - Entity `UID` is not a transfer authority for the given NFT
+    /// - NFT does not exist
     public fun remove_auth_transfer(
-        self: &mut Kiosk, nft_id: ID, entity: &UID,
+        self: &mut Kiosk,
+        nft_id: ID,
+        entity: &UID,
     ) {
         assert_version_and_upgrade(ext(self));
 
         let entity = uid_to_address(entity);
 
-        let refs = nft_refs_mut(self);
-        let ref = table::borrow_mut(refs, nft_id);
+        let ref = nft_ref_mut(self, nft_id);
         vec_set::remove(&mut ref.auths, &entity);
         ref.is_exclusively_listed = false; // no-op if it wasn't
+    }
+
+    /// Removes non-exclusive lock placed by an object entity
+    ///
+    /// #### Panics
+    ///
+    /// - Transaction sender is not a transfer authority for the given NFT
+    /// - NFT does not exist
+    /// - NFT was listed exclusively
+    public fun remove_auth_transfer_signed(
+        self: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_version(ext(self));
+        let entity = tx_context::sender(ctx);
+
+        let ref = nft_ref_mut(self, nft_id);
+        assert_ref_not_exclusively_listed(ref);
+        vec_set::remove(&mut ref.auths, &entity);
     }
 
     // === Configure deposit settings ===
@@ -1086,7 +1136,7 @@ module ob_kiosk::ob_kiosk {
     ///
     /// Panics if `Kiosk` is not permissionless
     public fun assert_is_permissionless(self: &Kiosk) {
-        assert!(kiosk::owner(self) == PermissionlessAddr, EKioskNotPermissionless);
+        assert!(is_permissionless(self), EKioskNotPermissionless);
     }
 
     public fun assert_can_deposit<T>(self: &mut Kiosk, ctx: &mut TxContext) {
@@ -1130,15 +1180,11 @@ module ob_kiosk::ob_kiosk {
     public fun assert_not_exclusively_listed(
         self: &mut Kiosk, nft_id: ID
     ) {
-        let refs = nft_refs(self);
-        let ref = table::borrow(refs, nft_id);
-        assert_ref_not_exclusively_listed(ref);
+        assert_ref_not_exclusively_listed(nft_ref(self, nft_id));
     }
 
     public fun assert_not_listed(self: &mut Kiosk, nft_id: ID) {
-        let refs = nft_refs(self);
-        let ref = table::borrow(refs, nft_id);
-        assert_ref_not_listed(ref);
+        assert_ref_not_listed(nft_ref(self, nft_id));
     }
 
     /// Asserts that `Kiosk` is OriginByte `Kiosk`
@@ -1238,11 +1284,37 @@ module ob_kiosk::ob_kiosk {
         df::borrow_mut(ext(self), NftRefsDfKey {})
     }
 
-    fun pop_cap(self: &mut Kiosk): kiosk::KioskOwnerCap {
+    /// Borrow `NftRef` for NFT with given ID
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Kiosk` is not OriginByte `Kiosk` or if NFT does not exist.
+    public fun nft_ref(self: &Kiosk, nft_id: ID): &NftRef {
+        let refs = nft_refs(self);
+
+        assert!(table::contains(refs, nft_id), EMissingNft);
+        table::borrow(refs, nft_id)
+    }
+
+    /// Borrow `NftRef` for NFT with given ID
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Kiosk` is not OriginByte `Kiosk` or if NFT does not exist.
+    public fun nft_ref_mut(self: &mut Kiosk, nft_id: ID): &mut NftRef {
+        let refs = nft_refs_mut(self);
+
+        assert!(table::contains(refs, nft_id), EMissingNft);
+        table::borrow_mut(refs, nft_id)
+    }
+
+    /// Pop `KioskOwnerCap` from within the `Kiosk`
+    fun pop_cap(self: &mut Kiosk): KioskOwnerCap {
         df::remove(ext(self), KioskOwnerCapDfKey {})
     }
 
-    fun set_cap(self: &mut Kiosk, cap: kiosk::KioskOwnerCap) {
+    /// Return `KioskOwnerCap` to the `Kiosk`
+    fun set_cap(self: &mut Kiosk, cap: KioskOwnerCap) {
         df::add(ext(self), KioskOwnerCapDfKey {}, cap);
     }
 
@@ -1328,18 +1400,16 @@ module ob_kiosk::ob_kiosk {
     }
 
     #[test_only]
-    public fun assert_listed(self: &mut Kiosk, nft_id: ID) {
-        let refs = nft_refs(self);
-        let ref = table::borrow<ID, NftRef>(refs, nft_id);
+    public fun assert_listed(self: &Kiosk, nft_id: ID) {
+        let ref = nft_ref(self, nft_id);
         assert!(vec_set::size(&ref.auths) > 0, 0);
     }
 
     #[test_only]
     public fun assert_exclusively_listed(
-        self: &mut Kiosk, nft_id: ID
+        self: &Kiosk, nft_id: ID
     ) {
-        let refs = nft_refs(self);
-        let ref = table::borrow<ID, NftRef>(refs, nft_id);
+        let ref = nft_ref(self, nft_id);
         assert!(ref.is_exclusively_listed, 0);
     }
 
