@@ -1008,6 +1008,10 @@ module liquidity_layer::orderbook {
         )
     }
 
+    public fun add_df<T: key + store, FT, DFKey, DFValue>(
+        book: &mut Orderbook<T, FT>,
+    ) {}
+
     // === Getters ===
 
     public fun borrow_bids<T: key + store, FT>(
