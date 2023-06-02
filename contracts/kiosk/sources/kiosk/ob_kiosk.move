@@ -769,7 +769,7 @@ module ob_kiosk::ob_kiosk {
         ctx: &mut TxContext,
     ) {
         assert!(kiosk::has_access(self, &kiosk_cap), ENotOwner);
-        assert!(!is_ob(self), EKioskOriginByteVersion);
+        assert!(!is_ob_kiosk(self), EKioskOriginByteVersion);
 
         let kiosk_ext = ext(self);
 
@@ -1098,18 +1098,10 @@ module ob_kiosk::ob_kiosk {
     }
 
     /// Returns whether `Kiosk` is OriginByte `Kiosk`
-    public fun is_ob(self: &Kiosk): bool {
-        df::exists_(uid(self), NftRefsDfKey {})
-    }
-
-    /// Returns whether `Kiosk` is OriginByte `Kiosk`
-    ///
-    /// #### Deprecated
-    ///
-    /// Deprecated due to mutable argument
+    //
+    // TODO: Deprecate mutable API
     public fun is_ob_kiosk(self: &mut Kiosk): bool {
-        std::debug::print(&std::string::utf8(b"Using deprecated function `is_ob_kiosk`, use `is_ob` instead"));
-        is_ob(self)
+        df::exists_(uid(self), NftRefsDfKey {})
     }
 
     /// Either sender is owner or permissionless deposits of `T` enabled.
@@ -1192,22 +1184,10 @@ module ob_kiosk::ob_kiosk {
     /// #### Panics
     ///
     /// Panics if `Kiosk` is not OriginByte Kiosk
-    public fun assert_is_ob(self: &Kiosk) {
-        assert!(is_ob(self), EKioskNotOriginByteVersion);
-    }
-
-    /// Asserts that `Kiosk` is OriginByte `Kiosk`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Kiosk` is not OriginByte Kiosk
-    ///
-    /// #### Deprecated
-    ///
-    /// Deprecated due to mutable argument
+    //
+    // TODO: Deprecate mutable API
     public fun assert_is_ob_kiosk(self: &mut Kiosk) {
-        std::debug::print(&std::string::utf8(b"Using deprecated function `assert_is_ob_kiosk`, use `assert_is_ob` instead"));
-        assert_is_ob(self);
+        assert!(is_ob_kiosk(self), EKioskNotOriginByteVersion);
     }
 
     public fun assert_kiosk_id(self: &Kiosk, id: ID) {
@@ -1249,8 +1229,10 @@ module ob_kiosk::ob_kiosk {
     /// #### Panics
     ///
     /// Panics if `Kiosk` is not OriginByte `Kiosk`
-    public fun deposit_setting(self: &Kiosk): &DepositSetting {
-        assert_is_ob(self);
+    //
+    // TODO: Replace with immutable API
+    fun deposit_setting(self: &mut Kiosk): &DepositSetting {
+        assert_is_ob_kiosk(self);
         df::borrow(uid(self), DepositSettingDfKey {})
     }
 
@@ -1260,7 +1242,7 @@ module ob_kiosk::ob_kiosk {
     ///
     /// Panics if `Kiosk` is not OriginByte `Kiosk`
     fun deposit_setting_mut(self: &mut Kiosk): &mut DepositSetting {
-        assert_is_ob(self);
+        assert_is_ob_kiosk(self);
         df::borrow_mut(ext(self), DepositSettingDfKey {})
     }
 
@@ -1269,8 +1251,10 @@ module ob_kiosk::ob_kiosk {
     /// #### Panics
     ///
     /// Panics if `Kiosk` is not OriginByte `Kiosk`
-    public fun nft_refs(self: &Kiosk): &Table<ID, NftRef> {
-        assert_is_ob(self);
+    //
+    // TODO: Replace with immutable API
+    fun nft_refs(self: &mut Kiosk): &Table<ID, NftRef> {
+        assert_is_ob_kiosk(self);
         df::borrow(uid(self), NftRefsDfKey {})
     }
 
@@ -1280,7 +1264,7 @@ module ob_kiosk::ob_kiosk {
     ///
     /// Panics if `Kiosk` is not OriginByte `Kiosk`
     fun nft_refs_mut(self: &mut Kiosk): &mut Table<ID, NftRef> {
-        assert_is_ob(self);
+        assert_is_ob_kiosk(self);
         df::borrow_mut(ext(self), NftRefsDfKey {})
     }
 
@@ -1289,7 +1273,9 @@ module ob_kiosk::ob_kiosk {
     /// #### Panics
     ///
     /// Panics if `Kiosk` is not OriginByte `Kiosk` or if NFT does not exist.
-    public fun nft_ref(self: &Kiosk, nft_id: ID): &NftRef {
+    //
+    // TODO: Replace with immutable API
+    fun nft_ref(self: &mut Kiosk, nft_id: ID): &NftRef {
         let refs = nft_refs(self);
 
         assert!(table::contains(refs, nft_id), EMissingNft);
@@ -1301,7 +1287,7 @@ module ob_kiosk::ob_kiosk {
     /// #### Panics
     ///
     /// Panics if `Kiosk` is not OriginByte `Kiosk` or if NFT does not exist.
-    public fun nft_ref_mut(self: &mut Kiosk, nft_id: ID): &mut NftRef {
+    fun nft_ref_mut(self: &mut Kiosk, nft_id: ID): &mut NftRef {
         let refs = nft_refs_mut(self);
 
         assert!(table::contains(refs, nft_id), EMissingNft);
@@ -1400,14 +1386,15 @@ module ob_kiosk::ob_kiosk {
     }
 
     #[test_only]
-    public fun assert_listed(self: &Kiosk, nft_id: ID) {
+    public fun assert_listed(self: &mut Kiosk, nft_id: ID) {
         let ref = nft_ref(self, nft_id);
         assert!(vec_set::size(&ref.auths) > 0, 0);
     }
 
     #[test_only]
     public fun assert_exclusively_listed(
-        self: &Kiosk, nft_id: ID
+        self: &mut Kiosk,
+        nft_id: ID
     ) {
         let ref = nft_ref(self, nft_id);
         assert!(ref.is_exclusively_listed, 0);
