@@ -455,7 +455,7 @@ module ob_kiosk::ob_kiosk {
         assert_version_and_upgrade(ext(source));
         assert_permission(source, ctx);
 
-        let refs = df::borrow_mut(ext(source), NftRefsDfKey {});
+        let refs = nft_refs_mut(source);
         let ref = table::remove(refs, nft_id);
         assert_ref_not_exclusively_listed(&ref);
 
@@ -679,29 +679,23 @@ module ob_kiosk::ob_kiosk {
     ///
     /// #### Panics
     ///
-    /// Panics if `Kiosk` is already an OriginByte `Kiosk`
+    /// Panics if `Kiosk` is already an OriginByte `Kiosk` or if
+    /// `KioskOwnerCap` does not match `Kiosk`.
     public entry fun install_extension(
         self: &mut Kiosk,
         kiosk_cap: KioskOwnerCap,
         ctx: &mut TxContext,
     ) {
-        assert!(!is_ob(self), EKioskOriginByteVersion);
+        install_extension_(self, kiosk_cap, ctx);
 
-        let kiosk_ext = ext(self);
-
-        df::add(kiosk_ext, VersionDfKey {}, VERSION);
-        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
-        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
-        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
-            enable_any_deposit: true,
-            collections_with_enabled_deposits: vec_set::empty(),
-        });
-
-        transfer(OwnerToken {
-            id: object::new(ctx),
-            kiosk: object::id(self),
-            owner: sender(ctx),
-        }, sender(ctx));
+        transfer(
+            OwnerToken {
+                id: object::new(ctx),
+                kiosk: object::id(self),
+                owner: sender(ctx),
+            },
+            sender(ctx),
+        );
     }
 
     /// Uninstall OriginByte extension from base `Kiosk`
@@ -739,6 +733,31 @@ module ob_kiosk::ob_kiosk {
         object::delete(id);
 
         public_transfer(owner_cap, sender(ctx));
+    }
+
+    /// Installs extension fields into `Kiosk`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Kiosk` is already an OriginByte `Kiosk` or if
+    /// `KioskOwnerCap` does not match `Kiosk`.
+    fun install_extension_(
+        self: &mut Kiosk,
+        kiosk_cap: KioskOwnerCap,
+        ctx: &mut TxContext,
+    ) {
+        assert!(kiosk::has_access(self, &kiosk_cap), ENotOwner);
+        assert!(!is_ob(self), EKioskOriginByteVersion);
+
+        let kiosk_ext = ext(self);
+
+        df::add(kiosk_ext, VersionDfKey {}, VERSION);
+        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
+        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
+        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
+            enable_any_deposit: true,
+            collections_with_enabled_deposits: vec_set::empty(),
+        });
     }
 
     /// Registers NFT with OriginByte extension
@@ -835,21 +854,10 @@ module ob_kiosk::ob_kiosk {
     }
 
     /// Create a new OriginByte `Kiosk`
-    //
-    // TODO: Merge logic with `install_extension`
     fun new_(owner: address, ctx: &mut TxContext): Kiosk {
         let (kiosk, kiosk_cap) = kiosk::new(ctx);
         kiosk::set_owner_custom(&mut kiosk, &kiosk_cap, owner);
-        let kiosk_ext = ext(&mut kiosk);
-
-        df::add(kiosk_ext, VersionDfKey {}, VERSION);
-        df::add(kiosk_ext, KioskOwnerCapDfKey {}, kiosk_cap);
-        df::add(kiosk_ext, NftRefsDfKey {}, table::new<ID, NftRef>(ctx));
-        df::add(kiosk_ext, DepositSettingDfKey {}, DepositSetting {
-            enable_any_deposit: true,
-            collections_with_enabled_deposits: vec_set::empty(),
-        });
-
+        install_extension_(&mut kiosk, kiosk_cap, ctx);
         kiosk
     }
 
