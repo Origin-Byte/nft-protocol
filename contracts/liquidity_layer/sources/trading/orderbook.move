@@ -1024,7 +1024,7 @@ module liquidity_layer::orderbook {
         )
     }
 
-    public entry fun set_start_time_with_witness<T: key + store, FT>(
+    public fun set_start_time_with_witness<T: key + store, FT>(
         _witness: DelegatedWitness<T>,
         orderbook: &mut Orderbook<T, FT>,
         start_time: u64,
