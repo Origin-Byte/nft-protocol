@@ -40,7 +40,7 @@ module ob_launchpad::marketplace {
     /// Transaction sender was not admin of marketplace
     const EInvalidAdmin: u64 = 1;
 
-    const ENotAMember: u64 = 2;
+    const ENotAMemberNorAdmin: u64 = 2;
 
     struct MembersDfKey has store, copy, drop {}
 
@@ -152,15 +152,17 @@ module ob_launchpad::marketplace {
         let is_admin = tx_context::sender(ctx) == marketplace.admin;
 
         if (is_admin == false) {
+            assert!(df::exists_(&marketplace.id, MembersDfKey {}), ENotAMemberNorAdmin);
+
             let members = df::borrow(&marketplace.id, MembersDfKey {});
-            assert!(vec_set::contains(members, &tx_context::sender(ctx)), ENotAMember);
+            assert!(vec_set::contains(members, &tx_context::sender(ctx)), ENotAMemberNorAdmin);
         }
     }
 
     public fun is_admin_or_member(marketplace: &Marketplace, ctx: &mut TxContext): bool {
         let is_admin_or_member = tx_context::sender(ctx) == marketplace.admin;
 
-        if (is_admin_or_member == false) {
+        if (is_admin_or_member == false && df::exists_(&marketplace.id, MembersDfKey {})) {
             let members = df::borrow(&marketplace.id, MembersDfKey {});
             is_admin_or_member = vec_set::contains(members, &tx_context::sender(ctx))
         };

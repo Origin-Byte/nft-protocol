@@ -92,7 +92,7 @@ module ob_launchpad::listing {
 
     const EHasCustomFeePolicy: u64 = 9;
 
-    const ENotAMember: u64 = 10;
+    const ENotAMemberNorAdmin: u64 = 10;
 
     const EWrongListingOrMarketplaceAdminorMember: u64 = 11;
 
@@ -455,7 +455,7 @@ module ob_launchpad::listing {
     ) {
         mkt::assert_version(marketplace);
         assert_version_and_upgrade(listing);
-        mkt::assert_marketplace_admin(marketplace, ctx);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
 
         assert!(
             option::is_none(&listing.marketplace_id),
@@ -498,7 +498,7 @@ module ob_launchpad::listing {
         assert_version_and_upgrade(listing);
 
         assert_listing_marketplace_match(marketplace, listing);
-        mkt::assert_marketplace_admin(marketplace, ctx);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
 
         obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
@@ -677,7 +677,7 @@ module ob_launchpad::listing {
         assert_version_and_upgrade(listing);
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_version(marketplace);
-        mkt::assert_marketplace_admin(marketplace, ctx);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
 
         venue::set_live(
             borrow_venue_mut(listing, venue_id),
@@ -696,7 +696,7 @@ module ob_launchpad::listing {
         assert_version_and_upgrade(listing);
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_version(marketplace);
-        mkt::assert_marketplace_admin(marketplace, ctx);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
 
         venue::set_live(
             borrow_venue_mut(listing, venue_id),
@@ -1110,15 +1110,17 @@ module ob_launchpad::listing {
         let is_admin = tx_context::sender(ctx) == listing.admin;
 
         if (is_admin == false) {
+            assert!(df::exists_(&listing.id, MembersDfKey {}), ENotAMemberNorAdmin);
+
             let members = df::borrow(&listing.id, MembersDfKey {});
-            assert!(vec_set::contains(members, &tx_context::sender(ctx)), ENotAMember);
+            assert!(vec_set::contains(members, &tx_context::sender(ctx)), ENotAMemberNorAdmin);
         }
     }
 
     public fun is_admin_or_member(listing: &Listing, ctx: &mut TxContext): bool {
         let is_admin_or_member = tx_context::sender(ctx) == listing.admin;
 
-        if (is_admin_or_member == false) {
+        if (is_admin_or_member == false && df::exists_(&listing.id, MembersDfKey {})) {
             let members = df::borrow(&listing.id, MembersDfKey {});
             is_admin_or_member = vec_set::contains(members, &tx_context::sender(ctx))
         };

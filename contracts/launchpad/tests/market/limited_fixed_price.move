@@ -386,7 +386,7 @@ module ob_launchpad::test_limited_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = listing::EWrongAdmin)]
+    #[expected_failure(abort_code = listing::ENotAMemberNorAdmin)]
     fun try_change_price() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
@@ -428,7 +428,7 @@ module ob_launchpad::test_limited_fixed_price {
     }
 
     #[test]
-    #[expected_failure(abort_code = listing::EWrongAdmin)]
+    #[expected_failure(abort_code = listing::ENotAMemberNorAdmin)]
     fun try_change_limit() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);
