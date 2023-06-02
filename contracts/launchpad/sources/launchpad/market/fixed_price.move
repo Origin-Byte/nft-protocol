@@ -256,7 +256,7 @@ module ob_launchpad::fixed_price {
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        listing::assert_listing_admin(listing, ctx);
+        listing::assert_listing_admin_or_member(listing, ctx);
 
         let market: &mut FixedPriceMarket<FT> = listing::market_internal_mut(
             listing, MarketKey {}, venue_id
