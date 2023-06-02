@@ -367,8 +367,28 @@ module ob_kiosk::ob_kiosk {
         ref.is_exclusively_listed = true;
     }
 
+    public fun delegate_auth(
+        self: &mut Kiosk,
+        nft_id: ID,
+        old_entity: &UID,
+        new_entity: address,
+    ) {
+        assert_version(ext(self));
+
+        let refs = nft_refs_mut(self);
+        let ref = table::borrow_mut(refs, nft_id);
+
+        assert!(
+            vec_set::contains(&ref.auths, &uid_to_address(old_entity)),
+            ENotAuthorized,
+        );
+
+        vec_set::remove(&mut ref.auths, &uid_to_address(old_entity));
+        vec_set::insert(&mut ref.auths, new_entity);
+    }
+
     /// This function is exposed only to the client side, therefore
-    /// if allows NFT owners to perform transfers from Kiosk to Kiosk without
+    /// it allows NFT owners to perform transfers from Kiosk to Kiosk without
     /// having to pay royalties.
     ///
     /// This will always work if the signer is the owner of the kiosk.

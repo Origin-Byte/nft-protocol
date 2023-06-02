@@ -29,7 +29,6 @@ module ob_tests::orderbook {
     use nft_protocol::royalty;
     use nft_protocol::collection::Collection;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
-    use ob_request_extensions::fee_balance;
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
 
     const OFFER_SUI: u64 = 100;
@@ -306,10 +305,6 @@ module ob_tests::orderbook {
             ctx(&mut scenario),
         );
 
-        fee_balance::distribute_fee_to_intermediary<Foo, SUI>(
-            &mut request, ctx(&mut scenario)
-        );
-
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, marketplace());
@@ -432,6 +427,10 @@ module ob_tests::orderbook {
 
         let trade = option::destroy_some(trade_opt);
 
+        test_scenario::next_tx(&mut scenario, marketplace());
+        let bid_commission = test_scenario::take_from_address<Coin<SUI>>(&mut scenario, marketplace());
+        assert!(coin::value(&bid_commission) == 5_000_000, 0);
+
         test_scenario::next_tx(&mut scenario, seller());
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
@@ -449,7 +448,7 @@ module ob_tests::orderbook {
 
         // 8. Pay royalties
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
-        royalty_strategy_bps::confirm_transfer_with_fees<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
+        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request);
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
@@ -469,11 +468,21 @@ module ob_tests::orderbook {
             test_scenario::take_from_address<Coin<SUI>>(&scenario, creator());
 
         // The trade price is 100_000_000
-        // The royalty is 100 basis points (i.e. 1%)
+        // The royalty is 100 basis points (i.e. 1%) and is applied over
+        // trade price - ask_commission (i.e. 2%)
+        // 100_000_000 - 2_000_000 = 98_000_000
+        // Therefore royalties are:
+        // 98_000_000 * 1% = 980_000
         // Therefore the profits are 1_000_000.
-        assert!(coin::value(&profits) == 1_000_000, 0);
+        assert!(coin::value(&profits) == 980_000, 0);
+
+        test_scenario::next_tx(&mut scenario, marketplace());
+        let ask_commission = test_scenario::take_from_address<Coin<SUI>>(&mut scenario, marketplace());
+        assert!(coin::value(&ask_commission) == 2_000_000, 0);
 
         test_scenario::return_to_address(creator(), profits);
+        test_scenario::return_to_address(marketplace(), bid_commission);
+        test_scenario::return_to_address(marketplace(), ask_commission);
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
         transfer::public_transfer(mint_cap, creator());
