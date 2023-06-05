@@ -1,0 +1,22 @@
+name: Register new package
+
+on: workflow_dispatch
+
+jobs:
+  copy-file:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Pushes test file
+      uses: dmnemec/copy_file_to_another_repo_action@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.REGISTRY_DEPLOY_KEY }}
+      with:
+        source_file: 'versions.json'
+        destination_repo: 'Origin-Byte/program-registry'
+        destination_folder: 'test-dir'
+        user_email: '45330362+nmboavida@users.noreply.github.com'
+        user_name: 'nmboavida'
+        commit_message: 'Test'
