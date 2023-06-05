@@ -15,6 +15,6 @@ jobs:
         env:
           SSH_DEPLOY_KEY: ${{ secrets.REGISTRY_DEPLOY_KEY }}
         with:
-          source: ./versions
+          source: versions
           deploy_key: ${{ secrets.REGISTRY_DEPLOY_KEY }}
           destination_repo: 'Origin-Byte/program-registry'
