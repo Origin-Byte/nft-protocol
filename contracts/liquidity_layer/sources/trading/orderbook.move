@@ -41,8 +41,8 @@ module liquidity_layer::orderbook {
 
     use liquidity_layer::trading;
     use liquidity_layer::liquidity_layer::LIQUIDITY_LAYER;
-    use liquidity_layer::trade_request::{TradeRequest, TRADE};
-    use ob_request::request::{Self, RequestBody, Policy, PolicyCap};
+    use liquidity_layer::trade_request::{Self, TradeRequest, BUY_NFT, CREATE_ASK, CREATE_BID};
+    use ob_request::request::{Policy};
 
     use critbit::critbit_u64::{Self as critbit, CritbitTree};
 
@@ -65,46 +65,50 @@ module liquidity_layer::orderbook {
     /// smart contract.
     const EActionNotPublic: u64 = 1;
 
+    const EActionNotProtected: u64 = 2;
+
     /// Cannot make sell commission higher than listed price
-    const ECommissionTooHigh: u64 = 2;
+    const ECommissionTooHigh: u64 = 3;
 
     /// The NFT lives in a kiosk which also wanted to buy it
-    const ECannotTradeWithSelf: u64 = 3;
+    const ECannotTradeWithSelf: u64 = 4;
 
     /// User doesn't own this order
-    const EOrderOwnerMustBeSender: u64 = 4;
+    const EOrderOwnerMustBeSender: u64 = 5;
 
     /// Expected different kiosk
-    const EKioskIdMismatch: u64 = 5;
+    const EKioskIdMismatch: u64 = 6;
 
     /// No order matches the given price level or ownership level
-    const EOrderDoesNotExist: u64 = 6;
+    const EOrderDoesNotExist: u64 = 7;
 
     /// Market orders fail with this error if they cannot be filled
-    const EMarketOrderNotFilled: u64 = 6;
+    const EMarketOrderNotFilled: u64 = 8;
 
     /// Trying to create an orderbook via a witness protected endpoint
     /// without TransferPolicy being registered with OriginByte
-    const ENotOriginBytePolicy: u64 = 7;
+    const ENotOriginBytePolicy: u64 = 9;
 
     /// Trying to access an endpoint for creating an orderbook for collections
     /// that are external to the OriginByte ecosystem, without itself being external
-    const ENotExternalPolicy: u64 = 8;
+    const ENotExternalPolicy: u64 = 10;
 
     /// Trying to enable an time-locked orderbook before its start time
-    const EOrderbookTimeLocked: u64 = 9;
+    const EOrderbookTimeLocked: u64 = 11;
 
     /// Trying to add migrated liquidity to an orderbook whilst referencing the
     /// incorrect Orderbook V1
-    const EIncorrectOrderbookV1: u64 = 10;
+    const EIncorrectOrderbookV1: u64 = 12;
 
     /// Trying to add migrated liquidity to an orderbook which
     /// itself is not under migration
-    const ENotUnderMigration: u64 = 11;
+    const ENotUnderMigration: u64 = 13;
 
     /// Trying to call `set_protection_with_witness` whilst the orderbook is under
     /// migration. This is a non-authorized operation during liquidity migration
-    const EUnderMigration: u64 = 12;
+    const EUnderMigration: u64 = 14;
+
+    const ENotAuthorized: u64 = 15;
 
     // === Structs ===
 
@@ -163,9 +167,9 @@ module liquidity_layer::orderbook {
     ///
     /// We don't restrict canceling positions to protect the users.
     struct ProtectedActions has store {
-        buy_nft: Option<Policy<TRADE>>,
-        create_ask: Option<Policy<TRADE>>,
-        create_bid: Option<Policy<TRADE>>,
+        buy_nft: Option<Policy<BUY_NFT>>,
+        create_ask: Option<Policy<CREATE_ASK>>,
+        create_bid: Option<Policy<CREATE_BID>>,
     }
 
     /// An offer for a single NFT in a collection.
@@ -348,7 +352,7 @@ module liquidity_layer::orderbook {
     /// #### Panics
     ///
     /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
-    public entry fun init_orderbook_unprotected<T: key + store, FT>(
+    public entry fun init_orderbook<T: key + store, FT>(
         publisher: &Publisher,
         transfer_policy: &TransferPolicy<T>,
         is_live: bool,
@@ -362,6 +366,73 @@ module liquidity_layer::orderbook {
         );
 
         share_object(ob);
+    }
+
+    /// Create a new `Orderbook<T, FT>` for external `TransferPolicy`
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is an OriginByte policy.
+    public fun new_external<T: key + store, FT>(
+        transfer_policy: &TransferPolicy<T>,
+        is_live: bool,
+        protected_actions: ProtectedActions,
+        ctx: &mut TxContext
+    ): Orderbook<T, FT> {
+        assert!(
+            !transfer_request::is_originbyte(transfer_policy),
+            ENotExternalPolicy,
+        );
+
+        new_<T, FT>(
+            is_live,
+            protected_actions,
+            ctx,
+        )
+    }
+
+    /// Create a new `Orderbook<T, FT>` for external `TransferPolicy` and
+    /// immediately share it returning its ID
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is an OriginByte policy.
+    public fun create_external<T: key + store, FT>(
+        transfer_policy: &TransferPolicy<T>,
+        is_live: bool,
+        protected_actions: ProtectedActions,
+        ctx: &mut TxContext
+    ): ID {
+        let orderbook = new_external<T, FT>(transfer_policy, is_live, protected_actions, ctx);
+        let orderbook_id = object::id(&orderbook);
+        share_object(orderbook);
+        orderbook_id
+    }
+
+    /// Create a new `Orderbook<T, FT>` for external `TransferPolicy` and
+    /// immediately share it
+    ///
+    /// To implement specific logic in your smart contract, you can toggle the
+    /// protection on specific actions. That will make them only accessible via
+    /// witness protected methods.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is an OriginByte policy.
+    public entry fun init_external<T: key + store, FT>(
+        transfer_policy: &TransferPolicy<T>,
+        is_live: bool,
+        ctx: &mut TxContext
+    ) {
+        create_external<T, FT>(transfer_policy, is_live, no_protection(), ctx);
     }
 
     /// Create a new `Orderbook<T, FT>`
@@ -422,13 +493,14 @@ module liquidity_layer::orderbook {
     /// Same as [`create_bid`] but protected by
     /// [collection witness](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#witness-protected-actions).
     public fun create_bid_protected<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+        trade_request: TradeRequest<CREATE_BID>,
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
         price: u64,
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        check_create_bid(trade_request, book);
         create_bid_<T, FT>(book, buyer_kiosk, price, option::none(), wallet, ctx)
     }
 
@@ -456,7 +528,7 @@ module liquidity_layer::orderbook {
     /// Same as [`create_bid_protected`] but with a
     /// [commission](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#commission).
     public fun create_bid_with_commission_protected<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+        trade_request: TradeRequest<CREATE_BID>,
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
         price: u64,
@@ -465,6 +537,8 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        check_create_bid(trade_request, book);
+
         let commission = trading::new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
@@ -571,13 +645,15 @@ module liquidity_layer::orderbook {
     /// Same as [`create_ask`] but protected by
     /// [collection witness](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#witness-protected-actions).
     public fun create_ask_protected<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+        trade_request: TradeRequest<CREATE_ASK>,
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         requested_tokens: u64,
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        check_create_ask(trade_request, book);
+
         create_ask_<T, FT>(
             book, seller_kiosk, requested_tokens, option::none(), nft_id, ctx
         )
@@ -616,7 +692,7 @@ module liquidity_layer::orderbook {
     /// #### Panics
     /// The `commission` arg must be less than `requested_tokens`.
     public fun create_ask_with_commission_protected<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+        trade_request: TradeRequest<CREATE_ASK>,
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         requested_tokens: u64,
@@ -625,6 +701,8 @@ module liquidity_layer::orderbook {
         commission_ft: u64,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
+        check_create_ask(trade_request, book);
+
         assert!(commission_ft < requested_tokens, ECommissionTooHigh);
 
         let commission = trading::new_ask_commission(
@@ -749,7 +827,7 @@ module liquidity_layer::orderbook {
     /// Same as [`buy_nft`] but protected by
     /// [collection witness](https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook#witness-protected-actions).
     public fun buy_nft_protected<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
+        trade_request: TradeRequest<BUY_NFT>,
         book: &mut Orderbook<T, FT>,
         seller_kiosk: &mut Kiosk,
         buyer_kiosk: &mut Kiosk,
@@ -758,6 +836,8 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
+        check_buy_nft(trade_request, book);
+
         buy_nft_<T, FT>(
             book, seller_kiosk, buyer_kiosk, nft_id, price, wallet, ctx
         )
@@ -836,18 +916,17 @@ module liquidity_layer::orderbook {
         orderbook.tick_size = tick_size;
     }
 
-    // TODO: RETHINK Protection endpoints
     /// Change protection level of an existing orderbook
     ///
     /// #### Panics
     ///
     /// Panics if provided `Publisher` did not publish type `T`
-    public entry fun set_protection<T: key + store, FT>(
+    public fun set_protection<T: key + store, FT>(
         publisher: &Publisher,
         orderbook: &mut Orderbook<T, FT>,
-        buy_nft: Option<Policy<TRADE>>,
-        create_ask: Option<Policy<TRADE>>,
-        create_bid: Option<Policy<TRADE>>,
+        buy_nft: Option<Policy<BUY_NFT>>,
+        create_ask: Option<Policy<CREATE_ASK>>,
+        create_bid: Option<Policy<CREATE_BID>>,
     ) {
         set_protection_with_witness<T, FT>(
             witness::from_publisher(publisher),
@@ -863,9 +942,9 @@ module liquidity_layer::orderbook {
     public fun set_protection_with_witness<T: key + store, FT>(
         _witness: DelegatedWitness<T>,
         orderbook: &mut Orderbook<T, FT>,
-        buy_nft: Option<Policy<TRADE>>,
-        create_ask: Option<Policy<TRADE>>,
-        create_bid: Option<Policy<TRADE>>,
+        buy_nft: Option<Policy<BUY_NFT>>,
+        create_ask: Option<Policy<CREATE_ASK>>,
+        create_bid: Option<Policy<CREATE_BID>>,
     ) {
         set_protection_(
             orderbook,
@@ -884,7 +963,8 @@ module liquidity_layer::orderbook {
         publisher: &Publisher,
         orderbook: &mut Orderbook<T, FT>,
     ) {
-        // TODO: Rethink this --> need to make orderbook permissionless at some point
+        assert!(package::from_package<T>(publisher), ENotAuthorized);
+
         orderbook.is_live = false;
     }
 
@@ -897,6 +977,8 @@ module liquidity_layer::orderbook {
         publisher: &Publisher,
         orderbook: &mut Orderbook<T, FT>,
     ) {
+        assert!(package::from_package<T>(publisher), ENotAuthorized);
+
         orderbook.is_live = true;
     }
 
@@ -948,6 +1030,36 @@ module liquidity_layer::orderbook {
             create_ask: none(),
             create_bid: none(),
         }
+    }
+
+    public fun check_buy_nft<T: key + store, FT>(
+        trade_request: TradeRequest<BUY_NFT>,
+        book: &Orderbook<T, FT>,
+    ) {
+        assert!(is_some(&book.protected_actions.buy_nft), EActionNotProtected);
+
+        let policy = option::borrow(&book.protected_actions.buy_nft);
+        trade_request::confirm(trade_request, policy);
+    }
+
+    public fun check_create_ask<T: key + store, FT>(
+        trade_request: TradeRequest<CREATE_ASK>,
+        book: &Orderbook<T, FT>,
+    ) {
+        assert!(is_some(&book.protected_actions.create_ask), EActionNotProtected);
+
+        let policy = option::borrow(&book.protected_actions.create_ask);
+        trade_request::confirm(trade_request, policy);
+    }
+
+    public fun check_create_bid<T: key + store, FT>(
+        trade_request: TradeRequest<CREATE_BID>,
+        book: &Orderbook<T, FT>,
+    ) {
+        assert!(is_some(&book.protected_actions.create_bid), EActionNotProtected);
+
+        let policy = option::borrow(&book.protected_actions.create_bid);
+        trade_request::confirm(trade_request, policy);
     }
 
     // === Getters ===
@@ -1631,9 +1743,9 @@ module liquidity_layer::orderbook {
     /// Change protection level of an existing orderbook
     fun set_protection_<T: key + store, FT>(
         orderbook: &mut Orderbook<T, FT>,
-        buy_nft: Option<Policy<TRADE>>,
-        create_ask: Option<Policy<TRADE>>,
-        create_bid: Option<Policy<TRADE>>,
+        buy_nft: Option<Policy<BUY_NFT>>,
+        create_ask: Option<Policy<CREATE_ASK>>,
+        create_bid: Option<Policy<CREATE_BID>>,
     ) {
         assert_version_and_upgrade(orderbook);
         assert_not_under_migration(orderbook);

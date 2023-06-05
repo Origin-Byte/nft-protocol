@@ -145,7 +145,7 @@ module ob_tests::test_utils {
         transfer_policy: &TransferPolicy<T>,
         scenario: &mut Scenario
     ): ID {
-        let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, ctx(scenario));
+        let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, true, ctx(scenario));
         orderbook::change_tick_size_with_witness<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
         let ob_id = object::id(&ob);
 
@@ -174,7 +174,7 @@ module ob_tests::test_utils {
         transfer_policy: &TransferPolicy<T>,
         scenario: &mut Scenario
     ) {
-        orderbook::create_external<T, SUI>(transfer_policy, ctx(scenario));
+        orderbook::create_external<T, SUI>(transfer_policy, true, orderbook::no_protection(), ctx(scenario));
     }
 
     #[test_only]

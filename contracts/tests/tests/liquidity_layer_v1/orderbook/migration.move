@@ -98,11 +98,9 @@ module ob_tests::orderbook_migration {
         let dw = witness::from_witness(test_utils::witness());
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
-        let book_v2 = orderbook_v2::new<Foo, SUI>(
+        let book_v2 = orderbook_v2::new_unprotected<Foo, SUI>(
             dw,
             &mut tx_policy,
-            false,
-            false,
             false,
             ctx(&mut scenario),
         );
@@ -238,11 +236,9 @@ module ob_tests::orderbook_migration {
         let dw = witness::from_witness(test_utils::witness());
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
 
-        let book_v2 = orderbook_v2::new<Foo, SUI>(
+        let book_v2 = orderbook_v2::new_unprotected<Foo, SUI>(
             dw,
             &mut tx_policy,
-            false,
-            false,
             false,
             ctx(&mut scenario),
         );
