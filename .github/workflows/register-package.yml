@@ -11,13 +11,10 @@ jobs:
     steps:
       - name: Pushes to another repository
         id: push_directory
-        uses: nmboavida/github-action-push-to-another-repository@main
+        uses: leigholiver/commit-with-deploy-key@main
         env:
           SSH_DEPLOY_KEY: ${{ secrets.REGISTRY_DEPLOY_KEY }}
         with:
-          source-directory: ./versions
-          destination-github-username: 'Origin-Byte'
-          destination-repository-name: 'program-registry'
-          user-email: 45330362+nmboavida@users.noreply.github.com
-          commit-message: publish-to-registry
-          target-branch: main
+          source: ./versions
+          deploy_key: ${{ secrets.REGISTRY_DEPLOY_KEY }}
+          destination_repo: 'Origin-Byte/program-registry'
