@@ -347,6 +347,26 @@ module liquidity_layer::orderbook {
         new<T, FT>(witness, transfer_policy, is_live, no_protection(), ctx)
     }
 
+    /// Create a new `Orderbook<T, FT>` and immediately share it, returning
+    /// it's ID
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
+    public fun create<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        is_live: bool,
+        ctx: &mut TxContext,
+    ): ID {
+        let orderbook = new_unprotected<T, FT>(
+            witness, transfer_policy, is_live, ctx,
+        );
+        let orderbook_id = object::id(&orderbook);
+        share_object(orderbook);
+        orderbook_id
+    }
+
     /// Create a new unprotected `Orderbook<T, FT>` and immediately share it
     ///
     /// #### Panics
