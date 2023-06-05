@@ -1,22 +1,23 @@
-name: Register new package
+# This is a basic workflow to help you get started with Actions
+
+name: register-packages
 
 on: workflow_dispatch
 
 jobs:
-  copy-file:
+  build:
     runs-on: ubuntu-latest
+    container: pandoc/latex
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-
-    - name: Pushes test file
-      uses: dmnemec/copy_file_to_another_repo_action@main
-      env:
-        API_TOKEN_GITHUB: ${{ secrets.REGISTRY_DEPLOY_KEY }}
-      with:
-        source_file: 'versions.json'
-        destination_repo: 'Origin-Byte/program-registry'
-        destination_folder: 'test-dir'
-        user_email: '45330362+nmboavida@users.noreply.github.com'
-        user_name: 'nmboavida'
-        commit_message: 'Test'
+      - name: Pushes to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.REGISTRY_DEPLOY_KEY }}
+        with:
+          source-directory: ./versions
+          destination-github-username: 'Origin-Byte'
+          destination-repository-name: 'program-registry'
+          user-email: 45330362+nmboavida@users.noreply.github.com
+          commit-message: publish-to-registry
+          target-branch: main
