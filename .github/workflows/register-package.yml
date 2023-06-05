@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Pushes to another repository
         id: push_directory
-        uses: leigholiver/commit-with-deploy-key@main
+        uses: nmboavida/commit-with-deploy-key@main
         env:
           SSH_DEPLOY_KEY: ${{ secrets.REGISTRY_DEPLOY_KEY }}
         with:
