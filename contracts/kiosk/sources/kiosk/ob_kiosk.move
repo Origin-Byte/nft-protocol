@@ -472,6 +472,9 @@ module ob_kiosk::ob_kiosk {
         ctx: &mut TxContext,
     ): TransferRequest<T> {
         assert_version_and_upgrade(ext(source));
+        // Exclusive transfers need to be settled via `transfer_delegated`
+        // otherwise it's possible to create dangling locks
+        assert_not_exclusively_listed(source, nft_id);
 
         let (nft, req) = transfer_nft_(source, nft_id, sender(ctx), price, ctx);
         deposit(target, nft, ctx);
@@ -531,6 +534,9 @@ module ob_kiosk::ob_kiosk {
         ctx: &mut TxContext,
     ): (T, WithdrawRequest<T>) {
         assert_version_and_upgrade(ext(self));
+        // Delegated withdraws need to be settled via `withdraw_nft`
+        // otherwise it's possible to create dangling locks
+        assert_not_exclusively_listed(self, nft_id);
 
         withdraw_nft_(self, nft_id, sender(ctx), ctx)
     }
