@@ -36,7 +36,7 @@ jobs:
           echo "Building packages"
           cd source
 
-          ./bin/build.sh
+          ./bin/build.sh remote
           cd ..
 
       - name: Update local Package Registry
