@@ -29,7 +29,7 @@ module ob_launchpad::listing {
 
     use sui::event;
     use sui::transfer;
-    use sui::vec_set;
+    use sui::vec_set::{Self, VecSet};
     use sui::kiosk::Kiosk;
     use sui::balance::{Self, Balance};
     use sui::object::{Self, ID , UID};
@@ -95,6 +95,8 @@ module ob_launchpad::listing {
     const ENotAMemberNorAdmin: u64 = 10;
 
     const EWrongAdminNoMembers: u64 = 11;
+
+    const ENoMembers: u64 = 12;
 
     struct Listing has key, store {
         id: UID,
@@ -778,6 +780,13 @@ module ob_launchpad::listing {
         object_table::borrow(&listing.venues, venue_id)
     }
 
+    /// Borrow the listsin's members
+    public fun borrow_members(listing: &Listing): &VecSet<address> {
+        assert!(df::exists_(&listing.id, MembersDfKey {}), ENoMembers);
+
+        df::borrow(&listing.id, MembersDfKey {})
+    }
+
     /// Mutably borrow the listing's `Venue`
     ///
     /// #### Panics
@@ -1111,8 +1120,8 @@ module ob_launchpad::listing {
 
         if (is_admin == false) {
             assert!(df::exists_(&listing.id, MembersDfKey {}), EWrongAdminNoMembers);
-
             let members = df::borrow(&listing.id, MembersDfKey {});
+
             assert!(vec_set::contains(members, &tx_context::sender(ctx)), ENotAMemberNorAdmin);
         }
     }

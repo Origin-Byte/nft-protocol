@@ -27,6 +27,8 @@ module ob_launchpad::test_delegation {
 
         listing::add_member(&mut listing, DELEGATE, ctx(&mut scenario));
 
+        listing::borrow_members(&listing);
+
         transfer::public_share_object(listing);
         test_scenario::end(scenario);
     }
