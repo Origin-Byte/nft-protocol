@@ -333,7 +333,7 @@ module ob_launchpad::limited_fixed_price {
         new_limit: u64,
         ctx: &mut TxContext,
     ) {
-        listing::assert_listing_admin(listing, ctx);
+        listing::assert_listing_admin_or_member(listing, ctx);
 
         let market: &mut LimitedFixedPriceMarket<FT> = listing::market_internal_mut(
             listing, MarketKey {}, venue_id
@@ -355,7 +355,7 @@ module ob_launchpad::limited_fixed_price {
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        listing::assert_listing_admin(listing, ctx);
+        listing::assert_listing_admin_or_member(listing, ctx);
 
         let market: &mut LimitedFixedPriceMarket<FT> = listing::market_internal_mut(
             listing, MarketKey {}, venue_id
