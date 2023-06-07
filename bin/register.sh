@@ -18,16 +18,8 @@ register() {
     program=$1
     git="https://github.com/${2}.git"
     rev=$3
-
-    if [ -n "$4" ]; then
-        # If the argument is provided, assign its value to the variable
-        source_folder="${4}/contracts"
-        registry_path=""
-    else
-        # If no argument is provided, assign a default value to the variable
-        source_folder="contracts"
-        registry_path="versions/registry-main.json"
-    fi
+    source_folder="${4}"
+    registry_path="${6}"
 
     if [ "$5" = "remote" ]; then
         stoml="./stoml"

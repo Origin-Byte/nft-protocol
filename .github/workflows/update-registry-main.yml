@@ -46,39 +46,13 @@ jobs:
 
       - name: Copy registry to local fs
         run: |
-          echo "Building packages"
-          cd source
-
+          echo "Copying registry to local file system"
           cp program-registry/registry-main.json registry-main.json
-
-          ./bin/build.sh remote
-          cd ..
 
       - name: Update local Package Registry
         run: |
           echo "Registering under revision: ${{ github.sha }}"
-          ./source/bin/register-all.sh ${{ github.repository }} ${{ github.sha }} source remote
-
-          cp source/versions/registry-main.json registry-main.json
-
-          # cd source
-          # if [[ -n $(git status --porcelain "versions/registry-main.json") ]]; then
-          # # File has changes, so proceed with commit and push
-          #   continue
-          # else
-          #   # File has no changes, so skip commit and push
-          #   echo "No version upgrades exist"
-          #   exit 1
-          # fi
-
-      # - name: Create Pull Request
-      #   uses: peter-evans/create-pull-request@v4
-      #   with:
-      #     commit-message: "[skip ci] Updated Local Registry"
-      #     committer: OriginByte <ci@originbyte.io>
-      #     title: Updated Local Registry
-      #     branch: update-local-registry
-      #     path: source
+          ./source/bin/register-all.sh ${{ github.repository }} ${{ github.sha }} source/contracts remote registry-main.json
 
       - name: Update remote registry
         run: |

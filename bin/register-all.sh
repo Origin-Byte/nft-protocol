@@ -12,17 +12,9 @@ set -e
 
 repo=$1
 rev=$2
-
-# Check if the argument is provided
-if [ -n "$3" ]; then
-    # If the argument is provided, assign its value to the variable
-    source_folder="${3}/contracts"
-    registry_path=""
-else
-    # If no argument is provided, assign a default value to the variable
-    source_folder="contracts"
-    registry_path="versions/registry-main.json"
-fi
+# "${3}/contracts"
+source_folder="${3}"
+registry_path="${5}"
 
 if [ "$4" = "remote" ]; then
     echo "Running script in remote setup"
@@ -57,6 +49,6 @@ for file in $files; do
 
     mod_name=$(remove_prefix ${address})
 
-    register ${mod_name} ${repo} ${rev} $3 $4
+    register ${mod_name} ${repo} ${rev} $3 $4 ${registry_path}
 
 done
