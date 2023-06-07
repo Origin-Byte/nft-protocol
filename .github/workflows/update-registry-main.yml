@@ -23,6 +23,7 @@ jobs:
           wget -qO stoml https://github.com/freshautomations/stoml/releases/download/v0.7.1/stoml_linux_amd64
           chmod +x stoml
 
+          source source/.env.dist
           wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
           chmod +x sui
 
