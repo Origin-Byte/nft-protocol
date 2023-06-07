@@ -32,6 +32,7 @@ jobs:
         run: |
           echo "Building packages"
           cd source
+          echo $(ls)
           ./bin/build.sh
           cd ..
 
