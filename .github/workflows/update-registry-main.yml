@@ -1,4 +1,4 @@
-name: Update Package-Registry
+name: Update Package-Registry [Mainnet]
 
 on: workflow_dispatch
 
