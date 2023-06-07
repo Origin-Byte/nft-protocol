@@ -23,19 +23,24 @@ jobs:
           wget -qO stoml https://github.com/freshautomations/stoml/releases/download/v0.7.1/stoml_linux_amd64
           chmod +x stoml
 
+          wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
+          chmod +x sui
+
       - name: Configure SSH
         uses: webfactory/ssh-agent@v0.5.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Update local Package Registry
+      - name: Build Packages
         run: |
           echo "Building packages"
           cd source
-          echo $(ls)
+
           ./bin/build.sh
           cd ..
 
+      - name: Update local Package Registry
+        run: |
           echo "Registering under revision: ${{ github.sha }}"
           ./source/bin/register-all.sh ${{ github.repository }} ${{ github.sha }} source remote
 
