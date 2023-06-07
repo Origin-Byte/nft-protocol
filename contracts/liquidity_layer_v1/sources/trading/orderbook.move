@@ -92,26 +92,26 @@ module liquidity_layer_v1::orderbook {
     /// that are external to the OriginByte ecosystem, without itself being external
     const ENotExternalPolicy: u64 = 8;
 
-    /// Trying to enable an time-locked orderbook before its start time
-    const EOrderbookTimeLocked: u64 = 9;
-
     /// Trying to migrate liquidity to an orderbook V2 whilst referencing the
     /// incorrect Orderbook V2
-    const EIncorrectOrderbookV2: u64 = 10;
+    const EIncorrectOrderbookV2: u64 = 9;
 
     /// Trying to migrate liquidity from an orderbook V1 which
     /// itself is not under migration
-    const ENotUnderMigration: u64 = 11;
+    const ENotUnderMigration: u64 = 10;
 
     /// Trying to call `set_protection_with_witness` whilst the orderbook is under
     /// migration. This is a non-authorized operation during liquidity migration
-    const EUnderMigration: u64 = 12;
+    const EUnderMigration: u64 = 11;
 
     /// Trying to finish the migration process whilst the orderbook V1 is still not empty
-    const EOrderbookAsksMustBeEmpty: u64 = 13;
+    const EOrderbookAsksMustBeEmpty: u64 = 12;
 
     /// Trying to finish the migration process whilst the orderbook V1 is still not empty
-    const EOrderbookBidsMustBeEmpty: u64 = 14;
+    const EOrderbookBidsMustBeEmpty: u64 = 13;
+
+    /// Trying to enable an time-locked orderbook before its start time
+    const EOrderbookTimeLocked: u64 = 14;
 
     // === Structs ===
 
