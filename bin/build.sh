@@ -13,7 +13,7 @@ cd ./contracts/allowlist
 ${sui} move build
 cd ..
 
-cd ./contracts/request
+cd ./request
 ${sui} move build
 cd ..
 
