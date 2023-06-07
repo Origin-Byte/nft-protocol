@@ -17,7 +17,7 @@ rev=$2
 if [ -n "$3" ]; then
     # If the argument is provided, assign its value to the variable
     source_folder="${3}/contracts"
-    registry_path="${3}/versions/registry-main.json"
+    registry_path=""
 else
     # If no argument is provided, assign a default value to the variable
     source_folder="contracts"

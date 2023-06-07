@@ -22,7 +22,7 @@ register() {
     if [ -n "$4" ]; then
         # If the argument is provided, assign its value to the variable
         source_folder="${4}/contracts"
-        registry_path="${4}/versions/registry-main.json"
+        registry_path=""
     else
         # If no argument is provided, assign a default value to the variable
         source_folder="contracts"
