@@ -94,7 +94,7 @@ module ob_launchpad::listing {
 
     const ENotAMemberNorAdmin: u64 = 10;
 
-    const ENoMembers: u64 = 11;
+    const EWrongAdminNoMembers: u64 = 11;
 
     struct Listing has key, store {
         id: UID,
@@ -650,7 +650,7 @@ module ob_launchpad::listing {
             vec_set::insert(members, member);
         } else {
             let members = vec_set::singleton(member);
-            vec_set::insert(&mut members, member);
+            df::add(&mut listing.id, MembersDfKey {}, members);
         };
     }
 
@@ -1110,7 +1110,7 @@ module ob_launchpad::listing {
         let is_admin = tx_context::sender(ctx) == listing.admin;
 
         if (is_admin == false) {
-            assert!(df::exists_(&listing.id, MembersDfKey {}), ENoMembers);
+            assert!(df::exists_(&listing.id, MembersDfKey {}), EWrongAdminNoMembers);
 
             let members = df::borrow(&listing.id, MembersDfKey {});
             assert!(vec_set::contains(members, &tx_context::sender(ctx)), ENotAMemberNorAdmin);
