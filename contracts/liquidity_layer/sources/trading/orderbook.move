@@ -19,6 +19,8 @@
 /// - https://origin-byte.github.io/orderbook.html
 module liquidity_layer::orderbook {
     // TODO: Consider adding start_time as a static field
+    // TODO: Currently, set_protection_ is such that it does not allow the publisher
+    // to remove protections, only to add them.
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
@@ -523,7 +525,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        check_create_bid(trade_request, book);
+        confirm_create_bid(trade_request, book);
         create_bid_<T, FT>(book, buyer_kiosk, price, option::none(), wallet, ctx)
     }
 
@@ -560,7 +562,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        check_create_bid(trade_request, book);
+        confirm_create_bid(trade_request, book);
 
         let commission = trading::new_bid_commission(
             beneficiary,
@@ -675,7 +677,7 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        check_create_ask(trade_request, book);
+        confirm_create_ask(trade_request, book);
 
         create_ask_<T, FT>(
             book, seller_kiosk, requested_tokens, option::none(), nft_id, ctx
@@ -724,7 +726,7 @@ module liquidity_layer::orderbook {
         commission_ft: u64,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        check_create_ask(trade_request, book);
+        confirm_create_ask(trade_request, book);
 
         assert!(commission_ft < requested_tokens, ECommissionTooHigh);
 
@@ -859,7 +861,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        check_buy_nft(trade_request, book);
+        confirm_buy_nft(trade_request, book);
 
         buy_nft_<T, FT>(
             book, seller_kiosk, buyer_kiosk, nft_id, price, wallet, ctx
@@ -1056,7 +1058,7 @@ module liquidity_layer::orderbook {
         }
     }
 
-    public fun check_buy_nft<T: key + store, FT>(
+    public fun confirm_buy_nft<T: key + store, FT>(
         trade_request: TradeRequest<BUY_NFT>,
         book: &Orderbook<T, FT>,
     ) {
@@ -1066,7 +1068,7 @@ module liquidity_layer::orderbook {
         trade_request::confirm(trade_request, policy);
     }
 
-    public fun check_create_ask<T: key + store, FT>(
+    public fun confirm_create_ask<T: key + store, FT>(
         trade_request: TradeRequest<CREATE_ASK>,
         book: &Orderbook<T, FT>,
     ) {
@@ -1076,7 +1078,7 @@ module liquidity_layer::orderbook {
         trade_request::confirm(trade_request, policy);
     }
 
-    public fun check_create_bid<T: key + store, FT>(
+    public fun confirm_create_bid<T: key + store, FT>(
         trade_request: TradeRequest<CREATE_BID>,
         book: &Orderbook<T, FT>,
     ) {
