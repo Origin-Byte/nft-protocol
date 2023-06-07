@@ -18,6 +18,7 @@
 /// - https://docs.originbyte.io/origin-byte/about-our-programs/liquidity-layer/orderbook
 /// - https://origin-byte.github.io/orderbook.html
 module liquidity_layer::orderbook {
+    // TODO: Consider adding start_time as a static field
     use std::ascii::String;
     use std::option::{Self, Option};
     use std::type_name;
@@ -96,19 +97,21 @@ module liquidity_layer::orderbook {
     /// Trying to enable an time-locked orderbook before its start time
     const EOrderbookTimeLocked: u64 = 11;
 
+    const EOrderbookNotTimeLocked: u64 = 12;
+
     /// Trying to add migrated liquidity to an orderbook whilst referencing the
     /// incorrect Orderbook V1
-    const EIncorrectOrderbookV1: u64 = 12;
+    const EIncorrectOrderbookV1: u64 = 13;
 
     /// Trying to add migrated liquidity to an orderbook which
     /// itself is not under migration
-    const ENotUnderMigration: u64 = 13;
+    const ENotUnderMigration: u64 = 14;
 
     /// Trying to call `set_protection_with_witness` whilst the orderbook is under
     /// migration. This is a non-authorized operation during liquidity migration
-    const EUnderMigration: u64 = 14;
+    const EUnderMigration: u64 = 15;
 
-    const ENotAuthorized: u64 = 15;
+    const ENotAuthorized: u64 = 16;
 
     // === Structs ===
 
@@ -1036,6 +1039,7 @@ module liquidity_layer::orderbook {
         orderbook: &mut Orderbook<T, FT>,
         clock: &Clock
     ) {
+        assert!(df::exists_(&orderbook.id, TimeLockDfKey {}), EOrderbookNotTimeLocked);
         let start_time = df::borrow(&orderbook.id, TimeLockDfKey {});
 
         assert!(clock::timestamp_ms(clock) >= *start_time, EOrderbookTimeLocked);
