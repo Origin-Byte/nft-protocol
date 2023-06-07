@@ -30,6 +30,11 @@ jobs:
 
       - name: Update local Package Registry
         run: |
+          echo "Building packages"
+          cd source
+          ./bin/build.sh
+          cd ..
+
           echo "Registering under revision: ${{ github.sha }}"
           ./source/bin/register-all.sh ${{ github.repository }} ${{ github.sha }} source remote
 
