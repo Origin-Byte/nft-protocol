@@ -47,7 +47,8 @@ jobs:
 
           cp source/versions/registry-main.json registry-main.json
 
-          if [[ -n $(git status --porcelain "source/versions/registry-main.json") ]]; then
+          cd source
+          if [[ -n $(git status --porcelain "versions/registry-main.json") ]]; then
           # File has changes, so proceed with commit and push
             continue
           else
