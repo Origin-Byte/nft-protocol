@@ -94,7 +94,7 @@ module ob_launchpad::listing {
 
     const ENotAMemberNorAdmin: u64 = 10;
 
-    const EWrongListingOrMarketplaceAdminorMember: u64 = 11;
+    const ENoMembers: u64 = 11;
 
     struct Listing has key, store {
         id: UID,
@@ -1110,7 +1110,7 @@ module ob_launchpad::listing {
         let is_admin = tx_context::sender(ctx) == listing.admin;
 
         if (is_admin == false) {
-            assert!(df::exists_(&listing.id, MembersDfKey {}), ENotAMemberNorAdmin);
+            assert!(df::exists_(&listing.id, MembersDfKey {}), ENoMembers);
 
             let members = df::borrow(&listing.id, MembersDfKey {});
             assert!(vec_set::contains(members, &tx_context::sender(ctx)), ENotAMemberNorAdmin);
