@@ -19,7 +19,7 @@
 /// - https://origin-byte.github.io/orderbook.html
 module liquidity_layer::orderbook {
     use std::ascii::String;
-    use std::option::{Self, Option, none, is_some, is_none};
+    use std::option::{Self, Option};
     use std::type_name;
     use std::vector;
 
@@ -347,17 +347,17 @@ module liquidity_layer::orderbook {
         new<T, FT>(witness, transfer_policy, is_live, no_protection(), ctx)
     }
 
-    /// Create a new `Orderbook<T, FT>` and immediately share it, returning
-    /// it's ID
+    /// Create a new unprotected `Orderbook<T, FT>` and immediately share it
+    /// returning it's ID
     ///
     /// #### Panics
     ///
     /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
-    public fun create<T: key + store, FT>(
+    public fun create_unprotected<T: key + store, FT>(
         witness: DelegatedWitness<T>,
         transfer_policy: &TransferPolicy<T>,
         is_live: bool,
-        ctx: &mut TxContext,
+        ctx: &mut TxContext
     ): ID {
         let orderbook = new_unprotected<T, FT>(
             witness, transfer_policy, is_live, ctx,
@@ -372,7 +372,7 @@ module liquidity_layer::orderbook {
     /// #### Panics
     ///
     /// Panics if `TransferPolicy<T>` is not an OriginByte policy.
-    public entry fun init_orderbook<T: key + store, FT>(
+    public entry fun init_unprotected<T: key + store, FT>(
         publisher: &Publisher,
         transfer_policy: &TransferPolicy<T>,
         is_live: bool,
@@ -506,7 +506,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert!(is_none(&book.protected_actions.create_bid), EActionNotPublic);
+        assert!(option::is_none(&book.protected_actions.create_bid), EActionNotPublic);
         create_bid_<T, FT>(book, buyer_kiosk, price, option::none(), wallet, ctx)
     }
 
@@ -535,7 +535,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert!(is_none(&book.protected_actions.create_bid), EActionNotPublic);
+        assert!(option::is_none(&book.protected_actions.create_bid), EActionNotPublic);
         let commission = trading::new_bid_commission(
             beneficiary,
             balance::split(coin::balance_mut(wallet), commission_ft),
@@ -656,7 +656,7 @@ module liquidity_layer::orderbook {
         nft_id: ID,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert!(is_none(&book.protected_actions.create_ask), EActionNotPublic);
+        assert!(option::is_none(&book.protected_actions.create_ask), EActionNotPublic);
         create_ask_<T, FT>(
             book, seller_kiosk, requested_tokens, option::none(), nft_id, ctx
         )
@@ -690,7 +690,7 @@ module liquidity_layer::orderbook {
         commission_ft: u64,
         ctx: &mut TxContext,
     ): Option<TradeInfo> {
-        assert!(is_none(&book.protected_actions.create_ask), EActionNotPublic);
+        assert!(option::is_none(&book.protected_actions.create_ask), EActionNotPublic);
         assert!(commission_ft < requested_tokens, ECommissionTooHigh);
 
         let commission = trading::new_ask_commission(
@@ -788,7 +788,7 @@ module liquidity_layer::orderbook {
         new_price: u64,
         ctx: &mut TxContext,
     ) {
-        assert!(is_none(&book.protected_actions.create_ask), EActionNotPublic);
+        assert!(option::is_none(&book.protected_actions.create_ask), EActionNotPublic);
 
         let commission = cancel_ask_(
             book, seller_kiosk, old_price, nft_id, ctx,
@@ -805,7 +805,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        assert!(is_none(&book.protected_actions.create_bid), EActionNotPublic);
+        assert!(option::is_none(&book.protected_actions.create_bid), EActionNotPublic);
         edit_bid_(book, buyer_kiosk, old_price, new_price, wallet, ctx);
     }
 
@@ -838,7 +838,7 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        assert!(is_none(&book.protected_actions.buy_nft), EActionNotPublic);
+        assert!(option::is_none(&book.protected_actions.buy_nft), EActionNotPublic);
         buy_nft_<T, FT>(
             book, seller_kiosk, buyer_kiosk, nft_id, price, wallet, ctx
         )
@@ -1046,9 +1046,9 @@ module liquidity_layer::orderbook {
     /// Settings where all endpoints can be called as entry point functions.
     public fun no_protection(): ProtectedActions {
         ProtectedActions {
-            buy_nft: none(),
-            create_ask: none(),
-            create_bid: none(),
+            buy_nft: option::none(),
+            create_ask: option::none(),
+            create_bid: option::none(),
         }
     }
 
@@ -1056,7 +1056,7 @@ module liquidity_layer::orderbook {
         trade_request: TradeRequest<BUY_NFT>,
         book: &Orderbook<T, FT>,
     ) {
-        assert!(is_some(&book.protected_actions.buy_nft), EActionNotProtected);
+        assert!(option::is_some(&book.protected_actions.buy_nft), EActionNotProtected);
 
         let policy = option::borrow(&book.protected_actions.buy_nft);
         trade_request::confirm(trade_request, policy);
@@ -1066,7 +1066,7 @@ module liquidity_layer::orderbook {
         trade_request: TradeRequest<CREATE_ASK>,
         book: &Orderbook<T, FT>,
     ) {
-        assert!(is_some(&book.protected_actions.create_ask), EActionNotProtected);
+        assert!(option::is_some(&book.protected_actions.create_ask), EActionNotProtected);
 
         let policy = option::borrow(&book.protected_actions.create_ask);
         trade_request::confirm(trade_request, policy);
@@ -1076,7 +1076,7 @@ module liquidity_layer::orderbook {
         trade_request: TradeRequest<CREATE_BID>,
         book: &Orderbook<T, FT>,
     ) {
-        assert!(is_some(&book.protected_actions.create_bid), EActionNotProtected);
+        assert!(option::is_some(&book.protected_actions.create_bid), EActionNotProtected);
 
         let policy = option::borrow(&book.protected_actions.create_bid);
         trade_request::confirm(trade_request, policy);
@@ -1115,19 +1115,19 @@ module liquidity_layer::orderbook {
     public fun is_create_ask_protected<T: key + store, FT>(
         orderbook: &Orderbook<T, FT>,
     ): bool {
-        is_some(&orderbook.protected_actions.create_ask)
+        option::is_some(&orderbook.protected_actions.create_ask)
     }
 
     public fun is_create_bid_protected<T: key + store, FT>(
         orderbook: &Orderbook<T, FT>,
     ): bool {
-        is_some(&orderbook.protected_actions.create_bid)
+        option::is_some(&orderbook.protected_actions.create_bid)
     }
 
     public fun is_buy_nft_protected<T: key + store, FT>(
         orderbook: &Orderbook<T, FT>,
     ): bool {
-        is_some(&orderbook.protected_actions.buy_nft)
+        option::is_some(&orderbook.protected_actions.buy_nft)
     }
 
     public fun trade_id(trade: &TradeInfo): ID {
@@ -1770,20 +1770,20 @@ module liquidity_layer::orderbook {
         assert_version_and_upgrade(orderbook);
         assert_not_under_migration(orderbook);
 
-        if (is_some(&buy_nft)) {
-            assert!(is_none(&orderbook.protected_actions.buy_nft), 0); // Already has policy
+        if (option::is_some(&buy_nft)) {
+            assert!(option::is_none(&orderbook.protected_actions.buy_nft), 0); // Already has policy
 
             option::fill(&mut orderbook.protected_actions.buy_nft, option::extract(&mut buy_nft));
         };
 
-        if (is_some(&create_ask)) {
-            assert!(is_none(&orderbook.protected_actions.create_ask), 0); // Already has policy
+        if (option::is_some(&create_ask)) {
+            assert!(option::is_none(&orderbook.protected_actions.create_ask), 0); // Already has policy
 
             option::fill(&mut orderbook.protected_actions.create_ask, option::extract(&mut create_ask));
         };
 
-        if (is_some(&create_bid)) {
-            assert!(is_none(&orderbook.protected_actions.create_bid), 0); // Already has policy
+        if (option::is_some(&create_bid)) {
+            assert!(option::is_none(&orderbook.protected_actions.create_bid), 0); // Already has policy
 
             option::fill(&mut orderbook.protected_actions.create_bid, option::extract(&mut create_bid));
         };
