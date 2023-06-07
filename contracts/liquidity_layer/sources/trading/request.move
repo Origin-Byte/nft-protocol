@@ -76,10 +76,7 @@ module liquidity_layer::trade_request {
     }
 
     public fun confirm<TRADE>(self: TradeRequest<TRADE>, policy: &Policy<TRADE>) {
-        let TradeRequest {
-            policy_id,
-            inner,
-        } = self;
+        let TradeRequest { policy_id, inner } = self;
         assert!(policy_id == object::id(policy), EPolicyMismatch);
         request::confirm(inner, policy);
     }
