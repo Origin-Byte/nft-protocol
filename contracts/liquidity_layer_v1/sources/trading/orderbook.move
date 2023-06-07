@@ -34,8 +34,9 @@ module liquidity_layer_v1::orderbook {
     use sui::transfer::share_object;
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
+    use sui::clock::{Self, Clock};
 
-    use ob_permissions::witness::Witness as DelegatedWitness;
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use ob_kiosk::ob_kiosk;
     use ob_request::transfer_request::{Self, TransferRequest};
     use originmate::crit_bit_u64::{Self as crit_bit, CB as CBTree};
@@ -104,10 +105,13 @@ module liquidity_layer_v1::orderbook {
     const EUnderMigration: u64 = 11;
 
     /// Trying to finish the migration process whilst the orderbook V1 is still not empty
-    const EOrderbookAsksMustBeEmpty: u64 = 10;
+    const EOrderbookAsksMustBeEmpty: u64 = 12;
 
     /// Trying to finish the migration process whilst the orderbook V1 is still not empty
-    const EOrderbookBidsMustBeEmpty: u64 = 11;
+    const EOrderbookBidsMustBeEmpty: u64 = 13;
+
+    /// Trying to enable an time-locked orderbook before its start time
+    const EOrderbookTimeLocked: u64 = 14;
 
     // === Structs ===
 
@@ -120,6 +124,7 @@ module liquidity_layer_v1::orderbook {
         trade_id: ID,
     }
 
+    struct TimeLockDfKey has copy, store, drop {}
     struct UnderMigrationToDfKey has copy, drop, store {}
     struct IsDeprecatedDfKey has copy, drop, store {}
 
@@ -836,9 +841,50 @@ module liquidity_layer_v1::orderbook {
         ob: &mut Orderbook<T, FT>,
         protected_actions: WitnessProtectedActions,
     ) {
-        assert_not_under_migration(ob);
-        assert_version_and_upgrade(ob);
-        ob.protected_actions = protected_actions;
+        set_protection_(ob, protected_actions)
+    }
+
+    public entry fun set_start_time<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+        start_time: u64,
+    ) {
+        set_start_time_with_witness(
+            witness::from_publisher(publisher), orderbook, start_time
+        )
+    }
+
+    public fun set_start_time_with_witness<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+        start_time: u64,
+    ) {
+        if (df::exists_(&mut orderbook.id, TimeLockDfKey {})) {
+            let time = df::borrow_mut(&mut orderbook.id, TimeLockDfKey {});
+            *time = start_time
+        } else {
+            df::add(&mut orderbook.id, TimeLockDfKey {}, start_time);
+        };
+    }
+
+    /// Method for permissionlessly unlock trading whenever the opening
+    /// time starts.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the current time provided by the Clock's timestamp is
+    /// less than the opening time.
+    public entry fun enable_trading_permissionless<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        clock: &Clock
+    ) {
+        let start_time = df::borrow(&orderbook.id, TimeLockDfKey {});
+
+        assert!(clock::timestamp_ms(clock) >= *start_time, EOrderbookTimeLocked);
+
+        set_protection_(
+            orderbook, no_protection(),
+        );
     }
 
     fun assert_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
@@ -1496,6 +1542,15 @@ module liquidity_layer_v1::orderbook {
 
     fun check_tick_level(price: u64, tick_size: u64): bool {
         price >= tick_size
+    }
+
+    fun set_protection_<T: key + store, FT>(
+        ob: &mut Orderbook<T, FT>,
+        protected_actions: WitnessProtectedActions,
+    ) {
+        assert_not_under_migration(ob);
+        assert_version_and_upgrade(ob);
+        ob.protected_actions = protected_actions;
     }
 
     // === Migration ===

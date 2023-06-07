@@ -47,6 +47,7 @@ module ob_tests::orderbook {
         let orderbook = orderbook::new_unprotected<Foo, SUI>(
             witness::from_witness(test_utils::witness()),
             &transfer_policy,
+            true, // is_live
             ctx(&mut scenario),
         );
 
@@ -72,6 +73,7 @@ module ob_tests::orderbook {
         let orderbook = orderbook::new_unprotected<Foo, SUI>(
             witness::from_witness(test_utils::witness()),
             &transfer_policy,
+            true, // is_live
             ctx(&mut scenario),
         );
 
@@ -96,6 +98,8 @@ module ob_tests::orderbook {
         // rules to the policy.
         orderbook::create_external<Foo, SUI>(
             &transfer_policy,
+            true, // is_live
+            orderbook::no_protection(),
             ctx(&mut scenario),
         );
 
@@ -107,6 +111,8 @@ module ob_tests::orderbook {
         // When this is the case, anyone can come in a create an orderbook
         orderbook::create_external<Foo, SUI>(
             &transfer_policy,
+            true, // is_live
+            orderbook::no_protection(),
             ctx(&mut scenario),
         );
 
@@ -133,6 +139,8 @@ module ob_tests::orderbook {
         // When this is the case, anyone can come in a create an orderbook
         orderbook::create_external<Foo, SUI>(
             &transfer_policy,
+            true, // is_live
+            orderbook::no_protection(),
             ctx(&mut scenario),
         );
 

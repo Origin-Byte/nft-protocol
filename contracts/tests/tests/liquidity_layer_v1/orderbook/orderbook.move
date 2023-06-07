@@ -10,6 +10,7 @@ module ob_tests::orderbook_v1 {
 
     use sui::coin::{Self, Coin};
     use sui::object;
+    use sui::clock;
     use sui::kiosk;
     use sui::transfer;
     use sui::sui::SUI;
@@ -1679,6 +1680,123 @@ module ob_tests::orderbook_v1 {
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun enable_trading_permissionless() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        let ob = orderbook::new_with_protected_actions<Foo, SUI>(
+            dw,
+            &tx_policy,
+            orderbook::custom_protection(true, true, true),
+            ctx(&mut scenario)
+        );
+
+        orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
+        orderbook::share(ob);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 2. Insert time lock
+        test_scenario::next_tx(&mut scenario, creator());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+
+        // The lock is set to Thursday, 1 June 2023 00:00:00
+        orderbook::set_start_time_with_witness(dw, &mut book, 1685577600000);
+
+        let clock = clock::create_for_testing(ctx(&mut scenario));
+
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(orderbook::is_create_ask_protected(actions), 0);
+        assert!(orderbook::is_create_bid_protected(actions), 0);
+        assert!(orderbook::is_buy_nft_protected(actions), 0);
+
+        test_scenario::next_tx(&mut scenario, creator());
+
+        // The lock is set to Thursday, 1 June 2023 00:00:00
+        clock::set_for_testing(&mut clock, 1685577600000);
+
+        orderbook::enable_trading_permissionless(&mut book, &clock);
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(!orderbook::is_create_ask_protected(actions), 0);
+        assert!(!orderbook::is_create_bid_protected(actions), 0);
+        assert!(!orderbook::is_buy_nft_protected(actions), 0);
+
+
+        // The lock is set to Thursday, 1 June 2024 00:00:00
+        clock::set_for_testing(&mut clock, 1717200000000);
+
+        orderbook::enable_trading_permissionless(&mut book, &clock);
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(!orderbook::is_create_ask_protected(actions), 0);
+        assert!(!orderbook::is_create_bid_protected(actions), 0);
+        assert!(!orderbook::is_buy_nft_protected(actions), 0);
+
+        clock::destroy_for_testing(clock);
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = orderbook::EOrderbookTimeLocked)]
+    fun fail_enable_trading_permissionless() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        let ob = orderbook::new_with_protected_actions<Foo, SUI>(
+            dw,
+            &tx_policy,
+            orderbook::custom_protection(true, true, true),
+            ctx(&mut scenario)
+        );
+
+        orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
+        orderbook::share(ob);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 2. Insert time lock
+        test_scenario::next_tx(&mut scenario, creator());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+
+        // The lock is set to Thursday, 1 June 2023 00:00:00
+        orderbook::set_start_time_with_witness(dw, &mut book, 1685577600000);
+
+        let clock = clock::create_for_testing(ctx(&mut scenario));
+
+        // Timestamp: Sunday, 1 January 2023 00:00:00
+        clock::set_for_testing(&mut clock, 1672531200000);
+
+        orderbook::enable_trading_permissionless(&mut book, &clock);
+
+        clock::destroy_for_testing(clock);
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
     }
