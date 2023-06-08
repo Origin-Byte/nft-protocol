@@ -1118,7 +1118,6 @@ module ob_kiosk::ob_kiosk {
         ctx: &mut TxContext,
     ): BorrowRequest<Witness, T> {
         assert_version_and_upgrade(ext(self));
-        assert_not_listed(self, nft_id);
 
         let cap = pop_cap(self);
         let (nft, promise) = kiosk::borrow_val(self, &cap, nft_id);
