@@ -6,10 +6,15 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0-mainnet] - 2023-06-08
 
 ## Added
 - Added ability for an entity to delegate a transfer auth signature via `ob_kiosk::ob_kiosk::delegate_exclusive_auth`
+- LaunchpadV1 `Listing` and `Marketplace` admins can now delegate the management to members of their choice via `ob_launchpad::listing::add_member` and `ob_launchpad::listing::remove_member`
+- LaunchpadV1 Warehouse NFTs are stored now in `dof` instead of `df`
+- LiquidityLayer and LiquidityLayerV1 now have Time-Lock feature via `liquidity_layer_v1::orderbook::set_start_time`
+- `LiquidityLayerV1` admins can now delegate management to members of their choice via `liquidity_layer_v1::orderbook::add_administrator` and `liquidity_layer_v1::orderbook::remove_administrator`
+- Added `liquidity_layer_v1::orderbook::market_buy_with_commission` and `liquidity_layer_v1::orderbook::market_sell_with_commission`
 
 ### Changed
 - Reverted royalty calculation over ask commission, as there was a certain risk of losing
@@ -17,6 +22,10 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 - Orderbook shared objects are now upgraded on the fly
 - Reverted `UID` transfer signer pattern previously introduced in the LiquidityLayer V2, in favor of adding `ob_kiosk::ob_kiosk::delegate_exclusive_auth`
 - Implemented migration methods for migrating `liquidity_layer_v1::orderbook::Orderbook` to `liquidity_layer::orderbook::Orderbook`
+- `ob_launchpad::fixed_price::buy_nft` and `ob_launchpad::limited_fixed_price::buy_nft` now deposit NFTs in newly created Kiosks
+- LiquidityLayer V2 now uses `TradePolicy` object to protect actions, instead of `bool`
+- Deprecated `nft_protocol::session_tokens`
+- Deprecated `nft_protocol::royalty_strategy_bps::confirm_transfer_with_fees` as well as reverted the use of `fee_balance` in the `TransferRequest` in favor of the initial implementation
 
 ## [1.1.0-mainnet] - 2023-05-10
 
