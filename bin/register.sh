@@ -62,14 +62,12 @@ register() {
         fi
 
         dependency_obj="{ \
-            \"${dep_name}\": { \
-                \"path\": { \
-                    \"git\": \"${dep_git}\", \
-                    \"subdir\": \"${dep_subdir}\", \
-                    \"rev\": \"${rev_git}\" \
-                }, \
-                \"objectId\": \"${obj_id}\" \
-            } \
+            \"path\": { \
+                \"git\": \"${dep_git}\", \
+                \"subdir\": \"${dep_subdir}\", \
+                \"rev\": \"${rev_git}\" \
+            }, \
+            \"objectId\": \"${obj_id}\" \
         }"
 
         dependencies_obj=$(jq --argjson val "$dependency_obj" --arg key "$dep_name" '.[$key] += $val' <<< "$dependencies_obj")
