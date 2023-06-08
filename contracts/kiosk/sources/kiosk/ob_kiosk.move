@@ -1134,7 +1134,6 @@ module ob_kiosk::ob_kiosk {
             )
     }
 
-    #[test_only]
     /// Borrow `NftRef` accounting structure
     ///
     /// #### Panics
