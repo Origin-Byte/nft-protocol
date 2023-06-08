@@ -735,8 +735,10 @@ module ob_kiosk::ob_kiosk {
     ) {
         assert_version_and_upgrade(ext(self));
 
-        // Moved `OwnerToken` serves as proof of ownership
         assert!(owner_token.kiosk == object::id(self), EIncorrectOwnerToken);
+
+        // Proof of ownership
+        assert_owner_address(self, sender(ctx));
 
         // Additionally asserts that `Kiosk` is an OB `Kiosk`
         let refs = nft_refs(self);
@@ -1084,7 +1086,7 @@ module ob_kiosk::ob_kiosk {
         set_cap(self, cap);
     }
 
-    // === Assertions and getters ===
+    // === Getters ===
 
     /// Returns whether `Kiosk` is permissionless or address is the owner
     public fun is_owner(self: &Kiosk, address: address): bool {
@@ -1101,6 +1103,10 @@ module ob_kiosk::ob_kiosk {
     //
     // TODO: Deprecate mutable API
     public fun is_ob_kiosk(self: &mut Kiosk): bool {
+        df::exists_(uid(self), NftRefsDfKey {})
+    }
+
+    fun is_ob_kiosk_imut(self: &Kiosk): bool {
         df::exists_(uid(self), NftRefsDfKey {})
     }
 
@@ -1121,6 +1127,37 @@ module ob_kiosk::ob_kiosk {
                 &type_name::get<T>(),
             )
     }
+
+    #[test_only]
+    /// Borrow `NftRef` accounting structure
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Kiosk` is not OriginByte `Kiosk`
+    //
+    // TODO: Replace with immutable API
+    // TODO: Consider removing test_only
+    public fun nft_refs(self: &Kiosk): &Table<ID, NftRef> {
+        is_ob_kiosk_imut(self);
+        df::borrow(uid(self), NftRefsDfKey {})
+    }
+
+    /// Borrow `NftRef` for NFT with given ID
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Kiosk` is not OriginByte `Kiosk` or if NFT does not exist.
+    //
+    // TODO: Replace with immutable API
+    // TODO: Consider making it public
+    fun nft_ref(self: &Kiosk, nft_id: ID): &NftRef {
+        let refs = nft_refs(self);
+
+        assert!(table::contains(refs, nft_id), EMissingNft);
+        table::borrow(refs, nft_id)
+    }
+
+    // === Assertions ===
 
     /// Asserts that `Kiosk` is permissionless
     ///
@@ -1190,6 +1227,10 @@ module ob_kiosk::ob_kiosk {
         assert!(is_ob_kiosk(self), EKioskNotOriginByteVersion);
     }
 
+    fun assert_is_ob_kiosk_imut(self: &Kiosk) {
+        assert!(is_ob_kiosk_imut(self), EKioskNotOriginByteVersion);
+    }
+
     public fun assert_kiosk_id(self: &Kiosk, id: ID) {
         assert!(object::id(self) == id, EIncorrectKioskId);
     }
@@ -1246,19 +1287,6 @@ module ob_kiosk::ob_kiosk {
         df::borrow_mut(ext(self), DepositSettingDfKey {})
     }
 
-    #[test_only]
-    /// Borrow `NftRef` accounting structure
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Kiosk` is not OriginByte `Kiosk`
-    //
-    // TODO: Replace with immutable API
-    public fun nft_refs(self: &mut Kiosk): &Table<ID, NftRef> {
-        assert_is_ob_kiosk(self);
-        df::borrow(uid(self), NftRefsDfKey {})
-    }
-
     /// Mutably borrow `NftRef` accounting structure
     ///
     /// #### Panics
@@ -1267,20 +1295,6 @@ module ob_kiosk::ob_kiosk {
     fun nft_refs_mut(self: &mut Kiosk): &mut Table<ID, NftRef> {
         assert_is_ob_kiosk(self);
         df::borrow_mut(ext(self), NftRefsDfKey {})
-    }
-
-    /// Borrow `NftRef` for NFT with given ID
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Kiosk` is not OriginByte `Kiosk` or if NFT does not exist.
-    //
-    // TODO: Replace with immutable API
-    fun nft_ref(self: &mut Kiosk, nft_id: ID): &NftRef {
-        let refs = nft_refs(self);
-
-        assert!(table::contains(refs, nft_id), EMissingNft);
-        table::borrow(refs, nft_id)
     }
 
     /// Borrow `NftRef` for NFT with given ID
