@@ -30,6 +30,7 @@ module ob_tests::orderbook_v1 {
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
 
     use liquidity_layer_v1::orderbook::{Self, Orderbook};
+    use liquidity_layer_v1::bidding::{Self, Bid};
 
     const OFFER_SUI: u64 = 100;
 
@@ -1802,6 +1803,98 @@ module ob_tests::orderbook_v1 {
     }
 
     #[test]
+    #[expected_failure(abort_code = ob_kiosk::ob_kiosk::ENftAlreadyExclusivelyListed)]
+    fun test_bidding_orderbook_dangling_lock() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 3. Create Buyer Kiosk
+        test_scenario::next_tx(&mut scenario, buyer());
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+        transfer::public_share_object(buyer_kiosk);
+
+        // 4. Create Seller Kiosk
+        test_scenario::next_tx(&mut scenario, seller());
+        let (seller_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+        transfer::public_share_object(seller_kiosk);
+
+        // 5. Create bid order for NFTs
+        test_scenario::next_tx(&mut scenario, seller());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+
+        let coin = coin::mint_for_testing<SUI>(1_000_000, ctx(&mut scenario));
+
+        let price = 300;
+
+        test_scenario::next_tx(&mut scenario, seller());
+
+        // Create and deposit NFT
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+
+        ob_kiosk::deposit(&mut seller_kiosk, nft, ctx(&mut scenario));
+
+        orderbook::create_ask(
+            &mut book,
+            &mut seller_kiosk,
+            price,
+            nft_id,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, buyer());
+
+        bidding::create_bid(
+            object::id(&buyer_kiosk),
+            nft_id,
+            100,
+            &mut coin,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, seller());
+
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let bid = test_scenario::take_shared<Bid<SUI>>(&mut scenario);
+
+        let request = bidding::sell_nft_from_kiosk<Foo, SUI>(
+            &mut bid,
+            &mut seller_kiosk,
+            &mut buyer_kiosk,
+            nft_id,
+            ctx(&mut scenario),
+        );
+
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        coin::burn_for_testing(coin);
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
+        test_scenario::return_shared(bid);
+        test_scenario::return_shared(tx_policy);
+        test_scenario::return_shared(seller_kiosk);
+        test_scenario::return_shared(buyer_kiosk);
+
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
     fun delegate_to_admin() {
         let scenario = test_scenario::begin(creator());
 
@@ -1862,6 +1955,7 @@ module ob_tests::orderbook_v1 {
         transfer::public_transfer(publisher, creator());
         transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
+
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
     }

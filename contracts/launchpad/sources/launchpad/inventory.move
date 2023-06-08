@@ -9,7 +9,7 @@ module ob_launchpad::inventory {
     use sui::transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
-    use sui::dynamic_field as df;
+    use sui::dynamic_object_field as dof;
 
     use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
 
@@ -41,7 +41,7 @@ module ob_launchpad::inventory {
         ctx: &mut TxContext,
     ): Inventory<T> {
         let inventory_id = object::new(ctx);
-        df::add(&mut inventory_id, WarehouseKey {}, warehouse);
+        dof::add(&mut inventory_id, WarehouseKey {}, warehouse);
 
         Inventory { id: inventory_id }
     }
@@ -278,7 +278,7 @@ module ob_launchpad::inventory {
 
     /// Returns whether `Inventory` is a `Warehouse`
     public fun is_warehouse<T: key + store>(inventory: &Inventory<T>): bool {
-        df::exists_with_type<WarehouseKey, Warehouse<T>>(
+        dof::exists_with_type<WarehouseKey, Warehouse<T>>(
             &inventory.id, WarehouseKey {}
         )
     }
@@ -292,7 +292,7 @@ module ob_launchpad::inventory {
         inventory: &Inventory<T>,
     ): &Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow(&inventory.id, WarehouseKey {})
+        dof::borrow(&inventory.id, WarehouseKey {})
     }
 
     /// Mutably borrows `Inventory` as `Warehouse`
@@ -304,7 +304,7 @@ module ob_launchpad::inventory {
         inventory: &mut Inventory<T>,
     ): &mut Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow_mut(&mut inventory.id, WarehouseKey {})
+        dof::borrow_mut(&mut inventory.id, WarehouseKey {})
     }
 
     // === Assertions ===
