@@ -50,8 +50,9 @@ module liquidity_layer_v1::orderbook {
     use liquidity_layer_v1::trading;
     use liquidity_layer_v1::liquidity_layer::LIQUIDITY_LAYER;
 
-    use liquidity_layer::orderbook::{Self as orderbook_v2, Orderbook as OrderbookV2};
-    use liquidity_layer::trading as trading_v2;
+    // TODO: Add back migration endpoints
+    // use liquidity_layer::orderbook::{Self as orderbook_v2, Orderbook as OrderbookV2};
+    // use liquidity_layer::trading as trading_v2;
 
     // Track the current version of the module
     const VERSION: u64 = 3;
@@ -1906,140 +1907,145 @@ module liquidity_layer_v1::orderbook {
         df::add(&mut book.id, IsDeprecatedDfKey {}, true);
     }
 
-    public fun start_migration_to_v2<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
-        book_v1: &mut Orderbook<T, FT>,
-        book_v2: &OrderbookV2<T, FT>,
-    ) {
-        set_protection(witness, book_v1, custom_protection(true, true, true));
-        df::add(&mut book_v1.id, UnderMigrationToDfKey {}, object::id(book_v2));
-    }
+    // TODO: Add back migration endpoints
+    // public fun start_migration_to_v2<T: key + store, FT>(
+    //     witness: DelegatedWitness<T>,
+    //     book_v1: &mut Orderbook<T, FT>,
+    //     book_v2: &OrderbookV2<T, FT>,
+    // ) {
+    //     set_protection(witness, book_v1, custom_protection(true, true, true));
+    //     df::add(&mut book_v1.id, UnderMigrationToDfKey {}, object::id(book_v2));
+    // }
 
-    public fun migrate_bid<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
-        book_v1: &mut Orderbook<T, FT>,
-        book_v2: &mut OrderbookV2<T, FT>,
-        ctx: &mut TxContext
-    ) {
-        assert_orderbook_v2(book_v1, book_v2);
+    // TODO: Add back migration endpoints
+    // public fun migrate_bid<T: key + store, FT>(
+    //     witness: DelegatedWitness<T>,
+    //     book_v1: &mut Orderbook<T, FT>,
+    //     book_v2: &mut OrderbookV2<T, FT>,
+    //     ctx: &mut TxContext
+    // ) {
+    //     assert_orderbook_v2(book_v1, book_v2);
 
-        let (buyer, bid_offer, buyer_kiosk_id, bid_commission_v1) = migrate_bid_(
-            witness, book_v1
-        );
+    //     let (buyer, bid_offer, buyer_kiosk_id, bid_commission_v1) = migrate_bid_(
+    //         witness, book_v1
+    //     );
 
-        let bid_commission_v2 = option::none();
+    //     let bid_commission_v2 = option::none();
 
-        if (option::is_some(&bid_commission_v1)) {
-            let (commission, bid_beneficiary) = trading::destroy_bid_commission(
-                option::extract(&mut bid_commission_v1)
-            );
+    //     if (option::is_some(&bid_commission_v1)) {
+    //         let (commission, bid_beneficiary) = trading::destroy_bid_commission(
+    //             option::extract(&mut bid_commission_v1)
+    //         );
 
-            option::fill(&mut bid_commission_v2, trading_v2::new_bid_commission(bid_beneficiary, commission));
-        };
+    //         option::fill(&mut bid_commission_v2, trading_v2::new_bid_commission(bid_beneficiary, commission));
+    //     };
 
-        option::destroy_none(bid_commission_v1);
-        let price = balance::value(&bid_offer);
+    //     option::destroy_none(bid_commission_v1);
+    //     let price = balance::value(&bid_offer);
 
-        let wallet = coin::from_balance(bid_offer, ctx);
+    //     let wallet = coin::from_balance(bid_offer, ctx);
 
-        orderbook_v2::migrate_bid_v1(
-            book_v2,
-            buyer_kiosk_id,
-            price,
-            bid_commission_v2,
-            &mut wallet,
-            buyer,
-            &book_v1.id,
-        );
+    //     orderbook_v2::migrate_bid_v1(
+    //         book_v2,
+    //         buyer_kiosk_id,
+    //         price,
+    //         bid_commission_v2,
+    //         &mut wallet,
+    //         buyer,
+    //         &book_v1.id,
+    //     );
 
-        coin::destroy_zero(wallet);
-    }
+    //     coin::destroy_zero(wallet);
+    // }
 
-    fun migrate_bid_<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
-        book: &mut Orderbook<T, FT>,
-    ): (address, Balance<FT>, ID, Option<trading::BidCommission<FT>>) {
-        let price = crit_bit::min_key(&book.bids);
-        let price_level = crit_bit::borrow_mut(&mut book.bids, price);
-        let bid = vector::pop_back(price_level);
+    // TODO: Add back migration endpoints
+    // fun migrate_bid_<T: key + store, FT>(
+    //     _witness: DelegatedWitness<T>,
+    //     book: &mut Orderbook<T, FT>,
+    // ): (address, Balance<FT>, ID, Option<trading::BidCommission<FT>>) {
+    //     let price = crit_bit::min_key(&book.bids);
+    //     let price_level = crit_bit::borrow_mut(&mut book.bids, price);
+    //     let bid = vector::pop_back(price_level);
 
-        if (vector::length(price_level) == 0) {
-            vector::destroy_empty(crit_bit::pop(&mut book.bids, price));
-        };
+    //     if (vector::length(price_level) == 0) {
+    //         vector::destroy_empty(crit_bit::pop(&mut book.bids, price));
+    //     };
 
-        let Bid {
-            owner: buyer,
-            offer: bid_offer,
-            kiosk: buyer_kiosk_id,
-            commission: bid_commission,
-        } = bid;
+    //     let Bid {
+    //         owner: buyer,
+    //         offer: bid_offer,
+    //         kiosk: buyer_kiosk_id,
+    //         commission: bid_commission,
+    //     } = bid;
 
-        (buyer, bid_offer, buyer_kiosk_id, bid_commission)
-    }
+    //     (buyer, bid_offer, buyer_kiosk_id, bid_commission)
+    // }
 
-    public fun migrate_ask<T: key + store, FT>(
-        witness: DelegatedWitness<T>,
-        seller_kiosk: &mut Kiosk,
-        book_v1: &mut Orderbook<T, FT>,
-        book_v2: &mut OrderbookV2<T, FT>,
-    ) {
-        assert_orderbook_v2(book_v1, book_v2);
+    // TODO: Add back migration endpoints
+    // public fun migrate_ask<T: key + store, FT>(
+    //     witness: DelegatedWitness<T>,
+    //     seller_kiosk: &mut Kiosk,
+    //     book_v1: &mut Orderbook<T, FT>,
+    //     book_v2: &mut OrderbookV2<T, FT>,
+    // ) {
+    //     assert_orderbook_v2(book_v1, book_v2);
 
-        let (price, seller, nft_id, kiosk_id, ask_commission_v1) = migrate_ask_(
-            witness, seller_kiosk, book_v1,
-        );
+    //     let (price, seller, nft_id, kiosk_id, ask_commission_v1) = migrate_ask_(
+    //         witness, seller_kiosk, book_v1,
+    //     );
 
-        assert!(object::id(seller_kiosk) == kiosk_id, EKioskIdMismatch);
+    //     assert!(object::id(seller_kiosk) == kiosk_id, EKioskIdMismatch);
 
-        let ask_commission_v2 = option::none();
+    //     let ask_commission_v2 = option::none();
 
-        if (option::is_some(&ask_commission_v1)) {
-            let (commission, bid_beneficiary) = trading::destroy_ask_commission(
-                option::extract(&mut ask_commission_v1)
-            );
+    //     if (option::is_some(&ask_commission_v1)) {
+    //         let (commission, bid_beneficiary) = trading::destroy_ask_commission(
+    //             option::extract(&mut ask_commission_v1)
+    //         );
 
-            option::fill(&mut ask_commission_v2, trading_v2::new_ask_commission(bid_beneficiary, commission));
-        };
+    //         option::fill(&mut ask_commission_v2, trading_v2::new_ask_commission(bid_beneficiary, commission));
+    //     };
 
-        option::destroy_none(ask_commission_v1);
+    //     option::destroy_none(ask_commission_v1);
 
-        orderbook_v2::migrate_ask_v1(
-            book_v2,
-            seller_kiosk,
-            price,
-            ask_commission_v2,
-            nft_id,
-            seller,
-            &book_v1.id
-        );
-    }
+    //     orderbook_v2::migrate_ask_v1(
+    //         book_v2,
+    //         seller_kiosk,
+    //         price,
+    //         ask_commission_v2,
+    //         nft_id,
+    //         seller,
+    //         &book_v1.id
+    //     );
+    // }
 
-    fun migrate_ask_<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
-        kiosk: &mut Kiosk,
-        book: &mut Orderbook<T, FT>,
-    ): (u64, address, ID, ID, Option<trading::AskCommission>) {
-        let price = crit_bit::max_key(&book.asks);
+    // TODO: Add back migration endpoints
+    // fun migrate_ask_<T: key + store, FT>(
+    //     _witness: DelegatedWitness<T>,
+    //     kiosk: &mut Kiosk,
+    //     book: &mut Orderbook<T, FT>,
+    // ): (u64, address, ID, ID, Option<trading::AskCommission>) {
+    //     let price = crit_bit::max_key(&book.asks);
 
-        let price_level = crit_bit::borrow_mut(&mut book.asks, price);
-        let ask = vector::pop_back(price_level);
+    //     let price_level = crit_bit::borrow_mut(&mut book.asks, price);
+    //     let ask = vector::pop_back(price_level);
 
-        if (vector::length(price_level) == 0) {
-            vector::destroy_empty(crit_bit::pop(&mut book.asks, price));
-        };
+    //     if (vector::length(price_level) == 0) {
+    //         vector::destroy_empty(crit_bit::pop(&mut book.asks, price));
+    //     };
 
-        ob_kiosk::assert_has_nft(kiosk, ask.nft_id);
+    //     ob_kiosk::assert_has_nft(kiosk, ask.nft_id);
 
-        let Ask {
-            price,
-            owner: seller,
-            nft_id,
-            kiosk_id,
-            commission: ask_commission,
-        } = ask;
+    //     let Ask {
+    //         price,
+    //         owner: seller,
+    //         nft_id,
+    //         kiosk_id,
+    //         commission: ask_commission,
+    //     } = ask;
 
-        (price, seller, nft_id, kiosk_id, ask_commission)
-    }
+    //     (price, seller, nft_id, kiosk_id, ask_commission)
+    // }
 
     fun assert_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
         assert!(df::exists_(&self.id, UnderMigrationToDfKey {}), ENotUnderMigration);
@@ -2049,10 +2055,11 @@ module liquidity_layer_v1::orderbook {
         assert!(!df::exists_(&self.id, UnderMigrationToDfKey {}), EUnderMigration);
     }
 
-    fun assert_orderbook_v2<T: key + store, FT>(book_v1: &Orderbook<T, FT>, book_v2: &OrderbookV2<T, FT>) {
-        let book_v2_id = df::borrow(&book_v1.id, UnderMigrationToDfKey {});
-        assert!(object::id(book_v2) == *book_v2_id, EIncorrectOrderbookV2);
-    }
+    // TODO: Add back migration endpoints
+    // fun assert_orderbook_v2<T: key + store, FT>(book_v1: &Orderbook<T, FT>, book_v2: &OrderbookV2<T, FT>) {
+    //     let book_v2_id = df::borrow(&book_v1.id, UnderMigrationToDfKey {});
+    //     assert!(object::id(book_v2) == *book_v2_id, EIncorrectOrderbookV2);
+    // }
 
     // === Upgradeability ===
 
