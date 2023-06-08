@@ -29,8 +29,7 @@ files=$(find $source_folder -name "Move.toml")
 for file in $files; do
     address=$(${stoml} ${file} addresses)
 
-    if [[ $address == "ob_launchpad_v2" || $address == "ob_tests" ]]; then
-    # if [[ $address == "ob_launchpad_v2" || $address == "ob_tests" || $address == "liquidity_layer" ]]; then
+    if [[ $address == "ob_launchpad_v2" || $address == "ob_tests" || $address == "liquidity_layer" ]]; then
         continue  # Ignore addresses
     fi
 
