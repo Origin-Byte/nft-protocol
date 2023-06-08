@@ -1,17 +1,12 @@
-/// Module defining the multiple `MintCap` used across the OriginByte
-/// ecosystem.
+/// Module defining `MintPass` used across the OriginByte ecosystem, for the purpose
+/// of one-time mints or many-but-limited-time mints. One core difference between
+/// `MintCap<T>` and `MintPass<T>` is that MintCaps are fungible, MintPasses are not
+/// as they can have metadata being insert into them.
 ///
-/// Ownership of `MintCap` is necessary to mint NFTs and can also be used to
-/// delegate the permission to mint NFTs (but not modify collections) using
-/// `RegulatedMintCap` and `UnregulatedMintCap`.
-///
-/// Multiple `RegulatedMintCap` and `UnregulatedMintCap` can be created
-/// therefore the objects must be securely protected against malicious
-/// access.
-///
-/// An additional restriction placed upon `RegulatedMintCap` and
-/// `UnregulatedMintCap` is that they may not be used to further delegate more
-/// mint capabilities.
+/// OriginByte's protocol uses MintPasses in its LaunchpadV2 `Factory`, which
+/// essentially acts as a `MintPass` generator. Creators can then insert metadata
+/// templates to it and have the `Factory` generate MintPasses which contain
+/// specific NFT metadata.
 module nft_protocol::mint_pass {
     use std::string;
 

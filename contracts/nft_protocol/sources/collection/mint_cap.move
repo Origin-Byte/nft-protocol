@@ -1,9 +1,9 @@
-/// Module defining the multiple `MintCap` used across the OriginByte
+/// Module defining the `MintCap` used across the OriginByte
 /// ecosystem.
 ///
 /// Ownership of `MintCap` is necessary to mint NFTs and can also be used to
 /// delegate the permission to mint NFTs (but not modify collections) using
-/// `limitedMintCap` and `unlimitedMintCap`.
+/// limited supply `MintCap`s and unlimited supply `MintCap`s.
 ///
 /// Multiple `limitedMintCap` and `unlimitedMintCap` can be created
 /// therefore the objects must be securely protected against malicious

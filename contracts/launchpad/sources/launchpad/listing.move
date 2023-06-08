@@ -70,7 +70,7 @@ module ob_launchpad::listing {
     /// Call `Listing::init_venue` to initialize a `Venue`
     const EUndefinedVenue: u64 = 1;
 
-    /// `Warehouse` or `Factory` was not defined on `Listing`
+    /// `Warehouse` was not defined on `Listing`
     ///
     /// Initialize `Warehouse` using `Listing::init_warehouse` or insert one
     /// using `Listing::add_warehouse`.
@@ -551,7 +551,7 @@ module ob_launchpad::listing {
 
     /// Adds `Inventory` to `Listing`
     ///
-    /// `Inventory` is a type-erased wrapper around `Warehouse` or `Factory`.
+    /// `Inventory` is a type-erased wrapper around `Warehouse`.
     ///
     /// To create a new inventory call `inventory::from_warehouse` or
     /// `inventory::from_factory`.
@@ -1178,7 +1178,7 @@ module ob_launchpad::listing {
     }
 
     public fun assert_inventory<T>(listing: &Listing, inventory_id: ID) {
-        // Inventory can be either `Warehouse` or `Factory`
+        // Inventory can be either `Warehouse`
         assert!(
             contains_inventory<T>(listing, inventory_id), EUndefinedInventory,
         );
