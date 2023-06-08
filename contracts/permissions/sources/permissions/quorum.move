@@ -225,7 +225,7 @@ module ob_permissions::quorum {
     ) {
         assert_version_and_upgrade(quorum);
 
-        assert!(quorum.admin_count == 1, EMinAdminCountIsOne);
+        assert!(quorum.admin_count >= 1, EMinAdminCountIsOne);
 
         let (vote_count, threshold) = vote(quorum, RemoveAdmin { admin: old_admin}, ctx);
 
@@ -630,6 +630,32 @@ module ob_permissions::quorum {
         );
     }
 
+    // === Getters ===
+
+    public fun admins<F>(self: &Quorum<F>): &VecSet<address> {
+        &self.admins
+    }
+
+    public fun members<F>(self: &Quorum<F>): &VecSet<address> {
+        &self.members
+    }
+
+    public fun delegates<F>(self: &Quorum<F>): &VecSet<ID> {
+        &self.delegates
+    }
+
+    public fun admin_count<F>(self: &Quorum<F>): u64 {
+        self.admin_count
+    }
+
+    public fun quorum_id<F>(self: &Quorum<F>): ID {
+        object::uid_to_inner(&self.id)
+    }
+
+    public fun extension_token_id<F>(self: &ExtensionToken<F>): ID {
+        self.quorum_id
+    }
+
     // === Upgradeability ===
 
     fun assert_version<F>(self: &Quorum<F>) {
@@ -658,367 +684,26 @@ module ob_permissions::quorum {
         self.version = VERSION;
     }
 
-
-    #[test_only]
-    const QUORUM: address = @0x1234;
-    #[test_only]
-    const ADMIN_ADDR_1: address = @0x1;
-    #[test_only]
-    const ADMIN_ADDR_2: address = @0x2;
-    #[test_only]
-    const MEMBER_ADDR_1: address = @0x1337;
-    #[test_only]
-    const MEMBER_ADDR_2: address = @0x1338;
-
     // Please ignore this - this struct was added by mistake and
     // can no longer be removed without full republishing
     struct Foo has drop {}
 
-    #[test]
-    fun test_create_basic() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let delegate_uid_1 = ts::new_object(&mut scenario);
-        let delegate_uid_2 = ts::new_object(&mut scenario);
-
-        let admins = utils::vec_set_from_vec(&vector[ADMIN_ADDR_1, ADMIN_ADDR_2]);
-        let members = utils::vec_set_from_vec(&vector[MEMBER_ADDR_1, MEMBER_ADDR_2]);
-        let delegates = utils::vec_set_from_vec(&vector[object::uid_to_inner(&delegate_uid_1), object::uid_to_inner(&delegate_uid_2)]);
-
-        let ctx = ts::ctx(&mut scenario);
-        let quorum: Quorum<Foo> = create(&Foo {}, admins, members, delegates, ctx);
-
-        assert!(quorum.version == VERSION, 0);
-        assert!(quorum.admins == admins, 1);
-        assert!(quorum.members == members, 2);
-        assert!(quorum.delegates == delegates, 3);
-        assert!(quorum.admin_count == 2, 4);
-
-        object::delete(delegate_uid_1);
-        object::delete(delegate_uid_2);
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    #[test]
-    fun test_create_for_extension() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let delegate_uid_1 = ts::new_object(&mut scenario);
-        let delegate_uid_2 = ts::new_object(&mut scenario);
-
-        let admins = utils::vec_set_from_vec(&vector[ADMIN_ADDR_1, ADMIN_ADDR_2]);
-        let members = utils::vec_set_from_vec(&vector[MEMBER_ADDR_1, MEMBER_ADDR_2]);
-        let delegates = utils::vec_set_from_vec(&vector[object::uid_to_inner(&delegate_uid_1), object::uid_to_inner(&delegate_uid_2)]);
-
-        let ctx = ts::ctx(&mut scenario);
-        let (quorum, ext_token) = create_for_extension(&Foo {}, admins, members, delegates, ctx);
-
-        assert!(quorum.version == VERSION, 0);
-        assert!(quorum.admins == admins, 1);
-        assert!(quorum.members == members, 2);
-        assert!(quorum.delegates == delegates, 3);
-        assert!(quorum.admin_count == 2, 4);
-        assert!(object::uid_to_inner(&quorum.id) == ext_token.quorum_id, 6);
-
-        // consume extension token
+    #[test_only]
+    public fun destroy_ext_for_testing<F>(ext_token: ExtensionToken<F>) {
         let ExtensionToken { quorum_id: _ } = ext_token;
-        object::delete(delegate_uid_1);
-        object::delete(delegate_uid_2);
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
     }
 
-    //  #[test]
-    // fun test_init_quorum() {
-    //     use sui::test_scenario as ts;
-    //     use ob_utils::utils::{Self};
+    #[test_only]
+    public fun destroy_for_testing<F>(quorum: Quorum<F>) {
+        let Quorum {
+            id,
+            version: _,
+            admins: _,
+            members: _,
+            delegates: _,
+            admin_count: _,
+        } = quorum;
 
-    //     let scenario = ts::begin(QUORUM);
-    //     let delegate_uid_1 = ts::new_object(&mut scenario);
-    //     let delegate_uid_2 = ts::new_object(&mut scenario);
-
-    //     let admins = utils::vec_set_from_vec(&vector[ADMIN_ADDR_1, ADMIN_ADDR_2]);
-    //     let members = utils::vec_set_from_vec(&vector[MEMBER_ADDR_1, MEMBER_ADDR_2]);
-    //     let delegates = utils::vec_set_from_vec(&vector[object::uid_to_inner(&delegate_uid_1), object::uid_to_inner(&delegate_uid_2)]);
-
-    //     let ctx = ts::ctx(&mut scenario);
-    //     // TODO get by id?
-    //     let quorum_id = init_quorum(&Foo {}, admins, members, delegates, ctx);
-
-    //     assert!(quorum.version == VERSION, 0);
-    //     assert!(quorum.admins == admins, 1);
-    //     assert!(quorum.members == members, 2);
-    //     assert!(quorum.delegates == delegates, 3);
-    //     assert!(quorum.admin_count == 2, 4);
-    //     assert!(object::uid_to_inner(&quorum.id) == ext_token.quorum_id, 6);
-
-    //     // consume extension token
-    //     let ExtensionToken { quorum_id: _ } = ext_token;
-    //     object::delete(delegate_uid_1);
-    //     object::delete(delegate_uid_2);
-    //     transfer::public_share_object(quorum);
-    //     ts::end(scenario);
-    // }
-
-    #[test]
-    fun test_singleton() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let delegate_uid_1 = ts::new_object(&mut scenario);
-        let delegate_uid_2 = ts::new_object(&mut scenario);
-
-        let ctx = ts::ctx(&mut scenario);
-        let quorum = singleton(&Foo {}, ADMIN_ADDR_1, ctx);
-
-        assert!(quorum.version == VERSION, 0);
-        assert!(quorum.admins == utils::vec_set_from_vec(&vector[ADMIN_ADDR_1]), 1);
-        assert!(quorum.members == vec_set::empty(), 2);
-        assert!(quorum.delegates == vec_set::empty(), 3);
-        assert!(quorum.admin_count == 1, 4);
-        object::delete(delegate_uid_1);
-        object::delete(delegate_uid_2);
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    // cannot move out because deconstruction is not allowed outside module
-
-    #[test]
-    fun test_assert_extension_token() {
-        use sui::test_scenario as ts;
-
-        let scenario = ts::begin(QUORUM);
-        let ctx = ts::ctx(&mut scenario);
-        let (quorum, ext_token) = create_for_extension(&Foo {}, vec_set::empty(), vec_set::empty(), vec_set::empty(), ctx);
-
-        assert_extension_token(&quorum, &ext_token);
-
-        let ExtensionToken { quorum_id: _ } = ext_token;
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = EQuorumExtensionMismatch)]
-    fun test_assert_extension_token_fail() {
-        use sui::test_scenario as ts;
-
-        let scenario = ts::begin(QUORUM);
-        let ctx = ts::ctx(&mut scenario);
-        let (quorum, ext_token) = create_for_extension(&Foo {}, vec_set::empty(), vec_set::empty(), vec_set::empty(), ctx);
-        let (quorum_2, ext_token_2) = create_for_extension(&Foo {}, vec_set::empty(), vec_set::empty(), vec_set::empty(), ctx);
-
-        assert_extension_token(&quorum, &ext_token_2);
-
-        // consume extension token
-        let ExtensionToken { quorum_id: _ } = ext_token;
-        let ExtensionToken { quorum_id: _ } = ext_token_2;
-        transfer::public_share_object(quorum);
-        transfer::public_share_object(quorum_2);
-        ts::end(scenario);
-    }
-
-     // === Admin Functions Tests ===
-    #[test]
-    fun test_vote_add_admin_success() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
-        let admins = utils::vec_set_from_vec(&vector[sender]);
-        let ctx = ts::ctx(&mut scenario);
-        let quorum: Quorum<Foo> = create(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);
-
-        vote_add_admin(&mut quorum, ADMIN_ADDR_1, ctx);
-
-        assert!(vec_set::contains(&quorum.admins, &sender), 1);
-        assert!(vec_set::contains(&quorum.admins, &ADMIN_ADDR_1), 2);
-        assert!(quorum.admin_count == 2, 3);
-
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = ENotAnAdmin)]
-    fun test_vote_add_admin_fail() {
-        use sui::test_scenario as ts;
-
-        let scenario = ts::begin(QUORUM);
-        let ctx = ts::ctx(&mut scenario);
-        let quorum: Quorum<Foo> = create(&Foo {}, vec_set::empty(), vec_set::empty(), vec_set::empty(), ctx);
-
-        vote_add_admin(&mut quorum, ADMIN_ADDR_1, ctx);
-
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    #[test]
-    fun test_vote_remove_admin_remove_self() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
-        let admins = utils::vec_set_from_vec(&vector[sender]);
-        let ctx = ts::ctx(&mut scenario);
-        let quorum: Quorum<Foo> = create(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);
-
-        vote_remove_admin(&mut quorum, sender, ctx);
-
-        assert!(!vec_set::contains(&quorum.admins, &sender), 1);
-        assert!(quorum.admin_count == 0, 3);
-
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    // #[test]
-    // fun test_vote_add_then_remove_admin() {
-    //     use sui::test_scenario as ts;
-    //     use ob_utils::utils::{Self};
-
-    //     let scenario_val = ts::begin(QUORUM);
-    //     let scenario = &mut scenario_val;
-    //     let quorum: Quorum<Foo>;
-    //     //let sender = ts::sender(scenario);
-    //     let admins = utils::vec_set_from_vec(&vector[ts::sender(scenario)]);
-    //     {
-    //         let ctx = ts::ctx(scenario);
-    //         quorum = create(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);
-    //     };
-    //     {
-    //         let ctx = ts::ctx(scenario);
-    //         vote_add_admin(&mut quorum, ADMIN_ADDR_1, ctx);
-    //         assert!(vec_set::contains(&quorum.admins, &ts::sender(scenario)), 1);
-    //         assert!(vec_set::contains(&quorum.admins, &ADMIN_ADDR_1), 2);
-    //         assert!(quorum.admin_count == 2, 3);
-    //     };
-    //     ts::next_tx(scenario, ADMIN_ADDR_1);
-    //     {
-    //         let ctx = ts::ctx(scenario);
-    //         vote_remove_admin(&mut quorum, ADMIN_ADDR_1, ctx);
-    //         assert!(vec_set::contains(&quorum.admins, &ts::sender(scenario)), 4);
-    //         assert!(!vec_set::contains(&quorum.admins, &ADMIN_ADDR_1), 5);
-    //         assert!(quorum.admin_count == 1, 6);
-    //     };
-    //     transfer::public_share_object(quorum);
-    //     ts::end(scenario_val);
-    // }
-
-    // TODO test 2 different senders
-    // #[test]
-    // #[expected_failure(abort_code = vec_set::EKeyAlreadyExists)]
-    // fun test_assert_admin_fail_duplicate() {
-    //     let scenario = ts::begin(QUORUM);
-    //     let sender = ts::sender(&mut scenario);
-    //     let ctx = ts::ctx(&mut scenario);
-    //     let quorum: Quorum<Foo> = quorum::create(&Foo {}, vec_set::empty(), vec_set::empty(), vec_set::empty(), ctx);
-
-    //     quorum::vote_add_admin(&mut quorum, sender, ctx);
-    //     quorum::vote_add_admin(&mut quorum, sender, ctx);
-    //     quorum::assert_admin(&quorum, ctx);
-
-    //     transfer::public_share_object(quorum);
-    //     ts::end(scenario);
-    // }
-
-   
-   #[test]
-    fun test_add_admin_with_extension_success() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
-        let admins = utils::vec_set_from_vec(&vector[sender]);
-        let ctx = ts::ctx(&mut scenario);
-        let (quorum, ext_token) = create_for_extension(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);
-
-        add_admin_with_extension(&mut quorum, &ext_token, ADMIN_ADDR_1);
-
-        assert!(vec_set::contains(&quorum.admins, &sender), 1);
-        assert!(vec_set::contains(&quorum.admins, &ADMIN_ADDR_1), 2);
-        assert!(quorum.admin_count == 2, 3);
-
-        // consume extension token
-        let ExtensionToken { quorum_id: _ } = ext_token;
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    // === Delegate Functions Tests ===
-     fun test_vote_add_delegate_success() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
-        let admins = utils::vec_set_from_vec(&vector[sender]);
-        let delegate_uid_1 = ts::new_object(&mut scenario);
-        let delegate_inner_id_1 = object::uid_to_inner(&delegate_uid_1);
-
-        let ctx = ts::ctx(&mut scenario);
-        let quorum: Quorum<Foo> = create(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);    
-
-        vote_add_delegate(&mut quorum, delegate_inner_id_1, ctx);
-
-        assert!(vec_set::contains(&quorum.delegates, &delegate_inner_id_1), 1);
-
-        object::delete(delegate_uid_1);
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = ENotAnAdmin)]
-    fun test_vote_add_delegate_fail() {
-        use sui::test_scenario as ts;
-
-        let scenario = ts::begin(QUORUM);
-        let delegate_uid_1 = ts::new_object(&mut scenario);
-        let delegate_inner_id_1 = object::uid_to_inner(&delegate_uid_1);
-        let ctx = ts::ctx(&mut scenario);
-        let quorum: Quorum<Foo> = create(&Foo {}, vec_set::empty(), vec_set::empty(), vec_set::empty(), ctx);    
-
-        vote_add_delegate(&mut quorum, delegate_inner_id_1, ctx);
-
-        object::delete(delegate_uid_1);
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
-    }
-
-    #[test]
-    fun test_vote_remove_delegate_success() {
-        use sui::test_scenario as ts;
-        use ob_utils::utils::{Self};
-
-        let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
-        let admins = utils::vec_set_from_vec(&vector[sender]); 
-
-        let delegate_uid_1 = ts::new_object(&mut scenario);
-        let delegate_inner_id_1 = object::uid_to_inner(&delegate_uid_1);
-        let delegates = utils::vec_set_from_vec(&vector[delegate_inner_id_1]);
-
-        let ctx = ts::ctx(&mut scenario);
-        let quorum: Quorum<Foo> = create(&Foo {}, admins, vec_set::empty(), delegates, ctx);    
-
-        vote_remove_delegate(&mut quorum, delegate_inner_id_1, ctx);
-
-        assert!(!vec_set::contains(&quorum.delegates, &delegate_inner_id_1), 1);
-
-        object::delete(delegate_uid_1);
-        transfer::public_share_object(quorum);
-        ts::end(scenario);
+        object::delete(id);
     }
 }
