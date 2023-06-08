@@ -41,7 +41,7 @@ module ob_request::request {
     use ob_request::ob_request::OB_REQUEST;
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -204,7 +204,7 @@ module ob_request::request {
     public fun enforce_rule<P, Rule, State: store>(
         self: &mut Policy<P>, cap: &PolicyCap, state: State,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
 
         assert!(object::id(self) == cap.for, ENotAllowed);
         df::add(&mut self.id, RuleStateDfKey<Rule> {}, state);
@@ -216,7 +216,7 @@ module ob_request::request {
     public fun enforce_rule_no_state<P, Rule>(
         self: &mut Policy<P>, cap: &PolicyCap,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(object::id(self) == cap.for, ENotAllowed);
         df::add(&mut self.id, RuleStateDfKey<Rule> {}, true);
         vec_set::insert(&mut self.rules, type_name::get<Rule>());
@@ -226,7 +226,7 @@ module ob_request::request {
     public fun drop_rule<P, Rule, State: store>(
         self: &mut Policy<P>, cap: &PolicyCap,
     ): State {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(object::id(self) == cap.for, ENotAllowed);
         vec_set::remove(&mut self.rules, &type_name::get<Rule>());
         df::remove(&mut self.id, RuleStateDfKey<Rule> {})
@@ -236,7 +236,7 @@ module ob_request::request {
     public fun drop_rule_no_state<P, Rule>(
         self: &mut Policy<P>, cap: &PolicyCap,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(object::id(self) == cap.for, ENotAllowed);
         vec_set::remove(&mut self.rules, &type_name::get<Rule>());
         assert!(df::remove(&mut self.id, RuleStateDfKey<Rule> {}), 0);
@@ -251,7 +251,7 @@ module ob_request::request {
     public fun rule_state_mut<P, Rule: drop, State: store + drop>(
         self: &mut Policy<P>, _: Rule,
     ): &mut State {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         df::borrow_mut(&mut self.id, RuleStateDfKey<Rule> {})
     }
 
@@ -264,7 +264,7 @@ module ob_request::request {
     }
 
     public fun policy_metadata_mut<P>(policy: &mut Policy<P>): &mut UID {
-        assert_version(policy);
+        assert_version_and_upgrade(policy);
 
         &mut policy.id
     }
@@ -301,6 +301,13 @@ module ob_request::request {
 
     fun assert_version<P>(policy: &Policy<P>) {
         assert!(policy.version == VERSION, EWrongVersion);
+    }
+
+    fun assert_version_and_upgrade<P>(self: &mut Policy<P>) {
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
+        assert_version(self);
     }
 
     entry fun migrate<P>(policy: &mut Policy<P>, cap: &PolicyCap) {

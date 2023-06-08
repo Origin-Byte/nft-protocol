@@ -14,6 +14,10 @@ git = "https://github.com/Origin-Byte/originmate.git"
 # testnet-1.0.0
 rev = "36e02283fa00451e8476a1bbc201af9a248396de"
 
+[dependencies.Critbit]
+git = "https://github.com/Origin-Byte/critbit.git"
+rev = "v1.0.1-mainnet"
+
 [dependencies.Permissions]
 local = "./../permissions"
 

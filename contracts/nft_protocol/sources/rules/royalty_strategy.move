@@ -18,11 +18,11 @@ module nft_protocol::royalty_strategy_bps {
     use nft_protocol::royalty::{Self, RoyaltyDomain};
     use ob_utils::utils;
     use ob_utils::math;
-    use ob_request_extensions::fee_balance;
 
     // Track the current version of the module
-    const VERSION: u64 = 2;
+    const VERSION: u64 = 3;
 
+    const EDeprecatedApi: u64 = 998;
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
@@ -92,7 +92,7 @@ module nft_protocol::royalty_strategy_bps {
         self: &mut BpsRoyaltyStrategy<T>,
         cap: BalanceAccessCap<T>,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
 
         self.access_cap = option::some(cap);
     }
@@ -101,7 +101,7 @@ module nft_protocol::royalty_strategy_bps {
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         self.access_cap = option::none();
     }
 
@@ -109,7 +109,7 @@ module nft_protocol::royalty_strategy_bps {
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         self.is_enabled = true;
     }
 
@@ -118,7 +118,7 @@ module nft_protocol::royalty_strategy_bps {
         _witness: DelegatedWitness<T>,
         self: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         self.is_enabled = false;
     }
 
@@ -148,7 +148,7 @@ module nft_protocol::royalty_strategy_bps {
     public fun collect_royalties<T, FT>(
         collection: &mut Collection<T>, strategy: &mut BpsRoyaltyStrategy<T>,
     ) {
-        assert_version(strategy);
+        assert_version_and_upgrade(strategy);
 
         let balance = balances::borrow_mut(&mut strategy.aggregator);
         let amount = balance::value(balance);
@@ -160,14 +160,13 @@ module nft_protocol::royalty_strategy_bps {
         self: &mut BpsRoyaltyStrategy<T>,
         req: &mut TransferRequest<T>,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(self.is_enabled, ENotEnabled);
-        assert!(!fee_balance::has_fees<T>(req), ETransferRequestHasFeeBalance);
 
         let cap = option::borrow(&self.access_cap);
         let (paid, _) = transfer_request::paid_in_ft_mut<T, FT>(req, cap);
-        let royalty_amount = calculate(self, balance::value(paid));
-        balances::take_from(&mut self.aggregator, paid, royalty_amount);
+        let fee_amount = calculate(self, balance::value(paid));
+        balances::take_from(&mut self.aggregator, paid, fee_amount);
 
         transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
@@ -179,9 +178,8 @@ module nft_protocol::royalty_strategy_bps {
         req: &mut TransferRequest<T>,
         wallet: &mut Balance<FT>,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(self.is_enabled, ENotEnabled);
-        assert!(!fee_balance::has_fees<T>(req), ETransferRequestHasFeeBalance);
 
         let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
         let fee_amount = calculate(self, paid);
@@ -192,56 +190,22 @@ module nft_protocol::royalty_strategy_bps {
 
     /// Uses the balance associated with the request to deduct royalty.
     public fun confirm_transfer_with_fees<T, FT>(
-        self: &mut BpsRoyaltyStrategy<T>,
-        req: &mut TransferRequest<T>,
-        ctx: &mut TxContext,
+        _self: &mut BpsRoyaltyStrategy<T>,
+        _req: &mut TransferRequest<T>,
+        _ctx: &mut TxContext,
     ) {
-        assert_version(self);
-        assert!(self.is_enabled, ENotEnabled);
-
-        let cap = option::borrow(&self.access_cap);
-        let (paid, _) = transfer_request::paid_in_ft_mut<T, FT>(req, cap);
-        let royalty_amount = calculate(self, balance::value(paid));
-        balances::take_from(&mut self.aggregator, paid, royalty_amount);
-
-        // Deduct royalty from fees if any
-        if (fee_balance::has_fees<T>(req)) {
-            let (fee_paid , _) = fee_balance::paid_in_fees_mut<T, FT>(req, cap);
-            let royalty_amount = calculate(self, balance::value(fee_paid));
-            balances::take_from(&mut self.aggregator, fee_paid, royalty_amount);
-
-            fee_balance::distribute_fee_to_intermediary<T, FT>(req, ctx);
-        };
-
-        transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
+        abort(EDeprecatedApi)
     }
 
     /// Instead of using the balance associated with the `TransferRequest`,
     /// pay the royalty in the given token.
     public fun confirm_transfer_with_balance_with_fees<T, FT>(
-        self: &mut BpsRoyaltyStrategy<T>,
-        req: &mut TransferRequest<T>,
-        wallet: &mut Balance<FT>,
-        ctx: &mut TxContext,
+        _self: &mut BpsRoyaltyStrategy<T>,
+        _req: &mut TransferRequest<T>,
+        _wallet: &mut Balance<FT>,
+        _ctx: &mut TxContext,
     ) {
-        assert_version(self);
-        assert!(self.is_enabled, ENotEnabled);
-
-        let (paid, _) = transfer_request::paid_in_ft<T, FT>(req);
-        let fee_amount = calculate(self, paid);
-        balances::take_from(&mut self.aggregator, wallet, fee_amount);
-
-        // Deduct royalty from fees if any
-        if (fee_balance::has_fees<T>(req)) {
-            let cap = option::borrow(&self.access_cap);
-            let (fee_paid , _) = fee_balance::paid_in_fees_mut<T, FT>(req, cap);
-            let royalty_amount = calculate(self, balance::value(fee_paid));
-            balances::take_from(&mut self.aggregator, fee_paid, royalty_amount);
-
-            fee_balance::distribute_fee_to_intermediary<T, FT>(req, ctx);
-        };
-
-        transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
+        abort(EDeprecatedApi)
     }
 
     public fun royalty_fee_bps<T>(self: &BpsRoyaltyStrategy<T>): u16 {
@@ -294,6 +258,13 @@ module nft_protocol::royalty_strategy_bps {
 
     fun assert_version<T>(self: &BpsRoyaltyStrategy<T>) {
         assert!(self.version == VERSION, EWrongVersion);
+    }
+
+    fun assert_version_and_upgrade<T>(self: &mut BpsRoyaltyStrategy<T>) {
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
+        assert_version(self);
     }
 
     // Only the publisher of type `T` can upgrade

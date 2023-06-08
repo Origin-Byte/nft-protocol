@@ -209,7 +209,7 @@ module ob_launchpad::dutch_auction {
     ) {
         // TODO: Consider an entrypoint to be called by the Marketplace instead of
         // the listing admin
-        listing::assert_listing_admin(listing, ctx);
+        listing::assert_listing_admin_or_member(listing, ctx);
 
         let venue = listing::venue_internal_mut<DutchAuctionMarket<FT>, MarketKey>(
             listing, MarketKey {}, venue_id
@@ -234,7 +234,7 @@ module ob_launchpad::dutch_auction {
     ) {
         // TODO: Consider an entrypoint to be called by the Marketplace instead
         // of the listing admin
-        listing::assert_listing_admin(listing, ctx);
+        listing::assert_listing_admin_or_member(listing, ctx);
 
         // Determine how much inventory there is to sell
         let market = borrow_market<FT>(listing::borrow_venue(listing, venue_id));

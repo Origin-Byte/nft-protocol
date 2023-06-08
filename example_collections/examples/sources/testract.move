@@ -196,7 +196,7 @@ module examples::testract {
     /// Store orderbook object ID.
     public entry fun create_orderbook(transfer_policy: &TransferPolicy<TestNft>, ctx: &mut TxContext) {
         let dw = witness::from_witness(Witness {});
-        let book = orderbook::new_unprotected<TestNft, SUI>(dw, transfer_policy, ctx);
+        let book = orderbook::new_unprotected<TestNft, SUI>(dw, transfer_policy, true, ctx);
         orderbook::change_tick_size_with_witness(dw, &mut book, 1);
         transfer::public_share_object(book);
     }

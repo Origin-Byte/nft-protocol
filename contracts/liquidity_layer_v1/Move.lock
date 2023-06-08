@@ -7,10 +7,10 @@ dependencies = [
   { name = "Allowlist" },
   { name = "Authlist" },
   { name = "Kiosk" },
+  { name = "LiquidityLayer" },
   { name = "Originmate" },
   { name = "Permissions" },
   { name = "Request" },
-  { name = "RequestExtensions" },
   { name = "Sui" },
   { name = "Utils" },
 ]
@@ -34,6 +34,14 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Critbit"
+source = { git = "https://github.com/Origin-Byte/critbit.git", rev = "v1.0.1-mainnet", subdir = "" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
 name = "Kiosk"
 source = { local = "../kiosk" }
 
@@ -41,6 +49,21 @@ dependencies = [
   { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
+]
+
+[[move.package]]
+name = "LiquidityLayer"
+source = { local = "../liquidity_layer" }
+
+dependencies = [
+  { name = "Allowlist" },
+  { name = "Authlist" },
+  { name = "Critbit" },
+  { name = "Kiosk" },
+  { name = "Permissions" },
+  { name = "Request" },
+  { name = "Sui" },
+  { name = "Utils" },
 ]
 
 [[move.package]]
@@ -78,16 +101,6 @@ source = { local = "../request" }
 
 dependencies = [
   { name = "Permissions" },
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "RequestExtensions"
-source = { local = "../request_extensions" }
-
-dependencies = [
-  { name = "Permissions" },
-  { name = "Request" },
   { name = "Sui" },
 ]
 

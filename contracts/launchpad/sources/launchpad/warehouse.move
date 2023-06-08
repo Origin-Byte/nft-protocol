@@ -284,7 +284,7 @@ module ob_launchpad::warehouse {
         ctx: &mut TxContext,
     ): RedeemCommitment {
         assert!(
-            vector::length(&hashed_sender_commitment) != 32,
+            vector::length(&hashed_sender_commitment) == 32,
             EInvalidCommitmentLength,
         );
 

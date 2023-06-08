@@ -274,7 +274,7 @@ module ob_launchpad::test_english_auction {
     }
 
     #[test]
-    #[expected_failure(abort_code = listing::EWrongAdmin)]
+    #[expected_failure(abort_code = listing::EWrongAdminNoMembers)]
     fun try_conclude_auction() {
         let scenario = test_scenario::begin(CREATOR);
         let listing = init_listing(CREATOR, &mut scenario);

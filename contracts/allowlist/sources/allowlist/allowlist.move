@@ -32,7 +32,7 @@ module ob_allowlist::allowlist {
     use sui::tx_context::{Self, TxContext};
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -165,7 +165,7 @@ module ob_allowlist::allowlist {
 
     /// Delete `Allowlist`
     public entry fun delete_allowlist(allowlist: Allowlist) {
-        assert_version(&allowlist);
+        assert_version_and_upgrade(&mut allowlist);
 
         let Allowlist { id, version: _, admin_witness: _, authorities: _ } = allowlist;
         object::delete(id);
@@ -222,7 +222,7 @@ module ob_allowlist::allowlist {
         self: &mut Allowlist,
         collection_pub: &Publisher,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert_publisher<T>(collection_pub);
 
         insert_collection_<T>(self)
@@ -245,14 +245,14 @@ module ob_allowlist::allowlist {
         self: &mut Allowlist,
         collection_pub: &Publisher,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert_publisher<T>(collection_pub);
         remove_collection_<T>(self)
     }
 
     /// Register collection and provide error reporting
     public entry fun remove_collection_<T>(self: &mut Allowlist) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
 
         let collection_type = type_name::get<T>();
         assert_collection(self, collection_type);
@@ -276,7 +276,7 @@ module ob_allowlist::allowlist {
         cap: &AllowlistOwnerCap,
         self: &mut Allowlist,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert_cap(self, cap);
 
         insert_authority_<Auth>(self)
@@ -292,7 +292,7 @@ module ob_allowlist::allowlist {
         _witness: Admin,
         self: &mut Allowlist,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert_admin_witness<Admin>(self);
 
         insert_authority_<Auth>(self)
@@ -315,7 +315,7 @@ module ob_allowlist::allowlist {
         cap: &AllowlistOwnerCap,
         self: &mut Allowlist,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert_cap(self, cap);
 
         remove_authority_<Auth>(self)
@@ -331,7 +331,7 @@ module ob_allowlist::allowlist {
         _witness: Admin,
         self: &mut Allowlist,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert_admin_witness<Admin>(self);
 
         remove_authority_<Auth>(self)
@@ -408,7 +408,6 @@ module ob_allowlist::allowlist {
     /// Panics if neither `T` is not transferrable or `Auth` is not a
     /// valid authority.
     public fun assert_transferable(allowlist: &Allowlist, collection: TypeName, auth: &TypeName) {
-        // TODO: add --> assert_version(allowlist);
         assert_collection(allowlist, collection);
         assert_authority(allowlist, auth);
     }
@@ -438,6 +437,13 @@ module ob_allowlist::allowlist {
 
     fun assert_version(allowlist: &Allowlist) {
         assert!(allowlist.version == VERSION, EWrongVersion);
+    }
+
+    fun assert_version_and_upgrade(self: &mut Allowlist) {
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
+        assert_version(self);
     }
 
     entry fun migrate(allowlist: &mut Allowlist, cap: &AllowlistOwnerCap) {

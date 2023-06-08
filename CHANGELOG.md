@@ -6,8 +6,30 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
 
-## [1.1.0] - 2023-04-29
+## Added
+- Added ability for an entity to delegate a transfer auth signature via `ob_kiosk::ob_kiosk::delegate_exclusive_auth`
+
+### Changed
+- Reverted royalty calculation over ask commission, as there was a certain risk of losing
+  funds if the transaction was incorrectly orchestrated on the client side. Deprecates previously added `nft_protocol::royalty_strategy_bps::confirm_transfer_with_fees`.
+- Orderbook shared objects are now upgraded on the fly
+- Reverted `UID` transfer signer pattern previously introduced in the LiquidityLayer V2, in favor of adding `ob_kiosk::ob_kiosk::delegate_exclusive_auth`
+- Implemented migration methods for migrating `liquidity_layer_v1::orderbook::Orderbook` to `liquidity_layer::orderbook::Orderbook`
+
+## [1.1.0-mainnet] - 2023-05-10
+
+### Added
+- Added `listing::admin_redeem_nft` to allow administrators to collect back NFTs that were sold
+- Added `fee_balance` modules in new Request Extensions package. Adds fees as balance from a trade as a dynamic field to `TransferRequest`. Adding this module to a separate package avoids having to upgrade request package as well and by consequence upgrading all OB Kiosk objects.
+- Deployed LiquidityLayer with a new Transfer Signer pattern. In a nutshell we had transfer_signer &UID to the struct in order to sign kiosk transfer authorisations. This allows for smooth future migrations as the UID can be detached from the old Orderbook into a new Orderbook struct.
+
+### Changed
+- `royalty::distribute_royalties` is now an entry function thus allowing creators to more easily collect proceeds
+- Royalties are now calculated not only on the net-trade amount but also on the ask-commission amount. This means that to collect fees, the client must call `royalty_strategy::confirm_transfer_with_fees` or `royalty_strategy::confirm_transfer_with_balance_with_fees`
+
+## [1.0.0-mainnet] - 2023-04-29
 
 ### Added
 - Init Orderbook tests

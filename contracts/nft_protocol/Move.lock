@@ -11,7 +11,6 @@ dependencies = [
   { name = "Permissions" },
   { name = "Pseudorandom" },
   { name = "Request" },
-  { name = "RequestExtensions" },
   { name = "Sui" },
   { name = "Utils" },
 ]
@@ -79,16 +78,6 @@ source = { local = "../request" }
 
 dependencies = [
   { name = "Permissions" },
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "RequestExtensions"
-source = { local = "../request_extensions" }
-
-dependencies = [
-  { name = "Permissions" },
-  { name = "Request" },
   { name = "Sui" },
 ]
 

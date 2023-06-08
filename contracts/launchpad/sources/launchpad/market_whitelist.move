@@ -38,7 +38,7 @@ module ob_launchpad::market_whitelist {
         venue_id: ID,
         ctx: &mut TxContext,
     ): Certificate {
-        listing::assert_listing_admin(listing, ctx);
+        listing::assert_listing_admin_or_member(listing, ctx);
         listing::assert_venue(listing, venue_id);
 
         let certificate = Certificate {
