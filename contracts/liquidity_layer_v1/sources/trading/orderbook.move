@@ -35,6 +35,7 @@ module liquidity_layer_v1::orderbook {
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_field as df;
     use sui::clock::{Self, Clock};
+    use sui::vec_set::{Self, VecSet};
 
     use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use ob_kiosk::ob_kiosk;
@@ -113,6 +114,12 @@ module liquidity_layer_v1::orderbook {
     /// Trying to enable an time-locked orderbook before its start time
     const EOrderbookTimeLocked: u64 = 14;
 
+    /// Trying to disable the start time when and orderbook is not time-locked
+    const EOrderbookNotTimeLocked: u64 = 15;
+
+    /// Tried to call administrator protected endpoint while not administrator
+    const ENotAdministrator: u64 = 16;
+
     // === Structs ===
 
     /// Add this witness type to allowlists via
@@ -127,6 +134,7 @@ module liquidity_layer_v1::orderbook {
     struct TimeLockDfKey has copy, store, drop {}
     struct UnderMigrationToDfKey has copy, drop, store {}
     struct IsDeprecatedDfKey has copy, drop, store {}
+    struct AdministratorsDfKey has copy, store, drop {}
 
     /// A critbit order book implementation. Contains two ordered trees:
     /// 1. bids ASC
@@ -769,6 +777,7 @@ module liquidity_layer_v1::orderbook {
         ob_id
     }
 
+    /// Creates an empty shared orderbook for a non-OriginByte transfer policy
     public fun create_for_external<T: key + store, FT>(
         transfer_policy: &TransferPolicy<T>,
         ctx: &mut TxContext
@@ -802,6 +811,12 @@ module liquidity_layer_v1::orderbook {
         }
     }
 
+    public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
+        share_object(ob);
+    }
+
+    // === Administration endpoints ===
+
     public fun change_tick_size<T: key + store, FT>(
         _witness: DelegatedWitness<T>,
         book: &mut Orderbook<T, FT>,
@@ -811,10 +826,6 @@ module liquidity_layer_v1::orderbook {
         assert!(new_tick < book.tick_size, 0);
 
         book.tick_size = new_tick;
-    }
-
-    public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
-        share_object(ob);
     }
 
     /// Settings where all endpoints can be called as entry point functions.
@@ -835,7 +846,7 @@ module liquidity_layer_v1::orderbook {
         }
     }
 
-    /// Change protection level of an existing orderbook.
+    /// Change protection level of an existing orderbook
     public fun set_protection<T: key + store, FT>(
         _witness: DelegatedWitness<T>,
         ob: &mut Orderbook<T, FT>,
@@ -844,6 +855,45 @@ module liquidity_layer_v1::orderbook {
         set_protection_(ob, protected_actions)
     }
 
+    /// Change protection level of existing orderbook
+    public entry fun set_protection_as_publisher<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+        buy_nft: bool,
+        create_ask: bool,
+        create_bid: bool,
+    ) {
+        set_protection(
+            witness::from_publisher(publisher),
+            orderbook,
+            custom_protection(buy_nft, create_ask, create_bid)
+        );
+    }
+
+    /// Change protection level of existing orderbook as administrator
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not an administrator.
+    public entry fun set_protection_as_administrator<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        buy_nft: bool,
+        create_ask: bool,
+        create_bid: bool,
+        ctx: &mut TxContext,
+    ) {
+        assert_administrator(orderbook, &tx_context::sender(ctx));
+        set_protection_(orderbook, custom_protection(buy_nft, create_ask, create_bid))
+    }
+
+    /// Set time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// Start time can be cancelled by calling `remove_start_time`.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if publisher does not correspond to type `T`
     public entry fun set_start_time<T: key + store, FT>(
         publisher: &Publisher,
         orderbook: &mut Orderbook<T, FT>,
@@ -854,11 +904,40 @@ module liquidity_layer_v1::orderbook {
         )
     }
 
+    /// Set time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// Start time can be cancelled by calling `set_protection`.
     public fun set_start_time_with_witness<T: key + store, FT>(
         _witness: DelegatedWitness<T>,
         orderbook: &mut Orderbook<T, FT>,
         start_time: u64,
     ) {
+        set_start_time_(orderbook, start_time)
+    }
+
+    /// Set time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not an administrator.
+    public entry fun set_start_time_as_administrator<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        start_time: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert_administrator(orderbook, &tx_context::sender(ctx));
+        set_start_time_(orderbook, start_time)
+    }
+
+    /// Set start time for `Orderbook`
+    fun set_start_time_<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        start_time: u64,
+    ) {
+        assert_version_and_upgrade(orderbook);
+
         if (df::exists_(&mut orderbook.id, TimeLockDfKey {})) {
             let time = df::borrow_mut(&mut orderbook.id, TimeLockDfKey {});
             *time = start_time
@@ -867,7 +946,74 @@ module liquidity_layer_v1::orderbook {
         };
     }
 
-    /// Method for permissionlessly unlock trading whenever the opening
+    /// Removes time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if publisher does not correspond to type `T`
+    /// Panics if start time is not set
+    public entry fun remove_start_time<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        remove_start_time_with_witness(
+            witness::from_publisher(publisher), orderbook,
+        )
+    }
+
+    /// Removes time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if start time is not set
+    public fun remove_start_time_with_witness<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        remove_start_time_(orderbook)
+    }
+
+    /// Removes time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not an administrator.
+    public entry fun remove_start_time_as_administrator<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        ctx: &mut TxContext,
+    ) {
+        assert_administrator(orderbook, &tx_context::sender(ctx));
+        remove_start_time_(orderbook)
+    }
+
+    /// Set start time for `Orderbook`
+    fun remove_start_time_<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        assert_version_and_upgrade(orderbook);
+        assert!(df::exists_(&mut orderbook.id, TimeLockDfKey {}), EOrderbookNotTimeLocked);
+
+        // Cancels start time
+        let _start_time: u64 = df::remove(&mut orderbook.id, TimeLockDfKey {});
+    }
+
+    /// Method to enable trading on orderbook
+    ///
+    /// ### Panics
+    ///
+    /// Panics if publisher does not correspond to `Orderbook` type `T`.
+    public entry fun enable_orderbook<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        let delegated_witness = witness::from_publisher(publisher);
+        set_protection(delegated_witness, orderbook, no_protection());
+    }
+
+    /// Method to permissionlessly enable trading whenever the opening
     /// time starts.
     ///
     /// #### Panics
@@ -879,26 +1025,175 @@ module liquidity_layer_v1::orderbook {
         clock: &Clock
     ) {
         let start_time = df::borrow(&orderbook.id, TimeLockDfKey {});
-
         assert!(clock::timestamp_ms(clock) >= *start_time, EOrderbookTimeLocked);
 
-        set_protection_(
-            orderbook, no_protection(),
+        set_protection_(orderbook, no_protection());
+    }
+
+    /// Method to enable trading on orderbook as administrator
+    ///
+    /// ### Panics
+    ///
+    /// Panics if publisher does not correspond to `Orderbook` type `T` or
+    /// transaction sender was not administrator.
+    public entry fun enable_orderbook_as_administrator<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        ctx: &mut TxContext,
+    ) {
+        assert_administrator(orderbook, &tx_context::sender(ctx));
+        set_protection_(orderbook, no_protection())
+    }
+
+    /// Method to disable trading on orderbook
+    ///
+    /// ### Panics
+    ///
+    /// Panics if publisher does not correspond to `Orderbook` type `T`.
+    public entry fun disable_orderbook<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        let delegated_witness = ob_permissions::witness::from_publisher(publisher);
+        set_protection(
+            delegated_witness, orderbook, custom_protection(true, true, true),
         );
     }
 
-    fun assert_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
-        assert!(df::exists_(&self.id, UnderMigrationToDfKey {}), ENotUnderMigration);
+    /// Method to disable trading on orderbook as administrator
+    ///
+    /// ### Panics
+    ///
+    /// Panics if publisher does not correspond to `Orderbook` type `T` or
+    /// transaction sender was not administrator.
+    public entry fun disable_orderbook_as_administrator<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        ctx: &mut TxContext,
+    ) {
+        assert_administrator(orderbook, &tx_context::sender(ctx));
+        set_protection_(orderbook, custom_protection(true, true, true))
     }
 
-    fun assert_not_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
-        assert!(!df::exists_(&self.id, UnderMigrationToDfKey {}), EUnderMigration);
+    /// Sets endpoint permissions on orderbook
+    fun set_protection_<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        protected_actions: WitnessProtectedActions,
+    ) {
+        assert_not_under_migration(orderbook);
+        assert_version_and_upgrade(orderbook);
+
+        orderbook.protected_actions = protected_actions;
     }
 
-    fun assert_orderbook_v2<T: key + store, FT>(book_v1: &Orderbook<T, FT>, book_v2: &OrderbookV2<T, FT>) {
-        let book_v2_id = df::borrow(&book_v1.id, UnderMigrationToDfKey {});
+    // === Administrator management ===
 
-        assert!(object::id(book_v2) == *book_v2_id, EIncorrectOrderbookV2);
+    /// Add administrator to `Orderbook`
+    ///
+    /// Administrators can change orderbook protections.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if publisher does not correspond to orderbook type `T` or
+    /// address is already an administrator.
+    public entry fun add_administrator<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+        administrator: address,
+    ) {
+        add_administrator_with_witness(
+            witness::from_publisher(publisher), orderbook, administrator
+        )
+    }
+
+    /// Add administrator to `Orderbook`
+    ///
+    /// Administrators can change orderbook protections.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if address is already an administrator.
+    public fun add_administrator_with_witness<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+        administrator: address,
+    ) {
+        assert_version_and_upgrade(orderbook);
+
+        let administrators = borrow_administrators_mut_or_create(witness, orderbook);
+        vec_set::insert(administrators, administrator);
+    }
+
+    /// Remove administrator from `Orderbook`
+    ///
+    /// Administrators can change orderbook protections.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if publisher does not correspond to orderbook type `T` or
+    /// address was not an administrator.
+    public entry fun remove_administrator<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+        administrator: address,
+    ) {
+        remove_administrator_with_witness(
+            witness::from_publisher(publisher), orderbook, &administrator
+        )
+    }
+
+    /// Remove administrator from `Orderbook`
+    ///
+    /// Administrators can change orderbook protections.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if address was not an administrator.
+    public fun remove_administrator_with_witness<T: key + store, FT>(
+        witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+        administrator: &address,
+    ) {
+        assert_version_and_upgrade(orderbook);
+        let administrators = borrow_administrators_mut_or_create(witness, orderbook);
+        vec_set::remove(administrators, administrator);
+    }
+
+    /// Borrow list of administrators from `Orderbook`
+    ///
+    /// Administrators can change orderbook protections.
+    fun borrow_administrators_mut_or_create<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+    ): &mut VecSet<address> {
+        if (!df::exists_(&mut orderbook.id, AdministratorsDfKey {})) {
+            df::add(&mut orderbook.id, AdministratorsDfKey {}, vec_set::empty<address>());
+        };
+
+        df::borrow_mut(&mut orderbook.id, AdministratorsDfKey {})
+    }
+
+    /// Returns whether address is an administrator
+    public fun is_administrator<T: key + store, FT>(
+        orderbook: &Orderbook<T, FT>,
+        administrator: &address,
+    ): bool {
+        if (df::exists_(&orderbook.id, AdministratorsDfKey {})) {
+            let administrators = df::borrow(&orderbook.id, AdministratorsDfKey {});
+            vec_set::contains(administrators, administrator)
+        } else {
+            false
+        }
+    }
+
+    /// Asserts that address is an administrator
+    ///
+    /// #### Panics
+    ///
+    /// Panics if address is not an administrator.
+    public fun assert_administrator<T: key + store, FT>(
+        orderbook: &Orderbook<T, FT>,
+        administrator: &address,
+    ) {
+        assert!(is_administrator(orderbook, administrator), ENotAdministrator);
     }
 
     // === Getters ===
@@ -947,6 +1242,10 @@ module liquidity_layer_v1::orderbook {
         df::borrow(
             &book.id, TradeIntermediateDfKey<T, FT> { trade_id }
         )
+    }
+
+    public fun start_time<T: key + store, FT>(book: &Orderbook<T, FT>): u64 {
+        *df::borrow(&book.id, TimeLockDfKey {})
     }
 
     // === Priv fns ===
@@ -1544,15 +1843,6 @@ module liquidity_layer_v1::orderbook {
         price >= tick_size
     }
 
-    fun set_protection_<T: key + store, FT>(
-        ob: &mut Orderbook<T, FT>,
-        protected_actions: WitnessProtectedActions,
-    ) {
-        assert_not_under_migration(ob);
-        assert_version_and_upgrade(ob);
-        ob.protected_actions = protected_actions;
-    }
-
     // === Migration ===
 
     public fun finish_migration_to_v2<T: key + store, FT>(
@@ -1566,7 +1856,6 @@ module liquidity_layer_v1::orderbook {
 
         df::add(&mut book.id, IsDeprecatedDfKey {}, true);
     }
-
 
     public fun start_migration_to_v2<T: key + store, FT>(
         witness: DelegatedWitness<T>,
@@ -1701,6 +1990,19 @@ module liquidity_layer_v1::orderbook {
         } = ask;
 
         (price, seller, nft_id, kiosk_id, ask_commission)
+    }
+
+    fun assert_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
+        assert!(df::exists_(&self.id, UnderMigrationToDfKey {}), ENotUnderMigration);
+    }
+
+    fun assert_not_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
+        assert!(!df::exists_(&self.id, UnderMigrationToDfKey {}), EUnderMigration);
+    }
+
+    fun assert_orderbook_v2<T: key + store, FT>(book_v1: &Orderbook<T, FT>, book_v2: &OrderbookV2<T, FT>) {
+        let book_v2_id = df::borrow(&book_v1.id, UnderMigrationToDfKey {});
+        assert!(object::id(book_v2) == *book_v2_id, EIncorrectOrderbookV2);
     }
 
     // === Upgradeability ===

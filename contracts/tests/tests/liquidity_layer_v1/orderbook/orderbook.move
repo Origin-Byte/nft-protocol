@@ -1813,6 +1813,7 @@ module ob_tests::orderbook_v1 {
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
+
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
         transfer::public_share_object(collection);
@@ -1888,6 +1889,73 @@ module ob_tests::orderbook_v1 {
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
+
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun delegate_to_admin() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        let ob = orderbook::new_with_protected_actions<Foo, SUI>(
+            dw,
+            &tx_policy,
+            orderbook::no_protection(),
+            ctx(&mut scenario)
+        );
+
+        orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
+        orderbook::share(ob);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 2. Insert administrator
+        test_scenario::next_tx(&mut scenario, creator());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+
+        orderbook::add_administrator_with_witness(dw, &mut book, marketplace());
+
+        // 3. Disable orderbook
+        test_scenario::next_tx(&mut scenario, marketplace());
+
+        orderbook::disable_orderbook_as_administrator(&mut book, ctx(&mut scenario));
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(orderbook::is_create_ask_protected(actions), 0);
+        assert!(orderbook::is_create_bid_protected(actions), 0);
+        assert!(orderbook::is_buy_nft_protected(actions), 0);
+
+        // 3. Disable orderbook
+        orderbook::enable_orderbook_as_administrator(&mut book, ctx(&mut scenario));
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(!orderbook::is_create_ask_protected(actions), 0);
+        assert!(!orderbook::is_create_bid_protected(actions), 0);
+        assert!(!orderbook::is_buy_nft_protected(actions), 0);
+
+        // 3. Add time-lock
+        test_scenario::next_tx(&mut scenario, marketplace());
+        orderbook::disable_orderbook_as_administrator(&mut book, ctx(&mut scenario));
+
+        orderbook::set_start_time_as_administrator(&mut book, 1672531200000, ctx(&mut scenario));
+
+        assert!(orderbook::start_time(&book) == 1672531200000, 0);
+
+        orderbook::remove_start_time_as_administrator(&mut book, ctx(&mut scenario));
+
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
+
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
     }
