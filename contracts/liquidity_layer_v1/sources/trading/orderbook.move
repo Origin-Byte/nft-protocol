@@ -114,8 +114,11 @@ module liquidity_layer_v1::orderbook {
     /// Trying to enable an time-locked orderbook before its start time
     const EOrderbookTimeLocked: u64 = 14;
 
+    /// Trying to disable the start time when and orderbook is not time-locked
+    const EOrderbookNotTimeLocked: u64 = 15;
+
     /// Tried to call administrator protected endpoint while not administrator
-    const ENotAdministrator: u64 = 15;
+    const ENotAdministrator: u64 = 16;
 
     // === Structs ===
 
@@ -886,7 +889,7 @@ module liquidity_layer_v1::orderbook {
     /// Set time after which `enable_trading_permissionless` can be called to
     /// start trading.
     ///
-    /// Start time can be cancelled by calling `set_protection`.
+    /// Start time can be cancelled by calling `remove_start_time`.
     ///
     /// #### Panics
     ///
@@ -913,7 +916,8 @@ module liquidity_layer_v1::orderbook {
         set_start_time_(orderbook, start_time)
     }
 
-    /// Change protection level of existing orderbook as administrator
+    /// Set time after which `enable_trading_permissionless` can be called to
+    /// start trading.
     ///
     /// #### Panics
     ///
@@ -932,12 +936,68 @@ module liquidity_layer_v1::orderbook {
         orderbook: &mut Orderbook<T, FT>,
         start_time: u64,
     ) {
+        assert_version_and_upgrade(orderbook);
+
         if (df::exists_(&mut orderbook.id, TimeLockDfKey {})) {
             let time = df::borrow_mut(&mut orderbook.id, TimeLockDfKey {});
             *time = start_time
         } else {
             df::add(&mut orderbook.id, TimeLockDfKey {}, start_time);
         };
+    }
+
+    /// Removes time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if publisher does not correspond to type `T`
+    /// Panics if start time is not set
+    public entry fun remove_start_time<T: key + store, FT>(
+        publisher: &Publisher,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        remove_start_time_with_witness(
+            witness::from_publisher(publisher), orderbook,
+        )
+    }
+
+    /// Removes time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if start time is not set
+    public fun remove_start_time_with_witness<T: key + store, FT>(
+        _witness: DelegatedWitness<T>,
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        remove_start_time_(orderbook)
+    }
+
+    /// Removes time after which `enable_trading_permissionless` can be called to
+    /// start trading.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if transaction sender is not an administrator.
+    public entry fun remove_start_time_as_administrator<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+        ctx: &mut TxContext,
+    ) {
+        assert_administrator(orderbook, &tx_context::sender(ctx));
+        remove_start_time_(orderbook)
+    }
+
+    /// Set start time for `Orderbook`
+    fun remove_start_time_<T: key + store, FT>(
+        orderbook: &mut Orderbook<T, FT>,
+    ) {
+        assert_version_and_upgrade(orderbook);
+        assert!(df::exists_(&mut orderbook.id, TimeLockDfKey {}), EOrderbookNotTimeLocked);
+
+        // Cancels start time
+        let _start_time: u64 = df::remove(&mut orderbook.id, TimeLockDfKey {});
     }
 
     /// Method to enable trading on orderbook
@@ -1014,8 +1074,6 @@ module liquidity_layer_v1::orderbook {
     }
 
     /// Sets endpoint permissions on orderbook
-    ///
-    /// Cancels any start time that may have been set.
     fun set_protection_<T: key + store, FT>(
         orderbook: &mut Orderbook<T, FT>,
         protected_actions: WitnessProtectedActions,
@@ -1024,9 +1082,6 @@ module liquidity_layer_v1::orderbook {
         assert_version_and_upgrade(orderbook);
 
         orderbook.protected_actions = protected_actions;
-
-        // Cancels start time
-        let _start_time: u64 = df::remove(&mut orderbook.id, TimeLockDfKey {});
     }
 
     // === Administrator management ===
@@ -1061,6 +1116,8 @@ module liquidity_layer_v1::orderbook {
         orderbook: &mut Orderbook<T, FT>,
         administrator: address,
     ) {
+        assert_version_and_upgrade(orderbook);
+
         let administrators = borrow_administrators_mut_or_create(witness, orderbook);
         vec_set::insert(administrators, administrator);
     }
@@ -1095,6 +1152,7 @@ module liquidity_layer_v1::orderbook {
         orderbook: &mut Orderbook<T, FT>,
         administrator: &address,
     ) {
+        assert_version_and_upgrade(orderbook);
         let administrators = borrow_administrators_mut_or_create(witness, orderbook);
         vec_set::remove(administrators, administrator);
     }
