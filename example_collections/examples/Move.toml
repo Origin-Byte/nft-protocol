@@ -6,8 +6,8 @@ published-at = "0x"
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.0.0
-rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+# mainnet-1.2.1
+rev = "8b681515c0cf435df2a54198a28ab4ef574d202b"
 
 [dependencies.NftProtocol]
 local = "../../contracts/nft_protocol"
@@ -15,8 +15,8 @@ local = "../../contracts/nft_protocol"
 [dependencies.Launchpad]
 local = "../../contracts/launchpad"
 
-[dependencies.LiquidityLayer]
-local = "../../contracts/liquidity_layer"
+[dependencies.LiquidityLayerV1]
+local = "../../contracts/liquidity_layer_v1"
 
 [addresses]
 examples = "0x"

@@ -15,8 +15,8 @@ module examples::testract {
     use std::option;
     use std::string::{String, utf8};
 
-    use liquidity_layer::bidding;
-    use liquidity_layer::orderbook::{Self, Orderbook};
+    use liquidity_layer_v1::bidding;
+    use liquidity_layer_v1::orderbook::{Self, Orderbook};
     use nft_protocol::collection::{Self, Collection};
     use nft_protocol::display_info;
     use nft_protocol::mint_cap::{Self, MintCap};
@@ -38,7 +38,7 @@ module examples::testract {
     use sui::object::{Self, UID};
     use sui::package::{Self, Publisher};
     use sui::sui::SUI;
-    use sui::transfer::{Self, public_transfer, public_share_object};
+    use sui::transfer::{public_transfer, public_share_object};
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
 
@@ -196,9 +196,9 @@ module examples::testract {
     /// Store orderbook object ID.
     public entry fun create_orderbook(transfer_policy: &TransferPolicy<TestNft>, ctx: &mut TxContext) {
         let dw = witness::from_witness(Witness {});
-        let book = orderbook::new_unprotected<TestNft, SUI>(dw, transfer_policy, true, ctx);
-        orderbook::change_tick_size_with_witness(dw, &mut book, 1);
-        transfer::public_share_object(book);
+        let book = orderbook::new_unprotected<TestNft, SUI>(dw, transfer_policy, ctx);
+        orderbook::change_tick_size(dw, &mut book, 1);
+        orderbook::share(book);
     }
 
     /// Adds a few bids bid and asks.
