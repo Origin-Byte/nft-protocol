@@ -1244,6 +1244,10 @@ module liquidity_layer_v1::orderbook {
         )
     }
 
+    public fun start_time<T: key + store, FT>(book: &Orderbook<T, FT>): u64 {
+        *df::borrow(&book.id, TimeLockDfKey {})
+    }
+
     // === Priv fns ===
 
     /// * buyer kiosk must be in Originbyte ecosystem
