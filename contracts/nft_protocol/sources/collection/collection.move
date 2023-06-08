@@ -25,7 +25,7 @@ module nft_protocol::collection {
     use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -153,6 +153,8 @@ module nft_protocol::collection {
         _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
     ): &mut UID {
+        assert_version_and_upgrade(collection);
+
         &mut collection.id
     }
 
@@ -190,6 +192,8 @@ module nft_protocol::collection {
         _witness: DelegatedWitness<Domain>,
         collection: &mut Collection<C>,
     ): &mut Domain {
+        assert_version_and_upgrade(collection);
+
         assert_domain<C, Domain>(collection);
         df::borrow_mut(
             &mut collection.id,
@@ -207,6 +211,8 @@ module nft_protocol::collection {
         collection: &mut Collection<C>,
         domain: Domain,
     ) {
+        assert_version_and_upgrade(collection);
+
         assert_no_domain<C, Domain>(collection);
         df::add(
             borrow_uid_mut(witness, collection),
@@ -224,6 +230,8 @@ module nft_protocol::collection {
         _witness: DelegatedWitness<C>,
         collection: &mut Collection<C>,
     ): Domain {
+        assert_version_and_upgrade(collection);
+
         assert_domain<C, Domain>(collection);
         df::remove(
             &mut collection.id,
@@ -283,8 +291,15 @@ module nft_protocol::collection {
 
     // === Upgradeability ===
 
-    fun assert_version<T: key + store>(collection: &Collection<T>) {
+    fun assert_version<T>(collection: &Collection<T>) {
         assert!(collection.version == VERSION, EWrongVersion);
+    }
+
+    fun assert_version_and_upgrade<T>(self: &mut Collection<T>) {
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
+        assert_version(self);
     }
 
     // Only the publisher of type `T` can upgrade

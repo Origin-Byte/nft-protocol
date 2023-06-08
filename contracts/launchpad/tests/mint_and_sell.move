@@ -38,6 +38,7 @@ module ob_launchpad::mint_and_sell {
 
         // 3. Mint NFT to listing `Warehouse`
         let nft = Foo { id: object::new(ctx(&mut scenario)) };
+        let nft_id = object::id(&nft);
         listing::add_nft(&mut listing, inventory_id, nft, ctx(&mut scenario));
 
         // 5. Buy the NFT
@@ -55,13 +56,14 @@ module ob_launchpad::mint_and_sell {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         // Check NFT was transferred with correct logical owner
-        let nft = test_scenario::take_from_address<Foo>(
-            &scenario, CREATOR
-        );
-        transfer::public_transfer(nft, CREATOR);
+        let kiosk = test_scenario::take_shared<sui::kiosk::Kiosk>(&scenario);
+        assert!(sui::kiosk::owner(&kiosk) == CREATOR, 0);
+
+        ob_kiosk::ob_kiosk::assert_nft_type<Foo>(&kiosk, nft_id);
 
         // Return objects and end test
         transfer::public_transfer(wallet, CREATOR);
+        test_scenario::return_shared(kiosk);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }
@@ -77,7 +79,7 @@ module ob_launchpad::mint_and_sell {
 
         // 3. Mint NFT to `Warehouse`
         let nft = Foo { id: object::new(ctx(&mut scenario)) };
-
+        let nft_id = object::id(&nft);
         warehouse::deposit_nft(&mut warehouse, nft);
 
         // 4. Insert `Warehouse` into `Listing` and create market
@@ -110,13 +112,14 @@ module ob_launchpad::mint_and_sell {
         test_scenario::next_tx(&mut scenario, CREATOR);
 
         // Check NFT was transferred with correct logical owner
-        let nft = test_scenario::take_from_address<Foo>(
-            &scenario, CREATOR
-        );
-        transfer::public_transfer(nft, CREATOR);
+        let kiosk = test_scenario::take_shared<sui::kiosk::Kiosk>(&scenario);
+        assert!(sui::kiosk::owner(&kiosk) == CREATOR, 0);
+
+        ob_kiosk::ob_kiosk::assert_nft_type<Foo>(&kiosk, nft_id);
 
         // Return objects and end test
         transfer::public_transfer(wallet, CREATOR);
+        test_scenario::return_shared(kiosk);
         test_scenario::return_shared(listing);
         test_scenario::end(scenario);
     }

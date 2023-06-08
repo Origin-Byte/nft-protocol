@@ -38,7 +38,7 @@ module examples::testract {
     use sui::object::{Self, UID};
     use sui::package::{Self, Publisher};
     use sui::sui::SUI;
-    use sui::transfer::{public_transfer, public_share_object};
+    use sui::transfer::{Self, public_transfer, public_share_object};
     use sui::tx_context::{sender, TxContext};
     use sui::url::{Self, Url};
 
@@ -195,9 +195,10 @@ module examples::testract {
     ///
     /// Store orderbook object ID.
     public entry fun create_orderbook(transfer_policy: &TransferPolicy<TestNft>, ctx: &mut TxContext) {
-        let book = orderbook::new_unprotected<TestNft, SUI>(witness::from_witness(Witness {}), transfer_policy, ctx);
-        orderbook::change_tick_size(witness::from_witness(Witness {}), &mut book, 1);
-        orderbook::share(book);
+        let dw = witness::from_witness(Witness {});
+        let book = orderbook::new_unprotected<TestNft, SUI>(dw, transfer_policy, true, ctx);
+        orderbook::change_tick_size_with_witness(dw, &mut book, 1);
+        transfer::public_share_object(book);
     }
 
     /// Adds a few bids bid and asks.

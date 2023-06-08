@@ -35,13 +35,22 @@ module ob_launchpad::flat_fee {
         public_transfer(new(rate, ctx), tx_context::sender(ctx));
     }
 
+    /// Collect proceeds and fees
+    ///
+    /// Requires that caller is listing admin in order to protect against
+    /// rugpulls.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Listing` was not attached to the `Marketplace` or
+    /// `Marketplace` did not define a flat fee.
     public entry fun collect_proceeds_and_fees<FT>(
         marketplace: &Marketplace,
         listing: &mut Listing,
         ctx: &mut TxContext,
     ) {
         listing::assert_listing_marketplace_match(marketplace, listing);
-        listing::assert_correct_admin(marketplace, listing, ctx);
+        listing::assert_correct_admin_or_member(marketplace, listing, ctx);
 
         let (proceeds_value, listing_receiver) = {
             let proceeds = listing::borrow_proceeds(listing);

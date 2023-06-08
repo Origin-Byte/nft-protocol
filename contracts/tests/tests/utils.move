@@ -4,6 +4,7 @@ module ob_tests::test_utils {
     use std::type_name;
     use std::vector;
 
+    use sui::transfer;
     use sui::sui::SUI;
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
@@ -19,6 +20,8 @@ module ob_tests::test_utils {
     use ob_request::request::{Policy, PolicyCap, WithNft};
     use ob_request::withdraw_request::{Self, WITHDRAW_REQ};
     use ob_request::transfer_request;
+    use liquidity_layer_v1::bidding as bidding_v1;
+    use liquidity_layer_v1::orderbook as orderbook_v1;
 
     use ob_allowlist::allowlist::{Self, Allowlist, AllowlistOwnerCap};
 
@@ -142,11 +145,26 @@ module ob_tests::test_utils {
         transfer_policy: &TransferPolicy<T>,
         scenario: &mut Scenario
     ): ID {
-        let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, ctx(scenario));
-        orderbook::change_tick_size<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
+        let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, true, ctx(scenario));
+        orderbook::change_tick_size_with_witness<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
         let ob_id = object::id(&ob);
 
-        orderbook::share(ob);
+        transfer::public_share_object(ob);
+
+        ob_id
+    }
+
+    #[test_only]
+    public fun create_orderbook_v1<T: key + store>(
+        witness: DelegatedWitness<T>,
+        transfer_policy: &TransferPolicy<T>,
+        scenario: &mut Scenario
+    ): ID {
+        let ob = orderbook_v1::new_unprotected<T, SUI>(witness, transfer_policy, ctx(scenario));
+        orderbook_v1::change_tick_size<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
+        let ob_id = object::id(&ob);
+
+        orderbook_v1::share(ob);
 
         ob_id
     }
@@ -156,7 +174,15 @@ module ob_tests::test_utils {
         transfer_policy: &TransferPolicy<T>,
         scenario: &mut Scenario
     ) {
-        orderbook::create_for_external<T, SUI>(transfer_policy, ctx(scenario));
+        orderbook::create_external<T, SUI>(transfer_policy, true, orderbook::no_protection(), ctx(scenario));
+    }
+
+    #[test_only]
+    public fun create_external_orderbook_v1<T: key + store>(
+        transfer_policy: &TransferPolicy<T>,
+        scenario: &mut Scenario
+    ) {
+        orderbook_v1::create_for_external<T, SUI>(transfer_policy, ctx(scenario));
     }
 
     #[test_only]
@@ -203,6 +229,18 @@ module ob_tests::test_utils {
         allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
         // bidding contract can perform trades too
         allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
+
+        (al, al_cap)
+    }
+
+    #[test_only]
+    public fun create_allowlist_v1(scenario: &mut Scenario): (Allowlist, AllowlistOwnerCap) {
+        let (al, al_cap) = allowlist::new(ctx(scenario));
+
+        // orderbooks can perform trades with our allowlist
+        allowlist::insert_authority<orderbook_v1::Witness>(&al_cap, &mut al);
+        // bidding contract can perform trades too
+        allowlist::insert_authority<bidding_v1::Witness>(&al_cap, &mut al);
 
         (al, al_cap)
     }

@@ -244,7 +244,7 @@ module ob_launchpad::english_auction {
         venue_id: ID,
         ctx: &mut TxContext,
     ) {
-        listing::assert_listing_admin(listing, ctx);
+        listing::assert_listing_admin_or_member(listing, ctx);
 
         let auction: &mut EnglishAuction<T, FT> = listing::market_internal_mut(
             listing, MarketKey {}, venue_id,

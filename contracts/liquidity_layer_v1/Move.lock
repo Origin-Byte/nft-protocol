@@ -4,9 +4,13 @@
 version = 0
 
 dependencies = [
-  { name = "NftProtocol" },
+  { name = "Allowlist" },
+  { name = "Authlist" },
+  { name = "Kiosk" },
+  { name = "LiquidityLayer" },
   { name = "Originmate" },
-  { name = "Pseudorandom" },
+  { name = "Permissions" },
+  { name = "Request" },
   { name = "Sui" },
   { name = "Utils" },
 ]
@@ -30,6 +34,14 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "Critbit"
+source = { git = "https://github.com/Origin-Byte/critbit.git", rev = "v1.0.1-mainnet", subdir = "" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
 name = "Kiosk"
 source = { local = "../kiosk" }
 
@@ -46,6 +58,7 @@ source = { local = "../liquidity_layer" }
 dependencies = [
   { name = "Allowlist" },
   { name = "Authlist" },
+  { name = "Critbit" },
   { name = "Kiosk" },
   { name = "Permissions" },
   { name = "Request" },
@@ -55,28 +68,11 @@ dependencies = [
 
 [[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "09b2081498366df936abae26eea4b2d5cafb2788", subdir = "crates/sui-framework/packages/move-stdlib" }
-
-[[move.package]]
-name = "NftProtocol"
-source = { local = "../nft_protocol" }
-
-dependencies = [
-  { name = "Allowlist" },
-  { name = "Authlist" },
-  { name = "Kiosk" },
-  { name = "LiquidityLayer" },
-  { name = "Originmate" },
-  { name = "Permissions" },
-  { name = "Pseudorandom" },
-  { name = "Request" },
-  { name = "Sui" },
-  { name = "Utils" },
-]
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "Originmate"
-source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "de8360c7c25f52bf2593721a82cd6c7b66001faf", subdir = "" }
+source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "36e02283fa00451e8476a1bbc201af9a248396de", subdir = "" }
 
 dependencies = [
   { name = "Sui" },
@@ -110,7 +106,7 @@ dependencies = [
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "09b2081498366df936abae26eea4b2d5cafb2788", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
