@@ -1,6 +1,11 @@
 name: Update Package-Registry [Mainnet]
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: 'Commit Hash (Defaults to last commit)'
+        required: false
 
 jobs:
   update-registry:
@@ -34,6 +39,7 @@ jobs:
 
           source source/.env.dist
           wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
+          echo "installed"
           chmod +x sui
 
       - name: Build Packages
@@ -50,9 +56,12 @@ jobs:
           cp program-registry/registry-main.json registry-main.json
 
       - name: Update local Package Registry
+        env:
+          REVISION: ${{ github.event.inputs.revision || github.sha }}
         run: |
-          echo "Registering under revision: ${{ github.sha }}"
-          ./source/bin/register-all.sh ${{ github.repository }} ${{ github.sha }} source/contracts remote registry-main.json
+          echo $(ls)
+          echo "Registering under revision: $REVISION"
+          ./source/bin/register-all.sh ${{ github.repository }} $REVISION source remote registry-main.json
 
       - name: Update remote registry
         run: |
