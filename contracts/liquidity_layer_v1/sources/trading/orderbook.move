@@ -1895,17 +1895,18 @@ module liquidity_layer_v1::orderbook {
 
     // === Migration ===
 
-    public fun finish_migration_to_v2<T: key + store, FT>(
-        _witness: DelegatedWitness<T>,
-        book: &mut Orderbook<T, FT>,
-    ) {
-        let _: ID = df::remove(&mut book.id, UnderMigrationToDfKey {});
+    // TODO: Add back migration endpoints
+    // public fun finish_migration_to_v2<T: key + store, FT>(
+    //     _witness: DelegatedWitness<T>,
+    //     book: &mut Orderbook<T, FT>,
+    // ) {
+    //     let _: ID = df::remove(&mut book.id, UnderMigrationToDfKey {});
 
-        assert!(crit_bit::is_empty(&book.asks), EOrderbookAsksMustBeEmpty);
-        assert!(crit_bit::is_empty(&book.bids), EOrderbookBidsMustBeEmpty);
+    //     assert!(crit_bit::is_empty(&book.asks), EOrderbookAsksMustBeEmpty);
+    //     assert!(crit_bit::is_empty(&book.bids), EOrderbookBidsMustBeEmpty);
 
-        df::add(&mut book.id, IsDeprecatedDfKey {}, true);
-    }
+    //     df::add(&mut book.id, IsDeprecatedDfKey {}, true);
+    // }
 
     // TODO: Add back migration endpoints
     // public fun start_migration_to_v2<T: key + store, FT>(
