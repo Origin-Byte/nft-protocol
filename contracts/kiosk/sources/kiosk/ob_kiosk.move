@@ -45,6 +45,7 @@ module ob_kiosk::ob_kiosk {
     use sui::tx_context::{Self, TxContext, sender};
     use sui::vec_set::{Self, VecSet};
 
+    use ob_permissions::witness::Witness as DelegatedWitness;
     use ob_request::transfer_request::{Self, TransferRequest};
     use ob_request::withdraw_request::{Self, WithdrawRequest};
     use ob_request::borrow_request::{Self, BorrowRequest, BORROW_REQ};
@@ -676,7 +677,7 @@ module ob_kiosk::ob_kiosk {
     /// - Transaction sender is not owner of source `Kiosk`
     /// - Source `Kiosk` is permissionlesss, this is enforced to prevent
     /// royalty-free trading by wrapping over `Kiosk`
-    /// - Source and target `Kiosk` have the same owner
+    /// - Source and target `Kiosk` don't have the same owner
     /// - NFT does not exist or is exclusively locked
     public fun transfer_between_owned<T: key + store>(
         source: &mut Kiosk,
@@ -684,8 +685,47 @@ module ob_kiosk::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert_version_and_upgrade(ext(source));
         assert_permission(source, ctx);
+        transfer_between_owned_<T>(source, target, nft_id, ctx)
+    }
+
+    /// Transfer between two Kiosks owned by the same address using witness
+    ///
+    /// Endpoint is permissionless to always allow third-party contracts to
+    /// organise their types within user Kiosks.
+    ///
+    /// #### Panics
+    ///
+    /// - Source `Kiosk` is permissionlesss, this is enforced to prevent
+    /// royalty-free trading by wrapping over `Kiosk`
+    /// - Source and target `Kiosk` don't have the same owner
+    /// - NFT does not exist or is exclusively locked
+    public fun transfer_between_owned_with_witness<T: key + store>(
+        _witness: DelegatedWitness<T>,
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        transfer_between_owned_<T>(source, target, nft_id, ctx)
+    }
+
+    /// Transfer NFT between two owned Kiosks
+    ///
+    /// ### Panics
+    ///
+    /// - Source `Kiosk` is permissionlesss, this is enforced to prevent
+    /// royalty-free trading by wrapping over `Kiosk`
+    /// - Source and target `Kiosk` don't have the same owner
+    /// - NFT does not exist or is exclusively locked
+    fun transfer_between_owned_<T: key + store>(
+        source: &mut Kiosk,
+        target: &mut Kiosk,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_version_and_upgrade(ext(source));
+
         // Prevent royalty-free trading
         assert!(kiosk::owner(source) != PermissionlessAddr, ENotAuthorized);
         assert!(kiosk::owner(source) == kiosk::owner(target), ENotOwner);
