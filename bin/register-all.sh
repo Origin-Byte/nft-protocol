@@ -12,8 +12,7 @@ set -e
 
 repo=$1
 rev=$2
-# "${3}/contracts"
-source_folder="${3}"
+source_folder="${3}/contracts"
 registry_path="${5}"
 
 if [ "$4" = "remote" ]; then
@@ -25,13 +24,13 @@ else
 fi
 
 registry=$(jq '.' $registry_path)
-
 files=$(find $source_folder -name "Move.toml")
 
 for file in $files; do
     address=$(${stoml} ${file} addresses)
 
-    if [[ $address == "ob_launchpad_v2" || $address == "ob_tests" || $address == "liquidity_layer" ]]; then
+    if [[ $address == "ob_launchpad_v2" || $address == "ob_tests" ]]; then
+    # if [[ $address == "ob_launchpad_v2" || $address == "ob_tests" || $address == "liquidity_layer" ]]; then
         continue  # Ignore addresses
     fi
 
