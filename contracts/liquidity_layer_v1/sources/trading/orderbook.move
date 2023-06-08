@@ -442,6 +442,28 @@ module liquidity_layer_v1::orderbook {
         option::destroy_some(is_matched_with_price)
     }
 
+    public fun market_buy_with_commission<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        buyer_kiosk: &mut Kiosk,
+        beneficiary: address,
+        commission_ft: u64,
+        wallet: &mut Coin<FT>,
+        max_price: u64,
+        ctx: &mut TxContext,
+    ): TradeInfo {
+        let is_matched_with_price = create_bid_with_commission(
+            book,
+            buyer_kiosk,
+            max_price,
+            beneficiary,
+            commission_ft,
+            wallet,
+            ctx,
+        );
+        assert!(option::is_some(&is_matched_with_price), EMarketOrderNotFilled);
+        option::destroy_some(is_matched_with_price)
+    }
+
     // === Cancel position ===
 
     /// Cancel a bid owned by the sender at given price. If there are two bids
@@ -589,6 +611,28 @@ module liquidity_layer_v1::orderbook {
             seller_kiosk,
             min_price,
             nft_id,
+            ctx,
+        );
+        assert!(option::is_some(&is_matched_with_price), EMarketOrderNotFilled);
+        option::destroy_some(is_matched_with_price)
+    }
+
+    public fun market_sell_with_commission<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        seller_kiosk: &mut Kiosk,
+        beneficiary: address,
+        commission_ft: u64,
+        min_price: u64,
+        nft_id: ID,
+        ctx: &mut TxContext,
+    ): TradeInfo {
+        let is_matched_with_price = create_ask_with_commission(
+            book,
+            seller_kiosk,
+            min_price,
+            nft_id,
+            beneficiary,
+            commission_ft,
             ctx,
         );
         assert!(option::is_some(&is_matched_with_price), EMarketOrderNotFilled);
