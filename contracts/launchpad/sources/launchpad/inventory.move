@@ -67,7 +67,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public (friend) fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
+    public fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
         assert_warehouse(inventory);
 
         let warehouse = borrow_warehouse_mut(inventory);
@@ -81,7 +81,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public (friend) fun redeem_nft_and_transfer<T: key + store>(
+    public entry fun redeem_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
@@ -97,7 +97,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if underlying type is not a `Warehouse` and index does not
     /// exist.
-    public (friend) fun redeem_nft_at_index<T: key + store>(
+    public fun redeem_nft_at_index<T: key + store>(
         inventory: &mut Inventory<T>,
         index: u64,
     ): T {
@@ -115,7 +115,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if underlying type is not a `Warehouse` and index does not
     /// exist.
-    public (friend) fun redeem_nft_at_index_and_transfer<T: key + store>(
+    public entry fun redeem_nft_at_index_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         index: u64,
         ctx: &mut TxContext,
@@ -132,7 +132,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if underlying type is not a `Warehouse` and NFT with ID does not
     /// exist.
-    public (friend) fun redeem_nft_with_id<T: key + store>(
+    public fun redeem_nft_with_id<T: key + store>(
         inventory: &mut Inventory<T>,
         nft_id: ID,
     ): T {
@@ -149,7 +149,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public (friend) fun redeem_nft_with_id_and_transfer<T: key + store>(
+    public entry fun redeem_nft_with_id_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         nft_id: ID,
         ctx: &mut TxContext,
@@ -168,7 +168,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public (friend) fun redeem_pseudorandom_nft<T: key + store>(
+    public fun redeem_pseudorandom_nft<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ): T {
@@ -185,7 +185,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public (friend) fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
+    public entry fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
@@ -206,7 +206,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public (friend) fun redeem_random_nft<T: key + store>(
+    public fun redeem_random_nft<T: key + store>(
         inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -228,7 +228,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public (friend) fun redeem_random_nft_and_transfer<T: key + store>(
+    public entry fun redeem_random_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
