@@ -1102,6 +1102,15 @@ module ob_kiosk::ob_kiosk {
 
     // === NFT Accessors ===
 
+    public fun borrow_nft<T: key + store>(
+        self: &Kiosk,
+        nft_id: ID,
+    ): &T {
+        assert_version(uid(self));
+        let cap = borrow_cap(self);
+        kiosk::borrow<T>(self, cap, nft_id)
+    }
+
     public fun borrow_nft_mut<T: key + store>(
         self: &mut Kiosk,
         nft_id: ID,
@@ -1352,6 +1361,11 @@ module ob_kiosk::ob_kiosk {
 
         assert!(table::contains(refs, nft_id), EMissingNft);
         table::borrow_mut(refs, nft_id)
+    }
+
+    /// Borrow `KioskOwnerCap` immutably
+    fun borrow_cap(self: &Kiosk): &KioskOwnerCap {
+        df::borrow(uid(self), KioskOwnerCapDfKey {})
     }
 
     /// Pop `KioskOwnerCap` from within the `Kiosk`
