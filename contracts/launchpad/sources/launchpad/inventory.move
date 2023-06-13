@@ -1,5 +1,4 @@
-/// Module of `Inventory` type, a type-erased wrapper around `Warehouse` and
-/// `Factory`.
+/// Module of `Inventory` type, a type-erased wrapper around `Warehouse`
 ///
 /// Additionally, `Inventory` is responsible for providing a safe interface to
 /// change the logical owner of NFTs redeemed from it.
@@ -9,7 +8,7 @@ module ob_launchpad::inventory {
     use sui::transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
-    use sui::dynamic_field as df;
+    use sui::dynamic_object_field as dof;
 
     use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
 
@@ -20,14 +19,14 @@ module ob_launchpad::inventory {
     /// `Inventory` is not a `Warehouse`
     ///
     /// Call `from_warehouse` to create an `Inventory` from `Warehouse`
-    const ENOT_WAREHOUSE: u64 = 1;
+    const ENotWarehouse: u64 = 1;
 
     /// `Inventory` is not a `Factory`
     ///
-    /// Call `from_factory` to create an `Inventory` from `Factory`
-    const ENOT_FACTORY: u64 = 2;
+    /// NOTE: Factory has been deprecated in is reintroduced in Launchpad V2
+    const ENotFactory: u64 = 2;
 
-    /// A type-erased wrapper around `Warehouse` and `Factory`
+    /// A type-erased wrapper around `Warehouse`
     struct Inventory<phantom T> has key, store {
         /// `Inventory` ID
         id: UID,
@@ -41,7 +40,7 @@ module ob_launchpad::inventory {
         ctx: &mut TxContext,
     ): Inventory<T> {
         let inventory_id = object::new(ctx);
-        df::add(&mut inventory_id, WarehouseKey {}, warehouse);
+        dof::add(&mut inventory_id, WarehouseKey {}, warehouse);
 
         Inventory { id: inventory_id }
     }
@@ -68,8 +67,8 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public(friend) fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
-        assert!(is_warehouse(inventory), 0);
+    public fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
+        assert_warehouse(inventory);
 
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_nft(warehouse)
@@ -82,7 +81,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if no supply is available.
-    public(friend) fun redeem_nft_and_transfer<T: key + store>(
+    public entry fun redeem_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
@@ -98,11 +97,11 @@ module ob_launchpad::inventory {
     ///
     /// Panics if underlying type is not a `Warehouse` and index does not
     /// exist.
-    public(friend) fun redeem_nft_at_index<T: key + store>(
+    public fun redeem_nft_at_index<T: key + store>(
         inventory: &mut Inventory<T>,
         index: u64,
     ): T {
-        assert!(is_warehouse(inventory), 0);
+        assert_warehouse(inventory);
 
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_nft_at_index(warehouse, index)
@@ -116,7 +115,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if underlying type is not a `Warehouse` and index does not
     /// exist.
-    public(friend) fun redeem_nft_at_index_and_transfer<T: key + store>(
+    public entry fun redeem_nft_at_index_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         index: u64,
         ctx: &mut TxContext,
@@ -133,11 +132,11 @@ module ob_launchpad::inventory {
     ///
     /// Panics if underlying type is not a `Warehouse` and NFT with ID does not
     /// exist.
-    public(friend) fun redeem_nft_with_id<T: key + store>(
+    public fun redeem_nft_with_id<T: key + store>(
         inventory: &mut Inventory<T>,
         nft_id: ID,
     ): T {
-        assert!(is_warehouse(inventory), 0);
+        assert_warehouse(inventory);
 
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_nft_with_id(warehouse, nft_id)
@@ -150,7 +149,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if index does not exist in `Warehouse`.
-    public(friend) fun redeem_nft_with_id_and_transfer<T: key + store>(
+    public entry fun redeem_nft_with_id_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         nft_id: ID,
         ctx: &mut TxContext,
@@ -166,17 +165,14 @@ module ob_launchpad::inventory {
     ///
     /// Endpoint is exclusive to friend modules.
     ///
-    /// If the underlying `Inventory` is a `Factory` then logic will fallback to
-    /// using sequential withdraw.
-    ///
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public(friend) fun redeem_pseudorandom_nft<T: key + store>(
+    public fun redeem_pseudorandom_nft<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ): T {
-        assert!(is_warehouse(inventory), 0);
+        assert_warehouse(inventory);
 
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_pseudorandom_nft(warehouse, ctx)
@@ -189,7 +185,7 @@ module ob_launchpad::inventory {
     /// #### Panics
     ///
     /// Panics if there is no supply left.
-    public(friend) fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
+    public entry fun redeem_pseudorandom_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ) {
@@ -206,20 +202,17 @@ module ob_launchpad::inventory {
     ///
     /// Endpoint is exclusive to friend modules.
     ///
-    /// If the underlying `Inventory` is a `Factory` then logic will fallback to
-    /// using sequential withdraw.
-    ///
     /// #### Panics
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public(friend) fun redeem_random_nft<T: key + store>(
+    public fun redeem_random_nft<T: key + store>(
         inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
     ): T {
-        assert!(is_warehouse(inventory), 0);
+        assert_warehouse(inventory);
 
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_random_nft(
@@ -235,7 +228,7 @@ module ob_launchpad::inventory {
     ///
     /// Panics if there is no supply left or `user_commitment` does not match
     /// the hashed commitment in `RedeemCommitment`.
-    public(friend) fun redeem_random_nft_and_transfer<T: key + store>(
+    public entry fun redeem_random_nft_and_transfer<T: key + store>(
         inventory: &mut Inventory<T>,
         commitment: RedeemCommitment,
         user_commitment: vector<u8>,
@@ -263,14 +256,11 @@ module ob_launchpad::inventory {
 
     /// Returns the available supply in `Inventory`
     ///
-    /// If the `Inventory` is a `Factory` with unregulated supply then none
-    /// will be returned.
-    ///
     /// #### Panics
     ///
     /// Panics if supply was exceeded.
     public fun supply<T: key + store>(inventory: &Inventory<T>): Option<u64> {
-        assert!(is_warehouse(inventory), 0);
+        assert!(is_warehouse(inventory), ENotWarehouse);
 
         let warehouse = borrow_warehouse(inventory);
         option::some(warehouse::supply(warehouse))
@@ -278,7 +268,7 @@ module ob_launchpad::inventory {
 
     /// Returns whether `Inventory` is a `Warehouse`
     public fun is_warehouse<T: key + store>(inventory: &Inventory<T>): bool {
-        df::exists_with_type<WarehouseKey, Warehouse<T>>(
+        dof::exists_with_type<WarehouseKey, Warehouse<T>>(
             &inventory.id, WarehouseKey {}
         )
     }
@@ -287,24 +277,24 @@ module ob_launchpad::inventory {
     ///
     /// #### Panics
     ///
-    /// Panics if `Inventory` is a `Factory`
+    /// Panics if no `Warehouse`
     public fun borrow_warehouse<T: key + store>(
         inventory: &Inventory<T>,
     ): &Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow(&inventory.id, WarehouseKey {})
+        dof::borrow(&inventory.id, WarehouseKey {})
     }
 
     /// Mutably borrows `Inventory` as `Warehouse`
     ///
     /// #### Panics
     ///
-    /// Panics if `Inventory` is a `Factory`
+    /// Panics if no `Warehouse`
     fun borrow_warehouse_mut<T: key + store>(
         inventory: &mut Inventory<T>,
     ): &mut Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow_mut(&mut inventory.id, WarehouseKey {})
+        dof::borrow_mut(&mut inventory.id, WarehouseKey {})
     }
 
     // === Assertions ===
@@ -315,6 +305,6 @@ module ob_launchpad::inventory {
     ///
     /// Panics if `Inventory` is not a `Warehouse`
     public fun assert_warehouse<T: key + store>(inventory: &Inventory<T>) {
-        assert!(is_warehouse(inventory), ENOT_WAREHOUSE);
+        assert!(is_warehouse(inventory), ENotWarehouse);
     }
 }

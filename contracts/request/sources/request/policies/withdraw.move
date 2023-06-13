@@ -1,3 +1,5 @@
+/// Withdraw Policy/Request controls how NFTs can be withdrawn from the OB Kiosk
+/// or any other NFT container that implements it.
 module ob_request::withdraw_request {
     use sui::package::Publisher;
     use sui::tx_context::TxContext;

@@ -1,3 +1,9 @@
+/// Frozen Publisher extends the functionality of the SUI display standards. One
+/// problem with the SUI display standards is that it is not possible for a type
+/// `T` to define its own display if its wrapped by `Wrapper<T>`.
+///
+/// `FrozenPublisher` can be used by the wrapper module to allow for the publisher
+/// of `T` to define its own display of `Wrapper<T>`.
 module ob_permissions::frozen_publisher {
     use std::ascii;
     use std::string::utf8;

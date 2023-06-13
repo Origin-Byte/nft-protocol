@@ -1,9 +1,33 @@
-/// A generic way of validating some action.
+/// The rolling hot potato pattern was designed by OriginByte in conjunction with
+/// Mysten Labs, and it is here implemented as a generic way of validating that
+/// a set of actions has been taken. Since hot potatoes need to be consumed at the end
+/// of the Programmable Transactions Batch, smart contract developers can force clients
+/// to perform a particular set of actions given a genesis action.
 ///
-/// Instances are for example
-/// - `Request<T, OB_TRANSFER_REQUEST>` which is responsible for checking that
-/// a transfer of NFT can be performed.
-/// It's heavily integrated with `nft_protocol::ob_kiosk`.
+/// This pattern is at the heart of the NFT Protocol and more specifically at the
+/// heart of the access control around NFTs that live in the OB Kiosk. Nevertheless,
+/// this implementation is generic enough that it can be used in any other contexts,
+/// that do not involve NFTs.
+///
+/// This module consists of three core objects:
+/// - `Policy<P>` is the object that registers the rules enforced for the policy `P`,
+/// as well configuration state associated to each rule;
+/// - `PolicyCap` is a capability object that gives managerial access for a given
+/// policy object
+/// - `RequestBody<P>` is the inner body of a hot-potato object that contains the
+/// receipts collected by performing the enforced actions, as well as the metata associated
+/// to them as well as the policy resolution logic. `RequestBody<P>` is meant to be wrapped
+/// by a hot-potato object, but is itself a hot-potato.
+///
+/// Instances of this patter are for example:
+/// - `Request<WithNft<T>, WITHDRAW_REQ>` which is responsible for checking that
+/// an NFT withdrawal can be performed.
+/// - `Request<WithNft<T>, BORROW_REQ>` which is responsible for checking that
+/// an NFT flash-borrow can be performed.
+///
+/// It's heavily integrated with `nft_protocol::ob_kiosk`, in particular via
+/// the withdraw and borrow policy. For compatability with the Sui TransferPolicy,
+/// the transfer request uses instead the native `sui::transfer_policy::TransferRequest`.
 module ob_request::request {
     use std::type_name::{Self, TypeName};
     use std::vector;
@@ -17,7 +41,7 @@ module ob_request::request {
     use ob_request::ob_request::OB_REQUEST;
 
     // Track the current version of the module
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
@@ -38,7 +62,7 @@ module ob_request::request {
     /// `T` is a type this request is concerned with, e.g. NFT type.
     /// `P` represents the policy type that can confirm this request body.
     ///
-    /// Used as `RequestBody<WithNft<Suimarines, OB_TRANSFER_REQUEST>>`
+    /// Used as `RequestBody<WithNft<T, P>>`
     struct WithNft<phantom T, phantom P> {}
 
     /// Collects receipts which are later checked in `confirm` function.
@@ -127,6 +151,9 @@ module ob_request::request {
 
     // === Policy ===
 
+    /// Creates a new policy object for for `P` and returns it along with a
+    /// cap object `PolicyCap` which gives the holder managerial access over the
+    /// policy. This function is meant to be called by upstream modules.
     public fun new_policy<P: drop>(
         _witness: P,
         ctx: &mut TxContext,
@@ -172,38 +199,44 @@ module ob_request::request {
         (policy, cap)
     }
 
+    /// Registers rule in the Policy object and adds
+    /// config state to the object
     public fun enforce_rule<P, Rule, State: store>(
         self: &mut Policy<P>, cap: &PolicyCap, state: State,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
 
         assert!(object::id(self) == cap.for, ENotAllowed);
         df::add(&mut self.id, RuleStateDfKey<Rule> {}, state);
         vec_set::insert(&mut self.rules, type_name::get<Rule>());
     }
 
+    /// Registers rule in the Policy object without adding extra
+    /// config state to the object
     public fun enforce_rule_no_state<P, Rule>(
         self: &mut Policy<P>, cap: &PolicyCap,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(object::id(self) == cap.for, ENotAllowed);
         df::add(&mut self.id, RuleStateDfKey<Rule> {}, true);
         vec_set::insert(&mut self.rules, type_name::get<Rule>());
     }
 
+    // Drops rule along with associated state
     public fun drop_rule<P, Rule, State: store>(
         self: &mut Policy<P>, cap: &PolicyCap,
     ): State {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(object::id(self) == cap.for, ENotAllowed);
         vec_set::remove(&mut self.rules, &type_name::get<Rule>());
         df::remove(&mut self.id, RuleStateDfKey<Rule> {})
     }
 
+    // Drops rule with associated state
     public fun drop_rule_no_state<P, Rule>(
         self: &mut Policy<P>, cap: &PolicyCap,
     ) {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         assert!(object::id(self) == cap.for, ENotAllowed);
         vec_set::remove(&mut self.rules, &type_name::get<Rule>());
         assert!(df::remove(&mut self.id, RuleStateDfKey<Rule> {}), 0);
@@ -218,7 +251,7 @@ module ob_request::request {
     public fun rule_state_mut<P, Rule: drop, State: store + drop>(
         self: &mut Policy<P>, _: Rule,
     ): &mut State {
-        assert_version(self);
+        assert_version_and_upgrade(self);
         df::borrow_mut(&mut self.id, RuleStateDfKey<Rule> {})
     }
 
@@ -231,7 +264,7 @@ module ob_request::request {
     }
 
     public fun policy_metadata_mut<P>(policy: &mut Policy<P>): &mut UID {
-        assert_version(policy);
+        assert_version_and_upgrade(policy);
 
         &mut policy.id
     }
@@ -268,6 +301,13 @@ module ob_request::request {
 
     fun assert_version<P>(policy: &Policy<P>) {
         assert!(policy.version == VERSION, EWrongVersion);
+    }
+
+    fun assert_version_and_upgrade<P>(self: &mut Policy<P>) {
+        if (self.version < VERSION) {
+            self.version = VERSION;
+        };
+        assert_version(self);
     }
 
     entry fun migrate<P>(policy: &mut Policy<P>, cap: &PolicyCap) {

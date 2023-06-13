@@ -3,10 +3,9 @@
 /// of the sales, in quantities and <FT>-amount.
 ///
 /// The process of retrieving the funds from the  `Proceeds` object embedded in
-/// a `Slot` guarantees that fees are transferred to the `marketplace.receiver`
-/// and therefore the `Slot.receiver` receives the proceeds net of fees.
+/// a `Listing` guarantees that fees are transferred to the `marketplace.receiver`
+/// and therefore the `Listing.receiver` receives the proceeds net of fees.
 module ob_launchpad::proceeds {
-    // TODO: Function to destroy Proceeds object
     use std::type_name::{Self, TypeName};
 
     use sui::coin;

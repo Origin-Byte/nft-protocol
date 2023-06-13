@@ -1,18 +1,18 @@
 [package]
 name = "NftProtocol"
-version = "1.0.0"
-published-at = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"
+version = "1.2.0"
+published-at = "0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.0.0
-rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+# mainnet-1.2.1
+rev = "8b681515c0cf435df2a54198a28ab4ef574d202b"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
-# testnet-1.0.0
-rev = "36e02283fa00451e8476a1bbc201af9a248396de"
+# mainnet-1.2.1
+rev = "3e23d0707a346cf8780345611a2a25db3ec482b3"
 
 [dependencies.Permissions]
 local = "./../permissions"
@@ -29,9 +29,6 @@ local = "./../request"
 [dependencies.Kiosk]
 local = "./../kiosk"
 
-[dependencies.LiquidityLayer]
-local = "./../liquidity_layer"
-
 [dependencies.Pseudorandom]
 local = "./../pseudorandom"
 
@@ -39,4 +36,4 @@ local = "./../pseudorandom"
 local = "./../utils"
 
 [addresses]
-nft_protocol = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"
+nft_protocol = "0x6f3dbae0b49bfd3e5c396b2023dbc5c01c2548d72150edac08f06468eff0e45a"

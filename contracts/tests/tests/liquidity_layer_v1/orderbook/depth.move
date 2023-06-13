@@ -64,7 +64,6 @@ module ob_tests::orderbook_depth_v1 {
         let price = 1;
 
         while (i > 0) {
-            // debug::print(&i);
             test_scenario::next_tx(&mut scenario, seller());
 
             // Create and deposit NFT
@@ -354,7 +353,6 @@ module ob_tests::orderbook_depth_v1 {
         let nfts = vector::empty();
 
         while (i > 0) {
-            // debug::print(&i);
             test_scenario::next_tx(&mut scenario, seller());
 
             // Create and deposit NFT

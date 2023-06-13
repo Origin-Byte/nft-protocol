@@ -4,8 +4,6 @@ module ob_launchpad::test_listing {
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::sui::SUI;
-    // use std::debug;
-    // use std::string::utf8;
 
     use ob_launchpad::flat_fee;
     use ob_launchpad::marketplace as mkt;
@@ -28,7 +26,7 @@ module ob_launchpad::test_listing {
     const FAKE_ADDRESS: address = @0x1;
 
     #[test]
-    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdmin)]
+    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdminNoMembers)]
     fun test_fail_turn_sale_on_as_fake_admin() {
         // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
@@ -52,7 +50,7 @@ module ob_launchpad::test_listing {
     }
 
     #[test]
-    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdmin)]
+    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdminNoMembers)]
     fun test_fail_turn_sale_off_as_fake_admin() {
         // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
@@ -109,7 +107,7 @@ module ob_launchpad::test_listing {
     }
 
     #[test]
-    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdmin)]
+    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdminNoMembers)]
     fun fail_access_to_inventory_as_fake_admin() {
         // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
@@ -139,7 +137,7 @@ module ob_launchpad::test_listing {
     }
 
     #[test]
-    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdmin)]
+    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdminNoMembers)]
     fun fail_add_nft_inventory_as_fake_admin() {
         // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
@@ -170,7 +168,7 @@ module ob_launchpad::test_listing {
     }
 
     #[test]
-    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdmin)]
+    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdminNoMembers)]
     fun fail_add_venue_as_fake_admin() {
         // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
@@ -202,7 +200,7 @@ module ob_launchpad::test_listing {
     }
 
     #[test]
-    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdmin)]
+    #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdminNoMembers)]
     fun fail_request_to_join_marketplace_as_fake_listing_admin() {
         // 1. Create `Listing`
         let scenario = test_scenario::begin(CREATOR);
@@ -232,7 +230,7 @@ module ob_launchpad::test_listing {
     }
 
     #[test]
-    #[expected_failure(abort_code = ob_launchpad::marketplace::EInvalidAdmin)]
+    #[expected_failure(abort_code = ob_launchpad::marketplace::ENotAMemberNorAdmin)]
     fun fail_accept_listing_request_as_fake_marketplace_admin() {
         //listing::accept_listing_request
 

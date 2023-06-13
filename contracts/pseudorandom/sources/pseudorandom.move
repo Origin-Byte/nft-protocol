@@ -1,3 +1,4 @@
+/// A module for Pseudo-Randomness
 module ob_pseudorandom::pseudorandom {
     use std::hash;
     use std::vector;

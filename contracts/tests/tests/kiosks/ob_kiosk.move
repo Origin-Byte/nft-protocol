@@ -462,7 +462,7 @@ module ob_tests::test_ob_kiosk {
     }
 
     #[test]
-    #[expected_failure(abort_code = ob_kiosk::ob_kiosk::ENftAlreadyListed)]
+    #[expected_failure(abort_code = ob_kiosk::ob_kiosk::ENftAlreadyExclusivelyListed)]
     public fun test_kiosk_fail_try_to_list_exclusive_twice() {
         let kiosk_owner = seller();
         let scenario = test_scenario::begin(kiosk_owner);
