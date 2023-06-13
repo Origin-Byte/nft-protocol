@@ -6,12 +6,12 @@ version = "1.0.0"
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.0.0
-rev = "ae1212baf8f0837e25926d941db3d26a61c1bea2"
+# mainnet-1.2.1
+rev = "8b681515c0cf435df2a54198a28ab4ef574d202b"
 
 [dependencies.Critbit]
 git = "https://github.com/Origin-Byte/critbit.git"
-rev = "v1.0.1-mainnet"
+rev = "v1.2.0-mainnet"
 
 [dependencies.Permissions]
 local = "./../permissions"
