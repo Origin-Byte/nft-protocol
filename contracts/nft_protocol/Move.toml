@@ -36,4 +36,4 @@ local = "./../pseudorandom"
 local = "./../utils"
 
 [addresses]
-nft_protocol = "0x6f3dbae0b49bfd3e5c396b2023dbc5c01c2548d72150edac08f06468eff0e45a"
+nft_protocol = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9"
