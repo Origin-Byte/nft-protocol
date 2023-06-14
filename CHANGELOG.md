@@ -6,8 +6,39 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0-mainnet] - 2023-06-08
 
-## [1.1.0] - 2023-04-29
+## Added
+- Added ability for an entity to delegate a transfer auth signature via `ob_kiosk::ob_kiosk::delegate_exclusive_auth`
+- LaunchpadV1 `Listing` and `Marketplace` admins can now delegate the management to members of their choice via `ob_launchpad::listing::add_member` and `ob_launchpad::listing::remove_member`
+- LaunchpadV1 Warehouse NFTs are stored now in `dof` instead of `df`
+- LiquidityLayer and LiquidityLayerV1 now have Time-Lock feature via `liquidity_layer_v1::orderbook::set_start_time`
+- `LiquidityLayerV1` admins can now delegate management to members of their choice via `liquidity_layer_v1::orderbook::add_administrator` and `liquidity_layer_v1::orderbook::remove_administrator`
+- Added `liquidity_layer_v1::orderbook::market_buy_with_commission` and `liquidity_layer_v1::orderbook::market_sell_with_commission`
+
+### Changed
+- Reverted royalty calculation over ask commission, as there was a certain risk of losing
+  funds if the transaction was incorrectly orchestrated on the client side. Deprecates previously added `nft_protocol::royalty_strategy_bps::confirm_transfer_with_fees`.
+- Orderbook shared objects are now upgraded on the fly
+- Reverted `UID` transfer signer pattern previously introduced in the LiquidityLayer V2, in favor of adding `ob_kiosk::ob_kiosk::delegate_exclusive_auth`
+- Implemented migration methods for migrating `liquidity_layer_v1::orderbook::Orderbook` to `liquidity_layer::orderbook::Orderbook`
+- `ob_launchpad::fixed_price::buy_nft` and `ob_launchpad::limited_fixed_price::buy_nft` now deposit NFTs in newly created Kiosks
+- LiquidityLayer V2 now uses `TradePolicy` object to protect actions, instead of `bool`
+- Deprecated `nft_protocol::session_tokens`
+- Deprecated `nft_protocol::royalty_strategy_bps::confirm_transfer_with_fees` as well as reverted the use of `fee_balance` in the `TransferRequest` in favor of the initial implementation
+
+## [1.1.0-mainnet] - 2023-05-10
+
+### Added
+- Added `listing::admin_redeem_nft` to allow administrators to collect back NFTs that were sold
+- Added `fee_balance` modules in new Request Extensions package. Adds fees as balance from a trade as a dynamic field to `TransferRequest`. Adding this module to a separate package avoids having to upgrade request package as well and by consequence upgrading all OB Kiosk objects.
+- Deployed LiquidityLayer with a new Transfer Signer pattern. In a nutshell we had transfer_signer &UID to the struct in order to sign kiosk transfer authorisations. This allows for smooth future migrations as the UID can be detached from the old Orderbook into a new Orderbook struct.
+
+### Changed
+- `royalty::distribute_royalties` is now an entry function thus allowing creators to more easily collect proceeds
+- Royalties are now calculated not only on the net-trade amount but also on the ask-commission amount. This means that to collect fees, the client must call `royalty_strategy::confirm_transfer_with_fees` or `royalty_strategy::confirm_transfer_with_balance_with_fees`
+
+## [1.0.0-mainnet] - 2023-04-29
 
 ### Added
 - Init Orderbook tests

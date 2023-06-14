@@ -35,8 +35,5 @@ local = "./../pseudorandom"
 [dependencies.Utils]
 local = "./../utils"
 
-[dependencies.RequestExtensions]
-local = "./../request_extensions"
-
 [addresses]
 nft_protocol = "0x01735f24294e55a988541e97db050903cf8a70ce38c77ad219c134344eda67ac"

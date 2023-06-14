@@ -31,9 +31,6 @@ local = "./../kiosk"
 [dependencies.Utils]
 local = "./../utils"
 
-[dependencies.RequestExtensions]
-local = "./../request_extensions"
-
 [addresses]
 liquidity_layer = "0x17598ec33ed2d4ab4a65afe6aed97ed41a0c50efdfea61e62e76e94d20490fb8"
 

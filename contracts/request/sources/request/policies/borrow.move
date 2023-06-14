@@ -1,3 +1,5 @@
+/// Borrow Policy/Request controls how NFTs can be flash-borrowed from the OB Kiosk
+/// or any other NFT container that implements it.
 module ob_request::borrow_request {
     use std::option::{Self, Option, some};
     use std::type_name::{Self, TypeName};

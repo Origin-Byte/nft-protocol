@@ -10,6 +10,7 @@ module ob_tests::orderbook_v1 {
 
     use sui::coin::{Self, Coin};
     use sui::object;
+    use sui::clock;
     use sui::kiosk;
     use sui::transfer;
     use sui::sui::SUI;
@@ -27,9 +28,9 @@ module ob_tests::orderbook_v1 {
     use nft_protocol::collection::Collection;
     use nft_protocol::royalty_strategy_bps::{Self, BpsRoyaltyStrategy};
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator, marketplace};
-    use ob_request_extensions::fee_balance;
 
     use liquidity_layer_v1::orderbook::{Self, Orderbook};
+    use liquidity_layer_v1::bidding::{Self, Bid};
 
     const OFFER_SUI: u64 = 100;
 
@@ -307,10 +308,6 @@ module ob_tests::orderbook_v1 {
             ctx(&mut scenario),
         );
 
-        fee_balance::distribute_fee_to_intermediary<Foo, SUI>(
-            &mut request, ctx(&mut scenario)
-        );
-
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
         test_scenario::next_tx(&mut scenario, marketplace());
@@ -449,7 +446,7 @@ module ob_tests::orderbook_v1 {
 
         // 8. Pay royalties
         let royalty_engine = test_scenario::take_shared<BpsRoyaltyStrategy<Foo>>(&mut scenario);
-        royalty_strategy_bps::confirm_transfer_with_fees<Foo, SUI>(&mut royalty_engine, &mut request, ctx(&mut scenario));
+        royalty_strategy_bps::confirm_transfer<Foo, SUI>(&mut royalty_engine, &mut request);
 
         transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
 
@@ -469,9 +466,13 @@ module ob_tests::orderbook_v1 {
             test_scenario::take_from_address<Coin<SUI>>(&scenario, creator());
 
         // The trade price is 100_000_000
-        // The royalty is 100 basis points (i.e. 1%)
+        // The royalty is 100 basis points (i.e. 1%) and is applied over
+        // trade price - ask_commission (i.e. 2%)
+        // 100_000_000 - 2_000_000 = 98_000_000
+        // Therefore royalties are:
+        // 98_000_000 * 1% = 980_000
         // Therefore the profits are 1_000_000.
-        assert!(coin::value(&profits) == 1_000_000, 0);
+        assert!(coin::value(&profits) == 980_000, 0);
 
         test_scenario::return_to_address(creator(), profits);
         coin::burn_for_testing(coin);
@@ -1680,6 +1681,281 @@ module ob_tests::orderbook_v1 {
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun enable_trading_permissionless() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        let ob = orderbook::new_with_protected_actions<Foo, SUI>(
+            dw,
+            &tx_policy,
+            orderbook::custom_protection(true, true, true),
+            ctx(&mut scenario)
+        );
+
+        orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
+        orderbook::share(ob);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 2. Insert time lock
+        test_scenario::next_tx(&mut scenario, creator());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+
+        // The lock is set to Thursday, 1 June 2023 00:00:00
+        orderbook::set_start_time_with_witness(dw, &mut book, 1685577600000);
+
+        let clock = clock::create_for_testing(ctx(&mut scenario));
+
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(orderbook::is_create_ask_protected(actions), 0);
+        assert!(orderbook::is_create_bid_protected(actions), 0);
+        assert!(orderbook::is_buy_nft_protected(actions), 0);
+
+        test_scenario::next_tx(&mut scenario, creator());
+
+        // The lock is set to Thursday, 1 June 2023 00:00:00
+        clock::set_for_testing(&mut clock, 1685577600000);
+
+        orderbook::enable_trading_permissionless(&mut book, &clock);
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(!orderbook::is_create_ask_protected(actions), 0);
+        assert!(!orderbook::is_create_bid_protected(actions), 0);
+        assert!(!orderbook::is_buy_nft_protected(actions), 0);
+
+
+        // The lock is set to Thursday, 1 June 2024 00:00:00
+        clock::set_for_testing(&mut clock, 1717200000000);
+
+        orderbook::enable_trading_permissionless(&mut book, &clock);
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(!orderbook::is_create_ask_protected(actions), 0);
+        assert!(!orderbook::is_create_bid_protected(actions), 0);
+        assert!(!orderbook::is_buy_nft_protected(actions), 0);
+
+        clock::destroy_for_testing(clock);
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = orderbook::EOrderbookTimeLocked)]
+    fun fail_enable_trading_permissionless() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        let ob = orderbook::new_with_protected_actions<Foo, SUI>(
+            dw,
+            &tx_policy,
+            orderbook::custom_protection(true, true, true),
+            ctx(&mut scenario)
+        );
+
+        orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
+        orderbook::share(ob);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 2. Insert time lock
+        test_scenario::next_tx(&mut scenario, creator());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+
+        // The lock is set to Thursday, 1 June 2023 00:00:00
+        orderbook::set_start_time_with_witness(dw, &mut book, 1685577600000);
+
+        let clock = clock::create_for_testing(ctx(&mut scenario));
+
+        // Timestamp: Sunday, 1 January 2023 00:00:00
+        clock::set_for_testing(&mut clock, 1672531200000);
+
+        orderbook::enable_trading_permissionless(&mut book, &clock);
+
+        clock::destroy_for_testing(clock);
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = ob_kiosk::ob_kiosk::ENftAlreadyExclusivelyListed)]
+    fun test_bidding_orderbook_dangling_lock() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 3. Create Buyer Kiosk
+        test_scenario::next_tx(&mut scenario, buyer());
+        let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+
+        transfer::public_share_object(buyer_kiosk);
+
+        // 4. Create Seller Kiosk
+        test_scenario::next_tx(&mut scenario, seller());
+        let (seller_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
+        transfer::public_share_object(seller_kiosk);
+
+        // 5. Create bid order for NFTs
+        test_scenario::next_tx(&mut scenario, seller());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+
+        let coin = coin::mint_for_testing<SUI>(1_000_000, ctx(&mut scenario));
+
+        let price = 300;
+
+        test_scenario::next_tx(&mut scenario, seller());
+
+        // Create and deposit NFT
+        let nft = test_utils::get_foo_nft(ctx(&mut scenario));
+        let nft_id = object::id(&nft);
+
+        ob_kiosk::deposit(&mut seller_kiosk, nft, ctx(&mut scenario));
+
+        orderbook::create_ask(
+            &mut book,
+            &mut seller_kiosk,
+            price,
+            nft_id,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, buyer());
+
+        bidding::create_bid(
+            object::id(&buyer_kiosk),
+            nft_id,
+            100,
+            &mut coin,
+            ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, seller());
+
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let bid = test_scenario::take_shared<Bid<SUI>>(&mut scenario);
+
+        let request = bidding::sell_nft_from_kiosk<Foo, SUI>(
+            &mut bid,
+            &mut seller_kiosk,
+            &mut buyer_kiosk,
+            nft_id,
+            ctx(&mut scenario),
+        );
+
+        transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+
+        coin::burn_for_testing(coin);
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
+        test_scenario::return_shared(bid);
+        test_scenario::return_shared(tx_policy);
+        test_scenario::return_shared(seller_kiosk);
+        test_scenario::return_shared(buyer_kiosk);
+
+        test_scenario::return_shared(book);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    fun delegate_to_admin() {
+        let scenario = test_scenario::begin(creator());
+
+        // 1. Create Collection, TransferPolicy and Orderbook
+        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
+        let publisher = test_utils::get_publisher(ctx(&mut scenario));
+        let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
+
+        let dw = witness::test_dw<Foo>();
+
+        let ob = orderbook::new_with_protected_actions<Foo, SUI>(
+            dw,
+            &tx_policy,
+            orderbook::no_protection(),
+            ctx(&mut scenario)
+        );
+
+        orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
+        orderbook::share(ob);
+
+        transfer::public_share_object(collection);
+        transfer::public_share_object(tx_policy);
+
+        // 2. Insert administrator
+        test_scenario::next_tx(&mut scenario, creator());
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
+
+        orderbook::add_administrator_with_witness(dw, &mut book, marketplace());
+
+        // 3. Disable orderbook
+        test_scenario::next_tx(&mut scenario, marketplace());
+
+        orderbook::disable_orderbook_as_administrator(&mut book, ctx(&mut scenario));
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(orderbook::is_create_ask_protected(actions), 0);
+        assert!(orderbook::is_create_bid_protected(actions), 0);
+        assert!(orderbook::is_buy_nft_protected(actions), 0);
+
+        // 3. Disable orderbook
+        orderbook::enable_orderbook_as_administrator(&mut book, ctx(&mut scenario));
+        let actions = orderbook::protected_actions(&book);
+
+        assert!(!orderbook::is_create_ask_protected(actions), 0);
+        assert!(!orderbook::is_create_bid_protected(actions), 0);
+        assert!(!orderbook::is_buy_nft_protected(actions), 0);
+
+        // 3. Add time-lock
+        test_scenario::next_tx(&mut scenario, marketplace());
+        orderbook::disable_orderbook_as_administrator(&mut book, ctx(&mut scenario));
+
+        orderbook::set_start_time_as_administrator(&mut book, 1672531200000, ctx(&mut scenario));
+
+        assert!(orderbook::start_time(&book) == 1672531200000, 0);
+
+        orderbook::remove_start_time_as_administrator(&mut book, ctx(&mut scenario));
+
+        transfer::public_transfer(publisher, creator());
+        transfer::public_transfer(mint_cap, creator());
+        transfer::public_transfer(policy_cap, creator());
+
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
     }

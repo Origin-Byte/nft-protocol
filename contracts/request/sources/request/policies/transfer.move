@@ -1,7 +1,12 @@
 /// The rolling hot potato pattern was designed by us in conjunction with
 /// Mysten team.
 ///
-/// To lower the barrier to entry, we mimic those APIs where relevant.
+/// For compatability with the Sui TransferPolicy module, the OriginByte
+/// transfer request use the `sui::transfer_policy::TransferRequest` instead of
+/// the native OriginByte request module.
+///
+/// To lower the barrier to entry, we mimic the API defined in the Sui Framework
+/// where relevant.
 /// See the `sui::transfer_policy` module in the https://github.com/MystenLabs/sui
 /// We interoperate with the sui ecosystem by allowing our `TransferRequest` to
 /// be converted into the sui version.
@@ -23,7 +28,7 @@
 /// logic which requires multiple steps.
 /// With our protocol, automation can be set up by marketplaces.
 ///
-/// #### `Policy<WithNft<T, OB_TRANSFER_REQUEST>>`
+/// ####
 /// To be able to authorize transfers, create a policy with
 /// `nft_protocol::transfer_request::init_policy`.
 /// This creates a new transfer request policy to which rules can be attached.

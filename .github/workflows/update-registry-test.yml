@@ -1,0 +1,66 @@
+name: Update Package-Registry [Testnet]
+
+on: workflow_dispatch
+
+jobs:
+  update-registry:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.5.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Extract branch name
+        id: branch_name
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
+
+      - name: Fetch source repository
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ env.BRANCH_NAME }}
+          path: source
+
+      - name: Fetch registry repository
+        run: |
+          git clone git@github.com:Origin-Byte/program-registry.git program-registry
+
+      - name: Setup dependencies
+        run: |
+          wget -qO stoml https://github.com/freshautomations/stoml/releases/download/v0.7.1/stoml_linux_amd64
+          chmod +x stoml
+
+          source source/.env.dist
+          wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
+          chmod +x sui
+
+      - name: Build Packages
+        run: |
+          echo "Building packages"
+          cd source
+
+          ./bin/build.sh remote
+          cd ..
+
+      - name: Copy registry to local fs
+        run: |
+          echo "Copying registry to local file system"
+          cp program-registry/registry-test.json registry-test.json
+
+      - name: Update local Package Registry
+        run: |
+          echo "Registering under revision: ${{ github.sha }}"
+          ./source/bin/register-all.sh ${{ github.repository }} ${{ github.sha }} source/contracts remote registry-main.json
+
+      - name: Update remote registry
+        run: |
+          echo "Updating Test Package Registry"
+          cp registry-test.json program-registry/registry-test.json
+          cd program-registry
+          git add registry-test.json
+          git config user.name "OriginByte"
+          git config user.email "ci@originbyte.io"
+          git commit -m "Update Test Registry"
+          git push

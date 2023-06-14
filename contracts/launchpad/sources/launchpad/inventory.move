@@ -1,5 +1,4 @@
-/// Module of `Inventory` type, a type-erased wrapper around `Warehouse` and
-/// `Factory`.
+/// Module of `Inventory` type, a type-erased wrapper around `Warehouse`
 ///
 /// Additionally, `Inventory` is responsible for providing a safe interface to
 /// change the logical owner of NFTs redeemed from it.
@@ -9,7 +8,7 @@ module ob_launchpad::inventory {
     use sui::transfer;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
-    use sui::dynamic_field as df;
+    use sui::dynamic_object_field as dof;
 
     use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
 
@@ -24,10 +23,10 @@ module ob_launchpad::inventory {
 
     /// `Inventory` is not a `Factory`
     ///
-    /// Call `from_factory` to create an `Inventory` from `Factory`
+    /// NOTE: Factory has been deprecated in is reintroduced in Launchpad V2
     const ENotFactory: u64 = 2;
 
-    /// A type-erased wrapper around `Warehouse` and `Factory`
+    /// A type-erased wrapper around `Warehouse`
     struct Inventory<phantom T> has key, store {
         /// `Inventory` ID
         id: UID,
@@ -41,7 +40,7 @@ module ob_launchpad::inventory {
         ctx: &mut TxContext,
     ): Inventory<T> {
         let inventory_id = object::new(ctx);
-        df::add(&mut inventory_id, WarehouseKey {}, warehouse);
+        dof::add(&mut inventory_id, WarehouseKey {}, warehouse);
 
         Inventory { id: inventory_id }
     }
@@ -166,9 +165,6 @@ module ob_launchpad::inventory {
     ///
     /// Endpoint is exclusive to friend modules.
     ///
-    /// If the underlying `Inventory` is a `Factory` then logic will fallback to
-    /// using sequential withdraw.
-    ///
     /// #### Panics
     ///
     /// Panics if there is no supply left.
@@ -205,9 +201,6 @@ module ob_launchpad::inventory {
     /// `warehouse::init_redeem_commitment`.
     ///
     /// Endpoint is exclusive to friend modules.
-    ///
-    /// If the underlying `Inventory` is a `Factory` then logic will fallback to
-    /// using sequential withdraw.
     ///
     /// #### Panics
     ///
@@ -263,9 +256,6 @@ module ob_launchpad::inventory {
 
     /// Returns the available supply in `Inventory`
     ///
-    /// If the `Inventory` is a `Factory` with unregulated supply then none
-    /// will be returned.
-    ///
     /// #### Panics
     ///
     /// Panics if supply was exceeded.
@@ -278,7 +268,7 @@ module ob_launchpad::inventory {
 
     /// Returns whether `Inventory` is a `Warehouse`
     public fun is_warehouse<T: key + store>(inventory: &Inventory<T>): bool {
-        df::exists_with_type<WarehouseKey, Warehouse<T>>(
+        dof::exists_with_type<WarehouseKey, Warehouse<T>>(
             &inventory.id, WarehouseKey {}
         )
     }
@@ -287,24 +277,24 @@ module ob_launchpad::inventory {
     ///
     /// #### Panics
     ///
-    /// Panics if `Inventory` is a `Factory`
+    /// Panics if no `Warehouse`
     public fun borrow_warehouse<T: key + store>(
         inventory: &Inventory<T>,
     ): &Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow(&inventory.id, WarehouseKey {})
+        dof::borrow(&inventory.id, WarehouseKey {})
     }
 
     /// Mutably borrows `Inventory` as `Warehouse`
     ///
     /// #### Panics
     ///
-    /// Panics if `Inventory` is a `Factory`
+    /// Panics if no `Warehouse`
     fun borrow_warehouse_mut<T: key + store>(
         inventory: &mut Inventory<T>,
     ): &mut Warehouse<T> {
         assert_warehouse(inventory);
-        df::borrow_mut(&mut inventory.id, WarehouseKey {})
+        dof::borrow_mut(&mut inventory.id, WarehouseKey {})
     }
 
     // === Assertions ===

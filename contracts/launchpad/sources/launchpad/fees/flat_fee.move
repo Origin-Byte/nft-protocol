@@ -1,3 +1,5 @@
+/// A module responsible for the calculation and distribution
+/// of Launchpad proceeds and fees.
 module ob_launchpad::flat_fee {
     use sui::balance;
     use sui::tx_context;
@@ -50,7 +52,7 @@ module ob_launchpad::flat_fee {
         ctx: &mut TxContext,
     ) {
         listing::assert_listing_marketplace_match(marketplace, listing);
-        listing::assert_correct_admin(marketplace, listing, ctx);
+        listing::assert_correct_admin_or_member(marketplace, listing, ctx);
 
         let (proceeds_value, listing_receiver) = {
             let proceeds = listing::borrow_proceeds(listing);

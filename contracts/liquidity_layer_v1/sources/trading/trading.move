@@ -1,3 +1,8 @@
+/// *** Attention ***
+/// Liquidity Layer V1 is scheduled to be deprecated in favor of Liquidity Layer V2,
+/// which uses dynamic fields in the orderbook. The use of Orderbook V1 is limited
+/// by the current Sui object size limiteation of 250 kb.
+///
 /// Reusable trading primitives.
 module liquidity_layer_v1::trading {
     use std::option::{Self, Option};
@@ -47,6 +52,13 @@ module liquidity_layer_v1::trading {
         commission: BidCommission<FT>,
     ): (Balance<FT>, address) {
         let BidCommission { cut, beneficiary } = commission;
+        (cut, beneficiary)
+    }
+
+    public fun destroy_ask_commission(
+        commission: AskCommission,
+    ): (u64, address) {
+        let AskCommission { cut, beneficiary } = commission;
         (cut, beneficiary)
     }
 
