@@ -1,13 +1,13 @@
 [package]
 name = "Authlist"
-version = "1.0.0"
-published-at = "0x8c19460961af40edf348433cd41547f63e306e4b5c1a0ae9269364bd9fcbb5a6"
+version = "1.2.0"
+published-at = "0x0f174090484515e6670057ba934be50453e26271f7571d0ae29f918a10074ada"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# devnet-1.1.0
-rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
+# testnet-1.2.0
+rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4"
 
 [dependencies.Permissions]
 local = "./../permissions"

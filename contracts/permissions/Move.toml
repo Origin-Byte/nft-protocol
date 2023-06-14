@@ -1,13 +1,13 @@
 [package]
 name = "Permissions"
-version = "1.0.0"
-published-at = "0x941e0a5b9ea70064b1d8649229ceb3216e0ef36802320f50b4b00bd9178b8073"
+version = "1.2.0"
+published-at = "0xf9ca80b159406e93abb082aa33d2f4dfe3689aee44b2b199671577af4eae7826"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# devnet-1.1.0
-rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
+# testnet-1.2.0
+rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4"
 
 [dependencies.Utils]
 local = "./../utils"

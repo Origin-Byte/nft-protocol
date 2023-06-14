@@ -1,13 +1,13 @@
 [package]
 name = "Utils"
-version = "1.0.0"
-published-at = "0xcdbd730f422a89174ee4717e97a3db1c48b008f969eec00846a0d685b2437f8a"
+version = "1.2.0"
+published-at = "0xd2674eaaf243d4be9adaa3d457ad95a55461d7db92cbf190b115059063bb073c"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# devnet-1.1.0
-rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
+# testnet-1.2.0
+rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4"
 
 [dependencies.Pseudorandom]
 local = "./../pseudorandom"

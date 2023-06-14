@@ -32,9 +32,6 @@ objects:
         upgrade_cap: 0x571b764b6fc01a0cee09f86bda5853a4510a2f4df57a546df4b08d9b33793ffd
         publisher: 0xf0012a5b5f78e0c437337eed6823805a66dc2b92412ea6469da80d9e74a89b3a
         frozen_publisher: 0x237bbbafd27a5902896ac5b1bef854aeb686ef60ec411fd900fc743145f9615c
-    request_extensions:
-        contract: 0x355d32aaf760dfdb01d62650c4554cf402ae98d34f150e1b378441864ddee95e
-        upgrade_cap: 0x2e212c804ce4b51ae6ae7beb31f2a2bc0cbf48872ea8fc76d5b5d4828f3793bd
     kiosk:
         contract: 0xd0a449fc6b27195df90aff0076cdd84dd43f600235b23144f2422741b1bb86a8
         upgrade_cap: 0x89747316736110d70b2882c4777e8900adf9bfcad058ee83e0e135ec1c48e301
@@ -63,12 +60,12 @@ objects:
         upgrade_cap: 0xef08b5ab71f35cce81b5878790ba08bd037baa0af7a08bbea75130190433925e
         publisher: 0xed944edd22180708fec5aef41ed0b8bf0758b876a59cd45160310806247b8ad0
         frozen_publisher: 0x2185c2b0ae466b168e729e0ea418f47d0588d1c124958555969ca61bfdebf321
-  liquidity_layer:
+    liquidity_layer:
         contract: 0x17598ec33ed2d4ab4a65afe6aed97ed41a0c50efdfea61e62e76e94d20490fb8
         upgrade_cap: 0xd17e5074af19f4883c59c3e24326d01d3ad17d47e69d183e2ddd16ff55b75039
         publisher: 0xb4441e8c17b0b1702eaddd4fccb0f408f05ca7b2d56ffb5daa8f0a59a391c6f7
         frozen_publisher: 0x906dbc90d35430cc453bd6e4686308af61bbf724ceab3abbe92b654321b8884e
-  nft_protocol:
+    nft_protocol:
         contract: 0x01735f24294e55a988541e97db050903cf8a70ce38c77ad219c134344eda67ac
         upgrade_cap: 0x050894c4752e750831ccd2584fa6a2e0b719a55a6c75885060b6eb9246078b68
         publisher: 0xf6402eb0516dfcc845a7a0f3ee8caf6c721d900165ec6fb6e27ce566b377e382

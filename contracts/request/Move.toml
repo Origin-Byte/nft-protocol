@@ -1,13 +1,13 @@
 [package]
 name = "Request"
-version = "1.0.0"
-published-at = "0xaf6ff929224de84ca0372eceef9a1c891bae68d03427bfcf5e99458a2c1498a1"
+version = "1.2.0"
+published-at = "0x9cb038ac5bb5c5e8b83ea8b5ddd9dea35dc31be21b1808a8a8497284cd6e42de"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# devnet-1.1.0
-rev = "38c31cdd0f2ae3963d1e06f00c766cd7f90a7be6"
+# testnet-1.2.0
+rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4"
 
 [dependencies.Permissions]
 local = "./../permissions"
