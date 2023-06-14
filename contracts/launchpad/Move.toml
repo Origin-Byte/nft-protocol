@@ -1,7 +1,7 @@
 [package]
 name = "Launchpad"
 version = "1.2.0"
-published-at = "0xdd04fefb5600164931e7c5311d390c4dbc63857a6017efd0b6b09883e5425d86"
+published-at = "0xc4df13385ce717b9110e47d51ef5f673ef43c997db94b3676c2b7649a3a313d2"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
@@ -12,7 +12,7 @@ rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4"
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
 # testnet-1.2.0
-rev = "bb1e1bc25ac3d4220fdad5245c1b8b265914cc2b"
+rev = "539fa71987518435b4e65f160cf04cd2f685b712"
 
 [dependencies.Kiosk]
 local = "./../kiosk"
@@ -24,5 +24,4 @@ local = "./../pseudorandom"
 local = "./../utils"
 
 [addresses]
-ob_launchpad = "0x"
-# ob_launchpad = "0x7a77b4695a59078fda0c6109737bf7b72a7a7315ff42edfc0eea772c2dce341e" v1
+ob_launchpad = "0x7a77b4695a59078fda0c6109737bf7b72a7a7315ff42edfc0eea772c2dce341e"
