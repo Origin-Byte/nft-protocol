@@ -32,6 +32,7 @@ module ob_launchpad::listing {
     use sui::vec_set::{Self, VecSet};
     use sui::kiosk::Kiosk;
     use sui::balance::{Self, Balance};
+    use sui::coin::{Self, Coin};
     use sui::object::{Self, ID , UID};
     use sui::dynamic_object_field as dof;
     use sui::tx_context::{Self, TxContext};
@@ -98,6 +99,9 @@ module ob_launchpad::listing {
 
     const ENoMembers: u64 = 12;
 
+    /// `Venue` does not define a rebate for the given type
+    const ERebateUndefined: u64 = 13;
+
     struct Listing has key, store {
         id: UID,
         version: u64,
@@ -127,6 +131,14 @@ module ob_launchpad::listing {
         marketplace_id: TypedID<Marketplace>,
     }
 
+    /// `Rebate` container which allows providing a rebate on purchases of a
+    /// certain type as long as funds persist.
+    struct Rebate<phantom T: key + store, phantom FT> has store {
+        funds: Balance<FT>,
+        rebate_amount: u64,
+    }
+
+    struct RebateDfKey has copy, drop, store {}
     struct RequestToJoinDfKey has store, copy, drop {}
     struct MembersDfKey has store, copy, drop {}
 
@@ -912,6 +924,92 @@ module ob_launchpad::listing {
 
         let inventory = borrow_inventory<T>(listing, inventory_id);
         inventory::supply(inventory)
+    }
+
+    // === Rebates ===
+
+    public fun has_rebate<T: key + store, FT>(listing: &Listing): bool {
+        df::exists_with_type<RebateDfKey, Rebate<T, FT>>(&listing.id, RebateDfKey {})
+    }
+
+    /// Sets rebate policy
+    ///
+    /// Rebate amount defines the amount of token `FT` that gets transferred
+    /// back to the user after purchase.
+    public entry fun set_rebate<T: key + store, FT>(
+        listing: &mut Listing,
+        rebate_amount: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert_listing_admin(listing, ctx);
+
+        // If rebate already exists just update it
+        if (has_rebate<T, FT>(listing)) {
+            let rebate = borrow_rebate_mut<T, FT>(listing);
+            rebate.rebate_amount = rebate_amount;
+        } else {
+            let rebate = Rebate<T, FT> { funds: balance::zero(), rebate_amount };
+            df::add(&mut listing.id, RebateDfKey {}, rebate);
+        }
+    }
+
+    /// Add funds to rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy for given type and token, `FT`, was not
+    /// previously defined.
+    public entry fun fund_rebate<T: key + store, FT>(
+        listing: &mut Listing,
+        wallet: &mut Coin<FT>,
+        fund_amount: u64,
+    ) {
+        let rebate = borrow_rebate_mut<T, FT>(listing);
+        balance::join(&mut rebate.funds, balance::split(coin::balance_mut(wallet), fund_amount));
+    }
+
+    /// Withdraw rebate funds
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate for a given type and token, `FT` was not previously
+    /// defined.
+    public entry fun withdraw_rebate_funds<T: key + store, FT>(
+        listing: &mut Listing,
+        amount: u64,
+        ctx: &mut TxContext,
+    ): Balance<FT> {
+        assert_listing_admin(listing, ctx);
+
+        let rebate = borrow_rebate_mut<T, FT>(listing);
+        balance::split(&mut rebate.funds, amount)
+    }
+
+    /// Send rebate funds
+    public(friend) fun send_rebate<T: key + store, FT>(
+        listing: &mut Listing,
+        receiver: address,
+        ctx: &mut TxContext,
+    ) {
+        if (has_rebate<T, FT>(listing)) {
+            let rebate = borrow_rebate_mut<T, FT>(listing);
+
+            let balance = balance::value(&rebate.funds);
+            if (balance >= rebate.rebate_amount) {
+                let funds = balance::split(&mut rebate.funds, rebate.rebate_amount);
+                transfer::transfer(coin::from_balance(funds, ctx), receiver);
+            }
+        }
+    }
+
+    /// Borrows rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy does not exist
+    fun borrow_rebate_mut<T: key + store, FT>(listing: &mut Listing): &mut Rebate<T, FT> {
+        assert!(has_rebate<T, FT>(listing), ERebateUndefined);
+        df::borrow_mut(&mut listing.id, RebateDfKey {})
     }
 
     // === Admin ===
