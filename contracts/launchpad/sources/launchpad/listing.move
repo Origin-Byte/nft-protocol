@@ -928,8 +928,29 @@ module ob_launchpad::listing {
 
     // === Rebates ===
 
+    /// Checks whether rebate poilcy exists
     public fun has_rebate<T: key + store, FT>(listing: &Listing): bool {
         df::exists_with_type<RebateDfKey, Rebate<T, FT>>(&listing.id, RebateDfKey {})
+    }
+
+    /// Borrows rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy does not exist
+    public fun borrow_rebate<T: key + store, FT>(listing: &Listing): &Rebate<T, FT> {
+        assert!(has_rebate<T, FT>(listing), ERebateUndefined);
+        df::borrow(&listing.id, RebateDfKey {})
+    }
+
+    /// Mutably borrows rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy does not exist
+    fun borrow_rebate_mut<T: key + store, FT>(listing: &mut Listing): &mut Rebate<T, FT> {
+        assert!(has_rebate<T, FT>(listing), ERebateUndefined);
+        df::borrow_mut(&mut listing.id, RebateDfKey {})
     }
 
     /// Sets rebate policy
@@ -997,19 +1018,9 @@ module ob_launchpad::listing {
             let balance = balance::value(&rebate.funds);
             if (balance >= rebate.rebate_amount) {
                 let funds = balance::split(&mut rebate.funds, rebate.rebate_amount);
-                transfer::transfer(coin::from_balance(funds, ctx), receiver);
+                transfer::public_transfer(coin::from_balance(funds, ctx), receiver);
             }
         }
-    }
-
-    /// Borrows rebate policy
-    ///
-    /// #### Panics
-    ///
-    /// Panics if rebate policy does not exist
-    fun borrow_rebate_mut<T: key + store, FT>(listing: &mut Listing): &mut Rebate<T, FT> {
-        assert!(has_rebate<T, FT>(listing), ERebateUndefined);
-        df::borrow_mut(&mut listing.id, RebateDfKey {})
     }
 
     // === Admin ===
