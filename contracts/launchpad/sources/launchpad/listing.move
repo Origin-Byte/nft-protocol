@@ -999,11 +999,16 @@ module ob_launchpad::listing {
         listing: &mut Listing,
         amount: u64,
         ctx: &mut TxContext,
-    ): Balance<FT> {
+    ) {
         assert_listing_admin(listing, ctx);
 
         let rebate = borrow_rebate_mut<T, FT>(listing);
-        balance::split(&mut rebate.funds, amount)
+        let balance = balance::split(&mut rebate.funds, amount);
+
+        transfer::public_transfer(
+            coin::from_balance(balance, ctx),
+            tx_context::sender(ctx),
+        );
     }
 
     /// Send rebate funds
