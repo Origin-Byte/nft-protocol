@@ -1,6 +1,6 @@
 [package]
 name = "Launchpad"
-version = "1.2.0"
+version = "1.2.1"
 published-at = "0xc0c5ca1e59bbb0e7330c8f182cbad262717faf7d8d0d7f7da4b3146391ecbbe1"
 
 [dependencies.Sui]
@@ -24,4 +24,5 @@ local = "./../pseudorandom"
 local = "./../utils"
 
 [addresses]
-ob_launchpad = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b"
+# ob_launchpad = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b"
+ob_launchpad = "0x"
