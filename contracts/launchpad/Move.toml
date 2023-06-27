@@ -1,7 +1,7 @@
 [package]
 name = "Launchpad"
-version = "1.2.0"
-published-at = "0xc0c5ca1e59bbb0e7330c8f182cbad262717faf7d8d0d7f7da4b3146391ecbbe1"
+version = "1.2.1"
+published-at = "0x84a4287ce5de36833b54464844051986695e2637e9d00f61c47d7115aaafb00c"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"

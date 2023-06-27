@@ -9,6 +9,7 @@ module ob_launchpad::inventory {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_object_field as dof;
+    use sui::dynamic_field as df;
 
     use ob_launchpad::warehouse::{Self, Warehouse, RedeemCommitment};
 
@@ -68,8 +69,6 @@ module ob_launchpad::inventory {
     ///
     /// Panics if no supply is available.
     public fun redeem_nft<T: key + store>(inventory: &mut Inventory<T>): T {
-        assert_warehouse(inventory);
-
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_nft(warehouse)
     }
@@ -101,8 +100,6 @@ module ob_launchpad::inventory {
         inventory: &mut Inventory<T>,
         index: u64,
     ): T {
-        assert_warehouse(inventory);
-
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_nft_at_index(warehouse, index)
     }
@@ -136,8 +133,6 @@ module ob_launchpad::inventory {
         inventory: &mut Inventory<T>,
         nft_id: ID,
     ): T {
-        assert_warehouse(inventory);
-
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_nft_with_id(warehouse, nft_id)
     }
@@ -172,8 +167,6 @@ module ob_launchpad::inventory {
         inventory: &mut Inventory<T>,
         ctx: &mut TxContext,
     ): T {
-        assert_warehouse(inventory);
-
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_pseudorandom_nft(warehouse, ctx)
     }
@@ -212,8 +205,6 @@ module ob_launchpad::inventory {
         user_commitment: vector<u8>,
         ctx: &mut TxContext,
     ): T {
-        assert_warehouse(inventory);
-
         let warehouse = borrow_warehouse_mut(inventory);
         warehouse::redeem_random_nft(
             warehouse, commitment, user_commitment, ctx,
@@ -260,8 +251,6 @@ module ob_launchpad::inventory {
     ///
     /// Panics if supply was exceeded.
     public fun supply<T: key + store>(inventory: &Inventory<T>): Option<u64> {
-        assert!(is_warehouse(inventory), ENotWarehouse);
-
         let warehouse = borrow_warehouse(inventory);
         option::some(warehouse::supply(warehouse))
     }
@@ -281,6 +270,13 @@ module ob_launchpad::inventory {
     public fun borrow_warehouse<T: key + store>(
         inventory: &Inventory<T>,
     ): &Warehouse<T> {
+        // TODO: Remove fallback in new launchpad release
+        if (df::exists_with_type<WarehouseKey, Warehouse<T>>(
+            &inventory.id, WarehouseKey {},
+        )) {
+            return df::borrow(&inventory.id, WarehouseKey {})
+        };
+
         assert_warehouse(inventory);
         dof::borrow(&inventory.id, WarehouseKey {})
     }
@@ -293,6 +289,13 @@ module ob_launchpad::inventory {
     fun borrow_warehouse_mut<T: key + store>(
         inventory: &mut Inventory<T>,
     ): &mut Warehouse<T> {
+        // TODO: Remove fallback in new launchpad release
+        if (df::exists_with_type<WarehouseKey, Warehouse<T>>(
+            &inventory.id, WarehouseKey {},
+        )) {
+            return df::borrow_mut(&mut inventory.id, WarehouseKey {})
+        };
+
         assert_warehouse(inventory);
         dof::borrow_mut(&mut inventory.id, WarehouseKey {})
     }
