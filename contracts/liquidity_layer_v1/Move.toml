@@ -1,6 +1,6 @@
 [package]
 name = "LiquidityLayerV1"
-version = "1.2.0"
+version = "1.2.1"
 published-at = "0xe2363cf3c4b75ebfcecdba869c2eed610a4f7fd50a51ce00ace13ec433c651ee"
 
 [dependencies.Sui]

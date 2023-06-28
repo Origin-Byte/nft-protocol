@@ -6,6 +6,12 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1-mainnet] - 2023-06-27
+
+## Added
+- Fallback logic for `inventory` in `Listing`. It checks first if Inventory is
+  present in a dynamic field and if not it check if it's present in a dynamic object field
+
 ## [1.2.0-mainnet] - 2023-06-08
 
 ## Added

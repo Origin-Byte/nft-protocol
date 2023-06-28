@@ -1,6 +1,6 @@
 [package]
 name = "Authlist"
-version = "1.2.0"
+version = "1.2.1"
 published-at = "0x0f174090484515e6670057ba934be50453e26271f7571d0ae29f918a10074ada"
 
 [dependencies.Sui]
