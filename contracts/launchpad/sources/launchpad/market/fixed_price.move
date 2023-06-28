@@ -224,6 +224,8 @@ module ob_launchpad::fixed_price {
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
     ): T {
+        listing::apply_rebate<T, FT>(listing, balance);
+
         let market = borrow_market<FT>(listing::borrow_venue(listing, venue_id));
 
         let price = market.price;

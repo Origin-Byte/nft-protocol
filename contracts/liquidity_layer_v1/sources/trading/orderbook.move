@@ -1250,35 +1250,77 @@ module liquidity_layer_v1::orderbook {
 
     public fun borrow_bids<T: key + store, FT>(
         book: &Orderbook<T, FT>,
-    ): &CBTree<vector<Bid<FT>>> { &book.bids }
+    ): &CBTree<vector<Bid<FT>>> {
+        &book.bids
+    }
 
-    public fun bid_offer<FT>(bid: &Bid<FT>): &Balance<FT> { &bid.offer }
+    public fun bid_offer<FT>(bid: &Bid<FT>): &Balance<FT> {
+        &bid.offer
+    }
 
-    public fun bid_owner<FT>(bid: &Bid<FT>): address { bid.owner }
+    public fun bid_owner<FT>(bid: &Bid<FT>): address {
+        bid.owner
+    }
+
+    public fun bid_kiosk_id<FT>(bid: &Bid<FT>): &ID {
+        &bid.kiosk
+    }
+
+    public fun bid_commission<FT>(
+        bid: &Bid<FT>,
+    ): &Option<trading::BidCommission<FT>> {
+        &bid.commission
+    }
 
     public fun borrow_asks<T: key + store, FT>(
         book: &Orderbook<T, FT>,
-    ): &CBTree<vector<Ask>> { &book.asks }
+    ): &CBTree<vector<Ask>> {
+        &book.asks
+    }
 
-    public fun ask_price(ask: &Ask): u64 { ask.price }
+    public fun ask_price(ask: &Ask): u64 {
+        ask.price
+    }
 
-    public fun ask_owner(ask: &Ask): address { ask.owner }
+    public fun ask_owner(ask: &Ask): address {
+        ask.owner
+    }
+
+    public fun ask_nft_id(ask: &Ask): &ID {
+        &ask.nft_id
+    }
+
+    public fun ask_kiosk_id(ask: &Ask): &ID {
+        &ask.kiosk_id
+    }
+
+    public fun ask_commission(ask: &Ask): &Option<trading::AskCommission> {
+        &ask.commission
+    }
 
     public fun protected_actions<T: key + store, FT>(
         book: &Orderbook<T, FT>,
-    ): &WitnessProtectedActions { &book.protected_actions }
+    ): &WitnessProtectedActions {
+        &book.protected_actions
+    }
 
     public fun is_create_ask_protected(
         protected_actions: &WitnessProtectedActions
-    ): bool { protected_actions.create_ask }
+    ): bool {
+        protected_actions.create_ask
+    }
 
     public fun is_create_bid_protected(
         protected_actions: &WitnessProtectedActions
-    ): bool { protected_actions.create_bid }
+    ): bool {
+        protected_actions.create_bid
+    }
 
     public fun is_buy_nft_protected(
         protected_actions: &WitnessProtectedActions
-    ): bool { protected_actions.buy_nft }
+    ): bool {
+        protected_actions.buy_nft
+    }
 
     public fun trade_id(trade: &TradeInfo): ID {
         trade.trade_id

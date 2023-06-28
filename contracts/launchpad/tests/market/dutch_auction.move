@@ -4,6 +4,7 @@ module ob_launchpad::test_dutch_auction {
 
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
+    use sui::kiosk::Kiosk;
     use sui::balance;
     use sui::transfer;
     use sui::object::{Self, UID, ID};
@@ -576,19 +577,13 @@ module ob_launchpad::test_dutch_auction {
         let (warehouse_id, venue_id) =
             init_market(&mut listing, 10, false, &mut scenario);
 
-        listing::add_nft(
-            &mut listing,
-            warehouse_id,
-            Foo { id: object::new(ctx(&mut scenario)) },
-            ctx(&mut scenario)
-        );
+        let nft0 = Foo { id: object::new(ctx(&mut scenario)) };
+        let nft_id0 = object::id(&nft0);
+        listing::add_nft(&mut listing, warehouse_id, nft0, ctx(&mut scenario));
 
-        listing::add_nft(
-            &mut listing,
-            warehouse_id,
-            Foo { id: object::new(ctx(&mut scenario)) },
-            ctx(&mut scenario)
-        );
+        let nft1 = Foo { id: object::new(ctx(&mut scenario)) };
+        let nft_id1 = object::id(&nft1);
+        listing::add_nft(&mut listing, warehouse_id, nft1, ctx(&mut scenario));
 
         listing::sale_on(&mut listing, venue_id, ctx(&mut scenario));
 
@@ -614,6 +609,8 @@ module ob_launchpad::test_dutch_auction {
             ctx(&mut scenario),
         );
 
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
         dutch_auction::create_bid(
             &mut wallet,
             &mut listing,
@@ -631,7 +628,7 @@ module ob_launchpad::test_dutch_auction {
             ctx(&mut scenario),
         );
 
-        test_scenario::next_tx(&mut scenario, CREATOR);
+        let conclude_effects = test_scenario::next_tx(&mut scenario, CREATOR);
 
         let venue = listing::borrow_venue(&listing, venue_id);
 
@@ -655,19 +652,29 @@ module ob_launchpad::test_dutch_auction {
 
         let refunded1 = test_scenario::take_from_address<Coin<SUI>>(
             &scenario,
-            BUYER,
+            CREATOR,
         );
         assert!(coin::value(&refunded1) == 1, 0);
 
         test_scenario::return_to_address(BUYER, refunded0);
-        test_scenario::return_to_address(BUYER, refunded1);
+        test_scenario::return_to_address(CREATOR, refunded1);
 
-        // TODO: Check Kiosk was created and NFT deposited
-        // let nft = test_scenario::take_from_address<Foo>(
-        //     &scenario, BUYER
-        // );
+        let shared = test_scenario::shared(&conclude_effects);
 
-        // test_scenario::return_to_address(BUYER, nft);
+        // Test whether Kiosks were created
+        let kiosk0 = test_scenario::take_shared_by_id<Kiosk>(
+            &scenario, *vector::borrow(&shared, 0),
+        );
+        assert!(sui::kiosk::owner(&kiosk0) == BUYER, 0);
+        ob_kiosk::ob_kiosk::assert_nft_type<Foo>(&kiosk0, nft_id1);
+        test_scenario::return_shared(kiosk0);
+
+        let kiosk1 = test_scenario::take_shared_by_id<Kiosk>(
+            &scenario, *vector::borrow(&shared, 1),
+        );
+        assert!(sui::kiosk::owner(&kiosk1) == CREATOR, 0);
+        ob_kiosk::ob_kiosk::assert_nft_type<Foo>(&kiosk1, nft_id0);
+        test_scenario::return_shared(kiosk1);
 
         // Check bid state
         let market = dutch_auction::borrow_market(venue);

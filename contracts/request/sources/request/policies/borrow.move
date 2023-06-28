@@ -60,23 +60,33 @@ module ob_request::borrow_request {
         }
     }
 
-    public fun init_policy<T: key + store>(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<T, BORROW_REQ>>, PolicyCap) {
+    public fun init_policy<T: key + store>(
+        publisher: &Publisher,
+        ctx: &mut TxContext,
+    ): (Policy<WithNft<T, BORROW_REQ>>, PolicyCap) {
         request::new_policy_with_type(BORROW_REQ {}, publisher, ctx)
     }
 
     /// Adds a `Receipt` to the `Request`, unblocking the request and
     /// confirming that the policy requirements are satisfied.
-    public fun add_receipt<Auth: drop, T: key + store, Rule>(self: &mut BorrowRequest<Auth, T>, rule: &Rule) {
+    public fun add_receipt<Auth: drop, T: key + store, Rule>(
+        self: &mut BorrowRequest<Auth, T>,
+        rule: &Rule,
+    ) {
         request::add_receipt(&mut self.inner, rule);
     }
 
     // TODO: SHOULD THIS BE PROTECTED?
     public fun inner_mut<Auth: drop, T: key + store>(
         self: &mut BorrowRequest<Auth, T>
-    ): &mut RequestBody<WithNft<T, BORROW_REQ>> { &mut self.inner }
+    ): &mut RequestBody<WithNft<T, BORROW_REQ>> {
+        &mut self.inner
+    }
 
     public fun confirm<Auth: drop, T: key + store>(
-        _witness: Auth, self: BorrowRequest<Auth, T>, policy: &Policy<WithNft<T, BORROW_REQ>>
+        _witness: Auth,
+        self: BorrowRequest<Auth, T>,
+        policy: &Policy<WithNft<T, BORROW_REQ>>,
     ): (T, Borrow) {
         assert!(option::is_some(&self.nft), 0);
 
@@ -134,14 +144,13 @@ module ob_request::borrow_request {
         promise: ReturnPromise<T, Field>,
         field: Field,
     ) {
-        // No need to call the following assertion, we will confirm that the field
-        // is present before resolving the BorrowRequest
-        // assert!(request.is_returned == false, 0);
+        // No need to assert returned field, we will confirm that it is present
+        // before resolving the BorrowRequest
         assert!(object::uid_to_inner(nft_uid) == promise.nft_id, 0);
+
         df::add(nft_uid, type_name::get<Field>(), field);
 
         let ReturnPromise { nft_id: _ } = promise;
-
     }
 
     public fun return_nft<Auth: drop, T: key + store>(
@@ -153,24 +162,45 @@ module ob_request::borrow_request {
         option::fill(&mut request.nft, nft);
     }
 
-    public fun tx_sender<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): address { self.sender }
+    public fun tx_sender<Auth: drop, T: key + store>(
+        self: &BorrowRequest<Auth, T>,
+    ): address {
+        self.sender
+    }
 
-    public fun is_borrow_field<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): bool {
+    public fun is_borrow_nft<Auth: drop, T: key + store>(
+        self: &BorrowRequest<Auth, T>,
+    ): bool {
+        option::is_none(&self.field)
+    }
+
+    public fun is_borrow_field<Auth: drop, T: key + store>(
+        self: &BorrowRequest<Auth, T>,
+    ): bool {
         option::is_some(&self.field)
     }
 
-    public fun field<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): TypeName {
+    public fun field<Auth: drop, T: key + store>(
+        self: &BorrowRequest<Auth, T>,
+    ): TypeName {
         *option::borrow(&self.field)
     }
 
-    public fun nft_id<Auth: drop, T: key + store>(self: &BorrowRequest<Auth, T>): ID {
+    public fun nft_id<Auth: drop, T: key + store>(
+        self: &BorrowRequest<Auth, T,
+    >): ID {
         object::id(option::borrow(&self.nft))
     }
 
-    public fun assert_is_borrow_nft<Auth: drop, T: key + store>(request: &BorrowRequest<Auth, T>) {
-        assert!(option::is_none(&request.field), 0);
+    public fun assert_is_borrow_nft<Auth: drop, T: key + store>(
+        request: &BorrowRequest<Auth, T>,
+    ) {
+        assert!(is_borrow_nft(request), 0);
     }
-    public fun assert_is_borrow_field<Auth: drop, T: key + store>(request: &BorrowRequest<Auth, T>) {
-        assert!(option::is_some(&request.field), 0);
+
+    public fun assert_is_borrow_field<Auth: drop, T: key + store>(
+        request: &BorrowRequest<Auth, T>,
+    ) {
+        assert!(is_borrow_field(request), 0);
     }
 }
