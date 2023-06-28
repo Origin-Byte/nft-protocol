@@ -53,7 +53,7 @@ module ob_kiosk::ob_kiosk {
     use ob_kiosk::kiosk::KIOSK;
 
     // Track the current version of the module
-    const VERSION: u64 = 2;
+    const VERSION: u64 = 3;
 
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
