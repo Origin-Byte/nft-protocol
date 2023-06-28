@@ -48,6 +48,7 @@ module ob_launchpad::listing {
     use ob_launchpad::marketplace::{Self as mkt, Marketplace};
     use ob_launchpad::proceeds::{Self, Proceeds};
     use ob_launchpad::venue::{Self, Venue};
+    use ob_launchpad::rebate::{Self, Rebate};
 
     use ob_kiosk::ob_kiosk;
 
@@ -99,9 +100,6 @@ module ob_launchpad::listing {
 
     const ENoMembers: u64 = 12;
 
-    /// `Venue` does not define a rebate for the given type
-    const ERebateUndefined: u64 = 13;
-
     struct Listing has key, store {
         id: UID,
         version: u64,
@@ -131,14 +129,6 @@ module ob_launchpad::listing {
         marketplace_id: TypedID<Marketplace>,
     }
 
-    /// `Rebate` container which allows providing a rebate on purchases of a
-    /// certain type as long as funds persist.
-    struct Rebate<phantom T: key + store, phantom FT> has store {
-        funds: Balance<FT>,
-        rebate_amount: u64,
-    }
-
-    struct RebateDfKey has copy, drop, store {}
     struct RequestToJoinDfKey has store, copy, drop {}
     struct MembersDfKey has store, copy, drop {}
 
@@ -928,9 +918,9 @@ module ob_launchpad::listing {
 
     // === Rebates ===
 
-    /// Checks whether rebate poilcy exists
+    /// Checks whether rebate policy exists
     public fun has_rebate<T: key + store, FT>(listing: &Listing): bool {
-        df::exists_with_type<RebateDfKey, Rebate<T, FT>>(&listing.id, RebateDfKey {})
+        rebate::has_rebate<T, FT>(&listing.id)
     }
 
     /// Borrows rebate policy
@@ -938,9 +928,8 @@ module ob_launchpad::listing {
     /// #### Panics
     ///
     /// Panics if rebate policy does not exist
-    public fun borrow_rebate<T: key + store, FT>(listing: &Listing): &Rebate<T, FT> {
-        assert!(has_rebate<T, FT>(listing), ERebateUndefined);
-        df::borrow(&listing.id, RebateDfKey {})
+    public fun borrow_rebate<T: key + store, FT>(listing: &Listing): &Rebate<FT> {
+        rebate::borrow_rebate<T, FT>(&listing.id)
     }
 
     /// Mutably borrows rebate policy
@@ -948,9 +937,8 @@ module ob_launchpad::listing {
     /// #### Panics
     ///
     /// Panics if rebate policy does not exist
-    fun borrow_rebate_mut<T: key + store, FT>(listing: &mut Listing): &mut Rebate<T, FT> {
-        assert!(has_rebate<T, FT>(listing), ERebateUndefined);
-        df::borrow_mut(&mut listing.id, RebateDfKey {})
+    fun borrow_rebate_mut<T: key + store, FT>(listing: &mut Listing): &mut Rebate<FT> {
+        rebate::borrow_rebate_mut<T, FT>(&mut listing.id)
     }
 
     /// Sets rebate policy
@@ -963,15 +951,21 @@ module ob_launchpad::listing {
         ctx: &mut TxContext,
     ) {
         assert_listing_admin(listing, ctx);
+        rebate::set_rebate<T, FT>(&mut listing.id, rebate_amount)
+    }
 
-        // If rebate already exists just update it
-        if (has_rebate<T, FT>(listing)) {
-            let rebate = borrow_rebate_mut<T, FT>(listing);
-            rebate.rebate_amount = rebate_amount;
-        } else {
-            let rebate = Rebate<T, FT> { funds: balance::zero(), rebate_amount };
-            df::add(&mut listing.id, RebateDfKey {}, rebate);
-        }
+    /// Add funds to rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy for given type and token, `FT`, was not
+    /// previously defined.
+    public fun fund_rebate_with_balance<T: key + store, FT>(
+        listing: &mut Listing,
+        balance: &mut Balance<FT>,
+        fund_amount: u64,
+    ) {
+        rebate::fund_rebate<T, FT>(&mut listing.id, balance, fund_amount)
     }
 
     /// Add funds to rebate policy
@@ -985,8 +979,27 @@ module ob_launchpad::listing {
         wallet: &mut Coin<FT>,
         fund_amount: u64,
     ) {
-        let rebate = borrow_rebate_mut<T, FT>(listing);
-        balance::join(&mut rebate.funds, balance::split(coin::balance_mut(wallet), fund_amount));
+        fund_rebate_with_balance<T, FT>(
+            listing, coin::balance_mut(wallet), fund_amount,
+        )
+    }
+
+    /// Withdraw rebate funds to balance
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate for a given type and token, `FT` was not previously
+    /// defined.
+    public fun withdraw_rebate_funds_to_balance<T: key + store, FT>(
+        listing: &mut Listing,
+        balance: &mut Balance<FT>,
+        amount: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert_listing_admin(listing, ctx);
+        rebate::withdraw_rebate_funds<T, FT>(
+            &mut listing.id, balance, amount,
+        );
     }
 
     /// Withdraw rebate funds
@@ -997,35 +1010,67 @@ module ob_launchpad::listing {
     /// defined.
     public entry fun withdraw_rebate_funds<T: key + store, FT>(
         listing: &mut Listing,
+        coin: &mut Coin<FT>,
         amount: u64,
         ctx: &mut TxContext,
     ) {
-        assert_listing_admin(listing, ctx);
-
-        let rebate = borrow_rebate_mut<T, FT>(listing);
-        let balance = balance::split(&mut rebate.funds, amount);
-
-        transfer::public_transfer(
-            coin::from_balance(balance, ctx),
-            tx_context::sender(ctx),
+        withdraw_rebate_funds_to_balance<T, FT>(
+            listing, coin::balance_mut(coin), amount, ctx,
         );
     }
 
+    /// Send rebate funds to transaction sender
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate for a given type and token, `FT` was not previously
+    /// defined.
+    public entry fun send_rebate_funds_to_sender<T: key + store, FT>(
+        listing: &mut Listing,
+        amount: u64,
+        ctx: &mut TxContext,
+    ) {
+        send_rebate_funds_to_address<T, FT>(
+            listing, amount, tx_context::sender(ctx), ctx,
+        );
+    }
+
+    /// Send rebate funds to given address
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate for a given type and token, `FT` was not previously
+    /// defined.
+    public entry fun send_rebate_funds_to_address<T: key + store, FT>(
+        listing: &mut Listing,
+        amount: u64,
+        receiver: address,
+        ctx: &mut TxContext,
+    ) {
+        let coin = coin::zero<FT>(ctx);
+        withdraw_rebate_funds<T, FT>(listing, &mut coin, amount, ctx);
+        transfer::public_transfer(coin, receiver);
+    }
+
+    /// Apply rebate funds
+    ///
+    /// Never aborts.
+    public(friend) fun apply_rebate<T: key + store, FT>(
+        listing: &mut Listing,
+        wallet: &mut Balance<FT>,
+    ) {
+        rebate::apply_rebate<T, FT>(&mut listing.id, wallet)
+    }
+
     /// Send rebate funds
+    ///
+    /// Never aborts.
     public(friend) fun send_rebate<T: key + store, FT>(
         listing: &mut Listing,
         receiver: address,
         ctx: &mut TxContext,
     ) {
-        if (has_rebate<T, FT>(listing)) {
-            let rebate = borrow_rebate_mut<T, FT>(listing);
-
-            let balance = balance::value(&rebate.funds);
-            if (balance >= rebate.rebate_amount) {
-                let funds = balance::split(&mut rebate.funds, rebate.rebate_amount);
-                transfer::public_transfer(coin::from_balance(funds, ctx), receiver);
-            }
-        }
+        rebate::send_rebate<T, FT>(&mut listing.id, receiver, ctx)
     }
 
     // === Admin ===

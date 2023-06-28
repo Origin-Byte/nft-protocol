@@ -293,7 +293,7 @@ module ob_launchpad::limited_fixed_price {
         balance: &mut Balance<FT>,
         ctx: &mut TxContext,
     ): T {
-        listing::send_rebate<T, FT>(listing, tx_context::sender(ctx), ctx);
+        listing::apply_rebate<T, FT>(listing, balance);
 
         let market: &mut LimitedFixedPriceMarket<FT> = listing::market_internal_mut(
             listing, MarketKey {}, venue_id
