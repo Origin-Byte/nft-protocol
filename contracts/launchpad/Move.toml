@@ -1,18 +1,18 @@
 [package]
 name = "Launchpad"
-version = "1.2.1"
+version = "1.3.0"
 published-at = "0xc5cf398aca055ab97ab5a6a4c08d8de85af66c411a669237b1e698fffed30ac6"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.2.0
-rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4"
+# mainnet-1.3.1
+rev = "a2af559f9ea21e09ca7e377e3b477fc2b5239fc7"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"
-# testnet-1.2.0
-rev = "539fa71987518435b4e65f160cf04cd2f685b712"
+# mainnet-1.3.1
+rev = "8d5fc07db61447e8dd3e699556aaf9cea1ebf463"
 
 [dependencies.Kiosk]
 local = "./../kiosk"

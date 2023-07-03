@@ -146,12 +146,9 @@ module nft_protocol::royalty {
     /// Panics if the transaction sender does not have a large enough royalty
     /// share to transfer to the new creator or is not attributed in the first
     /// place.
-    //
-    // TODO: Add share method for empty RoyaltyDomain controlled by
-    // CreatorsDomain
     public fun add_share(
         domain: &mut RoyaltyDomain,
-        who: address,
+        to: address,
         share: u16,
         ctx: &mut TxContext,
     ) {
@@ -164,14 +161,14 @@ module nft_protocol::royalty {
         *creator_share = *creator_share - share;
 
         if (*creator_share == 0) {
-            vec_map::remove(&mut domain.royalty_shares_bps, &who);
+            vec_map::remove(&mut domain.royalty_shares_bps, &to);
         };
 
-        if (contains_share(domain, &who)) {
-            let beneficiary_share = borrow_share_mut(domain, &who);
+        if (contains_share(domain, &to)) {
+            let beneficiary_share = borrow_share_mut(domain, &to);
             *beneficiary_share = *beneficiary_share + share;
         } else {
-            vec_map::insert(&mut domain.royalty_shares_bps, who, share);
+            vec_map::insert(&mut domain.royalty_shares_bps, to, share);
         }
     }
 
@@ -214,8 +211,9 @@ module nft_protocol::royalty {
     ///
     /// ##### Panics
     ///
-    /// Panics if attempting to remove attribution which doesn't belong to the
-    /// transaction sender
+    /// Panics if transaction sender does not have an attribution.
+    //
+    // TODO: Deprecate and remove in favor of `remove_share`
     public fun remove_creator_by_transfer(
         domain: &mut RoyaltyDomain,
         to: address,
@@ -236,6 +234,55 @@ module nft_protocol::royalty {
         }
     }
 
+    // === Collection endpoints ===
+
+    /// Attribute a share of royalties to an address
+    ///
+    /// This must be done by an address which already has an attribution and
+    /// partially gives up a share of their royalties for the benefit of the
+    /// new attribution. Ensures that the total sum of shares remains constant.
+    ///
+    /// ##### Panics
+    ///
+    /// - Transaction sender does not have a large enough royalty
+    /// share to transfer to the new creator
+    /// - Transaction sender is not attributed
+    /// - `RoyaltyDomain` is not registered on `Collection`
+    public entry fun add_collection_share<C>(
+        collection: &mut Collection<C>,
+        to: address,
+        share: u16,
+        ctx: &mut TxContext,
+    ) {
+        let delegated_witness = witness::from_witness(Witness {});
+        let domain: &mut RoyaltyDomain =
+            collection::borrow_domain_mut(delegated_witness, collection);
+
+        add_share(domain, to, share, ctx)
+    }
+
+    /// Remove a share attribution from an address and transfer attribution to
+    /// another address
+    ///
+    /// Shares of the removed attribution are allocated to the provided
+    /// address, ensures that the total sum of shares remains constant.
+    ///
+    /// ##### Panics
+    ///
+    /// Panics if transaction sender does not have an attribution or
+    /// `RoyaltyDomain` is not registered on `Collection`.
+    public entry fun remove_collection_share<C>(
+        collection: &mut Collection<C>,
+        to: address,
+        ctx: &mut TxContext,
+    ) {
+        let delegated_witness = witness::from_witness(Witness {});
+        let domain: &mut RoyaltyDomain =
+            collection::borrow_domain_mut(delegated_witness, collection);
+
+        remove_creator_by_transfer(domain, to, ctx)
+    }
+
     // === Royalties ===
 
     /// Informs the client about the royalty strategy.
@@ -249,7 +296,9 @@ module nft_protocol::royalty {
     }
 
     /// Returns the list of royalty strategies registered on the `RoyaltyDomain`
-    public fun strategies(domain: &RoyaltyDomain): &VecSet<ID> { &domain.strategies }
+    public fun strategies(domain: &RoyaltyDomain): &VecSet<ID> {
+        &domain.strategies
+    }
 
     // === Utils ===
 
