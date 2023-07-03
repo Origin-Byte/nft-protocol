@@ -10,7 +10,7 @@ dependencies = [
 
 [[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "a2af559f9ea21e09ca7e377e3b477fc2b5239fc7", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "Pseudorandom"
@@ -22,7 +22,7 @@ dependencies = [
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "7ef210c6c11828ebafce973d815fa8cae63bc8c4", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "a2af559f9ea21e09ca7e377e3b477fc2b5239fc7", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },

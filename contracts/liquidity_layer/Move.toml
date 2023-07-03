@@ -11,7 +11,7 @@ rev = "a2af559f9ea21e09ca7e377e3b477fc2b5239fc7"
 
 [dependencies.Critbit]
 git = "https://github.com/Origin-Byte/critbit.git"
-rev = "ff0bf70b6320b2c7c4e2499cb0a9ffd39ea4404d"
+rev = "f13ebe0c826c89e72a17a63ccfe55e9c178e5eb8"
 
 [dependencies.Permissions]
 local = "./../permissions"
