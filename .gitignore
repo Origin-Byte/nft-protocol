@@ -1,7 +1,7 @@
 sui.log.*
 .env
-.env.caps.test
-.env.main.caps
+.env.caps.*
+.env.pubs
 build
 target
 output.bpl

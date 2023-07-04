@@ -1,6 +1,6 @@
 [package]
 name = "Request"
-version = "1.3.0"
+version = "1.3.1"
 published-at = "0xbf8d82841f8bd5ffc2ba35c433bd57a91aaf1545731726f47477fb19b58e3a50"
 
 [dependencies.Sui]

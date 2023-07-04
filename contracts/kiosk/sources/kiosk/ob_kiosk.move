@@ -1036,7 +1036,7 @@ module ob_kiosk::ob_kiosk {
         nft_id: ID,
         ctx: &mut TxContext,
     ) {
-        assert_version(ext(self));
+        assert_version_and_upgrade(ext(self));
         let entity = tx_context::sender(ctx);
 
         let ref = nft_ref_mut(self, nft_id);
