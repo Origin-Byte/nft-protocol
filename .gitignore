@@ -1,7 +1,6 @@
 sui.log.*
 .env
-.env.caps
-.env.main.caps
+.env.caps.*
 .env.pubs
 build
 target
