@@ -88,9 +88,6 @@ module liquidity_layer_v1::orderbook {
     /// No order matches the given price level or ownership level
     const EOrderDoesNotExist: u64 = 6;
 
-    /// Market orders fail with this error if they cannot be filled
-    const EMarketOrderNotFilled: u64 = 6;
-
     /// Trying to create an orderbook via a witness protected endpoint
     /// without TransferPolicy being registered with OriginByte
     const ENotOriginBytePolicy: u64 = 7;
@@ -125,6 +122,12 @@ module liquidity_layer_v1::orderbook {
 
     /// Tried to call administrator protected endpoint while not administrator
     const ENotAdministrator: u64 = 16;
+
+    /// Market orders fail with this error if they cannot be filled
+    const EMarketOrderNotFilled: u64 = 17;
+
+    /// Tried to resolve a `TradeIntermediate` field when one did not exist
+    const EUndefinedTradeIntermediate: u64 = 18;
 
     // === Structs ===
 
@@ -728,20 +731,23 @@ module liquidity_layer_v1::orderbook {
 
     // === Finish trade ===
 
-    /// When a bid is created and there's an ask with a lower price, then the
-    /// trade cannot be resolved immediately.
-    /// That's because we don't know the `Kiosk` ID up front in OB.
-    /// Conversely, when an ask is created, we don't know the `Kiosk` ID of the
-    /// buyer as the best bid can change at any time.
+    /// Executes a trade after orders have been matched
     ///
-    /// Therefore, orderbook creates [`TradeIntermediate`] which then has to be
-    /// permissionlessly resolved via this endpoint.
+    /// NFT will be deposited in target `Kiosk` without locking it.
+    ///
+    /// A separate trade execution step is necessary as we don't know the
+    /// target `Kiosk` upfront as the best bid or ask can change at any time.
+    ///
+    /// To resolve this, `Orderbook` creates a `TradeIntermediate` dynamic
+    /// field which can be permissionlessly resolved via this endpoint.
     ///
     /// See the documentation for `nft_protocol::transfer_request` to understand
     /// how to deal with the returned [`TransferRequest`] type.
     ///
-    /// * the buyer's kiosk must allow permissionless deposits of `T` unless
-    /// buyer is the signer
+    /// #### Panics
+    ///
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
     public fun finish_trade<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         trade_id: ID,
@@ -749,8 +755,31 @@ module liquidity_layer_v1::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext,
     ): TransferRequest<T> {
-        // Version is being checked in function call `finish_trade_`
-        finish_trade_<T, FT>(book, trade_id, seller_kiosk, buyer_kiosk, ctx)
+        assert_version_and_upgrade(book);
+
+        let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let nft_id = trade.nft_id;
+
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
+            // This will cause the NFT to be transfered without locking
+            ob_kiosk::transfer_unlocked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                coin::zero(ctx),
+                ctx,
+            )
+        } else {
+            let price = balance::value(&trade.paid);
+            ob_kiosk::transfer_delegated<T>(
+                seller_kiosk, buyer_kiosk, nft_id, &book.id, price, ctx,
+            )
+        };
+
+        finalize_buyer_side<T, FT>(&mut transfer_req, trade, buyer_kiosk, ctx);
+
+        transfer_req
     }
 
     public fun finish_trade_if_kiosks_match<T: key + store, FT>(
@@ -760,7 +789,7 @@ module liquidity_layer_v1::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext
     ): Option<TransferRequest<T>> {
-        // Version is being checked in function call `finish_trade_`
+        assert_version_and_upgrade(book);
 
         let t = trade(book, trade_id);
         let kiosks_match = &t.seller_kiosk == &object::id(seller_kiosk) && &t.buyer_kiosk == &object::id(buyer_kiosk);
@@ -770,6 +799,126 @@ module liquidity_layer_v1::orderbook {
         } else {
             option::none()
         }
+    }
+
+    /// Executes a trade after orders have been matched
+    ///
+    /// NFT will be deposited in target `Kiosk` and immediately locked.
+    ///
+    /// A separate trade execution step is necessary as we don't know the
+    /// target `Kiosk` upfront as the best bid or ask can change at any time.
+    ///
+    /// To resolve this, `Orderbook` creates a `TradeIntermediate` dynamic
+    /// field which can be permissionlessly resolved via this endpoint.
+    ///
+    /// See the documentation for `nft_protocol::transfer_request` to understand
+    /// how to deal with the returned [`TransferRequest`] type.
+    ///
+    /// #### Panics
+    ///
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_trade_locked<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        assert_version_and_upgrade(book);
+
+        let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let nft_id = trade.nft_id;
+
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
+            // This will cause the NFT to be transfered and locked
+            ob_kiosk::transfer_locked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                coin::zero(ctx),
+                transfer_policy,
+                ctx,
+            )
+        } else {
+            let price = balance::value(&trade.paid);
+            ob_kiosk::transfer_delegated_locked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                price,
+                transfer_policy,
+                ctx,
+            )
+        };
+
+        finalize_buyer_side<T, FT>(&mut transfer_req, trade, buyer_kiosk, ctx);
+
+        transfer_req
+    }
+
+    /// Finalizes trade on the seller side by resolving `TradeIntermediate`
+    ///
+    /// #### Panics
+    ///
+    /// - `TradeIntermediate` did not exist for given type and `ID`
+    /// - Seller `Kiosk` did not match trade
+    fun finalize_seller_side<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+    ): TradeIntermediate<T, FT> {
+        let trade_key = TradeIntermediateDfKey<T, FT> { trade_id };
+        let trade_opt = df::remove_if_exists(&mut book.id, trade_key);
+        assert!(option::is_some(&trade_opt), EUndefinedTradeIntermediate);
+        let trade: TradeIntermediate<T, FT> = option::destroy_some(trade_opt);
+
+        // Assert we are resolving from the correct `Kiosk`
+        assert!(
+            trade.seller_kiosk == object::id(seller_kiosk),
+            EKioskIdMismatch,
+        );
+
+        trade
+    }
+
+    /// Finalizes trade on the buyer side by consuming `TradeIntermediate`
+    ///
+    /// #### Panics
+    ///
+    /// - Buyer `Kiosk` did not match trade
+    fun finalize_buyer_side<T: key + store, FT>(
+        transfer_req: &mut TransferRequest<T>,
+        trade: TradeIntermediate<T, FT>,
+        buyer_kiosk: &Kiosk,
+        ctx: &mut TxContext,
+    ) {
+        assert!(
+            trade.buyer_kiosk == object::id(buyer_kiosk),
+            EKioskIdMismatch,
+        );
+
+        let TradeIntermediate<T, FT> {
+            id,
+            nft_id: _,
+            seller_kiosk: _,
+            paid,
+            seller,
+            buyer: _,
+            buyer_kiosk: _,
+            commission: commission,
+        } = trade;
+
+        object::delete(id);
+
+        // Sell-side commission gets transferred to the sell-side intermediary
+        trading::transfer_ask_commission<FT>(&mut commission, &mut paid, ctx);
+
+        transfer_request::set_paid<T, FT>(transfer_req, paid, seller);
+        ob_kiosk::set_transfer_request_auth(transfer_req, &Witness {});
     }
 
     // === Create orderbook ===
@@ -1829,68 +1978,6 @@ module liquidity_layer_v1::orderbook {
         );
 
         transfer_request::set_paid<T, FT>(&mut transfer_req, bid_offer, seller);
-        ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
-
-        transfer_req
-    }
-
-    fun finish_trade_<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        trade_id: ID,
-        seller_kiosk: &mut Kiosk,
-        buyer_kiosk: &mut Kiosk,
-        ctx: &mut TxContext,
-    ): TransferRequest<T> {
-        assert_version_and_upgrade(book);
-
-        let trade = df::remove(
-            &mut book.id, TradeIntermediateDfKey<T, FT> { trade_id }
-        );
-
-        let TradeIntermediate<T, FT> {
-            id,
-            nft_id,
-            seller_kiosk: _,
-            paid,
-            seller,
-            buyer: _,
-            buyer_kiosk: expected_buyer_kiosk_id,
-            commission: maybe_commission,
-        } = trade;
-
-        object::delete(id);
-
-        let price = balance::value(&paid);
-
-        assert!(
-            expected_buyer_kiosk_id == object::id(buyer_kiosk), EKioskIdMismatch,
-        );
-
-        // Sell-side commission gets transferred to the sell-side intermediary
-        trading::transfer_ask_commission<FT>(&mut maybe_commission, &mut paid, ctx);
-
-        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
-            ob_kiosk::transfer_locked_nft<T>(
-                seller_kiosk,
-                buyer_kiosk,
-                nft_id,
-                &book.id,
-                ctx,
-            )
-        } else {
-            ob_kiosk::transfer_delegated<T>(
-                seller_kiosk,
-                buyer_kiosk,
-                nft_id,
-                &book.id,
-                price,
-                ctx,
-            )
-        };
-
-        transfer_request::set_paid<T, FT>(
-            &mut transfer_req, paid, seller,
-        );
         ob_kiosk::set_transfer_request_auth(&mut transfer_req, &Witness {});
 
         transfer_req
