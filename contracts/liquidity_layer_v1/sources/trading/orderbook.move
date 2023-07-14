@@ -860,6 +860,61 @@ module liquidity_layer_v1::orderbook {
         transfer_req
     }
 
+    /// Executes a trade after orders have been matched
+    ///
+    /// Inherits the NFTs locked state from the source `Kiosk` to the target.
+    /// - If NFT was locked in source it will be locked in target
+    /// - If NFT was unlocked in source it will be locked in target
+    ///
+    /// A separate trade execution step is necessary as we don't know the
+    /// target `Kiosk` upfront as the best bid or ask can change at any time.
+    ///
+    /// To resolve this, `Orderbook` creates a `TradeIntermediate` dynamic
+    /// field which can be permissionlessly resolved via this endpoint.
+    ///
+    /// See the documentation for `nft_protocol::transfer_request` to understand
+    /// how to deal with the returned [`TransferRequest`] type.
+    ///
+    /// #### Panics
+    ///
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_trade_inherit<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        assert_version_and_upgrade(book);
+
+        let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let nft_id = trade.nft_id;
+
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
+            // This will cause the NFT to be transfered and locked
+            ob_kiosk::transfer_locked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                coin::zero(ctx),
+                transfer_policy,
+                ctx,
+            )
+        } else {
+            let price = balance::value(&trade.paid);
+            ob_kiosk::transfer_delegated<T>(
+                seller_kiosk, buyer_kiosk, nft_id, &book.id, price, ctx,
+            )
+        };
+
+        finalize_buyer_side<T, FT>(&mut transfer_req, trade, buyer_kiosk, ctx);
+
+        transfer_req
+    }
+
     /// Finalizes trade on the seller side by resolving `TradeIntermediate`
     ///
     /// #### Panics
