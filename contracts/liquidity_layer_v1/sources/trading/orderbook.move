@@ -758,24 +758,12 @@ module liquidity_layer_v1::orderbook {
         assert_version_and_upgrade(book);
 
         let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let price = balance::value(&trade.paid);
         let nft_id = trade.nft_id;
 
-        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
-            // This will cause the NFT to be transfered without locking
-            ob_kiosk::transfer_unlocked<T>(
-                seller_kiosk,
-                buyer_kiosk,
-                nft_id,
-                &book.id,
-                coin::zero(ctx),
-                ctx,
-            )
-        } else {
-            let price = balance::value(&trade.paid);
-            ob_kiosk::transfer_delegated<T>(
-                seller_kiosk, buyer_kiosk, nft_id, &book.id, price, ctx,
-            )
-        };
+        let transfer_req = ob_kiosk::transfer_delegated<T>(
+            seller_kiosk, buyer_kiosk, nft_id, &book.id, price, ctx,
+        );
 
         finalize_buyer_side<T, FT>(&mut transfer_req, trade, buyer_kiosk, ctx);
 
@@ -829,31 +817,18 @@ module liquidity_layer_v1::orderbook {
         assert_version_and_upgrade(book);
 
         let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let price = balance::value(&trade.paid);
         let nft_id = trade.nft_id;
 
-        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
-            // This will cause the NFT to be transfered and locked
-            ob_kiosk::transfer_locked<T>(
-                seller_kiosk,
-                buyer_kiosk,
-                nft_id,
-                &book.id,
-                coin::zero(ctx),
-                transfer_policy,
-                ctx,
-            )
-        } else {
-            let price = balance::value(&trade.paid);
-            ob_kiosk::transfer_delegated_locked<T>(
-                seller_kiosk,
-                buyer_kiosk,
-                nft_id,
-                &book.id,
-                price,
-                transfer_policy,
-                ctx,
-            )
-        };
+        let transfer_req = ob_kiosk::transfer_delegated_locked<T>(
+            seller_kiosk,
+            buyer_kiosk,
+            nft_id,
+            &book.id,
+            price,
+            transfer_policy,
+            ctx,
+        );
 
         finalize_buyer_side<T, FT>(&mut transfer_req, trade, buyer_kiosk, ctx);
 
@@ -890,21 +865,14 @@ module liquidity_layer_v1::orderbook {
         assert_version_and_upgrade(book);
 
         let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let price = balance::value(&trade.paid);
         let nft_id = trade.nft_id;
 
         let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
-            // This will cause the NFT to be transfered and locked
-            ob_kiosk::transfer_locked<T>(
-                seller_kiosk,
-                buyer_kiosk,
-                nft_id,
-                &book.id,
-                coin::zero(ctx),
-                transfer_policy,
-                ctx,
+            ob_kiosk::transfer_delegated_locked<T>(
+                seller_kiosk, buyer_kiosk, nft_id, &book.id, price, transfer_policy, ctx,
             )
         } else {
-            let price = balance::value(&trade.paid);
             ob_kiosk::transfer_delegated<T>(
                 seller_kiosk, buyer_kiosk, nft_id, &book.id, price, ctx,
             )

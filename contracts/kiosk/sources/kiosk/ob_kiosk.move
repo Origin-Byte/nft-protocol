@@ -537,7 +537,8 @@ module ob_kiosk::ob_kiosk {
 
     /// Transfer NFT out of Kiosk that has been previously delegated
     ///
-    /// NFT will not be locked in the target `Kiosk`.
+    /// Handles the case that NFT could be locked or not in the source `Kiosk`.
+    /// NFT will be locked in the target `Kiosk`.
     ///
     /// Requires that address of sender was previously passed to
     /// `auth_transfer`.
@@ -565,6 +566,7 @@ module ob_kiosk::ob_kiosk {
 
     /// Transfer NFT out of Kiosk that has been previously delegated
     ///
+    /// Handles the case that NFT could be locked or not in the source `Kiosk`.
     /// NFT will be locked in the target `Kiosk`.
     ///
     /// Requires that address of sender was previously passed to
@@ -618,71 +620,6 @@ module ob_kiosk::ob_kiosk {
         assert_not_exclusively_listed(source, nft_id);
 
         let (nft, req) = transfer_nft_(source, nft_id, sender(ctx), price, ctx);
-        deposit(target, nft, ctx);
-        req
-    }
-
-    /// Transfer locked NFT out of Kiosk that has been previously delegated to
-    /// a base Sui `Kiosk`
-    ///
-    /// The transferred NFT is immediately locked in the target `Kiosk`.
-    ///
-    /// Requires that `UID` of sender was previously passed to either
-    /// `auth_transfer` or `auth_exclusive_transfer`.
-    ///
-    /// Will always work if transaction sender is the `Kiosk` owner.
-    ///
-    /// #### Panics
-    ///
-    /// - Sender was not previously authorized for transfer or is not owner
-    /// - NFT does not exist
-    /// - Source is not an OriginByte `Kiosk`
-    public fun transfer_locked<T: key + store>(
-        source: &mut Kiosk,
-        target: &mut Kiosk,
-        nft_id: ID,
-        entity_id: &UID,
-        paid: Coin<sui::sui::SUI>,
-        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
-        ctx: &mut TxContext,
-    ): TransferRequest<T> {
-        assert_version_and_upgrade(ext(source));
-
-        let (nft, req) = transfer_locked_nft_(
-            source, nft_id, uid_to_address(entity_id), paid, ctx,
-        );
-        deposit_locked(target, transfer_policy, nft, ctx);
-        req
-    }
-
-    /// Transfer locked NFT out of Kiosk that has been previously delegated to
-    /// a base Sui `Kiosk`
-    ///
-    /// The transferred NFT is not locked in the target `Kiosk`.
-    ///
-    /// Requires that `UID` of sender was previously passed to either
-    /// `auth_transfer` or `auth_exclusive_transfer`.
-    ///
-    /// Will always work if transaction sender is the `Kiosk` owner.
-    ///
-    /// #### Panics
-    ///
-    /// - Sender was not previously authorized for transfer or is not owner
-    /// - NFT does not exist
-    /// - Source is not an OriginByte `Kiosk`
-    public fun transfer_unlocked<T: key + store>(
-        source: &mut Kiosk,
-        target: &mut Kiosk,
-        nft_id: ID,
-        entity_id: &UID,
-        paid: Coin<sui::sui::SUI>,
-        ctx: &mut TxContext,
-    ): TransferRequest<T> {
-        assert_version_and_upgrade(ext(source));
-
-        let (nft, req) = transfer_locked_nft_(
-            source, nft_id, uid_to_address(entity_id), paid, ctx,
-        );
         deposit(target, nft, ctx);
         req
     }
@@ -991,28 +928,15 @@ module ob_kiosk::ob_kiosk {
         price: u64,
         ctx: &mut TxContext,
     ): (T, TransferRequest<T>) {
-        let nft = remove_nft(self, nft_id, originator, ctx);
-        (nft, transfer_request::new(nft_id, originator, object::id(self), price, ctx))
-    }
-
-    /// Initializes a transfer transaction for locked NFT
-    ///
-    /// #### Panics
-    ///
-    /// - Originator is not authorized to withdraw and transaction sender is
-    /// not owner.
-    /// - NFT does not exist
-    /// - NFT is not locked
-    fun transfer_locked_nft_<T: key + store>(
-        self: &mut Kiosk,
-        nft_id: ID,
-        originator: address,
-        paid: Coin<sui::sui::SUI>,
-        ctx: &mut TxContext,
-    ): (T, TransferRequest<T>) {
-        // TODO: Merge with `transfer_nft_`
-        let (nft, req) = remove_locked_nft(self, nft_id, originator, paid, ctx);
-        (nft, transfer_request::from_sui<T>(req, nft_id, originator, ctx))
+        if (kiosk::is_locked(self, nft_id)) {
+            let (nft, req) = remove_locked_nft(
+                self, nft_id, originator, coin::zero(ctx), ctx,
+            );
+            (nft, transfer_request::from_sui<T>(req, nft_id, originator, ctx))
+        } else {
+            let nft = remove_nft(self, nft_id, originator, ctx);
+            (nft, transfer_request::new(nft_id, originator, object::id(self), price, ctx))
+        }
     }
 
     /// Initializes a withdrawal transaction
