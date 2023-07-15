@@ -746,6 +746,7 @@ module liquidity_layer_v1::orderbook {
     ///
     /// #### Panics
     ///
+    /// - Trade `ID` does not exist
     /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
     /// buyer is the transaction sender.
     public fun finish_trade<T: key + store, FT>(
@@ -770,6 +771,16 @@ module liquidity_layer_v1::orderbook {
         transfer_req
     }
 
+    /// Optimistic equivalent of `finish_trade`
+    ///
+    /// Executes a trade after orders have been matched but will not panic if
+    /// `Kiosks` do not match the trade ID.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
     public fun finish_trade_if_kiosks_match<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         trade_id: ID,
@@ -777,13 +788,16 @@ module liquidity_layer_v1::orderbook {
         buyer_kiosk: &mut Kiosk,
         ctx: &mut TxContext
     ): Option<TransferRequest<T>> {
-        assert_version_and_upgrade(book);
+        // Version asserted by `finish_trade`
 
-        let t = trade(book, trade_id);
-        let kiosks_match = &t.seller_kiosk == &object::id(seller_kiosk) && &t.buyer_kiosk == &object::id(buyer_kiosk);
+        let trade = trade(book, trade_id);
+        let kiosks_match = &trade.seller_kiosk == &object::id(seller_kiosk)
+            && &trade.buyer_kiosk == &object::id(buyer_kiosk);
 
         if (kiosks_match) {
-            option::some(finish_trade(book, trade_id, seller_kiosk, buyer_kiosk, ctx))
+            option::some(
+                finish_trade(book, trade_id, seller_kiosk, buyer_kiosk, ctx)
+            )
         } else {
             option::none()
         }
@@ -835,6 +849,46 @@ module liquidity_layer_v1::orderbook {
         transfer_req
     }
 
+    /// Optimistic equivalent of `finish_trade_locked`
+    ///
+    /// Executes a trade after orders have been matched but will not panic if
+    /// `Kiosks` do not match the trade ID.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_trade_locked_if_kiosks_match<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): Option<TransferRequest<T>> {
+        // Version asserted by `finish_trade_locked`
+
+        let trade = trade(book, trade_id);
+        let kiosks_match = &trade.seller_kiosk == &object::id(seller_kiosk)
+            && &trade.buyer_kiosk == &object::id(buyer_kiosk);
+
+        if (kiosks_match) {
+            option::some(
+                finish_trade_locked(
+                    book,
+                    trade_id,
+                    seller_kiosk,
+                    buyer_kiosk,
+                    transfer_policy,
+                    ctx
+                )
+            )
+        } else {
+            option::none()
+        }
+    }
+
     /// Executes a trade after orders have been matched
     ///
     /// Inherits the NFTs locked state from the source `Kiosk` to the target.
@@ -881,6 +935,46 @@ module liquidity_layer_v1::orderbook {
         finalize_buyer_side<T, FT>(&mut transfer_req, trade, buyer_kiosk, ctx);
 
         transfer_req
+    }
+
+    /// Optimistic equivalent of `finish_trade_inherit`
+    ///
+    /// Executes a trade after orders have been matched but will not panic if
+    /// `Kiosks` do not match the trade ID.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_trade_inherit_if_kiosks_match<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): Option<TransferRequest<T>> {
+        // Version asserted by `finish_trade_inherit`
+
+        let trade = trade(book, trade_id);
+        let kiosks_match = &trade.seller_kiosk == &object::id(seller_kiosk)
+            && &trade.buyer_kiosk == &object::id(buyer_kiosk);
+
+        if (kiosks_match) {
+            option::some(
+                finish_trade_inherit(
+                    book,
+                    trade_id,
+                    seller_kiosk,
+                    buyer_kiosk,
+                    transfer_policy,
+                    ctx
+                )
+            )
+        } else {
+            option::none()
+        }
     }
 
     /// Finalizes trade on the seller side by resolving `TradeIntermediate`

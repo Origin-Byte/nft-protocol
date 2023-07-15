@@ -98,16 +98,6 @@ module liquidity_layer_v1::test_orderbook_locked {
         trade
     }
 
-    fun init_kiosk_for_address(for: address, scenario: &mut Scenario): Kiosk {
-        test_scenario::next_tx(scenario, for);
-        let (buyer_kiosk, buyer_kiosk_cap) = kiosk::new(ctx(scenario));
-        transfer::public_transfer(buyer_kiosk_cap, for);
-
-        test_scenario::next_tx(scenario, CREATOR);
-
-        buyer_kiosk
-    }
-
     #[test]
     fun test_transfer_locked_to_unlocked() {
         let scenario = test_scenario::begin(CREATOR);
@@ -147,14 +137,14 @@ module liquidity_layer_v1::test_orderbook_locked {
     }
 
     #[test]
-    fun test_transfer_locked_to_unlocked_non_ob_buyer() {
+    fun test_transfer_locked_to_unlocked_non_ob_policy() {
         let scenario = test_scenario::begin(CREATOR);
 
         // 1. Create prerequisites
         init_non_ob(&mut scenario);
         let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
         let orderbook = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
-        let buyer_kiosk = init_kiosk_for_address(BUYER, &mut scenario);
+        let (buyer_kiosk, _) = ob_kiosk::new_for_address(BUYER, ctx(&mut scenario));
         let (seller_kiosk, _) = ob_kiosk::new_for_address(SELLER, ctx(&mut scenario));
 
         // 2. Add NFT to seller kiosk
@@ -224,7 +214,43 @@ module liquidity_layer_v1::test_orderbook_locked {
     }
 
     #[test]
-    fun test_transfer_locked_to_locked_non_ob_buyer() {}
+    fun test_transfer_locked_to_locked_non_ob_policy() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        // 1. Create prerequisites
+        init_non_ob(&mut scenario);
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let orderbook = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let (buyer_kiosk, _) = ob_kiosk::new_for_address(BUYER, ctx(&mut scenario));
+        let (seller_kiosk, _) = ob_kiosk::new_for_address(SELLER, ctx(&mut scenario));
+
+        // 2. Add NFT to seller kiosk
+        let nft = Foo { id: object::new(ctx(&mut scenario)) };
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit_locked(&mut seller_kiosk, &tx_policy, nft, ctx(&mut scenario));
+
+        // 3. Perform trade on NFT and finish
+        let trade = init_trade(&mut orderbook, &mut seller_kiosk, &mut buyer_kiosk, nft_id, &mut scenario);
+
+        let request = orderbook::finish_trade_locked(
+            &mut orderbook,
+            orderbook::trade_id(&trade),
+            &mut seller_kiosk,
+            &mut buyer_kiosk,
+            &tx_policy,
+            ctx(&mut scenario),
+        );
+        ob_request::transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        test_scenario::return_shared(tx_policy);
+
+        // 4. Verify locked
+        assert!(kiosk::is_locked(&buyer_kiosk, nft_id), 0);
+
+        transfer::public_transfer(seller_kiosk, CREATOR);
+        transfer::public_transfer(buyer_kiosk, CREATOR);
+        test_scenario::return_shared(orderbook);
+        test_scenario::end(scenario);
+    }
 
     #[test]
     fun test_transfer_unlocked_to_locked() {
@@ -266,7 +292,43 @@ module liquidity_layer_v1::test_orderbook_locked {
     }
 
     #[test]
-    fun test_transfer_unlocked_to_locked_non_ob_buyer() {}
+    fun test_transfer_unlocked_to_locked_non_ob_policy() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        // 1. Create prerequisites
+        init_non_ob(&mut scenario);
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let orderbook = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let (buyer_kiosk, _) = ob_kiosk::new_for_address(BUYER, ctx(&mut scenario));
+        let (seller_kiosk, _) = ob_kiosk::new_for_address(SELLER, ctx(&mut scenario));
+
+        // 2. Add NFT to seller kiosk
+        let nft = Foo { id: object::new(ctx(&mut scenario)) };
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut seller_kiosk, nft, ctx(&mut scenario));
+
+        // 3. Perform trade on NFT and finish
+        let trade = init_trade(&mut orderbook, &mut seller_kiosk, &mut buyer_kiosk, nft_id, &mut scenario);
+
+        let request = orderbook::finish_trade_locked(
+            &mut orderbook,
+            orderbook::trade_id(&trade),
+            &mut seller_kiosk,
+            &mut buyer_kiosk,
+            &tx_policy,
+            ctx(&mut scenario),
+        );
+        ob_request::transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        test_scenario::return_shared(tx_policy);
+
+        // 4. Verify locked
+        assert!(kiosk::is_locked(&buyer_kiosk, nft_id), 0);
+
+        transfer::public_transfer(seller_kiosk, CREATOR);
+        transfer::public_transfer(buyer_kiosk, CREATOR);
+        test_scenario::return_shared(orderbook);
+        test_scenario::end(scenario);
+    }
 
     #[test]
     fun test_transfer_locked_to_inherit() {
@@ -308,7 +370,43 @@ module liquidity_layer_v1::test_orderbook_locked {
     }
 
     #[test]
-    fun test_transfer_locked_to_inherit_non_ob_buyer() {}
+    fun test_transfer_locked_to_inherit_non_ob_policy() {
+        let scenario = test_scenario::begin(CREATOR);
+
+        // 1. Create prerequisites
+        init_non_ob(&mut scenario);
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let orderbook = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let (buyer_kiosk, _) = ob_kiosk::new_for_address(BUYER, ctx(&mut scenario));
+        let (seller_kiosk, _) = ob_kiosk::new_for_address(SELLER, ctx(&mut scenario));
+
+        // 2. Add NFT to seller kiosk
+        let nft = Foo { id: object::new(ctx(&mut scenario)) };
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit_locked(&mut seller_kiosk, &tx_policy, nft, ctx(&mut scenario));
+
+        // 3. Perform trade on NFT and finish
+        let trade = init_trade(&mut orderbook, &mut seller_kiosk, &mut buyer_kiosk, nft_id, &mut scenario);
+
+        let request = orderbook::finish_trade_inherit(
+            &mut orderbook,
+            orderbook::trade_id(&trade),
+            &mut seller_kiosk,
+            &mut buyer_kiosk,
+            &tx_policy,
+            ctx(&mut scenario),
+        );
+        ob_request::transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        test_scenario::return_shared(tx_policy);
+
+        // 4. Verify locked
+        assert!(kiosk::is_locked(&buyer_kiosk, nft_id), 0);
+
+        transfer::public_transfer(seller_kiosk, CREATOR);
+        transfer::public_transfer(buyer_kiosk, CREATOR);
+        test_scenario::return_shared(orderbook);
+        test_scenario::end(scenario);
+    }
 
     #[test]
     fun test_transfer_unlocked_to_inherit() {
@@ -350,8 +448,41 @@ module liquidity_layer_v1::test_orderbook_locked {
     }
 
     #[test]
-    fun test_transfer_unlocked_to_inherit_non_ob_buyer() {}
+    fun test_transfer_unlocked_to_inherit_non_ob_policy() {
+        let scenario = test_scenario::begin(CREATOR);
 
-    #[test]
-    fun test_request_payment() {}
+        // 1. Create prerequisites
+        init_non_ob(&mut scenario);
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let orderbook = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let (buyer_kiosk, _) = ob_kiosk::new_for_address(BUYER, ctx(&mut scenario));
+        let (seller_kiosk, _) = ob_kiosk::new_for_address(SELLER, ctx(&mut scenario));
+
+        // 2. Add NFT to seller kiosk
+        let nft = Foo { id: object::new(ctx(&mut scenario)) };
+        let nft_id = object::id(&nft);
+        ob_kiosk::deposit(&mut seller_kiosk, nft, ctx(&mut scenario));
+
+        // 3. Perform trade on NFT and finish
+        let trade = init_trade(&mut orderbook, &mut seller_kiosk, &mut buyer_kiosk, nft_id, &mut scenario);
+
+        let request = orderbook::finish_trade_inherit(
+            &mut orderbook,
+            orderbook::trade_id(&trade),
+            &mut seller_kiosk,
+            &mut buyer_kiosk,
+            &tx_policy,
+            ctx(&mut scenario),
+        );
+        ob_request::transfer_request::confirm<Foo, SUI>(request, &tx_policy, ctx(&mut scenario));
+        test_scenario::return_shared(tx_policy);
+
+        // 4. Verify unlocked
+        assert!(!kiosk::is_locked(&buyer_kiosk, nft_id), 0);
+
+        transfer::public_transfer(seller_kiosk, CREATOR);
+        transfer::public_transfer(buyer_kiosk, CREATOR);
+        test_scenario::return_shared(orderbook);
+        test_scenario::end(scenario);
+    }
 }
