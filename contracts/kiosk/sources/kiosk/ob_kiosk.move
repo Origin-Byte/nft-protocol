@@ -494,8 +494,7 @@ module ob_kiosk::ob_kiosk {
         assert_version_and_upgrade(ext(source));
         assert_permission(source, ctx);
 
-        let refs = nft_refs_mut(source);
-        let ref = table::remove(refs, nft_id);
+        let ref = deregister_nft_(source, nft_id);
         assert_ref_not_exclusively_listed(&ref);
 
         let cap = pop_cap(source);
@@ -649,17 +648,10 @@ module ob_kiosk::ob_kiosk {
     ): TransferRequest<T> {
         assert_version_and_upgrade(ext(source));
 
-        check_entity_and_pop_ref(source, uid_to_address(entity_id), nft_id, ctx);
-
-        let cap = pop_cap(source);
-        kiosk::list<T>(source, &cap, nft_id, coin::value(&paid));
-        set_cap(source, cap);
-
-        let (nft, req) = kiosk::purchase<T>(source, nft_id, paid);
+        let (nft, req) = transfer_locked_nft_(
+            source, nft_id, uid_to_address(entity_id), paid, ctx,
+        );
         deposit_locked(target, transfer_policy, nft, ctx);
-
-        let req = transfer_request::from_sui<T>(req, nft_id, uid_to_address(entity_id), ctx);
-
         req
     }
 
@@ -688,17 +680,10 @@ module ob_kiosk::ob_kiosk {
     ): TransferRequest<T> {
         assert_version_and_upgrade(ext(source));
 
-        check_entity_and_pop_ref(source, uid_to_address(entity_id), nft_id, ctx);
-
-        let cap = pop_cap(source);
-        kiosk::list<T>(source, &cap, nft_id, coin::value(&paid));
-        set_cap(source, cap);
-
-        let (nft, req) = kiosk::purchase<T>(source, nft_id, paid);
+        let (nft, req) = transfer_locked_nft_(
+            source, nft_id, uid_to_address(entity_id), paid, ctx,
+        );
         deposit(target, nft, ctx);
-
-        let req = transfer_request::from_sui<T>(req, nft_id, uid_to_address(entity_id), ctx);
-
         req
     }
 
@@ -831,8 +816,7 @@ module ob_kiosk::ob_kiosk {
         assert!(kiosk::owner(source) != PermissionlessAddr, ENotAuthorized);
         assert!(kiosk::owner(source) == kiosk::owner(target), ENotOwner);
 
-        let refs = nft_refs_mut(source);
-        let ref = table::remove(refs, nft_id);
+        let ref = deregister_nft_(source, nft_id);
         assert_ref_not_exclusively_listed(&ref);
 
         let cap = pop_cap(source);
@@ -976,6 +960,20 @@ module ob_kiosk::ob_kiosk {
         });
     }
 
+    /// Pop `NftRef` entry for the NFT
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `NftRef` does not exist
+    fun deregister_nft_(
+        self: &mut Kiosk,
+        nft_id: ID,
+    ): NftRef {
+        let refs = nft_refs_mut(self);
+        assert!(table::contains(refs, nft_id), EMissingNft);
+        table::remove(refs, nft_id)
+    }
+
     // === Private Functions ===
 
     /// Initializes a transfer transaction
@@ -985,6 +983,7 @@ module ob_kiosk::ob_kiosk {
     /// - Originator is not authorized to withdraw and transaction sender is
     /// not owner.
     /// - NFT does not exist
+    /// - NFT is locked
     fun transfer_nft_<T: key + store>(
         self: &mut Kiosk,
         nft_id: ID,
@@ -996,6 +995,26 @@ module ob_kiosk::ob_kiosk {
         (nft, transfer_request::new(nft_id, originator, object::id(self), price, ctx))
     }
 
+    /// Initializes a transfer transaction for locked NFT
+    ///
+    /// #### Panics
+    ///
+    /// - Originator is not authorized to withdraw and transaction sender is
+    /// not owner.
+    /// - NFT does not exist
+    /// - NFT is not locked
+    fun transfer_locked_nft_<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        originator: address,
+        paid: Coin<sui::sui::SUI>,
+        ctx: &mut TxContext,
+    ): (T, TransferRequest<T>) {
+        // TODO: Merge with `transfer_nft_`
+        let (nft, req) = remove_locked_nft(self, nft_id, originator, paid, ctx);
+        (nft, transfer_request::from_sui<T>(req, nft_id, originator, ctx))
+    }
+
     /// Initializes a withdrawal transaction
     ///
     /// #### Panics
@@ -1003,6 +1022,7 @@ module ob_kiosk::ob_kiosk {
     /// - Originator is not authorized to withdraw and transaction sender is
     /// not owner.
     /// - NFT does not exist
+    /// - NFT is locked
     fun withdraw_nft_<T: key + store>(
         self: &mut Kiosk,
         nft_id: ID,
@@ -1013,26 +1033,55 @@ module ob_kiosk::ob_kiosk {
         (nft, withdraw_request::new(originator, ctx))
     }
 
-    /// Checks that originator is authorized to withdraw NFT
+    /// Checks that originator is authorized to withdraw NFT and returns the
+    /// NFT
     ///
     /// #### Panics
     ///
     /// - Originator is not authorized to withdraw and transaction sender is
     /// not owner.
     /// - NFT does not exist
+    /// - NFT is locked
     fun remove_nft<T: key + store>(
         self: &mut Kiosk,
         nft_id: ID,
         originator: address,
         ctx: &mut TxContext,
     ): T {
-        check_entity_and_pop_ref(self, originator, nft_id, ctx);
+        assert_can_transfer(self, nft_id, originator, ctx);
+        deregister_nft_(self, nft_id);
 
         let cap = pop_cap(self);
         let nft = kiosk::take<T>(self, &cap, nft_id);
         set_cap(self, cap);
 
         nft
+    }
+
+    /// Checks that originator is authorized to withdraw NFT and returns the
+    /// NFT
+    ///
+    /// #### Panics
+    ///
+    /// - Originator is not authorized to withdraw and transaction sender is
+    /// not owner.
+    /// - NFT does not exist
+    /// - NFT is not locked
+    fun remove_locked_nft<T: key + store>(
+        self: &mut Kiosk,
+        nft_id: ID,
+        originator: address,
+        paid: Coin<sui::sui::SUI>,
+        ctx: &mut TxContext
+    ): (T, sui::transfer_policy::TransferRequest<T>) {
+        assert_can_transfer(self, nft_id, originator, ctx);
+        deregister_nft_(self, nft_id);
+
+        let cap = pop_cap(self);
+        kiosk::list<T>(self, &cap, nft_id, coin::value(&paid));
+        set_cap(self, cap);
+
+        kiosk::purchase<T>(self, nft_id, paid)
     }
 
     // === Request Auth ===
@@ -1283,12 +1332,20 @@ module ob_kiosk::ob_kiosk {
         sender(ctx) == kiosk::owner(self) || can_deposit_permissionlessly<T>(self)
     }
 
+    /// Returns whether `DepositSettings` allow for permissionless deposits.
+    ///
+    /// Either `Kiosk` is permissionless, any deposits are allowed, or `T` was
+    /// explicitly whitelisted.
+    ///
+    /// If `Kiosk` is not an OriginByte `Kiosk` then we assume that
+    /// permissionless deposits are allowed and trust that the base `Kiosk`
+    /// manages this itself.
     public fun can_deposit_permissionlessly<T>(self: &mut Kiosk): bool {
-        if (is_permissionless(self)) {
+        if (!is_ob_kiosk(self) || is_permissionless(self)) {
             return true
         };
 
-        let settings = deposit_setting_mut(self);
+        let settings = deposit_setting(self);
         settings.enable_any_deposit ||
             vec_set::contains(
                 &settings.collections_with_enabled_deposits,
@@ -1314,7 +1371,6 @@ module ob_kiosk::ob_kiosk {
     ///
     /// Panics if `Kiosk` is not OriginByte `Kiosk` or if NFT does not exist.
     //
-    // TODO: Replace with immutable API
     // TODO: Consider making it public
     fun nft_ref(self: &Kiosk, nft_id: ID): &NftRef {
         let refs = nft_refs(self);
@@ -1345,6 +1401,20 @@ module ob_kiosk::ob_kiosk {
 
     public fun assert_can_deposit_permissionlessly<T>(self: &mut Kiosk) {
         assert!(can_deposit_permissionlessly<T>(self), EPermissionlessDepositsDisabled);
+    }
+
+    /// Asserts that current transaction sender may transfer an NFT out of `Kiosk`
+    fun assert_can_transfer(
+        self: &Kiosk,
+        nft_id: ID,
+        entity: address,
+        ctx: &mut TxContext
+    ) {
+        let ref = nft_ref(self, nft_id);
+        assert!(
+            is_owner(self, tx_context::sender(ctx)) || vec_set::contains(&ref.auths, &entity),
+            ENotAuthorized,
+        );
     }
 
     /// Asserts that owner is provided address
@@ -1412,29 +1482,6 @@ module ob_kiosk::ob_kiosk {
 
     fun assert_ref_not_listed(ref: &NftRef) {
         assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
-    }
-
-    /// Check whether NFT can be transferred by given authority and remove the NftRef entry
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `address` was not authorized to transfer and transaction
-    /// sender is not the `Kiosk` owner.
-    fun check_entity_and_pop_ref(
-        self: &mut Kiosk,
-        entity: address,
-        nft_id: ID,
-        ctx: &mut TxContext,
-    ): NftRef {
-        let refs = nft_refs_mut(self);
-        // NFT is being transferred - destroy the ref
-        let ref: NftRef = table::remove(refs, nft_id);
-        // Sender is owner or entity is an authority
-        assert!(
-            is_owner(self, sender(ctx)) || vec_set::contains(&ref.auths, &entity),
-            ENotAuthorized,
-        );
-        ref
     }
 
     /// Borrow `DepositSetting` field

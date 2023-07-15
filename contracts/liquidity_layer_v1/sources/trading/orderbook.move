@@ -1546,14 +1546,15 @@ module liquidity_layer_v1::orderbook {
 
     // === Priv fns ===
 
-    /// * buyer kiosk must be in Originbyte ecosystem
-    /// * sender must be owner of buyer kiosk
-    /// * kiosk must allow permissionless deposits of `T`
+    /// Creates a bid and attempts to immediately execute it
     ///
-    /// Either `TradeIntermediate` is shared, or bid is added to the state.
+    /// Returns `TradeInfo` which can be used to to call `finish_trade`
+    /// endpoints.
     ///
-    /// Returns `Some` with amount if matched.
-    /// The amount is always equal or less than price.
+    /// #### Panics
+    ///
+    /// - Transaction sender is not owner of `Kiosk`
+    /// - `Kiosk` does not allow permissionless deposits of `T`
     fun create_bid_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
         buyer_kiosk: &mut Kiosk,
@@ -1564,7 +1565,6 @@ module liquidity_layer_v1::orderbook {
     ): Option<TradeInfo> {
         assert_version_and_upgrade(book);
         assert_tick_level(price, book.tick_size);
-        ob_kiosk::assert_is_ob_kiosk(buyer_kiosk);
         ob_kiosk::assert_permission(buyer_kiosk, ctx);
         ob_kiosk::assert_can_deposit_permissionlessly<T>(buyer_kiosk);
 
@@ -1578,7 +1578,6 @@ module liquidity_layer_v1::orderbook {
             (false, 0)
         } else {
             let lowest_ask_price = crit_bit::min_key(asks);
-
             (lowest_ask_price <= price, lowest_ask_price)
         };
 
