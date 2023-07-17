@@ -831,8 +831,17 @@ module liquidity_layer_v1::orderbook {
         assert_version_and_upgrade(book);
 
         let trade = finalize_seller_side(book, trade_id, seller_kiosk);
-        let price = balance::value(&trade.paid);
         let nft_id = trade.nft_id;
+
+        let price = balance::value(&trade.paid);
+        let paid = if (
+            kiosk::is_locked(seller_kiosk, nft_id)
+                && std::type_name::get<sui::sui::SUI>() == std::type_name::get<FT>()
+        ) {
+            option::some(coin::take(&mut trade.paid, price, ctx))
+        } else {
+            option::none()
+        };
 
         let transfer_req = ob_kiosk::transfer_delegated_locked<T>(
             seller_kiosk,
@@ -840,6 +849,7 @@ module liquidity_layer_v1::orderbook {
             nft_id,
             &book.id,
             price,
+            paid,
             transfer_policy,
             ctx,
         );
