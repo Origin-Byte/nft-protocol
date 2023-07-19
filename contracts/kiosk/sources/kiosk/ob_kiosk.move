@@ -624,7 +624,7 @@ module ob_kiosk::ob_kiosk {
         req
     }
 
-    /// Deprecated, use `transfer_locked` instead
+    /// Deprecated, use `transfer_delegated` instead
     public fun transfer_locked_nft<T: key + store>(
         _source: &mut Kiosk,
         _target: &mut Kiosk,
