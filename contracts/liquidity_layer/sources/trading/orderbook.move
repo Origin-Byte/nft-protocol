@@ -795,10 +795,25 @@ module liquidity_layer::orderbook {
     ) {
         assert!(option::is_none(&book.protected_actions.create_ask), EActionNotPublic);
 
-        let commission = cancel_ask_(
+        let old_commission = cancel_ask_(
             book, seller_kiosk, old_price, nft_id, ctx,
         );
-        create_ask_(book, seller_kiosk, new_price, commission, nft_id, ctx);
+
+        let new_commission = if (option::is_some(&old_commission)) {
+            let old_commission_amount_bps = trading::ask_commission_amount(option::borrow(&old_commission)) * 10_000;
+
+            let commission_ft = ((old_commission_amount_bps / old_price) * new_price / 10_000);
+
+            let commission = trading::new_ask_commission(
+                trading::ask_commission_beneficiary(option::borrow(&old_commission)), commission_ft,
+            );
+
+            option::some(commission)
+        } else {
+            option::none()
+        };
+
+        create_ask_(book, seller_kiosk, new_price, new_commission, nft_id, ctx);
     }
 
     /// Cancels the old bid and creates a new one with new price.
@@ -1492,10 +1507,34 @@ module liquidity_layer::orderbook {
         wallet: &mut Coin<FT>,
         ctx: &mut TxContext,
     ) {
-        let commission =
+        let old_commission =
             cancel_bid_except_commission(book, old_price, wallet, ctx);
 
-        create_bid_(book, buyer_kiosk, new_price, commission, wallet, ctx);
+        let new_commission = if (option::is_some(&old_commission)) {
+            let (old_commission, beneficiary) = trading::destroy_bid_commission(option::destroy_some(old_commission));
+
+            let old_commission_amount_bps = balance::value(&old_commission) * 10_000;
+
+            let commission_amount = ((old_commission_amount_bps / old_price) * new_price / 10_000);
+
+            coin::join(wallet, coin::from_balance(old_commission, ctx));
+
+            let balance = coin::balance_mut(wallet);
+
+            let commission_ft = balance::split(balance, commission_amount);
+
+            let commission = trading::new_bid_commission(
+                beneficiary, commission_ft,
+            );
+
+            option::some(commission)
+        } else {
+            option::destroy_none(old_commission);
+
+            option::none()
+        };
+
+        create_bid_(book, buyer_kiosk, new_price, new_commission, wallet, ctx);
     }
 
     /// * the sender must be owner of kiosk
