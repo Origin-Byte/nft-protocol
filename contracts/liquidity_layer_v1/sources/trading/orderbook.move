@@ -29,6 +29,7 @@ module liquidity_layer_v1::orderbook {
     use std::type_name;
     use std::vector;
 
+    use sui::sui::SUI;
     use sui::event;
     use sui::package::{Self, Publisher};
     use sui::transfer_policy::TransferPolicy;
@@ -128,6 +129,9 @@ module liquidity_layer_v1::orderbook {
 
     /// Tried to resolve a `TradeIntermediate` field when one did not exist
     const EUndefinedTradeIntermediate: u64 = 18;
+
+    /// Tried to resolve `SUI` trade using generic endpoint
+    const EIncorrectEndpoint: u64 = 19;
 
     // === Structs ===
 
@@ -746,6 +750,7 @@ module liquidity_layer_v1::orderbook {
     ///
     /// #### Panics
     ///
+    /// - Tried to trade locked NFT with SUI
     /// - Trade `ID` does not exist
     /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
     /// buyer is the transaction sender.
@@ -762,8 +767,15 @@ module liquidity_layer_v1::orderbook {
         let price = balance::value(&trade.paid);
         let nft_id = trade.nft_id;
 
-        let transfer_req = ob_kiosk::transfer_delegated<T>(
-            seller_kiosk, buyer_kiosk, nft_id, &book.id, price, ctx,
+        // Do not allow trading `SUI` using generic function
+        assert!(
+            kiosk::is_locked(seller_kiosk, nft_id) &&
+                std::type_name::get<SUI>() == std::type_name::get<FT>(),
+            EIncorrectEndpoint
+        );
+
+        let transfer_req = ob_kiosk::transfer_delegated_unlocked<T>(
+            seller_kiosk, buyer_kiosk, nft_id, &book.id, price, option::none(), ctx,
         );
 
         finalize_buyer_side<T, FT>(&mut transfer_req, trade, buyer_kiosk, ctx);
@@ -778,6 +790,7 @@ module liquidity_layer_v1::orderbook {
     ///
     /// #### Panics
     ///
+    /// - Tried to trade locked NFT with SUI
     /// - Trade `ID` does not exist
     /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
     /// buyer is the transaction sender.
@@ -818,6 +831,8 @@ module liquidity_layer_v1::orderbook {
     ///
     /// #### Panics
     ///
+    /// - Tried to trade locked NFT with SUI
+    /// - Trade `ID` does not exist
     /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
     /// buyer is the transaction sender.
     public fun finish_trade_locked<T: key + store, FT>(
@@ -834,12 +849,20 @@ module liquidity_layer_v1::orderbook {
         let price = balance::value(&trade.paid);
         let nft_id = trade.nft_id;
 
+        // Do not allow trading `SUI` using generic function
+        assert!(
+            kiosk::is_locked(seller_kiosk, nft_id) &&
+                std::type_name::get<SUI>() == std::type_name::get<FT>(),
+            EIncorrectEndpoint
+        );
+
         let transfer_req = ob_kiosk::transfer_delegated_locked<T>(
             seller_kiosk,
             buyer_kiosk,
             nft_id,
             &book.id,
             price,
+            option::none(),
             transfer_policy,
             ctx,
         );
@@ -856,6 +879,7 @@ module liquidity_layer_v1::orderbook {
     ///
     /// #### Panics
     ///
+    /// - Tried to trade locked NFT with SUI
     /// - Trade `ID` does not exist
     /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
     /// buyer is the transaction sender.
@@ -906,6 +930,8 @@ module liquidity_layer_v1::orderbook {
     ///
     /// #### Panics
     ///
+    /// - Tried to trade locked NFT with SUI
+    /// - Trade `ID` does not exist
     /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
     /// buyer is the transaction sender.
     public fun finish_trade_inherit<T: key + store, FT>(
@@ -922,13 +948,33 @@ module liquidity_layer_v1::orderbook {
         let price = balance::value(&trade.paid);
         let nft_id = trade.nft_id;
 
+        // Do not allow trading `SUI` using generic function
+        assert!(
+            kiosk::is_locked(seller_kiosk, nft_id) &&
+                std::type_name::get<SUI>() == std::type_name::get<FT>(),
+            EIncorrectEndpoint
+        );
+
         let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
             ob_kiosk::transfer_delegated_locked<T>(
-                seller_kiosk, buyer_kiosk, nft_id, &book.id, price, transfer_policy, ctx,
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                price,
+                option::none(),
+                transfer_policy,
+                ctx,
             )
         } else {
-            ob_kiosk::transfer_delegated<T>(
-                seller_kiosk, buyer_kiosk, nft_id, &book.id, price, ctx,
+            ob_kiosk::transfer_delegated_unlocked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                price,
+                option::none(),
+                ctx,
             )
         };
 
@@ -964,6 +1010,291 @@ module liquidity_layer_v1::orderbook {
         if (kiosks_match) {
             option::some(
                 finish_trade_inherit(
+                    book,
+                    trade_id,
+                    seller_kiosk,
+                    buyer_kiosk,
+                    transfer_policy,
+                    ctx
+                )
+            )
+        } else {
+            option::none()
+        }
+    }
+
+    /// Equivalent to `finish_trade` but respects SUI royalties
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_sui_trade<T: key + store>(
+        book: &mut Orderbook<T, SUI>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        assert_version_and_upgrade(book);
+
+        let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let price = balance::value(&trade.paid);
+        let nft_id = trade.nft_id;
+
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
+            let paid = coin::take(&mut trade.paid, price, ctx);
+            ob_kiosk::transfer_delegated_unlocked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                0,
+                option::some(paid),
+                ctx,
+            )
+        } else {
+            ob_kiosk::transfer_delegated_unlocked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                price,
+                option::none(),
+                ctx,
+            )
+        };
+
+        finalize_buyer_side<T, SUI>(&mut transfer_req, trade, buyer_kiosk, ctx);
+
+        transfer_req
+    }
+
+    /// Optimistic equivalent of `finish_sui_trade`
+    ///
+    /// Executes a trade after orders have been matched but will not panic if
+    /// `Kiosks` do not match the trade ID.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_sui_trade_if_kiosks_match<T: key + store>(
+        book: &mut Orderbook<T, SUI>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        ctx: &mut TxContext
+    ): Option<TransferRequest<T>> {
+        // Version asserted by `finish_trade`
+
+        let trade = trade(book, trade_id);
+        let kiosks_match = &trade.seller_kiosk == &object::id(seller_kiosk)
+            && &trade.buyer_kiosk == &object::id(buyer_kiosk);
+
+        if (kiosks_match) {
+            option::some(
+                finish_sui_trade(book, trade_id, seller_kiosk, buyer_kiosk, ctx)
+            )
+        } else {
+            option::none()
+        }
+    }
+
+    /// Executes a trade after orders have been matched
+    ///
+    /// NFT will be deposited in target `Kiosk` and immediately locked.
+    ///
+    /// A separate trade execution step is necessary as we don't know the
+    /// target `Kiosk` upfront as the best bid or ask can change at any time.
+    ///
+    /// To resolve this, `Orderbook` creates a `TradeIntermediate` dynamic
+    /// field which can be permissionlessly resolved via this endpoint.
+    ///
+    /// See the documentation for `nft_protocol::transfer_request` to understand
+    /// how to deal with the returned [`TransferRequest`] type.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_sui_trade_locked<T: key + store>(
+        book: &mut Orderbook<T, SUI>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        assert_version_and_upgrade(book);
+
+        let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let price = balance::value(&trade.paid);
+        let nft_id = trade.nft_id;
+
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
+            let paid = coin::take(&mut trade.paid, price, ctx);
+            ob_kiosk::transfer_delegated_locked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                0,
+                option::some(paid),
+                transfer_policy,
+                ctx,
+            )
+        } else {
+            ob_kiosk::transfer_delegated_locked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                price,
+                option::none(),
+                transfer_policy,
+                ctx,
+            )
+        };
+
+        finalize_buyer_side<T, SUI>(&mut transfer_req, trade, buyer_kiosk, ctx);
+
+        transfer_req
+    }
+
+    /// Optimistic equivalent of `finish_sui_trade_locked`
+    ///
+    /// Executes a trade after orders have been matched but will not panic if
+    /// `Kiosks` do not match the trade ID.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_sui_trade_locked_if_kiosks_match<T: key + store>(
+        book: &mut Orderbook<T, SUI>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): Option<TransferRequest<T>> {
+        // Version asserted by `finish_trade_locked`
+
+        let trade = trade(book, trade_id);
+        let kiosks_match = &trade.seller_kiosk == &object::id(seller_kiosk)
+            && &trade.buyer_kiosk == &object::id(buyer_kiosk);
+
+        if (kiosks_match) {
+            option::some(
+                finish_sui_trade_locked(
+                    book,
+                    trade_id,
+                    seller_kiosk,
+                    buyer_kiosk,
+                    transfer_policy,
+                    ctx
+                )
+            )
+        } else {
+            option::none()
+        }
+    }
+
+    /// Executes a trade after orders have been matched
+    ///
+    /// Inherits the NFTs locked state from the source `Kiosk` to the target.
+    /// - If NFT was locked in source it will be locked in target
+    /// - If NFT was unlocked in source it will be locked in target
+    ///
+    /// A separate trade execution step is necessary as we don't know the
+    /// target `Kiosk` upfront as the best bid or ask can change at any time.
+    ///
+    /// To resolve this, `Orderbook` creates a `TradeIntermediate` dynamic
+    /// field which can be permissionlessly resolved via this endpoint.
+    ///
+    /// See the documentation for `nft_protocol::transfer_request` to understand
+    /// how to deal with the returned [`TransferRequest`] type.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_sui_trade_inherit<T: key + store>(
+        book: &mut Orderbook<T, SUI>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext,
+    ): TransferRequest<T> {
+        assert_version_and_upgrade(book);
+
+        let trade = finalize_seller_side(book, trade_id, seller_kiosk);
+        let price = balance::value(&trade.paid);
+        let nft_id = trade.nft_id;
+
+        let transfer_req = if (kiosk::is_locked(seller_kiosk, nft_id)) {
+            let paid = coin::take(&mut trade.paid, price, ctx);
+            ob_kiosk::transfer_delegated_locked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                0,
+                option::some(paid),
+                transfer_policy,
+                ctx,
+            )
+        } else {
+            ob_kiosk::transfer_delegated_unlocked<T>(
+                seller_kiosk,
+                buyer_kiosk,
+                nft_id,
+                &book.id,
+                price,
+                option::none(),
+                ctx,
+            )
+        };
+
+        finalize_buyer_side<T, SUI>(&mut transfer_req, trade, buyer_kiosk, ctx);
+
+        transfer_req
+    }
+
+    /// Optimistic equivalent of `finish_sui_trade_inherit`
+    ///
+    /// Executes a trade after orders have been matched but will not panic if
+    /// `Kiosks` do not match the trade ID.
+    ///
+    /// #### Panics
+    ///
+    /// - Trade `ID` does not exist
+    /// - Buyer's `Kiosk` does not allow permissionless deposits of `T` unless
+    /// buyer is the transaction sender.
+    public fun finish_sui_trade_inherit_if_kiosks_match<T: key + store>(
+        book: &mut Orderbook<T, SUI>,
+        trade_id: ID,
+        seller_kiosk: &mut Kiosk,
+        buyer_kiosk: &mut Kiosk,
+        transfer_policy: &sui::transfer_policy::TransferPolicy<T>,
+        ctx: &mut TxContext
+    ): Option<TransferRequest<T>> {
+        // Version asserted by `finish_trade_inherit`
+
+        let trade = trade(book, trade_id);
+        let kiosks_match = &trade.seller_kiosk == &object::id(seller_kiosk)
+            && &trade.buyer_kiosk == &object::id(buyer_kiosk);
+
+        if (kiosks_match) {
+            option::some(
+                finish_sui_trade_inherit(
                     book,
                     trade_id,
                     seller_kiosk,
@@ -2084,12 +2415,13 @@ module liquidity_layer_v1::orderbook {
         );
         option::destroy_none(maybe_commission);
 
-        let transfer_req = ob_kiosk::transfer_delegated<T>(
+        let transfer_req = ob_kiosk::transfer_delegated_unlocked<T>(
             seller_kiosk,
             buyer_kiosk,
             nft_id,
             &book.id,
             price,
+            option::none(),
             ctx,
         );
 
