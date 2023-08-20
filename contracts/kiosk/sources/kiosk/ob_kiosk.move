@@ -819,6 +819,8 @@ module ob_kiosk::ob_kiosk {
         assert!(kiosk::has_access(self, &kiosk_cap), ENotOwner);
         assert!(!is_ob_kiosk(self), EKioskOriginByteVersion);
 
+        // Ensure that `uid_mut` will work
+        kiosk::set_allow_extensions(self, &kiosk_cap, true);
         let kiosk_ext = ext(self);
 
         df::add(kiosk_ext, VersionDfKey {}, VERSION);
