@@ -78,47 +78,6 @@ module nft_protocol::session_token {
         // );
     }
 
-    fun issue_session_token_<T: key + store>(
-        _kiosk: &mut Kiosk,
-        _nft_id: TypedID<T>,
-        _receiver: address,
-        _expiry_ms: u64,
-        _field: Option<TypeName>,
-        _ctx: &mut TxContext,
-    ): ID {
-        abort(EDeprecatedApi)
-        // let nft_id = typed_id::to_id(nft_id);
-
-        // // Only the owner can issue session tokens
-        // ob_kiosk::assert_owner_address(kiosk, sender(ctx));
-
-        // let ss_uid = object::new(ctx);
-        // let ss_id = object::uid_to_inner(&ss_uid);
-
-        // let timeout = TimeOut<T> {
-        //     id: object::new(ctx),
-        //     expiry_ms,
-        //     access_token: object::uid_to_inner(&ss_uid),
-        // };
-
-        // let session_token = SessionToken<T> {
-        //     id: ss_uid,
-        //     nft_id,
-        //     field,
-        //     expiry_ms,
-        //     timeout_id: object::id(&timeout),
-        //     entity: receiver,
-        // };
-
-        // // Need to assert that NFT is not locked
-        // ob_kiosk::auth_exclusive_transfer(kiosk, nft_id, &timeout.id, ctx);
-        // let kiosk_uid = kiosk::uid_mut(kiosk);
-
-        // df::add(kiosk_uid, TimeOutDfKey { nft_id }, timeout);
-        // transfer::public_transfer(session_token, receiver);
-        // ss_id
-    }
-
     /// Registers a type to use `AccessPolicy` during the borrowing.
     public entry fun enforce<T, P>(
         _policy: &mut Policy<WithNft<T, P>>, _cap: &PolicyCap,
