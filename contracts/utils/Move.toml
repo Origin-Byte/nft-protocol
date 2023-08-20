@@ -1,7 +1,7 @@
 [package]
 name = "Utils"
-version = "1.3.1"
-published-at = "0x991105f33d0e39ea026a2f81cfba5687166375a58393ddf1640f37a8e6b1a9ec"
+version = "1.4.0"
+published-at = "0x4c74b4dbcb730def9520debc7a628c0d230a3a113bd2e49d9c9dad322a8e3051"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
