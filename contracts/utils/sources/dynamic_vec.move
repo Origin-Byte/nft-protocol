@@ -313,17 +313,6 @@ module ob_utils::dynamic_vector {
         v.total_length = v.total_length + 1;
     }
 
-    fun how_many_chunks(total_items: u64, limit: u64): u64 {
-        let chunk_idx = total_items / limit;
-        let remainder = total_items % limit;
-
-        if (remainder > 0) {
-            chunk_idx = chunk_idx + 1;
-        };
-
-        chunk_idx
-    }
-
     // === Tests ===
 
     #[test_only]
@@ -336,6 +325,18 @@ module ob_utils::dynamic_vector {
         let DynVec<Element> { vec_0: _, vecs, current_chunk: _, tip_length: _, total_length: _, limit: _ } = v;
 
         object::delete(vecs);
+    }
+
+    #[test_only]
+    fun how_many_chunks(total_items: u64, limit: u64): u64 {
+        let chunk_idx = total_items / limit;
+        let remainder = total_items % limit;
+
+        if (remainder > 0) {
+            chunk_idx = chunk_idx + 1;
+        };
+
+        chunk_idx
     }
 
     #[test]
