@@ -23,6 +23,7 @@
 // borrow
 #[test_only]
 module ob_tests::test_ob_kiosk {
+    use std::option;
     use sui::test_scenario::{Self, ctx};
     use sui::kiosk::{Self, Kiosk};
     use sui::transfer;
@@ -268,12 +269,13 @@ module ob_tests::test_ob_kiosk {
         // Init Buyer's Kiosk
         let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
         // Transfer NFT and get
-        let request = ob_kiosk::transfer_delegated<Foo>(
+        let request = ob_kiosk::transfer_delegated_unlocked<Foo>(
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
             &rand_entity,
             0,
+            option::none(),
             ctx(&mut scenario)
         );
 
@@ -330,12 +332,13 @@ module ob_tests::test_ob_kiosk {
         // Init Buyer's Kiosk
         let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
         // Transfer NFT and get
-        let request = ob_kiosk::transfer_delegated<Foo>(
+        let request = ob_kiosk::transfer_delegated_unlocked<Foo>(
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
             &rand_entity,
             0,
+            option::none(),
             ctx(&mut scenario)
         );
 
@@ -391,12 +394,13 @@ module ob_tests::test_ob_kiosk {
 
         test_scenario::next_tx(&mut scenario, fake_address());
 
-        let request = ob_kiosk::transfer_delegated<Foo>(
+        let request = ob_kiosk::transfer_delegated_unlocked<Foo>(
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
             &rand_entity,
             0,
+            option::none(),
             ctx(&mut scenario)
         );
 
@@ -537,11 +541,12 @@ module ob_tests::test_ob_kiosk {
         let (buyer_kiosk, _) = ob_kiosk::new(ctx(&mut scenario));
 
         // Transfer NFT and get
-        let request = ob_kiosk::transfer_signed(
+        let request = ob_kiosk::transfer_signed_unlocked(
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
             0,
+            option::none(),
             ctx(&mut scenario)
         );
 
@@ -602,11 +607,12 @@ module ob_tests::test_ob_kiosk {
         assert!(tx_context::sender(ctx(&mut scenario)) == authorised_address, 0);
 
         // Transfer NFT and get
-        let request = ob_kiosk::transfer_signed(
+        let request = ob_kiosk::transfer_signed_unlocked(
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
             0,
+            option::none(),
             ctx(&mut scenario)
         );
 
@@ -664,11 +670,12 @@ module ob_tests::test_ob_kiosk {
         assert!(tx_context::sender(ctx(&mut scenario)) == unauthorised_address, 0);
 
         // Transfer NFT and get
-        let request = ob_kiosk::transfer_signed(
+        let request = ob_kiosk::transfer_signed_unlocked(
             &mut kiosk,
             &mut buyer_kiosk,
             nft_id,
             0,
+            option::none(),
             ctx(&mut scenario)
         );
 
