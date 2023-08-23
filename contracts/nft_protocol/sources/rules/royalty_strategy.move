@@ -6,11 +6,11 @@ module nft_protocol::royalty_strategy_bps {
     use sui::object::{Self, UID};
     use sui::transfer::share_object;
     use sui::tx_context::TxContext;
+    use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
 
     use ob_request::transfer_request::{Self, TransferRequest, BalanceAccessCap};
     use ob_request::request::{Self, Policy, PolicyCap, WithNft};
-    use sui::transfer_policy::{TransferPolicyCap, TransferPolicy};
-    use ob_permissions::witness::{Witness as DelegatedWitness};
+    use ob_permissions::witness::{Self, Witness as DelegatedWitness};
     use originmate::balances::{Self, Balances};
 
     use nft_protocol::collection::{Self, Collection};
@@ -210,6 +210,26 @@ module nft_protocol::royalty_strategy_bps {
 
     public fun royalty_fee_bps<T>(self: &BpsRoyaltyStrategy<T>): u16 {
         self.royalty_fee_bps
+    }
+
+    public fun set_royalty_fee_bps<T>(
+        _witness: DelegatedWitness<T>,
+        self: &mut BpsRoyaltyStrategy<T>,
+        royalty_fee_bps: u16
+    ) {
+        self.royalty_fee_bps = royalty_fee_bps;
+    }
+
+    public entry fun set_royalty_fee_bps_with_publisher<T>(
+        publisher: &Publisher,
+        self: &mut BpsRoyaltyStrategy<T>,
+        royalty_fee_bps: u16
+    ) {
+        set_royalty_fee_bps(
+            witness::from_publisher(publisher),
+            self,
+            royalty_fee_bps,
+        );
     }
 
     public fun calculate<T>(self: &BpsRoyaltyStrategy<T>, amount: u64): u64 {
