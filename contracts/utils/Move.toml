@@ -1,6 +1,6 @@
 [package]
 name = "Utils"
-version = "1.4.0"
+version = "1.4.1"
 published-at = "0x4c74b4dbcb730def9520debc7a628c0d230a3a113bd2e49d9c9dad322a8e3051"
 
 [dependencies.Sui]
