@@ -1,6 +1,6 @@
 [package]
 name = "Kiosk"
-version = "1.4.0"
+version = "1.4.1"
 published-at = "0x787afe0cb02641274667b31235d3d0e1a2d1c43cf984d08007268b9928528493"
 
 [dependencies.Sui]
