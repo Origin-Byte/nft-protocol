@@ -152,7 +152,7 @@ module nft_protocol::royalty {
         share: u16,
         ctx: &mut TxContext,
     ) {
-        // Asserts that sender is a creator
+        // Asserts that sender has royalty share
         let creator = tx_context::sender(ctx);
         let creator_share = borrow_share_mut(domain, &creator);
 
@@ -161,7 +161,7 @@ module nft_protocol::royalty {
         *creator_share = *creator_share - share;
 
         if (*creator_share == 0) {
-            vec_map::remove(&mut domain.royalty_shares_bps, &to);
+            vec_map::remove(&mut domain.royalty_shares_bps, &creator);
         };
 
         if (contains_share(domain, &to)) {
