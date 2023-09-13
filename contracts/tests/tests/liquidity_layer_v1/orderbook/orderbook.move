@@ -148,14 +148,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -217,7 +215,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
@@ -231,14 +228,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -336,7 +331,6 @@ module ob_tests::orderbook_v1 {
         coin::burn_for_testing(bid_commission);
         coin::burn_for_testing(ask_commission);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
@@ -607,13 +601,11 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
 
         let (tx_policy, policy_cap) = transfer_policy::new<Foo>(&publisher, ctx(&mut scenario));
         test_utils::create_external_orderbook_v1<Foo>(&tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -676,7 +668,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
@@ -690,13 +681,11 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
 
         let (tx_policy, policy_cap) = transfer_policy::new<Foo>(&publisher, ctx(&mut scenario));
         test_utils::create_external_orderbook_v1<Foo>(&tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -772,7 +761,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, buyer());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
@@ -786,14 +774,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -879,7 +865,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         // test_scenario::return_shared(tx_policy);
         test_scenario::return_shared(seller_kiosk);
@@ -893,14 +878,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -992,7 +975,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
@@ -1005,15 +987,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -1116,7 +1095,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
@@ -1129,14 +1107,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -1237,7 +1213,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
@@ -1250,14 +1225,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -1336,7 +1309,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
@@ -1349,14 +1321,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -1450,7 +1420,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
@@ -1463,14 +1432,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -1555,7 +1522,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
@@ -1568,14 +1534,12 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -1677,7 +1641,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(seller_kiosk);
         test_scenario::return_shared(buyer_kiosk);
@@ -1690,7 +1653,6 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
@@ -1706,7 +1668,6 @@ module ob_tests::orderbook_v1 {
         orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
         orderbook::share(ob);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 2. Insert time lock
@@ -1749,7 +1710,6 @@ module ob_tests::orderbook_v1 {
 
         clock::destroy_for_testing(clock);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
@@ -1761,7 +1721,6 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
@@ -1777,7 +1736,6 @@ module ob_tests::orderbook_v1 {
         orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
         orderbook::share(ob);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 2. Insert time lock
@@ -1796,7 +1754,6 @@ module ob_tests::orderbook_v1 {
 
         clock::destroy_for_testing(clock);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(book);
         test_scenario::end(scenario);
@@ -1808,7 +1765,6 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
@@ -1816,7 +1772,6 @@ module ob_tests::orderbook_v1 {
 
         test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 3. Create Buyer Kiosk
@@ -1883,7 +1838,6 @@ module ob_tests::orderbook_v1 {
 
         coin::burn_for_testing(coin);
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
         test_scenario::return_shared(bid);
         test_scenario::return_shared(tx_policy);
@@ -1899,7 +1853,6 @@ module ob_tests::orderbook_v1 {
         let scenario = test_scenario::begin(creator());
 
         // 1. Create Collection, TransferPolicy and Orderbook
-        let (collection, mint_cap) = test_utils::init_collection_foo(ctx(&mut scenario));
         let publisher = test_utils::get_publisher(ctx(&mut scenario));
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
@@ -1915,7 +1868,6 @@ module ob_tests::orderbook_v1 {
         orderbook::change_tick_size<Foo, SUI>(dw, &mut ob, 1);
         orderbook::share(ob);
 
-        transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
 
         // 2. Insert administrator
@@ -1953,7 +1905,6 @@ module ob_tests::orderbook_v1 {
         orderbook::remove_start_time_as_administrator(&mut book, ctx(&mut scenario));
 
         transfer::public_transfer(publisher, creator());
-        transfer::public_transfer(mint_cap, creator());
         transfer::public_transfer(policy_cap, creator());
 
         test_scenario::return_shared(book);
