@@ -1,6 +1,6 @@
 [package]
 name = "Permissions"
-version = "1.4.1"
+version = "1.4.2"
 published-at = "0xfb8a4078411cb81e308aa74d6df30775a25ba50ce0c2c48d4488b5f11fddcff9"
 
 [dependencies.Sui]
