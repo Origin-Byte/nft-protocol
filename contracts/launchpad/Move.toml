@@ -1,6 +1,6 @@
 [package]
 name = "Launchpad"
-version = "1.4.0"
+version = "1.4.1"
 published-at = "0x220a435e00c9edc42329bd9b38fedbbde5ec044f21d89b4f4d6d04b747e57cd3"
 
 [dependencies.Sui]

@@ -1,7 +1,7 @@
 [package]
 name = "LiquidityLayerV1"
-version = "1.4.0"
-published-at = "0xc6672e9bb7d1b079954c08814ced8c258cbb6941bb2e42101f23f8c0ceece4b2"
+version = "1.4.1"
+published-at = "0xd3f65897a1cc45a4c53c2780d22c6d7a40cecc61c952e7d1087a9bcdc0661779"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"

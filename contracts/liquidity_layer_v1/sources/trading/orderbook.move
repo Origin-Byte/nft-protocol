@@ -657,8 +657,35 @@ module liquidity_layer_v1::orderbook {
     ) {
         assert!(!book.protected_actions.create_ask, EActionNotPublic);
 
-        let commission = cancel_ask_(book, seller_kiosk, old_price, nft_id, ctx);
-        create_ask_(book, seller_kiosk, new_price, commission, nft_id, ctx);
+        cancel_ask_(book, seller_kiosk, old_price, nft_id, ctx);
+        create_ask_(
+            book, seller_kiosk, new_price, option::none(), nft_id, ctx,
+        );
+    }
+
+    public fun edit_ask_with_commission<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        seller_kiosk: &mut Kiosk,
+        old_price: u64,
+        nft_id: ID,
+        new_price: u64,
+        beneficiary: address,
+        commission_ft: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(!book.protected_actions.create_ask, EActionNotPublic);
+
+        cancel_ask_(book, seller_kiosk, old_price, nft_id, ctx);
+        let commission =
+            trading::new_ask_commission(beneficiary, commission_ft);
+        create_ask_(
+            book,
+            seller_kiosk,
+            new_price,
+            option::some(commission),
+            nft_id,
+            ctx,
+        );
     }
 
     /// Cancels the old bid and creates a new one with new price.
@@ -671,7 +698,36 @@ module liquidity_layer_v1::orderbook {
         ctx: &mut TxContext,
     ) {
         assert!(!book.protected_actions.create_bid, EActionNotPublic);
-        edit_bid_(book, buyer_kiosk, old_price, new_price, wallet, ctx);
+
+        cancel_bid_(book, old_price, wallet, ctx);
+        create_bid_(book, buyer_kiosk, new_price, option::none(), wallet, ctx);
+    }
+
+    public fun edit_bid_with_commission<T: key + store, FT>(
+        book: &mut Orderbook<T, FT>,
+        buyer_kiosk: &mut Kiosk,
+        old_price: u64,
+        new_price: u64,
+        beneficiary: address,
+        commission_ft: u64,
+        wallet: &mut Coin<FT>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(!book.protected_actions.create_bid, EActionNotPublic);
+
+        cancel_bid_(book, old_price, wallet, ctx);
+        let commission = trading::new_bid_commission(
+            beneficiary,
+            balance::split(coin::balance_mut(wallet), commission_ft),
+        );
+        create_bid_(
+            book,
+            buyer_kiosk,
+            new_price,
+            option::some(commission),
+            wallet,
+            ctx,
+        );
     }
 
     // === Buy NFT ===
@@ -1640,20 +1696,6 @@ module liquidity_layer_v1::orderbook {
             );
         };
         option::destroy_none(commission);
-    }
-
-    fun edit_bid_<T: key + store, FT>(
-        book: &mut Orderbook<T, FT>,
-        buyer_kiosk: &mut Kiosk,
-        old_price: u64,
-        new_price: u64,
-        wallet: &mut Coin<FT>,
-        ctx: &mut TxContext,
-    ) {
-        let commission =
-            cancel_bid_except_commission(book, old_price, wallet, ctx);
-
-        create_bid_(book, buyer_kiosk, new_price, commission, wallet, ctx);
     }
 
     /// * the sender must be owner of kiosk

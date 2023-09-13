@@ -1,6 +1,6 @@
 [package]
 name = "Pseudorandom"
-version = "1.4.0"
+version = "1.4.1"
 published-at = "0xbac2d3b6e1efdca8947b599dac9e1e1a2f3addfeb9a4fddaa83bdd7e1aeae4a7"
 
 [dependencies.Sui]
