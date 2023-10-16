@@ -1,13 +1,13 @@
 [package]
 name = "Allowlist"
-version = "1.4.2"
-published-at = "0x5c5fd2cd218c473558031bde7ef1887ff07daa33c26469ff1ae7b2b3e7b87324"
+version = "1.5.0"
+published-at = "0x0c9f86f13003072408fed2ade75bba5f7b8f84ffee8e271860843c69e4adbe01"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# mainnet-1.7.1
-rev = "e1173ae8288b4ba3b7f41412e67225573b8fb6d3"
+# mainnet-1.11.2
+rev = "46a97cd8bedea35a8ba0e3a569c82ffea2c59bfc"
 
 [dependencies.Permissions]
 local = "./../permissions"
