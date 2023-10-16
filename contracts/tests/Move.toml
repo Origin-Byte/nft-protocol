@@ -15,6 +15,7 @@ git = "https://github.com/Origin-Byte/originmate.git"
 rev = "c3ebf3d5abf28ea933fdcf73012a46734f2ba227"
 
 [dependencies.Critbit]
+# mainnet-1.11.2
 git = "https://github.com/Origin-Byte/critbit.git"
 # testnet-1.7.1
 rev = "79109a0183f3dae985a9473773e424fd3bfaae13"
