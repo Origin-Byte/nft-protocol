@@ -6,8 +6,8 @@ published-at = "0xd3f65897a1cc45a4c53c2780d22c6d7a40cecc61c952e7d1087a9bcdc06617
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.7.1
-rev = "e1173ae8288b4ba3b7f41412e67225573b8fb6d3"
+# testnet-1.11.2
+rev = "46a97cd8bedea35a8ba0e3a569c82ffea2c59bfc"
 
 [dependencies.Originmate]
 git = "https://github.com/Origin-Byte/originmate.git"

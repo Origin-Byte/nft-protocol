@@ -6,8 +6,8 @@ published-at = "0x17598ec33ed2d4ab4a65afe6aed97ed41a0c50efdfea61e62e76e94d20490f
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.7.1
-rev = "e1173ae8288b4ba3b7f41412e67225573b8fb6d3"
+# testnet-1.11.2
+rev = "46a97cd8bedea35a8ba0e3a569c82ffea2c59bfc"
 
 [dependencies.Critbit]
 # testnet-1.7.1
