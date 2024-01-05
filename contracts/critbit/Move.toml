@@ -1,0 +1,13 @@
+[package]
+name = "Critbit"
+version = "1.6.0"
+published-at = "0xb0ef3b9307e145dc6f40c55253c5ded5e92c267bb068b2fe935a90f87e93a932"
+
+[dependencies.Sui]
+git = "https://github.com/MystenLabs/sui.git"
+subdir = "crates/sui-framework/packages/sui-framework"
+# mainnet-1.15.1
+rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
+
+[addresses]
+critbit = "0x5fb957b59e6b093c17eb3f0ca0a3e8762530244f39f738bd356dbdd43ed9230e"
