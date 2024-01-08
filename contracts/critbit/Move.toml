@@ -1,7 +1,7 @@
 [package]
 name = "Critbit"
 version = "1.6.0"
-published-at = "0xb0ef3b9307e145dc6f40c55253c5ded5e92c267bb068b2fe935a90f87e93a932"
+published-at = "0x7bbef8a8a7b3065cd4c4d0b56a7f7f09db40fb320a4ea5c286ff8f671ebd0873"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"

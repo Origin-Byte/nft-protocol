@@ -1,7 +1,7 @@
 [package]
 name = "Kiosk"
 version = "1.6.0"
-published-at = "0x39f01412072df12631c8c938ee9e11678fe55a7ea4dfff75b8833e6b53aeb8bf"
+published-at = "0x2678c98fe23173eebea384509464eb81b1f3035a57419cb46d025000c337451a"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"

@@ -1,7 +1,7 @@
 [package]
 name = "Allowlist"
 version = "1.6.0"
-published-at = "0x0c9f86f13003072408fed2ade75bba5f7b8f84ffee8e271860843c69e4adbe01"
+published-at = "0x58c01ad7908a1c5ffbd70d89ac33e83cb554b828d69a7772246ae386bd62b5a7"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
