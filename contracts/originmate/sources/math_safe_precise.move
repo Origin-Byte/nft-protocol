@@ -8,6 +8,7 @@
 module originmate::math_safe_precise {
     use originmate::math_u128;
 
+    #[allow(unused_const)]
     const SCALAR: u64 = 1 << 32;
     const SCALAR_U128: u128 = 1 << 32;
 

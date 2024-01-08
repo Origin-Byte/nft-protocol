@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::test_nft_bag {
     use std::vector;
     use std::type_name;
@@ -250,6 +251,7 @@ module ob_tests::test_nft_bag {
     }
 
     #[test]
+    #[lint_allow(collection_equality)]
     fun decompose_nft() {
         let scenario = test_scenario::begin(CREATOR);
 

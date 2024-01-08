@@ -33,6 +33,7 @@ module nft_protocol::symbol {
         Symbol { symbol }
     }
 
+    #[allow(unused_type_parameter)]
     /// Sets name of `DisplayDomain`
     public fun set_symbol<T>(
         domain: &mut Symbol,

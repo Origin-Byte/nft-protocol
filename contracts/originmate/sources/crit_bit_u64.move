@@ -466,6 +466,7 @@ module originmate::crit_bit_u64 {
 
     // Error codes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+    #[allow(unused_const)]
     /// When a char in a bytestring is neither 0 nor 1
     const E_BIT_NOT_0_OR_1: u64 = 0;
     /// When attempting to destroy a non-empty tree
@@ -495,6 +496,7 @@ module originmate::crit_bit_u64 {
     const MSB_u64: u8 = 63;
     /// Bit number of node type flag in a `u64` vector index
     const N_TYPE: u8 = 63;
+    #[allow(unused_const)]
     /// Node type bit flag indicating inner node
     const IN: u64 = 0;
     /// Node type bit flag indicating outer node
@@ -1865,10 +1867,10 @@ module originmate::crit_bit_u64 {
         *borrow_mut<u8>(&mut cb, 1) = 2;
         *borrow_mut<u8>(&mut cb, 2) = 4;
         // Assert values are as expected
-        assert!(*borrow<u8>(&mut cb, 2) == 4, 0); // Changed
-        assert!(*borrow<u8>(&mut cb, 3) == 8, 0); // Unchanged
-        assert!(*borrow<u8>(&mut cb, 1) == 2, 0); // Changed
-        assert!(*borrow<u8>(&mut cb, 7) == 5, 0); // Unchanged
+        assert!(*borrow<u8>(&cb, 2) == 4, 0); // Changed
+        assert!(*borrow<u8>(&cb, 3) == 8, 0); // Unchanged
+        assert!(*borrow<u8>(&cb, 1) == 2, 0); // Changed
+        assert!(*borrow<u8>(&cb, 7) == 5, 0); // Unchanged
         cb // Return rather than unpack
     }
 
@@ -2349,13 +2351,13 @@ module originmate::crit_bit_u64 {
         // Assert correct pop value for key 111
         assert!(pop_general(&mut cb, u(b"111"), 3) == 7, 0);
         assert!(cb.r == 0, 1); // Assert root field updated
-        let r = v_b<I>(&mut cb.i, 0); // Borrow inner node at root
+        let r = v_b<I>(&cb.i, 0); // Borrow inner node at root
         // Assert root inner node fields are as expected
         assert!(r.c == 2 && r.p == ROOT && r.l == o_c(0) && r.r == o_c(1), 2);
-        let o_l = v_b<O<u8>>(&mut cb.o, 0); // Borrow outer node on left
+        let o_l = v_b<O<u8>>(&cb.o, 0); // Borrow outer node on left
         // Assert left outer node fields are as expected
         assert!(o_l.k == u(b"001") && o_l.v == 9 && o_l.p == 0, 3);
-        let o_r = v_b<O<u8>>(&mut cb.o, 1); // Borrow outer node on right
+        let o_r = v_b<O<u8>>(&cb.o, 1); // Borrow outer node on right
         // Assert right outer node fields are as expected
         assert!(o_r.k == u(b"101") && o_r.v == 8 && o_r.p == 0, 4);
         cb // Return rather than unpack
@@ -2454,7 +2456,7 @@ module originmate::crit_bit_u64 {
     fun pop_singleton_success() {
         let cb = singleton(1, 2); // Initialize singleton
         assert!(pop_singleton(&mut cb, 1) == 2, 0); // Verify pop value
-        assert!(is_empty(&mut cb), 1); // Assert marked as empty
+        assert!(is_empty(&cb), 1); // Assert marked as empty
         assert!(cb.r == 0, 2); // Assert root index field updated
         destroy_empty<u8>(cb); // Destroy empty tree
     }

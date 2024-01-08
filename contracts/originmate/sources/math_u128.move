@@ -3,8 +3,10 @@
 /// @title math_u128
 /// @dev Standard math utilities missing in the Move language (for `u128`).
 module originmate::math_u128 {
+    #[allow(unused_const)]
     const ROUNDING_DOWN: u8 = 0; // Toward negative infinity
     const ROUNDING_UP: u8 = 0; // Toward infinity
+    #[allow(unused_const)]
     const ROUNDING_ZERO: u8 = 0; // Toward zero
     const SCALAR: u128 = 1 << 32;
 
@@ -128,7 +130,7 @@ module originmate::math_u128 {
         assert!(exp(2, 0) == 1, 6);
         assert!(exp(2, 1) == 2, 7);
         assert!(exp(2, 5) == 32, 8);
-        
+
         assert!(exp(123, 0) == 1, 9);
         assert!(exp(123, 1) == 123, 10);
         assert!(exp(123, 5) == 28153056843, 11);

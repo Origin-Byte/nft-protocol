@@ -35,6 +35,7 @@ module nft_protocol::plugins {
         packages: VecSet<TypeName>,
     }
 
+    #[allow(unused_type_parameter, unused_function)]
     /// Creates a new `Plugins` object
     fun new<T, W: drop>(witness: W): Plugins<T> {
         Plugins {

@@ -131,6 +131,7 @@ module nft_protocol::attributes {
         &mut attributes.map
     }
 
+    #[allow(unused_type_parameter)]
     /// Inserts attribute to `Attributes` field in the NFT of type `T`.
     ///
     /// #### Panics
@@ -148,6 +149,7 @@ module nft_protocol::attributes {
         );
     }
 
+    #[allow(unused_type_parameter)]
     /// Removes attribute from `Attributes`
     ///
     /// #### Panics

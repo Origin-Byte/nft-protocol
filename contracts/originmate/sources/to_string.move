@@ -11,6 +11,7 @@ module originmate::to_string {
 
     // Maximum value of u128, i.e. 2 ** 128 - 1
     // Source: https://github.com/move-language/move/blob/a86f31415b9a18867b5edaed6f915a39b8c2ef40/language/move-prover/doc/user/spec-lang.md?plain=1#L214
+    #[allow(unused_const)]
     const MAX_U128: u128 = 340282366920938463463374607431768211455;
 
     /// @dev Converts a `u128` to its `ascii::String` decimal representation.
@@ -48,7 +49,7 @@ module originmate::to_string {
 
         let i: u128 = 0;
         while (i < length * 2) {
-            vector::push_back(&mut buffer, *vector::borrow(&mut HEX_SYMBOLS, (value & 0xf as u64)));
+            vector::push_back(&mut buffer, *vector::borrow(&HEX_SYMBOLS, (value & 0xf as u64)));
             value = value >> 4;
             i = i + 1;
         };
@@ -67,8 +68,8 @@ module originmate::to_string {
         let i: u64 = 0;
         while (i < length) {
             let byte = *vector::borrow(bytes, i);
-            vector::push_back(&mut buffer, *vector::borrow(&mut HEX_SYMBOLS, (byte >> 4 & 0xf as u64)));
-            vector::push_back(&mut buffer, *vector::borrow(&mut HEX_SYMBOLS, (byte & 0xf as u64)));
+            vector::push_back(&mut buffer, *vector::borrow(&HEX_SYMBOLS, (byte >> 4 & 0xf as u64)));
+            vector::push_back(&mut buffer, *vector::borrow(&HEX_SYMBOLS, (byte & 0xf as u64)));
             i = i + 1;
         };
         ascii::string(buffer)

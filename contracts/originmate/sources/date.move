@@ -20,12 +20,17 @@ module originmate::date {
     const SECONDS_PER_MINUTE: u64 = 60;
     const OFFSET19700101: u64 = 2440588;
 
+    #[allow(unused_const)]
     const DOW_MON: u64 = 1;
+    #[allow(unused_const)]
     const DOW_TUE: u64 = 2;
+    #[allow(unused_const)]
     const DOW_WED: u64 = 3;
+    #[allow(unused_const)]
     const DOW_THU: u64 = 4;
     const DOW_FRI: u64 = 5;
     const DOW_SAT: u64 = 6;
+    #[allow(unused_const)]
     const DOW_SUN: u64 = 7;
 
     const EYEAR_BEFORE_1970: u64 = 0x10000;

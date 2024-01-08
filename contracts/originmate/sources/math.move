@@ -3,8 +3,10 @@
 /// @title math
 /// @dev Standard math utilities missing in the Move language (for `u64`).
 module originmate::math {
+    #[allow(unused_const)]
     const ROUNDING_DOWN: u8 = 0; // Toward negative infinity
     const ROUNDING_UP: u8 = 0; // Toward infinity
+    #[allow(unused_const)]
     const ROUNDING_ZERO: u8 = 0; // Toward zero
     const SCALAR: u64 = 1 << 16;
 
@@ -124,7 +126,7 @@ module originmate::math {
         assert!(exp(2, 0) == 1, 6);
         assert!(exp(2, 1) == 2, 7);
         assert!(exp(2, 5) == 32, 8);
-        
+
         assert!(exp(123, 0) == 1, 9);
         assert!(exp(123, 1) == 123, 10);
         assert!(exp(123, 5) == 28153056843, 11);

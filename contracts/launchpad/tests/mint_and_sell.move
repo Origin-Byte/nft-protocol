@@ -16,7 +16,6 @@ module ob_launchpad::mint_and_sell {
     }
     struct Witness has drop {}
 
-    const OWNER: address = @0xA1C05;
     const CREATOR: address = @0xA1C05;
     const MARKETPLACE: address = @0xA1C20;
 

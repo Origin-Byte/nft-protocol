@@ -19,6 +19,7 @@ module originmate::linear_vesting {
     /// @dev When trying to clawback a wallet with the wrong wallet's capability.
     const EWRONG_CLAWBACK_CAPABILITY: u64 = 0x50000;
 
+    #[lint_allow(coin_field)]
     struct Wallet<phantom T> has key {
         id: UID,
         beneficiary: address,

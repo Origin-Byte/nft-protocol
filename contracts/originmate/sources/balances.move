@@ -48,7 +48,7 @@ module originmate::balances {
     /// If balance does no exist, it is created with zero value.
     public fun borrow_mut<FT>(self: &mut Balances): &mut Balance<FT> {
         let ft = type_name::get<FT>();
-        if (!df::exists_(&mut self.inner, ft)) {
+        if (!df::exists_(&self.inner, ft)) {
             self.items = self.items + 1;
             df::add(&mut self.inner, ft, balance::zero<FT>());
         };
