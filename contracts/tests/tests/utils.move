@@ -1,10 +1,8 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::test_utils {
-    use std::option::{none, some};
-    use std::type_name;
-    use std::vector;
+    use std::option::{none};
 
-    use sui::transfer;
     use sui::sui::SUI;
     use sui::tx_context::TxContext;
     use sui::object::{Self, UID, ID};
@@ -13,8 +11,6 @@ module ob_tests::test_utils {
     use sui::test_scenario::{Scenario, ctx};
 
     use ob_permissions::witness::{Self, Witness as DelegatedWitness};
-    use liquidity_layer::bidding;
-    use liquidity_layer::orderbook;
     use nft_protocol::mint_cap::MintCap;
     use nft_protocol::collection::{Self, Collection};
     use ob_request::request::{Policy, PolicyCap, WithNft};
@@ -24,13 +20,6 @@ module ob_tests::test_utils {
     use liquidity_layer_v1::orderbook as orderbook_v1;
 
     use ob_allowlist::allowlist::{Self, Allowlist, AllowlistOwnerCap};
-
-    use ob_launchpad_v2::launchpad::{Self, Listing, LaunchCap};
-    use ob_launchpad_v2::venue::{Self, Venue};
-    use ob_launchpad_v2::fixed_bid::{Self, Witness as FixedBidWit};
-    use ob_launchpad_v2::pseudorand_redeem::{Witness as PseudoRandomWit};
-    use ob_launchpad_v2::schedule;
-    use ob_launchpad_v2::warehouse::{Self, Warehouse, Witness as WarehouseWit};
 
     const MARKETPLACE: address = @0xA1C08;
     const CREATOR: address = @0xA1C04;
@@ -80,49 +69,6 @@ module ob_tests::test_utils {
         Foo { id: object::new(ctx), index }
     }
 
-    public fun mint_foo_nft_to_warehouse(
-        warehouse: &mut Warehouse<Foo>, supply: u64, ctx: &mut TxContext
-    ) {
-        let i = 1;
-        while (supply > 0) {
-            warehouse::deposit_nft(warehouse, get_foo_nft_with_index(i, ctx));
-
-            supply = supply - 1;
-            i = i + 1;
-        };
-    }
-
-    public fun batch_mint_foo_nft_to_warehouse(
-        warehouse: &mut Warehouse<Foo>, supply: u64, ctx: &mut TxContext
-    ) {
-        let nfts = vector::empty();
-        let i = 1;
-
-        while (supply > 0) {
-            vector::push_back(&mut nfts, get_foo_nft_with_index(i, ctx));
-
-            supply = supply - 1;
-            i = i + 1;
-        };
-
-        warehouse::deposit_nfts(warehouse, nfts);
-    }
-
-    public fun create_dummy_venue(listing: &mut Listing, launch_cap: &LaunchCap, ctx: &mut TxContext): Venue {
-        venue::new(
-            listing,
-            launch_cap,
-            // Market type
-            type_name::get<FixedBidWit>(),
-            // Inventory Type
-            type_name::get<WarehouseWit>(),
-            // Inventory Retrieval Method
-            type_name::get<PseudoRandomWit>(),
-            // NFT Retrieval Method
-            type_name::get<PseudoRandomWit>(),
-            ctx,
-        )
-    }
 
     #[test_only]
     public fun get_publisher(ctx: &mut TxContext): Publisher {
@@ -137,21 +83,6 @@ module ob_tests::test_utils {
     #[test_only]
     public fun init_withdrawable_policy(publisher: &Publisher, ctx: &mut TxContext): (Policy<WithNft<Foo, WITHDRAW_REQ>>, PolicyCap) {
         withdraw_request::init_policy<Foo>(publisher, ctx)
-    }
-
-    #[test_only]
-    public fun create_orderbook<T: key + store>(
-        witness: DelegatedWitness<T>,
-        transfer_policy: &TransferPolicy<T>,
-        scenario: &mut Scenario
-    ): ID {
-        let ob = orderbook::new_unprotected<T, SUI>(witness, transfer_policy, true, ctx(scenario));
-        orderbook::change_tick_size_with_witness<T, SUI>(witness::from_witness(Witness {}), &mut ob, 1);
-        let ob_id = object::id(&ob);
-
-        transfer::public_share_object(ob);
-
-        ob_id
     }
 
     #[test_only]
@@ -170,67 +101,11 @@ module ob_tests::test_utils {
     }
 
     #[test_only]
-    public fun create_external_orderbook<T: key + store>(
-        transfer_policy: &TransferPolicy<T>,
-        scenario: &mut Scenario
-    ) {
-        orderbook::create_external<T, SUI>(transfer_policy, true, orderbook::no_protection(), ctx(scenario));
-    }
-
-    #[test_only]
     public fun create_external_orderbook_v1<T: key + store>(
         transfer_policy: &TransferPolicy<T>,
         scenario: &mut Scenario
     ) {
         orderbook_v1::create_for_external<T, SUI>(transfer_policy, ctx(scenario));
-    }
-
-    #[test_only]
-    public fun create_fixed_bid_launchpad(scenario: &mut Scenario): (Listing, LaunchCap, Venue) {
-        // 1. Create a Launchpad Listing
-        let (listing, launch_cap) = launchpad::new(ctx(scenario));
-
-        // 2. Create Sales Venue
-        let venue = venue::new(
-            &mut listing,
-            &launch_cap,
-            // Market type
-            type_name::get<FixedBidWit>(),
-            // Inventory Type
-            type_name::get<WarehouseWit>(),
-            // Inventory Retrieval Method
-            type_name::get<PseudoRandomWit>(),
-            // NFT Retrieval Method
-            type_name::get<PseudoRandomWit>(),
-            ctx(scenario),
-        );
-
-        // 3. Add market module
-        fixed_bid::init_market<SUI>(&launch_cap, &mut venue, 100, 10, ctx(scenario));
-
-        // 4. Add launchpad schedule
-        schedule::add_schedule(
-            &launch_cap,
-            &mut venue,
-            // Start Time: Monday, 20 April 2020 00:00:00
-            some(1587340800),
-            // Stop Time: Saturday, 25 April 2020 00:00:00
-            some(1587772800),
-        );
-
-        (listing, launch_cap, venue)
-    }
-
-    #[test_only]
-    public fun create_allowlist(scenario: &mut Scenario): (Allowlist, AllowlistOwnerCap) {
-        let (al, al_cap) = allowlist::new(ctx(scenario));
-
-        // orderbooks can perform trades with our allowlist
-        allowlist::insert_authority<orderbook::Witness>(&al_cap, &mut al);
-        // bidding contract can perform trades too
-        allowlist::insert_authority<bidding::Witness>(&al_cap, &mut al);
-
-        (al, al_cap)
     }
 
     #[test_only]

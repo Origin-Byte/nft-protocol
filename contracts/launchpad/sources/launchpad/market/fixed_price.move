@@ -51,6 +51,7 @@ module ob_launchpad::fixed_price {
         }
     }
 
+    #[lint_allow(self_transfer)]
     /// Creates a `FixedPriceMarket<FT>` and transfers to transaction sender
     ///
     /// Price is denominated in fungible token, `FT`, such as SUI.
@@ -127,6 +128,7 @@ module ob_launchpad::fixed_price {
 
     // === Entrypoints ===
 
+    #[lint_allow(share_owned)]
     /// Buy NFT for non-whitelisted sale into new Kiosk
     ///
     /// #### Panics
@@ -167,6 +169,7 @@ module ob_launchpad::fixed_price {
         ob_kiosk::deposit(buyer_kiosk, nft, ctx);
     }
 
+    #[lint_allow(share_owned)]
     /// Buy NFT for whitelisted sale into new Kiosk
     ///
     /// #### Panics

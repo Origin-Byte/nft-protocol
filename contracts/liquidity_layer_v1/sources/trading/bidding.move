@@ -93,8 +93,9 @@ module liquidity_layer_v1::bidding {
         nft_type: String,
     }
 
-    /// === Entry points ===
+    // === Entry points ===
 
+    #[lint_allow(share_owned)]
     /// It performs the following:
     /// - Creates object `bid`
     /// - Transfers `price` tokens from `wallet` to the `bid.offer`
@@ -117,6 +118,7 @@ module liquidity_layer_v1::bidding {
         bid_id
     }
 
+    #[lint_allow(share_owned)]
     /// It performs the following:
     /// - Creates object `bid`
     /// - Transfers `price` tokens from `wallet` to the `bid.offer`
@@ -199,8 +201,9 @@ module liquidity_layer_v1::bidding {
         close_bid_(bid, ctx);
     }
 
-    /// === Helpers ===
+    // === Helpers ===
 
+    #[lint_allow(share_owned)]
     public fun share<FT>(bid: Bid<FT>) {
         share_object(bid);
     }
@@ -252,8 +255,9 @@ module liquidity_layer_v1::bidding {
         bid
     }
 
-    /// === Privates ===
+    // === Private Functions ===
 
+    #[allow(unused_mut_parameter)]
     fun sell_nft_common<T: key + store, FT>(
         bid: &mut Bid<FT>,
         buyers_kiosk: &mut Kiosk,
@@ -286,6 +290,7 @@ module liquidity_layer_v1::bidding {
         transfer_req
     }
 
+    #[lint_allow(self_transfer)]
     fun close_bid_<FT>(bid: &mut Bid<FT>, ctx: &mut TxContext) {
         let sender = sender(ctx);
         assert!(bid.buyer == sender, ESenderNotOwner);

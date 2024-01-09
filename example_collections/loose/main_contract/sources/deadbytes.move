@@ -18,14 +18,17 @@ module loose::deadbytes {
     /// serves as an auth token.
     struct Witness has drop {}
 
+    #[allow(unused_field)]
     struct DeadByte has key, store {
         id: UID,
     }
 
+    #[allow(unused_field)]
     struct Gun<phantom T> has key, store {
         id: UID,
     }
 
+    #[lint_allow(share_owned)]
     fun init(otw: DEADBYTES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
@@ -42,6 +45,7 @@ module loose::deadbytes {
         transfer::public_share_object(collection);
     }
 
+    #[lint_allow(self_transfer)]
     public fun mint_gun_metadata<T: key>(
         pub: &Publisher,
         name: String,

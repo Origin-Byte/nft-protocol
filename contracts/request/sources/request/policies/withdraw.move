@@ -6,9 +6,6 @@ module ob_request::withdraw_request {
 
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
 
-    // === Error ===
-
-    const EPolicyMismatch: u64 = 1;
 
     // === Structs ===
 

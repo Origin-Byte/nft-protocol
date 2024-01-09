@@ -13,10 +13,6 @@ module ob_request::borrow_request {
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
     use ob_permissions::witness::Witness as DelegatedWitness;
 
-    // === Errors ===
-
-    const EPolicyMismatch: u64 = 1;
-
     // === Structs ===
 
     struct Witness has drop {}

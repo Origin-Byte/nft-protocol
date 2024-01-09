@@ -10,6 +10,7 @@ module nft_protocol::nft_protocol {
 
     struct NFT_PROTOCOL has drop {}
 
+    #[allow(unused_function)]
     fun init(otw: NFT_PROTOCOL, ctx: &mut TxContext) {
         let pub = package::claim(otw, ctx);
         init_allowlist(ctx);
@@ -18,6 +19,7 @@ module nft_protocol::nft_protocol {
         transfer::public_transfer(pub, tx_context::sender(ctx));
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Initialize official OriginByte `Allowlist`
     public fun init_allowlist(ctx: &mut TxContext): (ID, ID) {
         let (allowlist, cap) = allowlist::new(ctx);
@@ -33,6 +35,7 @@ module nft_protocol::nft_protocol {
     const PERMISSIONLESS_PUBLIC_KEY: address = @0x8a1a8348dde5d979c85553c03e204c73efc3b91a2c9ce96b1004c9ec26eaacc8;
     const PERMISSIONLESS_PRIVATE_KEY: address = @0xac5dbb29bea100f5f6382ebcb116afc66fc7b05ff64d2d1e3fc60849504a29f0;
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Initialize official OriginByte `Authlist`
     ///
     /// This initially contains a public keypair such that users can sign P2P

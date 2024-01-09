@@ -101,6 +101,7 @@ module ob_launchpad::warehouse {
         }
     }
 
+    #[lint_allow(self_transfer)]
     /// Creates a `Warehouse` and transfers to transaction sender
     public entry fun init_warehouse<T: key + store>(ctx: &mut TxContext) {
         transfer::public_transfer(new<T>(ctx), tx_context::sender(ctx));

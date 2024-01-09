@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_authlist::test_authlist {
     use std::vector;
     use std::type_name;

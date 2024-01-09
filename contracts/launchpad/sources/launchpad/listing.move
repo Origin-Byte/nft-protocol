@@ -139,6 +139,7 @@ module ob_launchpad::listing {
         listing_id: ID,
     }
 
+    #[allow(unused_field)]
     /// Event signalling that a `Listing` was deleted
     struct DeleteListingEvent has copy, drop {
         listing_id: ID,
@@ -178,6 +179,7 @@ module ob_launchpad::listing {
         }
     }
 
+    #[lint_allow(share_owned)]
     /// Initialises a standalone `Listing` object.
     public entry fun init_listing(
         listing_admin: address,
@@ -649,7 +651,7 @@ module ob_launchpad::listing {
         assert_version_and_upgrade(listing);
         assert_listing_admin(listing, ctx);
 
-        if (df::exists_(&mut listing.id, MembersDfKey {})) {
+        if (df::exists_(&listing.id, MembersDfKey {})) {
             let members = df::borrow_mut(&mut listing.id, MembersDfKey {});
             vec_set::insert(members, member);
         } else {
@@ -932,6 +934,7 @@ module ob_launchpad::listing {
         rebate::borrow_rebate<T, FT>(&listing.id)
     }
 
+    #[allow(unused_function)]
     /// Mutably borrows rebate policy
     ///
     /// #### Panics
@@ -1149,6 +1152,7 @@ module ob_launchpad::listing {
         ob_kiosk::deposit(receiver, nft, ctx);
     }
 
+    #[lint_allow(share_owned)]
     /// Redeem NFT from `Listing` and airdrop to new `Kiosk`
     ///
     /// This call is protected and only the `Listing` administrator can call
@@ -1231,6 +1235,7 @@ module ob_launchpad::listing {
         ob_kiosk::deposit(receiver, nft, ctx);
     }
 
+    #[lint_allow(share_owned)]
     /// Redeem NFT from `Listing` and airdrop to new `Kiosk`
     ///
     /// This call is protected and only the `Listing` administrator can call

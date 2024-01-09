@@ -31,6 +31,7 @@ module examples::example_simple {
 
     // === Contract functions ===
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Called during contract publishing
     fun init(otw: EXAMPLE_SIMPLE, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
@@ -68,6 +69,7 @@ module examples::example_simple {
         transfer::public_share_object(collection);
     }
 
+    #[lint_allow(self_transfer)]
     /// Mint `Nft`
     public entry fun mint_nft(
         name: String,

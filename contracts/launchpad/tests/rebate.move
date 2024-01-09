@@ -19,6 +19,7 @@ module ob_launchpad::test_rebate {
         id: UID,
     }
 
+    #[allow(unused_field)]
     struct Bar has key, store {
         id: UID,
     }
@@ -71,19 +72,19 @@ module ob_launchpad::test_rebate {
 
         listing::set_rebate<Foo, SUI>(&mut listing, 10, ctx(&mut scenario));
         assert!(
-            rebate::borrow_rebate_amount(listing::borrow_rebate<Foo, SUI>(&mut listing)) == 10,
+            rebate::borrow_rebate_amount(listing::borrow_rebate<Foo, SUI>(&listing)) == 10,
             0,
         );
 
         listing::set_rebate<Foo, FT>(&mut listing, 20, ctx(&mut scenario));
         assert!(
-            rebate::borrow_rebate_amount(listing::borrow_rebate<Foo, FT>(&mut listing)) == 20,
+            rebate::borrow_rebate_amount(listing::borrow_rebate<Foo, FT>(&listing)) == 20,
             0,
         );
 
         listing::set_rebate<Bar, SUI>(&mut listing, 30, ctx(&mut scenario));
         assert!(
-            rebate::borrow_rebate_amount(listing::borrow_rebate<Bar, SUI>(&mut listing)) == 30,
+            rebate::borrow_rebate_amount(listing::borrow_rebate<Bar, SUI>(&listing)) == 30,
             0,
         );
 

@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_permissions::test_quorum {
     use sui::object;
     use sui::vec_set;
@@ -18,6 +19,7 @@ module ob_permissions::test_quorum {
     const MEMBER_ADDR_1: address = @0x1337;
     const MEMBER_ADDR_2: address = @0x1338;
 
+    #[lint_allow(collection_equality)]
     #[test]
     fun test_create_basic() {
         let scenario = ts::begin(QUORUM);
@@ -42,6 +44,7 @@ module ob_permissions::test_quorum {
         ts::end(scenario);
     }
 
+    #[lint_allow(collection_equality, share_owned)]
     #[test]
     fun test_create_for_extension() {
         let scenario = ts::begin(QUORUM);
@@ -69,7 +72,8 @@ module ob_permissions::test_quorum {
         ts::end(scenario);
     }
 
-     #[test]
+    #[lint_allow(collection_equality, share_owned)]
+    #[test]
     fun test_init_quorum() {
         let scenario = ts::begin(QUORUM);
         let delegate_uid_1 = ts::new_object(&mut scenario);
@@ -83,7 +87,7 @@ module ob_permissions::test_quorum {
         let _quorum_id = quorum::init_quorum(&Foo {}, admins, members, delegates, ctx);
 
         ts::next_tx(&mut scenario, QUORUM);
-        let quorum = ts::take_shared<Quorum<Foo>>(&mut scenario);
+        let quorum = ts::take_shared<Quorum<Foo>>(&scenario);
 
         assert!(admins(&quorum) == &admins, 1);
         assert!(members(&quorum) == &members, 2);
@@ -96,6 +100,7 @@ module ob_permissions::test_quorum {
         ts::end(scenario);
     }
 
+    #[lint_allow(collection_equality)]
     #[test]
     fun test_singleton() {
         let scenario = ts::begin(QUORUM);
@@ -153,7 +158,7 @@ module ob_permissions::test_quorum {
     #[test]
     fun test_vote_add_admin_success() {
         let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
+        let sender = ts::sender(&scenario);
         let admins = utils::vec_set_from_vec(&vector[sender]);
         let ctx = ts::ctx(&mut scenario);
         let quorum: Quorum<Foo> = quorum::create(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);
@@ -184,7 +189,7 @@ module ob_permissions::test_quorum {
     #[test]
     fun test_vote_remove_admin_remove_self() {
         let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
+        let sender = ts::sender(&scenario);
         let admins = utils::vec_set_from_vec(&vector[sender]);
         let ctx = ts::ctx(&mut scenario);
         let quorum: Quorum<Foo> = quorum::create(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);
@@ -250,7 +255,7 @@ module ob_permissions::test_quorum {
     #[expected_failure(abort_code = vec_set::EKeyAlreadyExists)]
     fun test_assert_admin_fail_duplicate() {
         let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
+        let sender = ts::sender(&scenario);
         let ctx = ts::ctx(&mut scenario);
         let quorum = quorum::singleton(&Foo {}, sender, ctx);
 
@@ -262,11 +267,10 @@ module ob_permissions::test_quorum {
         ts::end(scenario);
     }
 
-
-   #[test]
+    #[test]
     fun test_add_admin_with_extension_success() {
         let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
+        let sender = ts::sender(&scenario);
         let admins = utils::vec_set_from_vec(&vector[sender]);
         let ctx = ts::ctx(&mut scenario);
         let (quorum, ext_token) = quorum::create_for_extension(&Foo {}, admins, vec_set::empty(), vec_set::empty(), ctx);
@@ -285,9 +289,10 @@ module ob_permissions::test_quorum {
 
     // === Delegate Functions Tests ===
 
-     fun test_vote_add_delegate_success() {
+    #[test]
+    fun test_vote_add_delegate_success() {
         let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
+        let sender = ts::sender(&scenario);
         let admins = utils::vec_set_from_vec(&vector[sender]);
         let delegate_uid_1 = ts::new_object(&mut scenario);
         let delegate_inner_id_1 = object::uid_to_inner(&delegate_uid_1);
@@ -323,7 +328,7 @@ module ob_permissions::test_quorum {
     #[test]
     fun test_vote_remove_delegate_success() {
         let scenario = ts::begin(QUORUM);
-        let sender = ts::sender(&mut scenario);
+        let sender = ts::sender(&scenario);
         let admins = utils::vec_set_from_vec(&vector[sender]);
 
         let delegate_uid_1 = ts::new_object(&mut scenario);

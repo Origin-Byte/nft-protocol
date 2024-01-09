@@ -42,6 +42,7 @@ module examples::tribal_realms {
     /// serves as an auth token.
     struct Witness has drop {}
 
+    #[lint_allow(share_owned, self_transfer)]
     fun init(otw: TRIBAL_REALMS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 

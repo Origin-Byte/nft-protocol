@@ -54,11 +54,14 @@ module ob_request::transfer_request {
 
     // === Errors ===
 
+    #[allow(unused_const)]
     /// A completed rule is not set in the `TransferPolicy`.
     const EIllegalRule: u64 = 1;
+    #[allow(unused_const)]
     /// Conversion of our transfer request to the one exposed by the sui library
     /// is only permitted for SUI token.
     const EOnlyTransferRequestOfSuiToken: u64 = 2;
+    #[allow(unused_const)]
     /// The number of receipts does not match the `TransferPolicy` requirement.
     const EPolicyNotSatisfied: u64 = 3;
     /// A custom policy action cannot be converted to from `TransferRequest` to `SuiTransferRequest`

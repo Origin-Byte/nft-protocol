@@ -74,7 +74,7 @@ module ob_permissions::quorum {
     // Track the current version of the module
     const VERSION: u64 = 2;
 
-    const ENotUpgraded: u64 = 999;
+    // const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
     // === Errors ===
@@ -159,6 +159,7 @@ module ob_permissions::quorum {
         Quorum { id, version: VERSION, admins, members, delegates, admin_count }
     }
 
+    #[lint_allow(share_owned)]
     public fun create_for_extension<F>(
         witness: &F,
         admins: VecSet<address>,
@@ -172,6 +173,7 @@ module ob_permissions::quorum {
         (quorum, extension_token)
     }
 
+    #[lint_allow(share_owned)]
     public fun init_quorum<F>(
         witness: &F,
         admins: VecSet<address>,
@@ -324,7 +326,7 @@ module ob_permissions::quorum {
         assert_admin(quorum, ctx);
 
         let signatures_exist = df::exists_(
-            &mut quorum.id, field
+            &quorum.id, field
         );
 
         let vote_count: u64;
@@ -358,6 +360,7 @@ module ob_permissions::quorum {
         (vote_count, threshold)
     }
 
+    #[allow(unused_mut_parameter)]
     fun sign<F>(
         sigs: &mut Signatures<F>,
         ctx: &mut TxContext,
@@ -419,6 +422,7 @@ module ob_permissions::quorum {
         insert_cap_(quorum, cap_object, admin_only);
     }
 
+    #[allow(unused_mut_parameter)]
     public fun borrow_cap<F, T: key + store>(
         quorum: &mut Quorum<F>,
         ctx: &mut TxContext,
@@ -426,7 +430,7 @@ module ob_permissions::quorum {
         assert_version_and_upgrade(quorum);
         assert_member_or_admin(quorum, ctx);
         let is_admin_field = df::exists_(
-            &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+            &quorum.id, AdminField {type_name: type_name::get<T>()}
         );
 
         let cap: T;
@@ -475,7 +479,7 @@ module ob_permissions::quorum {
         assert_member_or_admin(delegate, ctx);
 
         let is_admin_field = df::exists_(
-            &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+            &quorum.id, AdminField {type_name: type_name::get<T>()}
         );
 
         let cap: T;
@@ -515,7 +519,7 @@ module ob_permissions::quorum {
         assert_member_or_admin(delegate, ctx);
 
         let is_admin_field = df::exists_(
-            &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+            &quorum.id, AdminField {type_name: type_name::get<T>()}
         );
 
         if (is_admin_field) {
@@ -540,13 +544,15 @@ module ob_permissions::quorum {
         burn_receipt(receipt);
     }
 
+
+    #[allow(unused_mut_parameter)]
     fun return_cap_<F, T: key + store>(
         quorum: &mut Quorum<F>,
         cap_object: T,
         ctx: &mut TxContext,
     ) {
         let is_admin_field = df::exists_(
-            &mut quorum.id, AdminField {type_name: type_name::get<T>()}
+            &quorum.id, AdminField {type_name: type_name::get<T>()}
         );
 
         if (is_admin_field) {
@@ -593,15 +599,6 @@ module ob_permissions::quorum {
         receipt: ReturnReceipt<F, T>
     ) {
         ReturnReceipt {} = receipt;
-    }
-
-    fun uid_mut<F>(
-        quorum: &mut Quorum<F>,
-        ext_token: &ExtensionToken<F>,
-    ): &mut UID {
-        assert_extension_token(quorum, ext_token);
-
-        &mut quorum.id
     }
 
     public fun assert_admin<F>(quorum: &Quorum<F>, ctx: &TxContext) {

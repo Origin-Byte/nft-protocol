@@ -57,6 +57,7 @@ module liquidity_layer_v1::orderbook {
     // Track the current version of the module
     const VERSION: u64 = 3;
 
+    #[allow(unused_const)]
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
@@ -99,6 +100,7 @@ module liquidity_layer_v1::orderbook {
     /// that are external to the OriginByte ecosystem, without itself being external
     const ENotExternalPolicy: u64 = 8;
 
+    #[allow(unused_const)]
     /// Trying to migrate liquidity to an orderbook V2 whilst referencing the
     /// incorrect Orderbook V2
     const EIncorrectOrderbookV2: u64 = 9;
@@ -111,9 +113,11 @@ module liquidity_layer_v1::orderbook {
     /// migration. This is a non-authorized operation during liquidity migration
     const EUnderMigration: u64 = 11;
 
+    #[allow(unused_const)]
     /// Trying to finish the migration process whilst the orderbook V1 is still not empty
     const EOrderbookAsksMustBeEmpty: u64 = 12;
 
+    #[allow(unused_const)]
     /// Trying to finish the migration process whilst the orderbook V1 is still not empty
     const EOrderbookBidsMustBeEmpty: u64 = 13;
 
@@ -869,6 +873,7 @@ module liquidity_layer_v1::orderbook {
         new<T, FT>(witness, transfer_policy, protected_actions, ctx)
     }
 
+    #[lint_allow(share_owned)]
     /// Creates a new empty orderbook as a shared object.
     ///
     /// All actions can be called as entry points.
@@ -883,6 +888,7 @@ module liquidity_layer_v1::orderbook {
         ob_id
     }
 
+    #[lint_allow(share_owned)]
     /// Creates an empty shared orderbook for a non-OriginByte transfer policy
     public fun create_for_external<T: key + store, FT>(
         transfer_policy: &TransferPolicy<T>,
@@ -917,6 +923,7 @@ module liquidity_layer_v1::orderbook {
         }
     }
 
+    #[lint_allow(share_owned)]
     public fun share<T: key + store, FT>(ob: Orderbook<T, FT>) {
         share_object(ob);
     }
@@ -1044,7 +1051,7 @@ module liquidity_layer_v1::orderbook {
     ) {
         assert_version_and_upgrade(orderbook);
 
-        if (df::exists_(&mut orderbook.id, TimeLockDfKey {})) {
+        if (df::exists_(&orderbook.id, TimeLockDfKey {})) {
             let time = df::borrow_mut(&mut orderbook.id, TimeLockDfKey {});
             *time = start_time
         } else {
@@ -1100,7 +1107,7 @@ module liquidity_layer_v1::orderbook {
         orderbook: &mut Orderbook<T, FT>,
     ) {
         assert_version_and_upgrade(orderbook);
-        assert!(df::exists_(&mut orderbook.id, TimeLockDfKey {}), EOrderbookNotTimeLocked);
+        assert!(df::exists_(&orderbook.id, TimeLockDfKey {}), EOrderbookNotTimeLocked);
 
         // Cancels start time
         let _start_time: u64 = df::remove(&mut orderbook.id, TimeLockDfKey {});
@@ -1270,7 +1277,7 @@ module liquidity_layer_v1::orderbook {
         _witness: DelegatedWitness<T>,
         orderbook: &mut Orderbook<T, FT>,
     ): &mut VecSet<address> {
-        if (!df::exists_(&mut orderbook.id, AdministratorsDfKey {})) {
+        if (!df::exists_(&orderbook.id, AdministratorsDfKey {})) {
             df::add(&mut orderbook.id, AdministratorsDfKey {}, vec_set::empty<address>());
         };
 
@@ -1423,7 +1430,7 @@ module liquidity_layer_v1::orderbook {
         let buyer = tx_context::sender(ctx);
         let buyer_kiosk_id = object::id(buyer_kiosk);
 
-        let asks = &mut book.asks;
+        let asks = &book.asks;
 
         // if map empty, then lowest ask price is 0
         let (can_be_filled, lowest_ask_price) = if (crit_bit::is_empty(asks)) {
@@ -1627,6 +1634,7 @@ module liquidity_layer_v1::orderbook {
         trade_intermediate_id
     }
 
+    #[allow(unused_mut_parameter)]
     /// Removes bid from the state and returns the commission which contains
     /// tokens that the buyer was meant to pay as a commission on a successful
     /// trade.
@@ -1727,7 +1735,7 @@ module liquidity_layer_v1::orderbook {
         let seller = tx_context::sender(ctx);
         let seller_kiosk_id = object::id(seller_kiosk);
 
-        let bids = &mut book.bids;
+        let bids = &book.bids;
 
         // if map empty, then highest bid ask price is 0
         let (can_be_filled, highest_bid_price) = if (crit_bit::is_empty(bids)) {
@@ -1783,6 +1791,7 @@ module liquidity_layer_v1::orderbook {
         }
     }
 
+    #[allow(unused_mut_parameter)]
     /// * cancels the exclusive listing
     fun cancel_ask_<T: key + store, FT>(
         book: &mut Orderbook<T, FT>,
@@ -2132,6 +2141,7 @@ module liquidity_layer_v1::orderbook {
     //     (price, seller, nft_id, kiosk_id, ask_commission)
     // }
 
+    #[allow(unused_function)]
     fun assert_under_migration<T: key + store, FT>(self: &Orderbook<T, FT>) {
         assert!(df::exists_(&self.id, UnderMigrationToDfKey {}), ENotUnderMigration);
     }

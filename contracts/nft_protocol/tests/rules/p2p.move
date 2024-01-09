@@ -27,6 +27,7 @@ module nft_protocol::test_p2p {
 
     struct TEST_P2P has drop {}
 
+    #[lint_allow(share_owned)]
     #[test]
     fun enforce_policy() {
         let scenario = test_scenario::begin(CREATOR);
@@ -45,6 +46,7 @@ module nft_protocol::test_p2p {
         test_scenario::end(scenario);
     }
 
+    #[lint_allow(share_owned)]
     #[test]
     fun transfer() {
         let scenario = test_scenario::begin(CREATOR);

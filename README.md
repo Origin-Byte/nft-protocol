@@ -19,15 +19,15 @@ The ecosystem is partitioned into three critical components:
 ## Resources
 
 - Protocol contracts:
-  - [PseudoRandom](https://explorer.sui.io/object/0xc9a1f08e77bcc259099137634607d7286899c5f769b5df3171155c42d386201b)
-  - [Permissions](https://explorer.sui.io/object/0xc8613b1c0807b0b9cfe229c071fdbdbc06a89cfe41e603c5389941346ad0b3c8)
-  - [Allowlist](https://explorer.sui.io/object/0xefa0dce10909a68346038a4de41c2e627165f3d1c1bf9b6f44e390787a6bd13f)
-  - [Authlist](https://explorer.sui.io/object/0x2fa28b4730e87700fdfa3f738d044d9d24f5da9e813c832aa1b084b6d66774fc)
-  - [Request](https://explorer.sui.io/object/0x1fbc94cb238c555398a828963b469ae8e5d675c42746f6bec85cfa9dbb04b2c4)
-  - [Kiosk](https://explorer.sui.io/object/0x1dddbcce1491a365d931a0dc6a64db596dad9c9915c6d0efb13e5c2efd5e95ce)
-  - [Liquidity Layer V1](https://explorer.sui.io/object/0x47560bc8b2f68b30733ff2c516c6652b48fe7f0bfd0832acd8cc5306a301736e)
-  - [Launchpad V1](https://explorer.sui.io/object/0xc0c5ca1e59bbb0e7330c8f182cbad262717faf7d8d0d7f7da4b3146391ecbbe1)
-  - [NftProtocol](https://explorer.sui.io/object/0x77d0f09420a590ee59eeb5e39eb4f953330dbb97789e845b6e43ce64f16f812e)
+  - [PseudoRandom](https://explorer.sui.io/object/0x9a586ae29d94788c0fc1db567b83f277c9f20af4e825374e127a331f2ae8231c)
+  - [Permissions](https://explorer.sui.io/object/0x59839eebd432e473ffca5a08675d26c49526ed39b584c39e762afa8c127f25a2)
+  - [Allowlist](https://explorer.sui.io/object/0x58c01ad7908a1c5ffbd70d89ac33e83cb554b828d69a7772246ae386bd62b5a7)
+  - [Authlist](https://explorer.sui.io/object/0x4e95600adb05c72bd2caefac7cfda17ca9ccd78846a15663b06662258761b81a)
+  - [Request](https://explorer.sui.io/object/0xadf32ebafc587cc86e1e56e59f7b17c7e8cbeb3315193be63c6f73157d4e88b9)
+  - [Kiosk](https://explorer.sui.io/object/0x2678c98fe23173eebea384509464eb81b1f3035a57419cb46d025000c337451a)
+  - [Liquidity Layer V1](https://explorer.sui.io/object/0x8534e4cdfd28709c94330a9783c3d5fe6f5daba0bffb69102ce303c5b38aed5a)
+  - [Launchpad V1](https://explorer.sui.io/object/0x546b50e2570a478ecdfc6e836077fc1f69306393738b0be2df459e658ed20915)
+  - [NftProtocol](https://explorer.sui.io/object/0x6f42ec2355fcda5ebeee2399d901ae9f71cb214e640a45a0007f1f1cdf9f7b5e)
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/) (WIP)
 

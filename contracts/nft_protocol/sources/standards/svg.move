@@ -42,6 +42,7 @@ module nft_protocol::svg {
         &domain.svg
     }
 
+    #[allow(unused_type_parameter)]
     /// Set Svg` field
     public fun set_svg<C>(
         domain: &mut Svg,

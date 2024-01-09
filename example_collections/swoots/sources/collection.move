@@ -42,6 +42,7 @@ module swoots::swoots {
     /// serves as an auth token.
     struct Witness has drop {}
 
+    #[lint_allow(share_owned)]
     fun init(otw: SWOOTS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 

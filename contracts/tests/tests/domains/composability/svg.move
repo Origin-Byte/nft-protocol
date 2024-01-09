@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::test_composable_svg {
     use sui::object::{Self, UID};
     use sui::transfer;
@@ -20,6 +21,7 @@ module ob_tests::test_composable_svg {
         id: UID,
     }
 
+    #[allow(unused_field)]
     /// Child NFT to compose under `Avatar`
     struct Glasses has key, store {
         id: UID,
