@@ -1,13 +1,13 @@
 [package]
 name = "Pseudorandom"
-version = "1.4.2"
+version = "1.6.0"
 published-at = "0xbac2d3b6e1efdca8947b599dac9e1e1a2f3addfeb9a4fddaa83bdd7e1aeae4a7"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-# testnet-1.11.2
-rev = "46a97cd8bedea35a8ba0e3a569c82ffea2c59bfc"
+# mainnet-1.15.1
+rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
 
 [addresses]
 ob_pseudorandom = "0x04b4ebbcaeead1d059a4b8bc4e8d532e9470d4d514e2539c6350b2b11c22b6aa"

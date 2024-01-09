@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::test_composable_nft {
     use sui::object::{Self, UID};
     use sui::transfer;
@@ -16,6 +17,7 @@ module ob_tests::test_composable_nft {
         id: UID,
     }
 
+    #[allow(unused_field)]
     /// Root static NFT
     struct AvatarStatic has key, store {
         id: UID,
@@ -28,6 +30,7 @@ module ob_tests::test_composable_nft {
         id: UID,
     }
 
+    #[allow(unused_field)]
     /// Child NFT to compose under `Avatar`
     struct Glasses has key, store {
         id: UID,

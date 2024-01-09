@@ -6,10 +6,6 @@ module nft_protocol::transfer_token {
     use ob_request::request::{Self, RequestBody, Policy, PolicyCap, WithNft};
     use ob_permissions::witness::Witness as DelegatedWitness;
 
-    // === Errors ===
-
-    const EUnauthorisedAddress: u64 = 1;
-
     // === Structs ===
 
     struct TransferToken<phantom T> has key {

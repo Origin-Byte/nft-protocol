@@ -250,7 +250,7 @@ module nft_protocol::composable_svg {
         vector::append(&mut hp.svg, nft_svg);
         vector::append(&mut hp.svg, b"</g>");
 
-        let (is_child, idx) = vector::index_of(&mut hp.children, child_id);
+        let (is_child, idx) = vector::index_of(&hp.children, child_id);
         assert!(is_child, EInvalidChild);
 
         vector::swap_remove(&mut hp.children, idx);

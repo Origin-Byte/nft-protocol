@@ -24,11 +24,6 @@ module examples::suimarines {
     use ob_request::borrow_request::{Self, BorrowRequest, ReturnPromise};
     use ob_launchpad::warehouse::{Self, Warehouse};
 
-    const EWRONG_DESCRIPTION_LENGTH: u64 = 1;
-    const EWRONG_URL_LENGTH: u64 = 2;
-    const EWRONG_ATTRIBUTE_KEYS_LENGTH: u64 = 3;
-    const EWRONG_ATTRIBUTE_VALUES_LENGTH: u64 = 4;
-
     struct Submarine has key, store {
         id: UID,
         name: String,
@@ -43,6 +38,7 @@ module examples::suimarines {
     /// serves as an auth token.
     struct Witness has drop {}
 
+    #[lint_allow(share_owned, self_transfer)]
     fun init(otw: SUIMARINES, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 

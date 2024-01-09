@@ -6,12 +6,8 @@ module ob_utils::sized_vec {
         vec: vector<Element>
     }
 
-    /// The index into the vector is out of bounds
-    const EINDEX_OUT_OF_BOUNDS: u64 = 1;
-
-    const ECAPACITY_REACHED: u64 = 2;
-
-    const ECAPACITY_DECREASE_EXCEEDS_LENGTH: u64 = 3;
+    const ECAPACITY_REACHED: u64 = 1;
+    const ECAPACITY_DECREASE_EXCEEDS_LENGTH: u64 = 2;
 
     /// Create an empty sized vector.
     public fun empty<Element>(capacity: u64): SizedVec<Element> {

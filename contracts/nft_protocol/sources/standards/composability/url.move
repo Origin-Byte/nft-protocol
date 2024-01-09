@@ -41,6 +41,7 @@ module nft_protocol::composable_url {
         }
     }
 
+    #[allow(unused_type_parameter)]
     /// Sets URL of `ComposableUrl`
     ///
     /// Also sets static `url` field on `Nft`.

@@ -21,15 +21,6 @@ module nft_protocol::mint_pass {
     use ob_permissions::witness::Witness as DelegatedWitness;
     use ob_permissions::frozen_publisher::{Self, FrozenPublisher};
 
-    /// `MintCap` is unregulated when expected regulated
-    const EMINT_CAP_UNREGULATED: u64 = 1;
-
-    /// `MintCap` is regulated when expected unregulated
-    const EMINT_CAP_REGULATED: u64 = 2;
-
-    /// `MintCap` is regulated when expected unregulated
-    const EMINT_CAP_SUPPLY_FROZEN: u64 = 2;
-
     struct Witness has drop {}
 
     // === MintCap ===

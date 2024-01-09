@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_launchpad::test_whitelist {
     use sui::test_scenario::{Self, ctx};
 
@@ -19,7 +20,6 @@ module ob_launchpad::test_whitelist {
 
     const OWNER: address = @0xA1C05;
     const CREATOR: address = @0xA1C05;
-    const MARKETPLACE: address = @0xA1C20;
 
     #[test]
     public fun create_whitelist() {
@@ -37,7 +37,7 @@ module ob_launchpad::test_whitelist {
             &mut listing, inventory_id, false, 100, ctx(&mut scenario)
         );
 
-        let cert = market_whitelist::new(&mut listing, venue_id, ctx(&mut scenario));
+        let cert = market_whitelist::new(&listing, venue_id, ctx(&mut scenario));
 
         transfer::public_transfer(cert, OWNER);
         transfer::public_share_object(listing);
@@ -66,7 +66,7 @@ module ob_launchpad::test_whitelist {
         test_scenario::next_tx(&mut scenario, OWNER);
         let fake_listing = test_listing::init_listing(OWNER, &mut scenario);
 
-        let cert = market_whitelist::new(&mut fake_listing, venue_id, ctx(&mut scenario));
+        let cert = market_whitelist::new(&fake_listing, venue_id, ctx(&mut scenario));
 
         transfer::public_transfer(cert, OWNER);
 

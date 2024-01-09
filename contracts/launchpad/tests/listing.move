@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_launchpad::test_listing {
     use sui::test_scenario::{Self, Scenario, ctx};
     use sui::object::{Self, UID};
@@ -218,10 +219,10 @@ module ob_launchpad::test_listing {
 
         test_scenario::next_tx(&mut scenario, FAKE_ADDRESS);
 
-        let marketplace = test_scenario::take_shared<Marketplace>(&mut scenario);
+        let marketplace = test_scenario::take_shared<Marketplace>(&scenario);
 
         listing::request_to_join_marketplace(
-            &mut marketplace, &mut listing, ctx(&mut scenario)
+            &marketplace, &mut listing, ctx(&mut scenario)
         );
 
         test_scenario::return_shared(marketplace);
@@ -250,8 +251,8 @@ module ob_launchpad::test_listing {
         // === Adverserial attack ===
 
         test_scenario::next_tx(&mut scenario, FAKE_ADDRESS);
-        let marketplace = test_scenario::take_shared<Marketplace>(&mut scenario);
-        let listing = test_scenario::take_shared<Listing>(&mut scenario);
+        let marketplace = test_scenario::take_shared<Marketplace>(&scenario);
+        let listing = test_scenario::take_shared<Listing>(&scenario);
 
         let fake_listing = init_listing(OWNER, &mut scenario);
 

@@ -30,6 +30,7 @@ module ob_launchpad::flat_fee {
         }
     }
 
+    #[lint_allow(self_transfer)]
     public entry fun init_fee(
         rate: u64,
         ctx: &mut TxContext,

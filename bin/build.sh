@@ -45,10 +45,6 @@ cd ./liquidity_layer_v1
 ${sui} move build
 cd ..
 
-cd ./liquidity_layer
-${sui} move build
-cd ..
-
 cd ./nft_protocol
 ${sui} move build
 

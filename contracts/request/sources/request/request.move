@@ -363,6 +363,7 @@ module ob_request::request {
     #[test_only]
     struct DummyRuleC has drop {}
 
+    #[lint_allow(share_owned)]
     #[test]
     fun test_confirm() {
         let scenario = test_scenario::begin(@0xA1);
@@ -386,6 +387,7 @@ module ob_request::request {
         test_scenario::end(scenario);
     }
 
+    #[lint_allow(share_owned)]
     #[test]
     #[expected_failure(abort_code = ob_request::request::ENotAllowed)]
     fun fails_to_spoof_cap() {

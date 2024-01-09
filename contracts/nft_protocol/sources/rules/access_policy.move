@@ -29,6 +29,7 @@ module nft_protocol::access_policy {
     // Track the current version of the module
     const VERSION: u64 = 2;
 
+    #[allow(unused_const)]
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
@@ -267,7 +268,7 @@ module nft_protocol::access_policy {
         );
     }
 
-
+    #[allow(unused_function)]
     fun assert_no_access_policy<C: drop, T: key + store>(
         collection: &Collection<C>
     ) {

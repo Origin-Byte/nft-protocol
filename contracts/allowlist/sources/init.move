@@ -5,6 +5,7 @@ module ob_allowlist::ob_allowlist {
 
     struct OB_ALLOWLIST has drop {}
 
+    #[allow(unused_function)]
     fun init(otw: OB_ALLOWLIST, ctx: &mut TxContext) {
         let pub = package::claim(otw, ctx);
         transfer::public_transfer(pub, tx_context::sender(ctx));

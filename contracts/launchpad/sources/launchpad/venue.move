@@ -33,12 +33,6 @@ module ob_launchpad::venue {
     /// `Venue::set_whitelisted`.
     const EVenueNotWhitelisted: u64 = 3;
 
-    /// `Venue` market accessed with incorrect type
-    ///
-    /// Ensure that the type argument provided to `Venue::borrow_market`
-    /// corresponds to the underlying market.
-    const EVenueIncorrectMarketType: u64 = 4;
-
     /// `Venue` object
     ///
     /// `Venue` is a thin wrapper around a generic `Market` that handles
@@ -73,6 +67,7 @@ module ob_launchpad::venue {
         }
     }
 
+    #[lint_allow(self_transfer)]
     /// Initializes a `Venue` and transfers to transaction sender
     public fun init_venue<Market: store, MarketKey: copy + drop + store>(
         key: MarketKey,

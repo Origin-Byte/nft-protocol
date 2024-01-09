@@ -78,6 +78,7 @@ module ob_launchpad::dutch_auction {
         }
     }
 
+    #[lint_allow(self_transfer)]
     /// Creates a `DutchAuctionMarket<FT>` and transfers to transaction sender
     public entry fun init_market<FT>(
         inventory_id: ID,
@@ -223,6 +224,7 @@ module ob_launchpad::dutch_auction {
         venue::set_live(venue, false);
     }
 
+    #[lint_allow(share_owned)]
     /// Conclude the auction and toggle end the sale, allocating NFTs to the
     /// winning bidders.
     ///

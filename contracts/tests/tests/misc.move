@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::misc {
     use sui::test_scenario::{Self, ctx};
     use sui::object::{Self, UID};

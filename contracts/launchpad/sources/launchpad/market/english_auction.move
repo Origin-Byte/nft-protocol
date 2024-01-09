@@ -254,6 +254,7 @@ module ob_launchpad::english_auction {
         auction.concluded = true;
     }
 
+    #[lint_allow(share_owned)]
     /// Claim NFT after auction has concluded and transfer to transaction
     /// sender
     ///
@@ -285,6 +286,7 @@ module ob_launchpad::english_auction {
         ob_kiosk::deposit(buyer_kiosk, nft, ctx);
     }
 
+    #[allow(unused_mut_parameter)]
     /// Claim NFT after auction has concluded
     ///
     /// #### Panics

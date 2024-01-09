@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::test_tags {
     use std::string;
     use sui::transfer;

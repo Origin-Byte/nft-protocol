@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 /// This test focuses on integration between bidding contract, Kiosk,
 /// a allowlist and royalty collection.
 ///
@@ -35,7 +36,7 @@ module ob_tests::test_bidding_v1 {
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
-        test_utils::create_orderbook<Foo>(dw, &tx_policy, &mut scenario);
+        test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
         transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
@@ -60,8 +61,8 @@ module ob_tests::test_bidding_v1 {
         // 5. Create bid for NFT
         test_scenario::next_tx(&mut scenario, buyer());
 
-        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
-        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         let coins = coin::mint_for_testing<SUI>(OFFER_SUI, ctx(&mut scenario));
 
@@ -77,8 +78,8 @@ module ob_tests::test_bidding_v1 {
         // 6. Accept Bid for NFT
         test_scenario::next_tx(&mut scenario, seller());
 
-        let bid = test_scenario::take_shared<Bid<SUI>>(&mut scenario);
-        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let bid = test_scenario::take_shared<Bid<SUI>>(&scenario);
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&scenario);
 
         let request = bidding::sell_nft_from_kiosk(
             &mut bid,
@@ -112,7 +113,7 @@ module ob_tests::test_bidding_v1 {
         let (tx_policy, policy_cap) = test_utils::init_transfer_policy(&publisher, ctx(&mut scenario));
 
         let dw = witness::test_dw<Foo>();
-        test_utils::create_orderbook<Foo>(dw, &tx_policy, &mut scenario);
+        test_utils::create_orderbook_v1<Foo>(dw, &tx_policy, &mut scenario);
 
         transfer::public_share_object(collection);
         transfer::public_share_object(tx_policy);
@@ -137,8 +138,8 @@ module ob_tests::test_bidding_v1 {
         // 5. Create bid for NFT
         test_scenario::next_tx(&mut scenario, buyer());
 
-        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
-        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         let coins = coin::mint_for_testing<SUI>(OFFER_SUI, ctx(&mut scenario));
 
@@ -154,8 +155,8 @@ module ob_tests::test_bidding_v1 {
         // 6. Accept Bid for NFT
         test_scenario::next_tx(&mut scenario, fake_address());
 
-        let bid = test_scenario::take_shared<Bid<SUI>>(&mut scenario);
-        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&mut scenario);
+        let bid = test_scenario::take_shared<Bid<SUI>>(&scenario);
+        let tx_policy = test_scenario::take_shared<TransferPolicy<Foo>>(&scenario);
 
         let request = bidding::sell_nft_from_kiosk(
             &mut bid,

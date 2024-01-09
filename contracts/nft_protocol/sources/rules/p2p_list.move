@@ -35,32 +35,6 @@ module nft_protocol::p2p_list {
 
     use ob_authlist::authlist::{Self, Authlist};
 
-    // === Errors ===
-
-    /// Package publisher mismatch
-    const EInvalidPublisher: u64 = 0;
-
-    /// Invalid admin
-    ///
-    /// Create new `Authlist` using `create` with desired admin.
-    const EInvalidAdmin: u64 = 1;
-
-    /// Invalid collection
-    ///
-    /// Call `insert_collection` to insert a collection.
-    const EInvalidCollection: u64 = 2;
-
-    /// Collection was already registered
-    const EExistingCollection: u64 = 3;
-
-    /// Invalid transfer authority
-    ///
-    /// Call `insert_authority` to insert an authority.
-    const EInvalidAuthority: u64 = 4;
-
-    /// Transfer authority was already registered
-    const EExistingAuthority: u64 = 5;
-
     // === Structs ===
 
     struct Witness has drop {}
@@ -110,6 +84,7 @@ module nft_protocol::p2p_list {
         req
     }
 
+    #[lint_allow(share_owned)]
     public fun transfer_into_new_kiosk<T: key + store>(
         self: &Authlist,
         authority: &vector<u8>,

@@ -88,6 +88,8 @@ module ob_allowlist::allowlist {
         for: ID,
     }
 
+    // TODO: Deprecate
+    #[allow(unused_field)]
     /// Key used to index applicable collections on `Allowlist`
     struct CollectionKey {
         type_name: TypeName,
@@ -128,6 +130,7 @@ module ob_allowlist::allowlist {
         new_with_authorities(*borrow_authorities(allowlist), ctx)
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Creates and shares a new `Allowlist`
     public fun init_allowlist(ctx: &mut TxContext): (ID, ID) {
         let (allowlist, cap) = new(ctx);
@@ -141,6 +144,7 @@ module ob_allowlist::allowlist {
         (allowlist_id, cap_id)
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Clones and shares a new `Allowlist`
     public fun init_cloned(
         allowlist: &Allowlist,
@@ -416,6 +420,7 @@ module ob_allowlist::allowlist {
 
     struct ALLOWLIST has drop {}
 
+    #[allow(unused_function)]
     fun init(otw: ALLOWLIST, ctx: &mut TxContext) {
         let publisher = package::claim(otw, ctx);
         let display = display::new<Allowlist>(&publisher, ctx);
