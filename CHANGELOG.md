@@ -6,6 +6,32 @@ The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0-mainnet] - 2024-01-08
+
+## Changed
+- Updated SUI version to 1.15.2
+
+## [1.5.0-mainnet] - 2023-10-16
+
+## Changed
+- Updated SUI version to 1.11.2
+
+## [1.4.2-mainnet] - 2023-09-13
+
+## Changed
+- Fix removing royalty shares
+
+## [1.4.1-mainnet] - 2023-08-28
+
+## Added
+- Royalty fee change endpoint
+
+## [1.4.0-mainnet] - 2023-08-20
+
+## Added
+- New edit commission endpoints
+- Allow Kiosk extensions
+
 ## [1.3.0-mainnet] - 2023-06-28
 
 ## Added

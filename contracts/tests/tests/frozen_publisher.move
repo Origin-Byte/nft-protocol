@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::test_frozen_publisher {
     use std::string;
 

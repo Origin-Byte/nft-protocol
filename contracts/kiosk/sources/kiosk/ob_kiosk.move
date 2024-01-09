@@ -1,3 +1,4 @@
+#[lint_allow(share_owned)]
 /// We publish our extension to `sui::kiosk::Kiosk` object.
 /// We extend the functionality of the base object with the aim to provide
 /// better client experience and royalty enforcement.
@@ -766,6 +767,7 @@ module ob_kiosk::ob_kiosk {
         );
     }
 
+    #[lint_allow(self_transfer)]
     /// Uninstall OriginByte extension from base `Kiosk`
     ///
     /// #### Panics
@@ -832,6 +834,7 @@ module ob_kiosk::ob_kiosk {
         });
     }
 
+    #[allow(unused_type_parameter)]
     /// Registers NFT with OriginByte extension
     ///
     /// If an NFT was present in `Kiosk` before OriginByte extension was
@@ -1128,6 +1131,7 @@ module ob_kiosk::ob_kiosk {
         borrow_request::new(Witness {}, nft, sender(ctx), field, promise, ctx)
     }
 
+    #[allow(unused_type_parameter)]
     public fun return_nft<OTW: drop, T: key + store>(
         self: &mut Kiosk,
         borrowed_nft: BorrowRequest<Witness, T>,
@@ -1282,10 +1286,6 @@ module ob_kiosk::ob_kiosk {
         assert!(is_ob_kiosk(self), EKioskNotOriginByteVersion);
     }
 
-    fun assert_is_ob_kiosk_imut(self: &Kiosk) {
-        assert!(is_ob_kiosk_imut(self), EKioskNotOriginByteVersion);
-    }
-
     public fun assert_kiosk_id(self: &Kiosk, id: ID) {
         assert!(object::id(self) == id, EIncorrectKioskId);
     }
@@ -1298,6 +1298,7 @@ module ob_kiosk::ob_kiosk {
         assert!(vec_set::size(&ref.auths) == 0, ENftAlreadyListed);
     }
 
+    #[allow(unused_mut_parameter)]
     /// Check whether NFT can be transferred by given authority
     ///
     /// #### Panics
@@ -1320,17 +1321,6 @@ module ob_kiosk::ob_kiosk {
         );
     }
 
-    /// Borrow `DepositSetting` field
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Kiosk` is not OriginByte `Kiosk`
-    //
-    // TODO: Replace with immutable API
-    fun deposit_setting(self: &mut Kiosk): &DepositSetting {
-        assert_is_ob_kiosk(self);
-        df::borrow(uid(self), DepositSettingDfKey {})
-    }
 
     /// Mutably borrow `DepositSetting` field
     ///
@@ -1383,6 +1373,7 @@ module ob_kiosk::ob_kiosk {
 
     struct OB_KIOSK has drop {}
 
+    #[allow(unused_function)]
     fun init(otw: OB_KIOSK, ctx: &mut TxContext) {
         let publisher = package::claim(otw, ctx);
         let display = display::new<OwnerToken>(&publisher, ctx);

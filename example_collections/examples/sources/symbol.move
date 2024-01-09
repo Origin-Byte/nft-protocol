@@ -44,6 +44,7 @@ module examples::example_symbol {
         symbols: VecSet<String>,
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Adds registration to `RegistryDomain` and returns unique `SymbolDomain`
     fun register(
         registry: &mut Registry,
@@ -56,6 +57,7 @@ module examples::example_symbol {
 
     // === Contract functions ===
 
+    #[lint_allow(self_transfer, share_owned)]
     /// Called during contract publishing
     fun init(otw: EXAMPLE_SYMBOL, ctx: &mut TxContext) {
 
@@ -104,6 +106,7 @@ module examples::example_symbol {
         nft
     }
 
+    #[lint_allow(self_transfer)]
     /// Call to mint an globally unique NFT Symbol
     public entry fun mint_symbol(
         collection: &mut Collection<EXAMPLE_SYMBOL>,

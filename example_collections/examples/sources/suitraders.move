@@ -47,6 +47,7 @@ module examples::suitraders {
         attributes: Attributes,
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     fun init(otw: SUITRADERS, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
 
@@ -224,6 +225,7 @@ module examples::suitraders {
         test_scenario::end(scenario);
     }
 
+    #[allow(unused_mut_ref)]
     #[test]
     fun it_mints_nft() {
         let scenario = test_scenario::begin(CREATOR);

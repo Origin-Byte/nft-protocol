@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 /// This test focuses on integration between OB, Safe, a allowlist and
 /// royalty collection.
 ///
@@ -19,8 +20,6 @@ module ob_tests::orderbook_depth_v1 {
     use ob_tests::test_utils::{Self, Foo,  seller, buyer, creator};
     use ob_kiosk::ob_kiosk;
     use liquidity_layer_v1::orderbook::{Self, Orderbook};
-
-    const OFFER_SUI: u64 = 100;
 
     #[test]
     fun test_limit_ask_insert_and_popping_with_market_buy_with_depth() {
@@ -50,8 +49,8 @@ module ob_tests::orderbook_depth_v1 {
 
         // 5. Create asks order for NFT
         test_scenario::next_tx(&mut scenario, seller());
-        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
-        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         // We had one here to account for the first iteration
         let price_levels = crit_bit::length(orderbook::borrow_asks(&book)) + 1;
@@ -117,7 +116,7 @@ module ob_tests::orderbook_depth_v1 {
         let j = 0;
 
         // 6. Create market bids
-        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         let coin = coin::mint_for_testing<SUI>(1_000_000, ctx(&mut scenario));
 
@@ -188,9 +187,9 @@ module ob_tests::orderbook_depth_v1 {
 
         // 5. Create bid order for NFTs
         test_scenario::next_tx(&mut scenario, seller());
-        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
-        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
-        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         // We had one here to account for the firs iteration
         let initial_funds = 1_000_000;
@@ -336,9 +335,9 @@ module ob_tests::orderbook_depth_v1 {
 
         // 5. Create bid order for NFTs
         test_scenario::next_tx(&mut scenario, seller());
-        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
-        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
-        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         // We had one here to account for the first iteration
         let price_levels = crit_bit::length(orderbook::borrow_asks(&book)) + 1;
@@ -469,9 +468,9 @@ module ob_tests::orderbook_depth_v1 {
 
         // 5. Create bid order for NFTs
         test_scenario::next_tx(&mut scenario, seller());
-        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
-        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
-        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         // We had one here to account for the firs iteration
         let initial_funds = 1_000_000;
@@ -598,9 +597,9 @@ module ob_tests::orderbook_depth_v1 {
 
         // 5. Create bid order for NFTs
         test_scenario::next_tx(&mut scenario, seller());
-        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&mut scenario);
-        let seller_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
-        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&mut scenario);
+        let book = test_scenario::take_shared<Orderbook<Foo, SUI>>(&scenario);
+        let seller_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
+        let buyer_kiosk = test_scenario::take_shared<Kiosk>(&scenario);
 
         let coin = coin::mint_for_testing<SUI>(1_000_000, ctx(&mut scenario));
 

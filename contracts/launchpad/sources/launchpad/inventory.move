@@ -22,10 +22,6 @@ module ob_launchpad::inventory {
     /// Call `from_warehouse` to create an `Inventory` from `Warehouse`
     const ENotWarehouse: u64 = 1;
 
-    /// `Inventory` is not a `Factory`
-    ///
-    /// NOTE: Factory has been deprecated in is reintroduced in Launchpad V2
-    const ENotFactory: u64 = 2;
 
     /// A type-erased wrapper around `Warehouse`
     struct Inventory<phantom T> has key, store {

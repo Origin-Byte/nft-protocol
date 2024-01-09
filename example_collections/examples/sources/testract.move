@@ -61,6 +61,7 @@ module examples::testract {
         url: Url,
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Store publisher, mint_cap and collection object IDs.
     /// You'll need those for subsequent txs.
     fun init(witness: TESTRACT, ctx: &mut TxContext) {
@@ -82,6 +83,7 @@ module examples::testract {
         public_share_object(tx_policy);
     }
 
+    #[lint_allow(self_transfer)]
     /// Mint new NFTs and transfer them to sender.
     /// Allows us to test `mint_event::MintEvent`.
     public entry fun mint_nfts(
@@ -113,6 +115,7 @@ module examples::testract {
     /// Used to authorize actions as an entity who controls allowlist.
     struct AllowlistAdmin {}
 
+    #[lint_allow(share_owned)]
     /// While normally we'd expect to see allowlists managed by some 3rd entity
     /// who the creators trust, for the purposes of the test we'll just use
     /// a dedicated allowlist for our specific collection.
@@ -169,6 +172,7 @@ module examples::testract {
         royalty_strategy_bps::share(royalty_strategy);
     }
 
+    #[lint_allow(self_transfer, share_owned)]
     /// Registers the allowlist and royalty strategy by creating a
     /// `sui::transfer_policy::TransferPolicy` and attaching the rules to it.
     /// Now these two rules are enforced on transfers.
@@ -201,6 +205,7 @@ module examples::testract {
         orderbook::share(book);
     }
 
+    #[lint_allow(self_transfer)]
     /// Adds a few bids bid and asks.
     /// Some will result in trades.
     /// The trades only create `TradeIntermediary` objects which are yet to be
@@ -265,6 +270,7 @@ module examples::testract {
         };
     }
 
+    #[lint_allow(self_transfer)]
     /// Creates a bid with bidding contract and then sells an nft.
     ///
     /// Uses the whole process of royalty enforcement.
@@ -324,6 +330,7 @@ module examples::testract {
         public_transfer(buyer_kiosk, sender(ctx));
     }
 
+    #[lint_allow(self_transfer)]
     /// Generate some launchpad events for
     /// * fixed_market
     /// * limited_fixed_market
@@ -402,6 +409,7 @@ module examples::testract {
         public_transfer(listing, sender(ctx));
     }
 
+    #[lint_allow(self_transfer)]
     /// Creates a bid with bidding contract and then cancels it.
     public entry fun generate_closed_bid_bidding_event(
         mint_cap: &MintCap<TestNft>,
@@ -439,6 +447,7 @@ module examples::testract {
         bidding::share(bid);
     }
 
+    #[lint_allow(self_transfer)]
     /// Creates a bid and closes it.
     /// Creates an ask and closes it.
     public entry fun generate_orderbook_close_events(

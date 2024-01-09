@@ -23,6 +23,7 @@ module nft_protocol::royalty_strategy_bps {
     const VERSION: u64 = 3;
 
     const EDeprecatedApi: u64 = 998;
+    #[allow(unused_const)]
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
@@ -31,8 +32,6 @@ module nft_protocol::royalty_strategy_bps {
     /// If the strategy has `is_enabled` set to false, cannot confirm any
     /// `TransferRequest`.s
     const ENotEnabled: u64 = 1;
-
-    const ETransferRequestHasFeeBalance: u64 = 2;
 
     /// === Structs ===
 
@@ -86,6 +85,7 @@ module nft_protocol::royalty_strategy_bps {
         }
     }
 
+    #[lint_allow(share_owned)]
     public fun share<T>(self: BpsRoyaltyStrategy<T>) { share_object(self) }
 
     public fun add_balance_access_cap<T>(
@@ -188,6 +188,7 @@ module nft_protocol::royalty_strategy_bps {
         transfer_request::add_receipt(req, BpsRoyaltyStrategyRule {});
     }
 
+    #[allow(unused_type_parameter)]
     /// Uses the balance associated with the request to deduct royalty.
     public fun confirm_transfer_with_fees<T, FT>(
         _self: &mut BpsRoyaltyStrategy<T>,

@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_allowlist::test_allowlist {
     use std::type_name;
 

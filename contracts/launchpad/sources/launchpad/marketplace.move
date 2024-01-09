@@ -73,6 +73,7 @@ module ob_launchpad::marketplace {
         }
     }
 
+    #[lint_allow(share_owned)]
     /// Initialises a `Marketplace` object and shares it
     public entry fun init_marketplace<F: key + store>(
         admin: address,
@@ -98,7 +99,7 @@ module ob_launchpad::marketplace {
         assert_version_and_upgrade(marketplace);
         assert_marketplace_admin(marketplace, ctx);
 
-        if (df::exists_(&mut marketplace.id, MembersDfKey {})) {
+        if (df::exists_(&marketplace.id, MembersDfKey {})) {
             let members = df::borrow_mut(&mut marketplace.id, MembersDfKey {});
             vec_set::insert(members, member);
         } else {

@@ -1,4 +1,5 @@
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_launchpad::test_delegation {
     use sui::test_scenario::{Self, ctx};
 

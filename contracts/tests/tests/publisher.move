@@ -13,11 +13,10 @@ module ob_tests::publisher_type {
     use sui::sui::SUI;
     use std::type_name;
 
+    #[allow(unused_field)]
     struct Gun<phantom T> has key, store {
         id: UID,
     }
-
-    const OWNER: address = @0xA1C05;
 
     #[test]
     fun check_different_types_with_wrapper() {

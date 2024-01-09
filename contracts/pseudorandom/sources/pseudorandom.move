@@ -21,6 +21,7 @@ module ob_pseudorandom::pseudorandom {
         value: u256
     }
 
+    #[allow(unused_function)]
     /// Share a `Counter` resource with value `i`
     fun init(ctx: &mut TxContext) {
         // Create and share a Counter resource. This is a privileged operation that

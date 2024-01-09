@@ -1,27 +1,5 @@
-// TODO: Functions to test:
-// Use transfer_signed with Owner/Random signer to work/fail
-// Try to withdraw NFT and work/fail with user and entity
-// transfer_between_owned
-// fails transfer_between_owned if no owner
-
-// delist_nft_as_owner
-// fails to call delist_nft_as_owner if exclusively listed
-
-// set_transfer_request_auth
-// get_transfer_request_auth
-// remove_auth_transfer_as_owner
-// remove_auth_transfer
-
-// Test calling restrict_deposits and enable_any_deposit back and forth
-
-
-// disable_deposits_of_collection
-// enable_deposits_of_collection
-// borrow_nft_field_mut
-// borrow_nft_mut
-// return_nft
-// borrow
 #[test_only]
+#[lint_allow(share_owned)]
 module ob_tests::test_ob_kiosk {
     use sui::test_scenario::{Self, ctx};
     use sui::kiosk::{Self, Kiosk};

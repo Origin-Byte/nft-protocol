@@ -29,6 +29,7 @@ module nft_protocol::display_info {
 
     // === Writer Functions ===
 
+    #[allow(unused_type_parameter)]
     /// Changes name string in the object field `DisplayInfo` of the object type `T`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
@@ -46,6 +47,7 @@ module nft_protocol::display_info {
     }
 
 
+    #[allow(unused_type_parameter)]
     /// Changes description string in the object field `DisplayInfo` of the object type `T`.
     ///
     /// Endpoint is protected as it relies on safetly obtaining a witness
@@ -78,6 +80,8 @@ module nft_protocol::display_info {
         &display_info.description
     }
 
+    // TODO: The signature is incorrect, it should be mutable reference
+    #[allow(unused_mut_ref)]
     /// Mutably borrows underlying `DisplayInfo` name string.
     ///
     /// Endpoint is unprotected as it relies on safetly obtaining a mutable
@@ -88,6 +92,8 @@ module nft_protocol::display_info {
         &mut display_info.name
     }
 
+    // TODO: The signature is incorrect, it should be mutable reference
+    #[allow(unused_mut_ref)]
     /// Mutably borrows underlying `DisplayInfo` description string.
     ///
     /// Endpoint is unprotected as it relies on safetly obtaining a mutable

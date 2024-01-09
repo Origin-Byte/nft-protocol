@@ -27,6 +27,7 @@ module nft_protocol::collection {
     // Track the current version of the module
     const VERSION: u64 = 2;
 
+    #[allow(unused_const)]
     const ENotUpgraded: u64 = 999;
     const EWrongVersion: u64 = 1000;
 
@@ -124,6 +125,7 @@ module nft_protocol::collection {
         Collection { id, version: VERSION }
     }
 
+    #[lint_allow(share_owned)]
     /// Creates a shared `Collection<C>`, where `C` will typically be the
     /// One-Time Witness of the collection.
     ///
@@ -315,7 +317,7 @@ module nft_protocol::collection {
     // === Test-Only ===
 
     #[test_only]
-    public fun test_create_with_mint_cap<OTW: drop, T>(
+    public fun test_create_with_mint_cap<T>(
         supply: Option<u64>,
         ctx: &mut TxContext,
     ): (Collection<T>, MintCap<T>) {

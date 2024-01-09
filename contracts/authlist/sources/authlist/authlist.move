@@ -88,6 +88,8 @@ module ob_authlist::authlist {
         for: ID,
     }
 
+    // TODO: Deprecate
+    #[allow(unused_field)]
     /// Key used to index applicable collections on `Authlist`
     struct CollectionKey {
         type_name: TypeName,
@@ -132,6 +134,7 @@ module ob_authlist::authlist {
         )
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Creates and shares a new `Authlist`
     public fun init_authlist(ctx: &mut TxContext): (ID, ID) {
         let (authlist, cap) = new(ctx);
@@ -145,6 +148,7 @@ module ob_authlist::authlist {
         (authlist_id, cap_id)
     }
 
+    #[lint_allow(share_owned, self_transfer)]
     /// Clones and shares a new `Authlist`
     public entry fun init_cloned(
         authlist: &Authlist,
@@ -497,6 +501,7 @@ module ob_authlist::authlist {
 
     struct AUTHLIST has drop {}
 
+    #[allow(unused_function)]
     fun init(otw: AUTHLIST, ctx: &mut TxContext) {
         let publisher = package::claim(otw, ctx);
         let display = display::new<Authlist>(&publisher, ctx);

@@ -9,30 +9,10 @@ module ob_utils::dynamic_vector {
     /// Call `warehouse::deposit_nft` or `listing::add_nft` to add NFTs.
     const EEmpty: u64 = 1;
 
-    /// `Warehouse` still has NFTs left to withdraw
-    ///
-    /// Call `warehouse::redeem_nft` or a `Listing` market to withdraw remaining
-    /// NFTs.
-    const ENotEmpty: u64 = 2;
-
     /// `Warehouse` does not have NFT at specified index
     ///
     /// Call `warehouse::redeem_nft_at_index` with an index that exists.
-    const EIndexOutOfBounds: u64 = 3;
-
-    /// `Warehouse` did not contain NFT object with given ID
-    ///
-    /// Call `warehouse::redeem_nft_with_id` with an ID that exists.
-    const EInvalidNftId: u64 = 4;
-
-    /// Attempted to construct a `RedeemCommitment` with a hash length
-    /// different than 32 bytes
-    const EInvalidCommitmentLength: u64 = 5;
-
-    /// Commitment in `RedeemCommitment` did not match original value committed
-    ///
-    /// Call `warehouse::random_redeem_nft` with the correct commitment.
-    const EInvalidCommitment: u64 = 6;
+    const EIndexOutOfBounds: u64 = 2;
 
     struct DynVec<Element> has store {
         vec_0: vector<Element>,
@@ -42,13 +22,6 @@ module ob_utils::dynamic_vector {
         total_length: u64,
         limit: u64,
     }
-
-    /// The index into the vector is out of bounds
-    const EINDEX_OUT_OF_BOUNDS: u64 = 1;
-
-    const ECAPACITY_REACHED: u64 = 2;
-
-    const ECAPACITY_DECREASE_EXCEEDS_LENGTH: u64 = 3;
 
     /// Create an empty dynamic vector.
     public fun empty<Element: store>(limit: u64, ctx: &mut TxContext): DynVec<Element> {

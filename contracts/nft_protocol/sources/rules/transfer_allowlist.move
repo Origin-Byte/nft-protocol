@@ -29,32 +29,6 @@ module nft_protocol::transfer_allowlist {
 
     use ob_allowlist::allowlist::{Self, Allowlist};
 
-    // === Errors ===
-
-    /// Package publisher mismatch
-    const EInvalidPublisher: u64 = 0;
-
-    /// Invalid admin
-    ///
-    /// Create new `Allowlist` using `create` with desired admin.
-    const EInvalidAdmin: u64 = 1;
-
-    /// Invalid collection
-    ///
-    /// Call `insert_collection` to insert a collection.
-    const EInvalidCollection: u64 = 2;
-
-    /// Collection was already registered
-    const EExistingCollection: u64 = 3;
-
-    /// Invalid transfer authority
-    ///
-    /// Call `insert_authority` to insert an authority.
-    const EInvalidAuthority: u64 = 4;
-
-    /// Transfer authority was already registered
-    const EExistingAuthority: u64 = 5;
-
     // === Structs ===
 
     /// `sui::transfer_policy::TransferPolicy` can have this rule to enforce
