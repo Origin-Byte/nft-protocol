@@ -1,4 +1,4 @@
-def transform_file(file_path):
+def reset_toml(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
@@ -21,15 +21,15 @@ def transform_file(file_path):
             file.write(line)
 
 # Replace 'path_to_file.toml' with the actual path to your Move.toml file
-transform_file('contracts/pseudorandom/Move.toml')
-transform_file('contracts/utils/Move.toml')
-transform_file('contracts/permissions/Move.toml')
-transform_file('contracts/request/Move.toml')
-transform_file('contracts/allowlist/Move.toml')
-transform_file('contracts/authlist/Move.toml')
-transform_file('contracts/critbit/Move.toml')
-transform_file('contracts/originmate/Move.toml')
-transform_file('contracts/kiosk/Move.toml')
-transform_file('contracts/nft_protocol/Move.toml')
-transform_file('contracts/liquidity_layer_v1/Move.toml')
-transform_file('contracts/launchpad/Move.toml')
+reset_toml('contracts/pseudorandom/Move.toml')
+reset_toml('contracts/utils/Move.toml')
+reset_toml('contracts/permissions/Move.toml')
+reset_toml('contracts/request/Move.toml')
+reset_toml('contracts/allowlist/Move.toml')
+reset_toml('contracts/authlist/Move.toml')
+reset_toml('contracts/critbit/Move.toml')
+reset_toml('contracts/originmate/Move.toml')
+reset_toml('contracts/kiosk/Move.toml')
+reset_toml('contracts/nft_protocol/Move.toml')
+reset_toml('contracts/liquidity_layer_v1/Move.toml')
+reset_toml('contracts/launchpad/Move.toml')
