@@ -38,9 +38,12 @@ jobs:
           chmod +x stoml
 
           source source/.env.dist
-          wget -qO sui https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui
-          echo "installed"
+
+          wget -qO sui_folder.tgz https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui-${SUI_VERSION}-ubuntu-x86_64.tgz
+          tar -xzf sui_folder.tgz
+          cp target/release/sui-ubuntu-x86_64 sui
           chmod +x sui
+          echo "installed"
 
       - name: Build Packages
         run: |

@@ -33,6 +33,16 @@ cd ./utils
 ${sui} move build
 cd ..
 
+ls
+
+cd ./critbit
+${sui} move build
+cd ..
+
+cd ./originmate
+${sui} move build
+cd ..
+
 cd ./kiosk
 ${sui} move build
 cd ..
@@ -42,10 +52,6 @@ ${sui} move build
 cd ..
 
 cd ./liquidity_layer_v1
-${sui} move build
-cd ..
-
-cd ./liquidity_layer
 ${sui} move build
 cd ..
 
