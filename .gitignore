@@ -9,6 +9,8 @@ output.bpl
 .trace
 boilerplate
 .DS_Store
+.vscode
 local
 unpublished
 bin/pub.py
+logs

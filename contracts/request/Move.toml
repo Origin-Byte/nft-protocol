@@ -1,7 +1,7 @@
 [package]
 name = "Request"
 version = "1.6.0"
-published-at = "0x21ea6bbf43749d11c699e7260c09df5eb3ea2303802d5dac7d67a7c826ba04fc"
+published-at = "0x024c55e3471cac9a78356ec10717eed1869697b6d93d6ace00cdc8d8d11cd9e0"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"

@@ -1,7 +1,7 @@
 [package]
 name = "Authlist"
 version = "1.6.0"
-published-at = "0xed4e59d3adc67b688865478444b4907f55c8f1210ae1fe17173c461a74f55e03"
+published-at = "0x7b8b40d64863b47582cad7a8bf6335d359e5d043b171ab25888b9df5f95f5561"
 
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
