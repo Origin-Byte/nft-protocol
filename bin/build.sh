@@ -33,6 +33,14 @@ cd ./utils
 ${sui} move build
 cd ..
 
+cd ./critbit
+${sui} move build
+cd ..
+
+cd ./originbyte
+${sui} move build
+cd ..
+
 cd ./kiosk
 ${sui} move build
 cd ..
