@@ -1,6 +1,6 @@
 #[test_only]
 #[lint_allow(share_owned)]
-module ob_launchpad::test_whitelist {
+module ob_launchpad::test_whitelist_with_cert {
     use sui::test_scenario::{Self, ctx};
 
     use sui::object::UID;
@@ -34,7 +34,7 @@ module ob_launchpad::test_whitelist {
         );
 
         let venue_id = fixed_price::create_venue<Foo, SUI>(
-            &mut listing, inventory_id, false, 100, ctx(&mut scenario)
+            &mut listing, inventory_id, true, 100, ctx(&mut scenario)
         );
 
         let cert = market_whitelist::new(&listing, venue_id, ctx(&mut scenario));
@@ -58,7 +58,7 @@ module ob_launchpad::test_whitelist {
         );
 
         let venue_id = fixed_price::create_venue<Foo, SUI>(
-            &mut listing, inventory_id, false, 100, ctx(&mut scenario)
+            &mut listing, inventory_id, true, 100, ctx(&mut scenario)
         );
 
         transfer::public_share_object(listing);
