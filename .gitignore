@@ -1,3 +1,5 @@
+.vscode
+
 sui.log.*
 .env
 .env.caps.*
