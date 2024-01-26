@@ -53,6 +53,7 @@ module ob_launchpad::listing {
     use ob_kiosk::ob_kiosk;
 
     friend ob_launchpad::flat_fee;
+    friend ob_launchpad::market_whitelist;
     friend ob_launchpad::dutch_auction;
     friend ob_launchpad::fixed_price;
     friend ob_launchpad::limited_fixed_price;
@@ -129,8 +130,11 @@ module ob_launchpad::listing {
         marketplace_id: TypedID<Marketplace>,
     }
 
+    // === Dynamic Field Keys ===
+
     struct RequestToJoinDfKey has store, copy, drop {}
     struct MembersDfKey has store, copy, drop {}
+    struct WhitelistDfKey has store, copy, drop { venue_id: ID }
 
     // === Events ===
 
@@ -211,7 +215,9 @@ module ob_launchpad::listing {
         create_venue(listing, key, market, is_whitelisted, ctx);
     }
 
-    /// Creates a `Venue` on `Listing` and returns it's ID
+    /// Creates a `Venue` on `Listing` and returns it's ID.
+    /// It adds a `Whitelist` associated to the `Venue` as a dynamic field
+    /// of the Listing if `is_whitelisted == true`.
     ///
     /// #### Panics
     ///
@@ -802,6 +808,33 @@ module ob_launchpad::listing {
     ): &mut Venue {
         assert_venue(listing, venue_id);
         object_table::borrow_mut(&mut listing.venues, venue_id)
+    }
+
+    /// Adds `Whitelist` object. We use a generic `WL` to represent the
+    /// `Whitelist` type object to avoid dependency cycles.
+    ///
+    /// Warning: This function is not safe to be shared, it does not check
+    /// for permissions and should ONLY be used by the function
+    /// `market_whitelist::add_whitelist`
+    public(friend) fun add_whitelist_internal<WL: key + store>(
+        listing: &mut Listing,
+        venue_id: ID,
+        whitelist: WL
+    ) {
+        df::add(&mut listing.id, WhitelistDfKey { venue_id }, whitelist);
+    }
+
+    /// Borrows `Whitelist` object mutably. We use a generic `WL` to represent the
+    /// `Whitelist` type object to avoid dependency cycles.
+    ///
+    /// Warning: This function is not safe to be shared, it does not check
+    /// for permissions and should ONLY be used by the function
+    /// `market_whitelist::add_addresses` and `market_whitelist::remove_addresses`
+    public(friend) fun borrow_whitelist_mut<WL: key + store>(
+        listing: &mut Listing,
+        venue_id: ID,
+    ): &mut WL {
+        df::borrow_mut(&mut listing.id, WhitelistDfKey { venue_id })
     }
 
     /// Mutably borrow the listing's `Venue`
