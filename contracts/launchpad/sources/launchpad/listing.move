@@ -24,7 +24,7 @@
 /// underlying inventories which are unprotected.
 module ob_launchpad::listing {
     use std::ascii::String;
-    use std::option::{Self, Option};
+    use std::option::{Self, Option, some, none};
     use std::type_name;
 
     use sui::event;
@@ -170,7 +170,7 @@ module ob_launchpad::listing {
         Listing {
             id,
             version: VERSION,
-            marketplace_id: option::none(),
+            marketplace_id: none(),
             admin: listing_admin,
             receiver,
             proceeds: proceeds::empty(ctx),
@@ -194,6 +194,35 @@ module ob_launchpad::listing {
         );
 
         transfer::public_share_object(listing);
+    }
+
+    /// Initialises a `Listing` object, assigns a permissionless Marketplace
+    /// to it and returns it.
+    public fun new_with_marketplace(
+        marketplace: &Marketplace,
+        listing_admin: address,
+        receiver: address,
+        ctx: &mut TxContext,
+    ): Listing {
+        mkt::assert_permissionless(marketplace);
+
+        let id = object::new(ctx);
+
+        event::emit(CreateListingEvent {
+            listing_id: object::uid_to_inner(&id),
+        });
+
+        Listing {
+            id,
+            version: VERSION,
+            marketplace_id: some(typed_id::new(marketplace)),
+            admin: listing_admin,
+            receiver,
+            proceeds: proceeds::empty(ctx),
+            venues: object_table::new(ctx),
+            inventories: object_bag::new(ctx),
+            custom_fee: obox::empty(ctx),
+        }
     }
 
     /// Initializes a `Venue` on `Listing`
@@ -797,7 +826,7 @@ module ob_launchpad::listing {
     ) {
         mkt::assert_version(marketplace);
         assert_version_and_upgrade(listing);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
+        mkt::assert_marketplace_admin_or_member(marketplace, ctx);
 
         assert!(
             option::is_none(&listing.marketplace_id),
@@ -840,7 +869,7 @@ module ob_launchpad::listing {
         assert_version_and_upgrade(listing);
 
         assert_listing_marketplace_match(marketplace, listing);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
+        mkt::assert_marketplace_admin_or_member(marketplace, ctx);
 
         obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
@@ -856,7 +885,7 @@ module ob_launchpad::listing {
         assert_version_and_upgrade(listing);
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_version(marketplace);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
+        mkt::assert_marketplace_admin_or_member(marketplace, ctx);
 
         venue::set_live(
             borrow_venue_mut(listing, venue_id),
@@ -875,7 +904,7 @@ module ob_launchpad::listing {
         assert_version_and_upgrade(listing);
         assert_listing_marketplace_match(marketplace, listing);
         mkt::assert_version(marketplace);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
+        mkt::assert_marketplace_admin_or_member(marketplace, ctx);
 
         venue::set_live(
             borrow_venue_mut(listing, venue_id),

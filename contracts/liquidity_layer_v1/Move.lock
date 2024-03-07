@@ -2,36 +2,16 @@
 
 [move]
 version = 0
-manifest_digest = "7C74EA37A9BD48A0E1283D2881D2E252D42640B603B5952BD199C50175E883E7"
-deps_digest = "04732BFEF428F74DE262001DC455D76B909EBC394B034A9A15CC095E4BDD9CEF"
+manifest_digest = "CDB0E91D42532A69AD34DC059ED2EC348D37DD7D4818B9EE1F57A5EE2E9B5CF9"
+deps_digest = "52B406A7A21811BEF51751CF88DA0E76DAEFFEAC888D4F4060B1A72BBE7D8D35"
 
 dependencies = [
-  { name = "Allowlist" },
-  { name = "Authlist" },
   { name = "Kiosk" },
   { name = "Originmate" },
   { name = "Permissions" },
   { name = "Request" },
   { name = "Sui" },
   { name = "Utils" },
-]
-
-[[move.package]]
-name = "Allowlist"
-source = { local = "../allowlist" }
-
-dependencies = [
-  { name = "Permissions" },
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "Authlist"
-source = { local = "../authlist" }
-
-dependencies = [
-  { name = "Permissions" },
-  { name = "Sui" },
 ]
 
 [[move.package]]
@@ -46,7 +26,7 @@ dependencies = [
 
 [[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "mainnet-v1.19.1", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "Originmate"
@@ -84,7 +64,7 @@ dependencies = [
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "mainnet-v1.19.1", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
@@ -98,3 +78,8 @@ dependencies = [
   { name = "Pseudorandom" },
   { name = "Sui" },
 ]
+
+[move.toolchain-version]
+compiler-version = "1.19.1"
+edition = "legacy"
+flavor = "sui"

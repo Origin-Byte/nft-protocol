@@ -1,16 +1,11 @@
 [package]
 name = "Permissions"
-version = "1.6.0"
+version = "1.7.0"
 published-at = "0x59839eebd432e473ffca5a08675d26c49526ed39b584c39e762afa8c127f25a2"
 
-[dependencies.Sui]
-git = "https://github.com/MystenLabs/sui.git"
-subdir = "crates/sui-framework/packages/sui-framework"
-# mainnet-1.15.1
-rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
-
-[dependencies.Utils]
-local = "./../utils"
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
+Utils = { local = "./../utils" }
 
 [addresses]
 ob_permissions = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40"
