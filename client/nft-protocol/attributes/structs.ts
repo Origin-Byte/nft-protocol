@@ -1,6 +1,6 @@
 import {String} from "../../_dependencies/source/0x1/ascii/structs";
 import {VecMap} from "../../_dependencies/source/0x2/vec-map/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type AttributesReified = Reified<
     AttributesFields
 >;
 
-export class Attributes {
+export class Attributes implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::attributes::Attributes";
     static readonly $numTypeParams = 0;
 
@@ -29,14 +29,18 @@ export class Attributes {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::attributes::Attributes";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly map:
         ToField<VecMap<String, String>>
 
-    private constructor( fields: AttributesFields,
+    private constructor(typeArgs: [], fields: AttributesFields,
     ) {
-        this.$fullTypeName = Attributes.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Attributes.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::attributes::Attributes";
+        this.$typeArgs = typeArgs;
 
         this.map = fields.map;
     }
@@ -48,7 +52,8 @@ export class Attributes {
                 Attributes.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::attributes::Attributes",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Attributes.fromFields(
                     fields,
@@ -70,6 +75,10 @@ export class Attributes {
                 Attributes.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Attributes.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Attributes.fetch(
                 client,
                 id,
@@ -78,6 +87,7 @@ export class Attributes {
                 fields: AttributesFields,
             ) => {
                 return new Attributes(
+                    [],
                     fields
                 )
             },
@@ -144,6 +154,7 @@ export class Attributes {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

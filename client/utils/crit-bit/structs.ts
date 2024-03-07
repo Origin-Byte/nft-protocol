@@ -1,6 +1,6 @@
 import * as reified from "../../_framework/reified";
 import {Table} from "../../_dependencies/source/0x2/table/structs";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs, ToTypeStr as ToPhantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs, ToTypeStr as ToPhantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type CritbitTreeReified<V extends TypeArgument> = Reified<
     CritbitTreeFields<V>
 >;
 
-export class CritbitTree<V extends TypeArgument> {
+export class CritbitTree<V extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::CritbitTree";
     static readonly $numTypeParams = 1;
 
@@ -29,9 +29,7 @@ export class CritbitTree<V extends TypeArgument> {
 
     readonly $fullTypeName: `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::CritbitTree<${ToTypeStr<V>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<V>];
 
     readonly root:
         ToField<"u64">
@@ -48,12 +46,13 @@ export class CritbitTree<V extends TypeArgument> {
     ; readonly nextLeafIndex:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: CritbitTreeFields<V>,
+    private constructor(typeArgs: [ToTypeStr<V>], fields: CritbitTreeFields<V>,
     ) {
-        this.$fullTypeName = composeSuiType(CritbitTree.$typeName,
-        typeArg) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::CritbitTree<${ToTypeStr<V>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            CritbitTree.$typeName,
+            ...typeArgs
+        ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::CritbitTree<${ToTypeStr<V>}>`;
+        this.$typeArgs = typeArgs;
 
         this.root = fields.root;; this.internalNodes = fields.internalNodes;; this.leaves = fields.leaves;; this.minLeaf = fields.minLeaf;; this.maxLeaf = fields.maxLeaf;; this.nextInternalNodeIndex = fields.nextInternalNodeIndex;; this.nextLeafIndex = fields.nextLeafIndex;
     }
@@ -67,7 +66,10 @@ export class CritbitTree<V extends TypeArgument> {
                 CritbitTree.$typeName,
                 ...[extractType(V)]
             ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::CritbitTree<${ToTypeStr<ToTypeArgument<V>>}>`,
-            typeArgs: [V],
+            typeArgs: [
+                extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<V>>],
+            reifiedTypeArgs: [V],
             fromFields: (fields: Record<string, any>) =>
                 CritbitTree.fromFields(
                     V,
@@ -94,6 +96,11 @@ export class CritbitTree<V extends TypeArgument> {
                     V,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                CritbitTree.fromSuiParsedData(
+                    V,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => CritbitTree.fetch(
                 client,
                 V,
@@ -103,7 +110,7 @@ export class CritbitTree<V extends TypeArgument> {
                 fields: CritbitTreeFields<ToTypeArgument<V>>,
             ) => {
                 return new CritbitTree(
-                    extractType(V),
+                    [extractType(V)],
                     fields
                 )
             },
@@ -193,7 +200,7 @@ export class CritbitTree<V extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -217,7 +224,7 @@ export class CritbitTree<V extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(CritbitTree.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -281,7 +288,7 @@ export type InternalNodeReified = Reified<
     InternalNodeFields
 >;
 
-export class InternalNode {
+export class InternalNode implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::InternalNode";
     static readonly $numTypeParams = 0;
 
@@ -289,7 +296,7 @@ export class InternalNode {
 
     readonly $fullTypeName: "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::InternalNode";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly mask:
         ToField<"u64">
@@ -300,9 +307,13 @@ export class InternalNode {
     ; readonly parent:
         ToField<"u64">
 
-    private constructor( fields: InternalNodeFields,
+    private constructor(typeArgs: [], fields: InternalNodeFields,
     ) {
-        this.$fullTypeName = InternalNode.$typeName;
+        this.$fullTypeName = composeSuiType(
+            InternalNode.$typeName,
+            ...typeArgs
+        ) as "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::InternalNode";
+        this.$typeArgs = typeArgs;
 
         this.mask = fields.mask;; this.leftChild = fields.leftChild;; this.rightChild = fields.rightChild;; this.parent = fields.parent;
     }
@@ -314,7 +325,8 @@ export class InternalNode {
                 InternalNode.$typeName,
                 ...[]
             ) as "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::InternalNode",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 InternalNode.fromFields(
                     fields,
@@ -336,6 +348,10 @@ export class InternalNode {
                 InternalNode.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                InternalNode.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => InternalNode.fetch(
                 client,
                 id,
@@ -344,6 +360,7 @@ export class InternalNode {
                 fields: InternalNodeFields,
             ) => {
                 return new InternalNode(
+                    [],
                     fields
                 )
             },
@@ -416,6 +433,7 @@ export class InternalNode {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -492,7 +510,7 @@ export type LeafReified<V extends TypeArgument> = Reified<
     LeafFields<V>
 >;
 
-export class Leaf<V extends TypeArgument> {
+export class Leaf<V extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::Leaf";
     static readonly $numTypeParams = 1;
 
@@ -500,9 +518,7 @@ export class Leaf<V extends TypeArgument> {
 
     readonly $fullTypeName: `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::Leaf<${ToTypeStr<V>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<V>];
 
     readonly key:
         ToField<"u64">
@@ -511,12 +527,13 @@ export class Leaf<V extends TypeArgument> {
     ; readonly parent:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: LeafFields<V>,
+    private constructor(typeArgs: [ToTypeStr<V>], fields: LeafFields<V>,
     ) {
-        this.$fullTypeName = composeSuiType(Leaf.$typeName,
-        typeArg) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::Leaf<${ToTypeStr<V>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Leaf.$typeName,
+            ...typeArgs
+        ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::Leaf<${ToTypeStr<V>}>`;
+        this.$typeArgs = typeArgs;
 
         this.key = fields.key;; this.value = fields.value;; this.parent = fields.parent;
     }
@@ -530,7 +547,10 @@ export class Leaf<V extends TypeArgument> {
                 Leaf.$typeName,
                 ...[extractType(V)]
             ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::crit_bit::Leaf<${ToTypeStr<ToTypeArgument<V>>}>`,
-            typeArgs: [V],
+            typeArgs: [
+                extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<V>>],
+            reifiedTypeArgs: [V],
             fromFields: (fields: Record<string, any>) =>
                 Leaf.fromFields(
                     V,
@@ -557,6 +577,11 @@ export class Leaf<V extends TypeArgument> {
                     V,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Leaf.fromSuiParsedData(
+                    V,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Leaf.fetch(
                 client,
                 V,
@@ -566,7 +591,7 @@ export class Leaf<V extends TypeArgument> {
                 fields: LeafFields<ToTypeArgument<V>>,
             ) => {
                 return new Leaf(
-                    extractType(V),
+                    [extractType(V)],
                     fields
                 )
             },
@@ -640,7 +665,7 @@ export class Leaf<V extends TypeArgument> {
 
     toJSONField() {
         return {
-            key: this.key.toString(),value: fieldToJSON<V>(this.$typeArg, this.value),parent: this.parent.toString(),
+            key: this.key.toString(),value: fieldToJSON<V>(this.$typeArgs[0], this.value),parent: this.parent.toString(),
 
         }
     }
@@ -648,7 +673,7 @@ export class Leaf<V extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -672,7 +697,7 @@ export class Leaf<V extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Leaf.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

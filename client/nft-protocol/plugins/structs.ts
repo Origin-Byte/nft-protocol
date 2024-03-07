@@ -1,6 +1,6 @@
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {WitnessGenerator} from "../../permissions/witness/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -22,7 +22,7 @@ export type PluginsReified<T extends PhantomTypeArgument> = Reified<
     PluginsFields<T>
 >;
 
-export class Plugins<T extends PhantomTypeArgument> {
+export class Plugins<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::plugins::Plugins";
     static readonly $numTypeParams = 1;
 
@@ -30,21 +30,20 @@ export class Plugins<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::plugins::Plugins<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly generator:
         ToField<WitnessGenerator<T>>
     ; readonly packages:
         ToField<VecSet<TypeName>>
 
-    private constructor(typeArg: string, fields: PluginsFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: PluginsFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Plugins.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::plugins::Plugins<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Plugins.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::plugins::Plugins<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.generator = fields.generator;; this.packages = fields.packages;
     }
@@ -58,7 +57,10 @@ export class Plugins<T extends PhantomTypeArgument> {
                 Plugins.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::plugins::Plugins<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Plugins.fromFields(
                     T,
@@ -85,6 +87,11 @@ export class Plugins<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Plugins.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Plugins.fetch(
                 client,
                 T,
@@ -94,7 +101,7 @@ export class Plugins<T extends PhantomTypeArgument> {
                 fields: PluginsFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Plugins(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -173,7 +180,7 @@ export class Plugins<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -197,7 +204,7 @@ export class Plugins<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Plugins.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

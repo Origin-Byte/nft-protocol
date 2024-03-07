@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type ObjectBoxReified = Reified<
     ObjectBoxFields
 >;
 
-export class ObjectBox {
+export class ObjectBox implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_box::ObjectBox";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class ObjectBox {
 
     readonly $fullTypeName: "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_box::ObjectBox";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly len:
         ToField<"u64">
 
-    private constructor( fields: ObjectBoxFields,
+    private constructor(typeArgs: [], fields: ObjectBoxFields,
     ) {
-        this.$fullTypeName = ObjectBox.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ObjectBox.$typeName,
+            ...typeArgs
+        ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_box::ObjectBox";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.len = fields.len;
     }
@@ -49,7 +53,8 @@ export class ObjectBox {
                 ObjectBox.$typeName,
                 ...[]
             ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_box::ObjectBox",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ObjectBox.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class ObjectBox {
                 ObjectBox.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ObjectBox.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ObjectBox.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class ObjectBox {
                 fields: ObjectBoxFields,
             ) => {
                 return new ObjectBox(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class ObjectBox {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

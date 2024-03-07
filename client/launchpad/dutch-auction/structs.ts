@@ -1,7 +1,7 @@
 import * as reified from "../../_framework/reified";
 import {Balance} from "../../_dependencies/source/0x2/balance/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {CritbitTree} from "../../utils/crit-bit/structs";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
@@ -23,7 +23,7 @@ export type BidReified<FT extends PhantomTypeArgument> = Reified<
     BidFields<FT>
 >;
 
-export class Bid<FT extends PhantomTypeArgument> {
+export class Bid<FT extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::Bid";
     static readonly $numTypeParams = 1;
 
@@ -31,21 +31,20 @@ export class Bid<FT extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::Bid<${PhantomToTypeStr<FT>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<FT>];
 
     readonly amount:
         ToField<Balance<FT>>
     ; readonly owner:
         ToField<"address">
 
-    private constructor(typeArg: string, fields: BidFields<FT>,
+    private constructor(typeArgs: [PhantomToTypeStr<FT>], fields: BidFields<FT>,
     ) {
-        this.$fullTypeName = composeSuiType(Bid.$typeName,
-        typeArg) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::Bid<${PhantomToTypeStr<FT>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Bid.$typeName,
+            ...typeArgs
+        ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::Bid<${PhantomToTypeStr<FT>}>`;
+        this.$typeArgs = typeArgs;
 
         this.amount = fields.amount;; this.owner = fields.owner;
     }
@@ -59,7 +58,10 @@ export class Bid<FT extends PhantomTypeArgument> {
                 Bid.$typeName,
                 ...[extractType(FT)]
             ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::Bid<${PhantomToTypeStr<ToPhantomTypeArgument<FT>>}>`,
-            typeArgs: [FT],
+            typeArgs: [
+                extractType(FT)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<FT>>],
+            reifiedTypeArgs: [FT],
             fromFields: (fields: Record<string, any>) =>
                 Bid.fromFields(
                     FT,
@@ -86,6 +88,11 @@ export class Bid<FT extends PhantomTypeArgument> {
                     FT,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Bid.fromSuiParsedData(
+                    FT,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Bid.fetch(
                 client,
                 FT,
@@ -95,7 +102,7 @@ export class Bid<FT extends PhantomTypeArgument> {
                 fields: BidFields<ToPhantomTypeArgument<FT>>,
             ) => {
                 return new Bid(
-                    extractType(FT),
+                    [extractType(FT)],
                     fields
                 )
             },
@@ -175,7 +182,7 @@ export class Bid<FT extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -199,7 +206,7 @@ export class Bid<FT extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Bid.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -263,7 +270,7 @@ export type MarketKeyReified = Reified<
     MarketKeyFields
 >;
 
-export class MarketKey {
+export class MarketKey implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::MarketKey";
     static readonly $numTypeParams = 0;
 
@@ -271,14 +278,18 @@ export class MarketKey {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::MarketKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: MarketKeyFields,
+    private constructor(typeArgs: [], fields: MarketKeyFields,
     ) {
-        this.$fullTypeName = MarketKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            MarketKey.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::MarketKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -290,7 +301,8 @@ export class MarketKey {
                 MarketKey.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::MarketKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 MarketKey.fromFields(
                     fields,
@@ -312,6 +324,10 @@ export class MarketKey {
                 MarketKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                MarketKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => MarketKey.fetch(
                 client,
                 id,
@@ -320,6 +336,7 @@ export class MarketKey {
                 fields: MarketKeyFields,
             ) => {
                 return new MarketKey(
+                    [],
                     fields
                 )
             },
@@ -386,6 +403,7 @@ export class MarketKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -462,7 +480,7 @@ export type DutchAuctionMarketReified<FT extends PhantomTypeArgument> = Reified<
     DutchAuctionMarketFields<FT>
 >;
 
-export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
+export class DutchAuctionMarket<FT extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::DutchAuctionMarket";
     static readonly $numTypeParams = 1;
 
@@ -470,9 +488,7 @@ export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::DutchAuctionMarket<${PhantomToTypeStr<FT>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<FT>];
 
     readonly id:
         ToField<UID>
@@ -483,12 +499,13 @@ export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
     ; readonly inventoryId:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: DutchAuctionMarketFields<FT>,
+    private constructor(typeArgs: [PhantomToTypeStr<FT>], fields: DutchAuctionMarketFields<FT>,
     ) {
-        this.$fullTypeName = composeSuiType(DutchAuctionMarket.$typeName,
-        typeArg) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::DutchAuctionMarket<${PhantomToTypeStr<FT>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            DutchAuctionMarket.$typeName,
+            ...typeArgs
+        ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::DutchAuctionMarket<${PhantomToTypeStr<FT>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.reservePrice = fields.reservePrice;; this.bids = fields.bids;; this.inventoryId = fields.inventoryId;
     }
@@ -502,7 +519,10 @@ export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
                 DutchAuctionMarket.$typeName,
                 ...[extractType(FT)]
             ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::dutch_auction::DutchAuctionMarket<${PhantomToTypeStr<ToPhantomTypeArgument<FT>>}>`,
-            typeArgs: [FT],
+            typeArgs: [
+                extractType(FT)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<FT>>],
+            reifiedTypeArgs: [FT],
             fromFields: (fields: Record<string, any>) =>
                 DutchAuctionMarket.fromFields(
                     FT,
@@ -529,6 +549,11 @@ export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
                     FT,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                DutchAuctionMarket.fromSuiParsedData(
+                    FT,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => DutchAuctionMarket.fetch(
                 client,
                 FT,
@@ -538,7 +563,7 @@ export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
                 fields: DutchAuctionMarketFields<ToPhantomTypeArgument<FT>>,
             ) => {
                 return new DutchAuctionMarket(
-                    extractType(FT),
+                    [extractType(FT)],
                     fields
                 )
             },
@@ -621,7 +646,7 @@ export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -645,7 +670,7 @@ export class DutchAuctionMarket<FT extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(DutchAuctionMarket.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

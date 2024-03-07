@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {UID} from "../object/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type ClockReified = Reified<
     ClockFields
 >;
 
-export class Clock {
+export class Clock implements StructClass {
     static readonly $typeName = "0x2::clock::Clock";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class Clock {
 
     readonly $fullTypeName: "0x2::clock::Clock";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly timestampMs:
         ToField<"u64">
 
-    private constructor( fields: ClockFields,
+    private constructor(typeArgs: [], fields: ClockFields,
     ) {
-        this.$fullTypeName = Clock.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Clock.$typeName,
+            ...typeArgs
+        ) as "0x2::clock::Clock";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.timestampMs = fields.timestampMs;
     }
@@ -49,7 +53,8 @@ export class Clock {
                 Clock.$typeName,
                 ...[]
             ) as "0x2::clock::Clock",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Clock.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class Clock {
                 Clock.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Clock.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Clock.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class Clock {
                 fields: ClockFields,
             ) => {
                 return new Clock(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class Clock {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

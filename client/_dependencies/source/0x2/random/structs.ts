@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {UID} from "../object/structs";
 import {Versioned} from "../versioned/structs";
@@ -22,7 +22,7 @@ export type RandomReified = Reified<
     RandomFields
 >;
 
-export class Random {
+export class Random implements StructClass {
     static readonly $typeName = "0x2::random::Random";
     static readonly $numTypeParams = 0;
 
@@ -30,16 +30,20 @@ export class Random {
 
     readonly $fullTypeName: "0x2::random::Random";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly inner:
         ToField<Versioned>
 
-    private constructor( fields: RandomFields,
+    private constructor(typeArgs: [], fields: RandomFields,
     ) {
-        this.$fullTypeName = Random.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Random.$typeName,
+            ...typeArgs
+        ) as "0x2::random::Random";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.inner = fields.inner;
     }
@@ -51,7 +55,8 @@ export class Random {
                 Random.$typeName,
                 ...[]
             ) as "0x2::random::Random",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Random.fromFields(
                     fields,
@@ -73,6 +78,10 @@ export class Random {
                 Random.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Random.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Random.fetch(
                 client,
                 id,
@@ -81,6 +90,7 @@ export class Random {
                 fields: RandomFields,
             ) => {
                 return new Random(
+                    [],
                     fields
                 )
             },
@@ -149,6 +159,7 @@ export class Random {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -225,7 +236,7 @@ export type RandomInnerReified = Reified<
     RandomInnerFields
 >;
 
-export class RandomInner {
+export class RandomInner implements StructClass {
     static readonly $typeName = "0x2::random::RandomInner";
     static readonly $numTypeParams = 0;
 
@@ -233,7 +244,7 @@ export class RandomInner {
 
     readonly $fullTypeName: "0x2::random::RandomInner";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly version:
         ToField<"u64">
@@ -244,9 +255,13 @@ export class RandomInner {
     ; readonly randomBytes:
         ToField<Vector<"u8">>
 
-    private constructor( fields: RandomInnerFields,
+    private constructor(typeArgs: [], fields: RandomInnerFields,
     ) {
-        this.$fullTypeName = RandomInner.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RandomInner.$typeName,
+            ...typeArgs
+        ) as "0x2::random::RandomInner";
+        this.$typeArgs = typeArgs;
 
         this.version = fields.version;; this.epoch = fields.epoch;; this.randomnessRound = fields.randomnessRound;; this.randomBytes = fields.randomBytes;
     }
@@ -258,7 +273,8 @@ export class RandomInner {
                 RandomInner.$typeName,
                 ...[]
             ) as "0x2::random::RandomInner",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RandomInner.fromFields(
                     fields,
@@ -280,6 +296,10 @@ export class RandomInner {
                 RandomInner.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RandomInner.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RandomInner.fetch(
                 client,
                 id,
@@ -288,6 +308,7 @@ export class RandomInner {
                 fields: RandomInnerFields,
             ) => {
                 return new RandomInner(
+                    [],
                     fields
                 )
             },
@@ -360,6 +381,7 @@ export class RandomInner {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

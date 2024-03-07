@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {String} from "../../0x1/string/structs";
 import {UID} from "../object/structs";
@@ -21,7 +21,7 @@ export type VerifiedIDReified = Reified<
     VerifiedIDFields
 >;
 
-export class VerifiedID {
+export class VerifiedID implements StructClass {
     static readonly $typeName = "0x2::zklogin_verified_id::VerifiedID";
     static readonly $numTypeParams = 0;
 
@@ -29,7 +29,7 @@ export class VerifiedID {
 
     readonly $fullTypeName: "0x2::zklogin_verified_id::VerifiedID";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -44,9 +44,13 @@ export class VerifiedID {
     ; readonly audience:
         ToField<String>
 
-    private constructor( fields: VerifiedIDFields,
+    private constructor(typeArgs: [], fields: VerifiedIDFields,
     ) {
-        this.$fullTypeName = VerifiedID.$typeName;
+        this.$fullTypeName = composeSuiType(
+            VerifiedID.$typeName,
+            ...typeArgs
+        ) as "0x2::zklogin_verified_id::VerifiedID";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.owner = fields.owner;; this.keyClaimName = fields.keyClaimName;; this.keyClaimValue = fields.keyClaimValue;; this.issuer = fields.issuer;; this.audience = fields.audience;
     }
@@ -58,7 +62,8 @@ export class VerifiedID {
                 VerifiedID.$typeName,
                 ...[]
             ) as "0x2::zklogin_verified_id::VerifiedID",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 VerifiedID.fromFields(
                     fields,
@@ -80,6 +85,10 @@ export class VerifiedID {
                 VerifiedID.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                VerifiedID.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => VerifiedID.fetch(
                 client,
                 id,
@@ -88,6 +97,7 @@ export class VerifiedID {
                 fields: VerifiedIDFields,
             ) => {
                 return new VerifiedID(
+                    [],
                     fields
                 )
             },
@@ -165,6 +175,7 @@ export class VerifiedID {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

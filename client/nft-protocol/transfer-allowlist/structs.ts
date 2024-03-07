@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type AllowlistRuleReified = Reified<
     AllowlistRuleFields
 >;
 
-export class AllowlistRule {
+export class AllowlistRule implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist::AllowlistRule";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class AllowlistRule {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist::AllowlistRule";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: AllowlistRuleFields,
+    private constructor(typeArgs: [], fields: AllowlistRuleFields,
     ) {
-        this.$fullTypeName = AllowlistRule.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AllowlistRule.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist::AllowlistRule";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class AllowlistRule {
                 AllowlistRule.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist::AllowlistRule",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AllowlistRule.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class AllowlistRule {
                 AllowlistRule.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AllowlistRule.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AllowlistRule.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class AllowlistRule {
                 fields: AllowlistRuleFields,
             ) => {
                 return new AllowlistRule(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class AllowlistRule {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

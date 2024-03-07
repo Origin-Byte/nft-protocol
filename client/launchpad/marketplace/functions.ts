@@ -136,6 +136,30 @@ export function assertMarketplaceAdmin(
     })
 }
 
+export function assertMarketplaceAdminOrMember(
+    txb: TransactionBlock,
+    marketplace: ObjectArg
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::marketplace::assert_marketplace_admin_or_member`,
+        arguments: [
+            obj(txb, marketplace)
+        ],
+    })
+}
+
+export function assertPermissionless(
+    txb: TransactionBlock,
+    marketplace: ObjectArg
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::marketplace::assert_permissionless`,
+        arguments: [
+            obj(txb, marketplace)
+        ],
+    })
+}
+
 export function defaultFee(
     txb: TransactionBlock,
     marketplace: ObjectArg
@@ -172,6 +196,18 @@ export function isAdminOrMember(
 ) {
     return txb.moveCall({
         target: `${PUBLISHED_AT}::marketplace::is_admin_or_member`,
+        arguments: [
+            obj(txb, marketplace)
+        ],
+    })
+}
+
+export function makePermissionless(
+    txb: TransactionBlock,
+    marketplace: ObjectArg
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::marketplace::make_permissionless`,
         arguments: [
             obj(txb, marketplace)
         ],

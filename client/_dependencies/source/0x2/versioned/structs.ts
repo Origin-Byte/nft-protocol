@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {ID, UID} from "../object/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type VersionChangeCapReified = Reified<
     VersionChangeCapFields
 >;
 
-export class VersionChangeCap {
+export class VersionChangeCap implements StructClass {
     static readonly $typeName = "0x2::versioned::VersionChangeCap";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class VersionChangeCap {
 
     readonly $fullTypeName: "0x2::versioned::VersionChangeCap";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly versionedId:
         ToField<ID>
     ; readonly oldVersion:
         ToField<"u64">
 
-    private constructor( fields: VersionChangeCapFields,
+    private constructor(typeArgs: [], fields: VersionChangeCapFields,
     ) {
-        this.$fullTypeName = VersionChangeCap.$typeName;
+        this.$fullTypeName = composeSuiType(
+            VersionChangeCap.$typeName,
+            ...typeArgs
+        ) as "0x2::versioned::VersionChangeCap";
+        this.$typeArgs = typeArgs;
 
         this.versionedId = fields.versionedId;; this.oldVersion = fields.oldVersion;
     }
@@ -49,7 +53,8 @@ export class VersionChangeCap {
                 VersionChangeCap.$typeName,
                 ...[]
             ) as "0x2::versioned::VersionChangeCap",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 VersionChangeCap.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class VersionChangeCap {
                 VersionChangeCap.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                VersionChangeCap.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => VersionChangeCap.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class VersionChangeCap {
                 fields: VersionChangeCapFields,
             ) => {
                 return new VersionChangeCap(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class VersionChangeCap {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -223,7 +234,7 @@ export type VersionedReified = Reified<
     VersionedFields
 >;
 
-export class Versioned {
+export class Versioned implements StructClass {
     static readonly $typeName = "0x2::versioned::Versioned";
     static readonly $numTypeParams = 0;
 
@@ -231,16 +242,20 @@ export class Versioned {
 
     readonly $fullTypeName: "0x2::versioned::Versioned";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly version:
         ToField<"u64">
 
-    private constructor( fields: VersionedFields,
+    private constructor(typeArgs: [], fields: VersionedFields,
     ) {
-        this.$fullTypeName = Versioned.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Versioned.$typeName,
+            ...typeArgs
+        ) as "0x2::versioned::Versioned";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;
     }
@@ -252,7 +267,8 @@ export class Versioned {
                 Versioned.$typeName,
                 ...[]
             ) as "0x2::versioned::Versioned",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Versioned.fromFields(
                     fields,
@@ -274,6 +290,10 @@ export class Versioned {
                 Versioned.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Versioned.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Versioned.fetch(
                 client,
                 id,
@@ -282,6 +302,7 @@ export class Versioned {
                 fields: VersionedFields,
             ) => {
                 return new Versioned(
+                    [],
                     fields
                 )
             },
@@ -350,6 +371,7 @@ export class Versioned {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

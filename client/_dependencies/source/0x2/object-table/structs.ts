@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {UID} from "../object/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type ObjectTableReified<K extends PhantomTypeArgument, V extends PhantomT
     ObjectTableFields<K, V>
 >;
 
-export class ObjectTable<K extends PhantomTypeArgument, V extends PhantomTypeArgument> {
+export class ObjectTable<K extends PhantomTypeArgument, V extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::object_table::ObjectTable";
     static readonly $numTypeParams = 2;
 
@@ -28,20 +28,19 @@ export class ObjectTable<K extends PhantomTypeArgument, V extends PhantomTypeArg
 
     readonly $fullTypeName: `0x2::object_table::ObjectTable<${PhantomToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<K>, PhantomToTypeStr<V>];
 
     readonly id:
         ToField<UID>
     ; readonly size:
         ToField<"u64">
 
-    private constructor(typeArgs: [string, string], fields: ObjectTableFields<K, V>,
+    private constructor(typeArgs: [PhantomToTypeStr<K>, PhantomToTypeStr<V>], fields: ObjectTableFields<K, V>,
     ) {
-        this.$fullTypeName = composeSuiType(ObjectTable.$typeName,
-        ...typeArgs) as `0x2::object_table::ObjectTable<${PhantomToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            ObjectTable.$typeName,
+            ...typeArgs
+        ) as `0x2::object_table::ObjectTable<${PhantomToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
         this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.size = fields.size;
@@ -56,7 +55,10 @@ export class ObjectTable<K extends PhantomTypeArgument, V extends PhantomTypeArg
                 ObjectTable.$typeName,
                 ...[extractType(K), extractType(V)]
             ) as `0x2::object_table::ObjectTable<${PhantomToTypeStr<ToPhantomTypeArgument<K>>}, ${PhantomToTypeStr<ToPhantomTypeArgument<V>>}>`,
-            typeArgs: [K, V],
+            typeArgs: [
+                extractType(K), extractType(V)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<K>>, PhantomToTypeStr<ToPhantomTypeArgument<V>>],
+            reifiedTypeArgs: [K, V],
             fromFields: (fields: Record<string, any>) =>
                 ObjectTable.fromFields(
                     [K, V],
@@ -82,6 +84,11 @@ export class ObjectTable<K extends PhantomTypeArgument, V extends PhantomTypeArg
                 ObjectTable.fromJSON(
                     [K, V],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ObjectTable.fromSuiParsedData(
+                    [K, V],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => ObjectTable.fetch(
                 client,

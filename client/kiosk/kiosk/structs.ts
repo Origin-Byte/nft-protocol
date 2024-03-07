@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type KIOSKReified = Reified<
     KIOSKFields
 >;
 
-export class KIOSK {
+export class KIOSK implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::kiosk::KIOSK";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class KIOSK {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::kiosk::KIOSK";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: KIOSKFields,
+    private constructor(typeArgs: [], fields: KIOSKFields,
     ) {
-        this.$fullTypeName = KIOSK.$typeName;
+        this.$fullTypeName = composeSuiType(
+            KIOSK.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::kiosk::KIOSK";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class KIOSK {
                 KIOSK.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::kiosk::KIOSK",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 KIOSK.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class KIOSK {
                 KIOSK.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                KIOSK.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => KIOSK.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class KIOSK {
                 fields: KIOSKFields,
             ) => {
                 return new KIOSK(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class KIOSK {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

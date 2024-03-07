@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type TransferTokenReified<T extends PhantomTypeArgument> = Reified<
     TransferTokenFields<T>
 >;
 
-export class TransferToken<T extends PhantomTypeArgument> {
+export class TransferToken<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferToken";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class TransferToken<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferToken<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
     ; readonly receiver:
         ToField<"address">
 
-    private constructor(typeArg: string, fields: TransferTokenFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TransferTokenFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(TransferToken.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferToken<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TransferToken.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferToken<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.receiver = fields.receiver;
     }
@@ -56,7 +55,10 @@ export class TransferToken<T extends PhantomTypeArgument> {
                 TransferToken.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferToken<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 TransferToken.fromFields(
                     T,
@@ -83,6 +85,11 @@ export class TransferToken<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TransferToken.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TransferToken.fetch(
                 client,
                 T,
@@ -92,7 +99,7 @@ export class TransferToken<T extends PhantomTypeArgument> {
                 fields: TransferTokenFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new TransferToken(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -172,7 +179,7 @@ export class TransferToken<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -196,7 +203,7 @@ export class TransferToken<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TransferToken.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -260,7 +267,7 @@ export type TransferTokenRuleReified = Reified<
     TransferTokenRuleFields
 >;
 
-export class TransferTokenRule {
+export class TransferTokenRule implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferTokenRule";
     static readonly $numTypeParams = 0;
 
@@ -268,14 +275,18 @@ export class TransferTokenRule {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferTokenRule";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: TransferTokenRuleFields,
+    private constructor(typeArgs: [], fields: TransferTokenRuleFields,
     ) {
-        this.$fullTypeName = TransferTokenRule.$typeName;
+        this.$fullTypeName = composeSuiType(
+            TransferTokenRule.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferTokenRule";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -287,7 +298,8 @@ export class TransferTokenRule {
                 TransferTokenRule.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_token::TransferTokenRule",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 TransferTokenRule.fromFields(
                     fields,
@@ -309,6 +321,10 @@ export class TransferTokenRule {
                 TransferTokenRule.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TransferTokenRule.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TransferTokenRule.fetch(
                 client,
                 id,
@@ -317,6 +333,7 @@ export class TransferTokenRule {
                 fields: TransferTokenRuleFields,
             ) => {
                 return new TransferTokenRule(
+                    [],
                     fields
                 )
             },
@@ -383,6 +400,7 @@ export class TransferTokenRule {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

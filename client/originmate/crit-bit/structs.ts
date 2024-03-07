@@ -1,5 +1,5 @@
 import * as reified from "../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type CBReified<V extends TypeArgument> = Reified<
     CBFields<V>
 >;
 
-export class CB<V extends TypeArgument> {
+export class CB<V extends TypeArgument> implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::CB";
     static readonly $numTypeParams = 1;
 
@@ -28,9 +28,7 @@ export class CB<V extends TypeArgument> {
 
     readonly $fullTypeName: `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::CB<${ToTypeStr<V>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<V>];
 
     readonly r:
         ToField<"u64">
@@ -39,12 +37,13 @@ export class CB<V extends TypeArgument> {
     ; readonly o:
         ToField<Vector<O<V>>>
 
-    private constructor(typeArg: string, fields: CBFields<V>,
+    private constructor(typeArgs: [ToTypeStr<V>], fields: CBFields<V>,
     ) {
-        this.$fullTypeName = composeSuiType(CB.$typeName,
-        typeArg) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::CB<${ToTypeStr<V>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            CB.$typeName,
+            ...typeArgs
+        ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::CB<${ToTypeStr<V>}>`;
+        this.$typeArgs = typeArgs;
 
         this.r = fields.r;; this.i = fields.i;; this.o = fields.o;
     }
@@ -58,7 +57,10 @@ export class CB<V extends TypeArgument> {
                 CB.$typeName,
                 ...[extractType(V)]
             ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::CB<${ToTypeStr<ToTypeArgument<V>>}>`,
-            typeArgs: [V],
+            typeArgs: [
+                extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<V>>],
+            reifiedTypeArgs: [V],
             fromFields: (fields: Record<string, any>) =>
                 CB.fromFields(
                     V,
@@ -85,6 +87,11 @@ export class CB<V extends TypeArgument> {
                     V,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                CB.fromSuiParsedData(
+                    V,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => CB.fetch(
                 client,
                 V,
@@ -94,7 +101,7 @@ export class CB<V extends TypeArgument> {
                 fields: CBFields<ToTypeArgument<V>>,
             ) => {
                 return new CB(
-                    extractType(V),
+                    [extractType(V)],
                     fields
                 )
             },
@@ -168,7 +175,7 @@ export class CB<V extends TypeArgument> {
 
     toJSONField() {
         return {
-            r: this.r.toString(),i: fieldToJSON<Vector<I>>(`vector<0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::I>`, this.i),o: fieldToJSON<Vector<O<V>>>(`vector<0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::O<${this.$typeArg}>>`, this.o),
+            r: this.r.toString(),i: fieldToJSON<Vector<I>>(`vector<0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::I>`, this.i),o: fieldToJSON<Vector<O<V>>>(`vector<0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::O<${this.$typeArgs[0]}>>`, this.o),
 
         }
     }
@@ -176,7 +183,7 @@ export class CB<V extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -200,7 +207,7 @@ export class CB<V extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(CB.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -264,7 +271,7 @@ export type IReified = Reified<
     IFields
 >;
 
-export class I {
+export class I implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::I";
     static readonly $numTypeParams = 0;
 
@@ -272,7 +279,7 @@ export class I {
 
     readonly $fullTypeName: "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::I";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly c:
         ToField<"u8">
@@ -283,9 +290,13 @@ export class I {
     ; readonly r:
         ToField<"u64">
 
-    private constructor( fields: IFields,
+    private constructor(typeArgs: [], fields: IFields,
     ) {
-        this.$fullTypeName = I.$typeName;
+        this.$fullTypeName = composeSuiType(
+            I.$typeName,
+            ...typeArgs
+        ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::I";
+        this.$typeArgs = typeArgs;
 
         this.c = fields.c;; this.p = fields.p;; this.l = fields.l;; this.r = fields.r;
     }
@@ -297,7 +308,8 @@ export class I {
                 I.$typeName,
                 ...[]
             ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::I",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 I.fromFields(
                     fields,
@@ -319,6 +331,10 @@ export class I {
                 I.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                I.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => I.fetch(
                 client,
                 id,
@@ -327,6 +343,7 @@ export class I {
                 fields: IFields,
             ) => {
                 return new I(
+                    [],
                     fields
                 )
             },
@@ -399,6 +416,7 @@ export class I {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -475,7 +493,7 @@ export type OReified<V extends TypeArgument> = Reified<
     OFields<V>
 >;
 
-export class O<V extends TypeArgument> {
+export class O<V extends TypeArgument> implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::O";
     static readonly $numTypeParams = 1;
 
@@ -483,9 +501,7 @@ export class O<V extends TypeArgument> {
 
     readonly $fullTypeName: `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::O<${ToTypeStr<V>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<V>];
 
     readonly k:
         ToField<"u128">
@@ -494,12 +510,13 @@ export class O<V extends TypeArgument> {
     ; readonly p:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: OFields<V>,
+    private constructor(typeArgs: [ToTypeStr<V>], fields: OFields<V>,
     ) {
-        this.$fullTypeName = composeSuiType(O.$typeName,
-        typeArg) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::O<${ToTypeStr<V>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            O.$typeName,
+            ...typeArgs
+        ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::O<${ToTypeStr<V>}>`;
+        this.$typeArgs = typeArgs;
 
         this.k = fields.k;; this.v = fields.v;; this.p = fields.p;
     }
@@ -513,7 +530,10 @@ export class O<V extends TypeArgument> {
                 O.$typeName,
                 ...[extractType(V)]
             ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::crit_bit::O<${ToTypeStr<ToTypeArgument<V>>}>`,
-            typeArgs: [V],
+            typeArgs: [
+                extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<V>>],
+            reifiedTypeArgs: [V],
             fromFields: (fields: Record<string, any>) =>
                 O.fromFields(
                     V,
@@ -540,6 +560,11 @@ export class O<V extends TypeArgument> {
                     V,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                O.fromSuiParsedData(
+                    V,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => O.fetch(
                 client,
                 V,
@@ -549,7 +574,7 @@ export class O<V extends TypeArgument> {
                 fields: OFields<ToTypeArgument<V>>,
             ) => {
                 return new O(
-                    extractType(V),
+                    [extractType(V)],
                     fields
                 )
             },
@@ -623,7 +648,7 @@ export class O<V extends TypeArgument> {
 
     toJSONField() {
         return {
-            k: this.k.toString(),v: fieldToJSON<V>(this.$typeArg, this.v),p: this.p.toString(),
+            k: this.k.toString(),v: fieldToJSON<V>(this.$typeArgs[0], this.v),p: this.p.toString(),
 
         }
     }
@@ -631,7 +656,7 @@ export class O<V extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -655,7 +680,7 @@ export class O<V extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(O.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {UID} from "../object/structs";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type FieldReified<Name extends TypeArgument, Value extends TypeArgument> 
     FieldFields<Name, Value>
 >;
 
-export class Field<Name extends TypeArgument, Value extends TypeArgument> {
+export class Field<Name extends TypeArgument, Value extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::dynamic_field::Field";
     static readonly $numTypeParams = 2;
 
@@ -28,9 +28,7 @@ export class Field<Name extends TypeArgument, Value extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::dynamic_field::Field<${ToTypeStr<Name>}, ${ToTypeStr<Value>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [ToTypeStr<Name>, ToTypeStr<Value>];
 
     readonly id:
         ToField<UID>
@@ -39,11 +37,12 @@ export class Field<Name extends TypeArgument, Value extends TypeArgument> {
     ; readonly value:
         ToField<Value>
 
-    private constructor(typeArgs: [string, string], fields: FieldFields<Name, Value>,
+    private constructor(typeArgs: [ToTypeStr<Name>, ToTypeStr<Value>], fields: FieldFields<Name, Value>,
     ) {
-        this.$fullTypeName = composeSuiType(Field.$typeName,
-        ...typeArgs) as `0x2::dynamic_field::Field<${ToTypeStr<Name>}, ${ToTypeStr<Value>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            Field.$typeName,
+            ...typeArgs
+        ) as `0x2::dynamic_field::Field<${ToTypeStr<Name>}, ${ToTypeStr<Value>}>`;
         this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.name = fields.name;; this.value = fields.value;
@@ -58,7 +57,10 @@ export class Field<Name extends TypeArgument, Value extends TypeArgument> {
                 Field.$typeName,
                 ...[extractType(Name), extractType(Value)]
             ) as `0x2::dynamic_field::Field<${ToTypeStr<ToTypeArgument<Name>>}, ${ToTypeStr<ToTypeArgument<Value>>}>`,
-            typeArgs: [Name, Value],
+            typeArgs: [
+                extractType(Name), extractType(Value)
+            ] as [ToTypeStr<ToTypeArgument<Name>>, ToTypeStr<ToTypeArgument<Value>>],
+            reifiedTypeArgs: [Name, Value],
             fromFields: (fields: Record<string, any>) =>
                 Field.fromFields(
                     [Name, Value],
@@ -84,6 +86,11 @@ export class Field<Name extends TypeArgument, Value extends TypeArgument> {
                 Field.fromJSON(
                     [Name, Value],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Field.fromSuiParsedData(
+                    [Name, Value],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => Field.fetch(
                 client,

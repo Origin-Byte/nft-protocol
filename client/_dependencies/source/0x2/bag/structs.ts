@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {UID} from "../object/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type BagReified = Reified<
     BagFields
 >;
 
-export class Bag {
+export class Bag implements StructClass {
     static readonly $typeName = "0x2::bag::Bag";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class Bag {
 
     readonly $fullTypeName: "0x2::bag::Bag";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly size:
         ToField<"u64">
 
-    private constructor( fields: BagFields,
+    private constructor(typeArgs: [], fields: BagFields,
     ) {
-        this.$fullTypeName = Bag.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Bag.$typeName,
+            ...typeArgs
+        ) as "0x2::bag::Bag";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.size = fields.size;
     }
@@ -49,7 +53,8 @@ export class Bag {
                 Bag.$typeName,
                 ...[]
             ) as "0x2::bag::Bag",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Bag.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class Bag {
                 Bag.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Bag.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Bag.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class Bag {
                 fields: BagFields,
             ) => {
                 return new Bag(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class Bag {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

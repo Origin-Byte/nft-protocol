@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {Bag} from "../bag/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type ExtensionReified = Reified<
     ExtensionFields
 >;
 
-export class Extension {
+export class Extension implements StructClass {
     static readonly $typeName = "0x2::kiosk_extension::Extension";
     static readonly $numTypeParams = 0;
 
@@ -28,7 +28,7 @@ export class Extension {
 
     readonly $fullTypeName: "0x2::kiosk_extension::Extension";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly storage:
         ToField<Bag>
@@ -37,9 +37,13 @@ export class Extension {
     ; readonly isEnabled:
         ToField<"bool">
 
-    private constructor( fields: ExtensionFields,
+    private constructor(typeArgs: [], fields: ExtensionFields,
     ) {
-        this.$fullTypeName = Extension.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Extension.$typeName,
+            ...typeArgs
+        ) as "0x2::kiosk_extension::Extension";
+        this.$typeArgs = typeArgs;
 
         this.storage = fields.storage;; this.permissions = fields.permissions;; this.isEnabled = fields.isEnabled;
     }
@@ -51,7 +55,8 @@ export class Extension {
                 Extension.$typeName,
                 ...[]
             ) as "0x2::kiosk_extension::Extension",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Extension.fromFields(
                     fields,
@@ -73,6 +78,10 @@ export class Extension {
                 Extension.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Extension.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Extension.fetch(
                 client,
                 id,
@@ -81,6 +90,7 @@ export class Extension {
                 fields: ExtensionFields,
             ) => {
                 return new Extension(
+                    [],
                     fields
                 )
             },
@@ -151,6 +161,7 @@ export class Extension {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -227,7 +238,7 @@ export type ExtensionKeyReified<Ext extends PhantomTypeArgument> = Reified<
     ExtensionKeyFields<Ext>
 >;
 
-export class ExtensionKey<Ext extends PhantomTypeArgument> {
+export class ExtensionKey<Ext extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::kiosk_extension::ExtensionKey";
     static readonly $numTypeParams = 1;
 
@@ -235,19 +246,18 @@ export class ExtensionKey<Ext extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::kiosk_extension::ExtensionKey<${PhantomToTypeStr<Ext>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<Ext>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: ExtensionKeyFields<Ext>,
+    private constructor(typeArgs: [PhantomToTypeStr<Ext>], fields: ExtensionKeyFields<Ext>,
     ) {
-        this.$fullTypeName = composeSuiType(ExtensionKey.$typeName,
-        typeArg) as `0x2::kiosk_extension::ExtensionKey<${PhantomToTypeStr<Ext>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            ExtensionKey.$typeName,
+            ...typeArgs
+        ) as `0x2::kiosk_extension::ExtensionKey<${PhantomToTypeStr<Ext>}>`;
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -261,7 +271,10 @@ export class ExtensionKey<Ext extends PhantomTypeArgument> {
                 ExtensionKey.$typeName,
                 ...[extractType(Ext)]
             ) as `0x2::kiosk_extension::ExtensionKey<${PhantomToTypeStr<ToPhantomTypeArgument<Ext>>}>`,
-            typeArgs: [Ext],
+            typeArgs: [
+                extractType(Ext)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<Ext>>],
+            reifiedTypeArgs: [Ext],
             fromFields: (fields: Record<string, any>) =>
                 ExtensionKey.fromFields(
                     Ext,
@@ -288,6 +301,11 @@ export class ExtensionKey<Ext extends PhantomTypeArgument> {
                     Ext,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ExtensionKey.fromSuiParsedData(
+                    Ext,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ExtensionKey.fetch(
                 client,
                 Ext,
@@ -297,7 +315,7 @@ export class ExtensionKey<Ext extends PhantomTypeArgument> {
                 fields: ExtensionKeyFields<ToPhantomTypeArgument<Ext>>,
             ) => {
                 return new ExtensionKey(
-                    extractType(Ext),
+                    [extractType(Ext)],
                     fields
                 )
             },
@@ -374,7 +392,7 @@ export class ExtensionKey<Ext extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -398,7 +416,7 @@ export class ExtensionKey<Ext extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(ExtensionKey.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

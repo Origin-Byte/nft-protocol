@@ -5,7 +5,7 @@ import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecMap} from "../../_dependencies/source/0x2/vec-map/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -26,7 +26,7 @@ export type AUTHLISTReified = Reified<
     AUTHLISTFields
 >;
 
-export class AUTHLIST {
+export class AUTHLIST implements StructClass {
     static readonly $typeName = "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AUTHLIST";
     static readonly $numTypeParams = 0;
 
@@ -34,14 +34,18 @@ export class AUTHLIST {
 
     readonly $fullTypeName: "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AUTHLIST";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: AUTHLISTFields,
+    private constructor(typeArgs: [], fields: AUTHLISTFields,
     ) {
-        this.$fullTypeName = AUTHLIST.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AUTHLIST.$typeName,
+            ...typeArgs
+        ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AUTHLIST";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -53,7 +57,8 @@ export class AUTHLIST {
                 AUTHLIST.$typeName,
                 ...[]
             ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AUTHLIST",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AUTHLIST.fromFields(
                     fields,
@@ -75,6 +80,10 @@ export class AUTHLIST {
                 AUTHLIST.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AUTHLIST.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AUTHLIST.fetch(
                 client,
                 id,
@@ -83,6 +92,7 @@ export class AUTHLIST {
                 fields: AUTHLISTFields,
             ) => {
                 return new AUTHLIST(
+                    [],
                     fields
                 )
             },
@@ -149,6 +159,7 @@ export class AUTHLIST {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -225,7 +236,7 @@ export type AuthlistReified = Reified<
     AuthlistFields
 >;
 
-export class Authlist {
+export class Authlist implements StructClass {
     static readonly $typeName = "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::Authlist";
     static readonly $numTypeParams = 0;
 
@@ -233,7 +244,7 @@ export class Authlist {
 
     readonly $fullTypeName: "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::Authlist";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -246,9 +257,13 @@ export class Authlist {
     ; readonly authorities:
         ToField<VecSet<Vector<"u8">>>
 
-    private constructor( fields: AuthlistFields,
+    private constructor(typeArgs: [], fields: AuthlistFields,
     ) {
-        this.$fullTypeName = Authlist.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Authlist.$typeName,
+            ...typeArgs
+        ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::Authlist";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;; this.adminWitness = fields.adminWitness;; this.names = fields.names;; this.authorities = fields.authorities;
     }
@@ -260,7 +275,8 @@ export class Authlist {
                 Authlist.$typeName,
                 ...[]
             ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::Authlist",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Authlist.fromFields(
                     fields,
@@ -282,6 +298,10 @@ export class Authlist {
                 Authlist.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Authlist.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Authlist.fetch(
                 client,
                 id,
@@ -290,6 +310,7 @@ export class Authlist {
                 fields: AuthlistFields,
             ) => {
                 return new Authlist(
+                    [],
                     fields
                 )
             },
@@ -364,6 +385,7 @@ export class Authlist {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -440,7 +462,7 @@ export type AuthlistOwnerCapReified = Reified<
     AuthlistOwnerCapFields
 >;
 
-export class AuthlistOwnerCap {
+export class AuthlistOwnerCap implements StructClass {
     static readonly $typeName = "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AuthlistOwnerCap";
     static readonly $numTypeParams = 0;
 
@@ -448,16 +470,20 @@ export class AuthlistOwnerCap {
 
     readonly $fullTypeName: "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AuthlistOwnerCap";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly for:
         ToField<ID>
 
-    private constructor( fields: AuthlistOwnerCapFields,
+    private constructor(typeArgs: [], fields: AuthlistOwnerCapFields,
     ) {
-        this.$fullTypeName = AuthlistOwnerCap.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AuthlistOwnerCap.$typeName,
+            ...typeArgs
+        ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AuthlistOwnerCap";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.for = fields.for;
     }
@@ -469,7 +495,8 @@ export class AuthlistOwnerCap {
                 AuthlistOwnerCap.$typeName,
                 ...[]
             ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::AuthlistOwnerCap",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AuthlistOwnerCap.fromFields(
                     fields,
@@ -491,6 +518,10 @@ export class AuthlistOwnerCap {
                 AuthlistOwnerCap.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AuthlistOwnerCap.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AuthlistOwnerCap.fetch(
                 client,
                 id,
@@ -499,6 +530,7 @@ export class AuthlistOwnerCap {
                 fields: AuthlistOwnerCapFields,
             ) => {
                 return new AuthlistOwnerCap(
+                    [],
                     fields
                 )
             },
@@ -567,6 +599,7 @@ export class AuthlistOwnerCap {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -643,7 +676,7 @@ export type CollectionKeyReified = Reified<
     CollectionKeyFields
 >;
 
-export class CollectionKey {
+export class CollectionKey implements StructClass {
     static readonly $typeName = "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::CollectionKey";
     static readonly $numTypeParams = 0;
 
@@ -651,14 +684,18 @@ export class CollectionKey {
 
     readonly $fullTypeName: "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::CollectionKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly typeName:
         ToField<TypeName>
 
-    private constructor( fields: CollectionKeyFields,
+    private constructor(typeArgs: [], fields: CollectionKeyFields,
     ) {
-        this.$fullTypeName = CollectionKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            CollectionKey.$typeName,
+            ...typeArgs
+        ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::CollectionKey";
+        this.$typeArgs = typeArgs;
 
         this.typeName = fields.typeName;
     }
@@ -670,7 +707,8 @@ export class CollectionKey {
                 CollectionKey.$typeName,
                 ...[]
             ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::authlist::CollectionKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 CollectionKey.fromFields(
                     fields,
@@ -692,6 +730,10 @@ export class CollectionKey {
                 CollectionKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                CollectionKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => CollectionKey.fetch(
                 client,
                 id,
@@ -700,6 +742,7 @@ export class CollectionKey {
                 fields: CollectionKeyFields,
             ) => {
                 return new CollectionKey(
+                    [],
                     fields
                 )
             },
@@ -766,6 +809,7 @@ export class CollectionKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

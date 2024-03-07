@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type BalanceReified<T extends PhantomTypeArgument> = Reified<
     BalanceFields<T>
 >;
 
-export class Balance<T extends PhantomTypeArgument> {
+export class Balance<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::balance::Balance";
     static readonly $numTypeParams = 1;
 
@@ -27,19 +27,18 @@ export class Balance<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::balance::Balance<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly value:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: BalanceFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: BalanceFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Balance.$typeName,
-        typeArg) as `0x2::balance::Balance<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Balance.$typeName,
+            ...typeArgs
+        ) as `0x2::balance::Balance<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.value = fields.value;
     }
@@ -53,7 +52,10 @@ export class Balance<T extends PhantomTypeArgument> {
                 Balance.$typeName,
                 ...[extractType(T)]
             ) as `0x2::balance::Balance<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Balance.fromFields(
                     T,
@@ -80,6 +82,11 @@ export class Balance<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Balance.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Balance.fetch(
                 client,
                 T,
@@ -89,7 +96,7 @@ export class Balance<T extends PhantomTypeArgument> {
                 fields: BalanceFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Balance(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -166,7 +173,7 @@ export class Balance<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -190,7 +197,7 @@ export class Balance<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Balance.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -254,7 +261,7 @@ export type SupplyReified<T extends PhantomTypeArgument> = Reified<
     SupplyFields<T>
 >;
 
-export class Supply<T extends PhantomTypeArgument> {
+export class Supply<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::balance::Supply";
     static readonly $numTypeParams = 1;
 
@@ -262,19 +269,18 @@ export class Supply<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::balance::Supply<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly value:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: SupplyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: SupplyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Supply.$typeName,
-        typeArg) as `0x2::balance::Supply<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Supply.$typeName,
+            ...typeArgs
+        ) as `0x2::balance::Supply<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.value = fields.value;
     }
@@ -288,7 +294,10 @@ export class Supply<T extends PhantomTypeArgument> {
                 Supply.$typeName,
                 ...[extractType(T)]
             ) as `0x2::balance::Supply<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Supply.fromFields(
                     T,
@@ -315,6 +324,11 @@ export class Supply<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Supply.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Supply.fetch(
                 client,
                 T,
@@ -324,7 +338,7 @@ export class Supply<T extends PhantomTypeArgument> {
                 fields: SupplyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Supply(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -401,7 +415,7 @@ export class Supply<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -425,7 +439,7 @@ export class Supply<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Supply.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

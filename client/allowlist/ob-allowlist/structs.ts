@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type OB_ALLOWLISTReified = Reified<
     OB_ALLOWLISTFields
 >;
 
-export class OB_ALLOWLIST {
+export class OB_ALLOWLIST implements StructClass {
     static readonly $typeName = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::ob_allowlist::OB_ALLOWLIST";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class OB_ALLOWLIST {
 
     readonly $fullTypeName: "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::ob_allowlist::OB_ALLOWLIST";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: OB_ALLOWLISTFields,
+    private constructor(typeArgs: [], fields: OB_ALLOWLISTFields,
     ) {
-        this.$fullTypeName = OB_ALLOWLIST.$typeName;
+        this.$fullTypeName = composeSuiType(
+            OB_ALLOWLIST.$typeName,
+            ...typeArgs
+        ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::ob_allowlist::OB_ALLOWLIST";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class OB_ALLOWLIST {
                 OB_ALLOWLIST.$typeName,
                 ...[]
             ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::ob_allowlist::OB_ALLOWLIST",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 OB_ALLOWLIST.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class OB_ALLOWLIST {
                 OB_ALLOWLIST.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                OB_ALLOWLIST.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => OB_ALLOWLIST.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class OB_ALLOWLIST {
                 fields: OB_ALLOWLISTFields,
             ) => {
                 return new OB_ALLOWLIST(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class OB_ALLOWLIST {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

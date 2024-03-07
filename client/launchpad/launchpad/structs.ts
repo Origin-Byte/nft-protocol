@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type LAUNCHPADReified = Reified<
     LAUNCHPADFields
 >;
 
-export class LAUNCHPAD {
+export class LAUNCHPAD implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::launchpad::LAUNCHPAD";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class LAUNCHPAD {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::launchpad::LAUNCHPAD";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: LAUNCHPADFields,
+    private constructor(typeArgs: [], fields: LAUNCHPADFields,
     ) {
-        this.$fullTypeName = LAUNCHPAD.$typeName;
+        this.$fullTypeName = composeSuiType(
+            LAUNCHPAD.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::launchpad::LAUNCHPAD";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class LAUNCHPAD {
                 LAUNCHPAD.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::launchpad::LAUNCHPAD",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 LAUNCHPAD.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class LAUNCHPAD {
                 LAUNCHPAD.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                LAUNCHPAD.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => LAUNCHPAD.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class LAUNCHPAD {
                 fields: LAUNCHPADFields,
             ) => {
                 return new LAUNCHPAD(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class LAUNCHPAD {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

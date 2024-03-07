@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {String} from "../../0x1/ascii/structs";
 import {ID, UID} from "../object/structs";
@@ -22,7 +22,7 @@ export type PublisherReified = Reified<
     PublisherFields
 >;
 
-export class Publisher {
+export class Publisher implements StructClass {
     static readonly $typeName = "0x2::package::Publisher";
     static readonly $numTypeParams = 0;
 
@@ -30,7 +30,7 @@ export class Publisher {
 
     readonly $fullTypeName: "0x2::package::Publisher";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -39,9 +39,13 @@ export class Publisher {
     ; readonly moduleName:
         ToField<String>
 
-    private constructor( fields: PublisherFields,
+    private constructor(typeArgs: [], fields: PublisherFields,
     ) {
-        this.$fullTypeName = Publisher.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Publisher.$typeName,
+            ...typeArgs
+        ) as "0x2::package::Publisher";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.package = fields.package;; this.moduleName = fields.moduleName;
     }
@@ -53,7 +57,8 @@ export class Publisher {
                 Publisher.$typeName,
                 ...[]
             ) as "0x2::package::Publisher",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Publisher.fromFields(
                     fields,
@@ -75,6 +80,10 @@ export class Publisher {
                 Publisher.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Publisher.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Publisher.fetch(
                 client,
                 id,
@@ -83,6 +92,7 @@ export class Publisher {
                 fields: PublisherFields,
             ) => {
                 return new Publisher(
+                    [],
                     fields
                 )
             },
@@ -153,6 +163,7 @@ export class Publisher {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -229,7 +240,7 @@ export type UpgradeCapReified = Reified<
     UpgradeCapFields
 >;
 
-export class UpgradeCap {
+export class UpgradeCap implements StructClass {
     static readonly $typeName = "0x2::package::UpgradeCap";
     static readonly $numTypeParams = 0;
 
@@ -237,7 +248,7 @@ export class UpgradeCap {
 
     readonly $fullTypeName: "0x2::package::UpgradeCap";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -248,9 +259,13 @@ export class UpgradeCap {
     ; readonly policy:
         ToField<"u8">
 
-    private constructor( fields: UpgradeCapFields,
+    private constructor(typeArgs: [], fields: UpgradeCapFields,
     ) {
-        this.$fullTypeName = UpgradeCap.$typeName;
+        this.$fullTypeName = composeSuiType(
+            UpgradeCap.$typeName,
+            ...typeArgs
+        ) as "0x2::package::UpgradeCap";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.package = fields.package;; this.version = fields.version;; this.policy = fields.policy;
     }
@@ -262,7 +277,8 @@ export class UpgradeCap {
                 UpgradeCap.$typeName,
                 ...[]
             ) as "0x2::package::UpgradeCap",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 UpgradeCap.fromFields(
                     fields,
@@ -284,6 +300,10 @@ export class UpgradeCap {
                 UpgradeCap.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                UpgradeCap.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => UpgradeCap.fetch(
                 client,
                 id,
@@ -292,6 +312,7 @@ export class UpgradeCap {
                 fields: UpgradeCapFields,
             ) => {
                 return new UpgradeCap(
+                    [],
                     fields
                 )
             },
@@ -364,6 +385,7 @@ export class UpgradeCap {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -440,7 +462,7 @@ export type UpgradeReceiptReified = Reified<
     UpgradeReceiptFields
 >;
 
-export class UpgradeReceipt {
+export class UpgradeReceipt implements StructClass {
     static readonly $typeName = "0x2::package::UpgradeReceipt";
     static readonly $numTypeParams = 0;
 
@@ -448,16 +470,20 @@ export class UpgradeReceipt {
 
     readonly $fullTypeName: "0x2::package::UpgradeReceipt";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly cap:
         ToField<ID>
     ; readonly package:
         ToField<ID>
 
-    private constructor( fields: UpgradeReceiptFields,
+    private constructor(typeArgs: [], fields: UpgradeReceiptFields,
     ) {
-        this.$fullTypeName = UpgradeReceipt.$typeName;
+        this.$fullTypeName = composeSuiType(
+            UpgradeReceipt.$typeName,
+            ...typeArgs
+        ) as "0x2::package::UpgradeReceipt";
+        this.$typeArgs = typeArgs;
 
         this.cap = fields.cap;; this.package = fields.package;
     }
@@ -469,7 +495,8 @@ export class UpgradeReceipt {
                 UpgradeReceipt.$typeName,
                 ...[]
             ) as "0x2::package::UpgradeReceipt",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 UpgradeReceipt.fromFields(
                     fields,
@@ -491,6 +518,10 @@ export class UpgradeReceipt {
                 UpgradeReceipt.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                UpgradeReceipt.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => UpgradeReceipt.fetch(
                 client,
                 id,
@@ -499,6 +530,7 @@ export class UpgradeReceipt {
                 fields: UpgradeReceiptFields,
             ) => {
                 return new UpgradeReceipt(
+                    [],
                     fields
                 )
             },
@@ -567,6 +599,7 @@ export class UpgradeReceipt {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -643,7 +676,7 @@ export type UpgradeTicketReified = Reified<
     UpgradeTicketFields
 >;
 
-export class UpgradeTicket {
+export class UpgradeTicket implements StructClass {
     static readonly $typeName = "0x2::package::UpgradeTicket";
     static readonly $numTypeParams = 0;
 
@@ -651,7 +684,7 @@ export class UpgradeTicket {
 
     readonly $fullTypeName: "0x2::package::UpgradeTicket";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly cap:
         ToField<ID>
@@ -662,9 +695,13 @@ export class UpgradeTicket {
     ; readonly digest:
         ToField<Vector<"u8">>
 
-    private constructor( fields: UpgradeTicketFields,
+    private constructor(typeArgs: [], fields: UpgradeTicketFields,
     ) {
-        this.$fullTypeName = UpgradeTicket.$typeName;
+        this.$fullTypeName = composeSuiType(
+            UpgradeTicket.$typeName,
+            ...typeArgs
+        ) as "0x2::package::UpgradeTicket";
+        this.$typeArgs = typeArgs;
 
         this.cap = fields.cap;; this.package = fields.package;; this.policy = fields.policy;; this.digest = fields.digest;
     }
@@ -676,7 +713,8 @@ export class UpgradeTicket {
                 UpgradeTicket.$typeName,
                 ...[]
             ) as "0x2::package::UpgradeTicket",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 UpgradeTicket.fromFields(
                     fields,
@@ -698,6 +736,10 @@ export class UpgradeTicket {
                 UpgradeTicket.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                UpgradeTicket.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => UpgradeTicket.fetch(
                 client,
                 id,
@@ -706,6 +748,7 @@ export class UpgradeTicket {
                 fields: UpgradeTicketFields,
             ) => {
                 return new UpgradeTicket(
+                    [],
                     fields
                 )
             },
@@ -778,6 +821,7 @@ export class UpgradeTicket {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

@@ -2,7 +2,7 @@ import * as reified from "../../_framework/reified";
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecMap} from "../../_dependencies/source/0x2/vec-map/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -23,7 +23,7 @@ export type KeyReified = Reified<
     KeyFields
 >;
 
-export class Key {
+export class Key implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::Key";
     static readonly $numTypeParams = 0;
 
@@ -31,14 +31,18 @@ export class Key {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::Key";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<ID>
 
-    private constructor( fields: KeyFields,
+    private constructor(typeArgs: [], fields: KeyFields,
     ) {
-        this.$fullTypeName = Key.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Key.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::Key";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;
     }
@@ -50,7 +54,8 @@ export class Key {
                 Key.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::Key",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Key.fromFields(
                     fields,
@@ -72,6 +77,10 @@ export class Key {
                 Key.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Key.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Key.fetch(
                 client,
                 id,
@@ -80,6 +89,7 @@ export class Key {
                 fields: KeyFields,
             ) => {
                 return new Key(
+                    [],
                     fields
                 )
             },
@@ -146,6 +156,7 @@ export class Key {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -222,7 +233,7 @@ export type NftBagReified = Reified<
     NftBagFields
 >;
 
-export class NftBag {
+export class NftBag implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::NftBag";
     static readonly $numTypeParams = 0;
 
@@ -230,7 +241,7 @@ export class NftBag {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::NftBag";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -239,9 +250,13 @@ export class NftBag {
     ; readonly nfts:
         ToField<VecMap<ID, "u64">>
 
-    private constructor( fields: NftBagFields,
+    private constructor(typeArgs: [], fields: NftBagFields,
     ) {
-        this.$fullTypeName = NftBag.$typeName;
+        this.$fullTypeName = composeSuiType(
+            NftBag.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::NftBag";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.authorities = fields.authorities;; this.nfts = fields.nfts;
     }
@@ -253,7 +268,8 @@ export class NftBag {
                 NftBag.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_bag::NftBag",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 NftBag.fromFields(
                     fields,
@@ -275,6 +291,10 @@ export class NftBag {
                 NftBag.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                NftBag.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => NftBag.fetch(
                 client,
                 id,
@@ -283,6 +303,7 @@ export class NftBag {
                 fields: NftBagFields,
             ) => {
                 return new NftBag(
+                    [],
                     fields
                 )
             },
@@ -353,6 +374,7 @@ export class NftBag {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

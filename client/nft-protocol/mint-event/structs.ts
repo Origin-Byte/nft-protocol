@@ -1,5 +1,5 @@
 import {ID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type BurnEventReified<T extends PhantomTypeArgument> = Reified<
     BurnEventFields<T>
 >;
 
-export class BurnEvent<T extends PhantomTypeArgument> {
+export class BurnEvent<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnEvent";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class BurnEvent<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnEvent<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly collectionId:
         ToField<ID>
     ; readonly object:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: BurnEventFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: BurnEventFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(BurnEvent.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnEvent<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            BurnEvent.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnEvent<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.collectionId = fields.collectionId;; this.object = fields.object;
     }
@@ -56,7 +55,10 @@ export class BurnEvent<T extends PhantomTypeArgument> {
                 BurnEvent.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnEvent<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 BurnEvent.fromFields(
                     T,
@@ -83,6 +85,11 @@ export class BurnEvent<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BurnEvent.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BurnEvent.fetch(
                 client,
                 T,
@@ -92,7 +99,7 @@ export class BurnEvent<T extends PhantomTypeArgument> {
                 fields: BurnEventFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new BurnEvent(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -171,7 +178,7 @@ export class BurnEvent<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -195,7 +202,7 @@ export class BurnEvent<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(BurnEvent.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -259,7 +266,7 @@ export type BurnGuardReified<T extends PhantomTypeArgument> = Reified<
     BurnGuardFields<T>
 >;
 
-export class BurnGuard<T extends PhantomTypeArgument> {
+export class BurnGuard<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnGuard";
     static readonly $numTypeParams = 1;
 
@@ -267,19 +274,18 @@ export class BurnGuard<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnGuard<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: BurnGuardFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: BurnGuardFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(BurnGuard.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnGuard<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            BurnGuard.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnGuard<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;
     }
@@ -293,7 +299,10 @@ export class BurnGuard<T extends PhantomTypeArgument> {
                 BurnGuard.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::BurnGuard<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 BurnGuard.fromFields(
                     T,
@@ -320,6 +329,11 @@ export class BurnGuard<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BurnGuard.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BurnGuard.fetch(
                 client,
                 T,
@@ -329,7 +343,7 @@ export class BurnGuard<T extends PhantomTypeArgument> {
                 fields: BurnGuardFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new BurnGuard(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -406,7 +420,7 @@ export class BurnGuard<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -430,7 +444,7 @@ export class BurnGuard<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(BurnGuard.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -494,7 +508,7 @@ export type MintEventReified<T extends PhantomTypeArgument> = Reified<
     MintEventFields<T>
 >;
 
-export class MintEvent<T extends PhantomTypeArgument> {
+export class MintEvent<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::MintEvent";
     static readonly $numTypeParams = 1;
 
@@ -502,21 +516,20 @@ export class MintEvent<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::MintEvent<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly collectionId:
         ToField<ID>
     ; readonly object:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: MintEventFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: MintEventFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(MintEvent.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::MintEvent<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            MintEvent.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::MintEvent<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.collectionId = fields.collectionId;; this.object = fields.object;
     }
@@ -530,7 +543,10 @@ export class MintEvent<T extends PhantomTypeArgument> {
                 MintEvent.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_event::MintEvent<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 MintEvent.fromFields(
                     T,
@@ -557,6 +573,11 @@ export class MintEvent<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                MintEvent.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => MintEvent.fetch(
                 client,
                 T,
@@ -566,7 +587,7 @@ export class MintEvent<T extends PhantomTypeArgument> {
                 fields: MintEventFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new MintEvent(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -645,7 +666,7 @@ export class MintEvent<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -669,7 +690,7 @@ export class MintEvent<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(MintEvent.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

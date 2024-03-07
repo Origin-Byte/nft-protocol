@@ -1,5 +1,5 @@
 import * as reified from "../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type SizedVecReified<Element extends TypeArgument> = Reified<
     SizedVecFields<Element>
 >;
 
-export class SizedVec<Element extends TypeArgument> {
+export class SizedVec<Element extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::sized_vec::SizedVec";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class SizedVec<Element extends TypeArgument> {
 
     readonly $fullTypeName: `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::sized_vec::SizedVec<${ToTypeStr<Element>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<Element>];
 
     readonly capacity:
         ToField<"u64">
     ; readonly vec:
         ToField<Vector<Element>>
 
-    private constructor(typeArg: string, fields: SizedVecFields<Element>,
+    private constructor(typeArgs: [ToTypeStr<Element>], fields: SizedVecFields<Element>,
     ) {
-        this.$fullTypeName = composeSuiType(SizedVec.$typeName,
-        typeArg) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::sized_vec::SizedVec<${ToTypeStr<Element>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            SizedVec.$typeName,
+            ...typeArgs
+        ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::sized_vec::SizedVec<${ToTypeStr<Element>}>`;
+        this.$typeArgs = typeArgs;
 
         this.capacity = fields.capacity;; this.vec = fields.vec;
     }
@@ -56,7 +55,10 @@ export class SizedVec<Element extends TypeArgument> {
                 SizedVec.$typeName,
                 ...[extractType(Element)]
             ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::sized_vec::SizedVec<${ToTypeStr<ToTypeArgument<Element>>}>`,
-            typeArgs: [Element],
+            typeArgs: [
+                extractType(Element)
+            ] as [ToTypeStr<ToTypeArgument<Element>>],
+            reifiedTypeArgs: [Element],
             fromFields: (fields: Record<string, any>) =>
                 SizedVec.fromFields(
                     Element,
@@ -83,6 +85,11 @@ export class SizedVec<Element extends TypeArgument> {
                     Element,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                SizedVec.fromSuiParsedData(
+                    Element,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => SizedVec.fetch(
                 client,
                 Element,
@@ -92,7 +99,7 @@ export class SizedVec<Element extends TypeArgument> {
                 fields: SizedVecFields<ToTypeArgument<Element>>,
             ) => {
                 return new SizedVec(
-                    extractType(Element),
+                    [extractType(Element)],
                     fields
                 )
             },
@@ -164,7 +171,7 @@ export class SizedVec<Element extends TypeArgument> {
 
     toJSONField() {
         return {
-            capacity: this.capacity.toString(),vec: fieldToJSON<Vector<Element>>(`vector<${this.$typeArg}>`, this.vec),
+            capacity: this.capacity.toString(),vec: fieldToJSON<Vector<Element>>(`vector<${this.$typeArgs[0]}>`, this.vec),
 
         }
     }
@@ -172,7 +179,7 @@ export class SizedVec<Element extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -196,7 +203,7 @@ export class SizedVec<Element extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(SizedVec.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

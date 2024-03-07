@@ -1,7 +1,7 @@
 import {Option} from "../../_dependencies/source/0x1/option/structs";
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -22,7 +22,7 @@ export type SessionTokenReified<T extends PhantomTypeArgument> = Reified<
     SessionTokenFields<T>
 >;
 
-export class SessionToken<T extends PhantomTypeArgument> {
+export class SessionToken<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionToken";
     static readonly $numTypeParams = 1;
 
@@ -30,9 +30,7 @@ export class SessionToken<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionToken<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -47,12 +45,13 @@ export class SessionToken<T extends PhantomTypeArgument> {
     ; readonly entity:
         ToField<"address">
 
-    private constructor(typeArg: string, fields: SessionTokenFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: SessionTokenFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(SessionToken.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionToken<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            SessionToken.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionToken<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.nftId = fields.nftId;; this.field = fields.field;; this.expiryMs = fields.expiryMs;; this.timeoutId = fields.timeoutId;; this.entity = fields.entity;
     }
@@ -66,7 +65,10 @@ export class SessionToken<T extends PhantomTypeArgument> {
                 SessionToken.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionToken<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 SessionToken.fromFields(
                     T,
@@ -93,6 +95,11 @@ export class SessionToken<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                SessionToken.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => SessionToken.fetch(
                 client,
                 T,
@@ -102,7 +109,7 @@ export class SessionToken<T extends PhantomTypeArgument> {
                 fields: SessionTokenFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new SessionToken(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -190,7 +197,7 @@ export class SessionToken<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -214,7 +221,7 @@ export class SessionToken<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(SessionToken.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -278,7 +285,7 @@ export type SessionTokenRuleReified = Reified<
     SessionTokenRuleFields
 >;
 
-export class SessionTokenRule {
+export class SessionTokenRule implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionTokenRule";
     static readonly $numTypeParams = 0;
 
@@ -286,14 +293,18 @@ export class SessionTokenRule {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionTokenRule";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: SessionTokenRuleFields,
+    private constructor(typeArgs: [], fields: SessionTokenRuleFields,
     ) {
-        this.$fullTypeName = SessionTokenRule.$typeName;
+        this.$fullTypeName = composeSuiType(
+            SessionTokenRule.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionTokenRule";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -305,7 +316,8 @@ export class SessionTokenRule {
                 SessionTokenRule.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::SessionTokenRule",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 SessionTokenRule.fromFields(
                     fields,
@@ -327,6 +339,10 @@ export class SessionTokenRule {
                 SessionTokenRule.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                SessionTokenRule.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => SessionTokenRule.fetch(
                 client,
                 id,
@@ -335,6 +351,7 @@ export class SessionTokenRule {
                 fields: SessionTokenRuleFields,
             ) => {
                 return new SessionTokenRule(
+                    [],
                     fields
                 )
             },
@@ -401,6 +418,7 @@ export class SessionTokenRule {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -477,7 +495,7 @@ export type TimeOutReified<T extends PhantomTypeArgument> = Reified<
     TimeOutFields<T>
 >;
 
-export class TimeOut<T extends PhantomTypeArgument> {
+export class TimeOut<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOut";
     static readonly $numTypeParams = 1;
 
@@ -485,9 +503,7 @@ export class TimeOut<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOut<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -496,12 +512,13 @@ export class TimeOut<T extends PhantomTypeArgument> {
     ; readonly accessToken:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: TimeOutFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TimeOutFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(TimeOut.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOut<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TimeOut.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOut<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.expiryMs = fields.expiryMs;; this.accessToken = fields.accessToken;
     }
@@ -515,7 +532,10 @@ export class TimeOut<T extends PhantomTypeArgument> {
                 TimeOut.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOut<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 TimeOut.fromFields(
                     T,
@@ -542,6 +562,11 @@ export class TimeOut<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TimeOut.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TimeOut.fetch(
                 client,
                 T,
@@ -551,7 +576,7 @@ export class TimeOut<T extends PhantomTypeArgument> {
                 fields: TimeOutFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new TimeOut(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -632,7 +657,7 @@ export class TimeOut<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -656,7 +681,7 @@ export class TimeOut<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TimeOut.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -720,7 +745,7 @@ export type TimeOutDfKeyReified = Reified<
     TimeOutDfKeyFields
 >;
 
-export class TimeOutDfKey {
+export class TimeOutDfKey implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOutDfKey";
     static readonly $numTypeParams = 0;
 
@@ -728,14 +753,18 @@ export class TimeOutDfKey {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOutDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly nftId:
         ToField<ID>
 
-    private constructor( fields: TimeOutDfKeyFields,
+    private constructor(typeArgs: [], fields: TimeOutDfKeyFields,
     ) {
-        this.$fullTypeName = TimeOutDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            TimeOutDfKey.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOutDfKey";
+        this.$typeArgs = typeArgs;
 
         this.nftId = fields.nftId;
     }
@@ -747,7 +776,8 @@ export class TimeOutDfKey {
                 TimeOutDfKey.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::session_token::TimeOutDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 TimeOutDfKey.fromFields(
                     fields,
@@ -769,6 +799,10 @@ export class TimeOutDfKey {
                 TimeOutDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TimeOutDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TimeOutDfKey.fetch(
                 client,
                 id,
@@ -777,6 +811,7 @@ export class TimeOutDfKey {
                 fields: TimeOutDfKeyFields,
             ) => {
                 return new TimeOutDfKey(
+                    [],
                     fields
                 )
             },
@@ -843,6 +878,7 @@ export class TimeOutDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

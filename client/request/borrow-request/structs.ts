@@ -3,7 +3,7 @@ import {Option} from "../../_dependencies/source/0x1/option/structs";
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {Borrow} from "../../_dependencies/source/0x2/kiosk/structs";
 import {ID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs, ToTypeStr as ToPhantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs, ToTypeStr as ToPhantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {RequestBody, WithNft} from "../request/structs";
 import {BcsType, bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
@@ -25,7 +25,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::Witness";
     static readonly $numTypeParams = 0;
 
@@ -33,14 +33,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -52,7 +56,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -74,6 +79,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -82,6 +91,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -148,6 +158,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -224,7 +235,7 @@ export type BORROW_REQReified = Reified<
     BORROW_REQFields
 >;
 
-export class BORROW_REQ {
+export class BORROW_REQ implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BORROW_REQ";
     static readonly $numTypeParams = 0;
 
@@ -232,14 +243,18 @@ export class BORROW_REQ {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BORROW_REQ";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: BORROW_REQFields,
+    private constructor(typeArgs: [], fields: BORROW_REQFields,
     ) {
-        this.$fullTypeName = BORROW_REQ.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BORROW_REQ.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BORROW_REQ";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -251,7 +266,8 @@ export class BORROW_REQ {
                 BORROW_REQ.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BORROW_REQ",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BORROW_REQ.fromFields(
                     fields,
@@ -273,6 +289,10 @@ export class BORROW_REQ {
                 BORROW_REQ.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BORROW_REQ.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BORROW_REQ.fetch(
                 client,
                 id,
@@ -281,6 +301,7 @@ export class BORROW_REQ {
                 fields: BORROW_REQFields,
             ) => {
                 return new BORROW_REQ(
+                    [],
                     fields
                 )
             },
@@ -347,6 +368,7 @@ export class BORROW_REQ {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -423,7 +445,7 @@ export type BorrowRequestReified<Auth extends PhantomTypeArgument, T extends Typ
     BorrowRequestFields<Auth, T>
 >;
 
-export class BorrowRequest<Auth extends PhantomTypeArgument, T extends TypeArgument> {
+export class BorrowRequest<Auth extends PhantomTypeArgument, T extends TypeArgument> implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BorrowRequest";
     static readonly $numTypeParams = 2;
 
@@ -431,9 +453,7 @@ export class BorrowRequest<Auth extends PhantomTypeArgument, T extends TypeArgum
 
     readonly $fullTypeName: `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BorrowRequest<${PhantomToTypeStr<Auth>}, ${ToTypeStr<T>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<Auth>, ToTypeStr<T>];
 
     readonly nftId:
         ToField<ID>
@@ -448,11 +468,12 @@ export class BorrowRequest<Auth extends PhantomTypeArgument, T extends TypeArgum
     ; readonly inner:
         ToField<RequestBody<ToPhantom<WithNft<ToPhantom<T>, ToPhantom<BORROW_REQ>>>>>
 
-    private constructor(typeArgs: [string, string], fields: BorrowRequestFields<Auth, T>,
+    private constructor(typeArgs: [PhantomToTypeStr<Auth>, ToTypeStr<T>], fields: BorrowRequestFields<Auth, T>,
     ) {
-        this.$fullTypeName = composeSuiType(BorrowRequest.$typeName,
-        ...typeArgs) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BorrowRequest<${PhantomToTypeStr<Auth>}, ${ToTypeStr<T>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            BorrowRequest.$typeName,
+            ...typeArgs
+        ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BorrowRequest<${PhantomToTypeStr<Auth>}, ${ToTypeStr<T>}>`;
         this.$typeArgs = typeArgs;
 
         this.nftId = fields.nftId;; this.nft = fields.nft;; this.sender = fields.sender;; this.field = fields.field;; this.promise = fields.promise;; this.inner = fields.inner;
@@ -467,7 +488,10 @@ export class BorrowRequest<Auth extends PhantomTypeArgument, T extends TypeArgum
                 BorrowRequest.$typeName,
                 ...[extractType(Auth), extractType(T)]
             ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::BorrowRequest<${PhantomToTypeStr<ToPhantomTypeArgument<Auth>>}, ${ToTypeStr<ToTypeArgument<T>>}>`,
-            typeArgs: [Auth, T],
+            typeArgs: [
+                extractType(Auth), extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<Auth>>, ToTypeStr<ToTypeArgument<T>>],
+            reifiedTypeArgs: [Auth, T],
             fromFields: (fields: Record<string, any>) =>
                 BorrowRequest.fromFields(
                     [Auth, T],
@@ -493,6 +517,11 @@ export class BorrowRequest<Auth extends PhantomTypeArgument, T extends TypeArgum
                 BorrowRequest.fromJSON(
                     [Auth, T],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BorrowRequest.fromSuiParsedData(
+                    [Auth, T],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => BorrowRequest.fetch(
                 client,
@@ -679,7 +708,7 @@ export type ReturnPromiseReified<T extends PhantomTypeArgument, Field extends Ph
     ReturnPromiseFields<T, Field>
 >;
 
-export class ReturnPromise<T extends PhantomTypeArgument, Field extends PhantomTypeArgument> {
+export class ReturnPromise<T extends PhantomTypeArgument, Field extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::ReturnPromise";
     static readonly $numTypeParams = 2;
 
@@ -687,18 +716,17 @@ export class ReturnPromise<T extends PhantomTypeArgument, Field extends PhantomT
 
     readonly $fullTypeName: `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::ReturnPromise<${PhantomToTypeStr<T>}, ${PhantomToTypeStr<Field>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>, PhantomToTypeStr<Field>];
 
     readonly nftId:
         ToField<ID>
 
-    private constructor(typeArgs: [string, string], fields: ReturnPromiseFields<T, Field>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>, PhantomToTypeStr<Field>], fields: ReturnPromiseFields<T, Field>,
     ) {
-        this.$fullTypeName = composeSuiType(ReturnPromise.$typeName,
-        ...typeArgs) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::ReturnPromise<${PhantomToTypeStr<T>}, ${PhantomToTypeStr<Field>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            ReturnPromise.$typeName,
+            ...typeArgs
+        ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::ReturnPromise<${PhantomToTypeStr<T>}, ${PhantomToTypeStr<Field>}>`;
         this.$typeArgs = typeArgs;
 
         this.nftId = fields.nftId;
@@ -713,7 +741,10 @@ export class ReturnPromise<T extends PhantomTypeArgument, Field extends PhantomT
                 ReturnPromise.$typeName,
                 ...[extractType(T), extractType(Field)]
             ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::borrow_request::ReturnPromise<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}, ${PhantomToTypeStr<ToPhantomTypeArgument<Field>>}>`,
-            typeArgs: [T, Field],
+            typeArgs: [
+                extractType(T), extractType(Field)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>, PhantomToTypeStr<ToPhantomTypeArgument<Field>>],
+            reifiedTypeArgs: [T, Field],
             fromFields: (fields: Record<string, any>) =>
                 ReturnPromise.fromFields(
                     [T, Field],
@@ -739,6 +770,11 @@ export class ReturnPromise<T extends PhantomTypeArgument, Field extends PhantomT
                 ReturnPromise.fromJSON(
                     [T, Field],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ReturnPromise.fromSuiParsedData(
+                    [T, Field],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => ReturnPromise.fetch(
                 client,

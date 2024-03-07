@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {BcsType, bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type EscrowReified<T extends TypeArgument> = Reified<
     EscrowFields<T>
 >;
 
-export class Escrow<T extends TypeArgument> {
+export class Escrow<T extends TypeArgument> implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::escrow::Escrow";
     static readonly $numTypeParams = 1;
 
@@ -28,9 +28,7 @@ export class Escrow<T extends TypeArgument> {
 
     readonly $fullTypeName: `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::escrow::Escrow<${ToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -39,12 +37,13 @@ export class Escrow<T extends TypeArgument> {
     ; readonly obj:
         ToField<T>
 
-    private constructor(typeArg: string, fields: EscrowFields<T>,
+    private constructor(typeArgs: [ToTypeStr<T>], fields: EscrowFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Escrow.$typeName,
-        typeArg) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::escrow::Escrow<${ToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Escrow.$typeName,
+            ...typeArgs
+        ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::escrow::Escrow<${ToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.recipient = fields.recipient;; this.obj = fields.obj;
     }
@@ -58,7 +57,10 @@ export class Escrow<T extends TypeArgument> {
                 Escrow.$typeName,
                 ...[extractType(T)]
             ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::escrow::Escrow<${ToTypeStr<ToTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [ToTypeStr<ToTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Escrow.fromFields(
                     T,
@@ -85,6 +87,11 @@ export class Escrow<T extends TypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Escrow.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Escrow.fetch(
                 client,
                 T,
@@ -94,7 +101,7 @@ export class Escrow<T extends TypeArgument> {
                 fields: EscrowFields<ToTypeArgument<T>>,
             ) => {
                 return new Escrow(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -169,7 +176,7 @@ export class Escrow<T extends TypeArgument> {
 
     toJSONField() {
         return {
-            id: this.id,recipient: this.recipient,obj: fieldToJSON<T>(this.$typeArg, this.obj),
+            id: this.id,recipient: this.recipient,obj: fieldToJSON<T>(this.$typeArgs[0], this.obj),
 
         }
     }
@@ -177,7 +184,7 @@ export class Escrow<T extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -201,7 +208,7 @@ export class Escrow<T extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Escrow.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

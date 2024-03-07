@@ -1,6 +1,6 @@
 import {Coin} from "../../_dependencies/source/0x2/coin/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type ClawbackCapabilityReified = Reified<
     ClawbackCapabilityFields
 >;
 
-export class ClawbackCapability {
+export class ClawbackCapability implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::ClawbackCapability";
     static readonly $numTypeParams = 0;
 
@@ -29,16 +29,20 @@ export class ClawbackCapability {
 
     readonly $fullTypeName: "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::ClawbackCapability";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly walletId:
         ToField<ID>
 
-    private constructor( fields: ClawbackCapabilityFields,
+    private constructor(typeArgs: [], fields: ClawbackCapabilityFields,
     ) {
-        this.$fullTypeName = ClawbackCapability.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ClawbackCapability.$typeName,
+            ...typeArgs
+        ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::ClawbackCapability";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.walletId = fields.walletId;
     }
@@ -50,7 +54,8 @@ export class ClawbackCapability {
                 ClawbackCapability.$typeName,
                 ...[]
             ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::ClawbackCapability",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ClawbackCapability.fromFields(
                     fields,
@@ -72,6 +77,10 @@ export class ClawbackCapability {
                 ClawbackCapability.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ClawbackCapability.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ClawbackCapability.fetch(
                 client,
                 id,
@@ -80,6 +89,7 @@ export class ClawbackCapability {
                 fields: ClawbackCapabilityFields,
             ) => {
                 return new ClawbackCapability(
+                    [],
                     fields
                 )
             },
@@ -148,6 +158,7 @@ export class ClawbackCapability {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -224,7 +235,7 @@ export type WalletReified<T extends PhantomTypeArgument> = Reified<
     WalletFields<T>
 >;
 
-export class Wallet<T extends PhantomTypeArgument> {
+export class Wallet<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::Wallet";
     static readonly $numTypeParams = 1;
 
@@ -232,9 +243,7 @@ export class Wallet<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::Wallet<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -249,12 +258,13 @@ export class Wallet<T extends PhantomTypeArgument> {
     ; readonly duration:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: WalletFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: WalletFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Wallet.$typeName,
-        typeArg) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::Wallet<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Wallet.$typeName,
+            ...typeArgs
+        ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::Wallet<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.beneficiary = fields.beneficiary;; this.coin = fields.coin;; this.released = fields.released;; this.start = fields.start;; this.duration = fields.duration;
     }
@@ -268,7 +278,10 @@ export class Wallet<T extends PhantomTypeArgument> {
                 Wallet.$typeName,
                 ...[extractType(T)]
             ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::linear_vesting::Wallet<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Wallet.fromFields(
                     T,
@@ -295,6 +308,11 @@ export class Wallet<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Wallet.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Wallet.fetch(
                 client,
                 T,
@@ -304,7 +322,7 @@ export class Wallet<T extends PhantomTypeArgument> {
                 fields: WalletFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Wallet(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -392,7 +410,7 @@ export class Wallet<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -416,7 +434,7 @@ export class Wallet<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Wallet.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

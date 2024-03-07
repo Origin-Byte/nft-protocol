@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type TxContextReified = Reified<
     TxContextFields
 >;
 
-export class TxContext {
+export class TxContext implements StructClass {
     static readonly $typeName = "0x2::tx_context::TxContext";
     static readonly $numTypeParams = 0;
 
@@ -28,7 +28,7 @@ export class TxContext {
 
     readonly $fullTypeName: "0x2::tx_context::TxContext";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly sender:
         ToField<"address">
@@ -41,9 +41,13 @@ export class TxContext {
     ; readonly idsCreated:
         ToField<"u64">
 
-    private constructor( fields: TxContextFields,
+    private constructor(typeArgs: [], fields: TxContextFields,
     ) {
-        this.$fullTypeName = TxContext.$typeName;
+        this.$fullTypeName = composeSuiType(
+            TxContext.$typeName,
+            ...typeArgs
+        ) as "0x2::tx_context::TxContext";
+        this.$typeArgs = typeArgs;
 
         this.sender = fields.sender;; this.txHash = fields.txHash;; this.epoch = fields.epoch;; this.epochTimestampMs = fields.epochTimestampMs;; this.idsCreated = fields.idsCreated;
     }
@@ -55,7 +59,8 @@ export class TxContext {
                 TxContext.$typeName,
                 ...[]
             ) as "0x2::tx_context::TxContext",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 TxContext.fromFields(
                     fields,
@@ -77,6 +82,10 @@ export class TxContext {
                 TxContext.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TxContext.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TxContext.fetch(
                 client,
                 id,
@@ -85,6 +94,7 @@ export class TxContext {
                 fields: TxContextFields,
             ) => {
                 return new TxContext(
+                    [],
                     fields
                 )
             },
@@ -160,6 +170,7 @@ export class TxContext {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

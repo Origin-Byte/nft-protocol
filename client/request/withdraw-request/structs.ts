@@ -1,5 +1,5 @@
 import * as reified from "../../_framework/reified";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom, ToTypeStr as ToPhantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom, ToTypeStr as ToPhantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {RequestBody, WithNft} from "../request/structs";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
@@ -21,7 +21,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::Witness";
     static readonly $numTypeParams = 0;
 
@@ -29,14 +29,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -48,7 +52,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -70,6 +75,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -78,6 +87,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -144,6 +154,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -220,7 +231,7 @@ export type WITHDRAW_REQReified = Reified<
     WITHDRAW_REQFields
 >;
 
-export class WITHDRAW_REQ {
+export class WITHDRAW_REQ implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WITHDRAW_REQ";
     static readonly $numTypeParams = 0;
 
@@ -228,14 +239,18 @@ export class WITHDRAW_REQ {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WITHDRAW_REQ";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WITHDRAW_REQFields,
+    private constructor(typeArgs: [], fields: WITHDRAW_REQFields,
     ) {
-        this.$fullTypeName = WITHDRAW_REQ.$typeName;
+        this.$fullTypeName = composeSuiType(
+            WITHDRAW_REQ.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WITHDRAW_REQ";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -247,7 +262,8 @@ export class WITHDRAW_REQ {
                 WITHDRAW_REQ.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WITHDRAW_REQ",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 WITHDRAW_REQ.fromFields(
                     fields,
@@ -269,6 +285,10 @@ export class WITHDRAW_REQ {
                 WITHDRAW_REQ.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                WITHDRAW_REQ.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => WITHDRAW_REQ.fetch(
                 client,
                 id,
@@ -277,6 +297,7 @@ export class WITHDRAW_REQ {
                 fields: WITHDRAW_REQFields,
             ) => {
                 return new WITHDRAW_REQ(
+                    [],
                     fields
                 )
             },
@@ -343,6 +364,7 @@ export class WITHDRAW_REQ {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -419,7 +441,7 @@ export type WithdrawRequestReified<T extends PhantomTypeArgument> = Reified<
     WithdrawRequestFields<T>
 >;
 
-export class WithdrawRequest<T extends PhantomTypeArgument> {
+export class WithdrawRequest<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WithdrawRequest";
     static readonly $numTypeParams = 1;
 
@@ -427,21 +449,20 @@ export class WithdrawRequest<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WithdrawRequest<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly sender:
         ToField<"address">
     ; readonly inner:
         ToField<RequestBody<ToPhantom<WithNft<T, ToPhantom<WITHDRAW_REQ>>>>>
 
-    private constructor(typeArg: string, fields: WithdrawRequestFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: WithdrawRequestFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(WithdrawRequest.$typeName,
-        typeArg) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WithdrawRequest<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            WithdrawRequest.$typeName,
+            ...typeArgs
+        ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WithdrawRequest<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.sender = fields.sender;; this.inner = fields.inner;
     }
@@ -455,7 +476,10 @@ export class WithdrawRequest<T extends PhantomTypeArgument> {
                 WithdrawRequest.$typeName,
                 ...[extractType(T)]
             ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::withdraw_request::WithdrawRequest<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 WithdrawRequest.fromFields(
                     T,
@@ -482,6 +506,11 @@ export class WithdrawRequest<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                WithdrawRequest.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => WithdrawRequest.fetch(
                 client,
                 T,
@@ -491,7 +520,7 @@ export class WithdrawRequest<T extends PhantomTypeArgument> {
                 fields: WithdrawRequestFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new WithdrawRequest(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -571,7 +600,7 @@ export class WithdrawRequest<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -595,7 +624,7 @@ export class WithdrawRequest<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(WithdrawRequest.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type VenueReified = Reified<
     VenueFields
 >;
 
-export class Venue {
+export class Venue implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::venue::Venue";
     static readonly $numTypeParams = 0;
 
@@ -28,7 +28,7 @@ export class Venue {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::venue::Venue";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -37,9 +37,13 @@ export class Venue {
     ; readonly isWhitelisted:
         ToField<"bool">
 
-    private constructor( fields: VenueFields,
+    private constructor(typeArgs: [], fields: VenueFields,
     ) {
-        this.$fullTypeName = Venue.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Venue.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::venue::Venue";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.isLive = fields.isLive;; this.isWhitelisted = fields.isWhitelisted;
     }
@@ -51,7 +55,8 @@ export class Venue {
                 Venue.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::venue::Venue",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Venue.fromFields(
                     fields,
@@ -73,6 +78,10 @@ export class Venue {
                 Venue.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Venue.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Venue.fetch(
                 client,
                 id,
@@ -81,6 +90,7 @@ export class Venue {
                 fields: VenueFields,
             ) => {
                 return new Venue(
+                    [],
                     fields
                 )
             },
@@ -151,6 +161,7 @@ export class Venue {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

@@ -1,5 +1,5 @@
 import {String} from "../../_dependencies/source/0x1/string/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type DisplayInfoReified = Reified<
     DisplayInfoFields
 >;
 
-export class DisplayInfo {
+export class DisplayInfo implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::display_info::DisplayInfo";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class DisplayInfo {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::display_info::DisplayInfo";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly name:
         ToField<String>
     ; readonly description:
         ToField<String>
 
-    private constructor( fields: DisplayInfoFields,
+    private constructor(typeArgs: [], fields: DisplayInfoFields,
     ) {
-        this.$fullTypeName = DisplayInfo.$typeName;
+        this.$fullTypeName = composeSuiType(
+            DisplayInfo.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::display_info::DisplayInfo";
+        this.$typeArgs = typeArgs;
 
         this.name = fields.name;; this.description = fields.description;
     }
@@ -49,7 +53,8 @@ export class DisplayInfo {
                 DisplayInfo.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::display_info::DisplayInfo",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 DisplayInfo.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class DisplayInfo {
                 DisplayInfo.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                DisplayInfo.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => DisplayInfo.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class DisplayInfo {
                 fields: DisplayInfoFields,
             ) => {
                 return new DisplayInfo(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class DisplayInfo {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

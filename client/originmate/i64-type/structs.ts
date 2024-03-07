@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type I64Reified = Reified<
     I64Fields
 >;
 
-export class I64 {
+export class I64 implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i64_type::I64";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class I64 {
 
     readonly $fullTypeName: "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i64_type::I64";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bits:
         ToField<"u64">
 
-    private constructor( fields: I64Fields,
+    private constructor(typeArgs: [], fields: I64Fields,
     ) {
-        this.$fullTypeName = I64.$typeName;
+        this.$fullTypeName = composeSuiType(
+            I64.$typeName,
+            ...typeArgs
+        ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i64_type::I64";
+        this.$typeArgs = typeArgs;
 
         this.bits = fields.bits;
     }
@@ -46,7 +50,8 @@ export class I64 {
                 I64.$typeName,
                 ...[]
             ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i64_type::I64",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 I64.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class I64 {
                 I64.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                I64.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => I64.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class I64 {
                 fields: I64Fields,
             ) => {
                 return new I64(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class I64 {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

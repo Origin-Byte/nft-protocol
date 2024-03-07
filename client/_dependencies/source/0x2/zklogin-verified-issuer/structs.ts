@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {String} from "../../0x1/string/structs";
 import {UID} from "../object/structs";
@@ -21,7 +21,7 @@ export type VerifiedIssuerReified = Reified<
     VerifiedIssuerFields
 >;
 
-export class VerifiedIssuer {
+export class VerifiedIssuer implements StructClass {
     static readonly $typeName = "0x2::zklogin_verified_issuer::VerifiedIssuer";
     static readonly $numTypeParams = 0;
 
@@ -29,7 +29,7 @@ export class VerifiedIssuer {
 
     readonly $fullTypeName: "0x2::zklogin_verified_issuer::VerifiedIssuer";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -38,9 +38,13 @@ export class VerifiedIssuer {
     ; readonly issuer:
         ToField<String>
 
-    private constructor( fields: VerifiedIssuerFields,
+    private constructor(typeArgs: [], fields: VerifiedIssuerFields,
     ) {
-        this.$fullTypeName = VerifiedIssuer.$typeName;
+        this.$fullTypeName = composeSuiType(
+            VerifiedIssuer.$typeName,
+            ...typeArgs
+        ) as "0x2::zklogin_verified_issuer::VerifiedIssuer";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.owner = fields.owner;; this.issuer = fields.issuer;
     }
@@ -52,7 +56,8 @@ export class VerifiedIssuer {
                 VerifiedIssuer.$typeName,
                 ...[]
             ) as "0x2::zklogin_verified_issuer::VerifiedIssuer",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 VerifiedIssuer.fromFields(
                     fields,
@@ -74,6 +79,10 @@ export class VerifiedIssuer {
                 VerifiedIssuer.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                VerifiedIssuer.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => VerifiedIssuer.fetch(
                 client,
                 id,
@@ -82,6 +91,7 @@ export class VerifiedIssuer {
                 fields: VerifiedIssuerFields,
             ) => {
                 return new VerifiedIssuer(
+                    [],
                     fields
                 )
             },
@@ -153,6 +163,7 @@ export class VerifiedIssuer {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

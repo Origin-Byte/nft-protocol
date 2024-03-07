@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type SUIReified = Reified<
     SUIFields
 >;
 
-export class SUI {
+export class SUI implements StructClass {
     static readonly $typeName = "0x2::sui::SUI";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class SUI {
 
     readonly $fullTypeName: "0x2::sui::SUI";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: SUIFields,
+    private constructor(typeArgs: [], fields: SUIFields,
     ) {
-        this.$fullTypeName = SUI.$typeName;
+        this.$fullTypeName = composeSuiType(
+            SUI.$typeName,
+            ...typeArgs
+        ) as "0x2::sui::SUI";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class SUI {
                 SUI.$typeName,
                 ...[]
             ) as "0x2::sui::SUI",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 SUI.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class SUI {
                 SUI.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                SUI.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => SUI.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class SUI {
                 fields: SUIFields,
             ) => {
                 return new SUI(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class SUI {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

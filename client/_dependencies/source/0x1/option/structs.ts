@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type OptionReified<Element extends TypeArgument> = Reified<
     OptionFields<Element>
 >;
 
-export class Option<Element extends TypeArgument> {
+export class Option<Element extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x1::option::Option";
     static readonly $numTypeParams = 1;
 
@@ -32,19 +32,18 @@ export class Option<Element extends TypeArgument> {
 
     readonly $fullTypeName: `0x1::option::Option<${ToTypeStr<Element>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<Element>];
 
     readonly vec:
         ToField<Vector<Element>>
 
-    private constructor(typeArg: string, fields: OptionFields<Element>,
+    private constructor(typeArgs: [ToTypeStr<Element>], fields: OptionFields<Element>,
     ) {
-        this.$fullTypeName = composeSuiType(Option.$typeName,
-        typeArg) as `0x1::option::Option<${ToTypeStr<Element>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Option.$typeName,
+            ...typeArgs
+        ) as `0x1::option::Option<${ToTypeStr<Element>}>`;
+        this.$typeArgs = typeArgs;
 
         this.vec = fields.vec;
     }
@@ -58,7 +57,10 @@ export class Option<Element extends TypeArgument> {
                 Option.$typeName,
                 ...[extractType(Element)]
             ) as `0x1::option::Option<${ToTypeStr<ToTypeArgument<Element>>}>`,
-            typeArgs: [Element],
+            typeArgs: [
+                extractType(Element)
+            ] as [ToTypeStr<ToTypeArgument<Element>>],
+            reifiedTypeArgs: [Element],
             fromFields: (fields: Record<string, any>) =>
                 Option.fromFields(
                     Element,
@@ -85,6 +87,11 @@ export class Option<Element extends TypeArgument> {
                     Element,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Option.fromSuiParsedData(
+                    Element,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Option.fetch(
                 client,
                 Element,
@@ -94,7 +101,7 @@ export class Option<Element extends TypeArgument> {
                 fields: OptionFields<ToTypeArgument<Element>>,
             ) => {
                 return new Option(
-                    extractType(Element),
+                    [extractType(Element)],
                     fields
                 )
             },
@@ -164,7 +171,7 @@ export class Option<Element extends TypeArgument> {
 
     toJSONField() {
         return {
-            vec: fieldToJSON<Vector<Element>>(`vector<${this.$typeArg}>`, this.vec),
+            vec: fieldToJSON<Vector<Element>>(`vector<${this.$typeArgs[0]}>`, this.vec),
 
         }
     }
@@ -172,7 +179,7 @@ export class Option<Element extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -196,7 +203,7 @@ export class Option<Element extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Option.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

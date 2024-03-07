@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {Table} from "../table/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -21,7 +21,7 @@ export type TableVecReified<Element extends PhantomTypeArgument> = Reified<
     TableVecFields<Element>
 >;
 
-export class TableVec<Element extends PhantomTypeArgument> {
+export class TableVec<Element extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::table_vec::TableVec";
     static readonly $numTypeParams = 1;
 
@@ -29,19 +29,18 @@ export class TableVec<Element extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::table_vec::TableVec<${PhantomToTypeStr<Element>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<Element>];
 
     readonly contents:
         ToField<Table<"u64", Element>>
 
-    private constructor(typeArg: string, fields: TableVecFields<Element>,
+    private constructor(typeArgs: [PhantomToTypeStr<Element>], fields: TableVecFields<Element>,
     ) {
-        this.$fullTypeName = composeSuiType(TableVec.$typeName,
-        typeArg) as `0x2::table_vec::TableVec<${PhantomToTypeStr<Element>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TableVec.$typeName,
+            ...typeArgs
+        ) as `0x2::table_vec::TableVec<${PhantomToTypeStr<Element>}>`;
+        this.$typeArgs = typeArgs;
 
         this.contents = fields.contents;
     }
@@ -55,7 +54,10 @@ export class TableVec<Element extends PhantomTypeArgument> {
                 TableVec.$typeName,
                 ...[extractType(Element)]
             ) as `0x2::table_vec::TableVec<${PhantomToTypeStr<ToPhantomTypeArgument<Element>>}>`,
-            typeArgs: [Element],
+            typeArgs: [
+                extractType(Element)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<Element>>],
+            reifiedTypeArgs: [Element],
             fromFields: (fields: Record<string, any>) =>
                 TableVec.fromFields(
                     Element,
@@ -82,6 +84,11 @@ export class TableVec<Element extends PhantomTypeArgument> {
                     Element,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TableVec.fromSuiParsedData(
+                    Element,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TableVec.fetch(
                 client,
                 Element,
@@ -91,7 +98,7 @@ export class TableVec<Element extends PhantomTypeArgument> {
                 fields: TableVecFields<ToPhantomTypeArgument<Element>>,
             ) => {
                 return new TableVec(
-                    extractType(Element),
+                    [extractType(Element)],
                     fields
                 )
             },
@@ -168,7 +175,7 @@ export class TableVec<Element extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -192,7 +199,7 @@ export class TableVec<Element extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TableVec.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

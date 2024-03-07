@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {String} from "../../0x1/string/structs";
 import {UID} from "../object/structs";
@@ -22,7 +22,7 @@ export type ActiveJwkReified = Reified<
     ActiveJwkFields
 >;
 
-export class ActiveJwk {
+export class ActiveJwk implements StructClass {
     static readonly $typeName = "0x2::authenticator_state::ActiveJwk";
     static readonly $numTypeParams = 0;
 
@@ -30,7 +30,7 @@ export class ActiveJwk {
 
     readonly $fullTypeName: "0x2::authenticator_state::ActiveJwk";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly jwkId:
         ToField<JwkId>
@@ -39,9 +39,13 @@ export class ActiveJwk {
     ; readonly epoch:
         ToField<"u64">
 
-    private constructor( fields: ActiveJwkFields,
+    private constructor(typeArgs: [], fields: ActiveJwkFields,
     ) {
-        this.$fullTypeName = ActiveJwk.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ActiveJwk.$typeName,
+            ...typeArgs
+        ) as "0x2::authenticator_state::ActiveJwk";
+        this.$typeArgs = typeArgs;
 
         this.jwkId = fields.jwkId;; this.jwk = fields.jwk;; this.epoch = fields.epoch;
     }
@@ -53,7 +57,8 @@ export class ActiveJwk {
                 ActiveJwk.$typeName,
                 ...[]
             ) as "0x2::authenticator_state::ActiveJwk",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ActiveJwk.fromFields(
                     fields,
@@ -75,6 +80,10 @@ export class ActiveJwk {
                 ActiveJwk.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ActiveJwk.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ActiveJwk.fetch(
                 client,
                 id,
@@ -83,6 +92,7 @@ export class ActiveJwk {
                 fields: ActiveJwkFields,
             ) => {
                 return new ActiveJwk(
+                    [],
                     fields
                 )
             },
@@ -153,6 +163,7 @@ export class ActiveJwk {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -229,7 +240,7 @@ export type AuthenticatorStateReified = Reified<
     AuthenticatorStateFields
 >;
 
-export class AuthenticatorState {
+export class AuthenticatorState implements StructClass {
     static readonly $typeName = "0x2::authenticator_state::AuthenticatorState";
     static readonly $numTypeParams = 0;
 
@@ -237,16 +248,20 @@ export class AuthenticatorState {
 
     readonly $fullTypeName: "0x2::authenticator_state::AuthenticatorState";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly version:
         ToField<"u64">
 
-    private constructor( fields: AuthenticatorStateFields,
+    private constructor(typeArgs: [], fields: AuthenticatorStateFields,
     ) {
-        this.$fullTypeName = AuthenticatorState.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AuthenticatorState.$typeName,
+            ...typeArgs
+        ) as "0x2::authenticator_state::AuthenticatorState";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;
     }
@@ -258,7 +273,8 @@ export class AuthenticatorState {
                 AuthenticatorState.$typeName,
                 ...[]
             ) as "0x2::authenticator_state::AuthenticatorState",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AuthenticatorState.fromFields(
                     fields,
@@ -280,6 +296,10 @@ export class AuthenticatorState {
                 AuthenticatorState.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AuthenticatorState.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AuthenticatorState.fetch(
                 client,
                 id,
@@ -288,6 +308,7 @@ export class AuthenticatorState {
                 fields: AuthenticatorStateFields,
             ) => {
                 return new AuthenticatorState(
+                    [],
                     fields
                 )
             },
@@ -356,6 +377,7 @@ export class AuthenticatorState {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -432,7 +454,7 @@ export type AuthenticatorStateInnerReified = Reified<
     AuthenticatorStateInnerFields
 >;
 
-export class AuthenticatorStateInner {
+export class AuthenticatorStateInner implements StructClass {
     static readonly $typeName = "0x2::authenticator_state::AuthenticatorStateInner";
     static readonly $numTypeParams = 0;
 
@@ -440,16 +462,20 @@ export class AuthenticatorStateInner {
 
     readonly $fullTypeName: "0x2::authenticator_state::AuthenticatorStateInner";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly version:
         ToField<"u64">
     ; readonly activeJwks:
         ToField<Vector<ActiveJwk>>
 
-    private constructor( fields: AuthenticatorStateInnerFields,
+    private constructor(typeArgs: [], fields: AuthenticatorStateInnerFields,
     ) {
-        this.$fullTypeName = AuthenticatorStateInner.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AuthenticatorStateInner.$typeName,
+            ...typeArgs
+        ) as "0x2::authenticator_state::AuthenticatorStateInner";
+        this.$typeArgs = typeArgs;
 
         this.version = fields.version;; this.activeJwks = fields.activeJwks;
     }
@@ -461,7 +487,8 @@ export class AuthenticatorStateInner {
                 AuthenticatorStateInner.$typeName,
                 ...[]
             ) as "0x2::authenticator_state::AuthenticatorStateInner",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AuthenticatorStateInner.fromFields(
                     fields,
@@ -483,6 +510,10 @@ export class AuthenticatorStateInner {
                 AuthenticatorStateInner.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AuthenticatorStateInner.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AuthenticatorStateInner.fetch(
                 client,
                 id,
@@ -491,6 +522,7 @@ export class AuthenticatorStateInner {
                 fields: AuthenticatorStateInnerFields,
             ) => {
                 return new AuthenticatorStateInner(
+                    [],
                     fields
                 )
             },
@@ -559,6 +591,7 @@ export class AuthenticatorStateInner {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -635,7 +668,7 @@ export type JWKReified = Reified<
     JWKFields
 >;
 
-export class JWK {
+export class JWK implements StructClass {
     static readonly $typeName = "0x2::authenticator_state::JWK";
     static readonly $numTypeParams = 0;
 
@@ -643,7 +676,7 @@ export class JWK {
 
     readonly $fullTypeName: "0x2::authenticator_state::JWK";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly kty:
         ToField<String>
@@ -654,9 +687,13 @@ export class JWK {
     ; readonly alg:
         ToField<String>
 
-    private constructor( fields: JWKFields,
+    private constructor(typeArgs: [], fields: JWKFields,
     ) {
-        this.$fullTypeName = JWK.$typeName;
+        this.$fullTypeName = composeSuiType(
+            JWK.$typeName,
+            ...typeArgs
+        ) as "0x2::authenticator_state::JWK";
+        this.$typeArgs = typeArgs;
 
         this.kty = fields.kty;; this.e = fields.e;; this.n = fields.n;; this.alg = fields.alg;
     }
@@ -668,7 +705,8 @@ export class JWK {
                 JWK.$typeName,
                 ...[]
             ) as "0x2::authenticator_state::JWK",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 JWK.fromFields(
                     fields,
@@ -690,6 +728,10 @@ export class JWK {
                 JWK.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                JWK.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => JWK.fetch(
                 client,
                 id,
@@ -698,6 +740,7 @@ export class JWK {
                 fields: JWKFields,
             ) => {
                 return new JWK(
+                    [],
                     fields
                 )
             },
@@ -770,6 +813,7 @@ export class JWK {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -846,7 +890,7 @@ export type JwkIdReified = Reified<
     JwkIdFields
 >;
 
-export class JwkId {
+export class JwkId implements StructClass {
     static readonly $typeName = "0x2::authenticator_state::JwkId";
     static readonly $numTypeParams = 0;
 
@@ -854,16 +898,20 @@ export class JwkId {
 
     readonly $fullTypeName: "0x2::authenticator_state::JwkId";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly iss:
         ToField<String>
     ; readonly kid:
         ToField<String>
 
-    private constructor( fields: JwkIdFields,
+    private constructor(typeArgs: [], fields: JwkIdFields,
     ) {
-        this.$fullTypeName = JwkId.$typeName;
+        this.$fullTypeName = composeSuiType(
+            JwkId.$typeName,
+            ...typeArgs
+        ) as "0x2::authenticator_state::JwkId";
+        this.$typeArgs = typeArgs;
 
         this.iss = fields.iss;; this.kid = fields.kid;
     }
@@ -875,7 +923,8 @@ export class JwkId {
                 JwkId.$typeName,
                 ...[]
             ) as "0x2::authenticator_state::JwkId",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 JwkId.fromFields(
                     fields,
@@ -897,6 +946,10 @@ export class JwkId {
                 JwkId.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                JwkId.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => JwkId.fetch(
                 client,
                 id,
@@ -905,6 +958,7 @@ export class JwkId {
                 fields: JwkIdFields,
             ) => {
                 return new JwkId(
+                    [],
                     fields
                 )
             },
@@ -973,6 +1027,7 @@ export class JwkId {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

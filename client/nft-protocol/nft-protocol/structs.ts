@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type NFT_PROTOCOLReified = Reified<
     NFT_PROTOCOLFields
 >;
 
-export class NFT_PROTOCOL {
+export class NFT_PROTOCOL implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_protocol::NFT_PROTOCOL";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class NFT_PROTOCOL {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_protocol::NFT_PROTOCOL";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: NFT_PROTOCOLFields,
+    private constructor(typeArgs: [], fields: NFT_PROTOCOLFields,
     ) {
-        this.$fullTypeName = NFT_PROTOCOL.$typeName;
+        this.$fullTypeName = composeSuiType(
+            NFT_PROTOCOL.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_protocol::NFT_PROTOCOL";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class NFT_PROTOCOL {
                 NFT_PROTOCOL.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft_protocol::NFT_PROTOCOL",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 NFT_PROTOCOL.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class NFT_PROTOCOL {
                 NFT_PROTOCOL.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                NFT_PROTOCOL.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => NFT_PROTOCOL.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class NFT_PROTOCOL {
                 fields: NFT_PROTOCOLFields,
             ) => {
                 return new NFT_PROTOCOL(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class NFT_PROTOCOL {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

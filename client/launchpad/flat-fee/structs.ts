@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type FlatFeeReified = Reified<
     FlatFeeFields
 >;
 
-export class FlatFee {
+export class FlatFee implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::flat_fee::FlatFee";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class FlatFee {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::flat_fee::FlatFee";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly rateBps:
         ToField<"u64">
 
-    private constructor( fields: FlatFeeFields,
+    private constructor(typeArgs: [], fields: FlatFeeFields,
     ) {
-        this.$fullTypeName = FlatFee.$typeName;
+        this.$fullTypeName = composeSuiType(
+            FlatFee.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::flat_fee::FlatFee";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.rateBps = fields.rateBps;
     }
@@ -49,7 +53,8 @@ export class FlatFee {
                 FlatFee.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::flat_fee::FlatFee",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 FlatFee.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class FlatFee {
                 FlatFee.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                FlatFee.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => FlatFee.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class FlatFee {
                 fields: FlatFeeFields,
             ) => {
                 return new FlatFee(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class FlatFee {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

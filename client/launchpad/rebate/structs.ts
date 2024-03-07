@@ -1,5 +1,5 @@
 import {Balance} from "../../_dependencies/source/0x2/balance/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type RebateReified<FT extends PhantomTypeArgument> = Reified<
     RebateFields<FT>
 >;
 
-export class Rebate<FT extends PhantomTypeArgument> {
+export class Rebate<FT extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::Rebate";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class Rebate<FT extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::Rebate<${PhantomToTypeStr<FT>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<FT>];
 
     readonly funds:
         ToField<Balance<FT>>
     ; readonly rebateAmount:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: RebateFields<FT>,
+    private constructor(typeArgs: [PhantomToTypeStr<FT>], fields: RebateFields<FT>,
     ) {
-        this.$fullTypeName = composeSuiType(Rebate.$typeName,
-        typeArg) as `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::Rebate<${PhantomToTypeStr<FT>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Rebate.$typeName,
+            ...typeArgs
+        ) as `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::Rebate<${PhantomToTypeStr<FT>}>`;
+        this.$typeArgs = typeArgs;
 
         this.funds = fields.funds;; this.rebateAmount = fields.rebateAmount;
     }
@@ -56,7 +55,10 @@ export class Rebate<FT extends PhantomTypeArgument> {
                 Rebate.$typeName,
                 ...[extractType(FT)]
             ) as `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::Rebate<${PhantomToTypeStr<ToPhantomTypeArgument<FT>>}>`,
-            typeArgs: [FT],
+            typeArgs: [
+                extractType(FT)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<FT>>],
+            reifiedTypeArgs: [FT],
             fromFields: (fields: Record<string, any>) =>
                 Rebate.fromFields(
                     FT,
@@ -83,6 +85,11 @@ export class Rebate<FT extends PhantomTypeArgument> {
                     FT,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Rebate.fromSuiParsedData(
+                    FT,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Rebate.fetch(
                 client,
                 FT,
@@ -92,7 +99,7 @@ export class Rebate<FT extends PhantomTypeArgument> {
                 fields: RebateFields<ToPhantomTypeArgument<FT>>,
             ) => {
                 return new Rebate(
-                    extractType(FT),
+                    [extractType(FT)],
                     fields
                 )
             },
@@ -171,7 +178,7 @@ export class Rebate<FT extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -195,7 +202,7 @@ export class Rebate<FT extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Rebate.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -259,7 +266,7 @@ export type RebateDfKeyReified<T extends PhantomTypeArgument, FT extends Phantom
     RebateDfKeyFields<T, FT>
 >;
 
-export class RebateDfKey<T extends PhantomTypeArgument, FT extends PhantomTypeArgument> {
+export class RebateDfKey<T extends PhantomTypeArgument, FT extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::RebateDfKey";
     static readonly $numTypeParams = 2;
 
@@ -267,18 +274,17 @@ export class RebateDfKey<T extends PhantomTypeArgument, FT extends PhantomTypeAr
 
     readonly $fullTypeName: `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::RebateDfKey<${PhantomToTypeStr<T>}, ${PhantomToTypeStr<FT>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>, PhantomToTypeStr<FT>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArgs: [string, string], fields: RebateDfKeyFields<T, FT>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>, PhantomToTypeStr<FT>], fields: RebateDfKeyFields<T, FT>,
     ) {
-        this.$fullTypeName = composeSuiType(RebateDfKey.$typeName,
-        ...typeArgs) as `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::RebateDfKey<${PhantomToTypeStr<T>}, ${PhantomToTypeStr<FT>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            RebateDfKey.$typeName,
+            ...typeArgs
+        ) as `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::RebateDfKey<${PhantomToTypeStr<T>}, ${PhantomToTypeStr<FT>}>`;
         this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
@@ -293,7 +299,10 @@ export class RebateDfKey<T extends PhantomTypeArgument, FT extends PhantomTypeAr
                 RebateDfKey.$typeName,
                 ...[extractType(T), extractType(FT)]
             ) as `0x5cf2b8379d7471113852dbf343c14f933ccaca527bbe37b42724b5dde4738830::rebate::RebateDfKey<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}, ${PhantomToTypeStr<ToPhantomTypeArgument<FT>>}>`,
-            typeArgs: [T, FT],
+            typeArgs: [
+                extractType(T), extractType(FT)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>, PhantomToTypeStr<ToPhantomTypeArgument<FT>>],
+            reifiedTypeArgs: [T, FT],
             fromFields: (fields: Record<string, any>) =>
                 RebateDfKey.fromFields(
                     [T, FT],
@@ -319,6 +328,11 @@ export class RebateDfKey<T extends PhantomTypeArgument, FT extends PhantomTypeAr
                 RebateDfKey.fromJSON(
                     [T, FT],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RebateDfKey.fromSuiParsedData(
+                    [T, FT],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => RebateDfKey.fetch(
                 client,

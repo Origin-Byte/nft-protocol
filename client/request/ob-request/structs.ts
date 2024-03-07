@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type OB_REQUESTReified = Reified<
     OB_REQUESTFields
 >;
 
-export class OB_REQUEST {
+export class OB_REQUEST implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::ob_request::OB_REQUEST";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class OB_REQUEST {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::ob_request::OB_REQUEST";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: OB_REQUESTFields,
+    private constructor(typeArgs: [], fields: OB_REQUESTFields,
     ) {
-        this.$fullTypeName = OB_REQUEST.$typeName;
+        this.$fullTypeName = composeSuiType(
+            OB_REQUEST.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::ob_request::OB_REQUEST";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class OB_REQUEST {
                 OB_REQUEST.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::ob_request::OB_REQUEST",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 OB_REQUEST.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class OB_REQUEST {
                 OB_REQUEST.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                OB_REQUEST.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => OB_REQUEST.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class OB_REQUEST {
                 fields: OB_REQUESTFields,
             ) => {
                 return new OB_REQUEST(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class OB_REQUEST {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

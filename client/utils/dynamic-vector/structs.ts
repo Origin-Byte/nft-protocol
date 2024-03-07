@@ -1,6 +1,6 @@
 import * as reified from "../../_framework/reified";
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type DynVecReified<Element extends TypeArgument> = Reified<
     DynVecFields<Element>
 >;
 
-export class DynVec<Element extends TypeArgument> {
+export class DynVec<Element extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::dynamic_vector::DynVec";
     static readonly $numTypeParams = 1;
 
@@ -29,9 +29,7 @@ export class DynVec<Element extends TypeArgument> {
 
     readonly $fullTypeName: `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::dynamic_vector::DynVec<${ToTypeStr<Element>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<Element>];
 
     readonly vec0:
         ToField<Vector<Element>>
@@ -46,12 +44,13 @@ export class DynVec<Element extends TypeArgument> {
     ; readonly limit:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: DynVecFields<Element>,
+    private constructor(typeArgs: [ToTypeStr<Element>], fields: DynVecFields<Element>,
     ) {
-        this.$fullTypeName = composeSuiType(DynVec.$typeName,
-        typeArg) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::dynamic_vector::DynVec<${ToTypeStr<Element>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            DynVec.$typeName,
+            ...typeArgs
+        ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::dynamic_vector::DynVec<${ToTypeStr<Element>}>`;
+        this.$typeArgs = typeArgs;
 
         this.vec0 = fields.vec0;; this.vecs = fields.vecs;; this.currentChunk = fields.currentChunk;; this.tipLength = fields.tipLength;; this.totalLength = fields.totalLength;; this.limit = fields.limit;
     }
@@ -65,7 +64,10 @@ export class DynVec<Element extends TypeArgument> {
                 DynVec.$typeName,
                 ...[extractType(Element)]
             ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::dynamic_vector::DynVec<${ToTypeStr<ToTypeArgument<Element>>}>`,
-            typeArgs: [Element],
+            typeArgs: [
+                extractType(Element)
+            ] as [ToTypeStr<ToTypeArgument<Element>>],
+            reifiedTypeArgs: [Element],
             fromFields: (fields: Record<string, any>) =>
                 DynVec.fromFields(
                     Element,
@@ -92,6 +94,11 @@ export class DynVec<Element extends TypeArgument> {
                     Element,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                DynVec.fromSuiParsedData(
+                    Element,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => DynVec.fetch(
                 client,
                 Element,
@@ -101,7 +108,7 @@ export class DynVec<Element extends TypeArgument> {
                 fields: DynVecFields<ToTypeArgument<Element>>,
             ) => {
                 return new DynVec(
-                    extractType(Element),
+                    [extractType(Element)],
                     fields
                 )
             },
@@ -181,7 +188,7 @@ export class DynVec<Element extends TypeArgument> {
 
     toJSONField() {
         return {
-            vec0: fieldToJSON<Vector<Element>>(`vector<${this.$typeArg}>`, this.vec0),vecs: this.vecs,currentChunk: this.currentChunk.toString(),tipLength: this.tipLength.toString(),totalLength: this.totalLength.toString(),limit: this.limit.toString(),
+            vec0: fieldToJSON<Vector<Element>>(`vector<${this.$typeArgs[0]}>`, this.vec0),vecs: this.vecs,currentChunk: this.currentChunk.toString(),tipLength: this.tipLength.toString(),totalLength: this.totalLength.toString(),limit: this.limit.toString(),
 
         }
     }
@@ -189,7 +196,7 @@ export class DynVec<Element extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -213,7 +220,7 @@ export class DynVec<Element extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(DynVec.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -1,7 +1,7 @@
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecMap} from "../../_dependencies/source/0x2/vec-map/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -22,7 +22,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::Witness";
     static readonly $numTypeParams = 0;
 
@@ -30,14 +30,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -49,7 +53,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -145,6 +155,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -221,7 +232,7 @@ export type RoyaltyDomainReified = Reified<
     RoyaltyDomainFields
 >;
 
-export class RoyaltyDomain {
+export class RoyaltyDomain implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::RoyaltyDomain";
     static readonly $numTypeParams = 0;
 
@@ -229,7 +240,7 @@ export class RoyaltyDomain {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::RoyaltyDomain";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly strategies:
         ToField<VecSet<ID>>
@@ -238,9 +249,13 @@ export class RoyaltyDomain {
     ; readonly royaltySharesBps:
         ToField<VecMap<"address", "u16">>
 
-    private constructor( fields: RoyaltyDomainFields,
+    private constructor(typeArgs: [], fields: RoyaltyDomainFields,
     ) {
-        this.$fullTypeName = RoyaltyDomain.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RoyaltyDomain.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::RoyaltyDomain";
+        this.$typeArgs = typeArgs;
 
         this.strategies = fields.strategies;; this.aggregations = fields.aggregations;; this.royaltySharesBps = fields.royaltySharesBps;
     }
@@ -252,7 +267,8 @@ export class RoyaltyDomain {
                 RoyaltyDomain.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty::RoyaltyDomain",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RoyaltyDomain.fromFields(
                     fields,
@@ -274,6 +290,10 @@ export class RoyaltyDomain {
                 RoyaltyDomain.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RoyaltyDomain.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RoyaltyDomain.fetch(
                 client,
                 id,
@@ -282,6 +302,7 @@ export class RoyaltyDomain {
                 fields: RoyaltyDomainFields,
             ) => {
                 return new RoyaltyDomain(
+                    [],
                     fields
                 )
             },
@@ -353,6 +374,7 @@ export class RoyaltyDomain {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
