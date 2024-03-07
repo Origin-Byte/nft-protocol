@@ -5,8 +5,12 @@ module ob_launchpad::test_listing {
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::sui::SUI;
+    use sui::clock;
+    use sui::coin::{Self, Coin};
 
     use ob_launchpad::flat_fee;
+    use ob_launchpad::warehouse;
+    use ob_launchpad::market_whitelist;
     use ob_launchpad::marketplace as mkt;
     use ob_launchpad::fixed_price;
     use ob_launchpad::listing::{Self, Listing};
@@ -21,10 +25,142 @@ module ob_launchpad::test_listing {
     struct FakeDFObject has store {}
     struct FakeDFKey has store, copy, drop {}
 
-    const OWNER: address = @0xA1C05;
-    const CREATOR: address = @0xA1C05;
-    const MARKETPLACE: address = @0xA1C20;
-    const FAKE_ADDRESS: address = @0x1;
+    const OWNER: address = @0x1;
+    const CREATOR: address = @0x2;
+    const MARKETPLACE: address = @0x3;
+    const FAKE_ADDRESS: address = @0x4;
+    const BUYER: address = @0x5;
+
+
+    #[test]
+    fun it_works_with_permissionless_marketplace_and_start_time() {
+        // 1. Create Marketplace
+        let scenario = test_scenario::begin(MARKETPLACE);
+
+        let marketplace = marketplace::new(
+            MARKETPLACE, // Marketplace admin address
+            MARKETPLACE, // Marketplace receiver address
+            flat_fee::new(500, ctx(&mut scenario)), // 500 basis points => 5%
+            ctx(&mut scenario),
+        );
+
+        marketplace::make_permissionless(&mut marketplace, ctx(&mut scenario));
+
+        // 2. Create `Listing`
+        test_scenario::next_tx(&mut scenario, CREATOR);
+
+        listing::init_with_marketplace(
+            &marketplace,
+            CREATOR, // Listing administrator, i.e. NFT Creator
+            CREATOR, // Address that receives the net revenue from the sales, i.e. NFT Creator
+            ctx(&mut scenario),
+        );
+
+        // 3. Mint NFTS to Warehouse
+        test_scenario::next_tx(&mut scenario, CREATOR);
+        let listing = test_scenario::take_shared<Listing>(&scenario);
+
+        let nft = Foo { id: object::new(ctx(&mut scenario)) };
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+        // This scope typically runs inside a mint function from an NFT Contract
+        {
+            warehouse::deposit_nft(&mut warehouse, nft);
+        };
+
+        // 4. Attach Warehouse to Listing
+        let inventory_id = listing::insert_warehouse(&mut listing, warehouse, ctx(&mut scenario));
+
+        // 5. Set up the market settings
+        let venue_id = fixed_price::create_venue<Foo, SUI>(
+            &mut listing,
+            inventory_id,
+            true, // If its whitelisted or not
+            100_000, // NFT price
+            ctx(&mut scenario)
+        );
+
+        // 6. Setup whitelisting
+        market_whitelist::add_whitelist(
+            &mut listing,
+            venue_id,
+            ctx(&mut scenario)
+        );
+
+        market_whitelist::add_addresses(
+            &mut listing,
+            venue_id,
+            vector[BUYER],
+            ctx(&mut scenario)
+        );
+
+        // 7. Configure start time
+        listing::set_start_sale_time(
+            &mut listing,
+            1704157261, // start timestamp
+            venue_id,
+            ctx(&mut scenario),
+        );
+
+        // 8. Initiate sale
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        let clock = clock::create_for_testing(ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, 1704157261);
+
+        listing::start_sale_with_time(
+            &mut listing,
+            venue_id,
+            &clock,
+        );
+
+        let wl_certificate = market_whitelist::check_in_address(
+            &mut listing,
+            venue_id,
+            ctx(&mut scenario)
+        );
+
+        let funds = coin::mint_for_testing<SUI>(100_000, ctx(&mut scenario)); // 100_000 => NFT price
+
+        // This function will buy an NFT from the launchpad and transfer
+        // it to a newly create Kiosk. If the user already has a kiosk
+        // consider using `buy_whitelisted_nft_into_kiosk` instead
+        fixed_price::buy_whitelisted_nft<Foo, SUI>(
+            &mut listing,
+            venue_id,
+            &mut funds,
+            wl_certificate,
+            ctx(&mut scenario)
+        );
+
+        // 9. Redeem proceeds from sale
+        test_scenario::next_tx(&mut scenario, CREATOR); // This endpoint can also be called by the marketplace
+
+        // It will transfer the proceeds to the respective `Listing.receiver`
+        // and fees to the `Marketplace.receiver`
+        flat_fee::collect_proceeds_and_fees<SUI>(
+            &marketplace, &mut listing, ctx(&mut scenario),
+        );
+
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+
+        let marketplace_proceeds =
+            test_scenario::take_from_address<Coin<SUI>>(&scenario, MARKETPLACE);
+        assert!(coin::value(&marketplace_proceeds) == 5_000, 0);
+
+
+        let creator_proceeds =
+            test_scenario::take_from_address<Coin<SUI>>(&scenario, CREATOR);
+        assert!(coin::value(&creator_proceeds) == 95_000, 0);
+
+        test_scenario::return_to_address(MARKETPLACE, marketplace_proceeds);
+        test_scenario::return_to_address(CREATOR, creator_proceeds);
+        listing::destroy_for_testing(listing);
+        marketplace::destroy_for_testing(marketplace);
+        coin::burn_for_testing(funds);
+        clock::destroy_for_testing(clock);
+        test_scenario::end(scenario);
+    }
 
     #[test]
     #[expected_failure(abort_code = ob_launchpad::listing::EWrongAdminNoMembers)]

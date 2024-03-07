@@ -190,4 +190,17 @@ module ob_launchpad::venue {
     public fun assert_is_not_whitelisted(venue: &Venue) {
         assert!(!is_whitelisted(venue), EVenueWhitelisted);
     }
+
+    // === Testing ===
+
+    #[test_only]
+    public fun destroy_for_testing(venue: Venue) {
+        let Venue {
+            id,
+            is_live: _,
+            is_whitelisted: _,
+        } = venue;
+
+        object::delete(id);
+    }
 }

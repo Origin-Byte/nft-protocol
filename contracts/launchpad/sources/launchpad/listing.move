@@ -225,6 +225,24 @@ module ob_launchpad::listing {
         }
     }
 
+    /// Initialises a `Listing` object, assigns a permissionless Marketplace
+    /// to it and shares it.
+    public fun init_with_marketplace(
+        marketplace: &Marketplace,
+        listing_admin: address,
+        receiver: address,
+        ctx: &mut TxContext,
+    ) {
+        let listing = new_with_marketplace(
+            marketplace,
+            listing_admin,
+            receiver,
+            ctx,
+        );
+
+        transfer::public_share_object(listing);
+    }
+
     /// Initializes a `Venue` on `Listing`
     ///
     /// #### Panics
@@ -1308,7 +1326,7 @@ module ob_launchpad::listing {
 
     /// Set market's live status to `true` therefore making the NFT sale live,
     /// if the current runtime clock is above or equal to the start time timestamp.
-    public entry fun start_sale_on_time(
+    public entry fun start_sale_with_time(
         listing: &mut Listing,
         venue_id: ID,
         clock: &Clock,
@@ -1477,5 +1495,31 @@ module ob_launchpad::listing {
 
         assert!(listing.version < VERSION, ENotUpgraded);
         listing.version = VERSION;
+    }
+
+    // === Testing ===
+
+    #[test_only]
+    public fun destroy_for_testing(listing: Listing) {
+        let Listing {
+            id,
+            version: _,
+            marketplace_id: _,
+            admin: _,
+            receiver: _,
+            proceeds,
+            venues,
+            inventories,
+            custom_fee,
+        } = listing;
+
+        // can't be destroyed for testing, so we send it to valhalla
+        transfer::public_transfer(venues, @0x99999);
+        // can't be destroyed for testing, so we send it to valhalla
+        transfer::public_transfer(inventories, @0x99999);
+
+        proceeds::destroy_for_testing(proceeds);
+        obox::destroy_for_testing(custom_fee);
+        object::delete(id);
     }
 }

@@ -206,6 +206,22 @@ module ob_launchpad::marketplace {
         marketplace.version = VERSION;
     }
 
+    // === Testing ===
+
+    #[test_only]
+    public fun destroy_for_testing(marketplace: Marketplace) {
+        let Marketplace {
+            id,
+            version: _,
+            admin: _,
+            receiver: _,
+            default_fee,
+        } = marketplace;
+
+        obox::destroy_for_testing(default_fee);
+        object::delete(id);
+    }
+
     // === Deprecated ===
 
     public fun assert_listing_admin_or_member(_marketplace: &Marketplace, _ctx: &mut TxContext) {
