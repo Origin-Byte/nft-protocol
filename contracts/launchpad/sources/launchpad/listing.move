@@ -72,34 +72,25 @@ module ob_launchpad::listing {
     ///
     /// Call `Listing::init_venue` to initialize a `Venue`
     const EUndefinedVenue: u64 = 1;
-
     /// `Warehouse` was not defined on `Listing`
     ///
     /// Initialize `Warehouse` using `Listing::init_warehouse` or insert one
     /// using `Listing::add_warehouse`.
     const EUndefinedInventory: u64 = 2;
-
     /// Transaction sender was not `Listing` admin when calling protected
     /// endpoint
     const EWrongAdmin: u64 = 3;
-
     const EWrongListingOrMarketplaceAdmin: u64 = 4;
-
     const EMarketplaceListingMismatch: u64 = 5;
-
     const EListingAlreadyAttached: u64 = 6;
-
     const EListingHasNotApplied: u64 = 7;
-
     const EActionExclusiveToStandaloneListing: u64 = 8;
-
     const EHasCustomFeePolicy: u64 = 9;
-
     const ENotAMemberNorAdmin: u64 = 10;
-
     const EWrongAdminNoMembers: u64 = 11;
-
     const ENoMembers: u64 = 12;
+
+    // === Structs ===
 
     struct Listing has key, store {
         id: UID,
@@ -157,6 +148,9 @@ module ob_launchpad::listing {
         nft_type: String,
         buyer: address,
     }
+
+
+    // === Constructors ===
 
     /// Initialises a `Listing` object and returns it.
     public fun new(
@@ -272,157 +266,7 @@ module ob_launchpad::listing {
         inventory_id
     }
 
-    /// Pay for `Nft` sale and direct funds to `Listing` proceeds
-    public(friend) fun pay<FT>(
-        listing: &mut Listing,
-        balance: Balance<FT>,
-        quantity: u64,
-    ) {
-        assert_version_and_upgrade(listing);
-
-        let proceeds = borrow_proceeds_mut(listing);
-        proceeds::add(proceeds, balance, quantity);
-    }
-
-    /// Emits `NftSoldEvent` for provided `Nft`
-    public(friend) fun emit_sold_event<FT, T: key>(
-        nft: &T,
-        price: u64,
-        buyer: address,
-    ) {
-        event::emit(NftSoldEvent {
-            nft: object::id(nft),
-            price,
-            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
-            nft_type: *type_name::borrow_string(&type_name::get<T>()),
-            buyer,
-        });
-    }
-
-    /// Pay for `Nft` sale, direct fund to `Listing` proceeds, and emit sale
-    /// events.
-    ///
-    /// Will charge `price` from the provided `Balance` object.
-    ///
-    /// #### Panics
-    ///
-    /// Panics if balance is not enough to fund price
-    public(friend) fun pay_and_emit_sold_event<FT, T: key>(
-        listing: &mut Listing,
-        nft: &T,
-        funds: Balance<FT>,
-        buyer: address,
-    ) {
-        assert_version_and_upgrade(listing);
-
-        emit_sold_event<FT, T>(nft, balance::value(&funds), buyer);
-        pay(listing, funds, 1);
-    }
-
-    /// Buys an NFT from an `Inventory`
-    ///
-    /// Only venues registered on the `Listing` have authorization to withdraw
-    /// from an `Inventory`, therefore this operation must be authorized using
-    /// a witness that corresponds to the market contract.
-    ///
-    /// Endpoint will redeem NFTs sequentially, if you need random withdrawal
-    /// use `buy_pseudorandom_nft` or `buy_random_nft`.
-    ///
-    /// #### Panics
-    ///
-    /// - `Market` type does not correspond to `venue_id` on the `Listing`
-    /// - No supply is available from underlying `Inventory`
-    public(friend) fun buy_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
-        listing: &mut Listing,
-        key: MarketKey,
-        inventory_id: ID,
-        venue_id: ID,
-        buyer: address,
-        funds: Balance<FT>,
-    ): T {
-        assert_version_and_upgrade(listing);
-
-        let inventory = inventory_internal_mut<T, Market, MarketKey>(
-            listing, key, venue_id, inventory_id,
-        );
-        let nft = inventory::redeem_nft(inventory);
-        pay_and_emit_sold_event(listing, &nft, funds, buyer);
-        nft
-    }
-
-    /// Buys a pseudo-random NFT from an `Inventory`
-    ///
-    /// Only venues registered on the `Listing` have authorization to withdraw
-    /// from an `Inventory`, therefore this operation must be authorized using
-    /// a witness that corresponds to the market contract.
-    ///
-    /// Endpoint is susceptible to validator prediction of the resulting index,
-    /// use `buy_random_nft` instead.
-    ///
-    /// #### Panics
-    ///
-    /// - `Market` type does not correspond to `venue_id` on the `Listing`
-    /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
-    public(friend) fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
-        listing: &mut Listing,
-        key: MarketKey,
-        inventory_id: ID,
-        venue_id: ID,
-        buyer: address,
-        funds: Balance<FT>,
-        ctx: &mut TxContext,
-    ): T {
-        assert_version_and_upgrade(listing);
-
-        let inventory = inventory_internal_mut<T, Market, MarketKey>(
-            listing, key, venue_id, inventory_id,
-        );
-        let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
-        pay_and_emit_sold_event(listing, &nft, funds, buyer);
-        nft
-    }
-
-    /// Buys a random NFT from `Inventory`
-    ///
-    /// Requires a `RedeemCommitment` created by the user in a separate
-    /// transaction to ensure that validators may not bias results favorably.
-    /// You can obtain a `RedeemCommitment` by calling
-    /// `warehouse::init_redeem_commitment`.
-    ///
-    /// Only venues registered on the `Listing` have authorization to withdraw
-    /// from an `Inventory`, therefore this operation must be authorized using
-    /// a witness that corresponds to the market contract.
-    ///
-    /// #### Panics
-    ///
-    /// - `Market` type does not correspond to `venue_id` on the `Listing`
-    /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
-    /// - `user_commitment` does not match the hashed commitment in
-    /// `RedeemCommitment`
-    public(friend) fun buy_random_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
-        listing: &mut Listing,
-        key: MarketKey,
-        commitment: RedeemCommitment,
-        user_commitment: vector<u8>,
-        inventory_id: ID,
-        venue_id: ID,
-        buyer: address,
-        funds: Balance<FT>,
-        ctx: &mut TxContext,
-    ): T {
-        assert_version_and_upgrade(listing);
-
-        let inventory = inventory_internal_mut<T, Market, MarketKey>(
-            listing, key, venue_id, inventory_id,
-        );
-        let nft = inventory::redeem_random_nft(
-            inventory, commitment, user_commitment, ctx,
-        );
-        pay_and_emit_sold_event(listing, &nft, funds, buyer);
-        nft
-    }
-
-    // === Admin functions ===
+    // === Listing Admin functions ===
 
     /// To be called by the `Listing` administrator, to declare the intention
     /// of joining a Marketplace. This is the first step to join a marketplace.
@@ -453,66 +297,6 @@ module ob_launchpad::listing {
         dof::add(
             &mut listing.id, RequestToJoinDfKey {}, request
         );
-    }
-
-    /// To be called by the `Marketplace` administrator, to accept the `Listing`
-    /// request to join. This is the second step to join a marketplace.
-    /// Joining a `Marketplace` is a two step process in which both the
-    /// `Listing` admin and the `Marketplace` admin need to declare their
-    /// intention to partner up.
-    public entry fun accept_listing_request(
-        marketplace: &Marketplace,
-        listing: &mut Listing,
-        ctx: &mut TxContext,
-    ) {
-        mkt::assert_version(marketplace);
-        assert_version_and_upgrade(listing);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
-
-        assert!(
-            option::is_none(&listing.marketplace_id),
-            EListingAlreadyAttached,
-        );
-
-        let marketplace_id = typed_id::new(marketplace);
-
-        let request = dof::remove<RequestToJoinDfKey, RequestToJoin>(
-            &mut listing.id, RequestToJoinDfKey {}
-        );
-
-        assert!(
-            marketplace_id == request.marketplace_id,
-            EListingHasNotApplied,
-        );
-
-        let RequestToJoin {
-            id, marketplace_id: _,
-        } = request;
-        object::delete(id);
-
-        option::fill(&mut listing.marketplace_id, marketplace_id);
-    }
-
-    /// Adds a fee object to the Listing's `custom_fee`
-    ///
-    /// This function should be called by the marketplace.
-    /// If there the listing is not attached to a marketplace
-    /// then if does not make sense to pay fees.
-    ///
-    /// Can only be called by the `Marketplace` admin
-    public entry fun add_fee<FeeType: key + store>(
-        marketplace: &Marketplace,
-        listing: &mut Listing,
-        fee: FeeType,
-        ctx: &mut TxContext,
-    ) {
-        mkt::assert_version(marketplace);
-        assert_version_and_upgrade(listing);
-
-        assert_listing_marketplace_match(marketplace, listing);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
-
-        obox::add<FeeType>(&mut listing.custom_fee, fee);
     }
 
     /// Adds a `Venue` to the `Listing`
@@ -678,44 +462,6 @@ module ob_launchpad::listing {
         vec_set::remove(members, &member);
     }
 
-    /// Set market's live status to `true` therefore making the NFT sale live.
-    /// To be called by the `Marketplace` admin.
-    public entry fun sale_on_delegated(
-        marketplace: &Marketplace,
-        listing: &mut Listing,
-        venue_id: ID,
-        ctx: &mut TxContext,
-    ) {
-        assert_version_and_upgrade(listing);
-        assert_listing_marketplace_match(marketplace, listing);
-        mkt::assert_version(marketplace);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
-
-        venue::set_live(
-            borrow_venue_mut(listing, venue_id),
-            true,
-        );
-    }
-
-    /// Set market's live status to `false` therefore pausing or stopping the
-    /// NFT sale. To be called by the `Marketplace` admin.
-    public entry fun sale_off_delegated(
-        marketplace: &Marketplace,
-        listing: &mut Listing,
-        venue_id: ID,
-        ctx: &mut TxContext,
-    ) {
-        assert_version_and_upgrade(listing);
-        assert_listing_marketplace_match(marketplace, listing);
-        mkt::assert_version(marketplace);
-        mkt::assert_listing_admin_or_member(marketplace, ctx);
-
-        venue::set_live(
-            borrow_venue_mut(listing, venue_id),
-            false,
-        );
-    }
-
     /// Collect proceeds and fees from standalone listing
     ///
     /// Requires that caller is listing admin in order to protect against
@@ -745,238 +491,6 @@ module ob_launchpad::listing {
         );
     }
 
-    // === Getter functions ===
-
-    /// Get the Listing's `receiver` address
-    public fun receiver(listing: &Listing): address {
-        listing.receiver
-    }
-
-    /// Get the Listing's `admin` address
-    public fun admin(listing: &Listing): address {
-        listing.admin
-    }
-
-    public fun contains_custom_fee(listing: &Listing): bool {
-        !obox::is_empty(&listing.custom_fee)
-    }
-
-    public fun custom_fee(listing: &Listing): &ObjectBox {
-        &listing.custom_fee
-    }
-
-    /// Borrow the Listing's `Proceeds`
-    public fun borrow_proceeds(listing: &Listing): &Proceeds {
-        &listing.proceeds
-    }
-
-    /// Mutably borrow the Listing's `Proceeds`
-    public(friend) fun borrow_proceeds_mut(listing: &mut Listing): &mut Proceeds {
-        &mut listing.proceeds
-    }
-
-    /// Returns whether `Venue` with given ID exists
-    public fun contains_venue(listing: &Listing, venue_id: ID): bool {
-        object_table::contains(&listing.venues, venue_id)
-    }
-
-    /// Borrow the listing's `Venue`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Venue` does not exist.
-    public fun borrow_venue(listing: &Listing, venue_id: ID): &Venue {
-        assert_venue(listing, venue_id);
-        object_table::borrow(&listing.venues, venue_id)
-    }
-
-    /// Borrow the listsin's members
-    public fun borrow_members(listing: &Listing): &VecSet<address> {
-        assert!(df::exists_(&listing.id, MembersDfKey {}), ENoMembers);
-
-        df::borrow(&listing.id, MembersDfKey {})
-    }
-
-    /// Mutably borrow the listing's `Venue`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Venue` does not exist.
-    fun borrow_venue_mut(
-        listing: &mut Listing,
-        venue_id: ID,
-    ): &mut Venue {
-        assert_venue(listing, venue_id);
-        object_table::borrow_mut(&mut listing.venues, venue_id)
-    }
-
-    /// Adds `Whitelist` object. We use a generic `WL` to represent the
-    /// `Whitelist` type object to avoid dependency cycles.
-    ///
-    /// Warning: This function is not safe to be shared, it does not check
-    /// for permissions and should ONLY be used by the function
-    /// `market_whitelist::add_whitelist`
-    public(friend) fun add_whitelist_internal<WL: key + store>(
-        listing: &mut Listing,
-        venue_id: ID,
-        whitelist: WL
-    ) {
-        df::add(&mut listing.id, WhitelistDfKey { venue_id }, whitelist);
-    }
-
-    /// Borrows `Whitelist` object mutably. We use a generic `WL` to represent the
-    /// `Whitelist` type object to avoid dependency cycles.
-    ///
-    /// Warning: This function is not safe to be shared, it does not check
-    /// for permissions and should ONLY be used by the function
-    /// `market_whitelist::add_addresses` and `market_whitelist::remove_addresses`
-    public(friend) fun borrow_whitelist_mut<WL: key + store>(
-        listing: &mut Listing,
-        venue_id: ID,
-    ): &mut WL {
-        df::borrow_mut(&mut listing.id, WhitelistDfKey { venue_id })
-    }
-
-    /// Mutably borrow the listing's `Venue`
-    ///
-    /// `Venue` and inventories are unprotected therefore only market modules
-    /// registered on a `Venue` can gain mutable access to it.
-    public(friend) fun venue_internal_mut<Market: store, MarketKey: copy + drop + store>(
-        listing: &mut Listing,
-        key: MarketKey,
-        venue_id: ID,
-    ): &mut Venue {
-        assert_version_and_upgrade(listing);
-        let venue = borrow_venue_mut(listing, venue_id);
-        venue::assert_market<Market, MarketKey>(key, venue);
-
-        venue
-    }
-
-    /// Mutably borrow the Listing's `Market`
-    ///
-    /// `Market` is unprotected therefore only market modules registered
-    /// on a `Venue` can gain mutable access to it.
-    public(friend) fun market_internal_mut<Market: store, MarketKey: copy + drop + store>(
-        listing: &mut Listing,
-        key: MarketKey,
-        venue_id: ID,
-    ): &mut Market {
-        assert_version_and_upgrade(listing);
-        let venue =
-            venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
-        venue::borrow_market_mut(key, venue)
-    }
-
-    /// Remove venue from `Listing`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if the `Venue` did not exist or delegated witness did not match
-    /// the market being removed.
-    public(friend) fun remove_venue<Market: store, MarketKey: copy + drop + store>(
-        listing: &mut Listing,
-        key: MarketKey,
-        venue_id: ID,
-    ): Venue {
-        assert_version_and_upgrade(listing);
-        let venue = object_table::remove(&mut listing.venues, venue_id);
-        venue::assert_market<Market, MarketKey>(key, &venue);
-        venue
-    }
-
-    /// Returns whether `Inventory` with given ID exists
-    public fun contains_inventory<T>(
-        listing: &Listing,
-        inventory_id: ID,
-    ): bool {
-        object_bag::contains_with_type<ID, Inventory<T>>(
-            &listing.inventories,
-            inventory_id,
-        )
-    }
-
-    /// Borrow the listing's `Inventory`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Inventory` does not exist.
-    public fun borrow_inventory<T>(
-        listing: &Listing,
-        inventory_id: ID,
-    ): &Inventory<T> {
-        assert_inventory<T>(listing, inventory_id);
-        object_bag::borrow(&listing.inventories, inventory_id)
-    }
-
-    /// Mutably borrow the listing's `Inventory`
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Inventory` does not exist.
-    fun borrow_inventory_mut<T>(
-        listing: &mut Listing,
-        inventory_id: ID,
-    ): &mut Inventory<T> {
-        assert_inventory<T>(listing, inventory_id);
-        object_bag::borrow_mut(&mut listing.inventories, inventory_id)
-    }
-
-    /// Mutably borrow an `Inventory`
-    public(friend) fun inventory_internal_mut<T, Market: store, MarketKey: copy + drop + store>(
-        listing: &mut Listing,
-        key: MarketKey,
-        venue_id: ID,
-        inventory_id: ID,
-    ): &mut Inventory<T> {
-        assert_version_and_upgrade(listing);
-        venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
-        borrow_inventory_mut(listing, inventory_id)
-    }
-
-    /// Returns how many NFTs can be withdrawn
-    ///
-    /// Returns none if the supply is uncapped
-    ///
-    /// #### Panics
-    ///
-    /// Panics if `Warehouse` or `Listing` with the ID does not exist
-    public fun supply<T: key + store>(
-        listing: &Listing,
-        inventory_id: ID,
-    ): Option<u64> {
-        assert_inventory<T>(listing, inventory_id);
-
-        let inventory = borrow_inventory<T>(listing, inventory_id);
-        inventory::supply(inventory)
-    }
-
-    // === Rebates ===
-
-    /// Checks whether rebate policy exists
-    public fun has_rebate<T: key + store, FT>(listing: &Listing): bool {
-        rebate::has_rebate<T, FT>(&listing.id)
-    }
-
-    /// Borrows rebate policy
-    ///
-    /// #### Panics
-    ///
-    /// Panics if rebate policy does not exist
-    public fun borrow_rebate<T: key + store, FT>(listing: &Listing): &Rebate<FT> {
-        rebate::borrow_rebate<T, FT>(&listing.id)
-    }
-
-    #[allow(unused_function)]
-    /// Mutably borrows rebate policy
-    ///
-    /// #### Panics
-    ///
-    /// Panics if rebate policy does not exist
-    fun borrow_rebate_mut<T: key + store, FT>(listing: &mut Listing): &mut Rebate<FT> {
-        rebate::borrow_rebate_mut<T, FT>(&mut listing.id)
-    }
-
     /// Sets rebate policy
     ///
     /// Rebate amount defines the amount of token `FT` that gets transferred
@@ -988,36 +502,6 @@ module ob_launchpad::listing {
     ) {
         assert_listing_admin(listing, ctx);
         rebate::set_rebate<T, FT>(&mut listing.id, rebate_amount)
-    }
-
-    /// Add funds to rebate policy
-    ///
-    /// #### Panics
-    ///
-    /// Panics if rebate policy for given type and token, `FT`, was not
-    /// previously defined.
-    public fun fund_rebate_with_balance<T: key + store, FT>(
-        listing: &mut Listing,
-        balance: &mut Balance<FT>,
-        fund_amount: u64,
-    ) {
-        rebate::fund_rebate<T, FT>(&mut listing.id, balance, fund_amount)
-    }
-
-    /// Add funds to rebate policy
-    ///
-    /// #### Panics
-    ///
-    /// Panics if rebate policy for given type and token, `FT`, was not
-    /// previously defined.
-    public entry fun fund_rebate<T: key + store, FT>(
-        listing: &mut Listing,
-        wallet: &mut Coin<FT>,
-        fund_amount: u64,
-    ) {
-        fund_rebate_with_balance<T, FT>(
-            listing, coin::balance_mut(wallet), fund_amount,
-        )
     }
 
     /// Withdraw rebate funds to balance
@@ -1087,29 +571,6 @@ module ob_launchpad::listing {
         withdraw_rebate_funds<T, FT>(listing, &mut coin, amount, ctx);
         transfer::public_transfer(coin, receiver);
     }
-
-    /// Apply rebate funds
-    ///
-    /// Never aborts.
-    public(friend) fun apply_rebate<T: key + store, FT>(
-        listing: &mut Listing,
-        wallet: &mut Balance<FT>,
-    ) {
-        rebate::apply_rebate<T, FT>(&mut listing.id, wallet)
-    }
-
-    /// Send rebate funds
-    ///
-    /// Never aborts.
-    public(friend) fun send_rebate<T: key + store, FT>(
-        listing: &mut Listing,
-        receiver: address,
-        ctx: &mut TxContext,
-    ) {
-        rebate::send_rebate<T, FT>(&mut listing.id, receiver, ctx)
-    }
-
-    // === Admin ===
 
     /// Mutably borrow an `Inventory`
     ///
@@ -1291,7 +752,552 @@ module ob_launchpad::listing {
         transfer::public_share_object(kiosk);
     }
 
-    // === Assertions ===
+
+    // === Marketplace Admin functions ===
+
+    /// To be called by the `Marketplace` administrator, to accept the `Listing`
+    /// request to join. This is the second step to join a marketplace.
+    /// Joining a `Marketplace` is a two step process in which both the
+    /// `Listing` admin and the `Marketplace` admin need to declare their
+    /// intention to partner up.
+    public entry fun accept_listing_request(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        ctx: &mut TxContext,
+    ) {
+        mkt::assert_version(marketplace);
+        assert_version_and_upgrade(listing);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
+
+        assert!(
+            option::is_none(&listing.marketplace_id),
+            EListingAlreadyAttached,
+        );
+
+        let marketplace_id = typed_id::new(marketplace);
+
+        let request = dof::remove<RequestToJoinDfKey, RequestToJoin>(
+            &mut listing.id, RequestToJoinDfKey {}
+        );
+
+        assert!(
+            marketplace_id == request.marketplace_id,
+            EListingHasNotApplied,
+        );
+
+        let RequestToJoin {
+            id, marketplace_id: _,
+        } = request;
+        object::delete(id);
+
+        option::fill(&mut listing.marketplace_id, marketplace_id);
+    }
+
+    /// Adds a fee object to the Listing's `custom_fee`
+    ///
+    /// This function should be called by the marketplace.
+    /// If there the listing is not attached to a marketplace
+    /// then if does not make sense to pay fees.
+    ///
+    /// Can only be called by the `Marketplace` admin
+    public entry fun add_fee<FeeType: key + store>(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        fee: FeeType,
+        ctx: &mut TxContext,
+    ) {
+        mkt::assert_version(marketplace);
+        assert_version_and_upgrade(listing);
+
+        assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
+
+        obox::add<FeeType>(&mut listing.custom_fee, fee);
+    }
+
+    /// Set market's live status to `true` therefore making the NFT sale live.
+    /// To be called by the `Marketplace` admin.
+    public entry fun sale_on_delegated(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        venue_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_version_and_upgrade(listing);
+        assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_version(marketplace);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
+
+        venue::set_live(
+            borrow_venue_mut(listing, venue_id),
+            true,
+        );
+    }
+
+    /// Set market's live status to `false` therefore pausing or stopping the
+    /// NFT sale. To be called by the `Marketplace` admin.
+    public entry fun sale_off_delegated(
+        marketplace: &Marketplace,
+        listing: &mut Listing,
+        venue_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_version_and_upgrade(listing);
+        assert_listing_marketplace_match(marketplace, listing);
+        mkt::assert_version(marketplace);
+        mkt::assert_listing_admin_or_member(marketplace, ctx);
+
+        venue::set_live(
+            borrow_venue_mut(listing, venue_id),
+            false,
+        );
+    }
+
+
+    // === Getter functions ===
+
+    /// Get the Listing's `receiver` address
+    public fun receiver(listing: &Listing): address {
+        listing.receiver
+    }
+
+    /// Get the Listing's `admin` address
+    public fun admin(listing: &Listing): address {
+        listing.admin
+    }
+
+    public fun contains_custom_fee(listing: &Listing): bool {
+        !obox::is_empty(&listing.custom_fee)
+    }
+
+    public fun custom_fee(listing: &Listing): &ObjectBox {
+        &listing.custom_fee
+    }
+
+    /// Borrow the Listing's `Proceeds`
+    public fun borrow_proceeds(listing: &Listing): &Proceeds {
+        &listing.proceeds
+    }
+
+    /// Mutably borrow the Listing's `Proceeds`
+    public(friend) fun borrow_proceeds_mut(listing: &mut Listing): &mut Proceeds {
+        &mut listing.proceeds
+    }
+
+    /// Returns whether `Venue` with given ID exists
+    public fun contains_venue(listing: &Listing, venue_id: ID): bool {
+        object_table::contains(&listing.venues, venue_id)
+    }
+
+    /// Borrow the listing's `Venue`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` does not exist.
+    public fun borrow_venue(listing: &Listing, venue_id: ID): &Venue {
+        assert_venue(listing, venue_id);
+        object_table::borrow(&listing.venues, venue_id)
+    }
+
+    /// Borrow the listing's members
+    public fun borrow_members(listing: &Listing): &VecSet<address> {
+        assert!(df::exists_(&listing.id, MembersDfKey {}), ENoMembers);
+
+        df::borrow(&listing.id, MembersDfKey {})
+    }
+
+    /// Borrow the listing's `Inventory`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` does not exist.
+    public fun borrow_inventory<T>(
+        listing: &Listing,
+        inventory_id: ID,
+    ): &Inventory<T> {
+        assert_inventory<T>(listing, inventory_id);
+        object_bag::borrow(&listing.inventories, inventory_id)
+    }
+
+    /// Borrows rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy does not exist
+    public fun borrow_rebate<T: key + store, FT>(listing: &Listing): &Rebate<FT> {
+        rebate::borrow_rebate<T, FT>(&listing.id)
+    }
+
+    /// Returns how many NFTs can be withdrawn
+    ///
+    /// Returns none if the supply is uncapped
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Warehouse` or `Listing` with the ID does not exist
+    public fun supply<T: key + store>(
+        listing: &Listing,
+        inventory_id: ID,
+    ): Option<u64> {
+        assert_inventory<T>(listing, inventory_id);
+
+        let inventory = borrow_inventory<T>(listing, inventory_id);
+        inventory::supply(inventory)
+    }
+
+
+    // === Friend Functions ===
+
+    /// Pay for `Nft` sale and direct funds to `Listing` proceeds
+    public(friend) fun pay<FT>(
+        listing: &mut Listing,
+        balance: Balance<FT>,
+        quantity: u64,
+    ) {
+        assert_version_and_upgrade(listing);
+
+        let proceeds = borrow_proceeds_mut(listing);
+        proceeds::add(proceeds, balance, quantity);
+    }
+
+    /// Emits `NftSoldEvent` for provided `Nft`
+    public(friend) fun emit_sold_event<FT, T: key>(
+        nft: &T,
+        price: u64,
+        buyer: address,
+    ) {
+        event::emit(NftSoldEvent {
+            nft: object::id(nft),
+            price,
+            ft_type: *type_name::borrow_string(&type_name::get<FT>()),
+            nft_type: *type_name::borrow_string(&type_name::get<T>()),
+            buyer,
+        });
+    }
+
+    /// Pay for `Nft` sale, direct fund to `Listing` proceeds, and emit sale
+    /// events.
+    ///
+    /// Will charge `price` from the provided `Balance` object.
+    ///
+    /// #### Panics
+    ///
+    /// Panics if balance is not enough to fund price
+    public(friend) fun pay_and_emit_sold_event<FT, T: key>(
+        listing: &mut Listing,
+        nft: &T,
+        funds: Balance<FT>,
+        buyer: address,
+    ) {
+        assert_version_and_upgrade(listing);
+
+        emit_sold_event<FT, T>(nft, balance::value(&funds), buyer);
+        pay(listing, funds, 1);
+    }
+
+    /// Buys an NFT from an `Inventory`
+    ///
+    /// Only venues registered on the `Listing` have authorization to withdraw
+    /// from an `Inventory`, therefore this operation must be authorized using
+    /// a witness that corresponds to the market contract.
+    ///
+    /// Endpoint will redeem NFTs sequentially, if you need random withdrawal
+    /// use `buy_pseudorandom_nft` or `buy_random_nft`.
+    ///
+    /// #### Panics
+    ///
+    /// - `Market` type does not correspond to `venue_id` on the `Listing`
+    /// - No supply is available from underlying `Inventory`
+    public(friend) fun buy_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
+        listing: &mut Listing,
+        key: MarketKey,
+        inventory_id: ID,
+        venue_id: ID,
+        buyer: address,
+        funds: Balance<FT>,
+    ): T {
+        assert_version_and_upgrade(listing);
+
+        let inventory = inventory_internal_mut<T, Market, MarketKey>(
+            listing, key, venue_id, inventory_id,
+        );
+        let nft = inventory::redeem_nft(inventory);
+        pay_and_emit_sold_event(listing, &nft, funds, buyer);
+        nft
+    }
+
+    /// Buys a pseudo-random NFT from an `Inventory`
+    ///
+    /// Only venues registered on the `Listing` have authorization to withdraw
+    /// from an `Inventory`, therefore this operation must be authorized using
+    /// a witness that corresponds to the market contract.
+    ///
+    /// Endpoint is susceptible to validator prediction of the resulting index,
+    /// use `buy_random_nft` instead.
+    ///
+    /// #### Panics
+    ///
+    /// - `Market` type does not correspond to `venue_id` on the `Listing`
+    /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
+    public(friend) fun buy_pseudorandom_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
+        listing: &mut Listing,
+        key: MarketKey,
+        inventory_id: ID,
+        venue_id: ID,
+        buyer: address,
+        funds: Balance<FT>,
+        ctx: &mut TxContext,
+    ): T {
+        assert_version_and_upgrade(listing);
+
+        let inventory = inventory_internal_mut<T, Market, MarketKey>(
+            listing, key, venue_id, inventory_id,
+        );
+        let nft = inventory::redeem_pseudorandom_nft(inventory, ctx);
+        pay_and_emit_sold_event(listing, &nft, funds, buyer);
+        nft
+    }
+
+    /// Buys a random NFT from `Inventory`
+    ///
+    /// Requires a `RedeemCommitment` created by the user in a separate
+    /// transaction to ensure that validators may not bias results favorably.
+    /// You can obtain a `RedeemCommitment` by calling
+    /// `warehouse::init_redeem_commitment`.
+    ///
+    /// Only venues registered on the `Listing` have authorization to withdraw
+    /// from an `Inventory`, therefore this operation must be authorized using
+    /// a witness that corresponds to the market contract.
+    ///
+    /// #### Panics
+    ///
+    /// - `Market` type does not correspond to `venue_id` on the `Listing`
+    /// - Underlying `Inventory` is not a `Warehouse` and there is no supply
+    /// - `user_commitment` does not match the hashed commitment in
+    /// `RedeemCommitment`
+    public(friend) fun buy_random_nft<T: key + store, FT, Market: store, MarketKey: copy + drop + store>(
+        listing: &mut Listing,
+        key: MarketKey,
+        commitment: RedeemCommitment,
+        user_commitment: vector<u8>,
+        inventory_id: ID,
+        venue_id: ID,
+        buyer: address,
+        funds: Balance<FT>,
+        ctx: &mut TxContext,
+    ): T {
+        assert_version_and_upgrade(listing);
+
+        let inventory = inventory_internal_mut<T, Market, MarketKey>(
+            listing, key, venue_id, inventory_id,
+        );
+        let nft = inventory::redeem_random_nft(
+            inventory, commitment, user_commitment, ctx,
+        );
+        pay_and_emit_sold_event(listing, &nft, funds, buyer);
+        nft
+    }
+
+    /// Adds `Whitelist` object. We use a generic `WL` to represent the
+    /// `Whitelist` type object to avoid dependency cycles.
+    ///
+    /// Warning: This function is not safe to be shared, it does not check
+    /// for permissions and should ONLY be used by the function
+    /// `market_whitelist::add_whitelist`
+    public(friend) fun add_whitelist_internal<WL: key + store>(
+        listing: &mut Listing,
+        venue_id: ID,
+        whitelist: WL
+    ) {
+        df::add(&mut listing.id, WhitelistDfKey { venue_id }, whitelist);
+    }
+
+    /// Borrows `Whitelist` object mutably. We use a generic `WL` to represent the
+    /// `Whitelist` type object to avoid dependency cycles.
+    ///
+    /// Warning: This function is not safe to be shared, it does not check
+    /// for permissions and should ONLY be used by the function
+    /// `market_whitelist::add_addresses` and `market_whitelist::remove_addresses`
+    public(friend) fun borrow_whitelist_mut<WL: key + store>(
+        listing: &mut Listing,
+        venue_id: ID,
+    ): &mut WL {
+        df::borrow_mut(&mut listing.id, WhitelistDfKey { venue_id })
+    }
+
+    /// Mutably borrow the listing's `Venue`
+    ///
+    /// `Venue` and inventories are unprotected therefore only market modules
+    /// registered on a `Venue` can gain mutable access to it.
+    public(friend) fun venue_internal_mut<Market: store, MarketKey: copy + drop + store>(
+        listing: &mut Listing,
+        key: MarketKey,
+        venue_id: ID,
+    ): &mut Venue {
+        assert_version_and_upgrade(listing);
+        let venue = borrow_venue_mut(listing, venue_id);
+        venue::assert_market<Market, MarketKey>(key, venue);
+
+        venue
+    }
+
+    /// Mutably borrow the Listing's `Market`
+    ///
+    /// `Market` is unprotected therefore only market modules registered
+    /// on a `Venue` can gain mutable access to it.
+    public(friend) fun market_internal_mut<Market: store, MarketKey: copy + drop + store>(
+        listing: &mut Listing,
+        key: MarketKey,
+        venue_id: ID,
+    ): &mut Market {
+        assert_version_and_upgrade(listing);
+        let venue =
+            venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
+        venue::borrow_market_mut(key, venue)
+    }
+
+    /// Remove venue from `Listing`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if the `Venue` did not exist or delegated witness did not match
+    /// the market being removed.
+    public(friend) fun remove_venue<Market: store, MarketKey: copy + drop + store>(
+        listing: &mut Listing,
+        key: MarketKey,
+        venue_id: ID,
+    ): Venue {
+        assert_version_and_upgrade(listing);
+        let venue = object_table::remove(&mut listing.venues, venue_id);
+        venue::assert_market<Market, MarketKey>(key, &venue);
+        venue
+    }
+
+    /// Mutably borrow an `Inventory`
+    public(friend) fun inventory_internal_mut<T, Market: store, MarketKey: copy + drop + store>(
+        listing: &mut Listing,
+        key: MarketKey,
+        venue_id: ID,
+        inventory_id: ID,
+    ): &mut Inventory<T> {
+        assert_version_and_upgrade(listing);
+        venue_internal_mut<Market, MarketKey>(listing, key, venue_id);
+        borrow_inventory_mut(listing, inventory_id)
+    }
+
+    /// Apply rebate funds
+    ///
+    /// Never aborts.
+    public(friend) fun apply_rebate<T: key + store, FT>(
+        listing: &mut Listing,
+        wallet: &mut Balance<FT>,
+    ) {
+        rebate::apply_rebate<T, FT>(&mut listing.id, wallet)
+    }
+
+    /// Send rebate funds
+    ///
+    /// Never aborts.
+    public(friend) fun send_rebate<T: key + store, FT>(
+        listing: &mut Listing,
+        receiver: address,
+        ctx: &mut TxContext,
+    ) {
+        rebate::send_rebate<T, FT>(&mut listing.id, receiver, ctx)
+    }
+
+
+    // === Private Functions ===
+
+    /// Mutably borrow the listing's `Venue`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Venue` does not exist.
+    fun borrow_venue_mut(
+        listing: &mut Listing,
+        venue_id: ID,
+    ): &mut Venue {
+        assert_venue(listing, venue_id);
+        object_table::borrow_mut(&mut listing.venues, venue_id)
+    }
+
+    /// Mutably borrow the listing's `Inventory`
+    ///
+    /// #### Panics
+    ///
+    /// Panics if `Inventory` does not exist.
+    fun borrow_inventory_mut<T>(
+        listing: &mut Listing,
+        inventory_id: ID,
+    ): &mut Inventory<T> {
+        assert_inventory<T>(listing, inventory_id);
+        object_bag::borrow_mut(&mut listing.inventories, inventory_id)
+    }
+
+    #[allow(unused_function)]
+    /// Mutably borrows rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy does not exist
+    fun borrow_rebate_mut<T: key + store, FT>(listing: &mut Listing): &mut Rebate<FT> {
+        rebate::borrow_rebate_mut<T, FT>(&mut listing.id)
+    }
+
+    // === Permissionless Functions ===
+
+
+    /// Add funds to rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy for given type and token, `FT`, was not
+    /// previously defined.
+    public fun fund_rebate_with_balance<T: key + store, FT>(
+        listing: &mut Listing,
+        balance: &mut Balance<FT>,
+        fund_amount: u64,
+    ) {
+        rebate::fund_rebate<T, FT>(&mut listing.id, balance, fund_amount)
+    }
+
+    /// Add funds to rebate policy
+    ///
+    /// #### Panics
+    ///
+    /// Panics if rebate policy for given type and token, `FT`, was not
+    /// previously defined.
+    public entry fun fund_rebate<T: key + store, FT>(
+        listing: &mut Listing,
+        wallet: &mut Coin<FT>,
+        fund_amount: u64,
+    ) {
+        fund_rebate_with_balance<T, FT>(
+            listing, coin::balance_mut(wallet), fund_amount,
+        )
+    }
+
+    // === Soft Assertions ===
+
+    /// Returns whether `Inventory` with given ID exists
+    public fun contains_inventory<T>(
+        listing: &Listing,
+        inventory_id: ID,
+    ): bool {
+        object_bag::contains_with_type<ID, Inventory<T>>(
+            &listing.inventories,
+            inventory_id,
+        )
+    }
+
+    /// Checks whether rebate policy exists
+    public fun has_rebate<T: key + store, FT>(listing: &Listing): bool {
+        rebate::has_rebate<T, FT>(&listing.id)
+    }
+
+
+    // === Hard Assertions ===
 
     public fun assert_listing_marketplace_match(marketplace: &Marketplace, listing: &Listing) {
         assert!(
