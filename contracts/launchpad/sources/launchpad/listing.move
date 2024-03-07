@@ -39,6 +39,7 @@ module ob_launchpad::listing {
     use sui::object_table::{Self, ObjectTable};
     use sui::object_bag::{Self, ObjectBag};
     use sui::dynamic_field as df;
+    use sui::clock::{Self, Clock};
 
     use originmate::typed_id::{Self, TypedID};
     use originmate::object_box::{Self as obox, ObjectBox};
@@ -89,6 +90,7 @@ module ob_launchpad::listing {
     const ENotAMemberNorAdmin: u64 = 10;
     const EWrongAdminNoMembers: u64 = 11;
     const ENoMembers: u64 = 12;
+    const ECurrentTimeBelowVenueStartTime: u64 = 13;
 
     // === Structs ===
 
@@ -126,6 +128,7 @@ module ob_launchpad::listing {
     struct RequestToJoinDfKey has store, copy, drop {}
     struct MembersDfKey has store, copy, drop {}
     struct WhitelistDfKey has store, copy, drop { venue_id: ID }
+    struct StartSaleDfKey has store, copy, drop { venue_id: ID }
 
     // === Events ===
 
@@ -407,6 +410,33 @@ module ob_launchpad::listing {
         let inventory_id = object::id(&inventory);
         add_inventory(listing, inventory, ctx);
         inventory_id
+    }
+
+    /// Sets market's `start_time` which allows the sale to be turned on
+    /// permissionlessly based on the runtime clock.
+    public entry fun set_start_sale_time(
+        listing: &mut Listing,
+        start_time_ts: u64,
+        venue_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_version_and_upgrade(listing);
+        assert_listing_admin_or_member(listing, ctx);
+
+        df::add(&mut listing.id, StartSaleDfKey { venue_id }, start_time_ts);
+    }
+
+    /// Removes market's `start_time` therefore removing the ability for the sale
+    /// to be turned on permissionlessly based on the runtime clock.
+    public entry fun remove_start_sale_time(
+        listing: &mut Listing,
+        venue_id: ID,
+        ctx: &mut TxContext,
+    ) {
+        assert_version_and_upgrade(listing);
+        assert_listing_admin_or_member(listing, ctx);
+
+        df::remove<StartSaleDfKey, u64>(&mut listing.id, StartSaleDfKey { venue_id });
     }
 
     /// Set market's live status to `true` therefore making the NFT sale live.
@@ -1247,6 +1277,19 @@ module ob_launchpad::listing {
 
     // === Permissionless Functions ===
 
+    /// Set market's live status to `true` therefore making the NFT sale live,
+    /// if the current runtime clock is above or equal to the start time timestamp.
+    public entry fun start_sale_on_time(
+        listing: &mut Listing,
+        venue_id: ID,
+        clock: &Clock,
+    ) {
+        assert_version_and_upgrade(listing);
+        let start_time_ts: &u64 = df::borrow(&listing.id, StartSaleDfKey { venue_id });
+
+        assert!(clock::timestamp_ms(clock) >= *start_time_ts, ECurrentTimeBelowVenueStartTime);
+        venue::set_live(borrow_venue_mut(listing, venue_id), true);
+    }
 
     /// Add funds to rebate policy
     ///
