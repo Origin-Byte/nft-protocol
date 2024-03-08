@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type BitVectorReified = Reified<
     BitVectorFields
 >;
 
-export class BitVector {
+export class BitVector implements StructClass {
     static readonly $typeName = "0x1::bit_vector::BitVector";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class BitVector {
 
     readonly $fullTypeName: "0x1::bit_vector::BitVector";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly length:
         ToField<"u64">
     ; readonly bitField:
         ToField<Vector<"bool">>
 
-    private constructor( fields: BitVectorFields,
+    private constructor(typeArgs: [], fields: BitVectorFields,
     ) {
-        this.$fullTypeName = BitVector.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BitVector.$typeName,
+            ...typeArgs
+        ) as "0x1::bit_vector::BitVector";
+        this.$typeArgs = typeArgs;
 
         this.length = fields.length;; this.bitField = fields.bitField;
     }
@@ -49,7 +53,8 @@ export class BitVector {
                 BitVector.$typeName,
                 ...[]
             ) as "0x1::bit_vector::BitVector",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BitVector.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class BitVector {
                 BitVector.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BitVector.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BitVector.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class BitVector {
                 fields: BitVectorFields,
             ) => {
                 return new BitVector(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class BitVector {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type OB_AUTHLISTReified = Reified<
     OB_AUTHLISTFields
 >;
 
-export class OB_AUTHLIST {
+export class OB_AUTHLIST implements StructClass {
     static readonly $typeName = "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::ob_authlist::OB_AUTHLIST";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class OB_AUTHLIST {
 
     readonly $fullTypeName: "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::ob_authlist::OB_AUTHLIST";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: OB_AUTHLISTFields,
+    private constructor(typeArgs: [], fields: OB_AUTHLISTFields,
     ) {
-        this.$fullTypeName = OB_AUTHLIST.$typeName;
+        this.$fullTypeName = composeSuiType(
+            OB_AUTHLIST.$typeName,
+            ...typeArgs
+        ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::ob_authlist::OB_AUTHLIST";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class OB_AUTHLIST {
                 OB_AUTHLIST.$typeName,
                 ...[]
             ) as "0x228b48911fdc05f8d80ac4334cd734d38dd7db74a0f4e423cb91f736f429ebe4::ob_authlist::OB_AUTHLIST",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 OB_AUTHLIST.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class OB_AUTHLIST {
                 OB_AUTHLIST.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                OB_AUTHLIST.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => OB_AUTHLIST.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class OB_AUTHLIST {
                 fields: OB_AUTHLISTFields,
             ) => {
                 return new OB_AUTHLIST(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class OB_AUTHLIST {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

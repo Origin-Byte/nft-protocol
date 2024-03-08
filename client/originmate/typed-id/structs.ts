@@ -1,5 +1,5 @@
 import {ID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type TypedIDReified<T extends PhantomTypeArgument> = Reified<
     TypedIDFields<T>
 >;
 
-export class TypedID<T extends PhantomTypeArgument> {
+export class TypedID<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::typed_id::TypedID";
     static readonly $numTypeParams = 1;
 
@@ -28,19 +28,18 @@ export class TypedID<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::typed_id::TypedID<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: TypedIDFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TypedIDFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(TypedID.$typeName,
-        typeArg) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::typed_id::TypedID<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TypedID.$typeName,
+            ...typeArgs
+        ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::typed_id::TypedID<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;
     }
@@ -54,7 +53,10 @@ export class TypedID<T extends PhantomTypeArgument> {
                 TypedID.$typeName,
                 ...[extractType(T)]
             ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::typed_id::TypedID<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 TypedID.fromFields(
                     T,
@@ -81,6 +83,11 @@ export class TypedID<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TypedID.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TypedID.fetch(
                 client,
                 T,
@@ -90,7 +97,7 @@ export class TypedID<T extends PhantomTypeArgument> {
                 fields: TypedIDFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new TypedID(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -167,7 +174,7 @@ export class TypedID<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -191,7 +198,7 @@ export class TypedID<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TypedID.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

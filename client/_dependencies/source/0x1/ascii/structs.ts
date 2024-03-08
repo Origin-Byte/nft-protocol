@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type CharReified = Reified<
     CharFields
 >;
 
-export class Char {
+export class Char implements StructClass {
     static readonly $typeName = "0x1::ascii::Char";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class Char {
 
     readonly $fullTypeName: "0x1::ascii::Char";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly byte:
         ToField<"u8">
 
-    private constructor( fields: CharFields,
+    private constructor(typeArgs: [], fields: CharFields,
     ) {
-        this.$fullTypeName = Char.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Char.$typeName,
+            ...typeArgs
+        ) as "0x1::ascii::Char";
+        this.$typeArgs = typeArgs;
 
         this.byte = fields.byte;
     }
@@ -47,7 +51,8 @@ export class Char {
                 Char.$typeName,
                 ...[]
             ) as "0x1::ascii::Char",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Char.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class Char {
                 Char.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Char.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Char.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class Char {
                 fields: CharFields,
             ) => {
                 return new Char(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class Char {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -219,7 +230,7 @@ export type StringReified = Reified<
     StringFields
 >;
 
-export class String {
+export class String implements StructClass {
     static readonly $typeName = "0x1::ascii::String";
     static readonly $numTypeParams = 0;
 
@@ -227,14 +238,18 @@ export class String {
 
     readonly $fullTypeName: "0x1::ascii::String";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bytes:
         ToField<Vector<"u8">>
 
-    private constructor( fields: StringFields,
+    private constructor(typeArgs: [], fields: StringFields,
     ) {
-        this.$fullTypeName = String.$typeName;
+        this.$fullTypeName = composeSuiType(
+            String.$typeName,
+            ...typeArgs
+        ) as "0x1::ascii::String";
+        this.$typeArgs = typeArgs;
 
         this.bytes = fields.bytes;
     }
@@ -246,7 +261,8 @@ export class String {
                 String.$typeName,
                 ...[]
             ) as "0x1::ascii::String",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 String.fromFields(
                     fields,
@@ -268,6 +284,10 @@ export class String {
                 String.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                String.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => String.fetch(
                 client,
                 id,
@@ -276,6 +296,7 @@ export class String {
                 fields: StringFields,
             ) => {
                 return new String(
+                    [],
                     fields
                 )
             },
@@ -342,6 +363,7 @@ export class String {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

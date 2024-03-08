@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type WitnessReified<T extends PhantomTypeArgument> = Reified<
     WitnessFields<T>
 >;
 
-export class Witness<T extends PhantomTypeArgument> {
+export class Witness<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::Witness";
     static readonly $numTypeParams = 1;
 
@@ -27,19 +27,18 @@ export class Witness<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::Witness<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: WitnessFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: WitnessFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Witness.$typeName,
-        typeArg) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::Witness<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::Witness<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -53,7 +52,10 @@ export class Witness<T extends PhantomTypeArgument> {
                 Witness.$typeName,
                 ...[extractType(T)]
             ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::Witness<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     T,
@@ -80,6 +82,11 @@ export class Witness<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 T,
@@ -89,7 +96,7 @@ export class Witness<T extends PhantomTypeArgument> {
                 fields: WitnessFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Witness(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -166,7 +173,7 @@ export class Witness<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -190,7 +197,7 @@ export class Witness<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Witness.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -254,7 +261,7 @@ export type WitnessGeneratorReified<T extends PhantomTypeArgument> = Reified<
     WitnessGeneratorFields<T>
 >;
 
-export class WitnessGenerator<T extends PhantomTypeArgument> {
+export class WitnessGenerator<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::WitnessGenerator";
     static readonly $numTypeParams = 1;
 
@@ -262,19 +269,18 @@ export class WitnessGenerator<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::WitnessGenerator<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: WitnessGeneratorFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: WitnessGeneratorFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(WitnessGenerator.$typeName,
-        typeArg) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::WitnessGenerator<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            WitnessGenerator.$typeName,
+            ...typeArgs
+        ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::WitnessGenerator<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -288,7 +294,10 @@ export class WitnessGenerator<T extends PhantomTypeArgument> {
                 WitnessGenerator.$typeName,
                 ...[extractType(T)]
             ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::witness::WitnessGenerator<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 WitnessGenerator.fromFields(
                     T,
@@ -315,6 +324,11 @@ export class WitnessGenerator<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                WitnessGenerator.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => WitnessGenerator.fetch(
                 client,
                 T,
@@ -324,7 +338,7 @@ export class WitnessGenerator<T extends PhantomTypeArgument> {
                 fields: WitnessGeneratorFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new WitnessGenerator(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -401,7 +415,7 @@ export class WitnessGenerator<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -425,7 +439,7 @@ export class WitnessGenerator<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(WitnessGenerator.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -158,4 +158,16 @@ module ob_launchpad::proceeds {
             type_name::get<FT>(),
         )
     }
+
+    // === Testing ===
+
+    #[test_only]
+    public fun destroy_for_testing(proceeds: Proceeds) {
+        let Proceeds {
+            id,
+            qt_sold: _,
+        } = proceeds;
+
+        object::delete(id);
+    }
 }

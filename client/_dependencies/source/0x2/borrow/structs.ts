@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {Option} from "../../0x1/option/structs";
 import {ID} from "../object/structs";
@@ -21,7 +21,7 @@ export type BorrowReified = Reified<
     BorrowFields
 >;
 
-export class Borrow {
+export class Borrow implements StructClass {
     static readonly $typeName = "0x2::borrow::Borrow";
     static readonly $numTypeParams = 0;
 
@@ -29,16 +29,20 @@ export class Borrow {
 
     readonly $fullTypeName: "0x2::borrow::Borrow";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly ref:
         ToField<"address">
     ; readonly obj:
         ToField<ID>
 
-    private constructor( fields: BorrowFields,
+    private constructor(typeArgs: [], fields: BorrowFields,
     ) {
-        this.$fullTypeName = Borrow.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Borrow.$typeName,
+            ...typeArgs
+        ) as "0x2::borrow::Borrow";
+        this.$typeArgs = typeArgs;
 
         this.ref = fields.ref;; this.obj = fields.obj;
     }
@@ -50,7 +54,8 @@ export class Borrow {
                 Borrow.$typeName,
                 ...[]
             ) as "0x2::borrow::Borrow",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Borrow.fromFields(
                     fields,
@@ -72,6 +77,10 @@ export class Borrow {
                 Borrow.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Borrow.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Borrow.fetch(
                 client,
                 id,
@@ -80,6 +89,7 @@ export class Borrow {
                 fields: BorrowFields,
             ) => {
                 return new Borrow(
+                    [],
                     fields
                 )
             },
@@ -149,6 +159,7 @@ export class Borrow {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -225,7 +236,7 @@ export type ReferentReified<T extends TypeArgument> = Reified<
     ReferentFields<T>
 >;
 
-export class Referent<T extends TypeArgument> {
+export class Referent<T extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::borrow::Referent";
     static readonly $numTypeParams = 1;
 
@@ -233,21 +244,20 @@ export class Referent<T extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::borrow::Referent<${ToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<T>];
 
     readonly id:
         ToField<"address">
     ; readonly value:
         ToField<Option<T>>
 
-    private constructor(typeArg: string, fields: ReferentFields<T>,
+    private constructor(typeArgs: [ToTypeStr<T>], fields: ReferentFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Referent.$typeName,
-        typeArg) as `0x2::borrow::Referent<${ToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Referent.$typeName,
+            ...typeArgs
+        ) as `0x2::borrow::Referent<${ToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.value = fields.value;
     }
@@ -261,7 +271,10 @@ export class Referent<T extends TypeArgument> {
                 Referent.$typeName,
                 ...[extractType(T)]
             ) as `0x2::borrow::Referent<${ToTypeStr<ToTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [ToTypeStr<ToTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Referent.fromFields(
                     T,
@@ -288,6 +301,11 @@ export class Referent<T extends TypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Referent.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Referent.fetch(
                 client,
                 T,
@@ -297,7 +315,7 @@ export class Referent<T extends TypeArgument> {
                 fields: ReferentFields<ToTypeArgument<T>>,
             ) => {
                 return new Referent(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -370,7 +388,7 @@ export class Referent<T extends TypeArgument> {
 
     toJSONField() {
         return {
-            id: this.id,value: fieldToJSON<Option<T>>(`0x1::option::Option<${this.$typeArg}>`, this.value),
+            id: this.id,value: fieldToJSON<Option<T>>(`0x1::option::Option<${this.$typeArgs[0]}>`, this.value),
 
         }
     }
@@ -378,7 +396,7 @@ export class Referent<T extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -402,7 +420,7 @@ export class Referent<T extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Referent.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

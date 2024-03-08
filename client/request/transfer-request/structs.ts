@@ -1,6 +1,6 @@
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {TransferRequest as TransferRequest1} from "../../_dependencies/source/0x2/transfer-policy/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type TransferRequestReified<T extends PhantomTypeArgument> = Reified<
     TransferRequestFields<T>
 >;
 
-export class TransferRequest<T extends PhantomTypeArgument> {
+export class TransferRequest<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::TransferRequest";
     static readonly $numTypeParams = 1;
 
@@ -29,9 +29,7 @@ export class TransferRequest<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::TransferRequest<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly nft:
         ToField<ID>
@@ -44,12 +42,13 @@ export class TransferRequest<T extends PhantomTypeArgument> {
     ; readonly metadata:
         ToField<UID>
 
-    private constructor(typeArg: string, fields: TransferRequestFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TransferRequestFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(TransferRequest.$typeName,
-        typeArg) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::TransferRequest<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TransferRequest.$typeName,
+            ...typeArgs
+        ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::TransferRequest<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.nft = fields.nft;; this.originator = fields.originator;; this.beneficiary = fields.beneficiary;; this.inner = fields.inner;; this.metadata = fields.metadata;
     }
@@ -63,7 +62,10 @@ export class TransferRequest<T extends PhantomTypeArgument> {
                 TransferRequest.$typeName,
                 ...[extractType(T)]
             ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::TransferRequest<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 TransferRequest.fromFields(
                     T,
@@ -90,6 +92,11 @@ export class TransferRequest<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TransferRequest.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TransferRequest.fetch(
                 client,
                 T,
@@ -99,7 +106,7 @@ export class TransferRequest<T extends PhantomTypeArgument> {
                 fields: TransferRequestFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new TransferRequest(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -186,7 +193,7 @@ export class TransferRequest<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -210,7 +217,7 @@ export class TransferRequest<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TransferRequest.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -274,7 +281,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::Witness";
     static readonly $numTypeParams = 0;
 
@@ -282,14 +289,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -301,7 +312,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -323,6 +335,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -331,6 +347,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -397,6 +414,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -473,7 +491,7 @@ export type BalanceAccessCapReified<T extends PhantomTypeArgument> = Reified<
     BalanceAccessCapFields<T>
 >;
 
-export class BalanceAccessCap<T extends PhantomTypeArgument> {
+export class BalanceAccessCap<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceAccessCap";
     static readonly $numTypeParams = 1;
 
@@ -481,19 +499,18 @@ export class BalanceAccessCap<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceAccessCap<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: BalanceAccessCapFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: BalanceAccessCapFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(BalanceAccessCap.$typeName,
-        typeArg) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceAccessCap<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            BalanceAccessCap.$typeName,
+            ...typeArgs
+        ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceAccessCap<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -507,7 +524,10 @@ export class BalanceAccessCap<T extends PhantomTypeArgument> {
                 BalanceAccessCap.$typeName,
                 ...[extractType(T)]
             ) as `0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceAccessCap<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 BalanceAccessCap.fromFields(
                     T,
@@ -534,6 +554,11 @@ export class BalanceAccessCap<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BalanceAccessCap.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BalanceAccessCap.fetch(
                 client,
                 T,
@@ -543,7 +568,7 @@ export class BalanceAccessCap<T extends PhantomTypeArgument> {
                 fields: BalanceAccessCapFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new BalanceAccessCap(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -620,7 +645,7 @@ export class BalanceAccessCap<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -644,7 +669,7 @@ export class BalanceAccessCap<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(BalanceAccessCap.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -708,7 +733,7 @@ export type BalanceDfKeyReified = Reified<
     BalanceDfKeyFields
 >;
 
-export class BalanceDfKey {
+export class BalanceDfKey implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceDfKey";
     static readonly $numTypeParams = 0;
 
@@ -716,14 +741,18 @@ export class BalanceDfKey {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: BalanceDfKeyFields,
+    private constructor(typeArgs: [], fields: BalanceDfKeyFields,
     ) {
-        this.$fullTypeName = BalanceDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BalanceDfKey.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -735,7 +764,8 @@ export class BalanceDfKey {
                 BalanceDfKey.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BalanceDfKey.fromFields(
                     fields,
@@ -757,6 +787,10 @@ export class BalanceDfKey {
                 BalanceDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BalanceDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BalanceDfKey.fetch(
                 client,
                 id,
@@ -765,6 +799,7 @@ export class BalanceDfKey {
                 fields: BalanceDfKeyFields,
             ) => {
                 return new BalanceDfKey(
+                    [],
                     fields
                 )
             },
@@ -831,6 +866,7 @@ export class BalanceDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -907,7 +943,7 @@ export type OBCustomRulesDfKeyReified = Reified<
     OBCustomRulesDfKeyFields
 >;
 
-export class OBCustomRulesDfKey {
+export class OBCustomRulesDfKey implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::OBCustomRulesDfKey";
     static readonly $numTypeParams = 0;
 
@@ -915,14 +951,18 @@ export class OBCustomRulesDfKey {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::OBCustomRulesDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: OBCustomRulesDfKeyFields,
+    private constructor(typeArgs: [], fields: OBCustomRulesDfKeyFields,
     ) {
-        this.$fullTypeName = OBCustomRulesDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            OBCustomRulesDfKey.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::OBCustomRulesDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -934,7 +974,8 @@ export class OBCustomRulesDfKey {
                 OBCustomRulesDfKey.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::OBCustomRulesDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 OBCustomRulesDfKey.fromFields(
                     fields,
@@ -956,6 +997,10 @@ export class OBCustomRulesDfKey {
                 OBCustomRulesDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                OBCustomRulesDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => OBCustomRulesDfKey.fetch(
                 client,
                 id,
@@ -964,6 +1009,7 @@ export class OBCustomRulesDfKey {
                 fields: OBCustomRulesDfKeyFields,
             ) => {
                 return new OBCustomRulesDfKey(
+                    [],
                     fields
                 )
             },
@@ -1030,6 +1076,7 @@ export class OBCustomRulesDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

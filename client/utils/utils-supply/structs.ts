@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type SupplyReified = Reified<
     SupplyFields
 >;
 
-export class Supply {
+export class Supply implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils_supply::Supply";
     static readonly $numTypeParams = 0;
 
@@ -27,16 +27,20 @@ export class Supply {
 
     readonly $fullTypeName: "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils_supply::Supply";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly max:
         ToField<"u64">
     ; readonly current:
         ToField<"u64">
 
-    private constructor( fields: SupplyFields,
+    private constructor(typeArgs: [], fields: SupplyFields,
     ) {
-        this.$fullTypeName = Supply.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Supply.$typeName,
+            ...typeArgs
+        ) as "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils_supply::Supply";
+        this.$typeArgs = typeArgs;
 
         this.max = fields.max;; this.current = fields.current;
     }
@@ -48,7 +52,8 @@ export class Supply {
                 Supply.$typeName,
                 ...[]
             ) as "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils_supply::Supply",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Supply.fromFields(
                     fields,
@@ -70,6 +75,10 @@ export class Supply {
                 Supply.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Supply.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Supply.fetch(
                 client,
                 id,
@@ -78,6 +87,7 @@ export class Supply {
                 fields: SupplyFields,
             ) => {
                 return new Supply(
+                    [],
                     fields
                 )
             },
@@ -146,6 +156,7 @@ export class Supply {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

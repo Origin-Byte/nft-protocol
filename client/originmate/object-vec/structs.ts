@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type ObjectVecReified<V extends PhantomTypeArgument> = Reified<
     ObjectVecFields<V>
 >;
 
-export class ObjectVec<V extends PhantomTypeArgument> {
+export class ObjectVec<V extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_vec::ObjectVec";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class ObjectVec<V extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_vec::ObjectVec<${PhantomToTypeStr<V>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<V>];
 
     readonly id:
         ToField<UID>
     ; readonly size:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: ObjectVecFields<V>,
+    private constructor(typeArgs: [PhantomToTypeStr<V>], fields: ObjectVecFields<V>,
     ) {
-        this.$fullTypeName = composeSuiType(ObjectVec.$typeName,
-        typeArg) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_vec::ObjectVec<${PhantomToTypeStr<V>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            ObjectVec.$typeName,
+            ...typeArgs
+        ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_vec::ObjectVec<${PhantomToTypeStr<V>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.size = fields.size;
     }
@@ -56,7 +55,10 @@ export class ObjectVec<V extends PhantomTypeArgument> {
                 ObjectVec.$typeName,
                 ...[extractType(V)]
             ) as `0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::object_vec::ObjectVec<${PhantomToTypeStr<ToPhantomTypeArgument<V>>}>`,
-            typeArgs: [V],
+            typeArgs: [
+                extractType(V)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<V>>],
+            reifiedTypeArgs: [V],
             fromFields: (fields: Record<string, any>) =>
                 ObjectVec.fromFields(
                     V,
@@ -83,6 +85,11 @@ export class ObjectVec<V extends PhantomTypeArgument> {
                     V,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ObjectVec.fromSuiParsedData(
+                    V,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ObjectVec.fetch(
                 client,
                 V,
@@ -92,7 +99,7 @@ export class ObjectVec<V extends PhantomTypeArgument> {
                 fields: ObjectVecFields<ToPhantomTypeArgument<V>>,
             ) => {
                 return new ObjectVec(
-                    extractType(V),
+                    [extractType(V)],
                     fields
                 )
             },
@@ -171,7 +178,7 @@ export class ObjectVec<V extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -195,7 +202,7 @@ export class ObjectVec<V extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(ObjectVec.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

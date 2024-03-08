@@ -2,7 +2,7 @@ import {Option} from "../../_dependencies/source/0x1/option/structs";
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -23,7 +23,7 @@ export type CollectionKeyReified = Reified<
     CollectionKeyFields
 >;
 
-export class CollectionKey {
+export class CollectionKey implements StructClass {
     static readonly $typeName = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::CollectionKey";
     static readonly $numTypeParams = 0;
 
@@ -31,14 +31,18 @@ export class CollectionKey {
 
     readonly $fullTypeName: "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::CollectionKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly typeName:
         ToField<TypeName>
 
-    private constructor( fields: CollectionKeyFields,
+    private constructor(typeArgs: [], fields: CollectionKeyFields,
     ) {
-        this.$fullTypeName = CollectionKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            CollectionKey.$typeName,
+            ...typeArgs
+        ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::CollectionKey";
+        this.$typeArgs = typeArgs;
 
         this.typeName = fields.typeName;
     }
@@ -50,7 +54,8 @@ export class CollectionKey {
                 CollectionKey.$typeName,
                 ...[]
             ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::CollectionKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 CollectionKey.fromFields(
                     fields,
@@ -72,6 +77,10 @@ export class CollectionKey {
                 CollectionKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                CollectionKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => CollectionKey.fetch(
                 client,
                 id,
@@ -80,6 +89,7 @@ export class CollectionKey {
                 fields: CollectionKeyFields,
             ) => {
                 return new CollectionKey(
+                    [],
                     fields
                 )
             },
@@ -146,6 +156,7 @@ export class CollectionKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -222,7 +233,7 @@ export type ALLOWLISTReified = Reified<
     ALLOWLISTFields
 >;
 
-export class ALLOWLIST {
+export class ALLOWLIST implements StructClass {
     static readonly $typeName = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::ALLOWLIST";
     static readonly $numTypeParams = 0;
 
@@ -230,14 +241,18 @@ export class ALLOWLIST {
 
     readonly $fullTypeName: "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::ALLOWLIST";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: ALLOWLISTFields,
+    private constructor(typeArgs: [], fields: ALLOWLISTFields,
     ) {
-        this.$fullTypeName = ALLOWLIST.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ALLOWLIST.$typeName,
+            ...typeArgs
+        ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::ALLOWLIST";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -249,7 +264,8 @@ export class ALLOWLIST {
                 ALLOWLIST.$typeName,
                 ...[]
             ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::ALLOWLIST",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ALLOWLIST.fromFields(
                     fields,
@@ -271,6 +287,10 @@ export class ALLOWLIST {
                 ALLOWLIST.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ALLOWLIST.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ALLOWLIST.fetch(
                 client,
                 id,
@@ -279,6 +299,7 @@ export class ALLOWLIST {
                 fields: ALLOWLISTFields,
             ) => {
                 return new ALLOWLIST(
+                    [],
                     fields
                 )
             },
@@ -345,6 +366,7 @@ export class ALLOWLIST {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -421,7 +443,7 @@ export type AllowlistReified = Reified<
     AllowlistFields
 >;
 
-export class Allowlist {
+export class Allowlist implements StructClass {
     static readonly $typeName = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::Allowlist";
     static readonly $numTypeParams = 0;
 
@@ -429,7 +451,7 @@ export class Allowlist {
 
     readonly $fullTypeName: "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::Allowlist";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -440,9 +462,13 @@ export class Allowlist {
     ; readonly authorities:
         ToField<VecSet<TypeName>>
 
-    private constructor( fields: AllowlistFields,
+    private constructor(typeArgs: [], fields: AllowlistFields,
     ) {
-        this.$fullTypeName = Allowlist.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Allowlist.$typeName,
+            ...typeArgs
+        ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::Allowlist";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;; this.adminWitness = fields.adminWitness;; this.authorities = fields.authorities;
     }
@@ -454,7 +480,8 @@ export class Allowlist {
                 Allowlist.$typeName,
                 ...[]
             ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::Allowlist",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Allowlist.fromFields(
                     fields,
@@ -476,6 +503,10 @@ export class Allowlist {
                 Allowlist.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Allowlist.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Allowlist.fetch(
                 client,
                 id,
@@ -484,6 +515,7 @@ export class Allowlist {
                 fields: AllowlistFields,
             ) => {
                 return new Allowlist(
+                    [],
                     fields
                 )
             },
@@ -556,6 +588,7 @@ export class Allowlist {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -632,7 +665,7 @@ export type AllowlistOwnerCapReified = Reified<
     AllowlistOwnerCapFields
 >;
 
-export class AllowlistOwnerCap {
+export class AllowlistOwnerCap implements StructClass {
     static readonly $typeName = "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::AllowlistOwnerCap";
     static readonly $numTypeParams = 0;
 
@@ -640,16 +673,20 @@ export class AllowlistOwnerCap {
 
     readonly $fullTypeName: "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::AllowlistOwnerCap";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly for:
         ToField<ID>
 
-    private constructor( fields: AllowlistOwnerCapFields,
+    private constructor(typeArgs: [], fields: AllowlistOwnerCapFields,
     ) {
-        this.$fullTypeName = AllowlistOwnerCap.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AllowlistOwnerCap.$typeName,
+            ...typeArgs
+        ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::AllowlistOwnerCap";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.for = fields.for;
     }
@@ -661,7 +698,8 @@ export class AllowlistOwnerCap {
                 AllowlistOwnerCap.$typeName,
                 ...[]
             ) as "0x70e34fcd390b767edbddaf7573450528698188c84c5395af8c4b12e3e37622fa::allowlist::AllowlistOwnerCap",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AllowlistOwnerCap.fromFields(
                     fields,
@@ -683,6 +721,10 @@ export class AllowlistOwnerCap {
                 AllowlistOwnerCap.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AllowlistOwnerCap.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AllowlistOwnerCap.fetch(
                 client,
                 id,
@@ -691,6 +733,7 @@ export class AllowlistOwnerCap {
                 fields: AllowlistOwnerCapFields,
             ) => {
                 return new AllowlistOwnerCap(
+                    [],
                     fields
                 )
             },
@@ -759,6 +802,7 @@ export class AllowlistOwnerCap {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

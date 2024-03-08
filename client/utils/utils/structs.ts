@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type IsSharedReified = Reified<
     IsSharedFields
 >;
 
-export class IsShared {
+export class IsShared implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::IsShared";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class IsShared {
 
     readonly $fullTypeName: "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::IsShared";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: IsSharedFields,
+    private constructor(typeArgs: [], fields: IsSharedFields,
     ) {
-        this.$fullTypeName = IsShared.$typeName;
+        this.$fullTypeName = composeSuiType(
+            IsShared.$typeName,
+            ...typeArgs
+        ) as "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::IsShared";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class IsShared {
                 IsShared.$typeName,
                 ...[]
             ) as "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::IsShared",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 IsShared.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class IsShared {
                 IsShared.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                IsShared.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => IsShared.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class IsShared {
                 fields: IsSharedFields,
             ) => {
                 return new IsShared(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class IsShared {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -218,7 +229,7 @@ export type MarkerReified<T extends PhantomTypeArgument> = Reified<
     MarkerFields<T>
 >;
 
-export class Marker<T extends PhantomTypeArgument> {
+export class Marker<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::Marker";
     static readonly $numTypeParams = 1;
 
@@ -226,19 +237,18 @@ export class Marker<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::Marker<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: MarkerFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: MarkerFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Marker.$typeName,
-        typeArg) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::Marker<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Marker.$typeName,
+            ...typeArgs
+        ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::Marker<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -252,7 +262,10 @@ export class Marker<T extends PhantomTypeArgument> {
                 Marker.$typeName,
                 ...[extractType(T)]
             ) as `0x859eb18bd5b5e8cc32deb6dfb1c39941008ab3c6e27f0b8ce2364be7102bb7cb::utils::Marker<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Marker.fromFields(
                     T,
@@ -279,6 +292,11 @@ export class Marker<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Marker.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Marker.fetch(
                 client,
                 T,
@@ -288,7 +306,7 @@ export class Marker<T extends PhantomTypeArgument> {
                 fields: MarkerFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Marker(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -365,7 +383,7 @@ export class Marker<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -389,7 +407,7 @@ export class Marker<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Marker.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

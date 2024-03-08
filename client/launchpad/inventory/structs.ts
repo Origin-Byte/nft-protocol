@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type InventoryReified<T extends PhantomTypeArgument> = Reified<
     InventoryFields<T>
 >;
 
-export class Inventory<T extends PhantomTypeArgument> {
+export class Inventory<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::Inventory";
     static readonly $numTypeParams = 1;
 
@@ -28,19 +28,18 @@ export class Inventory<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::Inventory<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
 
-    private constructor(typeArg: string, fields: InventoryFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: InventoryFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Inventory.$typeName,
-        typeArg) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::Inventory<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Inventory.$typeName,
+            ...typeArgs
+        ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::Inventory<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;
     }
@@ -54,7 +53,10 @@ export class Inventory<T extends PhantomTypeArgument> {
                 Inventory.$typeName,
                 ...[extractType(T)]
             ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::Inventory<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Inventory.fromFields(
                     T,
@@ -81,6 +83,11 @@ export class Inventory<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Inventory.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Inventory.fetch(
                 client,
                 T,
@@ -90,7 +97,7 @@ export class Inventory<T extends PhantomTypeArgument> {
                 fields: InventoryFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Inventory(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -167,7 +174,7 @@ export class Inventory<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -191,7 +198,7 @@ export class Inventory<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Inventory.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -255,7 +262,7 @@ export type WarehouseKeyReified = Reified<
     WarehouseKeyFields
 >;
 
-export class WarehouseKey {
+export class WarehouseKey implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::WarehouseKey";
     static readonly $numTypeParams = 0;
 
@@ -263,14 +270,18 @@ export class WarehouseKey {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::WarehouseKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WarehouseKeyFields,
+    private constructor(typeArgs: [], fields: WarehouseKeyFields,
     ) {
-        this.$fullTypeName = WarehouseKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            WarehouseKey.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::WarehouseKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -282,7 +293,8 @@ export class WarehouseKey {
                 WarehouseKey.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::inventory::WarehouseKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 WarehouseKey.fromFields(
                     fields,
@@ -304,6 +316,10 @@ export class WarehouseKey {
                 WarehouseKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                WarehouseKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => WarehouseKey.fetch(
                 client,
                 id,
@@ -312,6 +328,7 @@ export class WarehouseKey {
                 fields: WarehouseKeyFields,
             ) => {
                 return new WarehouseKey(
+                    [],
                     fields
                 )
             },
@@ -378,6 +395,7 @@ export class WarehouseKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

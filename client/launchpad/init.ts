@@ -25,6 +25,7 @@ export function registerClasses(loader: StructClassLoader) {
     loader.register(rebate.RebateDfKey);
     loader.register(marketplace.Marketplace);
     loader.register(marketplace.MembersDfKey);
+    loader.register(marketplace.PermissionlessFlag);
     loader.register(inventory.Inventory);
     loader.register(inventory.WarehouseKey);
     loader.register(listing.Listing);
@@ -34,6 +35,7 @@ export function registerClasses(loader: StructClassLoader) {
     loader.register(listing.NftSoldEvent);
     loader.register(listing.RequestToJoin);
     loader.register(listing.RequestToJoinDfKey);
+    loader.register(listing.StartSaleDfKey);
     loader.register(listing.WhitelistDfKey);
     loader.register(marketWhitelist.Certificate);
     loader.register(marketWhitelist.Whitelist);

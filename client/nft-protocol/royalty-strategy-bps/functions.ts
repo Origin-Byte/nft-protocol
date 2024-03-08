@@ -20,6 +20,24 @@ export function new_(
     })
 }
 
+export interface DropArgs {
+    policy: ObjectArg; cap: ObjectArg
+}
+
+export function drop(
+    txb: TransactionBlock,
+    typeArg: string,
+    args: DropArgs
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::royalty_strategy_bps::drop`,
+        typeArguments: [typeArg],
+        arguments: [
+            obj(txb, args.policy), obj(txb, args.cap)
+        ],
+    })
+}
+
 export interface DisableArgs {
     witness: ObjectArg; self: ObjectArg
 }
@@ -52,24 +70,6 @@ export function enable(
         typeArguments: [typeArg],
         arguments: [
             obj(txb, args.witness), obj(txb, args.self)
-        ],
-    })
-}
-
-export interface DropArgs {
-    policy: ObjectArg; cap: ObjectArg
-}
-
-export function drop(
-    txb: TransactionBlock,
-    typeArg: string,
-    args: DropArgs
-) {
-    return txb.moveCall({
-        target: `${PUBLISHED_AT}::royalty_strategy_bps::drop`,
-        typeArguments: [typeArg],
-        arguments: [
-            obj(txb, args.policy), obj(txb, args.cap)
         ],
     })
 }

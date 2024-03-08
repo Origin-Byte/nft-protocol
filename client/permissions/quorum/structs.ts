@@ -1,7 +1,7 @@
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -22,7 +22,7 @@ export type AddAdminReified = Reified<
     AddAdminFields
 >;
 
-export class AddAdmin {
+export class AddAdmin implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddAdmin";
     static readonly $numTypeParams = 0;
 
@@ -30,14 +30,18 @@ export class AddAdmin {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddAdmin";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly admin:
         ToField<"address">
 
-    private constructor( fields: AddAdminFields,
+    private constructor(typeArgs: [], fields: AddAdminFields,
     ) {
-        this.$fullTypeName = AddAdmin.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AddAdmin.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddAdmin";
+        this.$typeArgs = typeArgs;
 
         this.admin = fields.admin;
     }
@@ -49,7 +53,8 @@ export class AddAdmin {
                 AddAdmin.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddAdmin",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AddAdmin.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class AddAdmin {
                 AddAdmin.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AddAdmin.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AddAdmin.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class AddAdmin {
                 fields: AddAdminFields,
             ) => {
                 return new AddAdmin(
+                    [],
                     fields
                 )
             },
@@ -146,6 +156,7 @@ export class AddAdmin {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -222,7 +233,7 @@ export type AddDelegateReified = Reified<
     AddDelegateFields
 >;
 
-export class AddDelegate {
+export class AddDelegate implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddDelegate";
     static readonly $numTypeParams = 0;
 
@@ -230,14 +241,18 @@ export class AddDelegate {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddDelegate";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly entity:
         ToField<ID>
 
-    private constructor( fields: AddDelegateFields,
+    private constructor(typeArgs: [], fields: AddDelegateFields,
     ) {
-        this.$fullTypeName = AddDelegate.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AddDelegate.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddDelegate";
+        this.$typeArgs = typeArgs;
 
         this.entity = fields.entity;
     }
@@ -249,7 +264,8 @@ export class AddDelegate {
                 AddDelegate.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AddDelegate",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AddDelegate.fromFields(
                     fields,
@@ -271,6 +287,10 @@ export class AddDelegate {
                 AddDelegate.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AddDelegate.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AddDelegate.fetch(
                 client,
                 id,
@@ -279,6 +299,7 @@ export class AddDelegate {
                 fields: AddDelegateFields,
             ) => {
                 return new AddDelegate(
+                    [],
                     fields
                 )
             },
@@ -345,6 +366,7 @@ export class AddDelegate {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -421,7 +443,7 @@ export type AdminFieldReified = Reified<
     AdminFieldFields
 >;
 
-export class AdminField {
+export class AdminField implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AdminField";
     static readonly $numTypeParams = 0;
 
@@ -429,14 +451,18 @@ export class AdminField {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AdminField";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly typeName:
         ToField<TypeName>
 
-    private constructor( fields: AdminFieldFields,
+    private constructor(typeArgs: [], fields: AdminFieldFields,
     ) {
-        this.$fullTypeName = AdminField.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AdminField.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AdminField";
+        this.$typeArgs = typeArgs;
 
         this.typeName = fields.typeName;
     }
@@ -448,7 +474,8 @@ export class AdminField {
                 AdminField.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::AdminField",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AdminField.fromFields(
                     fields,
@@ -470,6 +497,10 @@ export class AdminField {
                 AdminField.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AdminField.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AdminField.fetch(
                 client,
                 id,
@@ -478,6 +509,7 @@ export class AdminField {
                 fields: AdminFieldFields,
             ) => {
                 return new AdminField(
+                    [],
                     fields
                 )
             },
@@ -544,6 +576,7 @@ export class AdminField {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -620,7 +653,7 @@ export type CreateQuorumEventReified = Reified<
     CreateQuorumEventFields
 >;
 
-export class CreateQuorumEvent {
+export class CreateQuorumEvent implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::CreateQuorumEvent";
     static readonly $numTypeParams = 0;
 
@@ -628,16 +661,20 @@ export class CreateQuorumEvent {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::CreateQuorumEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly quorumId:
         ToField<ID>
     ; readonly typeName:
         ToField<TypeName>
 
-    private constructor( fields: CreateQuorumEventFields,
+    private constructor(typeArgs: [], fields: CreateQuorumEventFields,
     ) {
-        this.$fullTypeName = CreateQuorumEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            CreateQuorumEvent.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::CreateQuorumEvent";
+        this.$typeArgs = typeArgs;
 
         this.quorumId = fields.quorumId;; this.typeName = fields.typeName;
     }
@@ -649,7 +686,8 @@ export class CreateQuorumEvent {
                 CreateQuorumEvent.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::CreateQuorumEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 CreateQuorumEvent.fromFields(
                     fields,
@@ -671,6 +709,10 @@ export class CreateQuorumEvent {
                 CreateQuorumEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                CreateQuorumEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => CreateQuorumEvent.fetch(
                 client,
                 id,
@@ -679,6 +721,7 @@ export class CreateQuorumEvent {
                 fields: CreateQuorumEventFields,
             ) => {
                 return new CreateQuorumEvent(
+                    [],
                     fields
                 )
             },
@@ -747,6 +790,7 @@ export class CreateQuorumEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -823,7 +867,7 @@ export type ExtensionTokenReified<F extends PhantomTypeArgument> = Reified<
     ExtensionTokenFields<F>
 >;
 
-export class ExtensionToken<F extends PhantomTypeArgument> {
+export class ExtensionToken<F extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ExtensionToken";
     static readonly $numTypeParams = 1;
 
@@ -831,19 +875,18 @@ export class ExtensionToken<F extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ExtensionToken<${PhantomToTypeStr<F>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<F>];
 
     readonly quorumId:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: ExtensionTokenFields<F>,
+    private constructor(typeArgs: [PhantomToTypeStr<F>], fields: ExtensionTokenFields<F>,
     ) {
-        this.$fullTypeName = composeSuiType(ExtensionToken.$typeName,
-        typeArg) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ExtensionToken<${PhantomToTypeStr<F>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            ExtensionToken.$typeName,
+            ...typeArgs
+        ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ExtensionToken<${PhantomToTypeStr<F>}>`;
+        this.$typeArgs = typeArgs;
 
         this.quorumId = fields.quorumId;
     }
@@ -857,7 +900,10 @@ export class ExtensionToken<F extends PhantomTypeArgument> {
                 ExtensionToken.$typeName,
                 ...[extractType(F)]
             ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ExtensionToken<${PhantomToTypeStr<ToPhantomTypeArgument<F>>}>`,
-            typeArgs: [F],
+            typeArgs: [
+                extractType(F)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<F>>],
+            reifiedTypeArgs: [F],
             fromFields: (fields: Record<string, any>) =>
                 ExtensionToken.fromFields(
                     F,
@@ -884,6 +930,11 @@ export class ExtensionToken<F extends PhantomTypeArgument> {
                     F,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ExtensionToken.fromSuiParsedData(
+                    F,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ExtensionToken.fetch(
                 client,
                 F,
@@ -893,7 +944,7 @@ export class ExtensionToken<F extends PhantomTypeArgument> {
                 fields: ExtensionTokenFields<ToPhantomTypeArgument<F>>,
             ) => {
                 return new ExtensionToken(
-                    extractType(F),
+                    [extractType(F)],
                     fields
                 )
             },
@@ -970,7 +1021,7 @@ export class ExtensionToken<F extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -994,7 +1045,7 @@ export class ExtensionToken<F extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(ExtensionToken.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -1058,7 +1109,7 @@ export type FooReified = Reified<
     FooFields
 >;
 
-export class Foo {
+export class Foo implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Foo";
     static readonly $numTypeParams = 0;
 
@@ -1066,14 +1117,18 @@ export class Foo {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Foo";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: FooFields,
+    private constructor(typeArgs: [], fields: FooFields,
     ) {
-        this.$fullTypeName = Foo.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Foo.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Foo";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -1085,7 +1140,8 @@ export class Foo {
                 Foo.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Foo",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Foo.fromFields(
                     fields,
@@ -1107,6 +1163,10 @@ export class Foo {
                 Foo.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Foo.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Foo.fetch(
                 client,
                 id,
@@ -1115,6 +1175,7 @@ export class Foo {
                 fields: FooFields,
             ) => {
                 return new Foo(
+                    [],
                     fields
                 )
             },
@@ -1181,6 +1242,7 @@ export class Foo {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1257,7 +1319,7 @@ export type MemberFieldReified = Reified<
     MemberFieldFields
 >;
 
-export class MemberField {
+export class MemberField implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::MemberField";
     static readonly $numTypeParams = 0;
 
@@ -1265,14 +1327,18 @@ export class MemberField {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::MemberField";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly typeName:
         ToField<TypeName>
 
-    private constructor( fields: MemberFieldFields,
+    private constructor(typeArgs: [], fields: MemberFieldFields,
     ) {
-        this.$fullTypeName = MemberField.$typeName;
+        this.$fullTypeName = composeSuiType(
+            MemberField.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::MemberField";
+        this.$typeArgs = typeArgs;
 
         this.typeName = fields.typeName;
     }
@@ -1284,7 +1350,8 @@ export class MemberField {
                 MemberField.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::MemberField",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 MemberField.fromFields(
                     fields,
@@ -1306,6 +1373,10 @@ export class MemberField {
                 MemberField.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                MemberField.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => MemberField.fetch(
                 client,
                 id,
@@ -1314,6 +1385,7 @@ export class MemberField {
                 fields: MemberFieldFields,
             ) => {
                 return new MemberField(
+                    [],
                     fields
                 )
             },
@@ -1380,6 +1452,7 @@ export class MemberField {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1456,7 +1529,7 @@ export type QuorumReified<F extends PhantomTypeArgument> = Reified<
     QuorumFields<F>
 >;
 
-export class Quorum<F extends PhantomTypeArgument> {
+export class Quorum<F extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Quorum";
     static readonly $numTypeParams = 1;
 
@@ -1464,9 +1537,7 @@ export class Quorum<F extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Quorum<${PhantomToTypeStr<F>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<F>];
 
     readonly id:
         ToField<UID>
@@ -1481,12 +1552,13 @@ export class Quorum<F extends PhantomTypeArgument> {
     ; readonly adminCount:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: QuorumFields<F>,
+    private constructor(typeArgs: [PhantomToTypeStr<F>], fields: QuorumFields<F>,
     ) {
-        this.$fullTypeName = composeSuiType(Quorum.$typeName,
-        typeArg) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Quorum<${PhantomToTypeStr<F>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Quorum.$typeName,
+            ...typeArgs
+        ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Quorum<${PhantomToTypeStr<F>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;; this.admins = fields.admins;; this.members = fields.members;; this.delegates = fields.delegates;; this.adminCount = fields.adminCount;
     }
@@ -1500,7 +1572,10 @@ export class Quorum<F extends PhantomTypeArgument> {
                 Quorum.$typeName,
                 ...[extractType(F)]
             ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Quorum<${PhantomToTypeStr<ToPhantomTypeArgument<F>>}>`,
-            typeArgs: [F],
+            typeArgs: [
+                extractType(F)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<F>>],
+            reifiedTypeArgs: [F],
             fromFields: (fields: Record<string, any>) =>
                 Quorum.fromFields(
                     F,
@@ -1527,6 +1602,11 @@ export class Quorum<F extends PhantomTypeArgument> {
                     F,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Quorum.fromSuiParsedData(
+                    F,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Quorum.fetch(
                 client,
                 F,
@@ -1536,7 +1616,7 @@ export class Quorum<F extends PhantomTypeArgument> {
                 fields: QuorumFields<ToPhantomTypeArgument<F>>,
             ) => {
                 return new Quorum(
-                    extractType(F),
+                    [extractType(F)],
                     fields
                 )
             },
@@ -1625,7 +1705,7 @@ export class Quorum<F extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1649,7 +1729,7 @@ export class Quorum<F extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Quorum.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -1713,7 +1793,7 @@ export type RemoveAdminReified = Reified<
     RemoveAdminFields
 >;
 
-export class RemoveAdmin {
+export class RemoveAdmin implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveAdmin";
     static readonly $numTypeParams = 0;
 
@@ -1721,14 +1801,18 @@ export class RemoveAdmin {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveAdmin";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly admin:
         ToField<"address">
 
-    private constructor( fields: RemoveAdminFields,
+    private constructor(typeArgs: [], fields: RemoveAdminFields,
     ) {
-        this.$fullTypeName = RemoveAdmin.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RemoveAdmin.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveAdmin";
+        this.$typeArgs = typeArgs;
 
         this.admin = fields.admin;
     }
@@ -1740,7 +1824,8 @@ export class RemoveAdmin {
                 RemoveAdmin.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveAdmin",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RemoveAdmin.fromFields(
                     fields,
@@ -1762,6 +1847,10 @@ export class RemoveAdmin {
                 RemoveAdmin.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RemoveAdmin.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RemoveAdmin.fetch(
                 client,
                 id,
@@ -1770,6 +1859,7 @@ export class RemoveAdmin {
                 fields: RemoveAdminFields,
             ) => {
                 return new RemoveAdmin(
+                    [],
                     fields
                 )
             },
@@ -1837,6 +1927,7 @@ export class RemoveAdmin {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1913,7 +2004,7 @@ export type RemoveDelegateReified = Reified<
     RemoveDelegateFields
 >;
 
-export class RemoveDelegate {
+export class RemoveDelegate implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveDelegate";
     static readonly $numTypeParams = 0;
 
@@ -1921,14 +2012,18 @@ export class RemoveDelegate {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveDelegate";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly entity:
         ToField<ID>
 
-    private constructor( fields: RemoveDelegateFields,
+    private constructor(typeArgs: [], fields: RemoveDelegateFields,
     ) {
-        this.$fullTypeName = RemoveDelegate.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RemoveDelegate.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveDelegate";
+        this.$typeArgs = typeArgs;
 
         this.entity = fields.entity;
     }
@@ -1940,7 +2035,8 @@ export class RemoveDelegate {
                 RemoveDelegate.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::RemoveDelegate",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RemoveDelegate.fromFields(
                     fields,
@@ -1962,6 +2058,10 @@ export class RemoveDelegate {
                 RemoveDelegate.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RemoveDelegate.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RemoveDelegate.fetch(
                 client,
                 id,
@@ -1970,6 +2070,7 @@ export class RemoveDelegate {
                 fields: RemoveDelegateFields,
             ) => {
                 return new RemoveDelegate(
+                    [],
                     fields
                 )
             },
@@ -2036,6 +2137,7 @@ export class RemoveDelegate {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -2112,7 +2214,7 @@ export type ReturnReceiptReified<F extends PhantomTypeArgument, T extends Phanto
     ReturnReceiptFields<F, T>
 >;
 
-export class ReturnReceipt<F extends PhantomTypeArgument, T extends PhantomTypeArgument> {
+export class ReturnReceipt<F extends PhantomTypeArgument, T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ReturnReceipt";
     static readonly $numTypeParams = 2;
 
@@ -2120,18 +2222,17 @@ export class ReturnReceipt<F extends PhantomTypeArgument, T extends PhantomTypeA
 
     readonly $fullTypeName: `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ReturnReceipt<${PhantomToTypeStr<F>}, ${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<F>, PhantomToTypeStr<T>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArgs: [string, string], fields: ReturnReceiptFields<F, T>,
+    private constructor(typeArgs: [PhantomToTypeStr<F>, PhantomToTypeStr<T>], fields: ReturnReceiptFields<F, T>,
     ) {
-        this.$fullTypeName = composeSuiType(ReturnReceipt.$typeName,
-        ...typeArgs) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ReturnReceipt<${PhantomToTypeStr<F>}, ${PhantomToTypeStr<T>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            ReturnReceipt.$typeName,
+            ...typeArgs
+        ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ReturnReceipt<${PhantomToTypeStr<F>}, ${PhantomToTypeStr<T>}>`;
         this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
@@ -2146,7 +2247,10 @@ export class ReturnReceipt<F extends PhantomTypeArgument, T extends PhantomTypeA
                 ReturnReceipt.$typeName,
                 ...[extractType(F), extractType(T)]
             ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::ReturnReceipt<${PhantomToTypeStr<ToPhantomTypeArgument<F>>}, ${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [F, T],
+            typeArgs: [
+                extractType(F), extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<F>>, PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [F, T],
             fromFields: (fields: Record<string, any>) =>
                 ReturnReceipt.fromFields(
                     [F, T],
@@ -2172,6 +2276,11 @@ export class ReturnReceipt<F extends PhantomTypeArgument, T extends PhantomTypeA
                 ReturnReceipt.fromJSON(
                     [F, T],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ReturnReceipt.fromSuiParsedData(
+                    [F, T],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => ReturnReceipt.fetch(
                 client,
@@ -2347,7 +2456,7 @@ export type SignaturesReified<F extends PhantomTypeArgument> = Reified<
     SignaturesFields<F>
 >;
 
-export class Signatures<F extends PhantomTypeArgument> {
+export class Signatures<F extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Signatures";
     static readonly $numTypeParams = 1;
 
@@ -2355,19 +2464,18 @@ export class Signatures<F extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Signatures<${PhantomToTypeStr<F>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<F>];
 
     readonly list:
         ToField<VecSet<"address">>
 
-    private constructor(typeArg: string, fields: SignaturesFields<F>,
+    private constructor(typeArgs: [PhantomToTypeStr<F>], fields: SignaturesFields<F>,
     ) {
-        this.$fullTypeName = composeSuiType(Signatures.$typeName,
-        typeArg) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Signatures<${PhantomToTypeStr<F>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Signatures.$typeName,
+            ...typeArgs
+        ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Signatures<${PhantomToTypeStr<F>}>`;
+        this.$typeArgs = typeArgs;
 
         this.list = fields.list;
     }
@@ -2381,7 +2489,10 @@ export class Signatures<F extends PhantomTypeArgument> {
                 Signatures.$typeName,
                 ...[extractType(F)]
             ) as `0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::quorum::Signatures<${PhantomToTypeStr<ToPhantomTypeArgument<F>>}>`,
-            typeArgs: [F],
+            typeArgs: [
+                extractType(F)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<F>>],
+            reifiedTypeArgs: [F],
             fromFields: (fields: Record<string, any>) =>
                 Signatures.fromFields(
                     F,
@@ -2408,6 +2519,11 @@ export class Signatures<F extends PhantomTypeArgument> {
                     F,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Signatures.fromSuiParsedData(
+                    F,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Signatures.fetch(
                 client,
                 F,
@@ -2417,7 +2533,7 @@ export class Signatures<F extends PhantomTypeArgument> {
                 fields: SignaturesFields<ToPhantomTypeArgument<F>>,
             ) => {
                 return new Signatures(
-                    extractType(F),
+                    [extractType(F)],
                     fields
                 )
             },
@@ -2495,7 +2611,7 @@ export class Signatures<F extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -2519,7 +2635,7 @@ export class Signatures<F extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Signatures.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

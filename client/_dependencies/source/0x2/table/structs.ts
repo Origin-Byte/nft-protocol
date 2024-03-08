@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {UID} from "../object/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type TableReified<K extends PhantomTypeArgument, V extends PhantomTypeArg
     TableFields<K, V>
 >;
 
-export class Table<K extends PhantomTypeArgument, V extends PhantomTypeArgument> {
+export class Table<K extends PhantomTypeArgument, V extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::table::Table";
     static readonly $numTypeParams = 2;
 
@@ -28,20 +28,19 @@ export class Table<K extends PhantomTypeArgument, V extends PhantomTypeArgument>
 
     readonly $fullTypeName: `0x2::table::Table<${PhantomToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<K>, PhantomToTypeStr<V>];
 
     readonly id:
         ToField<UID>
     ; readonly size:
         ToField<"u64">
 
-    private constructor(typeArgs: [string, string], fields: TableFields<K, V>,
+    private constructor(typeArgs: [PhantomToTypeStr<K>, PhantomToTypeStr<V>], fields: TableFields<K, V>,
     ) {
-        this.$fullTypeName = composeSuiType(Table.$typeName,
-        ...typeArgs) as `0x2::table::Table<${PhantomToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            Table.$typeName,
+            ...typeArgs
+        ) as `0x2::table::Table<${PhantomToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
         this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.size = fields.size;
@@ -56,7 +55,10 @@ export class Table<K extends PhantomTypeArgument, V extends PhantomTypeArgument>
                 Table.$typeName,
                 ...[extractType(K), extractType(V)]
             ) as `0x2::table::Table<${PhantomToTypeStr<ToPhantomTypeArgument<K>>}, ${PhantomToTypeStr<ToPhantomTypeArgument<V>>}>`,
-            typeArgs: [K, V],
+            typeArgs: [
+                extractType(K), extractType(V)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<K>>, PhantomToTypeStr<ToPhantomTypeArgument<V>>],
+            reifiedTypeArgs: [K, V],
             fromFields: (fields: Record<string, any>) =>
                 Table.fromFields(
                     [K, V],
@@ -82,6 +84,11 @@ export class Table<K extends PhantomTypeArgument, V extends PhantomTypeArgument>
                 Table.fromJSON(
                     [K, V],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Table.fromSuiParsedData(
+                    [K, V],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => Table.fetch(
                 client,

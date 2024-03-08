@@ -1,6 +1,6 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
 import {Publisher} from "../../_dependencies/source/0x2/package/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type FROZEN_PUBLISHERReified = Reified<
     FROZEN_PUBLISHERFields
 >;
 
-export class FROZEN_PUBLISHER {
+export class FROZEN_PUBLISHER implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FROZEN_PUBLISHER";
     static readonly $numTypeParams = 0;
 
@@ -29,14 +29,18 @@ export class FROZEN_PUBLISHER {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FROZEN_PUBLISHER";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: FROZEN_PUBLISHERFields,
+    private constructor(typeArgs: [], fields: FROZEN_PUBLISHERFields,
     ) {
-        this.$fullTypeName = FROZEN_PUBLISHER.$typeName;
+        this.$fullTypeName = composeSuiType(
+            FROZEN_PUBLISHER.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FROZEN_PUBLISHER";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -48,7 +52,8 @@ export class FROZEN_PUBLISHER {
                 FROZEN_PUBLISHER.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FROZEN_PUBLISHER",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 FROZEN_PUBLISHER.fromFields(
                     fields,
@@ -70,6 +75,10 @@ export class FROZEN_PUBLISHER {
                 FROZEN_PUBLISHER.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                FROZEN_PUBLISHER.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => FROZEN_PUBLISHER.fetch(
                 client,
                 id,
@@ -78,6 +87,7 @@ export class FROZEN_PUBLISHER {
                 fields: FROZEN_PUBLISHERFields,
             ) => {
                 return new FROZEN_PUBLISHER(
+                    [],
                     fields
                 )
             },
@@ -144,6 +154,7 @@ export class FROZEN_PUBLISHER {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -220,7 +231,7 @@ export type FrozenPublisherReified = Reified<
     FrozenPublisherFields
 >;
 
-export class FrozenPublisher {
+export class FrozenPublisher implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FrozenPublisher";
     static readonly $numTypeParams = 0;
 
@@ -228,16 +239,20 @@ export class FrozenPublisher {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FrozenPublisher";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly inner:
         ToField<Publisher>
 
-    private constructor( fields: FrozenPublisherFields,
+    private constructor(typeArgs: [], fields: FrozenPublisherFields,
     ) {
-        this.$fullTypeName = FrozenPublisher.$typeName;
+        this.$fullTypeName = composeSuiType(
+            FrozenPublisher.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FrozenPublisher";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.inner = fields.inner;
     }
@@ -249,7 +264,8 @@ export class FrozenPublisher {
                 FrozenPublisher.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::frozen_publisher::FrozenPublisher",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 FrozenPublisher.fromFields(
                     fields,
@@ -271,6 +287,10 @@ export class FrozenPublisher {
                 FrozenPublisher.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                FrozenPublisher.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => FrozenPublisher.fetch(
                 client,
                 id,
@@ -279,6 +299,7 @@ export class FrozenPublisher {
                 fields: FrozenPublisherFields,
             ) => {
                 return new FrozenPublisher(
+                    [],
                     fields
                 )
             },
@@ -347,6 +368,7 @@ export class FrozenPublisher {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type CounterReified = Reified<
     CounterFields
 >;
 
-export class Counter {
+export class Counter implements StructClass {
     static readonly $typeName = "0x9e5962d5183664be8a7762fbe94eee6e3457c0cc701750c94c17f7f8ac5a32fb::pseudorandom::Counter";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class Counter {
 
     readonly $fullTypeName: "0x9e5962d5183664be8a7762fbe94eee6e3457c0cc701750c94c17f7f8ac5a32fb::pseudorandom::Counter";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly value:
         ToField<"u256">
 
-    private constructor( fields: CounterFields,
+    private constructor(typeArgs: [], fields: CounterFields,
     ) {
-        this.$fullTypeName = Counter.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Counter.$typeName,
+            ...typeArgs
+        ) as "0x9e5962d5183664be8a7762fbe94eee6e3457c0cc701750c94c17f7f8ac5a32fb::pseudorandom::Counter";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.value = fields.value;
     }
@@ -49,7 +53,8 @@ export class Counter {
                 Counter.$typeName,
                 ...[]
             ) as "0x9e5962d5183664be8a7762fbe94eee6e3457c0cc701750c94c17f7f8ac5a32fb::pseudorandom::Counter",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Counter.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class Counter {
                 Counter.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Counter.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Counter.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class Counter {
                 fields: CounterFields,
             ) => {
                 return new Counter(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class Counter {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

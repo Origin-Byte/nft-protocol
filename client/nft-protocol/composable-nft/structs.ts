@@ -1,6 +1,6 @@
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {VecMap} from "../../_dependencies/source/0x2/vec-map/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type KeyReified<T extends PhantomTypeArgument> = Reified<
     KeyFields<T>
 >;
 
-export class Key<T extends PhantomTypeArgument> {
+export class Key<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Key";
     static readonly $numTypeParams = 1;
 
@@ -29,19 +29,18 @@ export class Key<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Key<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: KeyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: KeyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Key.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Key<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Key.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Key<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -55,7 +54,10 @@ export class Key<T extends PhantomTypeArgument> {
                 Key.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Key<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Key.fromFields(
                     T,
@@ -82,6 +84,11 @@ export class Key<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Key.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Key.fetch(
                 client,
                 T,
@@ -91,7 +98,7 @@ export class Key<T extends PhantomTypeArgument> {
                 fields: KeyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Key(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -168,7 +175,7 @@ export class Key<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -192,7 +199,7 @@ export class Key<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Key.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -256,7 +263,7 @@ export type CompositionReified<Schema extends PhantomTypeArgument> = Reified<
     CompositionFields<Schema>
 >;
 
-export class Composition<Schema extends PhantomTypeArgument> {
+export class Composition<Schema extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Composition";
     static readonly $numTypeParams = 1;
 
@@ -264,19 +271,18 @@ export class Composition<Schema extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Composition<${PhantomToTypeStr<Schema>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<Schema>];
 
     readonly limits:
         ToField<VecMap<TypeName, "u64">>
 
-    private constructor(typeArg: string, fields: CompositionFields<Schema>,
+    private constructor(typeArgs: [PhantomToTypeStr<Schema>], fields: CompositionFields<Schema>,
     ) {
-        this.$fullTypeName = composeSuiType(Composition.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Composition<${PhantomToTypeStr<Schema>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Composition.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Composition<${PhantomToTypeStr<Schema>}>`;
+        this.$typeArgs = typeArgs;
 
         this.limits = fields.limits;
     }
@@ -290,7 +296,10 @@ export class Composition<Schema extends PhantomTypeArgument> {
                 Composition.$typeName,
                 ...[extractType(Schema)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_nft::Composition<${PhantomToTypeStr<ToPhantomTypeArgument<Schema>>}>`,
-            typeArgs: [Schema],
+            typeArgs: [
+                extractType(Schema)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<Schema>>],
+            reifiedTypeArgs: [Schema],
             fromFields: (fields: Record<string, any>) =>
                 Composition.fromFields(
                     Schema,
@@ -317,6 +326,11 @@ export class Composition<Schema extends PhantomTypeArgument> {
                     Schema,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Composition.fromSuiParsedData(
+                    Schema,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Composition.fetch(
                 client,
                 Schema,
@@ -326,7 +340,7 @@ export class Composition<Schema extends PhantomTypeArgument> {
                 fields: CompositionFields<ToPhantomTypeArgument<Schema>>,
             ) => {
                 return new Composition(
-                    extractType(Schema),
+                    [extractType(Schema)],
                     fields
                 )
             },
@@ -403,7 +417,7 @@ export class Composition<Schema extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -427,7 +441,7 @@ export class Composition<Schema extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Composition.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

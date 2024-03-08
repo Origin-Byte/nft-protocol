@@ -1,5 +1,5 @@
 import {Balance} from "../../_dependencies/source/0x2/balance/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type AskCommissionReified = Reified<
     AskCommissionFields
 >;
 
-export class AskCommission {
+export class AskCommission implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::AskCommission";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class AskCommission {
 
     readonly $fullTypeName: "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::AskCommission";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly cut:
         ToField<"u64">
     ; readonly beneficiary:
         ToField<"address">
 
-    private constructor( fields: AskCommissionFields,
+    private constructor(typeArgs: [], fields: AskCommissionFields,
     ) {
-        this.$fullTypeName = AskCommission.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AskCommission.$typeName,
+            ...typeArgs
+        ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::AskCommission";
+        this.$typeArgs = typeArgs;
 
         this.cut = fields.cut;; this.beneficiary = fields.beneficiary;
     }
@@ -49,7 +53,8 @@ export class AskCommission {
                 AskCommission.$typeName,
                 ...[]
             ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::AskCommission",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AskCommission.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class AskCommission {
                 AskCommission.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AskCommission.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AskCommission.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class AskCommission {
                 fields: AskCommissionFields,
             ) => {
                 return new AskCommission(
+                    [],
                     fields
                 )
             },
@@ -148,6 +158,7 @@ export class AskCommission {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -224,7 +235,7 @@ export type BidCommissionReified<FT extends PhantomTypeArgument> = Reified<
     BidCommissionFields<FT>
 >;
 
-export class BidCommission<FT extends PhantomTypeArgument> {
+export class BidCommission<FT extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::BidCommission";
     static readonly $numTypeParams = 1;
 
@@ -232,21 +243,20 @@ export class BidCommission<FT extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::BidCommission<${PhantomToTypeStr<FT>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<FT>];
 
     readonly cut:
         ToField<Balance<FT>>
     ; readonly beneficiary:
         ToField<"address">
 
-    private constructor(typeArg: string, fields: BidCommissionFields<FT>,
+    private constructor(typeArgs: [PhantomToTypeStr<FT>], fields: BidCommissionFields<FT>,
     ) {
-        this.$fullTypeName = composeSuiType(BidCommission.$typeName,
-        typeArg) as `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::BidCommission<${PhantomToTypeStr<FT>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            BidCommission.$typeName,
+            ...typeArgs
+        ) as `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::BidCommission<${PhantomToTypeStr<FT>}>`;
+        this.$typeArgs = typeArgs;
 
         this.cut = fields.cut;; this.beneficiary = fields.beneficiary;
     }
@@ -260,7 +270,10 @@ export class BidCommission<FT extends PhantomTypeArgument> {
                 BidCommission.$typeName,
                 ...[extractType(FT)]
             ) as `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::BidCommission<${PhantomToTypeStr<ToPhantomTypeArgument<FT>>}>`,
-            typeArgs: [FT],
+            typeArgs: [
+                extractType(FT)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<FT>>],
+            reifiedTypeArgs: [FT],
             fromFields: (fields: Record<string, any>) =>
                 BidCommission.fromFields(
                     FT,
@@ -287,6 +300,11 @@ export class BidCommission<FT extends PhantomTypeArgument> {
                     FT,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BidCommission.fromSuiParsedData(
+                    FT,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BidCommission.fetch(
                 client,
                 FT,
@@ -296,7 +314,7 @@ export class BidCommission<FT extends PhantomTypeArgument> {
                 fields: BidCommissionFields<ToPhantomTypeArgument<FT>>,
             ) => {
                 return new BidCommission(
-                    extractType(FT),
+                    [extractType(FT)],
                     fields
                 )
             },
@@ -376,7 +394,7 @@ export class BidCommission<FT extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -400,7 +418,7 @@ export class BidCommission<FT extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(BidCommission.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

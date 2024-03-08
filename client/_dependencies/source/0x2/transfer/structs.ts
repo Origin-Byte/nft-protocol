@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {ID} from "../object/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type ReceivingReified<T extends PhantomTypeArgument> = Reified<
     ReceivingFields<T>
 >;
 
-export class Receiving<T extends PhantomTypeArgument> {
+export class Receiving<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::transfer::Receiving";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class Receiving<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::transfer::Receiving<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<ID>
     ; readonly version:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: ReceivingFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: ReceivingFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Receiving.$typeName,
-        typeArg) as `0x2::transfer::Receiving<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Receiving.$typeName,
+            ...typeArgs
+        ) as `0x2::transfer::Receiving<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;
     }
@@ -56,7 +55,10 @@ export class Receiving<T extends PhantomTypeArgument> {
                 Receiving.$typeName,
                 ...[extractType(T)]
             ) as `0x2::transfer::Receiving<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Receiving.fromFields(
                     T,
@@ -83,6 +85,11 @@ export class Receiving<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Receiving.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Receiving.fetch(
                 client,
                 T,
@@ -92,7 +99,7 @@ export class Receiving<T extends PhantomTypeArgument> {
                 fields: ReceivingFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Receiving(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -171,7 +178,7 @@ export class Receiving<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -195,7 +202,7 @@ export class Receiving<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Receiving.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

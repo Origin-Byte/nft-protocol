@@ -1,11 +1,12 @@
 
 import { BcsType, bcs, fromHEX, toHEX } from '@mysten/bcs'
 import { FieldsWithTypes, compressSuiType, parseTypeName } from './util'
-import { SuiClient } from '@mysten/sui.js/client'
+import { SuiClient, SuiParsedData } from '@mysten/sui.js/client'
 
 export interface StructClass {
   $typeName: string
   $fullTypeName: string
+  $typeArgs: string[]
   toJSONField(): Record<string, any>
   toJSON(): Record<string, any>
 }
@@ -41,13 +42,15 @@ export type TypeArgument = StructClass | Primitive | VectorClass
 export interface StructClassReified<T extends StructClass, Fields> {
   typeName: T['$typeName'] // e.g., '0x2::balance::Balance', without type arguments
   fullTypeName: ToTypeStr<T> // e.g., '0x2::balance::Balance<0x2::sui:SUI>'
-  typeArgs: Array<Reified<TypeArgument, Fields> | PhantomReified<string>>
+  typeArgs: T['$typeArgs'] // e.g., ['0x2::sui:SUI']
+  reifiedTypeArgs: Array<Reified<TypeArgument, any> | PhantomReified<PhantomTypeArgument>>
   bcs: BcsType<any>
   fromFields(fields: Record<string, any>): T
   fromFieldsWithTypes(item: FieldsWithTypes): T
   fromBcs(data: Uint8Array): T
   fromJSONField: (field: any) => T
   fromJSON: (json: Record<string, any>) => T
+  fromSuiParsedData: (content: SuiParsedData) => T
   fetch: (client: SuiClient, id: string) => Promise<T>
   new: (fields: Fields) => T
   kind: 'StructClassReified'
@@ -252,6 +255,15 @@ export function toBcs<T extends Reified<TypeArgument, any>>(arg: T): BcsType<any
   }
 }
 
+export function extractType<T extends Reified<TypeArgument, any>>(
+  reified: T
+): ToTypeStr<ToTypeArgument<T>>
+export function extractType<T extends PhantomReified<PhantomTypeArgument>>(
+  reified: T
+): PhantomToTypeStr<ToPhantomTypeArgument<T>>
+export function extractType<
+  T extends Reified<TypeArgument, any> | PhantomReified<PhantomTypeArgument>,
+>(reified: T): string
 export function extractType(reified: Reified<TypeArgument, any> | PhantomReified<string>): string {
   switch (reified) {
     case 'u8':
@@ -345,7 +357,7 @@ export function decodeFromFieldsWithTypes(reified: Reified<TypeArgument, any>, i
       if (item === null) {
         return null
       }
-      return decodeFromFieldsWithTypes((reified as any).typeArgs[0], item)
+      return decodeFromFieldsWithTypes((reified as any).reifiedTypeArgs[0], item)
     }
     default:
       return reified.fromFieldsWithTypes(item)
@@ -445,7 +457,7 @@ export function decodeFromJSONField(typeArg: Reified<TypeArgument, any>, field: 
       if (field === null) {
         return null
       }
-      return decodeFromJSONField(typeArg.typeArgs[0] as any, field)
+      return decodeFromJSONField(typeArg.reifiedTypeArgs[0] as any, field)
     }
     default:
       return typeArg.fromJSONField(field)

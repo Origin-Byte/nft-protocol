@@ -1038,6 +1038,22 @@ export function initListing(
     })
 }
 
+export interface InitWithMarketplaceArgs {
+    marketplace: ObjectArg; listingAdmin: string | TransactionArgument; receiver: string | TransactionArgument
+}
+
+export function initWithMarketplace(
+    txb: TransactionBlock,
+    args: InitWithMarketplaceArgs
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::listing::init_with_marketplace`,
+        arguments: [
+            obj(txb, args.marketplace), pure(txb, args.listingAdmin, `address`), pure(txb, args.receiver, `address`)
+        ],
+    })
+}
+
 export interface InsertWarehouseArgs {
     listing: ObjectArg; warehouse: ObjectArg
 }
@@ -1110,6 +1126,22 @@ export function marketInternalMut(
     })
 }
 
+export interface NewWithMarketplaceArgs {
+    marketplace: ObjectArg; listingAdmin: string | TransactionArgument; receiver: string | TransactionArgument
+}
+
+export function newWithMarketplace(
+    txb: TransactionBlock,
+    args: NewWithMarketplaceArgs
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::listing::new_with_marketplace`,
+        arguments: [
+            obj(txb, args.marketplace), pure(txb, args.listingAdmin, `address`), pure(txb, args.receiver, `address`)
+        ],
+    })
+}
+
 export interface PayAndEmitSoldEventArgs {
     listing: ObjectArg; nft: GenericArg; funds: ObjectArg; buyer: string | TransactionArgument
 }
@@ -1124,6 +1156,22 @@ export function payAndEmitSoldEvent(
         typeArguments: typeArgs,
         arguments: [
             obj(txb, args.listing), generic(txb, `${typeArgs[1]}`, args.nft), obj(txb, args.funds), pure(txb, args.buyer, `address`)
+        ],
+    })
+}
+
+export interface RemoveStartSaleTimeArgs {
+    listing: ObjectArg; venueId: string | TransactionArgument
+}
+
+export function removeStartSaleTime(
+    txb: TransactionBlock,
+    args: RemoveStartSaleTimeArgs
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::listing::remove_start_sale_time`,
+        arguments: [
+            obj(txb, args.listing), pure(txb, args.venueId, `0x2::object::ID`)
         ],
     })
 }
@@ -1258,6 +1306,38 @@ export function sendRebateFundsToSender(
         typeArguments: typeArgs,
         arguments: [
             obj(txb, args.listing), pure(txb, args.amount, `u64`)
+        ],
+    })
+}
+
+export interface SetStartSaleTimeArgs {
+    listing: ObjectArg; startTimeTs: bigint | TransactionArgument; venueId: string | TransactionArgument
+}
+
+export function setStartSaleTime(
+    txb: TransactionBlock,
+    args: SetStartSaleTimeArgs
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::listing::set_start_sale_time`,
+        arguments: [
+            obj(txb, args.listing), pure(txb, args.startTimeTs, `u64`), pure(txb, args.venueId, `0x2::object::ID`)
+        ],
+    })
+}
+
+export interface StartSaleOnTimeArgs {
+    listing: ObjectArg; venueId: string | TransactionArgument; clock: ObjectArg
+}
+
+export function startSaleOnTime(
+    txb: TransactionBlock,
+    args: StartSaleOnTimeArgs
+) {
+    return txb.moveCall({
+        target: `${PUBLISHED_AT}::listing::start_sale_on_time`,
+        arguments: [
+            obj(txb, args.listing), pure(txb, args.venueId, `0x2::object::ID`), obj(txb, args.clock)
         ],
     })
 }

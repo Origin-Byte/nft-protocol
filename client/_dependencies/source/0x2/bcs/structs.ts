@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type BCSReified = Reified<
     BCSFields
 >;
 
-export class BCS {
+export class BCS implements StructClass {
     static readonly $typeName = "0x2::bcs::BCS";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class BCS {
 
     readonly $fullTypeName: "0x2::bcs::BCS";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bytes:
         ToField<Vector<"u8">>
 
-    private constructor( fields: BCSFields,
+    private constructor(typeArgs: [], fields: BCSFields,
     ) {
-        this.$fullTypeName = BCS.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BCS.$typeName,
+            ...typeArgs
+        ) as "0x2::bcs::BCS";
+        this.$typeArgs = typeArgs;
 
         this.bytes = fields.bytes;
     }
@@ -47,7 +51,8 @@ export class BCS {
                 BCS.$typeName,
                 ...[]
             ) as "0x2::bcs::BCS",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BCS.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class BCS {
                 BCS.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BCS.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BCS.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class BCS {
                 fields: BCSFields,
             ) => {
                 return new BCS(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class BCS {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

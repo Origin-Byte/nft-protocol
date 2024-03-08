@@ -1,5 +1,5 @@
 import * as reified from "../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type SvgReified = Reified<
     SvgFields
 >;
 
-export class Svg {
+export class Svg implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::svg::Svg";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class Svg {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::svg::Svg";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly svg:
         ToField<Vector<"u8">>
 
-    private constructor( fields: SvgFields,
+    private constructor(typeArgs: [], fields: SvgFields,
     ) {
-        this.$fullTypeName = Svg.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Svg.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::svg::Svg";
+        this.$typeArgs = typeArgs;
 
         this.svg = fields.svg;
     }
@@ -47,7 +51,8 @@ export class Svg {
                 Svg.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::svg::Svg",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Svg.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class Svg {
                 Svg.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Svg.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Svg.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class Svg {
                 fields: SvgFields,
             ) => {
                 return new Svg(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class Svg {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

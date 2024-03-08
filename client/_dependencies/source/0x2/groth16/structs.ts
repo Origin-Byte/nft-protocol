@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type CurveReified = Reified<
     CurveFields
 >;
 
-export class Curve {
+export class Curve implements StructClass {
     static readonly $typeName = "0x2::groth16::Curve";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class Curve {
 
     readonly $fullTypeName: "0x2::groth16::Curve";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<"u8">
 
-    private constructor( fields: CurveFields,
+    private constructor(typeArgs: [], fields: CurveFields,
     ) {
-        this.$fullTypeName = Curve.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Curve.$typeName,
+            ...typeArgs
+        ) as "0x2::groth16::Curve";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;
     }
@@ -47,7 +51,8 @@ export class Curve {
                 Curve.$typeName,
                 ...[]
             ) as "0x2::groth16::Curve",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Curve.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class Curve {
                 Curve.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Curve.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Curve.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class Curve {
                 fields: CurveFields,
             ) => {
                 return new Curve(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class Curve {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -219,7 +230,7 @@ export type PreparedVerifyingKeyReified = Reified<
     PreparedVerifyingKeyFields
 >;
 
-export class PreparedVerifyingKey {
+export class PreparedVerifyingKey implements StructClass {
     static readonly $typeName = "0x2::groth16::PreparedVerifyingKey";
     static readonly $numTypeParams = 0;
 
@@ -227,7 +238,7 @@ export class PreparedVerifyingKey {
 
     readonly $fullTypeName: "0x2::groth16::PreparedVerifyingKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly vkGammaAbcG1Bytes:
         ToField<Vector<"u8">>
@@ -238,9 +249,13 @@ export class PreparedVerifyingKey {
     ; readonly deltaG2NegPcBytes:
         ToField<Vector<"u8">>
 
-    private constructor( fields: PreparedVerifyingKeyFields,
+    private constructor(typeArgs: [], fields: PreparedVerifyingKeyFields,
     ) {
-        this.$fullTypeName = PreparedVerifyingKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            PreparedVerifyingKey.$typeName,
+            ...typeArgs
+        ) as "0x2::groth16::PreparedVerifyingKey";
+        this.$typeArgs = typeArgs;
 
         this.vkGammaAbcG1Bytes = fields.vkGammaAbcG1Bytes;; this.alphaG1BetaG2Bytes = fields.alphaG1BetaG2Bytes;; this.gammaG2NegPcBytes = fields.gammaG2NegPcBytes;; this.deltaG2NegPcBytes = fields.deltaG2NegPcBytes;
     }
@@ -252,7 +267,8 @@ export class PreparedVerifyingKey {
                 PreparedVerifyingKey.$typeName,
                 ...[]
             ) as "0x2::groth16::PreparedVerifyingKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 PreparedVerifyingKey.fromFields(
                     fields,
@@ -274,6 +290,10 @@ export class PreparedVerifyingKey {
                 PreparedVerifyingKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                PreparedVerifyingKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => PreparedVerifyingKey.fetch(
                 client,
                 id,
@@ -282,6 +302,7 @@ export class PreparedVerifyingKey {
                 fields: PreparedVerifyingKeyFields,
             ) => {
                 return new PreparedVerifyingKey(
+                    [],
                     fields
                 )
             },
@@ -354,6 +375,7 @@ export class PreparedVerifyingKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -430,7 +452,7 @@ export type ProofPointsReified = Reified<
     ProofPointsFields
 >;
 
-export class ProofPoints {
+export class ProofPoints implements StructClass {
     static readonly $typeName = "0x2::groth16::ProofPoints";
     static readonly $numTypeParams = 0;
 
@@ -438,14 +460,18 @@ export class ProofPoints {
 
     readonly $fullTypeName: "0x2::groth16::ProofPoints";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bytes:
         ToField<Vector<"u8">>
 
-    private constructor( fields: ProofPointsFields,
+    private constructor(typeArgs: [], fields: ProofPointsFields,
     ) {
-        this.$fullTypeName = ProofPoints.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ProofPoints.$typeName,
+            ...typeArgs
+        ) as "0x2::groth16::ProofPoints";
+        this.$typeArgs = typeArgs;
 
         this.bytes = fields.bytes;
     }
@@ -457,7 +483,8 @@ export class ProofPoints {
                 ProofPoints.$typeName,
                 ...[]
             ) as "0x2::groth16::ProofPoints",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ProofPoints.fromFields(
                     fields,
@@ -479,6 +506,10 @@ export class ProofPoints {
                 ProofPoints.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ProofPoints.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ProofPoints.fetch(
                 client,
                 id,
@@ -487,6 +518,7 @@ export class ProofPoints {
                 fields: ProofPointsFields,
             ) => {
                 return new ProofPoints(
+                    [],
                     fields
                 )
             },
@@ -553,6 +585,7 @@ export class ProofPoints {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -629,7 +662,7 @@ export type PublicProofInputsReified = Reified<
     PublicProofInputsFields
 >;
 
-export class PublicProofInputs {
+export class PublicProofInputs implements StructClass {
     static readonly $typeName = "0x2::groth16::PublicProofInputs";
     static readonly $numTypeParams = 0;
 
@@ -637,14 +670,18 @@ export class PublicProofInputs {
 
     readonly $fullTypeName: "0x2::groth16::PublicProofInputs";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bytes:
         ToField<Vector<"u8">>
 
-    private constructor( fields: PublicProofInputsFields,
+    private constructor(typeArgs: [], fields: PublicProofInputsFields,
     ) {
-        this.$fullTypeName = PublicProofInputs.$typeName;
+        this.$fullTypeName = composeSuiType(
+            PublicProofInputs.$typeName,
+            ...typeArgs
+        ) as "0x2::groth16::PublicProofInputs";
+        this.$typeArgs = typeArgs;
 
         this.bytes = fields.bytes;
     }
@@ -656,7 +693,8 @@ export class PublicProofInputs {
                 PublicProofInputs.$typeName,
                 ...[]
             ) as "0x2::groth16::PublicProofInputs",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 PublicProofInputs.fromFields(
                     fields,
@@ -678,6 +716,10 @@ export class PublicProofInputs {
                 PublicProofInputs.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                PublicProofInputs.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => PublicProofInputs.fetch(
                 client,
                 id,
@@ -686,6 +728,7 @@ export class PublicProofInputs {
                 fields: PublicProofInputsFields,
             ) => {
                 return new PublicProofInputs(
+                    [],
                     fields
                 )
             },
@@ -752,6 +795,7 @@ export class PublicProofInputs {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

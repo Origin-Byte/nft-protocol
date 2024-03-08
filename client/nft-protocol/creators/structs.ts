@@ -1,5 +1,5 @@
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type CreatorsReified = Reified<
     CreatorsFields
 >;
 
-export class Creators {
+export class Creators implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::creators::Creators";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class Creators {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::creators::Creators";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly creators:
         ToField<VecSet<"address">>
 
-    private constructor( fields: CreatorsFields,
+    private constructor(typeArgs: [], fields: CreatorsFields,
     ) {
-        this.$fullTypeName = Creators.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Creators.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::creators::Creators";
+        this.$typeArgs = typeArgs;
 
         this.creators = fields.creators;
     }
@@ -47,7 +51,8 @@ export class Creators {
                 Creators.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::creators::Creators",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Creators.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class Creators {
                 Creators.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Creators.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Creators.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class Creators {
                 fields: CreatorsFields,
             ) => {
                 return new Creators(
+                    [],
                     fields
                 )
             },
@@ -144,6 +154,7 @@ export class Creators {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

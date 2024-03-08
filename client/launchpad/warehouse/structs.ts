@@ -1,6 +1,6 @@
 import * as reified from "../../_framework/reified";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {DynVec} from "../../utils/dynamic-vector/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -22,7 +22,7 @@ export type RedeemCommitmentReified = Reified<
     RedeemCommitmentFields
 >;
 
-export class RedeemCommitment {
+export class RedeemCommitment implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::RedeemCommitment";
     static readonly $numTypeParams = 0;
 
@@ -30,7 +30,7 @@ export class RedeemCommitment {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::RedeemCommitment";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -39,9 +39,13 @@ export class RedeemCommitment {
     ; readonly contractCommitment:
         ToField<Vector<"u8">>
 
-    private constructor( fields: RedeemCommitmentFields,
+    private constructor(typeArgs: [], fields: RedeemCommitmentFields,
     ) {
-        this.$fullTypeName = RedeemCommitment.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RedeemCommitment.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::RedeemCommitment";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.hashedSenderCommitment = fields.hashedSenderCommitment;; this.contractCommitment = fields.contractCommitment;
     }
@@ -53,7 +57,8 @@ export class RedeemCommitment {
                 RedeemCommitment.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::RedeemCommitment",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RedeemCommitment.fromFields(
                     fields,
@@ -75,6 +80,10 @@ export class RedeemCommitment {
                 RedeemCommitment.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RedeemCommitment.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RedeemCommitment.fetch(
                 client,
                 id,
@@ -83,6 +92,7 @@ export class RedeemCommitment {
                 fields: RedeemCommitmentFields,
             ) => {
                 return new RedeemCommitment(
+                    [],
                     fields
                 )
             },
@@ -153,6 +163,7 @@ export class RedeemCommitment {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -229,7 +240,7 @@ export type WarehouseReified<T extends PhantomTypeArgument> = Reified<
     WarehouseFields<T>
 >;
 
-export class Warehouse<T extends PhantomTypeArgument> {
+export class Warehouse<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::Warehouse";
     static readonly $numTypeParams = 1;
 
@@ -237,9 +248,7 @@ export class Warehouse<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::Warehouse<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -248,12 +257,13 @@ export class Warehouse<T extends PhantomTypeArgument> {
     ; readonly totalDeposited:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: WarehouseFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: WarehouseFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Warehouse.$typeName,
-        typeArg) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::Warehouse<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Warehouse.$typeName,
+            ...typeArgs
+        ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::Warehouse<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.nfts = fields.nfts;; this.totalDeposited = fields.totalDeposited;
     }
@@ -267,7 +277,10 @@ export class Warehouse<T extends PhantomTypeArgument> {
                 Warehouse.$typeName,
                 ...[extractType(T)]
             ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::warehouse::Warehouse<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Warehouse.fromFields(
                     T,
@@ -294,6 +307,11 @@ export class Warehouse<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Warehouse.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Warehouse.fetch(
                 client,
                 T,
@@ -303,7 +321,7 @@ export class Warehouse<T extends PhantomTypeArgument> {
                 fields: WarehouseFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Warehouse(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -384,7 +402,7 @@ export class Warehouse<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -408,7 +426,7 @@ export class Warehouse<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Warehouse.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -1,7 +1,7 @@
 import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -22,7 +22,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::Witness";
     static readonly $numTypeParams = 0;
 
@@ -30,14 +30,18 @@ export class Witness {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -49,7 +53,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -145,6 +155,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -221,7 +232,7 @@ export type AuthTransferRequestDfKeyReified = Reified<
     AuthTransferRequestDfKeyFields
 >;
 
-export class AuthTransferRequestDfKey {
+export class AuthTransferRequestDfKey implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::AuthTransferRequestDfKey";
     static readonly $numTypeParams = 0;
 
@@ -229,14 +240,18 @@ export class AuthTransferRequestDfKey {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::AuthTransferRequestDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: AuthTransferRequestDfKeyFields,
+    private constructor(typeArgs: [], fields: AuthTransferRequestDfKeyFields,
     ) {
-        this.$fullTypeName = AuthTransferRequestDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AuthTransferRequestDfKey.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::AuthTransferRequestDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -248,7 +263,8 @@ export class AuthTransferRequestDfKey {
                 AuthTransferRequestDfKey.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::AuthTransferRequestDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AuthTransferRequestDfKey.fromFields(
                     fields,
@@ -270,6 +286,10 @@ export class AuthTransferRequestDfKey {
                 AuthTransferRequestDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AuthTransferRequestDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AuthTransferRequestDfKey.fetch(
                 client,
                 id,
@@ -278,6 +298,7 @@ export class AuthTransferRequestDfKey {
                 fields: AuthTransferRequestDfKeyFields,
             ) => {
                 return new AuthTransferRequestDfKey(
+                    [],
                     fields
                 )
             },
@@ -344,6 +365,7 @@ export class AuthTransferRequestDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -420,7 +442,7 @@ export type DepositSettingReified = Reified<
     DepositSettingFields
 >;
 
-export class DepositSetting {
+export class DepositSetting implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSetting";
     static readonly $numTypeParams = 0;
 
@@ -428,16 +450,20 @@ export class DepositSetting {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSetting";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly enableAnyDeposit:
         ToField<"bool">
     ; readonly collectionsWithEnabledDeposits:
         ToField<VecSet<TypeName>>
 
-    private constructor( fields: DepositSettingFields,
+    private constructor(typeArgs: [], fields: DepositSettingFields,
     ) {
-        this.$fullTypeName = DepositSetting.$typeName;
+        this.$fullTypeName = composeSuiType(
+            DepositSetting.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSetting";
+        this.$typeArgs = typeArgs;
 
         this.enableAnyDeposit = fields.enableAnyDeposit;; this.collectionsWithEnabledDeposits = fields.collectionsWithEnabledDeposits;
     }
@@ -449,7 +475,8 @@ export class DepositSetting {
                 DepositSetting.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSetting",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 DepositSetting.fromFields(
                     fields,
@@ -471,6 +498,10 @@ export class DepositSetting {
                 DepositSetting.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                DepositSetting.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => DepositSetting.fetch(
                 client,
                 id,
@@ -479,6 +510,7 @@ export class DepositSetting {
                 fields: DepositSettingFields,
             ) => {
                 return new DepositSetting(
+                    [],
                     fields
                 )
             },
@@ -547,6 +579,7 @@ export class DepositSetting {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -623,7 +656,7 @@ export type DepositSettingDfKeyReified = Reified<
     DepositSettingDfKeyFields
 >;
 
-export class DepositSettingDfKey {
+export class DepositSettingDfKey implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSettingDfKey";
     static readonly $numTypeParams = 0;
 
@@ -631,14 +664,18 @@ export class DepositSettingDfKey {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSettingDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: DepositSettingDfKeyFields,
+    private constructor(typeArgs: [], fields: DepositSettingDfKeyFields,
     ) {
-        this.$fullTypeName = DepositSettingDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            DepositSettingDfKey.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSettingDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -650,7 +687,8 @@ export class DepositSettingDfKey {
                 DepositSettingDfKey.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::DepositSettingDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 DepositSettingDfKey.fromFields(
                     fields,
@@ -672,6 +710,10 @@ export class DepositSettingDfKey {
                 DepositSettingDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                DepositSettingDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => DepositSettingDfKey.fetch(
                 client,
                 id,
@@ -680,6 +722,7 @@ export class DepositSettingDfKey {
                 fields: DepositSettingDfKeyFields,
             ) => {
                 return new DepositSettingDfKey(
+                    [],
                     fields
                 )
             },
@@ -746,6 +789,7 @@ export class DepositSettingDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -822,7 +866,7 @@ export type KioskOwnerCapDfKeyReified = Reified<
     KioskOwnerCapDfKeyFields
 >;
 
-export class KioskOwnerCapDfKey {
+export class KioskOwnerCapDfKey implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::KioskOwnerCapDfKey";
     static readonly $numTypeParams = 0;
 
@@ -830,14 +874,18 @@ export class KioskOwnerCapDfKey {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::KioskOwnerCapDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: KioskOwnerCapDfKeyFields,
+    private constructor(typeArgs: [], fields: KioskOwnerCapDfKeyFields,
     ) {
-        this.$fullTypeName = KioskOwnerCapDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            KioskOwnerCapDfKey.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::KioskOwnerCapDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -849,7 +897,8 @@ export class KioskOwnerCapDfKey {
                 KioskOwnerCapDfKey.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::KioskOwnerCapDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 KioskOwnerCapDfKey.fromFields(
                     fields,
@@ -871,6 +920,10 @@ export class KioskOwnerCapDfKey {
                 KioskOwnerCapDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                KioskOwnerCapDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => KioskOwnerCapDfKey.fetch(
                 client,
                 id,
@@ -879,6 +932,7 @@ export class KioskOwnerCapDfKey {
                 fields: KioskOwnerCapDfKeyFields,
             ) => {
                 return new KioskOwnerCapDfKey(
+                    [],
                     fields
                 )
             },
@@ -945,6 +999,7 @@ export class KioskOwnerCapDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1021,7 +1076,7 @@ export type NftRefReified = Reified<
     NftRefFields
 >;
 
-export class NftRef {
+export class NftRef implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRef";
     static readonly $numTypeParams = 0;
 
@@ -1029,16 +1084,20 @@ export class NftRef {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRef";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly auths:
         ToField<VecSet<"address">>
     ; readonly isExclusivelyListed:
         ToField<"bool">
 
-    private constructor( fields: NftRefFields,
+    private constructor(typeArgs: [], fields: NftRefFields,
     ) {
-        this.$fullTypeName = NftRef.$typeName;
+        this.$fullTypeName = composeSuiType(
+            NftRef.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRef";
+        this.$typeArgs = typeArgs;
 
         this.auths = fields.auths;; this.isExclusivelyListed = fields.isExclusivelyListed;
     }
@@ -1050,7 +1109,8 @@ export class NftRef {
                 NftRef.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRef",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 NftRef.fromFields(
                     fields,
@@ -1072,6 +1132,10 @@ export class NftRef {
                 NftRef.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                NftRef.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => NftRef.fetch(
                 client,
                 id,
@@ -1080,6 +1144,7 @@ export class NftRef {
                 fields: NftRefFields,
             ) => {
                 return new NftRef(
+                    [],
                     fields
                 )
             },
@@ -1149,6 +1214,7 @@ export class NftRef {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1225,7 +1291,7 @@ export type NftRefsDfKeyReified = Reified<
     NftRefsDfKeyFields
 >;
 
-export class NftRefsDfKey {
+export class NftRefsDfKey implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRefsDfKey";
     static readonly $numTypeParams = 0;
 
@@ -1233,14 +1299,18 @@ export class NftRefsDfKey {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRefsDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: NftRefsDfKeyFields,
+    private constructor(typeArgs: [], fields: NftRefsDfKeyFields,
     ) {
-        this.$fullTypeName = NftRefsDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            NftRefsDfKey.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRefsDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -1252,7 +1322,8 @@ export class NftRefsDfKey {
                 NftRefsDfKey.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::NftRefsDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 NftRefsDfKey.fromFields(
                     fields,
@@ -1274,6 +1345,10 @@ export class NftRefsDfKey {
                 NftRefsDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                NftRefsDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => NftRefsDfKey.fetch(
                 client,
                 id,
@@ -1282,6 +1357,7 @@ export class NftRefsDfKey {
                 fields: NftRefsDfKeyFields,
             ) => {
                 return new NftRefsDfKey(
+                    [],
                     fields
                 )
             },
@@ -1348,6 +1424,7 @@ export class NftRefsDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1424,7 +1501,7 @@ export type OB_KIOSKReified = Reified<
     OB_KIOSKFields
 >;
 
-export class OB_KIOSK {
+export class OB_KIOSK implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OB_KIOSK";
     static readonly $numTypeParams = 0;
 
@@ -1432,14 +1509,18 @@ export class OB_KIOSK {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OB_KIOSK";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: OB_KIOSKFields,
+    private constructor(typeArgs: [], fields: OB_KIOSKFields,
     ) {
-        this.$fullTypeName = OB_KIOSK.$typeName;
+        this.$fullTypeName = composeSuiType(
+            OB_KIOSK.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OB_KIOSK";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -1451,7 +1532,8 @@ export class OB_KIOSK {
                 OB_KIOSK.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OB_KIOSK",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 OB_KIOSK.fromFields(
                     fields,
@@ -1473,6 +1555,10 @@ export class OB_KIOSK {
                 OB_KIOSK.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                OB_KIOSK.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => OB_KIOSK.fetch(
                 client,
                 id,
@@ -1481,6 +1567,7 @@ export class OB_KIOSK {
                 fields: OB_KIOSKFields,
             ) => {
                 return new OB_KIOSK(
+                    [],
                     fields
                 )
             },
@@ -1547,6 +1634,7 @@ export class OB_KIOSK {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1623,7 +1711,7 @@ export type OwnerTokenReified = Reified<
     OwnerTokenFields
 >;
 
-export class OwnerToken {
+export class OwnerToken implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OwnerToken";
     static readonly $numTypeParams = 0;
 
@@ -1631,7 +1719,7 @@ export class OwnerToken {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OwnerToken";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -1640,9 +1728,13 @@ export class OwnerToken {
     ; readonly owner:
         ToField<"address">
 
-    private constructor( fields: OwnerTokenFields,
+    private constructor(typeArgs: [], fields: OwnerTokenFields,
     ) {
-        this.$fullTypeName = OwnerToken.$typeName;
+        this.$fullTypeName = composeSuiType(
+            OwnerToken.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OwnerToken";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.kiosk = fields.kiosk;; this.owner = fields.owner;
     }
@@ -1654,7 +1746,8 @@ export class OwnerToken {
                 OwnerToken.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::OwnerToken",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 OwnerToken.fromFields(
                     fields,
@@ -1676,6 +1769,10 @@ export class OwnerToken {
                 OwnerToken.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                OwnerToken.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => OwnerToken.fetch(
                 client,
                 id,
@@ -1684,6 +1781,7 @@ export class OwnerToken {
                 fields: OwnerTokenFields,
             ) => {
                 return new OwnerToken(
+                    [],
                     fields
                 )
             },
@@ -1755,6 +1853,7 @@ export class OwnerToken {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1831,7 +1930,7 @@ export type VersionDfKeyReified = Reified<
     VersionDfKeyFields
 >;
 
-export class VersionDfKey {
+export class VersionDfKey implements StructClass {
     static readonly $typeName = "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::VersionDfKey";
     static readonly $numTypeParams = 0;
 
@@ -1839,14 +1938,18 @@ export class VersionDfKey {
 
     readonly $fullTypeName: "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::VersionDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: VersionDfKeyFields,
+    private constructor(typeArgs: [], fields: VersionDfKeyFields,
     ) {
-        this.$fullTypeName = VersionDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            VersionDfKey.$typeName,
+            ...typeArgs
+        ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::VersionDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -1858,7 +1961,8 @@ export class VersionDfKey {
                 VersionDfKey.$typeName,
                 ...[]
             ) as "0x95a441d389b07437d00dd07e0b6f05f513d7659b13fd7c5d3923c7d9d847199b::ob_kiosk::VersionDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 VersionDfKey.fromFields(
                     fields,
@@ -1880,6 +1984,10 @@ export class VersionDfKey {
                 VersionDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                VersionDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => VersionDfKey.fetch(
                 client,
                 id,
@@ -1888,6 +1996,7 @@ export class VersionDfKey {
                 fields: VersionDfKeyFields,
             ) => {
                 return new VersionDfKey(
+                    [],
                     fields
                 )
             },
@@ -1954,6 +2063,7 @@ export class VersionDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

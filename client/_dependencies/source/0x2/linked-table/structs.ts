@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {Option} from "../../0x1/option/structs";
 import {UID} from "../object/structs";
@@ -21,7 +21,7 @@ export type LinkedTableReified<K extends TypeArgument, V extends PhantomTypeArgu
     LinkedTableFields<K, V>
 >;
 
-export class LinkedTable<K extends TypeArgument, V extends PhantomTypeArgument> {
+export class LinkedTable<K extends TypeArgument, V extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::linked_table::LinkedTable";
     static readonly $numTypeParams = 2;
 
@@ -29,9 +29,7 @@ export class LinkedTable<K extends TypeArgument, V extends PhantomTypeArgument> 
 
     readonly $fullTypeName: `0x2::linked_table::LinkedTable<${ToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [ToTypeStr<K>, PhantomToTypeStr<V>];
 
     readonly id:
         ToField<UID>
@@ -42,11 +40,12 @@ export class LinkedTable<K extends TypeArgument, V extends PhantomTypeArgument> 
     ; readonly tail:
         ToField<Option<K>>
 
-    private constructor(typeArgs: [string, string], fields: LinkedTableFields<K, V>,
+    private constructor(typeArgs: [ToTypeStr<K>, PhantomToTypeStr<V>], fields: LinkedTableFields<K, V>,
     ) {
-        this.$fullTypeName = composeSuiType(LinkedTable.$typeName,
-        ...typeArgs) as `0x2::linked_table::LinkedTable<${ToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            LinkedTable.$typeName,
+            ...typeArgs
+        ) as `0x2::linked_table::LinkedTable<${ToTypeStr<K>}, ${PhantomToTypeStr<V>}>`;
         this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.size = fields.size;; this.head = fields.head;; this.tail = fields.tail;
@@ -61,7 +60,10 @@ export class LinkedTable<K extends TypeArgument, V extends PhantomTypeArgument> 
                 LinkedTable.$typeName,
                 ...[extractType(K), extractType(V)]
             ) as `0x2::linked_table::LinkedTable<${ToTypeStr<ToTypeArgument<K>>}, ${PhantomToTypeStr<ToPhantomTypeArgument<V>>}>`,
-            typeArgs: [K, V],
+            typeArgs: [
+                extractType(K), extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<K>>, PhantomToTypeStr<ToPhantomTypeArgument<V>>],
+            reifiedTypeArgs: [K, V],
             fromFields: (fields: Record<string, any>) =>
                 LinkedTable.fromFields(
                     [K, V],
@@ -87,6 +89,11 @@ export class LinkedTable<K extends TypeArgument, V extends PhantomTypeArgument> 
                 LinkedTable.fromJSON(
                     [K, V],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                LinkedTable.fromSuiParsedData(
+                    [K, V],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => LinkedTable.fetch(
                 client,
@@ -268,7 +275,7 @@ export type NodeReified<K extends TypeArgument, V extends TypeArgument> = Reifie
     NodeFields<K, V>
 >;
 
-export class Node<K extends TypeArgument, V extends TypeArgument> {
+export class Node<K extends TypeArgument, V extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::linked_table::Node";
     static readonly $numTypeParams = 2;
 
@@ -276,9 +283,7 @@ export class Node<K extends TypeArgument, V extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::linked_table::Node<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [ToTypeStr<K>, ToTypeStr<V>];
 
     readonly prev:
         ToField<Option<K>>
@@ -287,11 +292,12 @@ export class Node<K extends TypeArgument, V extends TypeArgument> {
     ; readonly value:
         ToField<V>
 
-    private constructor(typeArgs: [string, string], fields: NodeFields<K, V>,
+    private constructor(typeArgs: [ToTypeStr<K>, ToTypeStr<V>], fields: NodeFields<K, V>,
     ) {
-        this.$fullTypeName = composeSuiType(Node.$typeName,
-        ...typeArgs) as `0x2::linked_table::Node<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            Node.$typeName,
+            ...typeArgs
+        ) as `0x2::linked_table::Node<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
         this.$typeArgs = typeArgs;
 
         this.prev = fields.prev;; this.next = fields.next;; this.value = fields.value;
@@ -306,7 +312,10 @@ export class Node<K extends TypeArgument, V extends TypeArgument> {
                 Node.$typeName,
                 ...[extractType(K), extractType(V)]
             ) as `0x2::linked_table::Node<${ToTypeStr<ToTypeArgument<K>>}, ${ToTypeStr<ToTypeArgument<V>>}>`,
-            typeArgs: [K, V],
+            typeArgs: [
+                extractType(K), extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<K>>, ToTypeStr<ToTypeArgument<V>>],
+            reifiedTypeArgs: [K, V],
             fromFields: (fields: Record<string, any>) =>
                 Node.fromFields(
                     [K, V],
@@ -332,6 +341,11 @@ export class Node<K extends TypeArgument, V extends TypeArgument> {
                 Node.fromJSON(
                     [K, V],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Node.fromSuiParsedData(
+                    [K, V],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => Node.fetch(
                 client,

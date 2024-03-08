@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type FROZEN_PUBReified = Reified<
     FROZEN_PUBFields
 >;
 
-export class FROZEN_PUB {
+export class FROZEN_PUB implements StructClass {
     static readonly $typeName = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::frozen_pub::FROZEN_PUB";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class FROZEN_PUB {
 
     readonly $fullTypeName: "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::frozen_pub::FROZEN_PUB";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: FROZEN_PUBFields,
+    private constructor(typeArgs: [], fields: FROZEN_PUBFields,
     ) {
-        this.$fullTypeName = FROZEN_PUB.$typeName;
+        this.$fullTypeName = composeSuiType(
+            FROZEN_PUB.$typeName,
+            ...typeArgs
+        ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::frozen_pub::FROZEN_PUB";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class FROZEN_PUB {
                 FROZEN_PUB.$typeName,
                 ...[]
             ) as "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::frozen_pub::FROZEN_PUB",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 FROZEN_PUB.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class FROZEN_PUB {
                 FROZEN_PUB.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                FROZEN_PUB.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => FROZEN_PUB.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class FROZEN_PUB {
                 fields: FROZEN_PUBFields,
             ) => {
                 return new FROZEN_PUB(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class FROZEN_PUB {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

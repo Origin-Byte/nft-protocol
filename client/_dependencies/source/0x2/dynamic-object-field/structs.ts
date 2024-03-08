@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type WrapperReified<Name extends TypeArgument> = Reified<
     WrapperFields<Name>
 >;
 
-export class Wrapper<Name extends TypeArgument> {
+export class Wrapper<Name extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::dynamic_object_field::Wrapper";
     static readonly $numTypeParams = 1;
 
@@ -27,19 +27,18 @@ export class Wrapper<Name extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::dynamic_object_field::Wrapper<${ToTypeStr<Name>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<Name>];
 
     readonly name:
         ToField<Name>
 
-    private constructor(typeArg: string, fields: WrapperFields<Name>,
+    private constructor(typeArgs: [ToTypeStr<Name>], fields: WrapperFields<Name>,
     ) {
-        this.$fullTypeName = composeSuiType(Wrapper.$typeName,
-        typeArg) as `0x2::dynamic_object_field::Wrapper<${ToTypeStr<Name>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Wrapper.$typeName,
+            ...typeArgs
+        ) as `0x2::dynamic_object_field::Wrapper<${ToTypeStr<Name>}>`;
+        this.$typeArgs = typeArgs;
 
         this.name = fields.name;
     }
@@ -53,7 +52,10 @@ export class Wrapper<Name extends TypeArgument> {
                 Wrapper.$typeName,
                 ...[extractType(Name)]
             ) as `0x2::dynamic_object_field::Wrapper<${ToTypeStr<ToTypeArgument<Name>>}>`,
-            typeArgs: [Name],
+            typeArgs: [
+                extractType(Name)
+            ] as [ToTypeStr<ToTypeArgument<Name>>],
+            reifiedTypeArgs: [Name],
             fromFields: (fields: Record<string, any>) =>
                 Wrapper.fromFields(
                     Name,
@@ -80,6 +82,11 @@ export class Wrapper<Name extends TypeArgument> {
                     Name,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Wrapper.fromSuiParsedData(
+                    Name,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Wrapper.fetch(
                 client,
                 Name,
@@ -89,7 +96,7 @@ export class Wrapper<Name extends TypeArgument> {
                 fields: WrapperFields<ToTypeArgument<Name>>,
             ) => {
                 return new Wrapper(
-                    extractType(Name),
+                    [extractType(Name)],
                     fields
                 )
             },
@@ -159,7 +166,7 @@ export class Wrapper<Name extends TypeArgument> {
 
     toJSONField() {
         return {
-            name: fieldToJSON<Name>(this.$typeArg, this.name),
+            name: fieldToJSON<Name>(this.$typeArgs[0], this.name),
 
         }
     }
@@ -167,7 +174,7 @@ export class Wrapper<Name extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -191,7 +198,7 @@ export class Wrapper<Name extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Wrapper.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

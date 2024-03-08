@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {String} from "../ascii/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type TypeNameReified = Reified<
     TypeNameFields
 >;
 
-export class TypeName {
+export class TypeName implements StructClass {
     static readonly $typeName = "0x1::type_name::TypeName";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class TypeName {
 
     readonly $fullTypeName: "0x1::type_name::TypeName";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly name:
         ToField<String>
 
-    private constructor( fields: TypeNameFields,
+    private constructor(typeArgs: [], fields: TypeNameFields,
     ) {
-        this.$fullTypeName = TypeName.$typeName;
+        this.$fullTypeName = composeSuiType(
+            TypeName.$typeName,
+            ...typeArgs
+        ) as "0x1::type_name::TypeName";
+        this.$typeArgs = typeArgs;
 
         this.name = fields.name;
     }
@@ -47,7 +51,8 @@ export class TypeName {
                 TypeName.$typeName,
                 ...[]
             ) as "0x1::type_name::TypeName",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 TypeName.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class TypeName {
                 TypeName.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TypeName.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TypeName.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class TypeName {
                 fields: TypeNameFields,
             ) => {
                 return new TypeName(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class TypeName {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

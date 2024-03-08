@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type BalancesReified = Reified<
     BalancesFields
 >;
 
-export class Balances {
+export class Balances implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::balances::Balances";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class Balances {
 
     readonly $fullTypeName: "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::balances::Balances";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly inner:
         ToField<UID>
     ; readonly items:
         ToField<"u64">
 
-    private constructor( fields: BalancesFields,
+    private constructor(typeArgs: [], fields: BalancesFields,
     ) {
-        this.$fullTypeName = Balances.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Balances.$typeName,
+            ...typeArgs
+        ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::balances::Balances";
+        this.$typeArgs = typeArgs;
 
         this.inner = fields.inner;; this.items = fields.items;
     }
@@ -49,7 +53,8 @@ export class Balances {
                 Balances.$typeName,
                 ...[]
             ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::balances::Balances",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Balances.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class Balances {
                 Balances.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Balances.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Balances.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class Balances {
                 fields: BalancesFields,
             ) => {
                 return new Balances(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class Balances {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

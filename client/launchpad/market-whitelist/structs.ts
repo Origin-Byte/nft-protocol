@@ -1,6 +1,6 @@
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type CertificateReified = Reified<
     CertificateFields
 >;
 
-export class Certificate {
+export class Certificate implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Certificate";
     static readonly $numTypeParams = 0;
 
@@ -29,7 +29,7 @@ export class Certificate {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Certificate";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -38,9 +38,13 @@ export class Certificate {
     ; readonly venueId:
         ToField<ID>
 
-    private constructor( fields: CertificateFields,
+    private constructor(typeArgs: [], fields: CertificateFields,
     ) {
-        this.$fullTypeName = Certificate.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Certificate.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Certificate";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.listingId = fields.listingId;; this.venueId = fields.venueId;
     }
@@ -52,7 +56,8 @@ export class Certificate {
                 Certificate.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Certificate",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Certificate.fromFields(
                     fields,
@@ -74,6 +79,10 @@ export class Certificate {
                 Certificate.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Certificate.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Certificate.fetch(
                 client,
                 id,
@@ -82,6 +91,7 @@ export class Certificate {
                 fields: CertificateFields,
             ) => {
                 return new Certificate(
+                    [],
                     fields
                 )
             },
@@ -152,6 +162,7 @@ export class Certificate {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -228,7 +239,7 @@ export type WhitelistReified = Reified<
     WhitelistFields
 >;
 
-export class Whitelist {
+export class Whitelist implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Whitelist";
     static readonly $numTypeParams = 0;
 
@@ -236,7 +247,7 @@ export class Whitelist {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Whitelist";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -247,9 +258,13 @@ export class Whitelist {
     ; readonly list:
         ToField<VecSet<"address">>
 
-    private constructor( fields: WhitelistFields,
+    private constructor(typeArgs: [], fields: WhitelistFields,
     ) {
-        this.$fullTypeName = Whitelist.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Whitelist.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Whitelist";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.listingId = fields.listingId;; this.venueId = fields.venueId;; this.list = fields.list;
     }
@@ -261,7 +276,8 @@ export class Whitelist {
                 Whitelist.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::market_whitelist::Whitelist",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Whitelist.fromFields(
                     fields,
@@ -283,6 +299,10 @@ export class Whitelist {
                 Whitelist.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Whitelist.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Whitelist.fetch(
                 client,
                 id,
@@ -291,6 +311,7 @@ export class Whitelist {
                 fields: WhitelistFields,
             ) => {
                 return new Whitelist(
+                    [],
                     fields
                 )
             },
@@ -364,6 +385,7 @@ export class Whitelist {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

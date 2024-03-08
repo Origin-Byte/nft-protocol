@@ -1,6 +1,6 @@
 import {Option} from "../../_dependencies/source/0x1/option/structs";
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {Balances} from "../../originmate/balances/structs";
 import {BalanceAccessCap} from "../../request/transfer-request/structs";
@@ -23,7 +23,7 @@ export type BpsRoyaltyStrategyReified<T extends PhantomTypeArgument> = Reified<
     BpsRoyaltyStrategyFields<T>
 >;
 
-export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
+export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategy";
     static readonly $numTypeParams = 1;
 
@@ -31,9 +31,7 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategy<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -48,12 +46,13 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
     ; readonly isEnabled:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: BpsRoyaltyStrategyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: BpsRoyaltyStrategyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(BpsRoyaltyStrategy.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategy<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            BpsRoyaltyStrategy.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategy<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;; this.royaltyFeeBps = fields.royaltyFeeBps;; this.accessCap = fields.accessCap;; this.aggregator = fields.aggregator;; this.isEnabled = fields.isEnabled;
     }
@@ -67,7 +66,10 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
                 BpsRoyaltyStrategy.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategy<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 BpsRoyaltyStrategy.fromFields(
                     T,
@@ -94,6 +96,11 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BpsRoyaltyStrategy.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BpsRoyaltyStrategy.fetch(
                 client,
                 T,
@@ -103,7 +110,7 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
                 fields: BpsRoyaltyStrategyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new BpsRoyaltyStrategy(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -182,7 +189,7 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
 
     toJSONField() {
         return {
-            id: this.id,version: this.version.toString(),royaltyFeeBps: this.royaltyFeeBps,accessCap: fieldToJSON<Option<BalanceAccessCap<T>>>(`0x1::option::Option<0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceAccessCap<${this.$typeArg}>>`, this.accessCap),aggregator: this.aggregator.toJSONField(),isEnabled: this.isEnabled,
+            id: this.id,version: this.version.toString(),royaltyFeeBps: this.royaltyFeeBps,accessCap: fieldToJSON<Option<BalanceAccessCap<T>>>(`0x1::option::Option<0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43::transfer_request::BalanceAccessCap<${this.$typeArgs[0]}>>`, this.accessCap),aggregator: this.aggregator.toJSONField(),isEnabled: this.isEnabled,
 
         }
     }
@@ -190,7 +197,7 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -214,7 +221,7 @@ export class BpsRoyaltyStrategy<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(BpsRoyaltyStrategy.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -278,7 +285,7 @@ export type BpsRoyaltyStrategyRuleReified = Reified<
     BpsRoyaltyStrategyRuleFields
 >;
 
-export class BpsRoyaltyStrategyRule {
+export class BpsRoyaltyStrategyRule implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategyRule";
     static readonly $numTypeParams = 0;
 
@@ -286,14 +293,18 @@ export class BpsRoyaltyStrategyRule {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategyRule";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: BpsRoyaltyStrategyRuleFields,
+    private constructor(typeArgs: [], fields: BpsRoyaltyStrategyRuleFields,
     ) {
-        this.$fullTypeName = BpsRoyaltyStrategyRule.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BpsRoyaltyStrategyRule.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategyRule";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -305,7 +316,8 @@ export class BpsRoyaltyStrategyRule {
                 BpsRoyaltyStrategyRule.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::royalty_strategy_bps::BpsRoyaltyStrategyRule",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BpsRoyaltyStrategyRule.fromFields(
                     fields,
@@ -327,6 +339,10 @@ export class BpsRoyaltyStrategyRule {
                 BpsRoyaltyStrategyRule.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BpsRoyaltyStrategyRule.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BpsRoyaltyStrategyRule.fetch(
                 client,
                 id,
@@ -335,6 +351,7 @@ export class BpsRoyaltyStrategyRule {
                 fields: BpsRoyaltyStrategyRuleFields,
             ) => {
                 return new BpsRoyaltyStrategyRule(
+                    [],
                     fields
                 )
             },
@@ -401,6 +418,7 @@ export class BpsRoyaltyStrategyRule {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type EntryReified<T extends TypeArgument> = Reified<
     EntryFields<T>
 >;
 
-export class Entry<T extends TypeArgument> {
+export class Entry<T extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::priority_queue::Entry";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class Entry<T extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::priority_queue::Entry<${ToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<T>];
 
     readonly priority:
         ToField<"u64">
     ; readonly value:
         ToField<T>
 
-    private constructor(typeArg: string, fields: EntryFields<T>,
+    private constructor(typeArgs: [ToTypeStr<T>], fields: EntryFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Entry.$typeName,
-        typeArg) as `0x2::priority_queue::Entry<${ToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Entry.$typeName,
+            ...typeArgs
+        ) as `0x2::priority_queue::Entry<${ToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.priority = fields.priority;; this.value = fields.value;
     }
@@ -56,7 +55,10 @@ export class Entry<T extends TypeArgument> {
                 Entry.$typeName,
                 ...[extractType(T)]
             ) as `0x2::priority_queue::Entry<${ToTypeStr<ToTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [ToTypeStr<ToTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Entry.fromFields(
                     T,
@@ -83,6 +85,11 @@ export class Entry<T extends TypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Entry.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Entry.fetch(
                 client,
                 T,
@@ -92,7 +99,7 @@ export class Entry<T extends TypeArgument> {
                 fields: EntryFields<ToTypeArgument<T>>,
             ) => {
                 return new Entry(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -164,7 +171,7 @@ export class Entry<T extends TypeArgument> {
 
     toJSONField() {
         return {
-            priority: this.priority.toString(),value: fieldToJSON<T>(this.$typeArg, this.value),
+            priority: this.priority.toString(),value: fieldToJSON<T>(this.$typeArgs[0], this.value),
 
         }
     }
@@ -172,7 +179,7 @@ export class Entry<T extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -196,7 +203,7 @@ export class Entry<T extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Entry.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -260,7 +267,7 @@ export type PriorityQueueReified<T extends TypeArgument> = Reified<
     PriorityQueueFields<T>
 >;
 
-export class PriorityQueue<T extends TypeArgument> {
+export class PriorityQueue<T extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::priority_queue::PriorityQueue";
     static readonly $numTypeParams = 1;
 
@@ -268,19 +275,18 @@ export class PriorityQueue<T extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::priority_queue::PriorityQueue<${ToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<T>];
 
     readonly entries:
         ToField<Vector<Entry<T>>>
 
-    private constructor(typeArg: string, fields: PriorityQueueFields<T>,
+    private constructor(typeArgs: [ToTypeStr<T>], fields: PriorityQueueFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(PriorityQueue.$typeName,
-        typeArg) as `0x2::priority_queue::PriorityQueue<${ToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            PriorityQueue.$typeName,
+            ...typeArgs
+        ) as `0x2::priority_queue::PriorityQueue<${ToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.entries = fields.entries;
     }
@@ -294,7 +300,10 @@ export class PriorityQueue<T extends TypeArgument> {
                 PriorityQueue.$typeName,
                 ...[extractType(T)]
             ) as `0x2::priority_queue::PriorityQueue<${ToTypeStr<ToTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [ToTypeStr<ToTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 PriorityQueue.fromFields(
                     T,
@@ -321,6 +330,11 @@ export class PriorityQueue<T extends TypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                PriorityQueue.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => PriorityQueue.fetch(
                 client,
                 T,
@@ -330,7 +344,7 @@ export class PriorityQueue<T extends TypeArgument> {
                 fields: PriorityQueueFields<ToTypeArgument<T>>,
             ) => {
                 return new PriorityQueue(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -400,7 +414,7 @@ export class PriorityQueue<T extends TypeArgument> {
 
     toJSONField() {
         return {
-            entries: fieldToJSON<Vector<Entry<T>>>(`vector<0x2::priority_queue::Entry<${this.$typeArg}>>`, this.entries),
+            entries: fieldToJSON<Vector<Entry<T>>>(`vector<0x2::priority_queue::Entry<${this.$typeArgs[0]}>>`, this.entries),
 
         }
     }
@@ -408,7 +422,7 @@ export class PriorityQueue<T extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -432,7 +446,7 @@ export class PriorityQueue<T extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(PriorityQueue.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

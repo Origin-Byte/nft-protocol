@@ -3,7 +3,7 @@ import {TypeName} from "../../_dependencies/source/0x1/type-name/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {Table} from "../../_dependencies/source/0x2/table/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom, ToTypeStr as ToPhantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom, ToTypeStr as ToPhantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -24,7 +24,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::Witness";
     static readonly $numTypeParams = 0;
 
@@ -32,14 +32,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -51,7 +55,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -73,6 +78,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -81,6 +90,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -223,7 +234,7 @@ export type AccessPolicyReified<T extends PhantomTypeArgument> = Reified<
     AccessPolicyFields<T>
 >;
 
-export class AccessPolicy<T extends PhantomTypeArgument> {
+export class AccessPolicy<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicy";
     static readonly $numTypeParams = 1;
 
@@ -231,9 +242,7 @@ export class AccessPolicy<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicy<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -244,12 +253,13 @@ export class AccessPolicy<T extends PhantomTypeArgument> {
     ; readonly fieldAccess:
         ToField<Table<ToPhantom<TypeName>, ToPhantom<VecSet<"address">>>>
 
-    private constructor(typeArg: string, fields: AccessPolicyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: AccessPolicyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(AccessPolicy.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicy<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            AccessPolicy.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicy<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;; this.parentAccess = fields.parentAccess;; this.fieldAccess = fields.fieldAccess;
     }
@@ -263,7 +273,10 @@ export class AccessPolicy<T extends PhantomTypeArgument> {
                 AccessPolicy.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicy<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 AccessPolicy.fromFields(
                     T,
@@ -290,6 +303,11 @@ export class AccessPolicy<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AccessPolicy.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AccessPolicy.fetch(
                 client,
                 T,
@@ -299,7 +317,7 @@ export class AccessPolicy<T extends PhantomTypeArgument> {
                 fields: AccessPolicyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new AccessPolicy(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -383,7 +401,7 @@ export class AccessPolicy<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -407,7 +425,7 @@ export class AccessPolicy<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(AccessPolicy.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -471,7 +489,7 @@ export type AccessPolicyRuleReified = Reified<
     AccessPolicyRuleFields
 >;
 
-export class AccessPolicyRule {
+export class AccessPolicyRule implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicyRule";
     static readonly $numTypeParams = 0;
 
@@ -479,14 +497,18 @@ export class AccessPolicyRule {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicyRule";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: AccessPolicyRuleFields,
+    private constructor(typeArgs: [], fields: AccessPolicyRuleFields,
     ) {
-        this.$fullTypeName = AccessPolicyRule.$typeName;
+        this.$fullTypeName = composeSuiType(
+            AccessPolicyRule.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicyRule";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -498,7 +520,8 @@ export class AccessPolicyRule {
                 AccessPolicyRule.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::AccessPolicyRule",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 AccessPolicyRule.fromFields(
                     fields,
@@ -520,6 +543,10 @@ export class AccessPolicyRule {
                 AccessPolicyRule.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                AccessPolicyRule.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => AccessPolicyRule.fetch(
                 client,
                 id,
@@ -528,6 +555,7 @@ export class AccessPolicyRule {
                 fields: AccessPolicyRuleFields,
             ) => {
                 return new AccessPolicyRule(
+                    [],
                     fields
                 )
             },
@@ -594,6 +622,7 @@ export class AccessPolicyRule {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -670,7 +699,7 @@ export type NewPolicyEventReified = Reified<
     NewPolicyEventFields
 >;
 
-export class NewPolicyEvent {
+export class NewPolicyEvent implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::NewPolicyEvent";
     static readonly $numTypeParams = 0;
 
@@ -678,16 +707,20 @@ export class NewPolicyEvent {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::NewPolicyEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly policyId:
         ToField<ID>
     ; readonly typeName:
         ToField<TypeName>
 
-    private constructor( fields: NewPolicyEventFields,
+    private constructor(typeArgs: [], fields: NewPolicyEventFields,
     ) {
-        this.$fullTypeName = NewPolicyEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            NewPolicyEvent.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::NewPolicyEvent";
+        this.$typeArgs = typeArgs;
 
         this.policyId = fields.policyId;; this.typeName = fields.typeName;
     }
@@ -699,7 +732,8 @@ export class NewPolicyEvent {
                 NewPolicyEvent.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::access_policy::NewPolicyEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 NewPolicyEvent.fromFields(
                     fields,
@@ -721,6 +755,10 @@ export class NewPolicyEvent {
                 NewPolicyEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                NewPolicyEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => NewPolicyEvent.fetch(
                 client,
                 id,
@@ -729,6 +767,7 @@ export class NewPolicyEvent {
                 fields: NewPolicyEventFields,
             ) => {
                 return new NewPolicyEvent(
+                    [],
                     fields
                 )
             },
@@ -797,6 +836,7 @@ export class NewPolicyEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

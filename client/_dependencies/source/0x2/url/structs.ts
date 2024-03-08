@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {String} from "../../0x1/ascii/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type UrlReified = Reified<
     UrlFields
 >;
 
-export class Url {
+export class Url implements StructClass {
     static readonly $typeName = "0x2::url::Url";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class Url {
 
     readonly $fullTypeName: "0x2::url::Url";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly url:
         ToField<String>
 
-    private constructor( fields: UrlFields,
+    private constructor(typeArgs: [], fields: UrlFields,
     ) {
-        this.$fullTypeName = Url.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Url.$typeName,
+            ...typeArgs
+        ) as "0x2::url::Url";
+        this.$typeArgs = typeArgs;
 
         this.url = fields.url;
     }
@@ -47,7 +51,8 @@ export class Url {
                 Url.$typeName,
                 ...[]
             ) as "0x2::url::Url",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Url.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class Url {
                 Url.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Url.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Url.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class Url {
                 fields: UrlFields,
             ) => {
                 return new Url(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class Url {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

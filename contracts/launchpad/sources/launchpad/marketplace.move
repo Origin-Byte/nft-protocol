@@ -39,10 +39,11 @@ module ob_launchpad::marketplace {
 
     /// Transaction sender was not admin of marketplace
     const EInvalidAdmin: u64 = 1;
-
     const ENotAMemberNorAdmin: u64 = 2;
+    const EMarketplaceNotPermissionless: u64 = 3;
 
     struct MembersDfKey has store, copy, drop {}
+    struct PermissionlessFlag has store, copy, drop {}
 
     struct Marketplace has key, store {
         id: UID,
@@ -120,6 +121,16 @@ module ob_launchpad::marketplace {
         vec_set::remove(members, &member);
     }
 
+    public entry fun make_permissionless(
+        marketplace: &mut Marketplace,
+        ctx: &mut TxContext,
+    ) {
+        assert_marketplace_admin_or_member(marketplace, ctx);
+
+        // Add permissionless flag
+        df::add(&mut marketplace.id, PermissionlessFlag {}, true);
+    }
+
     // === Getters ===
 
     /// Get the Marketplace's `receiver` address
@@ -149,7 +160,7 @@ module ob_launchpad::marketplace {
         );
     }
 
-    public fun assert_listing_admin_or_member(marketplace: &Marketplace, ctx: &mut TxContext) {
+    public fun assert_marketplace_admin_or_member(marketplace: &Marketplace, ctx: &mut TxContext) {
         let is_admin = tx_context::sender(ctx) == marketplace.admin;
 
         if (is_admin == false) {
@@ -171,6 +182,10 @@ module ob_launchpad::marketplace {
         is_admin_or_member
     }
 
+    public fun assert_permissionless(marketplace: &Marketplace) {
+        assert!(df::exists_(&marketplace.id, PermissionlessFlag {}), EMarketplaceNotPermissionless);
+    }
+
     // === Upgradeability ===
 
     public (friend) fun assert_version(marketplace: &Marketplace) {
@@ -190,4 +205,27 @@ module ob_launchpad::marketplace {
         assert!(marketplace.version < VERSION, ENotUpgraded);
         marketplace.version = VERSION;
     }
+
+    // === Testing ===
+
+    #[test_only]
+    public fun destroy_for_testing(marketplace: Marketplace) {
+        let Marketplace {
+            id,
+            version: _,
+            admin: _,
+            receiver: _,
+            default_fee,
+        } = marketplace;
+
+        obox::destroy_for_testing(default_fee);
+        object::delete(id);
+    }
+
+    // === Deprecated ===
+
+    public fun assert_listing_admin_or_member(_marketplace: &Marketplace, _ctx: &mut TxContext) {
+        abort(0)
+    }
+
 }

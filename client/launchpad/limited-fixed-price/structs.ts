@@ -1,6 +1,6 @@
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {VecMap} from "../../_dependencies/source/0x2/vec-map/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type MarketKeyReified = Reified<
     MarketKeyFields
 >;
 
-export class MarketKey {
+export class MarketKey implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::MarketKey";
     static readonly $numTypeParams = 0;
 
@@ -29,14 +29,18 @@ export class MarketKey {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::MarketKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: MarketKeyFields,
+    private constructor(typeArgs: [], fields: MarketKeyFields,
     ) {
-        this.$fullTypeName = MarketKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            MarketKey.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::MarketKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -48,7 +52,8 @@ export class MarketKey {
                 MarketKey.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::MarketKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 MarketKey.fromFields(
                     fields,
@@ -70,6 +75,10 @@ export class MarketKey {
                 MarketKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                MarketKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => MarketKey.fetch(
                 client,
                 id,
@@ -78,6 +87,7 @@ export class MarketKey {
                 fields: MarketKeyFields,
             ) => {
                 return new MarketKey(
+                    [],
                     fields
                 )
             },
@@ -144,6 +154,7 @@ export class MarketKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -220,7 +231,7 @@ export type LimitedFixedPriceMarketReified<FT extends PhantomTypeArgument> = Rei
     LimitedFixedPriceMarketFields<FT>
 >;
 
-export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
+export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::LimitedFixedPriceMarket";
     static readonly $numTypeParams = 1;
 
@@ -228,9 +239,7 @@ export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::LimitedFixedPriceMarket<${PhantomToTypeStr<FT>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<FT>];
 
     readonly id:
         ToField<UID>
@@ -243,12 +252,13 @@ export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
     ; readonly addresses:
         ToField<VecMap<"address", "u64">>
 
-    private constructor(typeArg: string, fields: LimitedFixedPriceMarketFields<FT>,
+    private constructor(typeArgs: [PhantomToTypeStr<FT>], fields: LimitedFixedPriceMarketFields<FT>,
     ) {
-        this.$fullTypeName = composeSuiType(LimitedFixedPriceMarket.$typeName,
-        typeArg) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::LimitedFixedPriceMarket<${PhantomToTypeStr<FT>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            LimitedFixedPriceMarket.$typeName,
+            ...typeArgs
+        ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::LimitedFixedPriceMarket<${PhantomToTypeStr<FT>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.limit = fields.limit;; this.price = fields.price;; this.inventoryId = fields.inventoryId;; this.addresses = fields.addresses;
     }
@@ -262,7 +272,10 @@ export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
                 LimitedFixedPriceMarket.$typeName,
                 ...[extractType(FT)]
             ) as `0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::limited_fixed_price::LimitedFixedPriceMarket<${PhantomToTypeStr<ToPhantomTypeArgument<FT>>}>`,
-            typeArgs: [FT],
+            typeArgs: [
+                extractType(FT)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<FT>>],
+            reifiedTypeArgs: [FT],
             fromFields: (fields: Record<string, any>) =>
                 LimitedFixedPriceMarket.fromFields(
                     FT,
@@ -289,6 +302,11 @@ export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
                     FT,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                LimitedFixedPriceMarket.fromSuiParsedData(
+                    FT,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => LimitedFixedPriceMarket.fetch(
                 client,
                 FT,
@@ -298,7 +316,7 @@ export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
                 fields: LimitedFixedPriceMarketFields<ToPhantomTypeArgument<FT>>,
             ) => {
                 return new LimitedFixedPriceMarket(
-                    extractType(FT),
+                    [extractType(FT)],
                     fields
                 )
             },
@@ -384,7 +402,7 @@ export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -408,7 +426,7 @@ export class LimitedFixedPriceMarket<FT extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(LimitedFixedPriceMarket.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {Supply} from "../../utils/utils-supply/structs";
 import {MintCap} from "../mint-cap/structs";
@@ -21,7 +21,7 @@ export type MintSupplyReified<T extends PhantomTypeArgument> = Reified<
     MintSupplyFields<T>
 >;
 
-export class MintSupply<T extends PhantomTypeArgument> {
+export class MintSupply<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_supply::MintSupply";
     static readonly $numTypeParams = 1;
 
@@ -29,9 +29,7 @@ export class MintSupply<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_supply::MintSupply<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly frozen:
         ToField<"bool">
@@ -40,12 +38,13 @@ export class MintSupply<T extends PhantomTypeArgument> {
     ; readonly supply:
         ToField<Supply>
 
-    private constructor(typeArg: string, fields: MintSupplyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: MintSupplyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(MintSupply.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_supply::MintSupply<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            MintSupply.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_supply::MintSupply<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.frozen = fields.frozen;; this.mintCap = fields.mintCap;; this.supply = fields.supply;
     }
@@ -59,7 +58,10 @@ export class MintSupply<T extends PhantomTypeArgument> {
                 MintSupply.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::mint_supply::MintSupply<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 MintSupply.fromFields(
                     T,
@@ -86,6 +88,11 @@ export class MintSupply<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                MintSupply.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => MintSupply.fetch(
                 client,
                 T,
@@ -95,7 +102,7 @@ export class MintSupply<T extends PhantomTypeArgument> {
                 fields: MintSupplyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new MintSupply(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -176,7 +183,7 @@ export class MintSupply<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -200,7 +207,7 @@ export class MintSupply<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(MintSupply.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -2,7 +2,7 @@ import * as reified from "../../_framework/reified";
 import {String} from "../../_dependencies/source/0x1/ascii/structs";
 import {ID} from "../../_dependencies/source/0x2/object/structs";
 import {VecMap} from "../../_dependencies/source/0x2/vec-map/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, Vector, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -23,7 +23,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::Witness";
     static readonly $numTypeParams = 0;
 
@@ -31,14 +31,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -50,7 +54,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -72,6 +77,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -80,6 +89,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -146,6 +156,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -222,7 +233,7 @@ export type ComposableSvgReified = Reified<
     ComposableSvgFields
 >;
 
-export class ComposableSvg {
+export class ComposableSvg implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::ComposableSvg";
     static readonly $numTypeParams = 0;
 
@@ -230,7 +241,7 @@ export class ComposableSvg {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::ComposableSvg";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly nfts:
         ToField<Vector<ID>>
@@ -239,9 +250,13 @@ export class ComposableSvg {
     ; readonly svg:
         ToField<Vector<"u8">>
 
-    private constructor( fields: ComposableSvgFields,
+    private constructor(typeArgs: [], fields: ComposableSvgFields,
     ) {
-        this.$fullTypeName = ComposableSvg.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ComposableSvg.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::ComposableSvg";
+        this.$typeArgs = typeArgs;
 
         this.nfts = fields.nfts;; this.attributes = fields.attributes;; this.svg = fields.svg;
     }
@@ -253,7 +268,8 @@ export class ComposableSvg {
                 ComposableSvg.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::ComposableSvg",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ComposableSvg.fromFields(
                     fields,
@@ -275,6 +291,10 @@ export class ComposableSvg {
                 ComposableSvg.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ComposableSvg.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ComposableSvg.fetch(
                 client,
                 id,
@@ -283,6 +303,7 @@ export class ComposableSvg {
                 fields: ComposableSvgFields,
             ) => {
                 return new ComposableSvg(
+                    [],
                     fields
                 )
             },
@@ -353,6 +374,7 @@ export class ComposableSvg {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -429,7 +451,7 @@ export type RenderGuardReified = Reified<
     RenderGuardFields
 >;
 
-export class RenderGuard {
+export class RenderGuard implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::RenderGuard";
     static readonly $numTypeParams = 0;
 
@@ -437,16 +459,20 @@ export class RenderGuard {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::RenderGuard";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly children:
         ToField<Vector<ID>>
     ; readonly svg:
         ToField<Vector<"u8">>
 
-    private constructor( fields: RenderGuardFields,
+    private constructor(typeArgs: [], fields: RenderGuardFields,
     ) {
-        this.$fullTypeName = RenderGuard.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RenderGuard.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::RenderGuard";
+        this.$typeArgs = typeArgs;
 
         this.children = fields.children;; this.svg = fields.svg;
     }
@@ -458,7 +484,8 @@ export class RenderGuard {
                 RenderGuard.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_svg::RenderGuard",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RenderGuard.fromFields(
                     fields,
@@ -480,6 +507,10 @@ export class RenderGuard {
                 RenderGuard.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RenderGuard.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RenderGuard.fetch(
                 client,
                 id,
@@ -488,6 +519,7 @@ export class RenderGuard {
                 fields: RenderGuardFields,
             ) => {
                 return new RenderGuard(
+                    [],
                     fields
                 )
             },
@@ -556,6 +588,7 @@ export class RenderGuard {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

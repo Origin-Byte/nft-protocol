@@ -1,5 +1,5 @@
 import {Url} from "../../_dependencies/source/0x2/url/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::Witness";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -47,7 +51,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -219,7 +230,7 @@ export type ComposableUrlReified = Reified<
     ComposableUrlFields
 >;
 
-export class ComposableUrl {
+export class ComposableUrl implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::ComposableUrl";
     static readonly $numTypeParams = 0;
 
@@ -227,14 +238,18 @@ export class ComposableUrl {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::ComposableUrl";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly url:
         ToField<Url>
 
-    private constructor( fields: ComposableUrlFields,
+    private constructor(typeArgs: [], fields: ComposableUrlFields,
     ) {
-        this.$fullTypeName = ComposableUrl.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ComposableUrl.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::ComposableUrl";
+        this.$typeArgs = typeArgs;
 
         this.url = fields.url;
     }
@@ -246,7 +261,8 @@ export class ComposableUrl {
                 ComposableUrl.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::composable_url::ComposableUrl",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ComposableUrl.fromFields(
                     fields,
@@ -268,6 +284,10 @@ export class ComposableUrl {
                 ComposableUrl.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ComposableUrl.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ComposableUrl.fetch(
                 client,
                 id,
@@ -276,6 +296,7 @@ export class ComposableUrl {
                 fields: ComposableUrlFields,
             ) => {
                 return new ComposableUrl(
+                    [],
                     fields
                 )
             },
@@ -342,6 +363,7 @@ export class ComposableUrl {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

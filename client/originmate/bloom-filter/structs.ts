@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type FilterReified = Reified<
     FilterFields
 >;
 
-export class Filter {
+export class Filter implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::bloom_filter::Filter";
     static readonly $numTypeParams = 0;
 
@@ -27,16 +27,20 @@ export class Filter {
 
     readonly $fullTypeName: "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::bloom_filter::Filter";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bitmap:
         ToField<"u256">
     ; readonly hashCount:
         ToField<"u8">
 
-    private constructor( fields: FilterFields,
+    private constructor(typeArgs: [], fields: FilterFields,
     ) {
-        this.$fullTypeName = Filter.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Filter.$typeName,
+            ...typeArgs
+        ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::bloom_filter::Filter";
+        this.$typeArgs = typeArgs;
 
         this.bitmap = fields.bitmap;; this.hashCount = fields.hashCount;
     }
@@ -48,7 +52,8 @@ export class Filter {
                 Filter.$typeName,
                 ...[]
             ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::bloom_filter::Filter",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Filter.fromFields(
                     fields,
@@ -70,6 +75,10 @@ export class Filter {
                 Filter.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Filter.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Filter.fetch(
                 client,
                 id,
@@ -78,6 +87,7 @@ export class Filter {
                 fields: FilterFields,
             ) => {
                 return new Filter(
+                    [],
                     fields
                 )
             },
@@ -146,6 +156,7 @@ export class Filter {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

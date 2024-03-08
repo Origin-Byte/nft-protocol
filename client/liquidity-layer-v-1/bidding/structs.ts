@@ -2,7 +2,7 @@ import {String} from "../../_dependencies/source/0x1/ascii/structs";
 import {Option} from "../../_dependencies/source/0x1/option/structs";
 import {Balance} from "../../_dependencies/source/0x2/balance/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {BidCommission} from "../trading/structs";
 import {bcs, fromB64, fromHEX, toHEX} from "@mysten/bcs";
@@ -24,7 +24,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Witness";
     static readonly $numTypeParams = 0;
 
@@ -32,14 +32,18 @@ export class Witness {
 
     readonly $fullTypeName: "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -51,7 +55,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -73,6 +78,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -81,6 +90,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -223,7 +234,7 @@ export type BidReified<FT extends PhantomTypeArgument> = Reified<
     BidFields<FT>
 >;
 
-export class Bid<FT extends PhantomTypeArgument> {
+export class Bid<FT extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Bid";
     static readonly $numTypeParams = 1;
 
@@ -231,9 +242,7 @@ export class Bid<FT extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Bid<${PhantomToTypeStr<FT>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<FT>];
 
     readonly id:
         ToField<UID>
@@ -248,12 +257,13 @@ export class Bid<FT extends PhantomTypeArgument> {
     ; readonly commission:
         ToField<Option<BidCommission<FT>>>
 
-    private constructor(typeArg: string, fields: BidFields<FT>,
+    private constructor(typeArgs: [PhantomToTypeStr<FT>], fields: BidFields<FT>,
     ) {
-        this.$fullTypeName = composeSuiType(Bid.$typeName,
-        typeArg) as `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Bid<${PhantomToTypeStr<FT>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Bid.$typeName,
+            ...typeArgs
+        ) as `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Bid<${PhantomToTypeStr<FT>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.nft = fields.nft;; this.buyer = fields.buyer;; this.kiosk = fields.kiosk;; this.offer = fields.offer;; this.commission = fields.commission;
     }
@@ -267,7 +277,10 @@ export class Bid<FT extends PhantomTypeArgument> {
                 Bid.$typeName,
                 ...[extractType(FT)]
             ) as `0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::Bid<${PhantomToTypeStr<ToPhantomTypeArgument<FT>>}>`,
-            typeArgs: [FT],
+            typeArgs: [
+                extractType(FT)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<FT>>],
+            reifiedTypeArgs: [FT],
             fromFields: (fields: Record<string, any>) =>
                 Bid.fromFields(
                     FT,
@@ -294,6 +307,11 @@ export class Bid<FT extends PhantomTypeArgument> {
                     FT,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Bid.fromSuiParsedData(
+                    FT,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Bid.fetch(
                 client,
                 FT,
@@ -303,7 +321,7 @@ export class Bid<FT extends PhantomTypeArgument> {
                 fields: BidFields<ToPhantomTypeArgument<FT>>,
             ) => {
                 return new Bid(
-                    extractType(FT),
+                    [extractType(FT)],
                     fields
                 )
             },
@@ -383,7 +401,7 @@ export class Bid<FT extends PhantomTypeArgument> {
 
     toJSONField() {
         return {
-            id: this.id,nft: this.nft,buyer: this.buyer,kiosk: this.kiosk,offer: this.offer.toJSONField(),commission: fieldToJSON<Option<BidCommission<FT>>>(`0x1::option::Option<0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::BidCommission<${this.$typeArg}>>`, this.commission),
+            id: this.id,nft: this.nft,buyer: this.buyer,kiosk: this.kiosk,offer: this.offer.toJSONField(),commission: fieldToJSON<Option<BidCommission<FT>>>(`0x1::option::Option<0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::trading::BidCommission<${this.$typeArgs[0]}>>`, this.commission),
 
         }
     }
@@ -391,7 +409,7 @@ export class Bid<FT extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -415,7 +433,7 @@ export class Bid<FT extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Bid.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -479,7 +497,7 @@ export type BidClosedEventReified = Reified<
     BidClosedEventFields
 >;
 
-export class BidClosedEvent {
+export class BidClosedEvent implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidClosedEvent";
     static readonly $numTypeParams = 0;
 
@@ -487,7 +505,7 @@ export class BidClosedEvent {
 
     readonly $fullTypeName: "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidClosedEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bid:
         ToField<ID>
@@ -500,9 +518,13 @@ export class BidClosedEvent {
     ; readonly ftType:
         ToField<String>
 
-    private constructor( fields: BidClosedEventFields,
+    private constructor(typeArgs: [], fields: BidClosedEventFields,
     ) {
-        this.$fullTypeName = BidClosedEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BidClosedEvent.$typeName,
+            ...typeArgs
+        ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidClosedEvent";
+        this.$typeArgs = typeArgs;
 
         this.bid = fields.bid;; this.nft = fields.nft;; this.buyer = fields.buyer;; this.price = fields.price;; this.ftType = fields.ftType;
     }
@@ -514,7 +536,8 @@ export class BidClosedEvent {
                 BidClosedEvent.$typeName,
                 ...[]
             ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidClosedEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BidClosedEvent.fromFields(
                     fields,
@@ -536,6 +559,10 @@ export class BidClosedEvent {
                 BidClosedEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BidClosedEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BidClosedEvent.fetch(
                 client,
                 id,
@@ -544,6 +571,7 @@ export class BidClosedEvent {
                 fields: BidClosedEventFields,
             ) => {
                 return new BidClosedEvent(
+                    [],
                     fields
                 )
             },
@@ -619,6 +647,7 @@ export class BidClosedEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -695,7 +724,7 @@ export type BidCreatedEventReified = Reified<
     BidCreatedEventFields
 >;
 
-export class BidCreatedEvent {
+export class BidCreatedEvent implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidCreatedEvent";
     static readonly $numTypeParams = 0;
 
@@ -703,7 +732,7 @@ export class BidCreatedEvent {
 
     readonly $fullTypeName: "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidCreatedEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bid:
         ToField<ID>
@@ -720,9 +749,13 @@ export class BidCreatedEvent {
     ; readonly ftType:
         ToField<String>
 
-    private constructor( fields: BidCreatedEventFields,
+    private constructor(typeArgs: [], fields: BidCreatedEventFields,
     ) {
-        this.$fullTypeName = BidCreatedEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BidCreatedEvent.$typeName,
+            ...typeArgs
+        ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidCreatedEvent";
+        this.$typeArgs = typeArgs;
 
         this.bid = fields.bid;; this.nft = fields.nft;; this.price = fields.price;; this.commission = fields.commission;; this.buyer = fields.buyer;; this.buyerKiosk = fields.buyerKiosk;; this.ftType = fields.ftType;
     }
@@ -734,7 +767,8 @@ export class BidCreatedEvent {
                 BidCreatedEvent.$typeName,
                 ...[]
             ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidCreatedEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BidCreatedEvent.fromFields(
                     fields,
@@ -756,6 +790,10 @@ export class BidCreatedEvent {
                 BidCreatedEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BidCreatedEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BidCreatedEvent.fetch(
                 client,
                 id,
@@ -764,6 +802,7 @@ export class BidCreatedEvent {
                 fields: BidCreatedEventFields,
             ) => {
                 return new BidCreatedEvent(
+                    [],
                     fields
                 )
             },
@@ -843,6 +882,7 @@ export class BidCreatedEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -919,7 +959,7 @@ export type BidMatchedEventReified = Reified<
     BidMatchedEventFields
 >;
 
-export class BidMatchedEvent {
+export class BidMatchedEvent implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidMatchedEvent";
     static readonly $numTypeParams = 0;
 
@@ -927,7 +967,7 @@ export class BidMatchedEvent {
 
     readonly $fullTypeName: "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidMatchedEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bid:
         ToField<ID>
@@ -944,9 +984,13 @@ export class BidMatchedEvent {
     ; readonly nftType:
         ToField<String>
 
-    private constructor( fields: BidMatchedEventFields,
+    private constructor(typeArgs: [], fields: BidMatchedEventFields,
     ) {
-        this.$fullTypeName = BidMatchedEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            BidMatchedEvent.$typeName,
+            ...typeArgs
+        ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidMatchedEvent";
+        this.$typeArgs = typeArgs;
 
         this.bid = fields.bid;; this.nft = fields.nft;; this.price = fields.price;; this.seller = fields.seller;; this.buyer = fields.buyer;; this.ftType = fields.ftType;; this.nftType = fields.nftType;
     }
@@ -958,7 +1002,8 @@ export class BidMatchedEvent {
                 BidMatchedEvent.$typeName,
                 ...[]
             ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::bidding::BidMatchedEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 BidMatchedEvent.fromFields(
                     fields,
@@ -980,6 +1025,10 @@ export class BidMatchedEvent {
                 BidMatchedEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                BidMatchedEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => BidMatchedEvent.fetch(
                 client,
                 id,
@@ -988,6 +1037,7 @@ export class BidMatchedEvent {
                 fields: BidMatchedEventFields,
             ) => {
                 return new BidMatchedEvent(
+                    [],
                     fields
                 )
             },
@@ -1068,6 +1118,7 @@ export class BidMatchedEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

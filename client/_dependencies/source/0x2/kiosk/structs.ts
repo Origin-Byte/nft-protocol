@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom, ToTypeStr as ToPhantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom, ToTypeStr as ToPhantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {Balance} from "../balance/structs";
 import {ID, UID} from "../object/structs";
@@ -23,7 +23,7 @@ export type BorrowReified = Reified<
     BorrowFields
 >;
 
-export class Borrow {
+export class Borrow implements StructClass {
     static readonly $typeName = "0x2::kiosk::Borrow";
     static readonly $numTypeParams = 0;
 
@@ -31,16 +31,20 @@ export class Borrow {
 
     readonly $fullTypeName: "0x2::kiosk::Borrow";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly kioskId:
         ToField<ID>
     ; readonly itemId:
         ToField<ID>
 
-    private constructor( fields: BorrowFields,
+    private constructor(typeArgs: [], fields: BorrowFields,
     ) {
-        this.$fullTypeName = Borrow.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Borrow.$typeName,
+            ...typeArgs
+        ) as "0x2::kiosk::Borrow";
+        this.$typeArgs = typeArgs;
 
         this.kioskId = fields.kioskId;; this.itemId = fields.itemId;
     }
@@ -52,7 +56,8 @@ export class Borrow {
                 Borrow.$typeName,
                 ...[]
             ) as "0x2::kiosk::Borrow",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Borrow.fromFields(
                     fields,
@@ -74,6 +79,10 @@ export class Borrow {
                 Borrow.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Borrow.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Borrow.fetch(
                 client,
                 id,
@@ -82,6 +91,7 @@ export class Borrow {
                 fields: BorrowFields,
             ) => {
                 return new Borrow(
+                    [],
                     fields
                 )
             },
@@ -150,6 +160,7 @@ export class Borrow {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -226,7 +237,7 @@ export type ItemReified = Reified<
     ItemFields
 >;
 
-export class Item {
+export class Item implements StructClass {
     static readonly $typeName = "0x2::kiosk::Item";
     static readonly $numTypeParams = 0;
 
@@ -234,14 +245,18 @@ export class Item {
 
     readonly $fullTypeName: "0x2::kiosk::Item";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<ID>
 
-    private constructor( fields: ItemFields,
+    private constructor(typeArgs: [], fields: ItemFields,
     ) {
-        this.$fullTypeName = Item.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Item.$typeName,
+            ...typeArgs
+        ) as "0x2::kiosk::Item";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;
     }
@@ -253,7 +268,8 @@ export class Item {
                 Item.$typeName,
                 ...[]
             ) as "0x2::kiosk::Item",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Item.fromFields(
                     fields,
@@ -275,6 +291,10 @@ export class Item {
                 Item.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Item.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Item.fetch(
                 client,
                 id,
@@ -283,6 +303,7 @@ export class Item {
                 fields: ItemFields,
             ) => {
                 return new Item(
+                    [],
                     fields
                 )
             },
@@ -349,6 +370,7 @@ export class Item {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -425,7 +447,7 @@ export type ItemDelistedReified<T extends PhantomTypeArgument> = Reified<
     ItemDelistedFields<T>
 >;
 
-export class ItemDelisted<T extends PhantomTypeArgument> {
+export class ItemDelisted<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::kiosk::ItemDelisted";
     static readonly $numTypeParams = 1;
 
@@ -433,21 +455,20 @@ export class ItemDelisted<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::kiosk::ItemDelisted<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly kiosk:
         ToField<ID>
     ; readonly id:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: ItemDelistedFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: ItemDelistedFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(ItemDelisted.$typeName,
-        typeArg) as `0x2::kiosk::ItemDelisted<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            ItemDelisted.$typeName,
+            ...typeArgs
+        ) as `0x2::kiosk::ItemDelisted<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.kiosk = fields.kiosk;; this.id = fields.id;
     }
@@ -461,7 +482,10 @@ export class ItemDelisted<T extends PhantomTypeArgument> {
                 ItemDelisted.$typeName,
                 ...[extractType(T)]
             ) as `0x2::kiosk::ItemDelisted<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 ItemDelisted.fromFields(
                     T,
@@ -488,6 +512,11 @@ export class ItemDelisted<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ItemDelisted.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ItemDelisted.fetch(
                 client,
                 T,
@@ -497,7 +526,7 @@ export class ItemDelisted<T extends PhantomTypeArgument> {
                 fields: ItemDelistedFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new ItemDelisted(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -576,7 +605,7 @@ export class ItemDelisted<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -600,7 +629,7 @@ export class ItemDelisted<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(ItemDelisted.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -664,7 +693,7 @@ export type ItemListedReified<T extends PhantomTypeArgument> = Reified<
     ItemListedFields<T>
 >;
 
-export class ItemListed<T extends PhantomTypeArgument> {
+export class ItemListed<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::kiosk::ItemListed";
     static readonly $numTypeParams = 1;
 
@@ -672,9 +701,7 @@ export class ItemListed<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::kiosk::ItemListed<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly kiosk:
         ToField<ID>
@@ -683,12 +710,13 @@ export class ItemListed<T extends PhantomTypeArgument> {
     ; readonly price:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: ItemListedFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: ItemListedFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(ItemListed.$typeName,
-        typeArg) as `0x2::kiosk::ItemListed<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            ItemListed.$typeName,
+            ...typeArgs
+        ) as `0x2::kiosk::ItemListed<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.kiosk = fields.kiosk;; this.id = fields.id;; this.price = fields.price;
     }
@@ -702,7 +730,10 @@ export class ItemListed<T extends PhantomTypeArgument> {
                 ItemListed.$typeName,
                 ...[extractType(T)]
             ) as `0x2::kiosk::ItemListed<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 ItemListed.fromFields(
                     T,
@@ -729,6 +760,11 @@ export class ItemListed<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ItemListed.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ItemListed.fetch(
                 client,
                 T,
@@ -738,7 +774,7 @@ export class ItemListed<T extends PhantomTypeArgument> {
                 fields: ItemListedFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new ItemListed(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -819,7 +855,7 @@ export class ItemListed<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -843,7 +879,7 @@ export class ItemListed<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(ItemListed.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -907,7 +943,7 @@ export type ItemPurchasedReified<T extends PhantomTypeArgument> = Reified<
     ItemPurchasedFields<T>
 >;
 
-export class ItemPurchased<T extends PhantomTypeArgument> {
+export class ItemPurchased<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::kiosk::ItemPurchased";
     static readonly $numTypeParams = 1;
 
@@ -915,9 +951,7 @@ export class ItemPurchased<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::kiosk::ItemPurchased<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly kiosk:
         ToField<ID>
@@ -926,12 +960,13 @@ export class ItemPurchased<T extends PhantomTypeArgument> {
     ; readonly price:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: ItemPurchasedFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: ItemPurchasedFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(ItemPurchased.$typeName,
-        typeArg) as `0x2::kiosk::ItemPurchased<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            ItemPurchased.$typeName,
+            ...typeArgs
+        ) as `0x2::kiosk::ItemPurchased<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.kiosk = fields.kiosk;; this.id = fields.id;; this.price = fields.price;
     }
@@ -945,7 +980,10 @@ export class ItemPurchased<T extends PhantomTypeArgument> {
                 ItemPurchased.$typeName,
                 ...[extractType(T)]
             ) as `0x2::kiosk::ItemPurchased<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 ItemPurchased.fromFields(
                     T,
@@ -972,6 +1010,11 @@ export class ItemPurchased<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ItemPurchased.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ItemPurchased.fetch(
                 client,
                 T,
@@ -981,7 +1024,7 @@ export class ItemPurchased<T extends PhantomTypeArgument> {
                 fields: ItemPurchasedFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new ItemPurchased(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -1062,7 +1105,7 @@ export class ItemPurchased<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1086,7 +1129,7 @@ export class ItemPurchased<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(ItemPurchased.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -1150,7 +1193,7 @@ export type KioskReified = Reified<
     KioskFields
 >;
 
-export class Kiosk {
+export class Kiosk implements StructClass {
     static readonly $typeName = "0x2::kiosk::Kiosk";
     static readonly $numTypeParams = 0;
 
@@ -1158,7 +1201,7 @@ export class Kiosk {
 
     readonly $fullTypeName: "0x2::kiosk::Kiosk";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -1171,9 +1214,13 @@ export class Kiosk {
     ; readonly allowExtensions:
         ToField<"bool">
 
-    private constructor( fields: KioskFields,
+    private constructor(typeArgs: [], fields: KioskFields,
     ) {
-        this.$fullTypeName = Kiosk.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Kiosk.$typeName,
+            ...typeArgs
+        ) as "0x2::kiosk::Kiosk";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.profits = fields.profits;; this.owner = fields.owner;; this.itemCount = fields.itemCount;; this.allowExtensions = fields.allowExtensions;
     }
@@ -1185,7 +1232,8 @@ export class Kiosk {
                 Kiosk.$typeName,
                 ...[]
             ) as "0x2::kiosk::Kiosk",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Kiosk.fromFields(
                     fields,
@@ -1207,6 +1255,10 @@ export class Kiosk {
                 Kiosk.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Kiosk.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Kiosk.fetch(
                 client,
                 id,
@@ -1215,6 +1267,7 @@ export class Kiosk {
                 fields: KioskFields,
             ) => {
                 return new Kiosk(
+                    [],
                     fields
                 )
             },
@@ -1290,6 +1343,7 @@ export class Kiosk {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1366,7 +1420,7 @@ export type KioskOwnerCapReified = Reified<
     KioskOwnerCapFields
 >;
 
-export class KioskOwnerCap {
+export class KioskOwnerCap implements StructClass {
     static readonly $typeName = "0x2::kiosk::KioskOwnerCap";
     static readonly $numTypeParams = 0;
 
@@ -1374,16 +1428,20 @@ export class KioskOwnerCap {
 
     readonly $fullTypeName: "0x2::kiosk::KioskOwnerCap";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly for:
         ToField<ID>
 
-    private constructor( fields: KioskOwnerCapFields,
+    private constructor(typeArgs: [], fields: KioskOwnerCapFields,
     ) {
-        this.$fullTypeName = KioskOwnerCap.$typeName;
+        this.$fullTypeName = composeSuiType(
+            KioskOwnerCap.$typeName,
+            ...typeArgs
+        ) as "0x2::kiosk::KioskOwnerCap";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.for = fields.for;
     }
@@ -1395,7 +1453,8 @@ export class KioskOwnerCap {
                 KioskOwnerCap.$typeName,
                 ...[]
             ) as "0x2::kiosk::KioskOwnerCap",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 KioskOwnerCap.fromFields(
                     fields,
@@ -1417,6 +1476,10 @@ export class KioskOwnerCap {
                 KioskOwnerCap.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                KioskOwnerCap.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => KioskOwnerCap.fetch(
                 client,
                 id,
@@ -1425,6 +1488,7 @@ export class KioskOwnerCap {
                 fields: KioskOwnerCapFields,
             ) => {
                 return new KioskOwnerCap(
+                    [],
                     fields
                 )
             },
@@ -1493,6 +1557,7 @@ export class KioskOwnerCap {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1569,7 +1634,7 @@ export type ListingReified = Reified<
     ListingFields
 >;
 
-export class Listing {
+export class Listing implements StructClass {
     static readonly $typeName = "0x2::kiosk::Listing";
     static readonly $numTypeParams = 0;
 
@@ -1577,16 +1642,20 @@ export class Listing {
 
     readonly $fullTypeName: "0x2::kiosk::Listing";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<ID>
     ; readonly isExclusive:
         ToField<"bool">
 
-    private constructor( fields: ListingFields,
+    private constructor(typeArgs: [], fields: ListingFields,
     ) {
-        this.$fullTypeName = Listing.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Listing.$typeName,
+            ...typeArgs
+        ) as "0x2::kiosk::Listing";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.isExclusive = fields.isExclusive;
     }
@@ -1598,7 +1667,8 @@ export class Listing {
                 Listing.$typeName,
                 ...[]
             ) as "0x2::kiosk::Listing",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Listing.fromFields(
                     fields,
@@ -1620,6 +1690,10 @@ export class Listing {
                 Listing.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Listing.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Listing.fetch(
                 client,
                 id,
@@ -1628,6 +1702,7 @@ export class Listing {
                 fields: ListingFields,
             ) => {
                 return new Listing(
+                    [],
                     fields
                 )
             },
@@ -1696,6 +1771,7 @@ export class Listing {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1772,7 +1848,7 @@ export type LockReified = Reified<
     LockFields
 >;
 
-export class Lock {
+export class Lock implements StructClass {
     static readonly $typeName = "0x2::kiosk::Lock";
     static readonly $numTypeParams = 0;
 
@@ -1780,14 +1856,18 @@ export class Lock {
 
     readonly $fullTypeName: "0x2::kiosk::Lock";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<ID>
 
-    private constructor( fields: LockFields,
+    private constructor(typeArgs: [], fields: LockFields,
     ) {
-        this.$fullTypeName = Lock.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Lock.$typeName,
+            ...typeArgs
+        ) as "0x2::kiosk::Lock";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;
     }
@@ -1799,7 +1879,8 @@ export class Lock {
                 Lock.$typeName,
                 ...[]
             ) as "0x2::kiosk::Lock",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Lock.fromFields(
                     fields,
@@ -1821,6 +1902,10 @@ export class Lock {
                 Lock.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Lock.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Lock.fetch(
                 client,
                 id,
@@ -1829,6 +1914,7 @@ export class Lock {
                 fields: LockFields,
             ) => {
                 return new Lock(
+                    [],
                     fields
                 )
             },
@@ -1895,6 +1981,7 @@ export class Lock {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1971,7 +2058,7 @@ export type PurchaseCapReified<T extends PhantomTypeArgument> = Reified<
     PurchaseCapFields<T>
 >;
 
-export class PurchaseCap<T extends PhantomTypeArgument> {
+export class PurchaseCap<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::kiosk::PurchaseCap";
     static readonly $numTypeParams = 1;
 
@@ -1979,9 +2066,7 @@ export class PurchaseCap<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::kiosk::PurchaseCap<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -1992,12 +2077,13 @@ export class PurchaseCap<T extends PhantomTypeArgument> {
     ; readonly minPrice:
         ToField<"u64">
 
-    private constructor(typeArg: string, fields: PurchaseCapFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: PurchaseCapFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(PurchaseCap.$typeName,
-        typeArg) as `0x2::kiosk::PurchaseCap<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            PurchaseCap.$typeName,
+            ...typeArgs
+        ) as `0x2::kiosk::PurchaseCap<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.kioskId = fields.kioskId;; this.itemId = fields.itemId;; this.minPrice = fields.minPrice;
     }
@@ -2011,7 +2097,10 @@ export class PurchaseCap<T extends PhantomTypeArgument> {
                 PurchaseCap.$typeName,
                 ...[extractType(T)]
             ) as `0x2::kiosk::PurchaseCap<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 PurchaseCap.fromFields(
                     T,
@@ -2038,6 +2127,11 @@ export class PurchaseCap<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                PurchaseCap.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => PurchaseCap.fetch(
                 client,
                 T,
@@ -2047,7 +2141,7 @@ export class PurchaseCap<T extends PhantomTypeArgument> {
                 fields: PurchaseCapFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new PurchaseCap(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -2130,7 +2224,7 @@ export class PurchaseCap<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -2154,7 +2248,7 @@ export class PurchaseCap<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(PurchaseCap.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

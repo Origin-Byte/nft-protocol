@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type VecSetReified<K extends TypeArgument> = Reified<
     VecSetFields<K>
 >;
 
-export class VecSet<K extends TypeArgument> {
+export class VecSet<K extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::vec_set::VecSet";
     static readonly $numTypeParams = 1;
 
@@ -28,19 +28,18 @@ export class VecSet<K extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::vec_set::VecSet<${ToTypeStr<K>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [ToTypeStr<K>];
 
     readonly contents:
         ToField<Vector<K>>
 
-    private constructor(typeArg: string, fields: VecSetFields<K>,
+    private constructor(typeArgs: [ToTypeStr<K>], fields: VecSetFields<K>,
     ) {
-        this.$fullTypeName = composeSuiType(VecSet.$typeName,
-        typeArg) as `0x2::vec_set::VecSet<${ToTypeStr<K>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            VecSet.$typeName,
+            ...typeArgs
+        ) as `0x2::vec_set::VecSet<${ToTypeStr<K>}>`;
+        this.$typeArgs = typeArgs;
 
         this.contents = fields.contents;
     }
@@ -54,7 +53,10 @@ export class VecSet<K extends TypeArgument> {
                 VecSet.$typeName,
                 ...[extractType(K)]
             ) as `0x2::vec_set::VecSet<${ToTypeStr<ToTypeArgument<K>>}>`,
-            typeArgs: [K],
+            typeArgs: [
+                extractType(K)
+            ] as [ToTypeStr<ToTypeArgument<K>>],
+            reifiedTypeArgs: [K],
             fromFields: (fields: Record<string, any>) =>
                 VecSet.fromFields(
                     K,
@@ -81,6 +83,11 @@ export class VecSet<K extends TypeArgument> {
                     K,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                VecSet.fromSuiParsedData(
+                    K,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => VecSet.fetch(
                 client,
                 K,
@@ -90,7 +97,7 @@ export class VecSet<K extends TypeArgument> {
                 fields: VecSetFields<ToTypeArgument<K>>,
             ) => {
                 return new VecSet(
-                    extractType(K),
+                    [extractType(K)],
                     fields
                 )
             },
@@ -160,7 +167,7 @@ export class VecSet<K extends TypeArgument> {
 
     toJSONField() {
         return {
-            contents: fieldToJSON<Vector<K>>(`vector<${this.$typeArg}>`, this.contents),
+            contents: fieldToJSON<Vector<K>>(`vector<${this.$typeArgs[0]}>`, this.contents),
 
         }
     }
@@ -168,7 +175,7 @@ export class VecSet<K extends TypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -192,7 +199,7 @@ export class VecSet<K extends TypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(VecSet.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

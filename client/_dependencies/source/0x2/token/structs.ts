@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {Option} from "../../0x1/option/structs";
 import {String} from "../../0x1/string/structs";
@@ -26,7 +26,7 @@ export type RuleKeyReified<T extends PhantomTypeArgument> = Reified<
     RuleKeyFields<T>
 >;
 
-export class RuleKey<T extends PhantomTypeArgument> {
+export class RuleKey<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::token::RuleKey";
     static readonly $numTypeParams = 1;
 
@@ -34,19 +34,18 @@ export class RuleKey<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::token::RuleKey<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly isProtected:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: RuleKeyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: RuleKeyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(RuleKey.$typeName,
-        typeArg) as `0x2::token::RuleKey<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            RuleKey.$typeName,
+            ...typeArgs
+        ) as `0x2::token::RuleKey<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.isProtected = fields.isProtected;
     }
@@ -60,7 +59,10 @@ export class RuleKey<T extends PhantomTypeArgument> {
                 RuleKey.$typeName,
                 ...[extractType(T)]
             ) as `0x2::token::RuleKey<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 RuleKey.fromFields(
                     T,
@@ -87,6 +89,11 @@ export class RuleKey<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RuleKey.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RuleKey.fetch(
                 client,
                 T,
@@ -96,7 +103,7 @@ export class RuleKey<T extends PhantomTypeArgument> {
                 fields: RuleKeyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new RuleKey(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -173,7 +180,7 @@ export class RuleKey<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -197,7 +204,7 @@ export class RuleKey<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(RuleKey.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -261,7 +268,7 @@ export type ActionRequestReified<T extends PhantomTypeArgument> = Reified<
     ActionRequestFields<T>
 >;
 
-export class ActionRequest<T extends PhantomTypeArgument> {
+export class ActionRequest<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::token::ActionRequest";
     static readonly $numTypeParams = 1;
 
@@ -269,9 +276,7 @@ export class ActionRequest<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::token::ActionRequest<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly name:
         ToField<String>
@@ -286,12 +291,13 @@ export class ActionRequest<T extends PhantomTypeArgument> {
     ; readonly approvals:
         ToField<VecSet<TypeName>>
 
-    private constructor(typeArg: string, fields: ActionRequestFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: ActionRequestFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(ActionRequest.$typeName,
-        typeArg) as `0x2::token::ActionRequest<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            ActionRequest.$typeName,
+            ...typeArgs
+        ) as `0x2::token::ActionRequest<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.name = fields.name;; this.amount = fields.amount;; this.sender = fields.sender;; this.recipient = fields.recipient;; this.spentBalance = fields.spentBalance;; this.approvals = fields.approvals;
     }
@@ -305,7 +311,10 @@ export class ActionRequest<T extends PhantomTypeArgument> {
                 ActionRequest.$typeName,
                 ...[extractType(T)]
             ) as `0x2::token::ActionRequest<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 ActionRequest.fromFields(
                     T,
@@ -332,6 +341,11 @@ export class ActionRequest<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ActionRequest.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ActionRequest.fetch(
                 client,
                 T,
@@ -341,7 +355,7 @@ export class ActionRequest<T extends PhantomTypeArgument> {
                 fields: ActionRequestFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new ActionRequest(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -422,7 +436,7 @@ export class ActionRequest<T extends PhantomTypeArgument> {
 
     toJSONField() {
         return {
-            name: this.name,amount: this.amount.toString(),sender: this.sender,recipient: fieldToJSON<Option<"address">>(`0x1::option::Option<address>`, this.recipient),spentBalance: fieldToJSON<Option<Balance<T>>>(`0x1::option::Option<0x2::balance::Balance<${this.$typeArg}>>`, this.spentBalance),approvals: this.approvals.toJSONField(),
+            name: this.name,amount: this.amount.toString(),sender: this.sender,recipient: fieldToJSON<Option<"address">>(`0x1::option::Option<address>`, this.recipient),spentBalance: fieldToJSON<Option<Balance<T>>>(`0x1::option::Option<0x2::balance::Balance<${this.$typeArgs[0]}>>`, this.spentBalance),approvals: this.approvals.toJSONField(),
 
         }
     }
@@ -430,7 +444,7 @@ export class ActionRequest<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -454,7 +468,7 @@ export class ActionRequest<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(ActionRequest.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -518,7 +532,7 @@ export type TokenReified<T extends PhantomTypeArgument> = Reified<
     TokenFields<T>
 >;
 
-export class Token<T extends PhantomTypeArgument> {
+export class Token<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::token::Token";
     static readonly $numTypeParams = 1;
 
@@ -526,21 +540,20 @@ export class Token<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::token::Token<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
     ; readonly balance:
         ToField<Balance<T>>
 
-    private constructor(typeArg: string, fields: TokenFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TokenFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Token.$typeName,
-        typeArg) as `0x2::token::Token<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Token.$typeName,
+            ...typeArgs
+        ) as `0x2::token::Token<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.balance = fields.balance;
     }
@@ -554,7 +567,10 @@ export class Token<T extends PhantomTypeArgument> {
                 Token.$typeName,
                 ...[extractType(T)]
             ) as `0x2::token::Token<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Token.fromFields(
                     T,
@@ -581,6 +597,11 @@ export class Token<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Token.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Token.fetch(
                 client,
                 T,
@@ -590,7 +611,7 @@ export class Token<T extends PhantomTypeArgument> {
                 fields: TokenFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Token(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -669,7 +690,7 @@ export class Token<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -693,7 +714,7 @@ export class Token<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Token.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -757,7 +778,7 @@ export type TokenPolicyReified<T extends PhantomTypeArgument> = Reified<
     TokenPolicyFields<T>
 >;
 
-export class TokenPolicy<T extends PhantomTypeArgument> {
+export class TokenPolicy<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::token::TokenPolicy";
     static readonly $numTypeParams = 1;
 
@@ -765,9 +786,7 @@ export class TokenPolicy<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::token::TokenPolicy<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
@@ -776,12 +795,13 @@ export class TokenPolicy<T extends PhantomTypeArgument> {
     ; readonly rules:
         ToField<VecMap<String, VecSet<TypeName>>>
 
-    private constructor(typeArg: string, fields: TokenPolicyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TokenPolicyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(TokenPolicy.$typeName,
-        typeArg) as `0x2::token::TokenPolicy<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TokenPolicy.$typeName,
+            ...typeArgs
+        ) as `0x2::token::TokenPolicy<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.spentBalance = fields.spentBalance;; this.rules = fields.rules;
     }
@@ -795,7 +815,10 @@ export class TokenPolicy<T extends PhantomTypeArgument> {
                 TokenPolicy.$typeName,
                 ...[extractType(T)]
             ) as `0x2::token::TokenPolicy<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 TokenPolicy.fromFields(
                     T,
@@ -822,6 +845,11 @@ export class TokenPolicy<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TokenPolicy.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TokenPolicy.fetch(
                 client,
                 T,
@@ -831,7 +859,7 @@ export class TokenPolicy<T extends PhantomTypeArgument> {
                 fields: TokenPolicyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new TokenPolicy(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -912,7 +940,7 @@ export class TokenPolicy<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -936,7 +964,7 @@ export class TokenPolicy<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TokenPolicy.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -1000,7 +1028,7 @@ export type TokenPolicyCapReified<T extends PhantomTypeArgument> = Reified<
     TokenPolicyCapFields<T>
 >;
 
-export class TokenPolicyCap<T extends PhantomTypeArgument> {
+export class TokenPolicyCap<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::token::TokenPolicyCap";
     static readonly $numTypeParams = 1;
 
@@ -1008,21 +1036,20 @@ export class TokenPolicyCap<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::token::TokenPolicyCap<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<UID>
     ; readonly for:
         ToField<ID>
 
-    private constructor(typeArg: string, fields: TokenPolicyCapFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TokenPolicyCapFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(TokenPolicyCap.$typeName,
-        typeArg) as `0x2::token::TokenPolicyCap<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TokenPolicyCap.$typeName,
+            ...typeArgs
+        ) as `0x2::token::TokenPolicyCap<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.for = fields.for;
     }
@@ -1036,7 +1063,10 @@ export class TokenPolicyCap<T extends PhantomTypeArgument> {
                 TokenPolicyCap.$typeName,
                 ...[extractType(T)]
             ) as `0x2::token::TokenPolicyCap<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 TokenPolicyCap.fromFields(
                     T,
@@ -1063,6 +1093,11 @@ export class TokenPolicyCap<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TokenPolicyCap.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TokenPolicyCap.fetch(
                 client,
                 T,
@@ -1072,7 +1107,7 @@ export class TokenPolicyCap<T extends PhantomTypeArgument> {
                 fields: TokenPolicyCapFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new TokenPolicyCap(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -1151,7 +1186,7 @@ export class TokenPolicyCap<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1175,7 +1210,7 @@ export class TokenPolicyCap<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TokenPolicyCap.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 
@@ -1239,7 +1274,7 @@ export type TokenPolicyCreatedReified<T extends PhantomTypeArgument> = Reified<
     TokenPolicyCreatedFields<T>
 >;
 
-export class TokenPolicyCreated<T extends PhantomTypeArgument> {
+export class TokenPolicyCreated<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0x2::token::TokenPolicyCreated";
     static readonly $numTypeParams = 1;
 
@@ -1247,21 +1282,20 @@ export class TokenPolicyCreated<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0x2::token::TokenPolicyCreated<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly id:
         ToField<ID>
     ; readonly isMutable:
         ToField<"bool">
 
-    private constructor(typeArg: string, fields: TokenPolicyCreatedFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: TokenPolicyCreatedFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(TokenPolicyCreated.$typeName,
-        typeArg) as `0x2::token::TokenPolicyCreated<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            TokenPolicyCreated.$typeName,
+            ...typeArgs
+        ) as `0x2::token::TokenPolicyCreated<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.isMutable = fields.isMutable;
     }
@@ -1275,7 +1309,10 @@ export class TokenPolicyCreated<T extends PhantomTypeArgument> {
                 TokenPolicyCreated.$typeName,
                 ...[extractType(T)]
             ) as `0x2::token::TokenPolicyCreated<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 TokenPolicyCreated.fromFields(
                     T,
@@ -1302,6 +1339,11 @@ export class TokenPolicyCreated<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TokenPolicyCreated.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TokenPolicyCreated.fetch(
                 client,
                 T,
@@ -1311,7 +1353,7 @@ export class TokenPolicyCreated<T extends PhantomTypeArgument> {
                 fields: TokenPolicyCreatedFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new TokenPolicyCreated(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -1390,7 +1432,7 @@ export class TokenPolicyCreated<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1414,7 +1456,7 @@ export class TokenPolicyCreated<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(TokenPolicyCreated.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

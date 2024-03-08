@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type LIQUIDITY_LAYERReified = Reified<
     LIQUIDITY_LAYERFields
 >;
 
-export class LIQUIDITY_LAYER {
+export class LIQUIDITY_LAYER implements StructClass {
     static readonly $typeName = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::liquidity_layer::LIQUIDITY_LAYER";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class LIQUIDITY_LAYER {
 
     readonly $fullTypeName: "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::liquidity_layer::LIQUIDITY_LAYER";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: LIQUIDITY_LAYERFields,
+    private constructor(typeArgs: [], fields: LIQUIDITY_LAYERFields,
     ) {
-        this.$fullTypeName = LIQUIDITY_LAYER.$typeName;
+        this.$fullTypeName = composeSuiType(
+            LIQUIDITY_LAYER.$typeName,
+            ...typeArgs
+        ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::liquidity_layer::LIQUIDITY_LAYER";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class LIQUIDITY_LAYER {
                 LIQUIDITY_LAYER.$typeName,
                 ...[]
             ) as "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a::liquidity_layer::LIQUIDITY_LAYER",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 LIQUIDITY_LAYER.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class LIQUIDITY_LAYER {
                 LIQUIDITY_LAYER.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                LIQUIDITY_LAYER.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => LIQUIDITY_LAYER.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class LIQUIDITY_LAYER {
                 fields: LIQUIDITY_LAYERFields,
             ) => {
                 return new LIQUIDITY_LAYER(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class LIQUIDITY_LAYER {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

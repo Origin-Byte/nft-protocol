@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type I128Reified = Reified<
     I128Fields
 >;
 
-export class I128 {
+export class I128 implements StructClass {
     static readonly $typeName = "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i128_type::I128";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class I128 {
 
     readonly $fullTypeName: "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i128_type::I128";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly bits:
         ToField<"u128">
 
-    private constructor( fields: I128Fields,
+    private constructor(typeArgs: [], fields: I128Fields,
     ) {
-        this.$fullTypeName = I128.$typeName;
+        this.$fullTypeName = composeSuiType(
+            I128.$typeName,
+            ...typeArgs
+        ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i128_type::I128";
+        this.$typeArgs = typeArgs;
 
         this.bits = fields.bits;
     }
@@ -46,7 +50,8 @@ export class I128 {
                 I128.$typeName,
                 ...[]
             ) as "0xed6c6fe0732be937f4379bc0b471f0f6bfbe0e8741968009e0f01e6de3d59f32::i128_type::I128",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 I128.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class I128 {
                 I128.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                I128.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => I128.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class I128 {
                 fields: I128Fields,
             ) => {
                 return new I128(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class I128 {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

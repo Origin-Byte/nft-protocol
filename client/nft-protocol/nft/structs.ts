@@ -2,7 +2,7 @@ import {String} from "../../_dependencies/source/0x1/ascii/structs";
 import {String as String1} from "../../_dependencies/source/0x1/string/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
 import {Url} from "../../_dependencies/source/0x2/url/structs";
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -23,7 +23,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Witness";
     static readonly $numTypeParams = 0;
 
@@ -31,14 +31,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -50,7 +54,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -72,6 +77,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -80,6 +89,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -146,6 +156,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -222,7 +233,7 @@ export type MintNftEventReified = Reified<
     MintNftEventFields
 >;
 
-export class MintNftEvent {
+export class MintNftEvent implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::MintNftEvent";
     static readonly $numTypeParams = 0;
 
@@ -230,16 +241,20 @@ export class MintNftEvent {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::MintNftEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly nftId:
         ToField<ID>
     ; readonly nftType:
         ToField<String>
 
-    private constructor( fields: MintNftEventFields,
+    private constructor(typeArgs: [], fields: MintNftEventFields,
     ) {
-        this.$fullTypeName = MintNftEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            MintNftEvent.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::MintNftEvent";
+        this.$typeArgs = typeArgs;
 
         this.nftId = fields.nftId;; this.nftType = fields.nftType;
     }
@@ -251,7 +266,8 @@ export class MintNftEvent {
                 MintNftEvent.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::MintNftEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 MintNftEvent.fromFields(
                     fields,
@@ -273,6 +289,10 @@ export class MintNftEvent {
                 MintNftEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                MintNftEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => MintNftEvent.fetch(
                 client,
                 id,
@@ -281,6 +301,7 @@ export class MintNftEvent {
                 fields: MintNftEventFields,
             ) => {
                 return new MintNftEvent(
+                    [],
                     fields
                 )
             },
@@ -349,6 +370,7 @@ export class MintNftEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -425,7 +447,7 @@ export type NftReified<C extends PhantomTypeArgument> = Reified<
     NftFields<C>
 >;
 
-export class Nft<C extends PhantomTypeArgument> {
+export class Nft<C extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Nft";
     static readonly $numTypeParams = 1;
 
@@ -433,9 +455,7 @@ export class Nft<C extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Nft<${PhantomToTypeStr<C>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<C>];
 
     readonly id:
         ToField<UID>
@@ -444,12 +464,13 @@ export class Nft<C extends PhantomTypeArgument> {
     ; readonly url:
         ToField<Url>
 
-    private constructor(typeArg: string, fields: NftFields<C>,
+    private constructor(typeArgs: [PhantomToTypeStr<C>], fields: NftFields<C>,
     ) {
-        this.$fullTypeName = composeSuiType(Nft.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Nft<${PhantomToTypeStr<C>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Nft.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Nft<${PhantomToTypeStr<C>}>`;
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.name = fields.name;; this.url = fields.url;
     }
@@ -463,7 +484,10 @@ export class Nft<C extends PhantomTypeArgument> {
                 Nft.$typeName,
                 ...[extractType(C)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::nft::Nft<${PhantomToTypeStr<ToPhantomTypeArgument<C>>}>`,
-            typeArgs: [C],
+            typeArgs: [
+                extractType(C)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<C>>],
+            reifiedTypeArgs: [C],
             fromFields: (fields: Record<string, any>) =>
                 Nft.fromFields(
                     C,
@@ -490,6 +514,11 @@ export class Nft<C extends PhantomTypeArgument> {
                     C,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Nft.fromSuiParsedData(
+                    C,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Nft.fetch(
                 client,
                 C,
@@ -499,7 +528,7 @@ export class Nft<C extends PhantomTypeArgument> {
                 fields: NftFields<ToPhantomTypeArgument<C>>,
             ) => {
                 return new Nft(
-                    extractType(C),
+                    [extractType(C)],
                     fields
                 )
             },
@@ -580,7 +609,7 @@ export class Nft<C extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -604,7 +633,7 @@ export class Nft<C extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Nft.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

@@ -1,6 +1,6 @@
 import {ID} from "../../_dependencies/source/0x2/object/structs";
 import {VecSet} from "../../_dependencies/source/0x2/vec-set/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -21,7 +21,7 @@ export type WitnessReified = Reified<
     WitnessFields
 >;
 
-export class Witness {
+export class Witness implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::Witness";
     static readonly $numTypeParams = 0;
 
@@ -29,14 +29,18 @@ export class Witness {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::Witness";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: WitnessFields,
+    private constructor(typeArgs: [], fields: WitnessFields,
     ) {
-        this.$fullTypeName = Witness.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Witness.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::Witness";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -48,7 +52,8 @@ export class Witness {
                 Witness.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::Witness",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Witness.fromFields(
                     fields,
@@ -70,6 +75,10 @@ export class Witness {
                 Witness.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Witness.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Witness.fetch(
                 client,
                 id,
@@ -78,6 +87,7 @@ export class Witness {
                 fields: WitnessFields,
             ) => {
                 return new Witness(
+                    [],
                     fields
                 )
             },
@@ -144,6 +154,7 @@ export class Witness {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -220,7 +231,7 @@ export type TransferAllowlistDomainReified = Reified<
     TransferAllowlistDomainFields
 >;
 
-export class TransferAllowlistDomain {
+export class TransferAllowlistDomain implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::TransferAllowlistDomain";
     static readonly $numTypeParams = 0;
 
@@ -228,14 +239,18 @@ export class TransferAllowlistDomain {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::TransferAllowlistDomain";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly allowlists:
         ToField<VecSet<ID>>
 
-    private constructor( fields: TransferAllowlistDomainFields,
+    private constructor(typeArgs: [], fields: TransferAllowlistDomainFields,
     ) {
-        this.$fullTypeName = TransferAllowlistDomain.$typeName;
+        this.$fullTypeName = composeSuiType(
+            TransferAllowlistDomain.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::TransferAllowlistDomain";
+        this.$typeArgs = typeArgs;
 
         this.allowlists = fields.allowlists;
     }
@@ -247,7 +262,8 @@ export class TransferAllowlistDomain {
                 TransferAllowlistDomain.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::transfer_allowlist_domain::TransferAllowlistDomain",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 TransferAllowlistDomain.fromFields(
                     fields,
@@ -269,6 +285,10 @@ export class TransferAllowlistDomain {
                 TransferAllowlistDomain.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                TransferAllowlistDomain.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => TransferAllowlistDomain.fetch(
                 client,
                 id,
@@ -277,6 +297,7 @@ export class TransferAllowlistDomain {
                 fields: TransferAllowlistDomainFields,
             ) => {
                 return new TransferAllowlistDomain(
+                    [],
                     fields
                 )
             },
@@ -343,6 +364,7 @@ export class TransferAllowlistDomain {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

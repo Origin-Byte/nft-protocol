@@ -1,5 +1,5 @@
 import * as reified from "../../../../_framework/reified";
-import {PhantomReified, Reified, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeArgument, ToTypeStr, TypeArgument, Vector, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, fieldToJSON, phantom, toBcs} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {BcsType, bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type EntryReified<K extends TypeArgument, V extends TypeArgument> = Reifi
     EntryFields<K, V>
 >;
 
-export class Entry<K extends TypeArgument, V extends TypeArgument> {
+export class Entry<K extends TypeArgument, V extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::vec_map::Entry";
     static readonly $numTypeParams = 2;
 
@@ -28,20 +28,19 @@ export class Entry<K extends TypeArgument, V extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::vec_map::Entry<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [ToTypeStr<K>, ToTypeStr<V>];
 
     readonly key:
         ToField<K>
     ; readonly value:
         ToField<V>
 
-    private constructor(typeArgs: [string, string], fields: EntryFields<K, V>,
+    private constructor(typeArgs: [ToTypeStr<K>, ToTypeStr<V>], fields: EntryFields<K, V>,
     ) {
-        this.$fullTypeName = composeSuiType(Entry.$typeName,
-        ...typeArgs) as `0x2::vec_map::Entry<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            Entry.$typeName,
+            ...typeArgs
+        ) as `0x2::vec_map::Entry<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
         this.$typeArgs = typeArgs;
 
         this.key = fields.key;; this.value = fields.value;
@@ -56,7 +55,10 @@ export class Entry<K extends TypeArgument, V extends TypeArgument> {
                 Entry.$typeName,
                 ...[extractType(K), extractType(V)]
             ) as `0x2::vec_map::Entry<${ToTypeStr<ToTypeArgument<K>>}, ${ToTypeStr<ToTypeArgument<V>>}>`,
-            typeArgs: [K, V],
+            typeArgs: [
+                extractType(K), extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<K>>, ToTypeStr<ToTypeArgument<V>>],
+            reifiedTypeArgs: [K, V],
             fromFields: (fields: Record<string, any>) =>
                 Entry.fromFields(
                     [K, V],
@@ -82,6 +84,11 @@ export class Entry<K extends TypeArgument, V extends TypeArgument> {
                 Entry.fromJSON(
                     [K, V],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Entry.fromSuiParsedData(
+                    [K, V],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => Entry.fetch(
                 client,
@@ -259,7 +266,7 @@ export type VecMapReified<K extends TypeArgument, V extends TypeArgument> = Reif
     VecMapFields<K, V>
 >;
 
-export class VecMap<K extends TypeArgument, V extends TypeArgument> {
+export class VecMap<K extends TypeArgument, V extends TypeArgument> implements StructClass {
     static readonly $typeName = "0x2::vec_map::VecMap";
     static readonly $numTypeParams = 2;
 
@@ -267,18 +274,17 @@ export class VecMap<K extends TypeArgument, V extends TypeArgument> {
 
     readonly $fullTypeName: `0x2::vec_map::VecMap<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
 
-    readonly $typeArgs: [string, string];
-
-    ;
+    readonly $typeArgs: [ToTypeStr<K>, ToTypeStr<V>];
 
     readonly contents:
         ToField<Vector<Entry<K, V>>>
 
-    private constructor(typeArgs: [string, string], fields: VecMapFields<K, V>,
+    private constructor(typeArgs: [ToTypeStr<K>, ToTypeStr<V>], fields: VecMapFields<K, V>,
     ) {
-        this.$fullTypeName = composeSuiType(VecMap.$typeName,
-        ...typeArgs) as `0x2::vec_map::VecMap<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
-
+        this.$fullTypeName = composeSuiType(
+            VecMap.$typeName,
+            ...typeArgs
+        ) as `0x2::vec_map::VecMap<${ToTypeStr<K>}, ${ToTypeStr<V>}>`;
         this.$typeArgs = typeArgs;
 
         this.contents = fields.contents;
@@ -293,7 +299,10 @@ export class VecMap<K extends TypeArgument, V extends TypeArgument> {
                 VecMap.$typeName,
                 ...[extractType(K), extractType(V)]
             ) as `0x2::vec_map::VecMap<${ToTypeStr<ToTypeArgument<K>>}, ${ToTypeStr<ToTypeArgument<V>>}>`,
-            typeArgs: [K, V],
+            typeArgs: [
+                extractType(K), extractType(V)
+            ] as [ToTypeStr<ToTypeArgument<K>>, ToTypeStr<ToTypeArgument<V>>],
+            reifiedTypeArgs: [K, V],
             fromFields: (fields: Record<string, any>) =>
                 VecMap.fromFields(
                     [K, V],
@@ -319,6 +328,11 @@ export class VecMap<K extends TypeArgument, V extends TypeArgument> {
                 VecMap.fromJSON(
                     [K, V],
                     json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                VecMap.fromSuiParsedData(
+                    [K, V],
+                    content,
                 ),
             fetch: async (client: SuiClient, id: string) => VecMap.fetch(
                 client,

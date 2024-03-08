@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type FixedPoint32Reified = Reified<
     FixedPoint32Fields
 >;
 
-export class FixedPoint32 {
+export class FixedPoint32 implements StructClass {
     static readonly $typeName = "0x1::fixed_point32::FixedPoint32";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class FixedPoint32 {
 
     readonly $fullTypeName: "0x1::fixed_point32::FixedPoint32";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly value:
         ToField<"u64">
 
-    private constructor( fields: FixedPoint32Fields,
+    private constructor(typeArgs: [], fields: FixedPoint32Fields,
     ) {
-        this.$fullTypeName = FixedPoint32.$typeName;
+        this.$fullTypeName = composeSuiType(
+            FixedPoint32.$typeName,
+            ...typeArgs
+        ) as "0x1::fixed_point32::FixedPoint32";
+        this.$typeArgs = typeArgs;
 
         this.value = fields.value;
     }
@@ -46,7 +50,8 @@ export class FixedPoint32 {
                 FixedPoint32.$typeName,
                 ...[]
             ) as "0x1::fixed_point32::FixedPoint32",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 FixedPoint32.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class FixedPoint32 {
                 FixedPoint32.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                FixedPoint32.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => FixedPoint32.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class FixedPoint32 {
                 fields: FixedPoint32Fields,
             ) => {
                 return new FixedPoint32(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class FixedPoint32 {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

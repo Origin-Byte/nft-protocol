@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -19,7 +19,7 @@ export type PERMISSIONSReified = Reified<
     PERMISSIONSFields
 >;
 
-export class PERMISSIONS {
+export class PERMISSIONS implements StructClass {
     static readonly $typeName = "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::permissions::PERMISSIONS";
     static readonly $numTypeParams = 0;
 
@@ -27,14 +27,18 @@ export class PERMISSIONS {
 
     readonly $fullTypeName: "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::permissions::PERMISSIONS";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: PERMISSIONSFields,
+    private constructor(typeArgs: [], fields: PERMISSIONSFields,
     ) {
-        this.$fullTypeName = PERMISSIONS.$typeName;
+        this.$fullTypeName = composeSuiType(
+            PERMISSIONS.$typeName,
+            ...typeArgs
+        ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::permissions::PERMISSIONS";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -46,7 +50,8 @@ export class PERMISSIONS {
                 PERMISSIONS.$typeName,
                 ...[]
             ) as "0x16c5f17f2d55584a6e6daa442ccf83b4530d10546a8e7dedda9ba324e012fc40::permissions::PERMISSIONS",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 PERMISSIONS.fromFields(
                     fields,
@@ -68,6 +73,10 @@ export class PERMISSIONS {
                 PERMISSIONS.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                PERMISSIONS.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => PERMISSIONS.fetch(
                 client,
                 id,
@@ -76,6 +85,7 @@ export class PERMISSIONS {
                 fields: PERMISSIONSFields,
             ) => {
                 return new PERMISSIONS(
+                    [],
                     fields
                 )
             },
@@ -142,6 +152,7 @@ export class PERMISSIONS {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

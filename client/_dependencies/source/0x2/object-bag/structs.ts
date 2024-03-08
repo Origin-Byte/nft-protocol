@@ -1,4 +1,4 @@
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../../../_framework/util";
 import {UID} from "../object/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type ObjectBagReified = Reified<
     ObjectBagFields
 >;
 
-export class ObjectBag {
+export class ObjectBag implements StructClass {
     static readonly $typeName = "0x2::object_bag::ObjectBag";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class ObjectBag {
 
     readonly $fullTypeName: "0x2::object_bag::ObjectBag";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly size:
         ToField<"u64">
 
-    private constructor( fields: ObjectBagFields,
+    private constructor(typeArgs: [], fields: ObjectBagFields,
     ) {
-        this.$fullTypeName = ObjectBag.$typeName;
+        this.$fullTypeName = composeSuiType(
+            ObjectBag.$typeName,
+            ...typeArgs
+        ) as "0x2::object_bag::ObjectBag";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.size = fields.size;
     }
@@ -49,7 +53,8 @@ export class ObjectBag {
                 ObjectBag.$typeName,
                 ...[]
             ) as "0x2::object_bag::ObjectBag",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 ObjectBag.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class ObjectBag {
                 ObjectBag.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                ObjectBag.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => ObjectBag.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class ObjectBag {
                 fields: ObjectBagFields,
             ) => {
                 return new ObjectBag(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class ObjectBag {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

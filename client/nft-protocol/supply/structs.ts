@@ -1,4 +1,4 @@
-import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
+import {PhantomReified, PhantomToTypeStr, PhantomTypeArgument, Reified, StructClass, ToField, ToPhantomTypeArgument, ToTypeStr, assertFieldsWithTypesArgsMatch, assertReifiedTypeArgsMatch, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, extractType, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {Supply as Supply1} from "../../utils/utils-supply/structs";
 import {bcs, fromB64} from "@mysten/bcs";
@@ -20,7 +20,7 @@ export type SupplyReified<T extends PhantomTypeArgument> = Reified<
     SupplyFields<T>
 >;
 
-export class Supply<T extends PhantomTypeArgument> {
+export class Supply<T extends PhantomTypeArgument> implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::supply::Supply";
     static readonly $numTypeParams = 1;
 
@@ -28,21 +28,20 @@ export class Supply<T extends PhantomTypeArgument> {
 
     readonly $fullTypeName: `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::supply::Supply<${PhantomToTypeStr<T>}>`;
 
-    readonly $typeArg: string;
-
-    ;
+    readonly $typeArgs: [PhantomToTypeStr<T>];
 
     readonly frozen:
         ToField<"bool">
     ; readonly inner:
         ToField<Supply1>
 
-    private constructor(typeArg: string, fields: SupplyFields<T>,
+    private constructor(typeArgs: [PhantomToTypeStr<T>], fields: SupplyFields<T>,
     ) {
-        this.$fullTypeName = composeSuiType(Supply.$typeName,
-        typeArg) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::supply::Supply<${PhantomToTypeStr<T>}>`;
-
-        this.$typeArg = typeArg;
+        this.$fullTypeName = composeSuiType(
+            Supply.$typeName,
+            ...typeArgs
+        ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::supply::Supply<${PhantomToTypeStr<T>}>`;
+        this.$typeArgs = typeArgs;
 
         this.frozen = fields.frozen;; this.inner = fields.inner;
     }
@@ -56,7 +55,10 @@ export class Supply<T extends PhantomTypeArgument> {
                 Supply.$typeName,
                 ...[extractType(T)]
             ) as `0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::supply::Supply<${PhantomToTypeStr<ToPhantomTypeArgument<T>>}>`,
-            typeArgs: [T],
+            typeArgs: [
+                extractType(T)
+            ] as [PhantomToTypeStr<ToPhantomTypeArgument<T>>],
+            reifiedTypeArgs: [T],
             fromFields: (fields: Record<string, any>) =>
                 Supply.fromFields(
                     T,
@@ -83,6 +85,11 @@ export class Supply<T extends PhantomTypeArgument> {
                     T,
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Supply.fromSuiParsedData(
+                    T,
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Supply.fetch(
                 client,
                 T,
@@ -92,7 +99,7 @@ export class Supply<T extends PhantomTypeArgument> {
                 fields: SupplyFields<ToPhantomTypeArgument<T>>,
             ) => {
                 return new Supply(
-                    extractType(T),
+                    [extractType(T)],
                     fields
                 )
             },
@@ -171,7 +178,7 @@ export class Supply<T extends PhantomTypeArgument> {
     toJSON() {
         return {
             $typeName: this.$typeName,
-            $typeArg: this.$typeArg,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -195,7 +202,7 @@ export class Supply<T extends PhantomTypeArgument> {
         assertReifiedTypeArgsMatch(
             composeSuiType(Supply.$typeName,
             extractType(typeArg)),
-            [json.$typeArg],
+            json.$typeArgs,
             [typeArg],
         )
 

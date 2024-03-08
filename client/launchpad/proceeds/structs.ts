@@ -1,5 +1,5 @@
 import {UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type ProceedsReified = Reified<
     ProceedsFields
 >;
 
-export class Proceeds {
+export class Proceeds implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::Proceeds";
     static readonly $numTypeParams = 0;
 
@@ -28,16 +28,20 @@ export class Proceeds {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::Proceeds";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly qtSold:
         ToField<QtSold>
 
-    private constructor( fields: ProceedsFields,
+    private constructor(typeArgs: [], fields: ProceedsFields,
     ) {
-        this.$fullTypeName = Proceeds.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Proceeds.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::Proceeds";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.qtSold = fields.qtSold;
     }
@@ -49,7 +53,8 @@ export class Proceeds {
                 Proceeds.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::Proceeds",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Proceeds.fromFields(
                     fields,
@@ -71,6 +76,10 @@ export class Proceeds {
                 Proceeds.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Proceeds.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Proceeds.fetch(
                 client,
                 id,
@@ -79,6 +88,7 @@ export class Proceeds {
                 fields: ProceedsFields,
             ) => {
                 return new Proceeds(
+                    [],
                     fields
                 )
             },
@@ -147,6 +157,7 @@ export class Proceeds {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -223,7 +234,7 @@ export type QtSoldReified = Reified<
     QtSoldFields
 >;
 
-export class QtSold {
+export class QtSold implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::QtSold";
     static readonly $numTypeParams = 0;
 
@@ -231,16 +242,20 @@ export class QtSold {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::QtSold";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly collected:
         ToField<"u64">
     ; readonly total:
         ToField<"u64">
 
-    private constructor( fields: QtSoldFields,
+    private constructor(typeArgs: [], fields: QtSoldFields,
     ) {
-        this.$fullTypeName = QtSold.$typeName;
+        this.$fullTypeName = composeSuiType(
+            QtSold.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::QtSold";
+        this.$typeArgs = typeArgs;
 
         this.collected = fields.collected;; this.total = fields.total;
     }
@@ -252,7 +267,8 @@ export class QtSold {
                 QtSold.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::proceeds::QtSold",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 QtSold.fromFields(
                     fields,
@@ -274,6 +290,10 @@ export class QtSold {
                 QtSold.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                QtSold.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => QtSold.fetch(
                 client,
                 id,
@@ -282,6 +302,7 @@ export class QtSold {
                 fields: QtSoldFields,
             ) => {
                 return new QtSold(
+                    [],
                     fields
                 )
             },
@@ -350,6 +371,7 @@ export class QtSold {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

@@ -4,7 +4,7 @@ import {Option} from "../../_dependencies/source/0x1/option/structs";
 import {ObjectBag} from "../../_dependencies/source/0x2/object-bag/structs";
 import {ObjectTable} from "../../_dependencies/source/0x2/object-table/structs";
 import {ID, UID} from "../../_dependencies/source/0x2/object/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom, ToTypeStr as ToPhantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, fieldToJSON, phantom, ToTypeStr as ToPhantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {ObjectBox} from "../../originmate/object-box/structs";
 import {TypedID} from "../../originmate/typed-id/structs";
@@ -30,7 +30,7 @@ export type ListingReified = Reified<
     ListingFields
 >;
 
-export class Listing {
+export class Listing implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::Listing";
     static readonly $numTypeParams = 0;
 
@@ -38,7 +38,7 @@ export class Listing {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::Listing";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
@@ -59,9 +59,13 @@ export class Listing {
     ; readonly customFee:
         ToField<ObjectBox>
 
-    private constructor( fields: ListingFields,
+    private constructor(typeArgs: [], fields: ListingFields,
     ) {
-        this.$fullTypeName = Listing.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Listing.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::Listing";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.version = fields.version;; this.marketplaceId = fields.marketplaceId;; this.admin = fields.admin;; this.receiver = fields.receiver;; this.proceeds = fields.proceeds;; this.venues = fields.venues;; this.inventories = fields.inventories;; this.customFee = fields.customFee;
     }
@@ -73,7 +77,8 @@ export class Listing {
                 Listing.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::Listing",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Listing.fromFields(
                     fields,
@@ -95,6 +100,10 @@ export class Listing {
                 Listing.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Listing.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Listing.fetch(
                 client,
                 id,
@@ -103,6 +112,7 @@ export class Listing {
                 fields: ListingFields,
             ) => {
                 return new Listing(
+                    [],
                     fields
                 )
             },
@@ -187,6 +197,7 @@ export class Listing {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -263,7 +274,7 @@ export type MembersDfKeyReified = Reified<
     MembersDfKeyFields
 >;
 
-export class MembersDfKey {
+export class MembersDfKey implements StructClass {
     static readonly $typeName = "0xc0c5ca1e59bbb0e7330c8f182cbad262717faf7d8d0d7f7da4b3146391ecbbe1::listing::MembersDfKey";
     static readonly $numTypeParams = 0;
 
@@ -271,14 +282,18 @@ export class MembersDfKey {
 
     readonly $fullTypeName: "0xc0c5ca1e59bbb0e7330c8f182cbad262717faf7d8d0d7f7da4b3146391ecbbe1::listing::MembersDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: MembersDfKeyFields,
+    private constructor(typeArgs: [], fields: MembersDfKeyFields,
     ) {
-        this.$fullTypeName = MembersDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            MembersDfKey.$typeName,
+            ...typeArgs
+        ) as "0xc0c5ca1e59bbb0e7330c8f182cbad262717faf7d8d0d7f7da4b3146391ecbbe1::listing::MembersDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -290,7 +305,8 @@ export class MembersDfKey {
                 MembersDfKey.$typeName,
                 ...[]
             ) as "0xc0c5ca1e59bbb0e7330c8f182cbad262717faf7d8d0d7f7da4b3146391ecbbe1::listing::MembersDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 MembersDfKey.fromFields(
                     fields,
@@ -312,6 +328,10 @@ export class MembersDfKey {
                 MembersDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                MembersDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => MembersDfKey.fetch(
                 client,
                 id,
@@ -320,6 +340,7 @@ export class MembersDfKey {
                 fields: MembersDfKeyFields,
             ) => {
                 return new MembersDfKey(
+                    [],
                     fields
                 )
             },
@@ -386,6 +407,7 @@ export class MembersDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -462,7 +484,7 @@ export type CreateListingEventReified = Reified<
     CreateListingEventFields
 >;
 
-export class CreateListingEvent {
+export class CreateListingEvent implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::CreateListingEvent";
     static readonly $numTypeParams = 0;
 
@@ -470,14 +492,18 @@ export class CreateListingEvent {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::CreateListingEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly listingId:
         ToField<ID>
 
-    private constructor( fields: CreateListingEventFields,
+    private constructor(typeArgs: [], fields: CreateListingEventFields,
     ) {
-        this.$fullTypeName = CreateListingEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            CreateListingEvent.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::CreateListingEvent";
+        this.$typeArgs = typeArgs;
 
         this.listingId = fields.listingId;
     }
@@ -489,7 +515,8 @@ export class CreateListingEvent {
                 CreateListingEvent.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::CreateListingEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 CreateListingEvent.fromFields(
                     fields,
@@ -511,6 +538,10 @@ export class CreateListingEvent {
                 CreateListingEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                CreateListingEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => CreateListingEvent.fetch(
                 client,
                 id,
@@ -519,6 +550,7 @@ export class CreateListingEvent {
                 fields: CreateListingEventFields,
             ) => {
                 return new CreateListingEvent(
+                    [],
                     fields
                 )
             },
@@ -585,6 +617,7 @@ export class CreateListingEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -661,7 +694,7 @@ export type DeleteListingEventReified = Reified<
     DeleteListingEventFields
 >;
 
-export class DeleteListingEvent {
+export class DeleteListingEvent implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::DeleteListingEvent";
     static readonly $numTypeParams = 0;
 
@@ -669,14 +702,18 @@ export class DeleteListingEvent {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::DeleteListingEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly listingId:
         ToField<ID>
 
-    private constructor( fields: DeleteListingEventFields,
+    private constructor(typeArgs: [], fields: DeleteListingEventFields,
     ) {
-        this.$fullTypeName = DeleteListingEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            DeleteListingEvent.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::DeleteListingEvent";
+        this.$typeArgs = typeArgs;
 
         this.listingId = fields.listingId;
     }
@@ -688,7 +725,8 @@ export class DeleteListingEvent {
                 DeleteListingEvent.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::DeleteListingEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 DeleteListingEvent.fromFields(
                     fields,
@@ -710,6 +748,10 @@ export class DeleteListingEvent {
                 DeleteListingEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                DeleteListingEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => DeleteListingEvent.fetch(
                 client,
                 id,
@@ -718,6 +760,7 @@ export class DeleteListingEvent {
                 fields: DeleteListingEventFields,
             ) => {
                 return new DeleteListingEvent(
+                    [],
                     fields
                 )
             },
@@ -784,6 +827,7 @@ export class DeleteListingEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -860,7 +904,7 @@ export type NftSoldEventReified = Reified<
     NftSoldEventFields
 >;
 
-export class NftSoldEvent {
+export class NftSoldEvent implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::NftSoldEvent";
     static readonly $numTypeParams = 0;
 
@@ -868,7 +912,7 @@ export class NftSoldEvent {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::NftSoldEvent";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly nft:
         ToField<ID>
@@ -881,9 +925,13 @@ export class NftSoldEvent {
     ; readonly buyer:
         ToField<"address">
 
-    private constructor( fields: NftSoldEventFields,
+    private constructor(typeArgs: [], fields: NftSoldEventFields,
     ) {
-        this.$fullTypeName = NftSoldEvent.$typeName;
+        this.$fullTypeName = composeSuiType(
+            NftSoldEvent.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::NftSoldEvent";
+        this.$typeArgs = typeArgs;
 
         this.nft = fields.nft;; this.price = fields.price;; this.ftType = fields.ftType;; this.nftType = fields.nftType;; this.buyer = fields.buyer;
     }
@@ -895,7 +943,8 @@ export class NftSoldEvent {
                 NftSoldEvent.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::NftSoldEvent",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 NftSoldEvent.fromFields(
                     fields,
@@ -917,6 +966,10 @@ export class NftSoldEvent {
                 NftSoldEvent.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                NftSoldEvent.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => NftSoldEvent.fetch(
                 client,
                 id,
@@ -925,6 +978,7 @@ export class NftSoldEvent {
                 fields: NftSoldEventFields,
             ) => {
                 return new NftSoldEvent(
+                    [],
                     fields
                 )
             },
@@ -1000,6 +1054,7 @@ export class NftSoldEvent {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1076,7 +1131,7 @@ export type RequestToJoinReified = Reified<
     RequestToJoinFields
 >;
 
-export class RequestToJoin {
+export class RequestToJoin implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoin";
     static readonly $numTypeParams = 0;
 
@@ -1084,16 +1139,20 @@ export class RequestToJoin {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoin";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly id:
         ToField<UID>
     ; readonly marketplaceId:
         ToField<TypedID<ToPhantom<Marketplace>>>
 
-    private constructor( fields: RequestToJoinFields,
+    private constructor(typeArgs: [], fields: RequestToJoinFields,
     ) {
-        this.$fullTypeName = RequestToJoin.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RequestToJoin.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoin";
+        this.$typeArgs = typeArgs;
 
         this.id = fields.id;; this.marketplaceId = fields.marketplaceId;
     }
@@ -1105,7 +1164,8 @@ export class RequestToJoin {
                 RequestToJoin.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoin",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RequestToJoin.fromFields(
                     fields,
@@ -1127,6 +1187,10 @@ export class RequestToJoin {
                 RequestToJoin.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RequestToJoin.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RequestToJoin.fetch(
                 client,
                 id,
@@ -1135,6 +1199,7 @@ export class RequestToJoin {
                 fields: RequestToJoinFields,
             ) => {
                 return new RequestToJoin(
+                    [],
                     fields
                 )
             },
@@ -1203,6 +1268,7 @@ export class RequestToJoin {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1279,7 +1345,7 @@ export type RequestToJoinDfKeyReified = Reified<
     RequestToJoinDfKeyFields
 >;
 
-export class RequestToJoinDfKey {
+export class RequestToJoinDfKey implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoinDfKey";
     static readonly $numTypeParams = 0;
 
@@ -1287,14 +1353,18 @@ export class RequestToJoinDfKey {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoinDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly dummyField:
         ToField<"bool">
 
-    private constructor( fields: RequestToJoinDfKeyFields,
+    private constructor(typeArgs: [], fields: RequestToJoinDfKeyFields,
     ) {
-        this.$fullTypeName = RequestToJoinDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            RequestToJoinDfKey.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoinDfKey";
+        this.$typeArgs = typeArgs;
 
         this.dummyField = fields.dummyField;
     }
@@ -1306,7 +1376,8 @@ export class RequestToJoinDfKey {
                 RequestToJoinDfKey.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::RequestToJoinDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 RequestToJoinDfKey.fromFields(
                     fields,
@@ -1328,6 +1399,10 @@ export class RequestToJoinDfKey {
                 RequestToJoinDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                RequestToJoinDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => RequestToJoinDfKey.fetch(
                 client,
                 id,
@@ -1336,6 +1411,7 @@ export class RequestToJoinDfKey {
                 fields: RequestToJoinDfKeyFields,
             ) => {
                 return new RequestToJoinDfKey(
+                    [],
                     fields
                 )
             },
@@ -1402,6 +1478,7 @@ export class RequestToJoinDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
@@ -1462,6 +1539,216 @@ export class RequestToJoinDfKey {
     }
 }
 
+/* ============================== StartSaleDfKey =============================== */
+
+export function isStartSaleDfKey(type: string): boolean {
+    type = compressSuiType(type);
+    return type === "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::StartSaleDfKey";
+}
+
+export interface StartSaleDfKeyFields {
+    venueId: ToField<ID>
+}
+
+export type StartSaleDfKeyReified = Reified<
+    StartSaleDfKey,
+    StartSaleDfKeyFields
+>;
+
+export class StartSaleDfKey implements StructClass {
+    static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::StartSaleDfKey";
+    static readonly $numTypeParams = 0;
+
+    readonly $typeName = StartSaleDfKey.$typeName;
+
+    readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::StartSaleDfKey";
+
+    readonly $typeArgs: [];
+
+    readonly venueId:
+        ToField<ID>
+
+    private constructor(typeArgs: [], fields: StartSaleDfKeyFields,
+    ) {
+        this.$fullTypeName = composeSuiType(
+            StartSaleDfKey.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::StartSaleDfKey";
+        this.$typeArgs = typeArgs;
+
+        this.venueId = fields.venueId;
+    }
+
+    static reified(): StartSaleDfKeyReified {
+        return {
+            typeName: StartSaleDfKey.$typeName,
+            fullTypeName: composeSuiType(
+                StartSaleDfKey.$typeName,
+                ...[]
+            ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::StartSaleDfKey",
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
+            fromFields: (fields: Record<string, any>) =>
+                StartSaleDfKey.fromFields(
+                    fields,
+                ),
+            fromFieldsWithTypes: (item: FieldsWithTypes) =>
+                StartSaleDfKey.fromFieldsWithTypes(
+                    item,
+                ),
+            fromBcs: (data: Uint8Array) =>
+                StartSaleDfKey.fromBcs(
+                    data,
+                ),
+            bcs: StartSaleDfKey.bcs,
+            fromJSONField: (field: any) =>
+                StartSaleDfKey.fromJSONField(
+                    field,
+                ),
+            fromJSON: (json: Record<string, any>) =>
+                StartSaleDfKey.fromJSON(
+                    json,
+                ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                StartSaleDfKey.fromSuiParsedData(
+                    content,
+                ),
+            fetch: async (client: SuiClient, id: string) => StartSaleDfKey.fetch(
+                client,
+                id,
+            ),
+            new: (
+                fields: StartSaleDfKeyFields,
+            ) => {
+                return new StartSaleDfKey(
+                    [],
+                    fields
+                )
+            },
+            kind: "StructClassReified",
+        }
+    }
+
+    static get r() {
+        return StartSaleDfKey.reified()
+    }
+
+    static phantom(): PhantomReified<ToTypeStr<StartSaleDfKey>> {
+        return phantom(StartSaleDfKey.reified());
+    }
+
+    static get p() {
+        return StartSaleDfKey.phantom()
+    }
+
+    static get bcs() {
+        return bcs.struct("StartSaleDfKey", {
+            venue_id:
+                ID.bcs
+
+        })
+    };
+
+    static fromFields(
+         fields: Record<string, any>
+    ): StartSaleDfKey {
+        return StartSaleDfKey.reified().new(
+            {venueId: decodeFromFields(ID.reified(), fields.venue_id)}
+        )
+    }
+
+    static fromFieldsWithTypes(
+         item: FieldsWithTypes
+    ): StartSaleDfKey {
+        if (!isStartSaleDfKey(item.type)) {
+            throw new Error("not a StartSaleDfKey type");
+        }
+
+        return StartSaleDfKey.reified().new(
+            {venueId: decodeFromFieldsWithTypes(ID.reified(), item.fields.venue_id)}
+        )
+    }
+
+    static fromBcs(
+         data: Uint8Array
+    ): StartSaleDfKey {
+
+        return StartSaleDfKey.fromFields(
+            StartSaleDfKey.bcs.parse(data)
+        )
+    }
+
+    toJSONField() {
+        return {
+            venueId: this.venueId,
+
+        }
+    }
+
+    toJSON() {
+        return {
+            $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
+            ...this.toJSONField()
+        }
+    }
+
+    static fromJSONField(
+         field: any
+    ): StartSaleDfKey {
+        return StartSaleDfKey.reified().new(
+            {venueId: decodeFromJSONField(ID.reified(), field.venueId)}
+        )
+    }
+
+    static fromJSON(
+         json: Record<string, any>
+    ): StartSaleDfKey {
+        if (json.$typeName !== StartSaleDfKey.$typeName) {
+            throw new Error("not a WithTwoGenerics json object")
+        };
+
+        return StartSaleDfKey.fromJSONField(
+            json,
+        )
+    }
+
+    static fromSuiParsedData(
+         content: SuiParsedData
+    ): StartSaleDfKey {
+        if (content.dataType !== "moveObject") {
+            throw new Error("not an object");
+        }
+        if (!isStartSaleDfKey(content.type)) {
+            throw new Error(`object at ${(content.fields as any).id} is not a StartSaleDfKey object`);
+        }
+        return StartSaleDfKey.fromFieldsWithTypes(
+            content
+        );
+    }
+
+    static async fetch(
+        client: SuiClient, id: string
+    ): Promise<StartSaleDfKey> {
+        const res = await client.getObject({
+            id,
+            options: {
+                showBcs: true,
+            },
+        });
+        if (res.error) {
+            throw new Error(`error fetching StartSaleDfKey object at id ${id}: ${res.error.code}`);
+        }
+        if (res.data?.bcs?.dataType !== "moveObject" || !isStartSaleDfKey(res.data.bcs.type)) {
+            throw new Error(`object at id ${id} is not a StartSaleDfKey object`);
+        }
+
+        return StartSaleDfKey.fromBcs(
+            fromB64(res.data.bcs.bcsBytes)
+        );
+    }
+}
+
 /* ============================== WhitelistDfKey =============================== */
 
 export function isWhitelistDfKey(type: string): boolean {
@@ -1478,7 +1765,7 @@ export type WhitelistDfKeyReified = Reified<
     WhitelistDfKeyFields
 >;
 
-export class WhitelistDfKey {
+export class WhitelistDfKey implements StructClass {
     static readonly $typeName = "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::WhitelistDfKey";
     static readonly $numTypeParams = 0;
 
@@ -1486,14 +1773,18 @@ export class WhitelistDfKey {
 
     readonly $fullTypeName: "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::WhitelistDfKey";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly venueId:
         ToField<ID>
 
-    private constructor( fields: WhitelistDfKeyFields,
+    private constructor(typeArgs: [], fields: WhitelistDfKeyFields,
     ) {
-        this.$fullTypeName = WhitelistDfKey.$typeName;
+        this.$fullTypeName = composeSuiType(
+            WhitelistDfKey.$typeName,
+            ...typeArgs
+        ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::WhitelistDfKey";
+        this.$typeArgs = typeArgs;
 
         this.venueId = fields.venueId;
     }
@@ -1505,7 +1796,8 @@ export class WhitelistDfKey {
                 WhitelistDfKey.$typeName,
                 ...[]
             ) as "0xc74531639fadfb02d30f05f37de4cf1e1149ed8d23658edd089004830068180b::listing::WhitelistDfKey",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 WhitelistDfKey.fromFields(
                     fields,
@@ -1527,6 +1819,10 @@ export class WhitelistDfKey {
                 WhitelistDfKey.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                WhitelistDfKey.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => WhitelistDfKey.fetch(
                 client,
                 id,
@@ -1535,6 +1831,7 @@ export class WhitelistDfKey {
                 fields: WhitelistDfKeyFields,
             ) => {
                 return new WhitelistDfKey(
+                    [],
                     fields
                 )
             },
@@ -1601,6 +1898,7 @@ export class WhitelistDfKey {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }

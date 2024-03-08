@@ -1,5 +1,5 @@
 import {String} from "../../_dependencies/source/0x1/string/structs";
-import {PhantomReified, Reified, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
+import {PhantomReified, Reified, StructClass, ToField, ToTypeStr, decodeFromFields, decodeFromFieldsWithTypes, decodeFromJSONField, phantom} from "../../_framework/reified";
 import {FieldsWithTypes, composeSuiType, compressSuiType} from "../../_framework/util";
 import {bcs, fromB64} from "@mysten/bcs";
 import {SuiClient, SuiParsedData} from "@mysten/sui.js/client";
@@ -20,7 +20,7 @@ export type SymbolReified = Reified<
     SymbolFields
 >;
 
-export class Symbol {
+export class Symbol implements StructClass {
     static readonly $typeName = "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::symbol::Symbol";
     static readonly $numTypeParams = 0;
 
@@ -28,14 +28,18 @@ export class Symbol {
 
     readonly $fullTypeName: "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::symbol::Symbol";
 
-    ;
+    readonly $typeArgs: [];
 
     readonly symbol:
         ToField<String>
 
-    private constructor( fields: SymbolFields,
+    private constructor(typeArgs: [], fields: SymbolFields,
     ) {
-        this.$fullTypeName = Symbol.$typeName;
+        this.$fullTypeName = composeSuiType(
+            Symbol.$typeName,
+            ...typeArgs
+        ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::symbol::Symbol";
+        this.$typeArgs = typeArgs;
 
         this.symbol = fields.symbol;
     }
@@ -47,7 +51,8 @@ export class Symbol {
                 Symbol.$typeName,
                 ...[]
             ) as "0xbc3df36be17f27ac98e3c839b2589db8475fa07b20657b08e8891e3aaf5ee5f9::symbol::Symbol",
-            typeArgs: [],
+            typeArgs: [] as [],
+            reifiedTypeArgs: [],
             fromFields: (fields: Record<string, any>) =>
                 Symbol.fromFields(
                     fields,
@@ -69,6 +74,10 @@ export class Symbol {
                 Symbol.fromJSON(
                     json,
                 ),
+            fromSuiParsedData: (content: SuiParsedData) =>
+                Symbol.fromSuiParsedData(
+                    content,
+                ),
             fetch: async (client: SuiClient, id: string) => Symbol.fetch(
                 client,
                 id,
@@ -77,6 +86,7 @@ export class Symbol {
                 fields: SymbolFields,
             ) => {
                 return new Symbol(
+                    [],
                     fields
                 )
             },
@@ -143,6 +153,7 @@ export class Symbol {
     toJSON() {
         return {
             $typeName: this.$typeName,
+            $typeArgs: this.$typeArgs,
             ...this.toJSONField()
         }
     }
