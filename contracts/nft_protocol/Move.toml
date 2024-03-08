@@ -1,7 +1,7 @@
 [package]
 name = "NftProtocol"
 version = "1.7.0"
-published-at = "0x591942f013006753b9677d83d7c1e3a8a15ed95e97f6f66692336113a2e92778"
+published-at = "0x93e37219faa7ef2e4b3d6f57029c3552e7c4fed25bb28f3170413d3a0574dd67"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }

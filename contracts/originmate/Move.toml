@@ -7,7 +7,7 @@ authors = [
     "Michael Bausano <michael@originbyte.io>",
     "Nuno Boavida <nuno@originbyte.io>",
 ]
-published-at = "0x63dfd3b9f5ea05754013b9205a47eca6e0143986b25d5f3e8f7fd10a4453c922"
+published-at = "0xf23cd3f06f3b223004d1b55bd74af13167ed0115a3467474a64c4a25b3df6e04"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }

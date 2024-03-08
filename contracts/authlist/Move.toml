@@ -1,7 +1,7 @@
 [package]
 name = "Authlist"
 version = "1.7.0"
-published-at = "0x7b8b40d64863b47582cad7a8bf6335d359e5d043b171ab25888b9df5f95f5561"
+published-at = "0xc367993cb6e76b653302aa099296e1a4404ef58a9f1b382e9b324e703160e80d"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
