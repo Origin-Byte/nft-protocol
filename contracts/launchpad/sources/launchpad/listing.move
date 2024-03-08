@@ -225,9 +225,10 @@ module ob_launchpad::listing {
         }
     }
 
+    #[allow(lint(share_owned))]
     /// Initialises a `Listing` object, assigns a permissionless Marketplace
     /// to it and shares it.
-    public fun init_with_marketplace(
+    public fun init_listing_with_marketplace(
         marketplace: &Marketplace,
         listing_admin: address,
         receiver: address,
