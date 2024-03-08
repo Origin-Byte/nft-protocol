@@ -49,7 +49,7 @@ module ob_launchpad::test_listing {
         // 2. Create `Listing`
         test_scenario::next_tx(&mut scenario, CREATOR);
 
-        listing::init_with_marketplace(
+        listing::init_listing_with_marketplace(
             &marketplace,
             CREATOR, // Listing administrator, i.e. NFT Creator
             CREATOR, // Address that receives the net revenue from the sales, i.e. NFT Creator
@@ -158,6 +158,67 @@ module ob_launchpad::test_listing {
         listing::destroy_for_testing(listing);
         marketplace::destroy_for_testing(marketplace);
         coin::burn_for_testing(funds);
+        clock::destroy_for_testing(clock);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = ob_launchpad::listing::ECurrentTimeBelowVenueStartTime)]
+    fun it_fails_start_listing_before_start_time() {
+        // 1. Create `Listing`
+        let scenario = test_scenario::begin(MARKETPLACE);
+
+        listing::init_listing(
+            MARKETPLACE,
+            MARKETPLACE,
+            ctx(&mut scenario),
+        );
+
+        // 3. Mint NFTS to Warehouse
+        test_scenario::next_tx(&mut scenario, MARKETPLACE);
+        let listing = test_scenario::take_shared<Listing>(&scenario);
+
+        let nft = Foo { id: object::new(ctx(&mut scenario)) };
+        let warehouse = warehouse::new<Foo>(ctx(&mut scenario));
+
+        // This scope typically runs inside a mint function from an NFT Contract
+        {
+            warehouse::deposit_nft(&mut warehouse, nft);
+        };
+
+        // 4. Attach Warehouse to Listing
+        let inventory_id = listing::insert_warehouse(&mut listing, warehouse, ctx(&mut scenario));
+
+        // 5. Set up the market settings
+        let venue_id = fixed_price::create_venue<Foo, SUI>(
+            &mut listing,
+            inventory_id,
+            true, // If its whitelisted or not
+            100_000, // NFT price
+            ctx(&mut scenario)
+        );
+
+        // 6. Configure start time
+        listing::set_start_sale_time(
+            &mut listing,
+            1704157261, // start timestamp: Tue Jan 02 2024 01:01:01 GMT+0000
+            venue_id,
+            ctx(&mut scenario),
+        );
+
+        // 8. Initiate sale
+        test_scenario::next_tx(&mut scenario, BUYER);
+
+        let clock = clock::create_for_testing(ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, 1704153599); // 	Mon Jan 01 2024 23:59:59 GMT+0000
+
+        listing::start_sale_with_time(
+            &mut listing,
+            venue_id,
+            &clock, // Should faile because the clock is set one second before the event start
+        );
+
+        listing::destroy_for_testing(listing);
         clock::destroy_for_testing(clock);
         test_scenario::end(scenario);
     }
