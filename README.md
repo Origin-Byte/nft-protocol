@@ -2,9 +2,10 @@
     <h1><img src="./assets/logo.svg" alt="OriginByte" width="50%"></h1>
 </a>
 
-<h3>A new approach to NFTs</h3>
+<h3>A new approach to Digital Assets</h3>
 
-Origin-Byte is an ecosystem of tools, standards, and smart contracts designed to make life easier for Web3 Game Developers and NFT creators.
+Origin-Byte is an ecosystem of tools, standards, and smart contracts designed to make life easier for Digital Asset Creaters, from Web3 Game Developers, NFT creators, creators of Tokenized Media or non-standard OTC assets.
+
 From simple artwork to complex gaming assets, we want to help you reach the public, and provide on-chain market infrastructure.
 
 The ecosystem is partitioned into three critical components:
@@ -16,18 +17,25 @@ The ecosystem is partitioned into three critical components:
 - Secondary markets, encompassing principally the `Orderbook` which allows you
   to trade existing NFTs.
 
-## Resources
+## Contracts
 
 - Protocol contracts:
-  - [PseudoRandom](https://explorer.sui.io/object/0x9a586ae29d94788c0fc1db567b83f277c9f20af4e825374e127a331f2ae8231c)
-  - [Permissions](https://explorer.sui.io/object/0x59839eebd432e473ffca5a08675d26c49526ed39b584c39e762afa8c127f25a2)
-  - [Allowlist](https://explorer.sui.io/object/0x58c01ad7908a1c5ffbd70d89ac33e83cb554b828d69a7772246ae386bd62b5a7)
-  - [Authlist](https://explorer.sui.io/object/0x4e95600adb05c72bd2caefac7cfda17ca9ccd78846a15663b06662258761b81a)
-  - [Request](https://explorer.sui.io/object/0xadf32ebafc587cc86e1e56e59f7b17c7e8cbeb3315193be63c6f73157d4e88b9)
-  - [Kiosk](https://explorer.sui.io/object/0x2678c98fe23173eebea384509464eb81b1f3035a57419cb46d025000c337451a)
-  - [Liquidity Layer V1](https://explorer.sui.io/object/0x8534e4cdfd28709c94330a9783c3d5fe6f5daba0bffb69102ce303c5b38aed5a)
-  - [Launchpad V1](https://explorer.sui.io/object/0x546b50e2570a478ecdfc6e836077fc1f69306393738b0be2df459e658ed20915)
-  - [NftProtocol](https://explorer.sui.io/object/0x6f42ec2355fcda5ebeee2399d901ae9f71cb214e640a45a0007f1f1cdf9f7b5e)
+  - [Pseudorandom](https://explorer.sui.io/object/0x6aff3916ea448ecb49da685e79719781002f5346e775ea6a626257b10bb2793a)
+  - [Utils](https://explorer.sui.io/object/0x5885713a908af7f3cf023c2ecf3c95e5af6d2caeeaf1a1c4e97b19358b067a04)
+  - [Permissions](https://explorer.sui.io/object/0xc71e941d51e84f5e1c26157fe95b298aa6e56e3335a18bdbc97f1fd6393bafe6)
+  - [Request](https://explorer.sui.io/object/0xcf11790d441b8b92f9fdc7e2e30f3864f2751fbda3fbd53010f728bcfd3fda51)
+  - [Allowlist](https://explorer.sui.io/object/0x1487caf84ffaccadd3041bdf0e2c11a1f3a547010f1e0ac870f5727dca5b05a8)
+  - [Authlist](https://explorer.sui.io/object/0xc367993cb6e76b653302aa099296e1a4404ef58a9f1b382e9b324e703160e80d)
+  - [Critbit](https://explorer.sui.io/object/0x295cd8a79d28f2b0c6a1934a2863d40f6081d76a93d292359ac59710e8008806)
+  - [Originmate](https://explorer.sui.io/object/0xf23cd3f06f3b223004d1b55bd74af13167ed0115a3467474a64c4a25b3df6e04)
+  - [Kiosk](https://explorer.sui.io/object/0x5a50f6d261d103fc86f9797aafa1333918e53fa0896e0de2c72839389b412f50)
+  - [NftProtocol](https://explorer.sui.io/object/0x93e37219faa7ef2e4b3d6f57029c3552e7c4fed25bb28f3170413d3a0574dd67)
+  - [LiquidityLayerV1](https://explorer.sui.io/object/0xa81e103281edf411209e60ff8cf637f8495a0affac83bb90f93835b15adb9606)
+  - [Launchpad](https://explorer.sui.io/object/0x005de2a36494381dd434604eda6cda1b90403e2ee7b2faf44fa06f8a83217952)
+
+
+## Resources
+
 - [Official Documentation](https://docs.originbyte.io/origin-byte/)
 - [Developer Documentation](https://origin-byte.github.io/) (WIP)
 
@@ -44,6 +52,5 @@ If you are running on Linux you can use [suivm](https://github.com/Origin-Byte/s
 
 # Built and Test
 
-1. `$ sui move build` to build the available move modules
-2. `$ sui move test` to run the move tests
-3. `./bin/publish.sh` to publish the modules on localnet or devnet
+1. `./bin/build.sh` to build the available move modules
+2. `./bin/test.sh` to run the move tests
