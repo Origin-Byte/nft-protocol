@@ -4,7 +4,7 @@
 /// @dev An implementation of ObjectBag that constrains bag to holding only
 /// one object.
 module originmate::object_box {
-    // TODO: Would be good to rename to ObjectField and create a second 
+    // TODO: Would be good to rename to ObjectField and create a second
     // Field which does not require key. Would allow users to mark dynamic
     // fields explicitly.
     // TODOS: Tests
@@ -15,11 +15,11 @@ module originmate::object_box {
     use sui::tx_context::{TxContext};
 
     /// @dev Attempting to add an object to an ObjectBox when it already has one.
-    const GENERIC_BOX_FULL: u64 = 0x60700;
+    const EGenericBoxFull: u64 = 0;
+    const ENotEmpty: u64 = 1;
 
     struct ObjectBox has key, store {
         id: UID,
-        // TODO: Change to bool
         len: u64,
     }
 
@@ -68,7 +68,7 @@ module originmate::object_box {
         ob: &mut ObjectBox,
         v: V,
     ) {
-        assert!(ob.len == 0, GENERIC_BOX_FULL);
+        assert!(ob.len == 0, EGenericBoxFull);
 
         dof::add<TypeName, V>(
             &mut ob.id,
@@ -87,5 +87,20 @@ module originmate::object_box {
 
     public fun is_empty(ob: &ObjectBox): bool {
         ob.len == 0
+    }
+
+    public fun destroy(ob: ObjectBox) {
+        assert!(is_empty(&ob), ENotEmpty);
+
+        let ObjectBox { id, len: _ } = ob;
+
+        object::delete(id);
+    }
+
+    #[test_only]
+    public fun destroy_for_testing(ob: ObjectBox) {
+        let ObjectBox { id, len: _ } = ob;
+
+        object::delete(id);
     }
 }

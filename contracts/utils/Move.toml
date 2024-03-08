@@ -1,16 +1,11 @@
 [package]
 name = "Utils"
-version = "1.6.0"
+version = "1.7.0"
 published-at = "0xff2bd2f7d9515cc9823b1cfabc03ba3fad59e44d57c4c3863e520b526c41098f"
 
-[dependencies.Sui]
-git = "https://github.com/MystenLabs/sui.git"
-subdir = "crates/sui-framework/packages/sui-framework"
-# mainnet-1.15.1
-rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
-
-[dependencies.Pseudorandom]
-local = "./../pseudorandom"
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
+Pseudorandom = { local = "./../pseudorandom" }
 
 [addresses]
 ob_utils = "0xcdbd730f422a89174ee4717e97a3db1c48b008f969eec00846a0d685b2437f8a"

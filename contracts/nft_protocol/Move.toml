@@ -1,37 +1,18 @@
 [package]
 name = "NftProtocol"
-version = "1.6.0"
+version = "1.7.0"
 published-at = "0x591942f013006753b9677d83d7c1e3a8a15ed95e97f6f66692336113a2e92778"
 
-[dependencies.Sui]
-git = "https://github.com/MystenLabs/sui.git"
-subdir = "crates/sui-framework/packages/sui-framework"
-# mainnet-1.15.1
-rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
-
-[dependencies.Originmate]
-local = "./../originmate"
-
-[dependencies.Permissions]
-local = "./../permissions"
-
-[dependencies.Authlist]
-local = "./../authlist"
-
-[dependencies.Allowlist]
-local = "./../allowlist"
-
-[dependencies.Request]
-local = "./../request"
-
-[dependencies.Kiosk]
-local = "./../kiosk"
-
-[dependencies.Pseudorandom]
-local = "./../pseudorandom"
-
-[dependencies.Utils]
-local = "./../utils"
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
+Originmate = { local = "./../originmate" }
+Permissions = { local = "./../permissions" }
+Authlist = { local = "./../authlist" }
+Allowlist = { local = "./../allowlist" }
+Request = { local = "./../request" }
+Kiosk = { local = "./../kiosk" }
+Pseudorandom = { local = "./../pseudorandom" }
+Utils = { local = "./../utils" }
 
 [addresses]
 nft_protocol = "0x01735f24294e55a988541e97db050903cf8a70ce38c77ad219c134344eda67ac"

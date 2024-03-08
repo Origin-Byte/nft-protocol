@@ -2,7 +2,7 @@
 
 [move]
 version = 0
-manifest_digest = "204946F683F3C4914CA4B048F507FCECB11B621B4F148E19524E0D6884CFD8AF"
+manifest_digest = "B79C900E469AD907BC70E898EE094174BA95CE78A37857E77F1670B05268AEB8"
 deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
 
 [[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "mainnet-v1.19.1", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "Pseudorandom"
@@ -24,7 +24,7 @@ dependencies = [
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "mainnet-v1.19.1", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
@@ -38,3 +38,8 @@ dependencies = [
   { name = "Pseudorandom" },
   { name = "Sui" },
 ]
+
+[move.toolchain-version]
+compiler-version = "1.19.1"
+edition = "legacy"
+flavor = "sui"
