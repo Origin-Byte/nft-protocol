@@ -1,7 +1,7 @@
 [package]
 name = "LiquidityLayerV1"
 version = "1.7.0"
-published-at = "0x8534e4cdfd28709c94330a9783c3d5fe6f5daba0bffb69102ce303c5b38aed5a"
+published-at = "0x509f287d326291d1066e20e2eb8adbbe1c8283e895d58c23afe7c9228645def2"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }

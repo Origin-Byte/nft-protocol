@@ -1,7 +1,7 @@
 [package]
 name = "Permissions"
 version = "1.7.0"
-published-at = "0x59839eebd432e473ffca5a08675d26c49526ed39b584c39e762afa8c127f25a2"
+published-at = "0xe571741e4b123a32e4afda5268735a87f7ae5bc1a945d53c2c160d161651c7fc"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }

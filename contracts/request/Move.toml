@@ -1,7 +1,7 @@
 [package]
 name = "Request"
 version = "1.7.0"
-published-at = "0xadf32ebafc587cc86e1e56e59f7b17c7e8cbeb3315193be63c6f73157d4e88b9"
+published-at = "0xd4e94a458e5d192ffbac8364339e926450391bb8bd248973087f8cc264da3258"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }

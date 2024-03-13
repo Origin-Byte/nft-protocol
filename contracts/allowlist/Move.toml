@@ -1,7 +1,7 @@
 [package]
 name = "Allowlist"
 version = "1.7.0"
-published-at = "0x58c01ad7908a1c5ffbd70d89ac33e83cb554b828d69a7772246ae386bd62b5a7"
+published-at = "0x165462c17573288e823bbaabc782723f673c528a0dead0f320fe9d99e3ac66aa"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
