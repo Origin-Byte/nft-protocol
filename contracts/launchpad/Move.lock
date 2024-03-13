@@ -2,7 +2,7 @@
 
 [move]
 version = 0
-manifest_digest = "3175E3588114FAA720EA306680E118523829DD39F3DA86E807CC947AD461E0F7"
+manifest_digest = "461044ADFC5BFF564B120D25764387C867ACD614C75866CF29CC57E3E5C0E117"
 deps_digest = "397E6A9F7A624706DBDFEE056CE88391A15876868FD18A88504DA74EB458D697"
 
 dependencies = [
@@ -25,7 +25,7 @@ dependencies = [
 
 [[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "mainnet-v1.19.1", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "Originmate"
@@ -63,7 +63,7 @@ dependencies = [
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "mainnet-v1.19.1", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },

@@ -1,16 +1,11 @@
 [package]
 name = "Request"
-version = "1.6.0"
-published-at = "0xadf32ebafc587cc86e1e56e59f7b17c7e8cbeb3315193be63c6f73157d4e88b9"
+version = "1.7.0"
+published-at = "0xd4e94a458e5d192ffbac8364339e926450391bb8bd248973087f8cc264da3258"
 
-[dependencies.Sui]
-git = "https://github.com/MystenLabs/sui.git"
-subdir = "crates/sui-framework/packages/sui-framework"
-# mainnet-1.15.1
-rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
-
-[dependencies.Permissions]
-local = "./../permissions"
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
+Permissions = { local = "./../permissions" }
 
 [addresses]
 ob_request = "0xe2c7a6843cb13d9549a9d2dc1c266b572ead0b4b9f090e7c3c46de2714102b43"

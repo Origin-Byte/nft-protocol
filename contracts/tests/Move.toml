@@ -1,40 +1,19 @@
 [package]
 name = "IntegrationTests"
-version = "1.6.0"
+version = "1.7.0"
 published-at = "0x"
 
-[dependencies.Sui]
-git = "https://github.com/MystenLabs/sui.git"
-subdir = "crates/sui-framework/packages/sui-framework"
-# mainnet-1.15.1
-rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
-
-[dependencies.Originmate]
-local = "./../originmate"
-
-[dependencies.Critbit]
-local = "./../critbit"
-
-[dependencies.Permissions]
-local = "./../permissions"
-
-[dependencies.Authlist]
-local = "./../authlist"
-
-[dependencies.Allowlist]
-local = "./../allowlist"
-
-[dependencies.Request]
-local = "./../request"
-
-[dependencies.Kiosk]
-local = "./../kiosk"
-
-[dependencies.LiquidityLayerV1]
-local = "./../liquidity_layer_v1"
-
-[dependencies.NftProtocol]
-local = "./../nft_protocol"
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
+Originmate = { local = "./../originmate" }
+Critbit = { local = "./../critbit" }
+Permissions = { local = "./../permissions" }
+Authlist = { local = "./../authlist" }
+Allowlist = { local = "./../allowlist" }
+Request = { local = "./../request" }
+Kiosk = { local = "./../kiosk" }
+LiquidityLayerV1 = { local = "./../liquidity_layer_v1" }
+NftProtocol = { local = "./../nft_protocol" }
 
 [addresses]
 ob_tests = "0x"

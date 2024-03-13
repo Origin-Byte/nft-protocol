@@ -1,34 +1,15 @@
 [package]
 name = "LiquidityLayerV1"
-version = "1.6.0"
-published-at = "0x8534e4cdfd28709c94330a9783c3d5fe6f5daba0bffb69102ce303c5b38aed5a"
+version = "1.7.0"
+published-at = "0x509f287d326291d1066e20e2eb8adbbe1c8283e895d58c23afe7c9228645def2"
 
-[dependencies.Sui]
-git = "https://github.com/MystenLabs/sui.git"
-subdir = "crates/sui-framework/packages/sui-framework"
-# mainnet-1.15.1
-rev = "08119f95e9ccdc926eae3fff8c95e50678f56aed"
-
-[dependencies.Originmate]
-local = "./../originmate"
-
-[dependencies.Permissions]
-local = "./../permissions"
-
-[dependencies.Authlist]
-local = "./../authlist"
-
-[dependencies.Allowlist]
-local = "./../allowlist"
-
-[dependencies.Request]
-local = "./../request"
-
-[dependencies.Kiosk]
-local = "./../kiosk"
-
-[dependencies.Utils]
-local = "./../utils"
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.19.1" }
+Originmate = { local = "./../originmate" }
+Permissions = { local = "./../permissions" }
+Request = { local = "./../request" }
+Kiosk = { local = "./../kiosk" }
+Utils = { local = "./../utils" }
 
 [addresses]
 liquidity_layer_v1 = "0x4e0629fa51a62b0c1d7c7b9fc89237ec5b6f630d7798ad3f06d820afb93a995a"

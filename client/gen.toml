@@ -1,0 +1,18 @@
+[config]
+# will be set to mainnet by default if omitted
+#rpc = "https://fullnode.devnet.sui.io:443"
+
+[packages]
+# based on source code (syntax same as in Move.toml):
+Allowlist = { local = "../contracts/allowlist" }
+Authlist = { local = "../contracts/authlist" }
+Critbit = { local = "../contracts/critbit" }
+Kiosk = { local = "../contracts/kiosk" }
+Launchpad = { local = "../contracts/launchpad" }
+LiquidityLayerV1 = { local = "../contracts/liquidity_layer_v1" }
+NftProtocol = { local = "../contracts/nft_protocol" }
+Originmate = { local = "../contracts/originmate" }
+Permissions = { local = "../contracts/permissions" }
+Pseudorandom = { local = "../contracts/pseudorandom" }
+Request = { local = "../contracts/request" }
+Utils = { local = "../contracts/utils" }
